@@ -36,6 +36,7 @@ namespace oceanbase
       static int first_tablet_entry_schema(TableSchema& table_schema);
       static int all_all_column_schema(TableSchema& table_schema);
       static int all_join_info_schema(TableSchema& table_schema);
+      static int all_secondary_index_schema(TableSchema& table_schema); //longfei
     public:
       // other sys tables
       static int all_sys_stat_schema(TableSchema &table_schema);

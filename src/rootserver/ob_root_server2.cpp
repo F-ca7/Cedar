@@ -1230,7 +1230,7 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
     if (out_schema.get_table_count() <= 0)
     {
       ret = OB_INNER_STAT_ERROR;
-      TBSYS_LOG(WARN, "check schema table count less than 3:core[%d], version[%ld], count[%ld]",
+      TBSYS_LOG(WARN, "check schema table count less than 4:core[%d], version[%ld], count[%ld]",
         only_core_tables, out_schema.get_version(), out_schema.get_table_count());
     }
   }
@@ -1250,7 +1250,7 @@ int ObRootServer2::switch_schema_manager(const ObSchemaManagerV2 & schema_manage
     ret = OB_INVALID_ARGUMENT;
     TBSYS_LOG(WARN, "invalid argument. schema_manager_for_cache_=%p", schema_manager_for_cache_);
   }
-  else if (boot_state_.is_boot_ok() && schema_manager.get_table_count() <= 3)
+  else if (boot_state_.is_boot_ok() && schema_manager.get_table_count() <= 4)
   {
     ret = OB_INVALID_ARGUMENT;
     TBSYS_LOG(INFO, "schema verison:%ld", schema_manager.get_version());
@@ -7107,5 +7107,133 @@ int ObRootServer2::get_ms(ObServer& ms_server)
     ms_server = it->server_;
     ms_server.set_port(it->port_ms_);
   }
+  return ret;
+}
+
+/**
+ * @author:longfei
+ */
+// for sql api
+int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &tschema)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(INFO, "create index, if_not_exists=%c index_name=%s",
+      if_not_exists?'Y':'N', tschema.table_name_);
+  // just for pass the schema checking
+  uint64_t old_table_id = tschema.table_id_;
+  if (OB_INVALID_ID == old_table_id)
+  {
+    const_cast<TableSchema &> (tschema).table_id_ = OB_APP_MIN_TABLE_ID - 1;
+  }
+  else if (tschema.table_id_ < OB_APP_MIN_TABLE_ID && !config_.ddl_system_table_switch)
+  {
+    TBSYS_LOG(USER_ERROR, "create index table failed, while table_id[%ld] less than %ld, and drop system table switch is %s",
+        tschema.table_id_, OB_APP_MIN_TABLE_ID, config_.ddl_system_table_switch?"true":"false");
+    ret = OB_OP_NOT_ALLOW;
+  }
+  if(OB_SUCCESS == ret)
+  {
+    if (!tschema.is_valid())
+    {
+      TBSYS_LOG(WARN, "table schmea is invalid:table_name[%s]", tschema.table_name_);
+      ret = OB_INVALID_ARGUMENT;
+    }
+    else
+    {
+      bool is_all_merged = false;
+      ret = check_tablet_version(last_frozen_mem_version_, 1, is_all_merged);
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "tablet not merged to the last frozen version:ret[%d], version[%ld]",
+            ret, last_frozen_mem_version_);
+      }
+      else if (!is_all_merged)
+      {
+        ret = OB_OP_NOT_ALLOW;
+        TBSYS_LOG(WARN, "check tablet not merged to the last frozen version:ret[%d], version[%ld]",
+            ret, last_frozen_mem_version_);
+      }
+    }
+  }
+  if (OB_SUCCESS == ret)
+  {
+    size_t len = strlen(tschema.table_name_);
+    ObString table_name((int32_t)len, (int32_t)len, tschema.table_name_);
+    bool exist = false;
+    int err = OB_SUCCESS;
+    // LOCK BLOCK
+    {
+      tbsys::CThreadGuard guard(&mutex_lock_);
+      ret = check_table_exist(table_name, exist);
+      if (OB_SUCCESS == ret)
+      {
+        if (exist && !if_not_exists)
+        {
+          ret = OB_ENTRY_EXIST;
+          TBSYS_LOG(WARN, "check table already exist:tname[%s]", tschema.table_name_);
+        }
+        else if (exist)
+        {
+          TBSYS_LOG(INFO, "check table already exist:tname[%s]", tschema.table_name_);
+        }
+      }
+      // inner schema table operation
+      if ((OB_SUCCESS == ret) && !exist)
+      {
+        if (OB_INVALID_ID == old_table_id)
+        {
+          const_cast<TableSchema &> (tschema).table_id_ = old_table_id;
+        }
+        err = ddl_tool_.create_table(tschema);
+        if (err != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "create table throuth ddl tool failed:tname[%s], err[%d]",
+              tschema.table_name_, err);
+          ret = err;
+        }
+      }
+      /// refresh the new schema and schema version no mater success or failed
+      if (!exist)
+      {
+        int64_t count = 0;
+        err = refresh_new_schema(count);
+        if (err != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "refresh new schema manager after create table failed:"
+              "tname[%s], err[%d], ret[%d]", tschema.table_name_, err, ret);
+          ret = err;
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "refresh new schema manager after create table succ:"
+              "err[%d], count[%ld], ret[%d]", err, count, ret);
+        }
+      }
+    }
+    // notify schema update to all servers
+    if (OB_SUCCESS == ret)
+    {
+      if (OB_SUCCESS != (ret = notify_switch_schema(false)))
+      {
+        TBSYS_LOG(WARN, "switch schema fail:ret[%d]", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "notify switch schema after create table succ:table[%s]",
+            tschema.table_name_);
+      }
+    }
+    // only refresh the new schema manager
+    // fire an event to tell all clusters
+    {
+      err = ObRootTriggerUtil::create_table(root_trigger_, tschema.table_id_);
+      if (err != OB_SUCCESS)
+      {
+        TBSYS_LOG(ERROR, "trigger event for create table failed:err[%d], ret[%d]", err, ret);
+        ret = err;
+      }
+    }
+  }
+  const_cast<TableSchema &> (tschema).table_id_ = old_table_id;
   return ret;
 }

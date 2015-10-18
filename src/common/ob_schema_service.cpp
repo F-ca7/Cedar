@@ -285,6 +285,15 @@ DEFINE_SERIALIZE(TableSchema)
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, max_rowkey_length_)))
   {
   }
+
+  // longfei
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, original_table_id_)))
+  {
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, index_status_)))
+  {
+  }
+
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, merge_write_sstable_version_)))
   {
   }
@@ -410,6 +419,17 @@ DEFINE_DESERIALIZE(TableSchema)
   {
     TBSYS_LOG(WARN, "deserialize error here");
   }
+
+  // longfei
+  else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&original_table_id_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else if (OB_SUCCESS != (ret = serialization::decode_vi32(buf, data_len, pos, reinterpret_cast<int32_t*>(&index_status_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+
   else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, &merge_write_sstable_version_)))
   {
     TBSYS_LOG(WARN, "deserialize error here");

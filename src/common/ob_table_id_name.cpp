@@ -95,7 +95,7 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 3)
+      if (table_idx_ < 4) //longfei
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
       }
@@ -108,7 +108,7 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 3)
+      if (table_idx_ < 4) //longfei
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
       }
@@ -138,7 +138,7 @@ int ObTableIdNameIterator::get(ObTableIdName** table_info)
     ret = OB_ERR_UNEXPECTED;
     TBSYS_LOG(ERROR, "get failed");
   }
-  else if (table_idx_ < 3)
+  else if (table_idx_ < 4)
   {
     ret = internal_get(table_info);
   }
@@ -184,6 +184,12 @@ int ObTableIdNameIterator::internal_get(ObTableIdName** table_info)
       table_id_name_.table_name_.assign_ptr(const_cast<char*>(OB_ALL_JOININFO_TABLE_NAME),
           static_cast<int32_t>(strlen(OB_ALL_JOININFO_TABLE_NAME)));
       table_id_name_.table_id_ = OB_ALL_JOIN_INFO_TID;
+      *table_info = &table_id_name_;
+      break;
+    case 3: //longfei
+      table_id_name_.table_name_.assign_ptr(const_cast<char*>(OB_ALL_SECONDAYR_INDEX_TABLE_NAME),
+          static_cast<int32_t>(strlen(OB_ALL_SECONDAYR_INDEX_TABLE_NAME)));
+      table_id_name_.table_id_ = OB_ALL_SECONDARY_INDEX_TID;
       *table_info = &table_id_name_;
       break;
     default:

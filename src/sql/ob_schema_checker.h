@@ -56,6 +56,8 @@ namespace oceanbase
         bool is_rowkey_column(
             const common::ObString& table_name,
             const common::ObString& column_name) const;
+        // longfei
+        int is_index_full(uint64_t table_id,bool& is_full);
         
       private:
         // disallow copy

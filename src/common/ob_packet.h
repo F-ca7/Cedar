@@ -267,6 +267,11 @@ namespace oceanbase
       OB_ALTER_TABLE = 504,
       OB_ALTER_TABLE_RESPONSE = 505,
 
+	  // longfei
+	  // index schema service
+	  OB_CREATE_INDEX = 550,
+	  OB_CREATE_INDEX_RESPONSE = 501,
+
       // trigger event
       OB_HANDLE_TRIGGER_EVENT = 600,
       OB_HANDLE_TRIGGER_EVENT_RESPONSE = 601,

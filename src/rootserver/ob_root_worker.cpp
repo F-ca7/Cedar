@@ -1006,6 +1006,11 @@ namespace oceanbase
                     case OB_CREATE_TABLE:
                       return_code = rt_create_table(version, *in_buf, req, channel_id, thread_buff);
                       break;
+
+                      // longfei
+                    case OB_CREATE_INDEX:
+                      return_code = rt_create_index(version, *in_buf, req, channel_id, thread_buff);
+                      break;
                     case OB_FORCE_DROP_TABLE_FOR_EMERGENCY:
                       return_code = rt_force_drop_table(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -5727,6 +5732,74 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         ret = res.result_code_;
       }
       return ret;
+    }
+
+    /**
+     * author:longfei 20151017
+     */
+    int ObRootWorker::rt_create_index(const int32_t version, common::ObDataBuffer& in_buff,
+        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+        int ret = OB_SUCCESS;
+        static const int MY_VERSION = 1;
+        common::ObResultCode res;
+        bool if_not_exists = false;
+        TableSchema tschema;
+        ObString user_name;
+        common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+        if (MY_VERSION != version)
+        {
+          TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+          res.result_code_ = OB_ERROR_FUNC_VERSION;
+        }
+        else if (role != common::ObiRole::MASTER)
+        {
+          res.result_code_ = OB_OP_NOT_ALLOW;
+          TBSYS_LOG(WARN, "ddl operation not allowed in slave cluster");
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+                  in_buff.get_capacity(), in_buff.get_position(), &if_not_exists)))
+          {
+            TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = tschema.deserialize(in_buff.get_data(),
+                  in_buff.get_capacity(), in_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = root_server_.create_index(if_not_exists, tschema)))
+          {
+            TBSYS_LOG(WARN, "failed to create table, err=%d", ret);
+          }
+          if (OB_SUCCESS != ret)
+          {
+            res.message_ = ob_get_err_msg();
+            TBSYS_LOG(WARN, "create table err=%.*s", res.message_.length(), res.message_.ptr());
+          }
+          res.result_code_ = ret;
+          ret = OB_SUCCESS;
+        }
+        if (OB_SUCCESS == ret)
+        {
+          // send response message
+          if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                  out_buff.get_capacity(), out_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = send_response(OB_CREATE_INDEX_RESPONSE, MY_VERSION, out_buff, req, channel_id)))
+          {
+            TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "send response for creating index, if_not_exists=%c index_name=%s ret=%d",
+                if_not_exists?'Y':'N', tschema.table_name_, res.result_code_);
+          }
+        }
+        return ret;
     }
 
   }; // end namespace

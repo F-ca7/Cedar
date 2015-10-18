@@ -169,16 +169,16 @@ namespace oceanbase
 
 
     //error code for chunk server -1001 ---- -2000
-    const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
-    const int OB_CS_TIMEOUT = -1002;         // 超时
+    const int OB_CS_CACHE_NOT_HIT = -1001;   // 缂撳瓨娌℃湁鍛戒腑
+    const int OB_CS_TIMEOUT = -1002;         // 瓒呮椂
     const int OB_CS_TABLET_NOT_EXIST = -1008; // tablet not exist
     const int OB_CS_EMPTY_TABLET = -1009;     // tablet has no data.
-    const int OB_CS_EAGAIN = -1010;           //重试
+    const int OB_CS_EAGAIN = -1010;           //閲嶈瘯
 
     const int OB_GET_NEXT_COLUMN = -1011;
     const int OB_GET_NEXT_ROW = -1012; // for internal use, scan next row.
-    //const int OB_DESERIALIZE_ERROR = -1013;//反序列化失败
-    const int OB_INVALID_ROW_KEY = -1014;//不合法的rowKey
+    //const int OB_DESERIALIZE_ERROR = -1013;//鍙嶅簭鍒楀寲澶辫触
+    const int OB_INVALID_ROW_KEY = -1014;//涓嶅悎娉曠殑rowKey
     const int OB_SEARCH_MODE_NOT_IMPLEMENT = -1015; // search mode not implement, internal error
     const int OB_INVALID_BLOCK_INDEX = -1016; // illegal block index data, internal error
     const int OB_INVALID_BLOCK_DATA = -1017;  // illegal block data, internal error
@@ -205,7 +205,7 @@ namespace oceanbase
     const int OB_IMPORT_SSTABLE_NOT_EXIST = -1041;
 
     //error code for update server -2001 ---- -3000
-    const int OB_UPS_TRANS_RUNNING = -2001;     // 事务正在执行
+    const int OB_UPS_TRANS_RUNNING = -2001;     // 浜嬪姟姝ｅ湪鎵ц
     const int OB_FREEZE_MEMTABLE_TWICE = -2002; // memtable has been frozen
     const int OB_DROP_MEMTABLE_TWICE = -2003;   // memtable has been dropped
     const int OB_INVALID_START_VERSION = -2004; // memtable start version invalid
@@ -352,7 +352,7 @@ namespace oceanbase
     const int OB_ERR_SESSION_INTERRUPTED = -5066;
     const int OB_ERR_UNKNOWN_SESSION_ID = -5067;
     const int OB_ERR_PROTOCOL_NOT_RECOGNIZE = -5068;
-    const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 来自监控的连接会立马断开
+    const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 鏉ヨ嚜鐩戞帶鐨勮繛鎺ヤ細绔嬮┈鏂紑
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
 
     const int OB_ERR_PS_TOO_MANY_PARAM = -5080;
@@ -538,6 +538,7 @@ namespace oceanbase
     const char* const OB_SERVER_STATUS_SHOW_TABLE_NAME = "__server_status_show";
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
+    const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei
 
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
@@ -563,6 +564,7 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_TID = 11;
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
+    static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //
     ///////////////////////////////////////////////////////////
@@ -608,7 +610,7 @@ namespace oceanbase
     static const int64_t OB_MALLOC_BLOCK_SIZE = 64*1024LL+1024LL;
     static const int64_t OB_TC_MALLOC_BLOCK_SIZE = OB_MALLOC_BLOCK_SIZE - OB_TC_MALLOC_BLOCK_HEADER_SIZE;
 
-    /// 一个行可以包含的最大元素/列数
+    /// 涓�涓鍙互鍖呭惈鐨勬渶澶у厓绱�/鍒楁暟
     static const int64_t OB_ROW_MAX_COLUMNS_COUNT = 512; // used in ObRow
     static const int64_t OB_MAX_VARCHAR_LENGTH = 64 * 1024;
     static const int64_t OB_COMMON_MEM_BLOCK_SIZE = OB_MAX_VARCHAR_LENGTH;
@@ -649,21 +651,38 @@ namespace oceanbase
       OB_DML_DELETE   = 4,
       OB_DML_NUM,
     };
+
+    // longfei
+    static const uint64_t OB_INDEX_VIRTUAL_COLUMN_ID = 511;
+    static const int64_t OB_MAX_INDEX_COLUMNS=100;
+    static const int64_t OB_MAX_INDEX_NUMS=5;
+    static const uint64_t ORIGINAL_TABLE_ID = 44;
+    static const uint64_t INDEX_STATUS_ID = 45;
+    const char* const OB_INDEX_VIRTUAL_COL_NAME="ob_virtual_col";
+    enum IndexStatus
+    {
+      NOT_AVALIBALE=0,
+      AVALIBALE,//1
+      ERROR,//2
+      WRITE_ONLY,//3
+      INDEX_INIT,//4
+    };
+
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
     TypeName(const TypeName&);               \
   void operator=(const TypeName&)
 
-// 对于 serialize 函数 pos既是输入参数又是输出参数，
-// serialize把序列化的数据从(buf+pos)处开始写入，
-// 写入完成后更新pos。如果写入后的数据要超出(buf+buf_len)，
-// serialize返回失败。
+// 瀵逛簬 serialize 鍑芥暟 pos鏃㈡槸杈撳叆鍙傛暟鍙堟槸杈撳嚭鍙傛暟锛�
+// serialize鎶婂簭鍒楀寲鐨勬暟鎹粠(buf+pos)澶勫紑濮嬪啓鍏ワ紝
+// 鍐欏叆瀹屾垚鍚庢洿鏂皃os銆傚鏋滃啓鍏ュ悗鐨勬暟鎹瓒呭嚭(buf+buf_len)锛�
+// serialize杩斿洖澶辫触銆�
 //
-// 对于 deserialize 函数 pos既是输入参数又是输出参数，
-// deserialize从(buf+pos)处开始地读出数据进行反序列化，
-// 完成后更新pos。如果反序列化所需数据要超出(buf+data_len)，
-// deserialize返回失败。
+// 瀵逛簬 deserialize 鍑芥暟 pos鏃㈡槸杈撳叆鍙傛暟鍙堟槸杈撳嚭鍙傛暟锛�
+// deserialize浠�(buf+pos)澶勫紑濮嬪湴璇诲嚭鏁版嵁杩涜鍙嶅簭鍒楀寲锛�
+// 瀹屾垚鍚庢洿鏂皃os銆傚鏋滃弽搴忓垪鍖栨墍闇�鏁版嵁瑕佽秴鍑�(buf+data_len)锛�
+// deserialize杩斿洖澶辫触銆�
 
 #define NEED_SERIALIZE_AND_DESERIALIZE \
 int serialize(char* buf, const int64_t buf_len, int64_t& pos) const; \

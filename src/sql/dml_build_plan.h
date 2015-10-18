@@ -23,6 +23,9 @@
 #include "common/ob_vector.h"
 #include <stdint.h>
 
+//add wenghaixing [secondary index create fix]20141226
+#include "common/ob_strings.h"
+//add e
 /*
   * Expressions from different scope have different limitations,
   * we need a flage to distinguish where they are from.
@@ -75,6 +78,8 @@ extern int resolve_table_columns(
     oceanbase::sql::ObStmt* stmt,
     oceanbase::sql::TableItem& table_item,
     int64_t num_columns = -1);
-
+//add wenghaixing [secondary index create fix]20141226
+extern int generate_expire_col_list(ObString input, oceanbase::common::ObStrings &out);
+//add e
 #endif //DML_BUILD_PLAN_H_
 

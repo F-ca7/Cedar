@@ -100,6 +100,10 @@
 #include "mergeserver/ob_merge_server_main.h"
 #include <vector>
 
+//longfei
+#include "ob_create_index_stmt.h"
+#include "dml_build_plan.h"
+
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 typedef int ObMySQLSessionKey;
@@ -266,6 +270,12 @@ int ObTransformer::generate_physical_plan(
         case ObBasicStmt::T_CREATE_TABLE:
           ret = gen_physical_create_table(logical_plan, physical_plan, err_stat, query_id, index);
           break;
+
+        // longfei
+        case ObBasicStmt::T_CREATE_INDEX:
+          ret = gen_physical_create_index(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+
         case ObBasicStmt::T_DROP_TABLE:
           ret = gen_physical_drop_table(logical_plan, physical_plan, err_stat, query_id, index);
           break;
@@ -2008,7 +2018,7 @@ int ObTransformer::gen_phy_table(
       else
       {
         // no hint
-        // 处理表的一致性级别，由于需要和041兼容，目前不用consistency_level，使用is_merge_dynamic_data
+        // 澶勭悊琛ㄧ殑涓�鑷存�х骇鍒紝鐢变簬闇�瑕佸拰041鍏煎锛岀洰鍓嶄笉鐢╟onsistency_level锛屼娇鐢╥s_merge_dynamic_data
         //hint.read_consistency_ = table_schema->get_consistency_level();
         if (table_schema->is_merge_dynamic_data())
         {
@@ -3421,6 +3431,474 @@ bool ObTransformer::parse_join_info(const ObString &join_info_str, TableSchema &
   return parse_ok;
 }
 
+/**
+ * longfei
+ */
+int ObTransformer::gen_physical_create_index(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	  int& ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObCreateIndexStmt *crt_idx_stmt = NULL;
+	  ObCreateTable *crt_tab_op = NULL;
+	  //add wenghaixing 20141029
+	  // uint64_t magic_cid=OB_APP_MIN_COLUMN_ID;
+	  //add e
+	  //add wenghaixing [secondary index] 20141111
+	  uint64_t max_col_id = 0;
+	  //add e
+	  bool rowkey_will_add_in = true;
+	  int64_t column_num = 0;
+	  int64_t this_index_col_num = 0;
+	  ObStrings expire_col;//for expire infomation
+	  ObString val;//for expire infomation
+	  /*get create index statement*/
+	  if(OB_SUCCESS == ret)
+	  {
+	    get_stmt(logical_plan,err_stat,query_id,crt_idx_stmt);
+	  }
+	  /*generate operator to create index table*/
+	  if(OB_SUCCESS == ret)
+	  {
+	    CREATE_PHY_OPERRATOR(crt_tab_op,ObCreateTable,physical_plan,err_stat);
+	    if(OB_SUCCESS == ret)
+	    {
+	      crt_tab_op->set_sql_context(*sql_context_);
+	      ret = add_phy_query(logical_plan,physical_plan,err_stat,query_id,crt_idx_stmt,crt_tab_op,index);
+	    }
+	  }
+	    /*if(ret==OB_SUCCESS)
+	    {
+	        if(crt_idx_stmt->get_index_colums_count()>OB_MAX_INDEX_COLUMNS)
+	        {
+	            TRANS_LOG("Too many columns in index!(max allowed is %ld).",
+	                     OB_MAX_USER_DEFINED_COLUMNS_COUNT);
+	            ret = OB_ERR_INVALID_COLUMN_NUM;
+	        }
+	    }
+	    */
+	    /*set table schema for phy_oprator*/
+	    if(OB_SUCCESS == ret)
+	    {
+	      int buf_len = 0;
+	      int len = 0;
+	      TableSchema& table_schema = crt_tab_op->get_table_schema();
+	      const ObTableSchema* idxed_tab_schema=NULL;
+	      const ObString& index_name = crt_idx_stmt->get_table_name();
+	     // buf_len = sizeof(table_schema.table_name_);
+	      if (index_name.length() < OB_MAX_TABLE_NAME_LENGTH)
+	      {
+	        len = index_name.length();
+	      }
+	      else
+	      {
+	        len = OB_MAX_TABLE_NAME_LENGTH - 1;
+	        TRANS_LOG("Table name is truncated to '%.*s'", len, index_name.ptr());
+	      }
+	      memcpy(table_schema.table_name_, index_name.ptr(), len);
+	      table_schema.table_name_[len] = '\0';
+	      /*Now We Must take source table's schema to fix index schema*/
+	      const ObString& idxed_tab_name=crt_idx_stmt->get_original_table_name();
+	      char str_tname[common::OB_MAX_COLUMN_NAME_LENGTH],str_cname[common::OB_MAX_COLUMN_NAME_LENGTH];
+	      memset(str_tname,0,common::OB_MAX_COLUMN_NAME_LENGTH);
+	      memcpy(str_tname,idxed_tab_name.ptr(),idxed_tab_name.length());
+	      if (NULL == (idxed_tab_schema = sql_context_->schema_manager_->get_table_schema(str_tname)))
+	      {
+	        ret = OB_ERR_ILLEGAL_ID;
+	        TRANS_LOG("Fail to get table schema for table[%s]", str_tname);
+	      }
+	      if(OB_SUCCESS == ret)
+	      {
+	       /* refresh expior condition of index schema*/
+	        ObString expire_info;
+	        expire_info.assign_ptr((char*)idxed_tab_schema->get_expire_condition(),static_cast<int32_t>(strlen(idxed_tab_schema->get_expire_condition())));
+	        if (expire_info.length() < OB_MAX_EXPIRE_CONDITION_LENGTH)
+	        {
+	          len = expire_info.length();
+	        }
+	        else
+	        {
+	          len = OB_MAX_EXPIRE_CONDITION_LENGTH - 1;
+	          TRANS_LOG("Expire_info is truncated to '%.*s'", len, expire_info.ptr());
+	        }
+	        memcpy(table_schema.expire_condition_, expire_info.ptr(), len);
+	        table_schema.expire_condition_[len] = '\0';
+	        if(idxed_tab_schema->get_expire_condition()[0]!='\0')
+	        {
+	          /*如果超时信息当中的列没有在索引列当中，那么就要在索引表里添加��?列超时信息涉及到的列*/
+	          const ObColumnSchemaV2* oc_expire=NULL;
+	          if(OB_SUCCESS != (ret = generate_expire_col_list(expire_info,expire_col)))
+	          {
+	            TBSYS_LOG(WARN,"generate expire col list error");
+	          }
+	          else
+	          {
+	            for(int64_t i=0;i<expire_col.count();i++)
+	            {
+	              val.reset();
+	              if(OB_SUCCESS != (ret = expire_col.get_string(i,val)))
+	              {
+	                TBSYS_LOG(WARN,"get expire error");
+	                break;
+	              }
+	              else if(NULL == (oc_expire = sql_context_->schema_manager_->get_column_schema(idxed_tab_name,val)))
+	              {
+	                TBSYS_LOG(WARN,"get expire column schema error,col [%.*s]",val.length(),val.ptr());
+	              }
+	              else if(!crt_idx_stmt->is_expire_col_in_storing(val)&&!idxed_tab_schema->get_rowkey_info().is_rowkey_column(oc_expire->get_id()))
+	              {
+	                crt_idx_stmt->set_storing_columns_simple(val);
+	                //TBSYS_LOG(ERROR,"test::whx set_storing_columns_simple,[%.*s]",val.length(),val.ptr());
+	              }
+	            }
+	          }
+	        }
+	        /* refresh comment_str condition of index schema*/
+	       ObString comment_str;
+	       comment_str.assign_ptr((char*)idxed_tab_schema->get_comment_str(),static_cast<int32_t>(strlen(idxed_tab_schema->get_comment_str())));
+	       //buf_len = sizeof(table_schema.comment_str_);
+	       if (comment_str.length() < OB_MAX_TABLE_COMMENT_LENGTH)
+	       {
+	         len = comment_str.length();
+	       }
+	       else
+	       {
+	         len = OB_MAX_TABLE_COMMENT_LENGTH - 1;
+	         TRANS_LOG("Comment_str is truncated to '%.*s'", len, comment_str.ptr());
+	       }
+	       memcpy(table_schema.comment_str_, comment_str.ptr(), len);
+	       table_schema.comment_str_[len] = '\0';
+	       /*refresh other infomation*/
+	       crt_tab_op->set_if_not_exists(false);
+	       //if (crt_tab_stmt->get_tablet_max_size() > 0)
+	       //we set some paramer with default value
+	       table_schema.tablet_max_size_ =idxed_tab_schema->get_max_sstable_size();
+	       table_schema.tablet_block_size_ = idxed_tab_schema->get_block_size();
+	       table_schema.replica_num_ = (int32_t)idxed_tab_schema->get_replica_count();
+	       table_schema.is_use_bloomfilter_ = idxed_tab_schema->is_use_bloomfilter();
+	       table_schema.consistency_level_ = idxed_tab_schema->get_consistency_level();
+	       table_schema.rowkey_column_num_ = (int32_t)idxed_tab_schema->get_rowkey_info().get_size()+(int32_t)crt_idx_stmt->get_index_columns_count();
+	       //add wenghaixing 20141029
+	       table_schema.table_id_=OB_INVALID_ID;
+	       table_schema.max_used_column_id_=OB_ALL_MAX_COLUMN_ID;
+	       //add e
+	       ObString compress_method;
+	       compress_method.assign_ptr((char*)idxed_tab_schema->get_compress_func_name(),
+	                                        static_cast<int32_t>(strlen(idxed_tab_schema->get_compress_func_name())));
+	       //buf_len = sizeof(table_schema.compress_func_name_);
+	       const char *func_name = compress_method.ptr();
+	       len = compress_method.length();
+	       if (len <= 0)
+	       {
+	         func_name = OB_DEFAULT_COMPRESS_FUNC_NAME;
+	         len = static_cast<int>(strlen(OB_DEFAULT_COMPRESS_FUNC_NAME));
+	       }
+	       if (len >= OB_MAX_TABLE_NAME_LENGTH)
+	       {
+	         len = OB_MAX_TABLE_NAME_LENGTH - 1;
+	         TRANS_LOG("Compress method name is truncated to '%.*s'", len, func_name);
+	       }
+	       memcpy(table_schema.compress_func_name_, func_name, len);
+	       table_schema.compress_func_name_[len] = '\0';
+	       /* Now We Refresh Columns Info of index*/
+	       //ObString idxed_tname=crt_idx_stmt->get_idxed_name();
+	       uint64_t tid = idxed_tab_schema->get_table_id();
+	       ObRowkeyInfo ori = idxed_tab_schema->get_rowkey_info();
+	       //modify wenghaixing [secondary index static_index_build]20150317
+	       //ih.idx_tid=OB_FLAG_TID;
+	       table_schema.original_table_id_ = tid;
+	       table_schema.index_status_ = INDEX_INIT;
+	       //modify e
+
+
+	       int64_t rowkey_id=0;
+	       for(int64_t i = 0;OB_SUCCESS == ret&&i<crt_idx_stmt->get_index_columns_count()+ori.get_size();i++)
+	       {
+	         ColumnSchema col;
+	         ObString col_name;
+	         uint64_t cid;
+	         /*这个地方可能会出问题，要注意review下代��?*/
+	         const ObColumnSchemaV2* ocs2=NULL;
+	         if(i<crt_idx_stmt->get_index_columns_count())
+	         {
+	           col_name.reset();
+	           col_name = crt_idx_stmt->get_index_columns(i);
+	           memset(str_cname,0,common::OB_MAX_COLUMN_NAME_LENGTH);
+	           memcpy(str_cname,col_name.ptr(),col_name.length());
+	           ocs2 = sql_context_->schema_manager_->get_column_schema(str_tname,str_cname);
+	           if(NULL == ocs2)
+	           {
+	             ret=OB_ERR_INVALID_SCHEMA;
+	             TBSYS_LOG(ERROR,"get source table column schema error,t_name=%s,col_name=%s",
+	                               str_tname,str_cname);
+	           }
+	           else
+	           {
+	             cid = ocs2->get_id();
+	             if(idxed_tab_schema->get_rowkey_info().is_rowkey_column(cid))
+	             {
+	               if(OB_SUCCESS != (ret = crt_idx_stmt->push_hit_rowkey(cid)))
+	               {
+	                 ret = OB_ERROR;
+	                 TBSYS_LOG(WARN,"push rowkey in hit array failed");
+	               }
+	               else
+	               {
+	                 table_schema.rowkey_column_num_--;
+	               }
+	             }
+	             rowkey_will_add_in = true;
+	             rowkey_id++;
+	             //column_num++;
+	           }
+	         }
+	         else
+	         {
+	           col_name.reset();
+	           int64_t rowkey_seq = i-crt_idx_stmt->get_index_columns_count();
+	           ori.get_column_id(rowkey_seq,cid);
+	           ocs2 = sql_context_->schema_manager_->get_column_schema(tid,cid);
+	           if(NULL == ocs2)
+	           {
+	             ret = OB_ERR_INVALID_SCHEMA;
+	             TBSYS_LOG(ERROR,"get source table column schema error,t_name=%s,col_name=%s",
+	                                    str_tname,str_cname);
+	           }
+	           else
+	           {
+	             col_name.assign_ptr((char*)ocs2->get_name(),static_cast<int32_t>(strlen(ocs2->get_name())));
+	             if(crt_idx_stmt->is_rowkey_hit(cid))
+	             {
+	               rowkey_will_add_in = false;
+	             }
+	             else
+	             {
+	               rowkey_will_add_in = true;
+	               rowkey_id++;
+	                                    //column_num++;
+	             }
+	           }
+	         }
+	         if(OB_SUCCESS == ret&& rowkey_will_add_in)
+	         {
+	            col.column_id_ = ocs2->get_id();
+	            //add wenghaixing [secondary index] 20141111
+	            if(col.column_id_ > max_col_id)
+	            {
+	              max_col_id = col.column_id_;
+	            }
+	            //add e
+	            buf_len = sizeof(col.column_name_);
+	            if (col_name.length() < buf_len)
+	            {
+	              len = col_name.length();
+	            }
+	            else
+	            {
+	              len = buf_len - 1;
+	              TRANS_LOG("Column name is truncated to '%s'",str_cname);
+	            }
+	            memcpy(col.column_name_, col_name.ptr(), len);
+	            col.column_name_[len] = '\0';
+	            col.data_type_ = ocs2->get_type();
+	            col.data_length_ = ocs2->get_default_value().get_val_len();
+	            if (col.data_type_ == ObVarcharType && 0 > col.data_length_)
+	            {
+	              col.data_length_ = OB_MAX_VARCHAR_LENGTH;
+	            }
+	            col.length_in_rowkey_ = ocs2->get_default_value().get_val_len();
+	            col.nullable_ = ocs2->is_nullable();
+	            col.rowkey_id_ = rowkey_id;
+	            col.column_group_id_ = ocs2->get_column_group_id();
+	            col.join_table_id_ = OB_INVALID_ID;
+	            col.join_column_id_ = OB_INVALID_ID;
+	            // col.column_id_=cid;
+	            this_index_col_num ++;
+	            if (OB_SUCCESS != (ret = table_schema.add_column(col)))
+	            {
+	              TRANS_LOG("Add column definition of '%s' failed", table_schema.table_name_);
+	              break;
+	            }
+
+	            if (OB_SUCCESS == ret)
+	            {
+	              /*if (OB_SUCCESS != (ret = allocate_column_id(table_schema)))
+	              {
+	                TBSYS_LOG(WARN, "fail to allocate column id:ret[%d]", ret);
+	              }
+	              */
+	              //column_num++;
+	            }
+	          }
+	        }
+	        if(OB_SUCCESS == ret)
+	        {
+	          if(crt_idx_stmt->get_storing_columns_count()>0)
+	          {
+	            crt_idx_stmt->set_has_storing(true);
+	          }
+	          for(int64_t i = 0;OB_SUCCESS == ret&&i<crt_idx_stmt->get_storing_columns_count();i++)
+	          {
+	            const ObColumnSchemaV2* ocs2=NULL;
+	            ColumnSchema col;
+	            ObString col_name = crt_idx_stmt->get_storing_columns(i);
+	            //ObString storing_col=crt_idx_stmt->get_storing_columns(i);
+	            memset(str_cname,0,common::OB_MAX_COLUMN_NAME_LENGTH);
+	            memcpy(str_cname,col_name.ptr(),col_name.length());
+	            ocs2 = sql_context_->schema_manager_->get_column_schema(str_tname,str_cname);
+	            if(NULL == ocs2)
+	            {
+	              ret = OB_ERR_INVALID_SCHEMA;
+	              TBSYS_LOG(ERROR,"get source table column schema error,t_name=%s,col_name=%s,i=[%ld]",
+	                               str_tname,str_cname,i);
+	            }
+	            else
+	            {
+	              col.column_id_ = ocs2->get_id();
+	              //add wenghaixing [secondary index] 20141111
+	              if(col.column_id_>max_col_id)
+	              {
+	                max_col_id=col.column_id_;
+	              }
+	              //add e
+	              buf_len = sizeof(col.column_name_);
+	              if (col_name.length() < buf_len)
+	              {
+	                len = col_name.length();
+	              }
+	              else
+	              {
+	                len = buf_len - 1;
+	                TRANS_LOG("Column name is truncated to '%s'", str_cname);
+	              }
+	              memcpy(col.column_name_, col_name.ptr(), len);
+	              col.column_name_[len] = '\0';
+	              col.data_type_ = ocs2->get_type();
+	              col.data_length_ = ocs2->get_default_value().get_val_len();
+	              if (col.data_type_ == ObVarcharType && 0 > col.data_length_)
+	              {
+	                col.data_length_ = OB_MAX_VARCHAR_LENGTH;
+	              }
+	              col.length_in_rowkey_ = ocs2->get_default_value().get_val_len();
+	              col.nullable_ = ocs2->is_nullable();
+	              col.rowkey_id_ = 0;
+	              col.column_group_id_ = ocs2->get_column_group_id();
+	              col.join_table_id_ = OB_INVALID_ID;
+	              col.join_column_id_ = OB_INVALID_ID;
+	              this_index_col_num ++;
+	              // @todo default_value_;
+	              if (OB_SUCCESS != (ret = table_schema.add_column(col)))
+	              {
+	                TRANS_LOG("Add column definition of '%s' failed", table_schema.table_name_);
+	              }
+	              if (OB_SUCCESS == ret)
+	              {
+	                /*
+	                if (OB_SUCCESS != (ret = allocate_column_id(table_schema)))
+	                {
+	                  TBSYS_LOG(WARN, "fail to allocate column id:ret[%d]", ret);
+	                }
+	                */
+	                //column_num++;
+	              }
+	            }
+	          }
+	        }
+	        //add wenghaixing [secondary index create fix]20141225
+	        if(OB_SUCCESS == ret&&!crt_idx_stmt->has_storing())
+	        {
+	          ColumnSchema col;
+	          col.rowkey_id_ = 0;
+	          //modify wenghaixing[secondary index alter_table_debug]20150611
+	          //col.column_id_ = idxed_tab_schema->get_max_column_id()+1;
+	          col.column_id_ = OB_INDEX_VIRTUAL_COLUMN_ID;
+	          //modify e
+	          col.data_type_ = ObIntType;
+	          memcpy(col.column_name_,OB_INDEX_VIRTUAL_COL_NAME,strlen(OB_INDEX_VIRTUAL_COL_NAME));
+	          col.column_name_[strlen(OB_INDEX_VIRTUAL_COL_NAME)]='\0';
+	          col.column_group_id_ = OB_DEFAULT_COLUMN_GROUP_ID;
+	          //max_col_id = col.column_id_;
+	          if (OB_SUCCESS != (ret = table_schema.add_column(col)))
+	          {
+	            TRANS_LOG("Add column definition of '%s' failed", table_schema.table_name_);
+	          }
+	        }
+		UNUSED(column_num);
+	        //add e
+	        //add wenghaixing 20141029
+	        /*
+	        if(OB_SUCCESS == ret)
+	        {
+	          TableSchema& table_schema = crt_tab_op->get_table_schema();
+	          //table_schema.is_index=true;
+
+	          //add wenghaixing [secondary index]20141111
+	          table_schema.max_used_column_id_ = max_col_id;
+	          //add e
+	          if(table_schema.rowkey_column_num_ > OB_MAX_ROWKEY_COLUMN_NUMBER)
+	          {
+	            TRANS_LOG("index's rowkey column num cannot be greater than 16");
+	            ret = OB_ERR_COLUMN_SIZE;
+	          }
+	          if(OB_SUCCESS == ret)
+	          {
+	            if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_index_column_num(tid,column_num)))
+	            {
+	              ret = OB_ERROR;
+	            }
+	            else if(column_num + this_index_col_num > OB_MAX_INDEX_COLUMNS)
+	            {
+	              TRANS_LOG("index's column num cannot be greater than 100");
+	              ret = OB_ERR_INVALID_COLUMN_NUM;
+	            }
+	          }
+	        }
+	        //add e
+	        */
+	        if(OB_SUCCESS == ret&&0<expire_info.length())
+	        {
+	          TableSchema& table_schema = crt_tab_op->get_table_schema();
+	          // check expire condition
+	          void *ptr = ob_malloc(sizeof(ObSchemaManagerV2), ObModIds::OB_SCHEMA);
+	          if (NULL == ptr)
+	          {
+	            TRANS_LOG("no memory");
+	            ret = OB_ALLOCATE_MEMORY_FAILED;
+	          }
+	          else
+	          {
+	            ObSchemaManagerV2 *tmp_schema_mgr = new(ptr) ObSchemaManagerV2();
+	            table_schema.table_id_ = OB_NOT_EXIST_TABLE_TID;
+	            if (OB_SUCCESS != (ret = tmp_schema_mgr->add_new_table_schema(table_schema)))
+	            {
+	              TRANS_LOG("failed to add new table, err=%d", ret);
+	            }
+	            else
+	            if (OB_SUCCESS != (ret = tmp_schema_mgr->sort_column()))
+	            {
+	              TRANS_LOG("failed to sort column for schema manager, err=%d", ret);
+	            }
+	            else if (!tmp_schema_mgr->check_table_expire_condition())
+	            {
+	              ret = OB_ERR_INVALID_SCHEMA;
+	              TRANS_LOG("invalid expire info `%.*s'", expire_info.length(),
+	                                   expire_info.ptr());
+	            }
+	            tmp_schema_mgr->~ObSchemaManagerV2();
+	            ob_free(tmp_schema_mgr);
+	            tmp_schema_mgr = NULL;
+	            table_schema.table_id_ = OB_INVALID_ID;
+	          }
+	        }
+	      }
+	    }
+	    TBSYS_LOG(INFO,"gen create index phy plan succ");
+	    return ret;
+}
+
 int ObTransformer::gen_physical_create_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
@@ -4533,9 +5011,9 @@ int ObTransformer::gen_phy_show_grants(
     else
     {
       ret = OB_SUCCESS;
-      //全局权限如果有，则显示一行
+      //鍏ㄥ眬鏉冮檺濡傛灉鏈夛紝鍒欐樉绀轰竴琛�
       const ObBitSet<> &privileges = user.privileges_;
-      // 没有全局权限
+      // 娌℃湁鍏ㄥ眬鏉冮檺
       if (privileges.is_empty())
       {
       }
@@ -4585,7 +5063,7 @@ int ObTransformer::gen_phy_show_grants(
         }
       }
     }
-    //显示局部权限
+    //鏄剧ず灞�閮ㄦ潈闄�
     if (OB_SUCCESS == ret)
     {
       uint64_t user_id = user.user_id_;
@@ -4608,8 +5086,8 @@ int ObTransformer::gen_phy_show_grants(
             table_schema = schema_manager->get_table_schema(user_id_table_id.table_id_);
             if (NULL == table_schema)
             {
-              //出现这种情况的原因可能是别的会话通过同一个用户新建了一张新表，权限信息已经更新到了本地，但是schema信息还没有更新到本地
-              //不将其作为一种错误，目前仅仅不显示这张表的权限信息即可
+              //鍑虹幇杩欑鎯呭喌鐨勫師鍥犲彲鑳芥槸鍒殑浼氳瘽閫氳繃鍚屼竴涓敤鎴锋柊寤轰簡涓�寮犳柊琛紝鏉冮檺淇℃伅宸茬粡鏇存柊鍒颁簡鏈湴锛屼絾鏄痵chema淇℃伅杩樻病鏈夋洿鏂板埌鏈湴
+              //涓嶅皢鍏朵綔涓轰竴绉嶉敊璇紝鐩墠浠呬粎涓嶆樉绀鸿繖寮犺〃鐨勬潈闄愪俊鎭嵆鍙�
               TBSYS_LOG(WARN, "table id=%lu not exist in schema manager", user_id_table_id.table_id_);
             }
             else
@@ -6563,7 +7041,7 @@ int ObTransformer::gen_physical_priv_stmt(
   else
   {
     ObBasicStmt * basic_stmt = NULL;
-    // 这块内存是从transform mem pool中分配出来的
+    // 杩欏潡鍐呭瓨鏄粠transform mem pool涓垎閰嶅嚭鏉ョ殑
     if (stmt->get_stmt_type() == ObBasicStmt::T_CREATE_USER)
     {
       void *ptr = trans_malloc(sizeof(ObCreateUserStmt));

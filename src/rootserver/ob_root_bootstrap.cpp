@@ -117,6 +117,20 @@ int ObBootstrap::create_all_core_tables()
       TBSYS_LOG(INFO, "create all_all_join_info tablet success.");
     }
   }
+  //3.create all_secondary_index tablet longfei
+  if (OB_SUCCESS == ret)
+  {
+    ObServerArray cs;
+    ret = create_core_table(OB_ALL_SECONDARY_INDEX_TID, cs);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "fail to create all_secondary_index's tablet. err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "create all_secondary_index tablet success.");
+    }
+  }
   //4.init meta file
   if (OB_SUCCESS == ret)
   {

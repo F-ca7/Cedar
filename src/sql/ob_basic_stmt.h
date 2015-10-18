@@ -72,6 +72,11 @@ namespace oceanbase
         T_KILL,
         T_ALTER_SYSTEM,
         T_CHANGE_OBI,
+
+		// add longfei [secondaryindex reconstruct] 20150916:b
+		// secondary index related
+		T_CREATE_INDEX,
+		// add e
       };
 
       ObBasicStmt()

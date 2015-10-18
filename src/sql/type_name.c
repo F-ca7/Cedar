@@ -197,6 +197,13 @@ const char* get_type_name(int type)
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
 	case T_KILL : return "T_KILL";
 	case T_MAX : return "T_MAX";
+
+	// add [secondaryindex reconstruct] longfei
+	case T_CREATE_INDEX : return "T_CREATE_INDEX";
+	case T_INDEX_ELEMENT_LIST : return "T_INDEX_ELEMENT_LIST";
+	case T_INDEX_STORING_LIST : return "T_INDEX_STORING_LIST";
+	case T_INDEX_OPTION_LIST : return "T_INDEX_OPTION_LIST";
+	// add e
 	default:return "Unknown";
 	}
 }

@@ -96,8 +96,8 @@ int ObSchemaServiceImpl::add_join_info(ObMutator* mutator, const TableSchema& ta
       value[3].set_int(join_info.right_column_id_);
       rowkey.assign(value, 4);
 
-      //连调需要
-      //rowkey列不需要写入，等郁白在UPS端的修改完成以后可以去掉
+      //杩炶皟闇�瑕�
+      //rowkey鍒椾笉闇�瑕佸啓鍏ワ紝绛夐儊鐧藉湪UPS绔殑淇敼瀹屾垚浠ュ悗鍙互鍘绘帀
       //to be delete start
      // ADD_INT(joininfo_table_name, rowkey, "left_table_id", join_info.left_table_id_);
      // ADD_INT(joininfo_table_name, rowkey, "left_column_id", join_info.left_column_id_);
@@ -491,11 +491,23 @@ int ObSchemaServiceImpl::create_table(const TableSchema& table_schema)
 
   if(OB_SUCCESS == ret)
   {
-    ret = create_table_mutator(table_schema, mutator);
-    if(OB_SUCCESS != ret)
-    {
-      TBSYS_LOG(WARN, "create table mutator fail:ret[%d]", ret);
-    }
+	//mod longfei
+	if(OB_INVALID_ID == table_schema.original_table_id_)
+	{
+	    ret = create_table_mutator(table_schema, mutator);
+	    if(OB_SUCCESS != ret)
+	    {
+	      TBSYS_LOG(WARN, "create table mutator fail:ret[%d]", ret);
+	    }
+	}
+	else
+	{
+		ret = create_index_mutator(table_schema, mutator);
+	    if(OB_SUCCESS != ret)
+	    {
+	      TBSYS_LOG(WARN, "create index mutator fail:ret[%d]", ret);
+	    }
+	}
   }
 
   if(OB_SUCCESS == ret)
@@ -861,6 +873,11 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
   {
     table_name = joininfo_table_name;
   }
+  //longfei
+  else if (OB_ALL_SECONDARY_INDEX_TID == table_id)
+  {
+    table_name = secondary_index_table_name;
+  }
   else if (!check_inner_stat())
   {
     ret = OB_ERROR;
@@ -1040,6 +1057,10 @@ int ObSchemaServiceImpl::get_table_schema(const ObString& table_name, TableSchem
   {
     ret = ObExtraTablesSchema::all_join_info_schema(table_schema);
   }
+  else if (table_name == secondary_index_table_name)
+  {
+    ret = ObExtraTablesSchema::all_secondary_index_schema(table_schema); //longfei
+  }
   else
   {
     if(!check_inner_stat())
@@ -1082,14 +1103,29 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 
   TableRow* table_row = NULL;
 
+  // mod longfei
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
-        ("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
-        ("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
-        ("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
-        ("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
-        ("create_time_column_id")("modify_time_column_id"));
+	  if(is_index_table_or_not(table_name))
+	 // if(0)
+	  {
+		  ret = nb_accessor_.get(res, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey, SC("table_name")("table_id")
+		          ("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
+		          ("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
+		          ("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
+		          ("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
+				  ("original_table_id")("index_status")
+		          ("create_time_column_id")("modify_time_column_id"));
+	  }
+	  else
+	  {
+		ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
+			("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
+			("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
+			("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
+			("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
+			("create_time_column_id")("modify_time_column_id"));
+	  }
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "get table schema fail:ret[%d]", ret);
@@ -1101,7 +1137,16 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
     table_row = res->get_only_one_row();
     if(NULL != table_row)
     {
-      ret = assemble_table(table_row, table_schema);
+    	//mod longfei
+      if(is_index_table_or_not(table_name))
+      //if(0)
+      {
+    	  ret = assemble_index_table(table_row, table_schema);
+      }
+      else
+      {
+    	  ret = assemble_table(table_row, table_schema);
+      }
       if(OB_SUCCESS != ret)
       {
         TBSYS_LOG(WARN, "assemble table fail:ret[%d]", ret);
@@ -1620,6 +1665,153 @@ int ObSchemaServiceImpl::prepare_privilege_for_table(const TableRow* table_row, 
   ADD_INT(privilege_table_name, rowkey, "priv_update", priv_update);
   ADD_INT(privilege_table_name, rowkey, "priv_select", priv_select);
   ADD_INT(privilege_table_name, rowkey, "priv_replace", priv_replace);
+  return ret;
+}
+
+/**
+ * @author:longfei
+ */
+int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, ObMutator* mutator)
+{
+  int ret = OB_SUCCESS;
+
+  ObString table_name;
+  table_name.assign_ptr(const_cast<char*>(table_schema.table_name_), static_cast<int32_t>(strlen(table_schema.table_name_)));
+
+  ObObj table_name_value;
+  table_name_value.set_varchar(table_name);
+
+  ObRowkey rowkey;
+  rowkey.assign(&table_name_value, 1);
+
+  //ADD_VARCHAR(secondary_index_table_name, rowkey, "table_name", table_schema.table_name_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_id", table_schema.table_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_type", table_schema.table_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "load_type", table_schema.load_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_def_type", table_schema.table_def_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "rowkey_column_num", table_schema.rowkey_column_num_);
+  ADD_INT(secondary_index_table_name, rowkey, "replica_num", table_schema.replica_num_);
+  ADD_INT(secondary_index_table_name, rowkey, "max_used_column_id", table_schema.max_used_column_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "create_mem_version", table_schema.create_mem_version_);
+  ADD_INT(secondary_index_table_name, rowkey, "tablet_max_size", table_schema.tablet_max_size_);
+  ADD_INT(secondary_index_table_name, rowkey, "tablet_block_size", table_schema.tablet_block_size_);
+  ADD_VARCHAR(secondary_index_table_name, rowkey, "compress_func_name", table_schema.compress_func_name_);
+
+  ADD_INT(secondary_index_table_name, rowkey, "is_use_bloomfilter", table_schema.is_use_bloomfilter_);
+  ADD_INT(secondary_index_table_name, rowkey, "is_pure_update_table", table_schema.is_pure_update_table_);
+  //ADD_INT(secondary_index_table_name, rowkey, "consistency_level", table_schema.consistency_level_);
+  ADD_INT(secondary_index_table_name, rowkey, "is_read_static", table_schema.consistency_level_);
+  ADD_INT(secondary_index_table_name, rowkey, "rowkey_split", table_schema.rowkey_split_);
+  ADD_INT(secondary_index_table_name, rowkey, "max_rowkey_length", table_schema.max_rowkey_length_);
+  ADD_INT(secondary_index_table_name, rowkey, "merge_write_sstable_version", table_schema.merge_write_sstable_version_);
+  ADD_INT(secondary_index_table_name, rowkey, "schema_version", table_schema.schema_version_);
+  ADD_VARCHAR(secondary_index_table_name, rowkey, "expire_condition", table_schema.expire_condition_);
+  //ADD_VARCHAR(secondary_index_table_name, rowkey, "comment_str", table_schema.comment_str_);
+  ADD_INT(secondary_index_table_name, rowkey, "original_table_id", table_schema.original_table_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "index_status", table_schema.index_status_);
+  ADD_INT(secondary_index_table_name, rowkey, "create_time_column_id", table_schema.create_time_column_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "modify_time_column_id", table_schema.modify_time_column_id_);
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = add_column(mutator, table_schema);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "add column to mutator fail:ret[%d]", ret);
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = add_join_info(mutator, table_schema);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "add join info to mutator fail:ret[%d]", ret);
+    }
+  }
+  return ret;
+}
+
+/**
+ * @author:longfei
+ */
+bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
+{
+	int64_t len = 1;
+	bool flag = true;
+	char temp[table_name.size()];
+	len = table_name.to_string(temp,table_name.length());
+	if(len <= 0)
+	{
+		TBSYS_LOG(WARN,"table name can not be empty.");
+		flag = 0;
+	}
+	else if(len < 3)
+	{
+		TBSYS_LOG(WARN,"this is not a index name");
+		flag = 0;
+	}
+	else
+	{
+		if(temp[0] != '_' || temp[1] != '_' || temp[2] != '_')
+		{
+			flag = 0;
+		}
+	}
+	if(flag)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSchema& table_schema)
+{
+  int ret = OB_SUCCESS;
+  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
+  if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
+  {
+    ret = OB_SUCCESS;
+    ASSIGN_VARCHAR_FROM_ROWKEY("table_name", 0, table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+    TBSYS_LOG(WARN, "assemble_table table_name=%s", table_schema.table_name_);
+  }
+  */
+
+  ASSIGN_INT("table_id", table_schema.table_id_, uint64_t);
+  ASSIGN_INT("table_type", table_schema.table_type_, TableSchema::TableType);
+  ASSIGN_INT("load_type", table_schema.load_type_, TableSchema::LoadType);
+  ASSIGN_INT("table_def_type", table_schema.table_def_type_, TableSchema::TableDefType);
+  ASSIGN_INT("rowkey_column_num", table_schema.rowkey_column_num_, int32_t);
+  ASSIGN_INT("replica_num", table_schema.replica_num_, int32_t);
+  ASSIGN_INT("max_used_column_id", table_schema.max_used_column_id_, int64_t);
+  ASSIGN_INT("create_mem_version", table_schema.create_mem_version_, int64_t);
+  ASSIGN_INT("tablet_max_size", table_schema.tablet_max_size_, int64_t);
+  ASSIGN_INT("tablet_block_size", table_schema.tablet_block_size_, int64_t);
+  if (OB_SUCCESS == ret && table_schema.tablet_block_size_ <= 0)
+  {
+    TBSYS_LOG(WARN, "set tablet sstable block size to default value:read[%ld]", table_schema.tablet_block_size_);
+    table_schema.tablet_block_size_ = OB_DEFAULT_SSTABLE_BLOCK_SIZE;
+  }
+  ASSIGN_INT("max_rowkey_length", table_schema.max_rowkey_length_, int64_t);
+  ASSIGN_INT("merge_write_sstable_version", table_schema.merge_write_sstable_version_, int64_t);
+  ASSIGN_INT("schema_version", table_schema.schema_version_, int64_t);
+  ASSIGN_VARCHAR("compress_func_name", table_schema.compress_func_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  ASSIGN_VARCHAR("expire_condition", table_schema.expire_condition_, OB_MAX_EXPIRE_CONDITION_LENGTH);
+  //ASSIGN_VARCHAR("comment_str", table_schema.comment_str_, OB_MAX_TABLE_COMMENT_LENGTH);
+  ASSIGN_INT("is_use_bloomfilter", table_schema.is_use_bloomfilter_, int64_t);
+  ASSIGN_INT("is_pure_update_table", table_schema.is_pure_update_table_, int64_t);
+  ASSIGN_INT("is_read_static", table_schema.consistency_level_, int64_t);
+  //ASSIGN_INT("consistency_level", table_schema.consistency_level_, int64_t);
+  ASSIGN_INT("rowkey_split", table_schema.rowkey_split_, int64_t);
+  ASSIGN_INT("original_table_id", table_schema.original_table_id_, uint64_t);
+  ASSIGN_INT("index_status", table_schema.index_status_,  IndexStatus);
+  ASSIGN_INT("create_time_column_id", table_schema.create_time_column_id_, uint64_t);
+  ASSIGN_INT("modify_time_column_id", table_schema.modify_time_column_id_, uint64_t);
+  TBSYS_LOG(DEBUG, "table schema version is %ld, maxcolid=%lu, compress_fuction=%s, expire_condition=%s",
+      table_schema.schema_version_, table_schema.max_used_column_id_, table_schema.compress_func_name_, table_schema.expire_condition_);
   return ret;
 }
 

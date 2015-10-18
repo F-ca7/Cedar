@@ -211,4 +211,34 @@ bool ObSchemaChecker::is_rowkey_column(const ObString& table_name, const ObStrin
   return is_rowkey;
 }
 
+int ObSchemaChecker::is_index_full(uint64_t table_id,bool& is_full)
+{
+  //bool ret=false;
+  int ret = OB_SUCCESS;
+  IndexList il;
+  const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>* idx_hash=schema_mgr_->get_index_hash();
+  if(idx_hash == NULL)
+  {
+    ret=OB_ERROR;
+    TBSYS_LOG(ERROR,"NULL pointer of index_hash_map!");
+  }
+  else
+  {
+    if(hash::HASH_NOT_EXIST==idx_hash->get(table_id,il))
+    {
+    }
+    else if(hash::HASH_EXIST==idx_hash->get(table_id,il))
+    {
+      if(il.get_count()>=OB_MAX_INDEX_NUMS)
+      {
+        is_full=true;
+      }
+      else
+      {
+      }
+    }
+  }
+  return ret;
+}
+
 

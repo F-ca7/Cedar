@@ -309,6 +309,9 @@ MASTER            { return MASTER; }
 SLAVE             { return SLAVE;  }
 FORCE             { return FORCE;  }
 
+INDEX		  { return INDEX;  }
+STORING		  { return STORING;  }
+
 NULL   {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0);

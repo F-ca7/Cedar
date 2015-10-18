@@ -209,6 +209,8 @@ int ObExtraTablesSchema::first_tablet_entry_schema(TableSchema& table_schema)
   return ret;
 }
 
+
+
 int ObExtraTablesSchema::all_all_column_schema(TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
@@ -424,6 +426,206 @@ int ObExtraTablesSchema::all_join_info_schema(TableSchema& table_schema)
       false); //is nullable
   return ret;
 }
+
+//longfei
+int ObExtraTablesSchema::all_secondary_index_schema(TableSchema& table_schema)
+{
+  int ret = OB_SUCCESS;
+  strcpy(table_schema.table_name_, OB_ALL_SECONDAYR_INDEX_TABLE_NAME);
+  table_schema.table_id_ = OB_ALL_SECONDARY_INDEX_TID;
+  table_schema.table_type_ = TableSchema::NORMAL;
+  table_schema.load_type_ = TableSchema::DISK;
+  table_schema.table_def_type_ = TableSchema::INTERNAL;
+  table_schema.rowkey_column_num_ = 1;
+  table_schema.replica_num_ = OB_SAFE_COPY_COUNT;
+  // @TODO
+  table_schema.max_used_column_id_ = INDEX_STATUS_ID;
+  table_schema.create_mem_version_ = 1;
+  table_schema.max_rowkey_length_ = OB_MAX_TABLE_NAME_LENGTH;
+  strncpy(table_schema.compress_func_name_, OB_DEFAULT_COMPRESS_FUNC_NAME, OB_MAX_TABLE_NAME_LENGTH);
+  table_schema.is_use_bloomfilter_ = false;
+  table_schema.is_pure_update_table_ = false;
+  table_schema.rowkey_split_ = OB_MAX_TABLE_NAME_LENGTH;
+  table_schema.merge_write_sstable_version_ = TableSchema::DEFAULT_SSTABLE_VERSION;
+  table_schema.create_time_column_id_ = OB_CREATE_TIME_COLUMN_ID;
+  table_schema.modify_time_column_id_ = OB_MODIFY_TIME_COLUMN_ID;
+
+  ADD_COLUMN_SCHEMA("table_name", //column_name
+      first_tablet_entry_cid::TNAME, //column_id
+      1, //rowkey_id
+      ObVarcharType,  //column_type
+      OB_MAX_TABLE_NAME_LENGTH, //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("create_time_column_id", //column_name
+      first_tablet_entry_cid::CREATE_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("modify_time_column_id", //column_name
+      first_tablet_entry_cid::MODIFY_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("table_id", //column_name
+      first_tablet_entry_cid::TID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("table_type", //column_name
+      first_tablet_entry_cid::TABLE_TYPE, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("load_type", //column_name
+      first_tablet_entry_cid::LOAD_TYPE, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("table_def_type", //column_name
+      first_tablet_entry_cid::TABLE_DEF_TYPE, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("rowkey_column_num", //column_name
+      first_tablet_entry_cid::ROWKEY_COLUMN_NUM, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("column_num", //column_name
+      first_tablet_entry_cid::COLUMN_NUM, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("max_used_column_id", //column_name
+      first_tablet_entry_cid::MAX_USED_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("replica_num", //column_name
+      first_tablet_entry_cid::REPLICA_NUM, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("create_mem_version", //column_name
+      first_tablet_entry_cid::CREATE_MEM_VERSION, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("tablet_max_size", //column_name
+      first_tablet_entry_cid::TABLET_MAX_SIZE, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("max_rowkey_length", //column_name
+      first_tablet_entry_cid::MAX_ROWKEY_LENGTH_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("compress_func_name", //column_name
+      first_tablet_entry_cid::COMPRESS_FUNC_NAME_ID, //column_id
+      0, //rowkey_id
+      ObVarcharType,  //column_type
+      OB_MAX_TABLE_NAME_LENGTH, //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("is_use_bloomfilter", //column_name
+      first_tablet_entry_cid::USE_BLOOMFILTER_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  /*这个column的实际含义和名字不符，为了兼容，取这个名字，实际含义是consistency level*/
+  ADD_COLUMN_SCHEMA("is_read_static", //column_name
+      first_tablet_entry_cid::READ_STATIC_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("merge_write_sstable_version", //column_name
+      first_tablet_entry_cid::MERGE_WRITE_SSTABLE_VERSION, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("is_pure_update_table", //column_name
+      first_tablet_entry_cid::PURE_UPDATE_TABLE_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("rowkey_split", //column_name
+      first_tablet_entry_cid::ROWKEY_SPLIT_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      true); //is nullable
+  ADD_COLUMN_SCHEMA("expire_condition", //column_name
+      first_tablet_entry_cid::EXPIRE_CONDITION_ID, //column_id
+      0, //rowkey_id
+      ObVarcharType,  //column_type
+      OB_MAX_EXPIRE_CONDITION_LENGTH, //column length
+      true); //is nullable
+  /*
+   * 暂时去掉这个列，以和0.4.1的schema兼容
+  ADD_COLUMN_SCHEMA("comment_str",
+      first_tablet_entry_cid::COMMENT_STR_ID, //column_id
+      0, //rowkey_id
+      ObVarcharType,  //column_type
+      OB_MAX_TABLE_COMMENT_LENGTH, //column length
+      true); //is nullable
+      */
+  ADD_COLUMN_SCHEMA("schema_version",
+      first_tablet_entry_cid::SCHEMA_VERSION_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      true); //is nullable
+  ADD_COLUMN_SCHEMA("tablet_block_size", //column_name
+      first_tablet_entry_cid::SSTABLE_BLOCK_SIZE_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("original_table_id", //column_name
+	  ORIGINAL_TABLE_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("index_status", //column_name
+	  INDEX_STATUS_ID, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("gm_create", //column_name
+      OB_CREATE_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObCreateTimeType,  //column_type
+      sizeof(ObCreateTime), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("gm_modify", //column_name
+      OB_MODIFY_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObModifyTimeType,  //column_type
+      sizeof(ObModifyTime), //column length
+      false); //is nullable
+
+  return ret;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 //                        OCEANBASE SYSTEM TABLES                         //

@@ -3488,3 +3488,60 @@ int resolve_when_clause(
   }
   return ret;
 }
+//add wenghaixing[secondary index create fix]20141226
+int generate_expire_col_list(ObString input, ObStrings &out)
+{
+  int ret = OB_SUCCESS;
+  ObExpressionParser parser;
+  ObArrayHelper<ObObj> obj_array;
+  ObObj sym_list_[OB_MAX_COMPOSITE_SYMBOL_COUNT];
+  obj_array.init(OB_MAX_COMPOSITE_SYMBOL_COUNT, sym_list_);
+  ObString val;
+  int i                 = 0;
+  int64_t type          = 0;
+  int64_t postfix_size  = 0;
+  if(OB_SUCCESS != (ret = (parser.parse(input,obj_array))))
+  {
+    TBSYS_LOG(ERROR,"generate_expire_col_list parse error,ret[%d]",ret);
+  }
+  else
+  {
+    postfix_size=obj_array.get_array_index();
+  }
+  if(OB_SUCCESS == ret)
+  {
+    i=0;
+    while(i<postfix_size-1)
+    {
+      if(OB_SUCCESS != obj_array.at(i)->get_int(type))
+      {
+        TBSYS_LOG(WARN, "unexpected data type. int expected, but actual type is %d",
+          obj_array.at(i)->get_type());
+        ret = OB_ERR_UNEXPECTED;
+        break;
+      }
+      else
+      {
+        if(ObExpression::COLUMN_IDX == type)
+        {
+          if (OB_SUCCESS != obj_array.at(i+1)->get_varchar(val))
+          {
+            TBSYS_LOG(WARN, "unexpected data type. varchar expected, "
+                            "but actual type is %d",
+            obj_array.at(i+1)->get_type());
+            ret = OB_ERR_UNEXPECTED;
+            break;
+          }
+          else
+          {
+            out.add_string(val);;
+          }
+        }
+      }
+      i += 2;
+    }
+  }
+  return ret;
+}
+
+//add e

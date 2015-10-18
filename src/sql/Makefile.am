@@ -29,6 +29,7 @@ sql_parser_sources=                                    \
   ob_basic_stmt.h                                      \
   ob_column_def.h                                      \
   ob_create_table_stmt.h      ob_create_table_stmt.cpp \
+  ob_create_index_stmt.h      ob_create_index_stmt.cpp \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \

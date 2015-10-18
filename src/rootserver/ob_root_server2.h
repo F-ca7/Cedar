@@ -317,6 +317,10 @@ namespace oceanbase
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
         int64_t get_last_frozen_version() const;
 
+        // longfei
+        //secodary index service
+        int create_index(const bool if_not_exists, const common::TableSchema &tschema);
+
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();
         bool is_bypass_process();

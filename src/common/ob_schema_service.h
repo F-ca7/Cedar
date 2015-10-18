@@ -131,6 +131,11 @@ namespace oceanbase
       int64_t tablet_block_size_;
       int64_t tablet_max_size_;
       int64_t max_rowkey_length_;
+
+      //longfei
+      uint64_t original_table_id_;
+      IndexStatus index_status_;
+
       int64_t merge_write_sstable_version_;
       int64_t schema_version_;
       uint64_t create_time_column_id_;
@@ -155,6 +160,11 @@ namespace oceanbase
            tablet_block_size_(OB_DEFAULT_SSTABLE_BLOCK_SIZE),
           tablet_max_size_(OB_DEFAULT_MAX_TABLET_SIZE),
           max_rowkey_length_(0),
+
+		  //longfei
+		  original_table_id_(OB_INVALID_ID),
+		  index_status_(ERROR),
+
           merge_write_sstable_version_(DEFAULT_SSTABLE_VERSION),
           schema_version_(0),
           create_time_column_id_(OB_CREATE_TIME_COLUMN_ID),

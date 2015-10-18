@@ -153,6 +153,7 @@ do \
 %token UNION UPDATE USER USING
 %token VALUES VARCHAR VARBINARY
 %token WHERE WHEN WITH WORK PROCESSLIST QUERY CONNECTION WEAK
+%token INDEX STORING /* add longfei [secondaryindex reconstruct] 20150917 e */
 
 %token <non_reserved_keyword>
        AUTO_INCREMENT CHUNKSERVER COMPRESS_METHOD CONSISTENT_MODE
@@ -161,6 +162,10 @@ do \
        SERVER_PORT SERVER_TYPE STATUS TABLE_ID TABLET_BLOCK_SIZE TABLET_MAX_SIZE
        UNLOCKED UPDATESERVER USE_BLOOM_FILTER VARIABLES VERBOSE WARNINGS
 
+
+/* add [secondaryindex reconstruct] 20150925 longfei :b */
+%type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
+/* add e */
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
 %type <node> create_table_stmt opt_table_option_list table_option
@@ -244,6 +249,7 @@ stmt:
     select_stmt       { $$ = $1; }
   | insert_stmt       { $$ = $1; }
   | create_table_stmt { $$ = $1; }
+  | create_index_stmt { $$ = $1; }
   | update_stmt       { $$ = $1; }
   | delete_stmt       { $$ = $1; }
   | drop_table_stmt   { $$ = $1; }
@@ -740,6 +746,77 @@ update_asgn_factor:
   ;
 
 
+// add longfei [secondaryindex reconstruct] 20150915:b 
+/*****************************************************************************
+ *
+ *	create secondary index grammar 
+ *
+ *****************************************************************************/
+create_index_stmt:
+	CREATE INDEX opt_if_not_exists relation_factor ON relation_factor opt_index_columns
+	opt_storing opt_index_option_list
+	{
+		ParseNode *index_options = NULL;
+		merge_nodes(index_options, result->malloc_pool_, T_INDEX_OPTION_LIST, $9);
+		malloc_non_terminal_node($$, result->malloc_pool_, T_CREATE_INDEX, 6,
+								  $3, /* if not exists */
+								  $6, /* table name */
+								  $4, /* index name */ 
+		                          $7, /* index columns */
+		                          $8, /* storing list */
+		                          index_options /* option list */
+		                        );
+	};
+		  	
+opt_index_columns:
+    '(' column_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_COLUMN_LIST, $2);
+    }
+  ;
+  
+opt_storing:
+  	STORING opt_storing_columns 
+  	{
+  		$$=$2;
+  	}
+  |
+  	/*empty*/
+  	{
+  		$$=NULL;
+  	}
+  ;
+  
+opt_storing_columns:
+   '(' column_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_COLUMN_LIST, $2);
+    }
+  ;
+  
+opt_index_option_list:
+    index_option
+    {
+      $$ = $1;
+    }
+  | opt_index_option_list ',' index_option
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  | /*EMPTY*/
+    {
+      $$ = NULL;
+    }
+  ;
+
+index_option:
+	table_option
+	{
+		$$ = $1;
+	}
+  ;
+// add e
+
 /*****************************************************************************
  *
  *	create grammar
@@ -1029,8 +1106,8 @@ opt_equal_mark:
     COMP_EQ     { $$ = NULL; }
   | /*EMPTY*/   { $$ = NULL; }
   ;
-
-
+ 
+ 
 /*****************************************************************************
  *
  *	drop table grammar

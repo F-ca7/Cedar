@@ -1,8 +1,10 @@
-/* A Bison parser, made by GNU Bison 2.5.  */
 
-/* Bison interface for Yacc-like parsers in C
+/* A Bison parser, made by GNU Bison 2.4.1.  */
+
+/* Skeleton interface for Bison's Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -206,31 +208,33 @@
      QUERY = 424,
      CONNECTION = 425,
      WEAK = 426,
-     AUTO_INCREMENT = 427,
-     CHUNKSERVER = 428,
-     COMPRESS_METHOD = 429,
-     CONSISTENT_MODE = 430,
-     EXPIRE_INFO = 431,
-     GRANTS = 432,
-     JOIN_INFO = 433,
-     MERGESERVER = 434,
-     REPLICA_NUM = 435,
-     ROOTSERVER = 436,
-     ROW_COUNT = 437,
-     SERVER = 438,
-     SERVER_IP = 439,
-     SERVER_PORT = 440,
-     SERVER_TYPE = 441,
-     STATUS = 442,
-     TABLE_ID = 443,
-     TABLET_BLOCK_SIZE = 444,
-     TABLET_MAX_SIZE = 445,
-     UNLOCKED = 446,
-     UPDATESERVER = 447,
-     USE_BLOOM_FILTER = 448,
-     VARIABLES = 449,
-     VERBOSE = 450,
-     WARNINGS = 451
+     INDEX = 427,
+     STORING = 428,
+     AUTO_INCREMENT = 429,
+     CHUNKSERVER = 430,
+     COMPRESS_METHOD = 431,
+     CONSISTENT_MODE = 432,
+     EXPIRE_INFO = 433,
+     GRANTS = 434,
+     JOIN_INFO = 435,
+     MERGESERVER = 436,
+     REPLICA_NUM = 437,
+     ROOTSERVER = 438,
+     ROW_COUNT = 439,
+     SERVER = 440,
+     SERVER_IP = 441,
+     SERVER_PORT = 442,
+     SERVER_TYPE = 443,
+     STATUS = 444,
+     TABLE_ID = 445,
+     TABLET_BLOCK_SIZE = 446,
+     TABLET_MAX_SIZE = 447,
+     UNLOCKED = 448,
+     UPDATESERVER = 449,
+     USE_BLOOM_FILTER = 450,
+     VARIABLES = 451,
+     VERBOSE = 452,
+     WARNINGS = 453
    };
 #endif
 
