@@ -3575,19 +3575,26 @@ int ObTransformer::gen_physical_create_index(
 	       crt_tab_op->set_if_not_exists(false);
 	       //if (crt_tab_stmt->get_tablet_max_size() > 0)
 	       //we set some paramer with default value
-	       table_schema.tablet_max_size_ =idxed_tab_schema->get_max_sstable_size();
-	       table_schema.tablet_block_size_ = idxed_tab_schema->get_block_size();
-	       table_schema.replica_num_ = (int32_t)idxed_tab_schema->get_replica_count();
-	       table_schema.is_use_bloomfilter_ = idxed_tab_schema->is_use_bloomfilter();
-	       table_schema.consistency_level_ = idxed_tab_schema->get_consistency_level();
+	       table_schema.tablet_max_size_ =crt_idx_stmt->get_tablet_max_size();
+	       table_schema.tablet_block_size_ = crt_idx_stmt->get_tablet_block_size();
+	       table_schema.replica_num_ = (int32_t)crt_idx_stmt->get_replica_num();
+	       table_schema.is_use_bloomfilter_ = crt_idx_stmt->use_bloom_filter();
+	       table_schema.consistency_level_ = crt_idx_stmt->get_consistency_level();
 	       table_schema.rowkey_column_num_ = (int32_t)idxed_tab_schema->get_rowkey_info().get_size()+(int32_t)crt_idx_stmt->get_index_columns_count();
 	       //add wenghaixing 20141029
-	       table_schema.table_id_=OB_INVALID_ID;
+	       if (OB_INVALID_ID != crt_idx_stmt->get_table_id())
+	       {
+	         table_schema.table_id_ = crt_idx_stmt->get_table_id();
+	       }
+	       else
+	       {
+	         table_schema.table_id_=OB_INVALID_ID;
+	       }
 	       table_schema.max_used_column_id_=OB_ALL_MAX_COLUMN_ID;
 	       //add e
 	       ObString compress_method;
-	       compress_method.assign_ptr((char*)idxed_tab_schema->get_compress_func_name(),
-	                                        static_cast<int32_t>(strlen(idxed_tab_schema->get_compress_func_name())));
+	       char* compress_name_ = const_cast<char*>(crt_idx_stmt->get_compress_method().ptr());
+	       compress_method.assign_ptr(compress_name_,crt_idx_stmt->get_compress_method().length());
 	       //buf_len = sizeof(table_schema.compress_func_name_);
 	       const char *func_name = compress_method.ptr();
 	       len = compress_method.length();
