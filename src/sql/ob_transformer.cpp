@@ -3572,7 +3572,7 @@ int ObTransformer::gen_physical_create_index(
 	       memcpy(table_schema.comment_str_, comment_str.ptr(), len);
 	       table_schema.comment_str_[len] = '\0';
 	       /*refresh other infomation*/
-	       crt_tab_op->set_if_not_exists(false);
+	       crt_tab_op->set_if_not_exists(crt_idx_stmt->get_if_not_exists());
 	       //if (crt_tab_stmt->get_tablet_max_size() > 0)
 	       //we set some paramer with default value
 	       table_schema.tablet_max_size_ =crt_idx_stmt->get_tablet_max_size();
