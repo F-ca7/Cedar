@@ -153,7 +153,7 @@ do \
 %token UNION UPDATE USER USING
 %token VALUES VARCHAR VARBINARY
 %token WHERE WHEN WITH WORK PROCESSLIST QUERY CONNECTION WEAK
-%token INDEX STORING /* add longfei [secondaryindex reconstruct] 20150917 e */
+%token INDEX STORING /* add longfei [create index] [secondaryindex reconstruct] 20150917 e */
 
 %token <non_reserved_keyword>
        AUTO_INCREMENT CHUNKSERVER COMPRESS_METHOD CONSISTENT_MODE
@@ -163,7 +163,7 @@ do \
        UNLOCKED UPDATESERVER USE_BLOOM_FILTER VARIABLES VERBOSE WARNINGS
 
 
-/* add [secondaryindex reconstruct] 20150925 longfei :b */
+/* add [secondaryindex reconstruct] 20150925 longfei [create index] :b */
 %type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
 /* add e */
 %type <node> sql_stmt stmt_list stmt
@@ -746,7 +746,7 @@ update_asgn_factor:
   ;
 
 
-// add longfei [secondaryindex reconstruct] 20150915:b 
+// add longfei [create index] [secondaryindex reconstruct] 20150915:b 
 /*****************************************************************************
  *
  *	create secondary index grammar 
@@ -1925,11 +1925,14 @@ opt_verbose:
 /*****************************************************************************
  *
  *	show grammar
+ *  add show index : longfei [show index]
  *
  *****************************************************************************/
 show_stmt:
     SHOW TABLES opt_show_condition
     { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_TABLES, 1, $3); }
+  | SHOW INDEX ON relation_factor opt_show_condition
+    {  malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_INDEX, 2, $4, $5); }
   | SHOW COLUMNS FROM relation_factor opt_show_condition
     { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_COLUMNS, 2, $4, $5); }
   | SHOW COLUMNS IN relation_factor opt_show_condition

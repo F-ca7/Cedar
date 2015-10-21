@@ -132,7 +132,7 @@ namespace oceanbase
       int64_t tablet_max_size_;
       int64_t max_rowkey_length_;
 
-      //longfei
+      //longfei [create index]
       uint64_t original_table_id_;
       IndexStatus index_status_;
 
@@ -161,7 +161,7 @@ namespace oceanbase
           tablet_max_size_(OB_DEFAULT_MAX_TABLET_SIZE),
           max_rowkey_length_(0),
 
-		  //longfei
+		  //longfei [create index]
 		  original_table_id_(OB_INVALID_ID),
 		  index_status_(ERROR),
 

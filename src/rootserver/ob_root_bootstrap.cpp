@@ -117,7 +117,7 @@ int ObBootstrap::create_all_core_tables()
       TBSYS_LOG(INFO, "create all_all_join_info tablet success.");
     }
   }
-  //3.create all_secondary_index tablet longfei
+  //3.create all_secondary_index tablet longfei [create index]
   if (OB_SUCCESS == ret)
   {
     ObServerArray cs;

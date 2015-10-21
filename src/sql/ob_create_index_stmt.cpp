@@ -14,7 +14,7 @@
  */
 #include "ob_create_index_stmt.h"
 #include "ob_schema_checker.h"
-// add longfei [secondaryindex reconstruct] 20151008 :b
+// add longfei [create index] [secondaryindex reconstruct] 20151008 :b
 #include "common/ob_strings.h"
 #include "common/ob_postfix_expression.h"
 // add e
@@ -132,7 +132,7 @@ int ObCreateIndexStmt::generate_inner_index_table_name(ObString& index_name, ObS
 	  {
 	     strncpy(str, index_name.ptr(), index_name.length());
 	     strncpy(raw, original_table_name.ptr(), original_table_name.length());
-	     int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___index_%s_%s",  raw, str);
+	     int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___%s_%s",  raw, str);
 	     if((size_t)wlen > (size_t)OB_MAX_TABLE_NAME_LENGTH)
 	     {
 	        ret = OB_ERROR;

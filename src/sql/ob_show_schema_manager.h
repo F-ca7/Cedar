@@ -36,11 +36,17 @@ namespace oceanbase
         static int add_show_schemas(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_schema(common::ObSchemaManagerV2& schema_mgr, int32_t stmt_type);
         static int add_show_tables_schema(common::ObSchemaManagerV2& schema_mgr);
+        /* add liumengzhan_show_index [20141208]
+         * add virtual table __index_show's schema to schema_mgr
+         */
+        static int add_show_index_schema(common::ObSchemaManagerV2& schema_mgr);
+        //add:e
         static int add_show_variables_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_columns_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_create_table_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_parameters_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_table_status_schema(common::ObSchemaManagerV2& schema_mgr);
+
 
       private:        
         static common::ObSchemaManagerV2 *show_schema_mgr_;

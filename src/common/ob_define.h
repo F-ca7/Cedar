@@ -530,6 +530,9 @@ namespace oceanbase
     const char* const OB_ALL_SERVER = "__all_server";
     const char* const OB_ALL_CLIENT = "__all_client";
     const char* const OB_TABLES_SHOW_TABLE_NAME = "__tables_show";
+    //add liumengzhan_show_index [20141208]
+    const char* const OB_INDEX_SHOW_TABLE_NAME = "__index_show";
+    //add:e
     const char* const OB_VARIABLES_SHOW_TABLE_NAME = "__variables_show";
     const char* const OB_CREATE_TABLE_SHOW_TABLE_NAME = "__create_table_show";
     const char* const OB_TABLE_STATUS_SHOW_TABLE_NAME = "__table_status_show";
@@ -538,7 +541,7 @@ namespace oceanbase
     const char* const OB_SERVER_STATUS_SHOW_TABLE_NAME = "__server_status_show";
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
-    const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei
+    const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei [create index]
 
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
@@ -564,23 +567,26 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_TID = 11;
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
-    static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei
+    static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei [create index]
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //
     ///////////////////////////////////////////////////////////
     // VIRTUAL TABLES ID (500, 700), they should not be mutated
 #define IS_VIRTUAL_TABLE(tid) ((tid) > 500 && (tid) < 700)
     static const uint64_t OB_TABLES_SHOW_TID = 501;
-    static const uint64_t OB_COLUMNS_SHOW_TID = 502;
-    static const uint64_t OB_VARIABLES_SHOW_TID = 503;
-    static const uint64_t OB_TABLE_STATUS_SHOW_TID = 504;
-    static const uint64_t OB_SCHEMA_SHOW_TID = 505;
-    static const uint64_t OB_CREATE_TABLE_SHOW_TID = 506;
-    static const uint64_t OB_PARAMETERS_SHOW_TID = 507;
-    static const uint64_t OB_SERVER_STATUS_SHOW_TID = 508;
-    static const uint64_t OB_ALL_SERVER_STAT_TID = 509;
-    static const uint64_t OB_ALL_SERVER_SESSION_TID = 510;
-    static const uint64_t OB_ALL_STATEMENT_TID = 511;
+    //add liumengzhan_show_index [20141208]
+    static const uint64_t OB_INDEX_SHOW_TID = 502;
+    //add:e
+    static const uint64_t OB_COLUMNS_SHOW_TID = 503;
+    static const uint64_t OB_VARIABLES_SHOW_TID = 504;
+    static const uint64_t OB_TABLE_STATUS_SHOW_TID = 505;
+    static const uint64_t OB_SCHEMA_SHOW_TID = 506;
+    static const uint64_t OB_CREATE_TABLE_SHOW_TID = 507;
+    static const uint64_t OB_PARAMETERS_SHOW_TID = 508;
+    static const uint64_t OB_SERVER_STATUS_SHOW_TID = 509;
+    static const uint64_t OB_ALL_SERVER_STAT_TID = 510;
+    static const uint64_t OB_ALL_SERVER_SESSION_TID = 511;
+    static const uint64_t OB_ALL_STATEMENT_TID = 512;
 #define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
@@ -652,7 +658,7 @@ namespace oceanbase
       OB_DML_NUM,
     };
 
-    // longfei
+    // longfei [create index]
     static const uint64_t OB_INDEX_VIRTUAL_COLUMN_ID = 511;
     static const int64_t OB_MAX_INDEX_COLUMNS=100;
     static const int64_t OB_MAX_INDEX_NUMS=5;

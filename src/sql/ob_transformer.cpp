@@ -100,9 +100,10 @@
 #include "mergeserver/ob_merge_server_main.h"
 #include <vector>
 
-//longfei
+//longfei [create index]
 #include "ob_create_index_stmt.h"
 #include "dml_build_plan.h"
+#include "common/ob_schema.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
@@ -271,7 +272,7 @@ int ObTransformer::generate_physical_plan(
           ret = gen_physical_create_table(logical_plan, physical_plan, err_stat, query_id, index);
           break;
 
-        // longfei
+        // longfei [create index]
         case ObBasicStmt::T_CREATE_INDEX:
           ret = gen_physical_create_index(logical_plan, physical_plan, err_stat, query_id, index);
           break;
@@ -283,6 +284,9 @@ int ObTransformer::generate_physical_plan(
           ret = gen_physical_alter_table(logical_plan, physical_plan, err_stat, query_id, index);
           break;
         case ObBasicStmt::T_SHOW_TABLES:
+        //add liumengzhan_show_index [20141208]
+        case ObBasicStmt::T_SHOW_INDEX:
+        //add:e
         case ObBasicStmt::T_SHOW_VARIABLES:
         case ObBasicStmt::T_SHOW_COLUMNS:
         case ObBasicStmt::T_SHOW_SCHEMA:
@@ -3432,7 +3436,7 @@ bool ObTransformer::parse_join_info(const ObString &join_info_str, TableSchema &
 }
 
 /**
- * longfei
+ * longfei [create index]
  */
 int ObTransformer::gen_physical_create_index(
     ObLogicalPlan *logical_plan,
@@ -4401,12 +4405,20 @@ int ObTransformer::gen_phy_show_tables(
     ObObj value;
     value.set_varchar(val);
     val_row.set_row_desc(row_desc);
+
     if (it->get_table_id() >= OB_TABLES_SHOW_TID
       && it->get_table_id() <= OB_SERVER_STATUS_SHOW_TID)
     {
       /* skip local show tables */
       continue;
     }
+    // add longfei
+    else if (it->get_original_table_id() != OB_INVALID_ID)
+    {
+      /* skip index tables */
+      continue;
+    }
+    //add:e
     else if ((ret = val_row.set_cell(table_id, column_id, value)) != OB_SUCCESS)
     {
       TRANS_LOG("Add value to ObRow failed");
@@ -4426,6 +4438,120 @@ int ObTransformer::gen_phy_show_tables(
 
   return ret;
 }
+
+//add longfei [show index] 20151019 :b
+int ObTransformer::gen_phy_show_index(
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    ObShowStmt *show_stmt,
+    ObPhyOperator *&out_op)
+{
+  int& ret = err_stat.err_code_ = OB_SUCCESS;
+  ObRowDesc row_desc;
+  ObValues *values_op = NULL;
+  IndexList idx_list;
+  uint64_t show_tid = OB_INVALID_ID;
+  uint64_t sys_tid = OB_INVALID_ID;
+  uint64_t idx_tid = OB_INVALID_ID;
+  int64_t idx_num = 0;
+  CREATE_PHY_OPERRATOR(values_op, ObValues, physical_plan, err_stat);
+
+  if (show_stmt->get_column_size() != 3)
+  {
+    ret = OB_ERR_COLUMN_SIZE;
+    TRANS_LOG("wrong columns' number of %s", OB_INDEX_SHOW_TABLE_NAME);
+  }
+  else
+  {
+    for (int32_t i = 0; i< show_stmt->get_column_size(); i++)
+    {
+        const ColumnItem* column_item = show_stmt->get_column_item(i);
+        if ((ret = row_desc.add_column_desc(column_item->table_id_, column_item->column_id_)) != OB_SUCCESS)
+        {
+          TRANS_LOG("add row desc error, err=%d", ret);
+        }
+    }
+    if ((ret = values_op->set_row_desc(row_desc)) != OB_SUCCESS)
+    {
+      TRANS_LOG("add row desc error, err=%d", ret);
+    }
+  }
+
+  show_tid = show_stmt->get_show_table_id();
+ // TBSYS_LOG(WARN,"original table id = %d",static_cast<int>(show_tid));
+  sys_tid = show_stmt->get_sys_table_id();
+
+  //const ObTableSchema* tschema;
+  //tschema = sql_context_->schema_manager_->get_table_schema(3002);
+  //TBSYS_LOG(WARN,"LONGFEI:student's index table name: %s,",tschema->get_table_name());
+  //TBSYS_LOG(WARN,"LONGFEI:is_id_index_hash_map_init_ = %d",sql_context_->schema_manager_->isIsIdIndexHashMapInit());
+
+
+  if (show_tid == OB_INVALID_ID || (ret=sql_context_->schema_manager_->get_index_list(show_tid, idx_list)) != OB_SUCCESS)
+  {
+    ret = OB_ERR_ILLEGAL_ID;
+    TRANS_LOG("get index table list error, err=%d", ret);
+  }
+  idx_num = idx_list.get_count();
+  //TBSYS_LOG(INFO,"in gen show, idx_num of original table:%d",(int)idx_num);
+  //TBSYS_LOG(WARN,"sys table id = %d",static_cast<int>(sys_tid));
+  for (int64_t i = 0; ret == OB_SUCCESS && i < idx_num; i++)
+  {
+        ObRow val_row;
+        val_row.set_row_desc(row_desc);
+        //construct index table name_obj
+        idx_list.get_idx_id(i, idx_tid);
+        const ObTableSchema *idx_tschema = sql_context_->schema_manager_->get_table_schema(idx_tid);
+        int32_t len = static_cast<int32_t>(strlen(idx_tschema->get_table_name()));
+        ObString name(len, len, idx_tschema->get_table_name());
+        ObObj name_obj;
+        name_obj.set_varchar(name);
+        ObObj status_obj;
+        ObString tmp;
+        switch(idx_tschema->get_index_status())
+        {
+            case 0:status_obj.set_varchar(tmp.make_string("NOT AVALIBLE"));break;
+            case 1:status_obj.set_varchar(tmp.make_string("AVALIBLE"));break;
+            case 2:status_obj.set_varchar(tmp.make_string("ERROR"));break;
+            case 3:status_obj.set_varchar(tmp.make_string("WRITE_ONLY"));break;
+            case 4:status_obj.set_varchar(tmp.make_string("INDEX_INIT"));break;
+            default:break;
+        }
+
+        ObObj IndexCol_obj;
+        IndexCol_obj.set_varchar(tmp.make_string("@TODO"));
+
+        uint64_t column_id = OB_APP_MIN_COLUMN_ID;
+        if ((ret = val_row.set_cell(sys_tid, column_id++, name_obj)) != OB_SUCCESS)
+        {
+            TRANS_LOG("Add value to ObRow failed");
+            break;
+        }
+        else if ((ret = val_row.set_cell(sys_tid, column_id++, status_obj)) != OB_SUCCESS)
+        {
+            TRANS_LOG("Add value to ObRow failed");
+            break;
+        }
+        else if ((ret = val_row.set_cell(sys_tid, column_id++, IndexCol_obj)) != OB_SUCCESS)
+        {
+            TRANS_LOG("Add value to ObRow failed");
+            break;
+        }
+        else if (ret == OB_SUCCESS && (ret = values_op->add_values(val_row)) != OB_SUCCESS)
+        {
+            TRANS_LOG("Add value row failed");
+            break;
+        }
+  }
+
+  if (ret == OB_SUCCESS)
+  {
+    out_op = values_op;
+  }
+
+  return ret;
+}
+//add:e
 
 int ObTransformer::gen_phy_show_columns(
     ObPhysicalPlan *physical_plan,
@@ -5248,6 +5374,11 @@ int ObTransformer::gen_physical_show(
       case ObBasicStmt::T_SHOW_TABLES:
         ret = gen_phy_show_tables(physical_plan, err_stat, show_stmt, result_op);
         break;
+      //add liumengzhan_show_index [20141208]
+      case ObBasicStmt::T_SHOW_INDEX:
+        ret = gen_phy_show_index(physical_plan, err_stat, show_stmt, result_op);
+        break;
+      //add:e
       case ObBasicStmt::T_SHOW_COLUMNS:
         ret = gen_phy_show_columns(physical_plan, err_stat, show_stmt, result_op);
         break;

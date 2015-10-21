@@ -427,7 +427,7 @@ int ObExtraTablesSchema::all_join_info_schema(TableSchema& table_schema)
   return ret;
 }
 
-//longfei
+//longfei [create index]
 int ObExtraTablesSchema::all_secondary_index_schema(TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;

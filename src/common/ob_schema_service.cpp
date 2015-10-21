@@ -286,7 +286,7 @@ DEFINE_SERIALIZE(TableSchema)
   {
   }
 
-  // longfei
+  // longfei [create index]
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, original_table_id_)))
   {
   }
@@ -420,7 +420,7 @@ DEFINE_DESERIALIZE(TableSchema)
     TBSYS_LOG(WARN, "deserialize error here");
   }
 
-  // longfei
+  // longfei [create index]
   else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&original_table_id_))))
   {
     TBSYS_LOG(WARN, "deserialize error here");

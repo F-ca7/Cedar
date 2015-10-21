@@ -1879,6 +1879,19 @@ namespace oceanbase
         {
           schema_version = schema->get_version();
         }
+
+        // add longfei
+        IndexList temp_list;
+        int64_t temp_counter = 0;
+        ret = schema->get_index_list(3001,temp_list);
+
+        TBSYS_LOG(INFO,"LONGFEI:CS SWITCH SCHEMA!temp_list.get_count() = %d",static_cast<int>(temp_list.get_count()));
+
+          for (;temp_counter < temp_list.get_count(); temp_counter++)
+          {
+            TBSYS_LOG(INFO,"LONGFEI:student de secondary index table id = %d",static_cast<int>(temp_list.index_tid[temp_counter]));
+          }
+
       }
 
       if (OB_SUCCESS == err)

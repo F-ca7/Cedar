@@ -103,7 +103,7 @@ namespace oceanbase
             int32_t* index);
 
         /**
-         * longfei
+         * longfei [create index]
          */
         int gen_physical_create_index(
             ObLogicalPlan *logical_plan,
@@ -231,6 +231,13 @@ namespace oceanbase
             ErrStat& err_stat,
             ObShowStmt *show_stmt,
             ObPhyOperator *&out_op);
+        //add liumengzhan_show_index
+        int gen_phy_show_index(
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            ObShowStmt *show_stmt,
+            ObPhyOperator *&out_op);
+        //add:e
         int gen_phy_show_columns(
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,

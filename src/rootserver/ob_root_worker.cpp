@@ -1007,7 +1007,7 @@ namespace oceanbase
                       return_code = rt_create_table(version, *in_buf, req, channel_id, thread_buff);
                       break;
 
-                      // longfei
+                      // longfei [create index]
                     case OB_CREATE_INDEX:
                       return_code = rt_create_index(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -5735,7 +5735,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     /**
-     * author:longfei 20151017
+     * author:longfei [create index] 20151017
      */
     int ObRootWorker::rt_create_index(const int32_t version, common::ObDataBuffer& in_buff,
         easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)

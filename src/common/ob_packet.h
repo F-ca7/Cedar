@@ -267,7 +267,7 @@ namespace oceanbase
       OB_ALTER_TABLE = 504,
       OB_ALTER_TABLE_RESPONSE = 505,
 
-	  // longfei
+	  // longfei [create index]
 	  // index schema service
 	  OB_CREATE_INDEX = 550,
 	  OB_CREATE_INDEX_RESPONSE = 501,

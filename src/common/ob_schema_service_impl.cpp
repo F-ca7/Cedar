@@ -491,7 +491,7 @@ int ObSchemaServiceImpl::create_table(const TableSchema& table_schema)
 
   if(OB_SUCCESS == ret)
   {
-	//mod longfei
+	//mod longfei [create index]
 	if(OB_INVALID_ID == table_schema.original_table_id_)
 	{
 	    ret = create_table_mutator(table_schema, mutator);
@@ -829,6 +829,10 @@ int ObSchemaServiceImpl::init_id_name_map(ObTableIdNameIterator& iterator)
       {
         TBSYS_LOG(WARN, "write string to string buf fail:ret[%d]", ret);
       }
+      else
+      {
+        TBSYS_LOG(INFO, "get_table_id_name = %.*s", table_id_name->table_name_.length(),table_id_name->table_name_.ptr());
+      }
     }
 
     int err = 0;
@@ -873,7 +877,7 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
   {
     table_name = joininfo_table_name;
   }
-  //longfei
+  //longfei [create index]
   else if (OB_ALL_SECONDARY_INDEX_TID == table_id)
   {
     table_name = secondary_index_table_name;
@@ -1059,7 +1063,7 @@ int ObSchemaServiceImpl::get_table_schema(const ObString& table_name, TableSchem
   }
   else if (table_name == secondary_index_table_name)
   {
-    ret = ObExtraTablesSchema::all_secondary_index_schema(table_schema); //longfei
+    ret = ObExtraTablesSchema::all_secondary_index_schema(table_schema); //longfei [create index]
   }
   else
   {
@@ -1103,7 +1107,7 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 
   TableRow* table_row = NULL;
 
-  // mod longfei
+  // mod longfei [create index]
   if(OB_SUCCESS == ret)
   {
 	  if(is_index_table_or_not(table_name))
@@ -1117,6 +1121,7 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 				  ("original_table_id")("index_status")
 		          ("create_time_column_id")("modify_time_column_id"));
 	  }
+	  // mod e
 	  else
 	  {
 		ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
@@ -1137,12 +1142,13 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
     table_row = res->get_only_one_row();
     if(NULL != table_row)
     {
-    	//mod longfei
+    	//mod longfei [create index]
       if(is_index_table_or_not(table_name))
       //if(0)
       {
     	  ret = assemble_index_table(table_row, table_schema);
       }
+      // mod e
       else
       {
     	  ret = assemble_table(table_row, table_schema);
@@ -1669,7 +1675,7 @@ int ObSchemaServiceImpl::prepare_privilege_for_table(const TableRow* table_row, 
 }
 
 /**
- * @author:longfei
+ * @author:longfei [create index]
  */
 int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, ObMutator* mutator)
 {
@@ -1733,7 +1739,7 @@ int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, O
 }
 
 /**
- * @author:longfei
+ * @author:longfei [create index]
  */
 bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 {

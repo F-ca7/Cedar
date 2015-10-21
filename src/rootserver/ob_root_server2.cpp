@@ -1172,11 +1172,14 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
             else
             {
               // @todo DEBUG
+              //TBSYS_LOG(INFO, "LONGFEI:get table schema add into shemaManager, tname=%s, tid=%d, original_tid=%d",
+               //   table_schema.table_name_, (int)table_schema.table_id_, (int)table_schema.original_table_id_);
               table_schema_array.push_back(table_schema);
               TBSYS_LOG(DEBUG, "get table schema add into shemaManager, tname=%.*s",
                   tid_name->table_name_.length(), tid_name->table_name_.ptr());
               ++table_count;
             }
+
           }
         } // end while
         if (OB_ITER_END == ret)
@@ -1198,6 +1201,7 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
         }
         if (OB_SUCCESS == ret)
         {
+          //TBSYS_LOG(INFO, "LONGFEI:before init_index_hash, is_id_index_hash_map_init_ = %d",schema_manager_for_cache_->isIsIdIndexHashMapInit());
           if (!only_core_tables)
           {
             tbsys::CWLockGuard guard(schema_manager_rwlock_);
@@ -1207,12 +1211,20 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
             {
               TBSYS_LOG(WARN, "failed to sort columns in schema manager, err=%d", ret);
             }
+            //add wenghaixing [secondary index drop table_with_index]20150121
+           //init index hash when rootserver refresh new version schema
+           else if(OB_SUCCESS != (ret = out_schema.init_index_hash()))
+           {
+             TBSYS_LOG(WARN, "failed to init_index_hash");
+           }
+           //add e
             else if (OB_SUCCESS != (ret = switch_schema_manager(out_schema)))
             {
               TBSYS_LOG(WARN, "fail to switch schema. ret=%d", ret);
             }
             else
             {
+              //TBSYS_LOG(INFO, "LONGFEI:after init_index_hash, is_id_index_hash_map_init_ = %d",schema_manager_for_cache_->isIsIdIndexHashMapInit());
               TBSYS_LOG(INFO, "get schema succ. table count=%d, version[%ld]", table_count, schema_timestamp_);
             }
           }
@@ -1259,7 +1271,9 @@ int ObRootServer2::switch_schema_manager(const ObSchemaManagerV2 & schema_manage
   }
   else
   {
+    //TBSYS_LOG(INFO,"LONGFEI:switch schema cache with new!");
     *schema_manager_for_cache_ = schema_manager;
+    //TBSYS_LOG(WARN,"LONGFEI:is index hash map init:::cache->%d,new->%d",schema_manager_for_cache_->isIsIdIndexHashMapInit(),schema_manager.isIsIdIndexHashMapInit());
   }
   return ret;
 }
@@ -7111,7 +7125,7 @@ int ObRootServer2::get_ms(ObServer& ms_server)
 }
 
 /**
- * @author:longfei
+ * @author:longfei [create index]
  */
 // for sql api
 int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &tschema)

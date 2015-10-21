@@ -35,7 +35,7 @@
 #include "ob_change_obi_stmt.h"
 #include <stdint.h>
 
-//longfei
+//longfei [create index]
 #include "ob_create_index_stmt.h"
 
 using namespace oceanbase::common;
@@ -68,7 +68,7 @@ int resolve_drop_table_stmt(
 		ParseNode* node,
 		uint64_t& query_id);
 
-//longfei
+//longfei [create index]
 int resolve_create_index_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
@@ -1215,6 +1215,15 @@ int resolve_show_stmt(
 				show_stmt = new(show_stmt) ObShowStmt(name_pool, ObBasicStmt::T_SHOW_TABLES);
 				sys_table_name.str_value_ = OB_TABLES_SHOW_TABLE_NAME;
 				break;
+      //add liumengzhan_show_index [20141208]
+      case T_SHOW_INDEX:
+        OB_ASSERT(node->num_child_ == 2);
+        show_table_node = node->children_[0];
+        condition_node = node->children_[1];
+        show_stmt = new(show_stmt) ObShowStmt(name_pool, ObBasicStmt::T_SHOW_INDEX);
+        sys_table_name.str_value_ = OB_INDEX_SHOW_TABLE_NAME;
+        break;
+      //add:e
 			case T_SHOW_VARIABLES:
 				OB_ASSERT(node->num_child_ == 1);
 				condition_node = node->children_[0];
@@ -1298,7 +1307,10 @@ int resolve_show_stmt(
 			ret = resolve_table_columns(result_plan, show_stmt, *table_item);
 		}
 
-		if (ret == OB_SUCCESS && (node->type_ == T_SHOW_COLUMNS || node->type_ == T_SHOW_CREATE_TABLE))
+		// mod longfei [show index] 20151019 :b
+		//if (ret == OB_SUCCESS && (node->type_ == T_SHOW_COLUMNS || node->type_ == T_SHOW_CREATE_TABLE))
+		if (ret == OB_SUCCESS && (node->type_ == T_SHOW_INDEX || node->type_ == T_SHOW_COLUMNS || node->type_ == T_SHOW_CREATE_TABLE))
+		// mod e
 		{
 			OB_ASSERT(show_table_node);
 			ObSchemaChecker *schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
@@ -1310,6 +1322,7 @@ int resolve_show_stmt(
 			int32_t len = static_cast<int32_t>(strlen(show_table_node->str_value_));
 			ObString table_name(len, len, show_table_node->str_value_);
 			uint64_t show_table_id = schema_checker->get_table_id(table_name);
+			//TBSYS_LOG(INFO,"longfei:table name = %s;table id = %d", table_name.ptr(), static_cast<int>(show_table_id));
 			if (show_table_id == OB_INVALID_ID)
 			{
 				ret = OB_ERR_TABLE_UNKNOWN;
@@ -1322,10 +1335,13 @@ int resolve_show_stmt(
 			}
 		}
 
+		// mod longfei [show index] 2015109 :b
+		// add node->type_ == T_SHOW_INDEX into if
 		if (ret == OB_SUCCESS && condition_node
-				&& (node->type_ == T_SHOW_TABLES || node->type_ == T_SHOW_VARIABLES || node->type_ == T_SHOW_COLUMNS
+				&& (node->type_ == T_SHOW_TABLES || node->type_ == T_SHOW_INDEX || node->type_ == T_SHOW_VARIABLES || node->type_ == T_SHOW_COLUMNS
 						|| node->type_ == T_SHOW_TABLE_STATUS || node->type_ == T_SHOW_SERVER_STATUS
 						|| node->type_ == T_SHOW_PARAMETERS))
+		// mod e
 		{
 			if (condition_node->type_ == T_OP_LIKE && condition_node->num_child_ == 1)
 			{
@@ -1987,13 +2003,16 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			break;
 		}
 		//secondary index
-		//longfei
+		//longfei [create index]
 		case T_CREATE_INDEX:
 		{
 			ret = resolve_create_index_stmt(result_plan, node, query_id);
 			break;
 		}
 		case T_SHOW_TABLES:
+		// add longfei [show index] 20151019
+		case T_SHOW_INDEX:
+		// add e
 		case T_SHOW_VARIABLES:
 		case T_SHOW_COLUMNS:
 		case T_SHOW_SCHEMA:

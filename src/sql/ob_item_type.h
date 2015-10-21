@@ -147,12 +147,12 @@ typedef enum ObItemType
   T_WHEN,
 
   T_CREATE_TABLE,
-  T_CREATE_INDEX, // add longfei [secondaryindex reconstruct] 20150916:e
+  T_CREATE_INDEX, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_TABLE_ELEMENT_LIST,
-  T_INDEX_ELEMENT_LIST, // add longfei [secondaryindex reconstruct] 20150916:e
-  T_INDEX_STORING_LIST, // add longfei [secondaryindex reconstruct] 20150921:e
+  T_INDEX_ELEMENT_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
+  T_INDEX_STORING_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150921:e
   T_TABLE_OPTION_LIST,
-  T_INDEX_OPTION_LIST, // add longfei [secondaryindex reconstruct] 20150916:e
+  T_INDEX_OPTION_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_PRIMARY_KEY,
   T_COLUMN_DEFINITION,
   T_COLUMN_ATTRIBUTES,
@@ -195,6 +195,9 @@ typedef enum ObItemType
   T_SERVER_ADDRESS,
 
   T_SHOW_TABLES,
+  // add longfei [show index] 20151019
+  T_SHOW_INDEX,
+  // add e
   T_SHOW_VARIABLES,
   T_SHOW_COLUMNS,
   T_SHOW_SCHEMA,

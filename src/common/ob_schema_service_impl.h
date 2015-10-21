@@ -38,7 +38,7 @@ namespace oceanbase
     static ObString column_table_name = OB_STR(OB_ALL_COLUMN_TABLE_NAME);
     static ObString joininfo_table_name = OB_STR(OB_ALL_JOININFO_TABLE_NAME);
     static ObString privilege_table_name = OB_STR(OB_ALL_TABLE_PRIVILEGE_TABLE_NAME);
-    static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei
+    static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei [create index]
     static ObString table_name_str = OB_STR("table_id");
     static const char* const TMP_PREFIX = "tmp_";
 
@@ -87,7 +87,7 @@ namespace oceanbase
         int init_id_name_map();
       int generate_new_table_name(char* buf, const uint64_t lenght, const char* table_name, const uint64_t table_name_length);
 
-      // longfei
+      // longfei [create index]
       // secondary index service
       int create_index_mutator(const TableSchema& table_schema, ObMutator* mutator);
       bool is_index_table_or_not(const ObString& table_name);

@@ -843,7 +843,7 @@ namespace oceanbase
     internal_ups_scan_size_(0),
     merge_write_sstable_version_(2),
     replica_count_(2),
-	//longfei
+	//longfei [create index]
 	original_table_id_(OB_INVALID_ID),
     version_(OB_SCHEMA_VERSION_FOUR_SECOND),
     schema_version_(0),
@@ -1350,7 +1350,7 @@ namespace oceanbase
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos, replica_count_);
       }
 
-      // longfei
+      // longfei [create index]
       if (OB_SUCCESS == ret)
       {
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos, original_table_id_);
@@ -1651,7 +1651,7 @@ namespace oceanbase
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, &replica_count_);
       }
 
-      //longfei
+      //longfei [create index]
       if (OB_SUCCESS == ret)
       {
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, reinterpret_cast<int64_t *>(&original_table_id_));
@@ -1762,7 +1762,7 @@ namespace oceanbase
       len += serialization::encoded_length_vi64(internal_ups_scan_size_);
       len += serialization::encoded_length_vi64(merge_write_sstable_version_);
       len += serialization::encoded_length_vi64(replica_count_);
-      // longfei
+      // longfei [create index]
       len += serialization::encoded_length_vi64(original_table_id_);
       len += serialization::encoded_length_vi32(index_status_);
 
@@ -1854,6 +1854,9 @@ namespace oceanbase
         }
 
         int ret = sort_column();
+        //add liuxiao [secondary index static index] 20150615
+        ret=init_index_hash();
+        //add e
         if (ret != OB_SUCCESS)
         {
           TBSYS_LOG(ERROR, "sort column failed:ret[%d]", ret);
@@ -1868,7 +1871,7 @@ namespace oceanbase
     max_table_id_(OB_INVALID_ID),
     column_nums_(0),
     table_nums_(0),
-	is_id_index_hash_map_init_(false),
+	  is_id_index_hash_map_init_(false),
     columns_(NULL),
     column_capacity_(0),
     drop_column_group_(false),
@@ -2121,7 +2124,7 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"sort column failed");
             parse_ok = false;
 
-            //longfei
+            //longfei [create index]
             init_index_hash();
           }
 
@@ -3128,7 +3131,7 @@ namespace oceanbase
     {
       int ret = OB_ERROR;
       const ObTableSchema *table = get_table_schema(column.get_table_id());
-      //TBSYS_LOG(INFO,"longfei:%s",table->get_table_name());
+      //TBSYS_LOG(INFO,"longfei [create index]:%s",table->get_table_name());
       if (NULL == table)
       {
         TBSYS_LOG(ERROR,"can't find this table:%lu",column.get_table_id());
@@ -3258,6 +3261,7 @@ namespace oceanbase
         table_infos_[table_nums_++] = table;
         if ((OB_INVALID_ID == max_table_id_) || (table.get_table_id() > max_table_id_))
           max_table_id_ = table.get_table_id();
+       // TBSYS_LOG(ERROR,"LONGFEI:add new table into table info, table name = %s",table.get_table_name());
       }
       return ret;
     }
@@ -4433,12 +4437,6 @@ namespace oceanbase
 
       if (OB_SUCCESS == ret)
       {
-        ret = serialization::encode_bool(buf, buf_len, tmp_pos, is_id_index_hash_map_init_);
-      }
-
-
-      if (OB_SUCCESS == ret)
-      {
         ret = serialization::encode_vstr(buf, buf_len, tmp_pos, app_name_);
       }
 
@@ -4519,11 +4517,6 @@ namespace oceanbase
 
           if (OB_SUCCESS == ret)
           {
-            ret = serialization::decode_bool(buf, data_len, tmp_pos, &is_id_index_hash_map_init_);
-          }
-
-          if (OB_SUCCESS == ret)
-          {
             int64_t len = 0;
             serialization::decode_vstr(buf, data_len, tmp_pos,
                 app_name_, OB_MAX_APP_NAME_LENGTH, &len);
@@ -4583,7 +4576,7 @@ namespace oceanbase
           if (OB_SUCCESS == ret)
           {
             sort_column();
-            init_index_hash();  //longfei
+            init_index_hash();  //longfei [create index]
           }
         }
       }
@@ -4622,6 +4615,7 @@ namespace oceanbase
         TableSchema *tschema = (TableSchema*)(&schema_array.at(i));
         ObTableSchema old_tschema;
         old_tschema.set_table_id(tschema->table_id_);
+       // TBSYS_LOG(INFO,"LONGFEI:table_id_= %d,old_tschema->table_id = %d",(int)tschema->table_id_, (int)old_tschema.get_table_id());
         old_tschema.set_max_column_id(tschema->max_used_column_id_);
         old_tschema.set_table_name(tschema->table_name_);
         ObTableSchema::TableType table_type = ObTableSchema::INVALID;
@@ -4644,6 +4638,10 @@ namespace oceanbase
         old_tschema.set_use_bloomfilter(tschema->is_use_bloomfilter_); //
         old_tschema.set_consistency_level(tschema->consistency_level_);
         old_tschema.set_pure_update_table(tschema->is_pure_update_table_); // @deprecated
+        // add longfei [create index] 20151021
+        old_tschema.set_original_table_id(tschema->original_table_id_);
+        old_tschema.set_index_status(tschema->index_status_);
+        // add e
         old_tschema.set_create_time_column(tschema->create_time_column_id_);
         old_tschema.set_modify_time_column(tschema->modify_time_column_id_);
         if (tschema->expire_condition_[0] != '\0')
@@ -5149,7 +5147,7 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
     }
 
 	/**
-	 * longfei
+	 * longfei [create index]
 	 */
 	const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  ObSchemaManagerV2::get_index_hash() const
 	{
@@ -5194,13 +5192,15 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
           {
             TBSYS_LOG(WARN, "failed to add index[%ld], err=%d",table_infos_[i].get_table_id() ,ret);
           }
+          //TBSYS_LOG(INFO, "LONGFEI:table_name_= %s,table_id = %d",table_infos_[i].get_table_name(), (int)table_infos_[i].get_table_id());
           //add e
         }
       }
       if(OB_SUCCESS == ret)
       {
-    	  is_id_index_hash_map_init_=true;
+    	  is_id_index_hash_map_init_ = true;
       }
+      //TBSYS_LOG(INFO,"LONGFEI: is_id_index_hash_map_init_ = %d",is_id_index_hash_map_init_);
       return ret;
     }
     //add wenghaixing [secondary index static_index_build]20150303
@@ -5247,11 +5247,13 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
 	    {
 	      int ret = OB_SUCCESS;
 	      IndexList il;
+	      //TBSYS_LOG(INFO,"LONGFEI:table name = %s,original table id = %d", tschema->get_table_name(), static_cast<int>(tschema->get_original_table_id()));
 	      if(NULL == tschema)
 	      {
 	        TBSYS_LOG(WARN,"NULL pointer of tschema!");
 	        ret=OB_ERROR;
 	      }
+
 	      else if(OB_INVALID_ID != tschema->get_original_table_id())
 	      {
 	        uint64_t tid = tschema->get_original_table_id();
@@ -5279,21 +5281,23 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
 	            id_index_hash_map_.set(tid,il,1);
 	          }
 	       }
-	            //add wenghaixing [secondary index ] 20141105 test log
-	           // TBSYS_LOG(ERROR,"test,whx::whx::tid[%ld]",tid);
-	            //index_list l2;
-	           // id_index_hash_map_.get(tid,il);
-	            //uint64_t id2;
-	           // il.get_idx_id(0,id2);
-	           // TBSYS_LOG(ERROR,"test,whx::whx::il_count[%ld],il(0)[%ld]",il.get_count(),id2);
-	            //add e
+//	            add wenghaixing [secondary index ] 20141105 test log
+//	            TBSYS_LOG(ERROR,"test,whx::whx::tid[%ld]",tid);
+//	            IndexList l2;
+//	            id_index_hash_map_.get(tid,il);
+//	            uint64_t id2;
+//	            il.get_idx_id(0,id2);
+//	            TBSYS_LOG(ERROR,"test,whx::whx::il_count[%ld],il(0)[%ld]",il.get_count(),id2);
+//	            add e
 	     }
 
 	        return ret;
 	    }
+
 	    const int ObSchemaManagerV2::get_index_list(uint64_t table_id, IndexList &out) const
 	    {
 	      int ret = OB_SUCCESS;
+
 	      if(!is_id_index_hash_map_init_)
 	      {
 	        TBSYS_LOG(ERROR,"index hash is not inited!");
@@ -5304,6 +5308,20 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
 	        TBSYS_LOG(ERROR,"get index list for drop table err");
 	        ret = OB_ERROR;
 	      }
+
+	      /*
+	      TBSYS_LOG(INFO,"table_id_:%d",(int)table_id);
+	      if(-1 == (ret = id_index_hash_map_.get(table_id,out)))
+        {
+          TBSYS_LOG(ERROR,"get index list for drop table err");
+          ret = OB_ERROR;
+        }
+	      if(hash::HASH_NOT_EXIST == ret)
+	      {
+	        TBSYS_LOG(ERROR,"hash not exist!");
+	        ret = OB_SUCCESS;
+	      }
+	      */
 	      return ret;
 	    }
 	    //add e

@@ -340,7 +340,7 @@ namespace oceanbase
 
         uint64_t get_create_time_column_id() const;
         uint64_t get_modify_time_column_id() const;
-        //longfei
+        //longfei [create index]
         uint64_t get_original_table_id() const;
         IndexStatus get_index_status() const;
 
@@ -382,7 +382,7 @@ namespace oceanbase
         void set_create_time_column(uint64_t id);
         void set_modify_time_column(uint64_t id);
 
-        //longfei
+        //longfei [create index]
         void set_original_table_id(uint64_t id);
         void set_index_status(IndexStatus status);
 
@@ -429,7 +429,7 @@ namespace oceanbase
         int64_t merge_write_sstable_version_;
         int64_t replica_count_;
 
-        // longfei
+        // longfei [create index]
         uint64_t original_table_id_;
         IndexStatus index_status_;
 
@@ -584,7 +584,7 @@ namespace oceanbase
         //rongxuan.lc@taobao.com
         int add_new_table_schema(const ObArray<TableSchema>& schema_array);
 
-      //longfei
+      //longfei [create index]
       public:
         const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  get_index_hash() const;
         //add wenghaixing [secondary index create index fix]20150203
@@ -596,6 +596,10 @@ namespace oceanbase
         bool is_modify_expire_condition(uint64_t table_id,uint64_t cid)const;
         int get_init_index(uint64_t* table_id, int64_t& size) const;
         bool is_index_has_storing(uint64_t table_id) const;
+
+        volatile bool isIsIdIndexHashMapInit() const {
+          return is_id_index_hash_map_init_;
+        }
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);
@@ -686,7 +690,8 @@ namespace oceanbase
         uint64_t  max_table_id_;
         int64_t   column_nums_;
         int64_t   table_nums_;
-        bool is_id_index_hash_map_init_;
+        //longfei [create index]
+        volatile bool is_id_index_hash_map_init_;
 
         char app_name_[OB_MAX_APP_NAME_LENGTH];
 
@@ -700,7 +705,7 @@ namespace oceanbase
         hash::ObHashMap<ObColumnNameKey,ObColumnInfo,hash::NoPthreadDefendMode> column_hash_map_;
         hash::ObHashMap<ObColumnIdKey,ObColumnInfo,hash::NoPthreadDefendMode> id_hash_map_;
 
-        //longfei
+        //longfei [create index]
         hash::ObHashMap<uint64_t, IndexList,hash::NoPthreadDefendMode> id_index_hash_map_;
 
         int64_t column_group_nums_;

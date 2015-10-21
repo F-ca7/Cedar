@@ -41,6 +41,9 @@ namespace oceanbase
 
         // show statements
         T_SHOW_TABLES,
+        //add liumengzhan_show_index [20141208]
+        T_SHOW_INDEX,
+        //add:e
         T_SHOW_COLUMNS,
         T_SHOW_VARIABLES,
         T_SHOW_TABLE_STATUS,
@@ -73,7 +76,7 @@ namespace oceanbase
         T_ALTER_SYSTEM,
         T_CHANGE_OBI,
 
-		// add longfei [secondaryindex reconstruct] 20150916:b
+		// add longfei [create index] [secondaryindex reconstruct] 20150916:b
 		// secondary index related
 		T_CREATE_INDEX,
 		// add e
