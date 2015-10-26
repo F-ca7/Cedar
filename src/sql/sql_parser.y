@@ -1157,7 +1157,7 @@ drop_index_stmt:
     {
       ParseNode *indexs = NULL;
       merge_nodes(indexs, result->malloc_pool_, T_INDEX_LIST, $4);
-      malloc_non_terminal_node($$, result->malloc_pool_, T_DROP_INDEX, 3, $3, tables, $6);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_DROP_INDEX, 3, $3, indexs, $6);
     }
   ;
 

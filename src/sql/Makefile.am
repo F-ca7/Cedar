@@ -33,6 +33,7 @@ sql_parser_sources=                                    \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \
+  ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
   ob_execute_stmt.h           ob_execute_stmt.cpp      \
   ob_explain_stmt.h           ob_explain_stmt.cpp      \

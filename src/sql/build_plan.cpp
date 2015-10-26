@@ -37,6 +37,8 @@
 
 //longfei [create index]
 #include "ob_create_index_stmt.h"
+//longfei [drop index]
+#include "ob_drop_index_stmt.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
@@ -73,6 +75,13 @@ int resolve_create_index_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
 		uint64_t& query_id);
+//add wenghaixing [secondary index drop index]20141222
+int resolve_drop_index_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+        );
+//add e
 
 int resolve_show_stmt(
 		ResultPlan* result_plan,
@@ -1160,6 +1169,142 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
 	return ret;
 }
 
+//add longfei [drop index] 20141222
+int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &query_id)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  OB_ASSERT(node && node->type_ == T_DROP_INDEX && node->num_child_ == 3);
+  ObLogicalPlan* logical_plan = NULL;
+  ObDropIndexStmt* drp_idx_stmt = NULL;
+  query_id = OB_INVALID_ID;
+  uint64_t data_table_id = OB_INVALID_ID;
+  ObSchemaChecker* schema_checker=NULL;
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+  char tname_str[OB_MAX_TABLE_NAME_LENGTH];
+  int64_t str_len=0;
+  if (NULL == result_plan->plan_tree_)
+  {
+    logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
+    if (NULL == logical_plan)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+              "Can not malloc ObLogicalPlan");
+    }
+    else
+    {
+      logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
+      result_plan->plan_tree_ = logical_plan;
+    }
+  }
+  else
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+  }
+  if (OB_SUCCESS == ret)
+  {
+    drp_idx_stmt = (ObDropIndexStmt*)parse_malloc(sizeof(ObDropIndexStmt), result_plan->name_pool_);
+    if (NULL == drp_idx_stmt)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+              "Can not malloc ObDropIndexStmt");
+    }
+    else
+    {
+      drp_idx_stmt = new(drp_idx_stmt) ObDropIndexStmt(name_pool);
+      query_id = logical_plan->generate_query_id();
+      drp_idx_stmt->set_query_id(query_id);
+      if (OB_SUCCESS != (ret = logical_plan->add_query(drp_idx_stmt)))
+      {
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+              "Can not add ObDropIndexStmt to logical plan");
+      }
+    }
+  }
+  if (ret == OB_SUCCESS && node->children_[0])
+  {
+    drp_idx_stmt->set_if_exists(true);
+  }
+  if(OB_SUCCESS == ret)
+  {
+    OB_ASSERT(node->children_[2]);
+    ParseNode *table_node = NULL;
+    ObString table_name;
+    table_node =node->children_[2];
+    table_name.assign_ptr(
+              (char*)(table_node->str_value_),
+              static_cast<int32_t>(strlen(table_node->str_value_))
+              );
+    schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+    if (schema_checker == NULL)
+    {
+      ret = OB_ERR_SCHEMA_UNSET;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                "Schema(s) are not set");
+    }
+    else if((data_table_id=schema_checker->get_table_id(table_name))==OB_INVALID_ID)
+    {
+      ret = OB_ERR_TABLE_UNKNOWN;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                  "table '%.*s' does not exist", table_name.length(), table_name.ptr());
+    }
+   }
+   if (OB_SUCCESS == ret)
+   {
+     OB_ASSERT(node->children_[1] && node->children_[1]->num_child_ > 0);
+     ParseNode *table_node = NULL;
+     ObString table_name;
+     ObString table_lable;//add longfei 20150822:e
+     for (int32_t i = 0; i < node->children_[1]->num_child_; i ++)
+     {
+       uint64_t index_tid = OB_INVALID_ID;
+       table_node = node->children_[1]->children_[i];
+       table_name.assign_ptr(
+              (char*)(table_node->str_value_),
+              static_cast<int32_t>(strlen(table_node->str_value_))
+              );
+       //add longfei [secondary index ecnu_opencode] 20150822:b
+       table_lable.assign_ptr(
+                   (char*)(node->children_[2]->str_value_),
+                   static_cast<int32_t>(strlen(node->children_[2]->str_value_))
+                   );
+       // add 20150822:e
+        //generate index name here
+       memset(tname_str,0,OB_MAX_TABLE_NAME_LENGTH);
+       // mod longfei 20150822:b
+       //if(OB_SUCCESS != (ret = generate_index_table_name(table_name,data_table_id,tname_str,str_len)))
+       if(OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(table_name, table_lable, tname_str, str_len)))
+       //mod :e
+       {
+         snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                  "generate index name failed '%.*s'", table_name.length(), table_name.ptr());
+       }
+       else
+       {
+         table_name.reset();
+         table_name.assign_ptr(tname_str,(int32_t)str_len);
+       }
+       if(OB_SUCCESS == ret)
+       {
+         if(OB_INVALID_ID == (index_tid = schema_checker->get_table_id(table_name)))
+         {
+           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                      "failed to get index id'%.*s'", table_name.length(), table_name.ptr());
+         }
+         else if (OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
+         {
+           break;
+         }
+       }
+     }
+   }
+   TBSYS_LOG(INFO, "test::longfei::drop index logical plan succ!");
+   return ret;
+}
+//add e
+
+
 int resolve_show_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
@@ -2009,6 +2154,12 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_create_index_stmt(result_plan, node, query_id);
 			break;
 		}
+		//longfei [drop index]
+    case T_DROP_INDEX:
+    {
+      ret = resolve_drop_index_stmt(result_plan, node, query_id);
+      break;
+    }
 		case T_SHOW_TABLES:
 		// add longfei [show index] 20151019
 		case T_SHOW_INDEX:
