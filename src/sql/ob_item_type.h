@@ -175,6 +175,8 @@ typedef enum ObItemType
   T_CONSISTENT_MODE,
   T_DROP_TABLE,
   T_TABLE_LIST,
+  T_DROP_INDEX, // add longfei [drop index] 20151024:e
+  T_INDEX_LIST, // add longfei [drop index] 20151024:e
 
   T_ALTER_TABLE,
   T_ALTER_ACTION_LIST,

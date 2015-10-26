@@ -141,6 +141,8 @@ const char* get_type_name(int type)
 	case T_CONSISTENT_MODE : return "T_CONSISTENT_MODE";
 	case T_DROP_TABLE : return "T_DROP_TABLE";
 	case T_TABLE_LIST : return "T_TABLE_LIST";
+	case T_DROP_INDEX : return "T_DROP_INDEX";
+	case T_INDEX_LIST : return "T_INDEX_LIST";
 	case T_ALTER_TABLE : return "T_ALTER_TABLE";
 	case T_ALTER_ACTION_LIST : return "T_ALTER_ACTION_LIST";
 	case T_TABLE_RENAME : return "T_TABLE_RENAME";

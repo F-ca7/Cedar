@@ -162,10 +162,6 @@ do \
        SERVER_PORT SERVER_TYPE STATUS TABLE_ID TABLET_BLOCK_SIZE TABLET_MAX_SIZE
        UNLOCKED UPDATESERVER USE_BLOOM_FILTER VARIABLES VERBOSE WARNINGS
 
-
-/* add [secondaryindex reconstruct] 20150925 longfei [create index] :b */
-%type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
-/* add e */
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
 %type <node> create_table_stmt opt_table_option_list table_option
@@ -218,6 +214,13 @@ do \
 %type <non_reserved_keyword> unreserved_keyword
 %type <ival> consistency_level
 %type <node> opt_comma_list hint_options
+/* add [secondaryindex reconstruct] 20150925 longfei [create index] :b */
+%type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
+/* add e */
+
+/* add longfei [drop index] 20151024 :b */
+%type <node> drop_index_stmt index_list table_name
+/* add e */
 
 %start sql_stmt
 %%
@@ -253,6 +256,7 @@ stmt:
   | update_stmt       { $$ = $1; }
   | delete_stmt       { $$ = $1; }
   | drop_table_stmt   { $$ = $1; }
+  | drop_index_stmt   { $$ = $1; }
   | explain_stmt      { $$ = $1; }
   | show_stmt         { $$ = $1; }
   | prepare_stmt      { $$ = $1; }
@@ -1141,6 +1145,41 @@ table_list:
     }
   ;
 
+/*****************************************************************************
+ *
+ *	drop index grammar
+ *	@author:longfei [drop index]
+ *
+ *****************************************************************************/
+
+drop_index_stmt:
+    DROP INDEX opt_if_exists index_list ON table_name
+    {
+      ParseNode *indexs = NULL;
+      merge_nodes(indexs, result->malloc_pool_, T_INDEX_LIST, $4);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_DROP_INDEX, 3, $3, tables, $6);
+    }
+  ;
+
+index_list:
+    /* EMPTY */
+    { $$ = NULL; } 
+  |
+    relation_factor
+    {
+      $$ = $1;
+    }
+  | index_list ',' relation_factor
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  ;
+  
+table_name:
+	relation_factor
+	{
+	  $$ = $1;
+	}
 
 /*****************************************************************************
  *
