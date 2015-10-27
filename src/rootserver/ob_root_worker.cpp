@@ -765,7 +765,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       bool ps = true;
       int packet_code = packet->get_packet_code();
-
+      //TBSYS_LOG(ERROR, "test::longfei,,,packet_code=%d",packet_code);
       switch(packet_code)
       {
         case OB_SEND_LOG:
@@ -819,6 +819,9 @@ namespace oceanbase
         case OB_FORCE_CREATE_TABLE_FOR_EMERGENCY:
         case OB_FORCE_DROP_TABLE_FOR_EMERGENCY:
         case OB_DROP_TABLE:
+        //add wenghaixing [secondary index drop index]20141223
+        case OB_DROP_INDEX:
+        //add e
         case OB_REPORT_CAPACITY_INFO:
         case OB_SLAVE_REG:
         case OB_WAITING_JOB_DONE:
@@ -989,6 +992,7 @@ namespace oceanbase
                 if ((void*)WRITE_THREAD_FLAG == args)
                 {
                   TBSYS_LOG(DEBUG, "handle packet, packe code is %d", packet_code);
+                  //TBSYS_LOG(ERROR, "test::longfei,,,handle packet, packe code is %d", packet_code);
                   switch(packet_code)
                   {
                     case OB_REPORT_TABLETS:
@@ -1022,6 +1026,9 @@ namespace oceanbase
                       break;
                     case OB_DROP_TABLE:
                       return_code = rt_drop_table(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    case OB_DROP_INDEX:
+                      return_code = rt_drop_index(version, *in_buf, req, channel_id, thread_buff);
                       break;
                     case OB_REPORT_CAPACITY_INFO:
                       return_code = rt_report_capacity_info(version, *in_buf, req, channel_id, thread_buff);
@@ -5801,6 +5808,62 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         }
         return ret;
     }
+
+    //add wenghaixing [secondary index drop index]20141223
+    int ObRootWorker::rt_drop_index(const int32_t version, ObDataBuffer &in_buff, easy_request_t *req, const uint32_t channel_id, ObDataBuffer &out_buff)
+    {
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 1;
+      common::ObResultCode res;
+      common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+        res.result_code_ = OB_ERROR_FUNC_VERSION;
+      }
+      else if (role != common::ObiRole::MASTER)
+      {
+        res.result_code_ = OB_OP_NOT_ALLOW;
+        TBSYS_LOG(WARN, "ddl operation not allowed in slave cluster");
+      }
+      else
+      {
+        bool if_exists = false;
+        ObStrings index;
+        if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+                  in_buff.get_capacity(), in_buff.get_position(), &if_exists)))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = index.deserialize(in_buff.get_data(),
+                  in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = root_server_.drop_indexs(if_exists, index)))
+        {
+          TBSYS_LOG(WARN, "failed to drop table, err=%d", ret);
+        }
+        res.result_code_ = ret;
+        ret = OB_SUCCESS;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // send response message
+        if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                  out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = send_response(OB_DROP_INDEX_RESPONSE, MY_VERSION,
+                  out_buff, req, channel_id)))
+        {
+          TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+        }
+      }
+      return ret;
+    }
+    //add e
 
   }; // end namespace
 }

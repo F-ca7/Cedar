@@ -86,6 +86,7 @@ operators_sources=                                                       \
   ob_delete.h                        ob_delete.cpp                       \
   ob_double_children_phy_operator.h  ob_double_children_phy_operator.cpp \
   ob_drop_table.h                    ob_drop_table.cpp                   \
+  ob_drop_index.h					 ob_drop_index.cpp					 \
   ob_execute.h                       ob_execute.cpp                      \
   ob_explain.h                       ob_explain.cpp                      \
   ob_filter.h                        ob_filter.cpp                       \

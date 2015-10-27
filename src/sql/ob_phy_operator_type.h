@@ -87,6 +87,10 @@ namespace oceanbase
       PHY_ADD_PROJECT,
       PHY_UPS_MODIFY_WITH_DML_TYPE,
 
+      //add wenghaixing [secondary index drop index]20141222
+      PHY_DROP_INDEX,
+      //add e
+
       PHY_END /* end of phy operator type */
     };
 

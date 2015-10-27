@@ -38,6 +38,9 @@ namespace oceanbase
 
         void set_if_exists(bool if_exists);
         int add_table_name(const common::ObString &tname);
+        // longfei for drop index
+        const bool get_if_exists() const;
+        mergeserver::ObMergerRootRpcProxy* get_rpc_stub() const;
 
         /// execute the insert statement
         virtual int open();

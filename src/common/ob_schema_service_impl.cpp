@@ -740,7 +740,22 @@ int ObSchemaServiceImpl::drop_table(const ObString& table_name)
 
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+    // mod longfei [drop index] 20151026
+    // delect index table's schema in __all_secondary_index
+
+    //-------------------old-------------//
+    //ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+
+    //-------------------new-------------//
+    if(is_index_table_or_not(table_name))
+    {
+      ret = nb_accessor_.delete_row(OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey);
+    }
+    else
+    {
+      ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+    }
+    //mod e
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "delete rwo from first tablet table fail:ret[%d]", ret);
@@ -919,8 +934,22 @@ int ObSchemaServiceImpl::get_table_id(const ObString& table_name, uint64_t& tabl
 
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+    // mod longfei [drop index] 20151026
+    // search index table's schema in __all_secondary_index
 
+    //----------------old----------------//
+    //ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+
+    //----------------new----------------//
+    if(is_index_table_or_not(table_name))
+    {
+      ret = nb_accessor_.get(res, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey, SC("table_id"));
+    }
+    else
+    {
+      ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+    }
+    // mod e
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "get table schema fail:ret[%d]", ret);

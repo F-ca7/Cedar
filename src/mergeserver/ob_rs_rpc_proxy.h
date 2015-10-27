@@ -72,6 +72,11 @@ namespace oceanbase
       int set_obi_role(const ObServer &rs, const int64_t timeout, const ObiRole &obi_role);
       int get_obi_role(const int64_t timeout_us, const common::ObServer& root_server, common::ObiRole &obi_role) const;
       int set_master_rs_vip_port_to_cluster(const ObServer &rs, const int64_t timeout, const char *new_master_ip, const int32_t new_master_port);
+    public:
+      // longfei secondary index service
+      // longfei [drop index]
+      int drop_index(bool if_exists, const common::ObStrings & indexs);
+
     private:
       // check inner stat
       bool check_inner_stat(void) const;

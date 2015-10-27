@@ -19,6 +19,7 @@
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
+using namespace oceanbase::mergeserver; // longfei for drop index
 ObDropTable::ObDropTable()
   :if_exists_(false), rpc_(NULL)
 {
@@ -43,6 +44,16 @@ void ObDropTable::reuse()
 void ObDropTable::set_if_exists(bool if_exists)
 {
   if_exists_ = if_exists;
+}
+
+const bool ObDropTable::get_if_exists() const
+{
+  return if_exists_;
+}
+
+ObMergerRootRpcProxy* ObDropTable::get_rpc_stub() const
+{
+  return rpc_;
 }
 
 int ObDropTable::add_table_name(const ObString &tname)

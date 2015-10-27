@@ -111,6 +111,13 @@ namespace oceanbase
             ErrStat& err_stat,
             const uint64_t& query_id,
             int32_t* index);
+        // longfei [drop index]
+        int gen_physical_drop_index(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
 
         int gen_physical_create_table(
             ObLogicalPlan *logical_plan,

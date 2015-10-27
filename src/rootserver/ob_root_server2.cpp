@@ -7251,3 +7251,173 @@ int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &t
   const_cast<TableSchema &> (tschema).table_id_ = old_table_id;
   return ret;
 }
+
+/// for sql api
+//add longfei [drop index] 20151026
+int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
+{
+  TBSYS_LOG(INFO, "drop index,tables=[%s]",
+              to_cstring(tables));
+  UNUSED(if_exists);//@todo(longfei):if index not exist,continue
+  ObString index_name;
+  bool force_update_schema = false;
+  bool is_all_merged = false;
+  // at least one replica safe
+  int ret = check_tablet_version(last_frozen_mem_version_, 1, is_all_merged);
+  if (OB_SUCCESS != ret)
+  {
+    TBSYS_LOG(WARN, "tablet not merged to the last frozen version:ret[%d], version[%ld]",
+        ret, last_frozen_mem_version_);
+  }
+  else if (true == is_all_merged)
+  {
+    {
+      ///@todo(lognfei):BLOCK first we must close index so that all sql execution cannot read the index
+    }
+    ///BLOCK Now begin to drop index
+    ///wenghaixing
+    if(OB_SUCCESS == ret)
+    {
+      for (int64_t i = 0; i < tables.count(); ++i)
+      {
+        ret = tables.get_string(i, index_name);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "get table failed:index[%ld], ret[%d]", i, ret);
+          break;
+        }
+        else
+        {
+          bool refresh = false;
+          ret = drop_one_index(index_name, refresh);
+          //mod liumz, [obsolete trigger event, use ddl_operation]20150701:b
+          //if (true == refresh)
+          if (true == refresh && OB_SUCCESS == ret)
+          //mod:e
+          {
+            force_update_schema = true;
+          }
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "drop this table failed:index[%ld], tname[%.*s], ret[%d]",
+                          i, index_name.length(), index_name.ptr(), ret);
+            break;
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "drop this table succ:index[%ld], tname[%.*s]",
+                          i, index_name.length(), index_name.ptr());
+          }
+        }
+      }
+    }
+    //add liumz, [obsolete trigger event, use ddl_operation]20150701:b
+    if (force_update_schema)
+    {
+      int64_t count = 0;
+      // if refresh failed output error log because maybe do succ if reboot
+      // @todo(longfei):schema mutator
+      int err = refresh_new_schema(count);
+      if (err != OB_SUCCESS)
+      {
+        TBSYS_LOG(ERROR, "refresh new schema manager after drop tables failed:"
+            "err[%d], ret[%d]", err, ret);
+        ret = err;
+      }
+      // notify schema update to all servers
+      // @todo(longfei):schema mutator
+      else if(OB_SUCCESS != (err = notify_switch_schema(false,force_update_schema)))
+      {
+         TBSYS_LOG(WARN, "fail to notify switch schema:ret[%d]", ret);
+         ret = err;
+      }
+    }
+  }
+  else
+  {
+    ret = OB_OP_NOT_ALLOW;
+    TBSYS_LOG(ERROR, "check tablet not merged to the last frozen version:ret[%d], version[%ld]",
+          ret, last_frozen_mem_version_);
+  }
+  return ret;
+}
+//add e
+
+//add wenghaixing [secondary index drop index]20141223
+int ObRootServer2::drop_one_index(const ObString &table_name, bool &refresh)
+{
+  bool exist = false;
+  refresh = false;
+  int ret = check_table_exist(table_name, exist);
+  if (OB_SUCCESS == ret)
+  {
+    if(!exist)
+    {
+      ret = OB_ENTRY_NOT_EXIST;
+      TBSYS_LOG(WARN, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+    }
+  }
+  // inner schema table operation
+  const ObTableSchema * table = NULL;
+  uint64_t idx_table_id = 0;
+  if ((OB_SUCCESS == ret) && exist)
+  {
+    tbsys::CRLockGuard guard(schema_manager_rwlock_);
+    if (NULL == schema_manager_for_cache_)
+    {
+      TBSYS_LOG(WARN, "check schema manager failed");
+      ret = OB_INNER_STAT_ERROR;
+    }
+    else
+    {
+      table = schema_manager_for_cache_->get_table_schema(table_name);
+      if (NULL == table)
+      {
+        ret = OB_ENTRY_NOT_EXIST;
+        TBSYS_LOG(WARN, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+      }
+      else
+      {
+        idx_table_id = table->get_table_id();
+        //mod liumz, [bugfix: index table need not check ddl_system_table_switch]:20150604
+        /*if (idx_table_id < OB_APP_MIN_TABLE_ID && !config_.ddl_system_table_switch)
+        {
+          TBSYS_LOG(USER_ERROR, "drop table failed, while idx_table_id[%ld] less than %ld, and drop system table switch is %s",
+                idx_table_id, OB_APP_MIN_TABLE_ID, config_.ddl_system_table_switch?"true":"false");
+          ret = OB_OP_NOT_ALLOW;
+        }*/
+        if (idx_table_id < OB_APP_MIN_TABLE_ID)
+        {
+          TBSYS_LOG(USER_ERROR, "drop table failed, while idx_table_id[%ld] less than %ld",
+                idx_table_id, OB_APP_MIN_TABLE_ID);
+          ret = OB_OP_NOT_ALLOW;
+        }
+        //mod:e
+      }
+    }
+  }
+  if ((OB_SUCCESS == ret) && exist)
+  {
+    refresh = true;
+    ret = ddl_tool_.drop_table(table_name);
+    if (OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "drop table throuth ddl tool failed:tname[%.*s], ret[%d]",
+            table_name.length(), table_name.ptr(), ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "drop table succ:tname[%.*s]", table_name.length(), table_name.ptr());
+    }
+  }
+  if ((OB_SUCCESS == ret) && exist)
+  {
+    ret = ObRootTriggerUtil::drop_tables(root_trigger_, idx_table_id);
+    if (OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(ERROR, "trigger event for drop table failed:table_id[%ld], ret[%d]", idx_table_id, ret);
+    }
+  }
+  return ret;
+}
+//add e

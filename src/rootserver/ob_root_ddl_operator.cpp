@@ -516,4 +516,3 @@ int ObRootDDLOperator::modify_table_id(common::TableSchema &table_schema, const 
   }
   return ret;
 }
-

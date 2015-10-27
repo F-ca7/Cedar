@@ -340,6 +340,11 @@ namespace oceanbase
         int get_ups_log_seq(const common::ObServer &ups, const int64_t timeout, int64_t & log_seq) const;
         int set_obi_role(const ObServer &rs, const int64_t timeout, const ObiRole &obi_role) const;
         int set_master_rs_vip_port_to_cluster(const ObServer &rs, const int64_t timeout, const char *new_master_ip, const int32_t new_master_port) const; 
+      public:
+        //longfei secondary index service
+        //longfei [drop index]
+        int drop_index(const int64_t timeout, const common::ObServer & root_server,
+                   bool if_exists, const common::ObStrings & tables) const;
 
       protected:
         // default cmd version

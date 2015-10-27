@@ -104,6 +104,9 @@
 #include "ob_create_index_stmt.h"
 #include "dml_build_plan.h"
 #include "common/ob_schema.h"
+//longfei [drop index]
+#include "ob_drop_index_stmt.h"
+#include "ob_drop_index.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
@@ -271,18 +274,22 @@ int ObTransformer::generate_physical_plan(
         case ObBasicStmt::T_CREATE_TABLE:
           ret = gen_physical_create_table(logical_plan, physical_plan, err_stat, query_id, index);
           break;
+        case ObBasicStmt::T_DROP_TABLE:
+           ret = gen_physical_drop_table(logical_plan, physical_plan, err_stat, query_id, index);
+           break;
+         case ObBasicStmt::T_ALTER_TABLE:
+           ret = gen_physical_alter_table(logical_plan, physical_plan, err_stat, query_id, index);
+           break;
 
         // longfei [create index]
         case ObBasicStmt::T_CREATE_INDEX:
           ret = gen_physical_create_index(logical_plan, physical_plan, err_stat, query_id, index);
           break;
+        // longfei [drop index]
+        case ObBasicStmt::T_DROP_INDEX:
+          ret = gen_physical_drop_index(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
 
-        case ObBasicStmt::T_DROP_TABLE:
-          ret = gen_physical_drop_table(logical_plan, physical_plan, err_stat, query_id, index);
-          break;
-        case ObBasicStmt::T_ALTER_TABLE:
-          ret = gen_physical_alter_table(logical_plan, physical_plan, err_stat, query_id, index);
-          break;
         case ObBasicStmt::T_SHOW_TABLES:
         //add liumengzhan_show_index [20141208]
         case ObBasicStmt::T_SHOW_INDEX:
@@ -3631,7 +3638,7 @@ int ObTransformer::gen_physical_create_index(
 	         ColumnSchema col;
 	         ObString col_name;
 	         uint64_t cid;
-	         /*这个地方可能会出问题，要注意review下代��?*/
+	         /*这个地方可能会出问题，要注意review下代码*/
 	         const ObColumnSchemaV2* ocs2=NULL;
 	         if(i<crt_idx_stmt->get_index_columns_count())
 	         {
@@ -3909,6 +3916,44 @@ int ObTransformer::gen_physical_create_index(
 	    TBSYS_LOG(INFO,"gen create index phy plan succ");
 	    return ret;
 }
+
+//add longfei [drop index] 20151026
+int ObTransformer::gen_physical_drop_index(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat &err_stat, const uint64_t &query_id, int32_t *index)
+{
+  int &ret = err_stat.err_code_=OB_SUCCESS;
+  ObDropIndexStmt *drp_idx_stmt=NULL;
+  ObDropIndex *drp_idx_op =NULL;
+  /* get statement */
+  if (OB_SUCCESS == ret)
+  {
+    get_stmt(logical_plan, err_stat, query_id, drp_idx_stmt);
+  }
+  /* generate operator */
+  if(OB_SUCCESS == ret)
+  {
+    CREATE_PHY_OPERRATOR(drp_idx_op, ObDropIndex, physical_plan, err_stat);
+    if (OB_SUCCESS == ret)
+    {
+      drp_idx_op->set_rpc_stub(sql_context_->rs_rpc_proxy_);
+      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, drp_idx_stmt, drp_idx_op, index);
+    }
+  }
+  if(drp_idx_stmt->get_if_exists())
+  {
+    drp_idx_op->set_if_exists(true);
+  }
+  for (int64_t i = 0; OB_SUCCESS == ret && i < drp_idx_stmt->get_table_size(); i++)
+  {
+    const ObString& table_name = drp_idx_stmt->get_table_name(i);
+    if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(table_name)))
+    {
+      TRANS_LOG("Add drop index %.*s failed", table_name.length(), table_name.ptr());
+      break;
+    }
+  }
+  return ret;
+}
+//add e
 
 int ObTransformer::gen_physical_create_table(
     ObLogicalPlan *logical_plan,

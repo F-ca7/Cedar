@@ -439,3 +439,26 @@ int ObMergerRootRpcProxy::fetch_master_ups(const ObServer &rootserver, ObServer 
   }
   return ret;
 }
+
+int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & indexs)
+{
+  int ret = OB_SUCCESS;
+  if (!check_inner_stat())
+  {
+    TBSYS_LOG(ERROR, "check inner stat failed");
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    ret = rpc_stub_->drop_index(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, indexs);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "failed to drop index, err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(DEBUG, "drop table succ, tables=%s", to_cstring(indexs));
+    }
+  }
+  return ret;
+}

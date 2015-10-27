@@ -166,6 +166,8 @@ namespace oceanbase
     const int OB_WAITING_COMMIT = -148;
     const int OB_STMT_EXPIRED = -149;
     const int OB_DISCARD_PACKET = -150;
+    //longfei [drop index]
+    const int OB_INDEX_NOT_EXIST = -151;
 
 
     //error code for chunk server -1001 ---- -2000
