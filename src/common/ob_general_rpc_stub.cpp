@@ -1044,17 +1044,16 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       ObResultCode result_code;
-      //UNUSED(timeout);
-      TBSYS_LOG(INFO,"test::longfei::if_exists = %d",if_exists);
+      TBSYS_LOG(ERROR,"test::longfei,,,if_exists = %d",if_exists);
       ObString temp;
       ret = indexs.get_string(0,temp);
       if (OB_SUCCESS != ret)
       {
-        TBSYS_LOG(ERROR,"test::longfei::end.");
+        TBSYS_LOG(ERROR,"test::longfei,,,end.");
       }
       else
       {
-        TBSYS_LOG(INFO, "test::longfei::indexs is %.*s.",temp.length(), temp.ptr());
+        TBSYS_LOG(INFO, "test::longfei,,,index[0] is %.*s.",temp.length(), temp.ptr());
       }
       ret = send_2_return_0(root_server, timeout, OB_DROP_INDEX, DEFAULT_VERSION,
           result_code, if_exists, indexs);

@@ -21,12 +21,20 @@ namespace oceanbase
     class ObDropIndexStmt : public ObDropTableStmt
     {
     public:
-      ObDropIndexStmt(common::ObStringBuf* name_pool_):ObDropTableStmt(name_pool_)
+      ObDropIndexStmt(common::ObStringBuf* name_pool_):ObDropTableStmt(name_pool_),drp_all_(false)
      {
         set_stmt_type(T_DROP_INDEX);
      }
       ~ObDropIndexStmt(){}
       int generate_inner_index_table_name(common::ObString& idx_name, common::ObString& ori_tab_name, char* inner_idx_name, int64_t& len);
+      const common::ObString& getOriTabName() const;
+      void setOriTabName(const common::ObString& oriTabName);
+  bool isDrpAll() const;
+  void setDrpAll(bool drpAll);
+
+    private:
+      common::ObString ori_tab_name_;
+      bool drp_all_;
     };
   }
 }

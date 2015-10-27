@@ -30,14 +30,6 @@ int ObDropIndex::add_index_name(const common::ObString &tname)
 int ObDropIndex::open()
 {
   int ret = OB_SUCCESS;
-
-  //modify liuxiao[secondary index bug fix]
-  //if(NULL == rpc_||0 >= indexs_.count())
-  //{
-  //  ret=OB_NOT_INIT;
-  //  TBSYS_LOG(ERROR,"not init,prc_=%p",rpc_);
-  //}
-  //在没有索引表可以删除情况下返回信息
   ObMergerRootRpcProxy* rpc_ = get_rpc_stub();
   if(NULL == rpc_)
   {

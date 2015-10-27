@@ -7256,9 +7256,8 @@ int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &t
 //add longfei [drop index] 20151026
 int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
 {
-  TBSYS_LOG(INFO, "drop index,tables=[%s]",
-              to_cstring(tables));
-  UNUSED(if_exists);//@todo(longfei):if index not exist,continue
+  TBSYS_LOG(INFO, "drop index, if_exists=%c tables=[%s]",
+            if_exists?'Y':'N', to_cstring(tables));
   ObString index_name;
   bool force_update_schema = false;
   bool is_all_merged = false;
@@ -7289,7 +7288,7 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
         else
         {
           bool refresh = false;
-          ret = drop_one_index(index_name, refresh);
+          ret = drop_one_index(if_exists, index_name, refresh);
           //mod liumz, [obsolete trigger event, use ddl_operation]20150701:b
           //if (true == refresh)
           if (true == refresh && OB_SUCCESS == ret)
@@ -7343,18 +7342,23 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
 }
 //add e
 
-//add wenghaixing [secondary index drop index]20141223
-int ObRootServer2::drop_one_index(const ObString &table_name, bool &refresh)
+//add longfei [drop index] 20151027
+int ObRootServer2::drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh)
 {
+  TBSYS_LOG(ERROR,"test::longfei,,,in drop_one_index in ob_root_server.cpp table_name = %.*s , if_exists = %d",table_name.length(), table_name.ptr(), if_exists);
   bool exist = false;
   refresh = false;
   int ret = check_table_exist(table_name, exist);
   if (OB_SUCCESS == ret)
   {
-    if(!exist)
+    if (!exist && !if_exists)
     {
       ret = OB_ENTRY_NOT_EXIST;
-      TBSYS_LOG(WARN, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+      TBSYS_LOG(WARN, "check index table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+    }
+    else if (!exist)
+    {
+      TBSYS_LOG(INFO, "check index table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
     }
   }
   // inner schema table operation

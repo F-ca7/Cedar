@@ -1169,7 +1169,7 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
 	return ret;
 }
 
-//add longfei [drop index] 20141222
+//add longfei [drop index] 20151026
 int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &query_id)
 {
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -1249,57 +1249,57 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
                   "table '%.*s' does not exist", table_name.length(), table_name.ptr());
     }
+    drp_idx_stmt->setOriTabName(table_name);
    }
    if (OB_SUCCESS == ret)
    {
-     OB_ASSERT(node->children_[1] && node->children_[1]->num_child_ > 0);
      ParseNode *table_node = NULL;
      ObString table_name;
-     ObString table_lable;//add longfei 20150822:e
-     for (int32_t i = 0; i < node->children_[1]->num_child_; i ++)
+     ObString ori_tab_name;
+     ObString table_lable;
+     if (node->children_[1])
      {
-       uint64_t index_tid = OB_INVALID_ID;
-       table_node = node->children_[1]->children_[i];
-       table_name.assign_ptr(
-              (char*)(table_node->str_value_),
-              static_cast<int32_t>(strlen(table_node->str_value_))
-              );
-       //add longfei [secondary index ecnu_opencode] 20150822:b
-       table_lable.assign_ptr(
-                   (char*)(node->children_[2]->str_value_),
-                   static_cast<int32_t>(strlen(node->children_[2]->str_value_))
-                   );
-       // add 20150822:e
-        //generate index name here
-       memset(tname_str,0,OB_MAX_TABLE_NAME_LENGTH);
-       // mod longfei 20150822:b
-       //if(OB_SUCCESS != (ret = generate_index_table_name(table_name,data_table_id,tname_str,str_len)))
-       if(OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(table_name, table_lable, tname_str, str_len)))
-       //mod :e
+       for (int32_t i = 0; i < node->children_[1]->num_child_; i++)
        {
-         snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                  "generate index name failed '%.*s'", table_name.length(), table_name.ptr());
-       }
-       else
-       {
-         table_name.reset();
-         table_name.assign_ptr(tname_str,(int32_t)str_len);
-       }
-       if(OB_SUCCESS == ret)
-       {
-         if(OB_INVALID_ID == (index_tid = schema_checker->get_table_id(table_name)))
+         table_node = node->children_[1]->children_[i];
+         table_name.assign_ptr(
+                (char*)(table_node->str_value_),
+                static_cast<int32_t>(strlen(table_node->str_value_))
+                );
+         //add longfei [secondary index ecnu_opencode] 20150822:b
+         table_lable.assign_ptr(
+                     (char*)(node->children_[2]->str_value_),
+                     static_cast<int32_t>(strlen(node->children_[2]->str_value_))
+                     );
+         // add 20150822:e
+          //generate index name here
+         memset(tname_str,0,OB_MAX_TABLE_NAME_LENGTH);
+         // mod longfei 20150822:b
+         //if(OB_SUCCESS != (ret = generate_index_table_name(table_name,data_table_id,tname_str,str_len)))
+         if(OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(table_name, table_lable, tname_str, str_len)))
+         //mod :e
          {
            snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                      "failed to get index id'%.*s'", table_name.length(), table_name.ptr());
+                    "generate index name failed '%.*s'", table_name.length(), table_name.ptr());
          }
-         else if (OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
+         else
          {
-           break;
+           table_name.reset();
+           table_name.assign_ptr(tname_str,(int32_t)str_len);
+         }
+         if (OB_SUCCESS == ret && OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
+         {
+           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                      "failed to do add_table_name_id");
          }
        }
      }
+     else
+     {
+       drp_idx_stmt->setDrpAll(true);
+     }
    }
-   TBSYS_LOG(INFO, "test::longfei::drop index logical plan succ!");
+   TBSYS_LOG(ERROR, "test::longfei,,,drp_all = %d, drop index logical plan succ!",drp_idx_stmt->isDrpAll());
    return ret;
 }
 //add e

@@ -321,7 +321,7 @@ namespace oceanbase
         //secodary index service
         int create_index(const bool if_not_exists, const common::TableSchema &tschema);
         int drop_indexs(const bool if_exists, const common::ObStrings &indexs);
-        int drop_one_index(const ObString &table_name, bool &refresh);
+        int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
 
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();

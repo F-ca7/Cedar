@@ -35,4 +35,22 @@ int ObDropIndexStmt::generate_inner_index_table_name(ObString& idx_name, ObStrin
   return ret;
 }
 
+const ObString& oceanbase::sql::ObDropIndexStmt::getOriTabName() const
+{
+  return ori_tab_name_;
+}
 
+void oceanbase::sql::ObDropIndexStmt::setOriTabName(const ObString& oriTabName)
+{
+  ori_tab_name_ = oriTabName;
+}
+
+bool oceanbase::sql::ObDropIndexStmt::isDrpAll() const
+{
+  return drp_all_;
+}
+
+void oceanbase::sql::ObDropIndexStmt::setDrpAll(bool drpAll)
+{
+  drp_all_ = drpAll;
+}

@@ -3942,13 +3942,55 @@ int ObTransformer::gen_physical_drop_index(ObLogicalPlan *logical_plan, ObPhysic
   {
     drp_idx_op->set_if_exists(true);
   }
-  for (int64_t i = 0; OB_SUCCESS == ret && i < drp_idx_stmt->get_table_size(); i++)
+  if(drp_idx_stmt->isDrpAll())
   {
-    const ObString& table_name = drp_idx_stmt->get_table_name(i);
-    if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(table_name)))
+    IndexList idx_list;
+    ObString  ori_tab_name = drp_idx_stmt->getOriTabName();
+    const ObTableSchema *table = sql_context_->schema_manager_->get_table_schema(ori_tab_name);
+    const uint64_t ori_tid = table->get_table_id();
+    if (ori_tid == OB_INVALID_ID || (ret=sql_context_->schema_manager_->get_index_list(ori_tid, idx_list)) != OB_SUCCESS)
     {
-      TRANS_LOG("Add drop index %.*s failed", table_name.length(), table_name.ptr());
-      break;
+      ret = OB_ERR_ILLEGAL_ID;
+      TRANS_LOG("get index table list error, err=%d", ret);
+    }
+    int64_t idx_num = idx_list.get_count();
+    uint64_t idx_tid = OB_INVALID_ID;
+    for (int64_t i = 0; ret == OB_SUCCESS && i < idx_num; i++)
+    {
+      char str[OB_MAX_TABLE_NAME_LENGTH];
+      memset(str, 0, OB_MAX_TABLE_NAME_LENGTH);
+      //int64_t str_len = 0;
+      idx_list.get_idx_id(i, idx_tid);
+      const ObTableSchema *idx_tschema = sql_context_->schema_manager_->get_table_schema(idx_tid);
+      int32_t len = static_cast<int32_t>(strlen(idx_tschema->get_table_name()));
+      ObString idx_name(len, len, idx_tschema->get_table_name());
+      /*
+      if (OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(idx_name, ori_tab_name, str, str_len)))
+      {
+        TBSYS_LOG(ERROR,"generate inner index table name failed.idx_name = %s",str);
+      }
+      idx_name.assign_ptr(str,static_cast<int32_t>(str_len));
+      */
+      TBSYS_LOG(ERROR,"test::longfei,,,inner_idx_name = %.*s",idx_name.length(), idx_name.ptr());
+      if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(idx_name)))
+      {
+        TRANS_LOG("Add drop index %.*s failed", idx_name.length(), idx_name.ptr());
+        break;
+      }
+    }
+
+  }
+  else
+  {
+    for (int64_t i = 0; OB_SUCCESS == ret && i < drp_idx_stmt->get_table_size(); i++)
+    {
+      const ObString& table_name = drp_idx_stmt->get_table_name(i);
+      TBSYS_LOG(ERROR,"test::longfei,,,table_name = %.*s",table_name.length(), table_name.ptr());
+      if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(table_name)))
+      {
+        TRANS_LOG("Add drop index %.*s failed", table_name.length(), table_name.ptr());
+        break;
+      }
     }
   }
   return ret;
