@@ -35,7 +35,7 @@ namespace oceanbase
 
       private:
         // data members
-        common::ObStrings indexs_;
+        common::ObStrings indexs_; // store the index we will drops
     };
 
   } // end namespace sql

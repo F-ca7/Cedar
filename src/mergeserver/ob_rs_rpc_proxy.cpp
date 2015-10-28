@@ -442,6 +442,7 @@ int ObMergerRootRpcProxy::fetch_master_ups(const ObServer &rootserver, ObServer 
 
 int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & indexs)
 {
+  TBSYS_LOG(ERROR, "test::longfei,,,You have got into drop index line.");
   int ret = OB_SUCCESS;
   if (!check_inner_stat())
   {

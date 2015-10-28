@@ -4447,7 +4447,52 @@ int ObTransformer::gen_physical_drop_table(
         TRANS_LOG("Add drop table %.*s failed", table_name.length(), table_name.ptr());
         break;
       }
+      // add longfei [drop index] 20151028
+      const ObTableSchema* table = sql_context_->schema_manager_->get_table_schema(table_name);
+      if (table == NULL)
+      {
+        ret = OB_ERR_TABLE_UNKNOWN;
+        TBSYS_LOG(ERROR,"table not exists.");
+      }
+      else
+      {
+        uint64_t tid = table->get_table_id();
+        IndexList tmp_idxlist;
+        ret = sql_context_->schema_manager_->get_index_list(tid, tmp_idxlist);
+        int64_t idx_num = tmp_idxlist.get_count();
+        uint64_t idx_tid = OB_INVALID_ID;
+        for (int64_t i = 0; ret == OB_SUCCESS && i < idx_num; i++)
+        {
+          char str[OB_MAX_TABLE_NAME_LENGTH];
+          memset(str, 0, OB_MAX_TABLE_NAME_LENGTH);
+          //int64_t str_len = 0;
+          tmp_idxlist.get_idx_id(i, idx_tid);
+          const ObTableSchema *idx_tschema =
+              sql_context_->schema_manager_->get_table_schema(idx_tid);
+          int32_t len = static_cast<int32_t>(strlen(
+              idx_tschema->get_table_name()));
+          const ObString idx_name(len, len, idx_tschema->get_table_name());
+          TBSYS_LOG(ERROR, "test::longfei,,,inner_idx_name = %.*s",
+              idx_name.length(), idx_name.ptr());
+          if (OB_SUCCESS != (ret = drp_tab_op->add_all_indexs(idx_name)))
+          {
+            TRANS_LOG("Add drop index %.*s failed", idx_name.length(),
+                idx_name.ptr());
+            break;
+          }
+       }
+      }
     }
+    if(OB_SUCCESS == ret)
+    {
+      if(!drp_tab_op->is_all_indexs_empty())
+      {
+        drp_tab_op->setHasIndexs(true);
+      }
+      TBSYS_LOG(ERROR, "test::longfei,,,has_indexs_ = %d",
+                    drp_tab_op->isHasIndexs());
+    }
+    //add e
   }
 
   return ret;

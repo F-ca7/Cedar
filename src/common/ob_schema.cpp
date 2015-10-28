@@ -5146,13 +5146,13 @@ int ObSchemaManagerV2::change_table_id(const uint64_t table_id, const uint64_t n
       return ret;
     }
 
-	/**
-	 * longfei [create index]
-	 */
-	const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  ObSchemaManagerV2::get_index_hash() const
-	{
-		return &id_index_hash_map_;
-	}
+    /**
+     * longfei [create index]
+     */
+    const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  ObSchemaManagerV2::get_index_hash() const
+    {
+      return &id_index_hash_map_;
+    }
     bool ObSchemaManagerV2::is_index_has_storing(uint64_t table_id)const
     {
       bool ret = false;

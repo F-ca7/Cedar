@@ -29,8 +29,8 @@ namespace oceanbase
       int generate_inner_index_table_name(common::ObString& idx_name, common::ObString& ori_tab_name, char* inner_idx_name, int64_t& len);
       const common::ObString& getOriTabName() const;
       void setOriTabName(const common::ObString& oriTabName);
-  bool isDrpAll() const;
-  void setDrpAll(bool drpAll);
+      bool isDrpAll() const;
+      void setDrpAll(bool drpAll);
 
     private:
       common::ObString ori_tab_name_;
