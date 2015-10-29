@@ -1,0 +1,59 @@
+[2015-09-14 15:38:08.527394] INFO  ob_merge_server_main.cpp:82 [140737351905344] oceanbase-mergeserver start svn_version=[] build_data=[Sep 10 2015] build_time=[12:38:09]
+[2015-09-14 15:38:08.528431] INFO  ob_config_manager.cpp:91 [140737351905344] No config file, read from command line! path: [etc/mergeserver.config.bin]
+[2015-09-14 15:38:08.528461] INFO  ob_config_manager.cpp:101 [140737351905344] Config file doesn't exist, using command line options!
+[2015-09-14 15:38:08.528476] INFO  ob_server_config.cpp:133 [140737351905344] ===================== *begin server config report * =====================
+[2015-09-14 15:38:08.528487] INFO  ob_server_config.cpp:137 [140737351905344] | retry_times                          = 3
+[2015-09-14 15:38:08.528499] INFO  ob_server_config.cpp:137 [140737351905344] | check_ups_log_interval               = 1
+[2015-09-14 15:38:08.528510] INFO  ob_server_config.cpp:137 [140737351905344] | timeout_percent                      = 70
+[2015-09-14 15:38:08.528521] INFO  ob_server_config.cpp:137 [140737351905344] | root_server_port                     = 0
+[2015-09-14 15:38:08.528531] INFO  ob_server_config.cpp:137 [140737351905344] | change_obi_timeout                   = 30s
+[2015-09-14 15:38:08.528541] INFO  ob_server_config.cpp:137 [140737351905344] | log_interval_count                   = 100
+[2015-09-14 15:38:08.528551] INFO  ob_server_config.cpp:137 [140737351905344] | read_only                            = false
+[2015-09-14 15:38:08.528560] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_max_param_num            = 512
+[2015-09-14 15:38:08.528573] INFO  ob_server_config.cpp:137 [140737351905344] | root_server_ip                       = 0.0.0.0
+[2015-09-14 15:38:08.528583] INFO  ob_server_config.cpp:137 [140737351905344] | monitor_interval                     = 600s
+[2015-09-14 15:38:08.528592] INFO  ob_server_config.cpp:137 [140737351905344] | io_thread_end_cpu                    = -1
+[2015-09-14 15:38:08.528601] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_io_thread_start_cpu          = -1
+[2015-09-14 15:38:08.528610] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_expiration_time          = 10s
+[2015-09-14 15:38:08.528619] INFO  ob_server_config.cpp:137 [140737351905344] | slow_query_threshold                 = 100ms
+[2015-09-14 15:38:08.528629] INFO  ob_server_config.cpp:137 [140737351905344] | lease_check_interval                 = 6s
+[2015-09-14 15:38:08.528638] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_type                     = OFF
+[2015-09-14 15:38:08.528648] INFO  ob_server_config.cpp:137 [140737351905344] | location_cache_timeout               = 600s
+[2015-09-14 15:38:08.528658] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_size                     = 0
+[2015-09-14 15:38:08.528667] INFO  ob_server_config.cpp:137 [140737351905344] | task_left_time                       = 10ms
+[2015-09-14 15:38:08.528677] INFO  ob_server_config.cpp:137 [140737351905344] | port                                 = 0
+[2015-09-14 15:38:08.528687] INFO  ob_server_config.cpp:137 [140737351905344] | devname                              = bond0
+[2015-09-14 15:38:08.528696] INFO  ob_server_config.cpp:137 [140737351905344] | vtable_location_cache_timeout        = 8s
+[2015-09-14 15:38:08.528705] INFO  ob_server_config.cpp:137 [140737351905344] | allow_return_uncomplete_result       = False
+[2015-09-14 15:38:08.528715] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_io_thread_end_cpu            = -1
+[2015-09-14 15:38:08.528723] INFO  ob_server_config.cpp:137 [140737351905344] | intermediate_buffer_size             = 8MB
+[2015-09-14 15:38:08.528734] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_port                         = 3100
+[2015-09-14 15:38:08.528745] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_work_thread_count            = 120
+[2015-09-14 15:38:08.528758] INFO  ob_server_config.cpp:137 [140737351905344] | recorder_fifo_path                   = run/mergeserver.fifo
+[2015-09-14 15:38:08.528769] INFO  ob_server_config.cpp:137 [140737351905344] | bloom_filter_cache_size              = 256MB
+[2015-09-14 15:38:08.528790] INFO  ob_server_config.cpp:137 [140737351905344] | max_parellel_count                   = 16
+[2015-09-14 15:38:08.528812] INFO  ob_server_config.cpp:137 [140737351905344] | task_queue_size                      = 10000
+[2015-09-14 15:38:08.528822] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_io_thread_count              = 8
+[2015-09-14 15:38:08.528831] INFO  ob_server_config.cpp:137 [140737351905344] | max_get_rows_per_subreq              = 20
+[2015-09-14 15:38:08.528841] INFO  ob_server_config.cpp:137 [140737351905344] | memory_size_limit_percentage         = 40
+[2015-09-14 15:38:08.528851] INFO  ob_server_config.cpp:137 [140737351905344] | task_thread_count                    = 4
+[2015-09-14 15:38:08.528861] INFO  ob_server_config.cpp:137 [140737351905344] | io_thread_start_cpu                  = -1
+[2015-09-14 15:38:08.528871] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_consistent_expiration_time = 10ms
+[2015-09-14 15:38:08.528881] INFO  ob_server_config.cpp:137 [140737351905344] | lms                                  = False
+[2015-09-14 15:38:08.528891] INFO  ob_server_config.cpp:137 [140737351905344] | location_cache_size                  = 32MB
+[2015-09-14 15:38:08.528901] INFO  ob_server_config.cpp:137 [140737351905344] | frozen_data_cache_size               = 256MB
+[2015-09-14 15:38:08.528912] INFO  ob_server_config.cpp:137 [140737351905344] | query_cache_max_result               = 4KB
+[2015-09-14 15:38:08.528921] INFO  ob_server_config.cpp:137 [140737351905344] | network_timeout                      = 2s
+[2015-09-14 15:38:08.528929] INFO  ob_server_config.cpp:137 [140737351905344] | io_thread_count                      = 12
+[2015-09-14 15:38:08.528939] INFO  ob_server_config.cpp:137 [140737351905344] | reserve_get_param_count              = 3
+[2015-09-14 15:38:08.528949] INFO  ob_server_config.cpp:137 [140737351905344] | use_new_balance_method               = True
+[2015-09-14 15:38:08.528959] INFO  ob_server_config.cpp:137 [140737351905344] | obmysql_task_queue_size              = 10000
+[2015-09-14 15:38:08.528967] INFO  ob_server_config.cpp:137 [140737351905344] | max_req_process_time                 = 15s
+[2015-09-14 15:38:08.528976] INFO  ob_server_config.cpp:137 [140737351905344] | frozen_version_timeout               = 600s
+[2015-09-14 15:38:08.528985] INFO  ob_server_config.cpp:139 [140737351905344] ===================== *stop server config report* =======================
+[2015-09-14 15:38:08.529016] INFO  ob_server_config.cpp:124 [140737351905344] Configure setting invalid! name: [root_server_port], value: [0]
+[2015-09-14 15:38:08.529046] INFO  ob_server_config.cpp:124 [140737351905344] Configure setting invalid! name: [port], value: [0]
+[2015-09-14 15:38:08.529071] ERROR do_work (ob_merge_server_main.cpp:151) [140737351905344] check config failed, ret: [-147]
+[2015-09-14 15:38:08.529081] ERROR do_work (ob_merge_server_main.cpp:156) [140737351905344] Start merge server failed, ret: [-147]
+[2015-09-14 15:38:08.529090] INFO  ob_merge_server_main.cpp:187 [140737351905344] exit do_work
+[2015-09-14 15:38:08.529099] INFO  base_main.cpp:457 [140737351905344] exit program.
