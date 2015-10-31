@@ -351,6 +351,16 @@ namespace oceanbase
         // print the postfix expression
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
+      public:
+        // add longfei [secondary index select]
+        /*Exp: get different ObPostExprNodeType's params number
+         * @param idx[in] current position in expr
+         * @param type[in] current ObPostExprNodeType
+         * @return current ObPostExprNodeType's params number
+         */
+        int64_t get_type_num(int64_t idx,int64_t type) const;
+        // add e
+
         NEED_SERIALIZE_AND_DESERIALIZE;
       private:
         class ExprUtil
@@ -442,6 +452,15 @@ namespace oceanbase
         static int32_t SYS_FUNCS_ARGS_NUM[SYS_FUNC_NUM];
       public:
         typedef ObSEArray<ObObj, BASIC_SYMBOL_COUNT> ExprArray;
+      public:
+        // add longfei [secondary index select] 20151031 :b
+        // to my opinion, sometimes we need to know what the actually expr_ is, so i add this interface
+        // and i used this in the series of secondary index service functions
+        const ExprArray& get_expr() const
+        {
+          return expr_;
+        }
+        // add e
       private:
         ExprArray expr_;
         ObExprObj *stack_;
@@ -451,6 +470,7 @@ namespace oceanbase
         ObPhyOperator *owner_op_;
         ObStringBuf calc_buf_;
     }; // class ObPostfixExpression
+
     inline void ObPostfixExpression::set_int_div_as_double(bool did)
     {
       did_int_div_as_double_ = did;

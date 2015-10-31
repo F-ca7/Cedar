@@ -216,7 +216,7 @@ int ObSchemaChecker::is_index_full(uint64_t table_id,bool& is_full)
   //bool ret=false;
   int ret = OB_SUCCESS;
   IndexList il;
-  const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>* idx_hash=schema_mgr_->get_index_hash();
+  const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>* idx_hash=schema_mgr_->get_id_index_hash();
   if(idx_hash == NULL)
   {
     ret=OB_ERROR;

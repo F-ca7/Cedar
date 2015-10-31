@@ -586,7 +586,7 @@ namespace oceanbase
 
       //longfei [create index]
       public:
-        const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  get_index_hash() const;
+        const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  get_id_index_hash() const;
         //add wenghaixing [secondary index create index fix]20150203
         int get_index_column_num(uint64_t& table_id,int64_t &num) const;
         //add e
@@ -600,6 +600,13 @@ namespace oceanbase
         volatile bool isIsIdIndexHashMapInit() const {
           return is_id_index_hash_map_init_;
         }
+
+      ///longfei [secondary index select]
+      public:
+        bool is_have_available_index(uint64_t table_id) const;
+        int get_all_avalibale_index_tid(uint64_t main_tid,uint64_t *tid_array,uint64_t &count) const;
+        bool is_this_table_avalibale(uint64_t tid) const;
+        bool is_cid_in_index(uint64_t cid,uint64_t tid,uint64_t *index_tid_array) const;
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);

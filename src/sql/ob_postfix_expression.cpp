@@ -3002,5 +3002,45 @@ namespace oceanbase
       return pos;
     }
 
+    int64_t ObPostfixExpression::get_type_num(int64_t idx,int64_t type) const
+    {
+          int64_t num = 0;
+          int ret = OB_SUCCESS;
+          if(type == BEGIN_TYPE)
+          {
+            num = 0;
+          }
+          else if (type == OP)
+          {
+            num = 3;
+            int64_t op_type = 0;
+            if (OB_SUCCESS != (ret = expr_[idx+1].get_int(op_type)))
+            {
+              TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
+            }
+            else if (T_FUN_SYS == op_type)
+            {
+              ++num;
+            }
+          }
+          else if (type == COLUMN_IDX || type == T_OP_ROW)
+          {
+            num = 3;
+          }
+          else if (type == CONST_OBJ )
+          {
+            num = 2;
+          }
+          else if (type == END || type == UPS_TIME_OP)
+          {
+            num = 1;
+          }
+          else
+          {
+            TBSYS_LOG(WARN, "Unkown type %ld", type);
+          }
+          return num;
+    }
+
   } /* sql */
 } /* namespace */
