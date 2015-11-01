@@ -10,73 +10,69 @@
 using namespace oceanbase::common;
 
 namespace oceanbase {
-namespace sql {
+  namespace sql {
 
-enum ParamType
-{
-  DEFAULT_TYPE=0,
-  IN_TYPE,
-  OUT_TYPE,
-  INOUT_TYPE
-};
+    enum ParamType
+    {
+      DEFAULT_TYPE=0,
+      IN_TYPE,
+      OUT_TYPE,
+      INOUT_TYPE
+    };
 
-struct ObParamDef
-{
-	ObString*    param_name_;/*参数名称*/
-	ObObjType   param_type_;/*参数类型*/
-	ObObj*       default_value_;/*默认值*/
-	ParamType	out_type_;/*输出类型*/
-};
-
-
-class ObProcedureStmt: public ObBasicStmt {
-	public:
-	ObProcedureStmt() :
-				ObBasicStmt(T_PROCEDURE) {
-			cursor_hash_map_.create(hash::cal_next_prime(512));
-		}
-		virtual ~ObProcedureStmt() {
-		}
-
-		int set_proc_name(ObString &proc_name);
-
-		int add_proc_param(ObParamDef &proc_param);/*添加一个参数*/
-
-		int add_declare_var(ObString &var);/*添加一个变量*/
-
-		int add_stmt(uint64_t& stmt_id);
-
-		uint64_t& get_stmt(int64_t index);
-
-		ObString& get_proc_name();
-
-		ObString& get_declare_var(int64_t index);
-
-		int64_t get_param_size();
-
-		int64_t get_stmt_size();
-
-		int64_t get_declare_var_size();
-
-		ObArray<ObParamDef*>& get_params();
-
-		ObParamDef* get_param(int64_t index);
-		virtual void print(FILE* fp, int32_t level, int32_t index);
+    struct ObParamDef
+    {
+      ObString*    param_name_;/*参数名称*/
+      ObObjType   param_type_;/*参数类型*/
+      ObObj*       default_value_;/*默认值*/
+      ParamType	out_type_;/*输出类型*/
+    };
 
 
-	private:
-		ObString proc_name_;
-		ObArray<uint64_t> proc_block_;
-		ObArray<ObParamDef*> params_;/*存储过程参数*/
-		ObArray<ObString> declare_variable_;/*存储过程begin-end之间所有定义的变量名*/
+    class ObProcedureStmt: public ObBasicStmt {
+    public:
+      ObProcedureStmt() :
+              ObBasicStmt(T_PROCEDURE) {
+        cursor_hash_map_.create(hash::cal_next_prime(512));
+      }
+      virtual ~ObProcedureStmt() {
+      }
 
-		hash::ObHashMap<ObString,uint64_t,hash::NoPthreadDefendMode> cursor_hash_map_;
+      int set_proc_name(ObString &proc_name);
+
+      int add_proc_param(ObParamDef &proc_param);/*添加一个参数*/
+
+      int add_declare_var(ObString &var);/*添加一个变量*/
+
+      int add_stmt(uint64_t& stmt_id);
+
+      uint64_t& get_stmt(int64_t index);
+
+      ObString& get_proc_name();
+
+      ObString& get_declare_var(int64_t index);
+
+      int64_t get_param_size();
+
+      int64_t get_stmt_size();
+
+      int64_t get_declare_var_size();
+
+      ObArray<ObParamDef*>& get_params();
+
+      ObParamDef* get_param(int64_t index);
+      virtual void print(FILE* fp, int32_t level, int32_t index);
 
 
-	};
+    private:
+      ObString proc_name_;
+      ObArray<uint64_t> proc_block_;
+      ObArray<ObParamDef*> params_;/*存储过程参数*/
+      ObArray<ObString> declare_variable_;/*存储过程begin-end之间所有定义的变量名*/
 
-
-}
+      hash::ObHashMap<ObString,uint64_t,hash::NoPthreadDefendMode> cursor_hash_map_;
+    };
+  }
 }
 
 #endif

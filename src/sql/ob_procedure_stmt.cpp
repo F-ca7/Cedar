@@ -39,11 +39,11 @@ int ObProcedureStmt::add_declare_var(ObString &var)
 		}
 	return ret;
 }
+
 int ObProcedureStmt::add_stmt(uint64_t& stmt_id)
 {
 	return proc_block_.push_back(stmt_id);
 }
-
 
 ObString& ObProcedureStmt::get_proc_name()
 {

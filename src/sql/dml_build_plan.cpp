@@ -350,7 +350,7 @@ int resolve_expr(
       ObConstRawExpr *c_expr = NULL;
       if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL)
         break;
-      c_expr->set_expr_type(node->type_);
+      c_expr->set_expr_type(node->type_); //here determines the types of the expr
       c_expr->set_result_type(ObVarcharType);
       c_expr->set_value(val);
       expr = c_expr;

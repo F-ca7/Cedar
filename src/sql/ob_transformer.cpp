@@ -678,6 +678,9 @@ int ObTransformer::gen_physical_procedure(
 				 }
 			 }
 
+       //genreate physical operation for each stmt here
+       //each operation would divide into small instructions
+       //important zt add
 			 TBSYS_LOG(INFO, "procedure block stmt size =%ld",stmt->get_stmt_size());
 			 for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_stmt_size(); i++)
 			 {
@@ -701,67 +704,79 @@ int ObTransformer::gen_physical_procedure(
 
  }
 
+/**
+ * here we have to totally rewrite the procedure_create function
+ * The main execution pattern could not be operator pattern,
+ * sql, expr calucaltion should be the opeartor pattern
+ * @brief ObTransformer::gen_physical_procedure_create
+ * @param logical_plan
+ * @param physical_plan
+ * @param err_stat
+ * @param query_id
+ * @param index
+ * @return
+ */
 int ObTransformer::gen_physical_procedure_create(
-		  ObLogicalPlan *logical_plan,
-		  ObPhysicalPlan *physical_plan,
-		  ErrStat& err_stat,
-		  const uint64_t& query_id,
-		  int32_t* index)
- {
-	int &ret = err_stat.err_code_ = OB_SUCCESS;
-	ObProcedureCreate*result_op = NULL;
-	ObProcedureCreateStmt *stmt = NULL;
-	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
-	//add execute insert operator
-	if (ret == OB_SUCCESS)
-	{
-	   CREATE_PHY_OPERRATOR(result_op, ObProcedureCreate, physical_plan, err_stat);
-	   if (ret == OB_SUCCESS)
-	   {
-	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
-	   }
-	}
-	if (ret == OB_SUCCESS)
-	{
-		 if((ret=result_op->set_proc_name(stmt->get_proc_name()))!=OB_SUCCESS)
-		 {
-			 TBSYS_LOG(WARN, "result_op set proc_name error");
-		 }
-		 else
-		 {
-			 /*重新生成一个操作符*/
-			 int32_t idx = OB_INVALID_INDEX;
-			 ObPhyOperator* proc_op = NULL;
-			 if ((ret = gen_physical_procedure(logical_plan,physical_plan,err_stat,stmt->get_proc_id(),&idx)) != OB_SUCCESS)
-			 {
-				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
-			 }
-			 else if ((proc_op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *proc_op)) != OB_SUCCESS)
-			 {
-				 ret = OB_ERR_ILLEGAL_INDEX;
-				 TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
-			 }
-			 else
-			 {
-				 /*生成存储过程插入数据表的insert操作符*/
-				 int32_t insert_idx = OB_INVALID_INDEX;
-				 ObPhyOperator* insert_op = NULL;
-				 /*这里应该过滤一些类型的语句*/
-				 if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
-				 {
-					 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
-				 }
-				 else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
-				 {
-					 ret = OB_ERR_ILLEGAL_INDEX;
-					 TBSYS_LOG(ERROR,"Set child of insert failed");
-				 }
-			 }
-		 }
-	}
-	return ret;
-
- }
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat& err_stat,
+                const uint64_t& query_id,
+                int32_t* index)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  ObProcedureCreate*result_op = NULL;
+  ObProcedureCreateStmt *stmt = NULL;
+  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+  //add execute insert operator
+  if (ret == OB_SUCCESS)
+  {
+    CREATE_PHY_OPERRATOR(result_op, ObProcedureCreate, physical_plan, err_stat);
+    if (ret == OB_SUCCESS)
+    {
+      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    if((ret=result_op->set_proc_name(stmt->get_proc_name()))!=OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "result_op set proc_name error");
+    }
+    else
+    {
+      /*重新生成一个操作符*/
+      int32_t idx = OB_INVALID_INDEX;
+      ObPhyOperator* proc_op = NULL;
+      //generate the physical plan for the procedure block
+      if ((ret = gen_physical_procedure(logical_plan,physical_plan,err_stat,stmt->get_proc_id(),&idx)) != OB_SUCCESS)
+      {
+        TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+      }
+      else if ((proc_op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *proc_op)) != OB_SUCCESS)
+      {
+        ret = OB_ERR_ILLEGAL_INDEX;
+        TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+      }
+      else
+      {
+        /*生成存储过程插入数据表的insert操作符*/
+        int32_t insert_idx = OB_INVALID_INDEX;
+        ObPhyOperator* insert_op = NULL;
+        /*这里应该过滤一些类型的语句*/
+        if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+        }
+        else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
+        {
+          ret = OB_ERR_ILLEGAL_INDEX;
+          TBSYS_LOG(ERROR,"Set child of insert failed");
+        }
+      }
+    }
+  }
+  return ret;
+}
 
 int ObTransformer::gen_physical_procedure_drop(
 		  ObLogicalPlan *logical_plan,

@@ -225,7 +225,7 @@ int resolve_procedure_declare_stmt(
     ParseNode* node,
     uint64_t& query_id,
 	ObProcedureStmt *ps_stmt);
-int resolve_procedure_assgin_stmt(
+int resolve_procedure_assign_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id,
@@ -266,6 +266,11 @@ int resolve_procedure_select_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id);
+
+int resolve_procedure_proc_block_stmt(
+    ResultPlan *result_plan,
+    ParseNode *node,
+    ObProcedureStmt *stmt);
 //code_coverage_zhujun
 //add:e
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node)
@@ -2695,7 +2700,7 @@ int resolve_procedure_declare_stmt(
 }
 
 
-int resolve_procedure_assgin_stmt(
+int resolve_procedure_assign_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id,
@@ -2705,7 +2710,7 @@ int resolve_procedure_assgin_stmt(
   OB_ASSERT(node && node->type_ == T_PROCEDURE_ASSGIN && node->num_child_ == 1);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureAssginStmt *stmt = NULL;
-  TBSYS_LOG(INFO, "enter resolve_procedure_assgin_stmt");
+  TBSYS_LOG(INFO, "enter resolve_procedure_assign_stmt");
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
 	  TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
@@ -2723,24 +2728,28 @@ int resolve_procedure_assgin_stmt(
 			for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
 			{
 				ObVariableSetVal var_val;
-				uint64_t expr_id;
+        uint64_t expr_id;
+        //analyze the right expr
 				if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
 				{
-					TBSYS_LOG(WARN, "resolve_procedure_assgin_stmt resolve_independ_expr error");
+          TBSYS_LOG(WARN, "resolve_procedure_assign_stmt resolve_independ_expr error");
 				}
 				else
-				{
+        {
+          //analyze the left variable
 					var_val.var_expr_id_=expr_id;
 					if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_), var_val.variable_name_))!=OB_SUCCESS)
 					{
 						PARSER_LOG("Can not malloc space for variable name");
 					}
-					else if((ret=stmt->add_var_val(var_val))!=OB_SUCCESS)
+          else if((ret=stmt->add_var_val(var_val))!=OB_SUCCESS) //add the assign into stmt
 					{
 						TBSYS_LOG(WARN, "add_proc_param have ERROR!");
 					}
 
-					int find=OB_ERROR;
+          int find=OB_ERROR;
+          //does the variable existence check make sense here?
+          //the variable used in the expr is not checked
 					for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
 					{
 						ObString declare_var=ps_stmt->get_declare_var(j);
@@ -2777,8 +2786,6 @@ int resolve_procedure_assgin_stmt(
 						TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.variable_name_.length(),var_val.variable_name_.ptr());
 						break;
 					}
-
-
 				}
 			}
 
@@ -3017,7 +3024,7 @@ int resolve_procedure_casewhen_stmt(
 						break;
 					case T_PROCEDURE_ASSGIN:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+            ret = resolve_procedure_assign_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
 						break;
 					case T_PROCEDURE_WHILE:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
@@ -3166,7 +3173,7 @@ int resolve_procedure_if_stmt(
 							break;
 						case T_PROCEDURE_ASSGIN:
 							TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-							ret = resolve_procedure_assgin_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+              ret = resolve_procedure_assign_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
 							break;
 						case T_PROCEDURE_WHILE:
 							TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
@@ -3371,7 +3378,7 @@ int resolve_procedure_elseif_stmt(
 						break;
 					case T_PROCEDURE_ASSGIN:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+            ret = resolve_procedure_assign_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
 						break;
 					case T_PROCEDURE_WHILE:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
@@ -3520,7 +3527,7 @@ int resolve_procedure_while_stmt(
 						break;
 					case T_PROCEDURE_ASSGIN:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+            ret = resolve_procedure_assign_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
 						break;
 					case T_PROCEDURE_WHILE:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
@@ -3657,7 +3664,7 @@ int resolve_procedure_else_stmt(
 						break;
 					case T_PROCEDURE_ASSGIN:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+            ret = resolve_procedure_assign_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
 						break;
 					case T_PROCEDURE_WHILE:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
@@ -3872,7 +3879,7 @@ int resolve_procedure_create_stmt(
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_PROCEDURE_CREATE && node->num_child_ == 2);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
-  ObProcedureCreateStmt *stmt = NULL;
+  ObProcedureCreateStmt *stmt = NULL; //create stmt
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
 	  TBSYS_LOG(WARN, "prepare_resolve_stmt have ERROR!");
@@ -3898,8 +3905,9 @@ int resolve_procedure_create_stmt(
 			  TBSYS_LOG(WARN, "resolve_procedure_stmt have ERROR!");
 		  }
 		  else
-		  {
-			  ret=stmt->set_proc_id(proc_query_id);
+      {
+        //the tree structure is built thourgh query_id ref
+        ret=stmt->set_proc_id(proc_query_id); //logical plan for proc function
 		  }
 	  }
 	  if(ret==OB_SUCCESS)
@@ -3938,7 +3946,7 @@ int resolve_procedure_create_stmt(
 		  }
 
 		  //add some char after @
-		  replaceArray(p, "@", "@__");
+      replaceArray(p, "@", "@__"); //is the way to solve the variable name conflict bug?
 
 
 
@@ -4049,9 +4057,9 @@ int resolve_procedure_drop_stmt(
 }
 
 int resolve_procedure_stmt(
-    ResultPlan* result_plan,
-    ParseNode* node,
-    uint64_t& query_id)
+                ResultPlan* result_plan,
+                ParseNode* node,
+                uint64_t& query_id)
 {
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_PROCEDURE_CREATE && node->num_child_ == 2);
@@ -4059,216 +4067,233 @@ int resolve_procedure_stmt(
   ObProcedureStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
-	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
   }
   else
   {
-	  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-	  ObString proc_name;
-	  OB_ASSERT(node->children_[0]->children_[0]);
-	  if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
-	  {
-	       PARSER_LOG("Can not malloc space for stmt name");
-	  }
-	  else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
-	  {
-		  TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
-	  }
-	  else
-	  {
-		    /*解析存储过程参数*/
-		    if(node->children_[0]->children_[1]!=NULL)
-		    {
-		    	ParseNode* param_node=node->children_[0]->children_[1];
-		    	OB_ASSERT(param_node->type_==T_PARAM_LIST);
-		    	for (int32_t i = 0; ret == OB_SUCCESS && i < param_node->num_child_; i++)
-		    	{
-		    		ObParamDef* param=(ObParamDef *)malloc(sizeof(ObParamDef));
-		    		/*参数输出类型*/
-		    		switch(param_node->children_[i]->type_)
-		    		{
-		    		case T_PARAM_DEFINITION:
-		    			TBSYS_LOG(INFO, "param %d out type is DEFAULT_TYPE",i);
-		    			param->out_type_=DEFAULT_TYPE;
-		    			break;
-		    		case T_IN_PARAM_DEFINITION:
-		    			TBSYS_LOG(INFO, "param %d out type is IN_TYPE",i);
-		    			param->out_type_=IN_TYPE;
-		    			break;
-		    		case T_OUT_PARAM_DEFINITION:
-		    			TBSYS_LOG(INFO, "param %d out type is OUT_TYPE",i);
-		    			param->out_type_=OUT_TYPE;
-		    			break;
-		    		case T_INOUT_PARAM_DEFINITION:
-		    			TBSYS_LOG(INFO, "param %d out type is INOUT_TYPE",i);
-		    			param->out_type_=INOUT_TYPE;
-		    			break;
-		    		default:
-		    			break;
-		    		}
-		    		/*参数数据类型*/
-		    		switch(param_node->children_[i]->children_[1]->type_)
-		    		{
-		    		case T_TYPE_INTEGER:
-		    			TBSYS_LOG(INFO, "param %d data type is ObIntType",i);
-		    			param->param_type_=ObIntType;
-		    			break;
-		    		case T_TYPE_FLOAT:
-		    			TBSYS_LOG(INFO, "param %d data type is ObFloatType",i);
-		    			param->param_type_=ObFloatType;
-		    			break;
-		    		case T_TYPE_DOUBLE:
-		    			TBSYS_LOG(INFO, "param %d data type is ObDoubleType",i);
-		    			param->param_type_=ObDoubleType;
-		    			break;
-		    		case T_TYPE_DECIMAL:
-		    			TBSYS_LOG(INFO, "param %d data type is ObDecimalType",i);
-		    			param->param_type_=ObDecimalType;
-		    			break;
-		    		case T_TYPE_BOOLEAN:
-		    			TBSYS_LOG(INFO, "param %d data type is ObBoolType",i);
-		    			param->param_type_=ObBoolType;
-		    			break;
-		    		case T_TYPE_DATETIME:
-		    			TBSYS_LOG(INFO, "param %d data type is ObDateTimeType",i);
-		    			param->param_type_=ObDateTimeType;
-		    			break;
-		    		case T_TYPE_VARCHAR:
-		    			TBSYS_LOG(INFO, "param %d data type is ObVarcharType",i);
-		    			param->param_type_=ObVarcharType;
-		    			break;
-		    		default:
-		    			TBSYS_LOG(WARN, "param %d data type is ObNullType",i);
-		    			param->param_type_=ObNullType;
-		    			break;
-		    		}
-		    		param->param_name_=new ObString();
-		    		if((ret=ob_write_string(*name_pool, ObString::make_string(param_node->children_[i]->children_[0]->str_value_), *param->param_name_))!=OB_SUCCESS)
-		    		{
-		    			PARSER_LOG("Can not malloc space for param name");
-		    		}
-		    		if((ret=stmt->add_proc_param(*param))!=OB_SUCCESS)
-		    		{
-		    			TBSYS_LOG(ERROR, "add_proc_param have ERROR!");
-		    		}
-		    		else
-		    		{
-		    			TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param->param_name_->length(),param->param_name_->ptr(),stmt->get_param_size());
-		    		}
-		    	}
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    ObString proc_name;
+    OB_ASSERT(node->children_[0]->children_[0]);
+    if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
+    {
+      PARSER_LOG("Can not malloc space for stmt name");
+    }
+    else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
+    }
+    else
+    {
+      /*解析存储过程参数*/
+      if(node->children_[0]->children_[1]!=NULL)
+      {
+        ParseNode* param_node=node->children_[0]->children_[1];
+        OB_ASSERT(param_node->type_==T_PARAM_LIST);
+        for (int32_t i = 0; ret == OB_SUCCESS && i < param_node->num_child_; i++)
+        {
+          ObParamDef* param=(ObParamDef *)malloc(sizeof(ObParamDef));
+          /*参数输出类型*/
+          switch(param_node->children_[i]->type_)
+          {
+          case T_PARAM_DEFINITION:
+            TBSYS_LOG(INFO, "param %d out type is DEFAULT_TYPE",i);
+            param->out_type_=DEFAULT_TYPE;
+            break;
+          case T_IN_PARAM_DEFINITION:
+            TBSYS_LOG(INFO, "param %d out type is IN_TYPE",i);
+            param->out_type_=IN_TYPE;
+            break;
+          case T_OUT_PARAM_DEFINITION:
+            TBSYS_LOG(INFO, "param %d out type is OUT_TYPE",i);
+            param->out_type_=OUT_TYPE;
+            break;
+          case T_INOUT_PARAM_DEFINITION:
+            TBSYS_LOG(INFO, "param %d out type is INOUT_TYPE",i);
+            param->out_type_=INOUT_TYPE;
+            break;
+          default:
+            break;
+          }
+          /*参数数据类型*/
+          switch(param_node->children_[i]->children_[1]->type_)
+          {
+          case T_TYPE_INTEGER:
+            TBSYS_LOG(INFO, "param %d data type is ObIntType",i);
+            param->param_type_=ObIntType;
+            break;
+          case T_TYPE_FLOAT:
+            TBSYS_LOG(INFO, "param %d data type is ObFloatType",i);
+            param->param_type_=ObFloatType;
+            break;
+          case T_TYPE_DOUBLE:
+            TBSYS_LOG(INFO, "param %d data type is ObDoubleType",i);
+            param->param_type_=ObDoubleType;
+            break;
+          case T_TYPE_DECIMAL:
+            TBSYS_LOG(INFO, "param %d data type is ObDecimalType",i);
+            param->param_type_=ObDecimalType;
+            break;
+          case T_TYPE_BOOLEAN:
+            TBSYS_LOG(INFO, "param %d data type is ObBoolType",i);
+            param->param_type_=ObBoolType;
+            break;
+          case T_TYPE_DATETIME:
+            TBSYS_LOG(INFO, "param %d data type is ObDateTimeType",i);
+            param->param_type_=ObDateTimeType;
+            break;
+          case T_TYPE_VARCHAR:
+            TBSYS_LOG(INFO, "param %d data type is ObVarcharType",i);
+            param->param_type_=ObVarcharType;
+            break;
+          default:
+            TBSYS_LOG(WARN, "param %d data type is ObNullType",i);
+            param->param_type_=ObNullType;
+            break;
+          }
+          param->param_name_=new ObString();
+          if((ret=ob_write_string(*name_pool, ObString::make_string(param_node->children_[i]->children_[0]->str_value_), *param->param_name_))!=OB_SUCCESS)
+          {
+            PARSER_LOG("Can not malloc space for param name");
+          }
+          if((ret=stmt->add_proc_param(*param))!=OB_SUCCESS)
+          {
+            TBSYS_LOG(ERROR, "add_proc_param have ERROR!");
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param->param_name_->length(),param->param_name_->ptr(),stmt->get_param_size());
+          }
+        }
 
-		    }
-		  	if(node->children_[1]!=NULL)
-		  	{
-				ParseNode* vector_node = node->children_[1];
-				/*遍历右子树的节点*/
-				for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
-				{
-					uint64_t sub_query_id = OB_INVALID_ID;
-					switch(vector_node->children_[i]->type_)
-					{
-						case T_SELECT:
-							TBSYS_LOG(INFO, "type = T_SELECT");
-							ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_DELETE:
-							TBSYS_LOG(INFO, "type = T_DELETE");
-							ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_INSERT:
-							TBSYS_LOG(INFO, "type = T_INSERT");
-							ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_UPDATE:
-							TBSYS_LOG(INFO, "type = T_UPDATE");
-							ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_PROCEDURE_IF:
-							TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
-							ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
-							break;
-						case T_PROCEDURE_DECLARE:
-							TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
-							ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
-							//ret=OB_ERR_PARSE_SQL;
-							break;
-						case T_PROCEDURE_ASSGIN:
-							TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
-							ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
-							break;
-						case T_PROCEDURE_WHILE:
-							TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
-							ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
-							break;
-						case T_PROCEDURE_CASE:
-							TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
-							ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
-							break;
-						case T_SELECT_INTO:
-							TBSYS_LOG(INFO, "type = T_SELECT_INTO");
-							ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_CURSOR_DECLARE:
-							TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
-							ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
-							break;
-						case T_CURSOR_OPEN:
-							TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
-							ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							break;
-						case T_CURSOR_CLOSE:
-												TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
-												ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						case T_CURSOR_FETCH_INTO:
-							                    TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
-							                    ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-							                    break;
-						case T_CURSOR_FETCH_NEXT_INTO:
-													                    TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
-													                    ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-													                    break;
-						case T_CURSOR_FETCH_PRIOR_INTO:
-												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
-												ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						case T_CURSOR_FETCH_FIRST_INTO:
-												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
-												ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						case T_CURSOR_FETCH_LAST_INTO:
-												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
-												ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						case T_CURSOR_FETCH_ABS_INTO:
-												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
-												ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						case T_CURSOR_FETCH_RELATIVE_INTO:
-												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
-												ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
-												break;
-						default:
-							ret=OB_ERR_PARSE_SQL;
-							TBSYS_LOG(INFO, "type = ERROR");
-							break;
-					}
-					if(ret==OB_SUCCESS)
-					{
-						if((ret=stmt->add_stmt(sub_query_id))!=OB_SUCCESS)
-						{
-							TBSYS_LOG(ERROR, "foreach else if children_[0] error!");
-							break;
-						}
-					}
-					else
-					{
-						TBSYS_LOG(ERROR, "resolve_stmt error");
-						break;
-					}
-				}
-		   }
-	  }
+      }
+      if(node->children_[1]!=NULL)
+      {
+        ParseNode* vector_node = node->children_[1];
+        /*遍历右子树的节点*/
+        resolve_procedure_proc_block_stmt(result_plan, vector_node, stmt);
+      }
+    }
+  }
+  return ret;
+}
+
+int resolve_procedure_proc_block_stmt(
+                ResultPlan* result_plan,
+                ParseNode* node,
+                ObProcedureStmt *stmt,
+                )
+{
+  ParseNode *vector_node = node;
+  int ret = OB_SUCCESS;
+  for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+  {
+    uint64_t sub_query_id = OB_INVALID_ID;
+    switch(vector_node->children_[i]->type_)
+    {
+      //sql
+    case T_SELECT:
+      TBSYS_LOG(DEBUG, "type = T_SELECT");
+      ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_DELETE:
+      TBSYS_LOG(DEBUG, "type = T_DELETE");
+      ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_INSERT:
+      TBSYS_LOG(DEBUG, "type = T_INSERT");
+      ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_UPDATE:
+      TBSYS_LOG(DEBUG, "type = T_UPDATE");
+      ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+
+      //control flow
+    case T_PROCEDURE_IF:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_IF");
+      ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      break;
+    case T_PROCEDURE_DECLARE:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_DECLARE");
+      ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      break;
+    case T_PROCEDURE_ASSGIN:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_ASSGIN");
+      ret = resolve_procedure_assign_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      break;
+    case T_PROCEDURE_WHILE:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_WHILE");
+      ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      break;
+    case T_PROCEDURE_CASE:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_CASE");
+      ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      break;
+    case T_SELECT_INTO: //select and assign
+      TBSYS_LOG(DEBUG, "type = T_SELECT_INTO");
+      ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+
+      //cursor support
+    case T_CURSOR_DECLARE:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_DECLARE");
+      ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_OPEN:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_OPEN");
+      ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_CLOSE:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_CLOSE");
+      ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_INTO");
+      ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_NEXT_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_NEXT_INTO");
+      ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_PRIOR_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_PRIOR_INTO");
+      ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_FIRST_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_FIRST_INTO");
+      ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_LAST_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_LAST_INTO");
+      ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_ABS_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_ABS_INTO");
+      ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+    case T_CURSOR_FETCH_RELATIVE_INTO:
+      TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+      ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+      break;
+
+    default:
+      ret=OB_ERR_PARSE_SQL;
+      TBSYS_LOG(DEBUG, "type = ERROR");
+      break;
+    }
+    if(ret==OB_SUCCESS)
+    {
+      if((ret=stmt->add_stmt(sub_query_id))!=OB_SUCCESS)  //here add the stmt into the procedure block
+      {
+        TBSYS_LOG(ERROR, "add stmt into the procedure block failed");
+        break;
+      }
+    }
+    else
+    {
+      TBSYS_LOG(ERROR, "resolve_stmt error");
+      break;
+    }
   }
   return ret;
 }
