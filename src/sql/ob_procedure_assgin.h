@@ -26,7 +26,7 @@ namespace oceanbase
 			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 			virtual int get_next_row(const common::ObRow *&row);
 
-			int add_var_val(ObVariableSetVal &var_val);/*添加一个赋值*/
+      int add_var_val(ObVarAssignVal &var_val);/*添加一个赋值*/
 
 		private:
 			//disallow copy
@@ -35,7 +35,7 @@ namespace oceanbase
 			//function members
 
 		private:
-			ObArray<ObVariableSetVal> var_val_list_;/*assgin 赋值变量列表*/
+      ObArray<ObVarAssignVal> var_val_list_;/*assgin 赋值变量列表*/
 
 		};
 

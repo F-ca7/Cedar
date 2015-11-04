@@ -29,6 +29,7 @@
 #include "common/ob_list.h"
 #include "common/ob_row_desc_ext.h"
 #include "common/ob_se_array.h"
+#include "sql/ob_procedure.h"
 namespace oceanbase
 {
   namespace sql
@@ -103,18 +104,27 @@ namespace oceanbase
 			ErrStat& err_stat,
 			const uint64_t& query_id,
 			int32_t* index);
-        int gen_physical_procedure_declare(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_assgin(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
+  int gen_physical_procedure_declare(
+                  ObLogicalPlan *logical_plan,
+                  //			ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op);
+  //			int32_t* index);
+  int gen_physical_procedure_assign(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op
+                  );
+  int gen_physical_procedure_insert(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op
+                  );
         int gen_physical_procedure_while(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,

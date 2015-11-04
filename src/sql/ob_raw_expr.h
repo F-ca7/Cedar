@@ -46,6 +46,7 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const = 0;
       virtual void print(FILE* fp, int32_t level) const = 0;
 
+      virtual void get_raw_var(ObArray<const ObRawExpr*> &exprs) const  {UNUSED(exprs);} //add zt for find variables
     private:
       ObItemType  type_;
       common::ObObjType result_type_;
@@ -72,6 +73,10 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        exprs.push_back(this);
+      }
     private:
       oceanbase::common::ObObj value_;
     };
@@ -165,6 +170,12 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104
     private:
       ObRawExpr *expr_;
     };
@@ -191,6 +202,13 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        first_expr_->get_raw_var(exprs);
+        second_expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -225,6 +243,14 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        first_expr_->get_raw_var(exprs);
+        second_expr_->get_raw_var(exprs);
+        third_expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -254,6 +280,15 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        for(int32_t i = 0; i < exprs_.size(); ++i)
+        {
+          exprs_.at(i)->get_raw_var(exprs);
+        }
+      }
+      //add z: 20151104 e
     private:
       oceanbase::common::ObVector<ObRawExpr*> exprs_;
     };
@@ -296,6 +331,23 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        arg_expr_->get_raw_var(exprs);
+        for(int32_t i = 0; i < when_exprs_.size(); ++i)
+        {
+          when_exprs_.at(i)->get_raw_var(exprs);
+        }
+        for(int32_t i = 0; i < then_exprs_.size(); ++i)
+        {
+          then_exprs_.at(i)->get_raw_var(exprs);
+        }
+        default_expr_->get_raw_var(exprs);
+      }
+      //add z: 20151104 e
+
     private:
       ObRawExpr *arg_expr_;
       oceanbase::common::ObVector<ObRawExpr*> when_exprs_;
@@ -327,6 +379,13 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        param_expr_->get_raw_var(exprs);
+      }
+
     private:
       // NULL means '*'
       ObRawExpr* param_expr_;
@@ -356,6 +415,15 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        for(int32_t i = 0; i < exprs_.size(); ++i)
+        {
+          exprs_.at(i)->get_raw_var(exprs);
+        }
+      }
+      //add z: 20151104 e
     private:
       common::ObString func_name_;
       common::ObVector<ObRawExpr*> exprs_;
@@ -397,6 +465,13 @@ namespace oceanbase
           ObLogicalPlan *logical_plan = NULL,
           ObPhysicalPlan *physical_plan = NULL);
       void print(FILE* fp, int32_t level, int32_t index = 0) const;
+
+      //add zt: 20151104 b
+      void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+          expr_->get_raw_var(exprs);
+      }
+      //add z: 20151104 e
 
     private:
       uint64_t  expr_id_;

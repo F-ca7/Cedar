@@ -6,44 +6,40 @@
 #include "ob_basic_stmt.h"
 #include "parse_node.h"
 #include "ob_sql_expression.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {
-namespace sql {
+  namespace sql {
 
-struct ObVariableDef
-{
-	ObString*    variable_name_;/*参数名称*/
-	ObObjType   variable_type_;/*参数类型*/
-	bool   is_default_;/*是否有默认值*/
-	ObObj* default_value_;/*默认值*/
-};
-class ObProcedureDeclareStmt: public ObBasicStmt {
-	public:
-	ObProcedureDeclareStmt() :
-				ObBasicStmt(T_PROCEDURE_DECLARE) {
-		}
-		virtual ~ObProcedureDeclareStmt() {
-		}
-
-
-		int add_proc_var(ObVariableDef &proc_var);/*添加一个变量*/
-
-		ObArray<ObVariableDef>& get_variables();/*返回所有变量*/
-
-		ObVariableDef& get_variable(int64_t index);/*返回变量*/
-
-		int64_t get_variable_size();/*返回变量列表大小*/
-
-		virtual void print(FILE* fp, int32_t level, int32_t index);
-	private:
-		ObArray<ObVariableDef> variables_;/*declare定义变量列表*/
-
-	};
+    struct ObVariableDef
+    {
+      ObString    variable_name_;/*参数名称*/
+      ObObjType   variable_type_;/*参数类型*/
+      bool   is_default_;/*是否有默认值*/
+      ObObj default_value_;/*默认值*/
+    };
+    class ObProcedureDeclareStmt: public ObBasicStmt {
+    public:
+      ObProcedureDeclareStmt() :
+              ObBasicStmt(T_PROCEDURE_DECLARE) {
+      }
+      virtual ~ObProcedureDeclareStmt() {
+      }
 
 
-}
+      int add_proc_var(ObVariableDef &proc_var);/*添加一个变量*/
+
+      ObArray<ObVariableDef>& get_variables();/*返回所有变量*/
+
+      ObVariableDef& get_variable(int64_t index);/*返回变量*/
+
+      int64_t get_variable_size();/*返回变量列表大小*/
+
+      virtual void print(FILE* fp, int32_t level, int32_t index);
+    private:
+      ObArray<ObVariableDef> variables_;/*declare定义变量列表*/
+    };
+  }
 }
 
 #endif

@@ -9,38 +9,35 @@ namespace oceanbase
 	namespace sql
 	{
 		class ObPhysicalPlan;
-		class ObProcedureDeclare : public ObSingleChildPhyOperator
-		{
-		public:
-			ObProcedureDeclare();
-			virtual ~ObProcedureDeclare();
-			virtual void reset();
-			virtual void reuse();
-			virtual int open();
-			virtual int close();
-			virtual ObPhyOperatorType get_type() const
-			{
-				return PHY_PROCEDURE_DECLARE;
-			}
-			virtual int64_t to_string(char* buf, const int64_t buf_len) const;
-			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
-			virtual int get_next_row(const common::ObRow *&row);
+//		class ObProcedureDeclare : public ObSingleChildPhyOperator
+//		{
+//		public:
+//			ObProcedureDeclare();
+//			virtual ~ObProcedureDeclare();
+//			virtual void reset();
+//			virtual void reuse();
+//			virtual int open();
+//			virtual int close();
+//			virtual ObPhyOperatorType get_type() const
+//			{
+//				return PHY_PROCEDURE_DECLARE;
+//			}
+//			virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+//			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+//			virtual int get_next_row(const common::ObRow *&row);
 
-			int add_proc_var(ObVariableDef &proc_var);/*添加一个变量*/
+//			int add_proc_var(ObVariableDef &proc_var);/*添加一个变量*/
 
-		private:
-			//disallow copy
-			ObProcedureDeclare(const ObProcedureDeclare &other);
-			ObProcedureDeclare& operator=(const ObProcedureDeclare &other);
-			//function members
+//		private:
+//			//disallow copy
+//			ObProcedureDeclare(const ObProcedureDeclare &other);
+//			ObProcedureDeclare& operator=(const ObProcedureDeclare &other);
+//			//function members
 
-		private:
-			ObArray<ObVariableDef> variables_;/*declare定义变量列表*/
+//		private:
+//			ObArray<ObVariableDef> variables_;/*declare定义变量列表*/
 
-		};
-
-
-
+//		};
 	}
 }
 

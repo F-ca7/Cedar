@@ -13,7 +13,7 @@ ObProcedureAssgin::~ObProcedureAssgin()
 {
 }
 
-int ObProcedureAssgin::add_var_val(ObVariableSetVal &var_val)
+int ObProcedureAssgin::add_var_val(ObVarAssignVal &var_val)
 {
 	var_val_list_.push_back(var_val);
 	return OB_SUCCESS;
@@ -75,10 +75,10 @@ int ObProcedureAssgin::open()
 		ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
 		for (int64_t i = 0; i < var_val_list_.count(); i++)
 		{
-			 ObVariableSetVal var_val=var_val_list_.at(i);
+       ObVarAssignVal var_val=var_val_list_.at(i);
 			 common::ObRow input_row;
 			 const ObObj *val = NULL;
-			 if((ret=var_val.var_value_.calc(input_row, val))!=OB_SUCCESS)
+       if((ret=var_val.var_value_->calc(input_row, val))!=OB_SUCCESS)
 			 {
 				 TBSYS_LOG(WARN, "zz:ObProcedureAssgin expr compute failed");
 			 }

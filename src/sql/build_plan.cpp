@@ -2562,10 +2562,10 @@ int resolve_procedure_select_into_stmt(
 }
 
 int resolve_procedure_declare_stmt(
-    ResultPlan* result_plan,
-    ParseNode* node,
-    uint64_t& query_id,
-	ObProcedureStmt* ps_stmt)
+                ResultPlan* result_plan,
+                ParseNode* node,
+                uint64_t& query_id,
+                ObProcedureStmt* ps_stmt)
 {
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_PROCEDURE_DECLARE && node->num_child_ == 3);
@@ -2573,127 +2573,114 @@ int resolve_procedure_declare_stmt(
   ObProcedureDeclareStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
-	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
   }
   else
   {
     if (ret == OB_SUCCESS)
     {
-    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-    	/*解析declare语句参数*/
-		if(node->children_[0]!=NULL)
-		{
-			ParseNode* var_node=node->children_[0];
-			OB_ASSERT(var_node->type_==T_ARGUMENT_LIST);
+      ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+      /*解析declare语句参数*/
+      if(node->children_[0]!=NULL)
+      {
+        ParseNode* var_node=node->children_[0];
+        OB_ASSERT(var_node->type_==T_ARGUMENT_LIST);
 
-			for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
-			{
-				ObVariableDef* var=(ObVariableDef*)malloc(sizeof(ObVariableDef));
-				/*参数数据类型*/
-				switch(node->children_[1]->type_)//declare 的类型，这里后面可以改进
-				{
-				case T_TYPE_INTEGER:
-					TBSYS_LOG(INFO, "variable %d data type is ObIntType",i);
-					var->variable_type_=ObIntType;
-					break;
-				case T_TYPE_FLOAT:
-					TBSYS_LOG(INFO, "variable %d data type is ObFloatType",i);
-					var->variable_type_=ObFloatType;
-					break;
-				case T_TYPE_DOUBLE:
-					TBSYS_LOG(INFO, "variable %d data type is ObDoubleType",i);
-					var->variable_type_=ObDoubleType;
-					break;
-				case T_TYPE_DECIMAL:
-					TBSYS_LOG(INFO, "variable %d data type is ObDecimalType",i);
-					var->variable_type_=ObDecimalType;
-					break;
-				case T_TYPE_BOOLEAN:
-					TBSYS_LOG(INFO, "variable %d data type is ObBoolType",i);
-					var->variable_type_=ObBoolType;
-					break;
-				case T_TYPE_DATETIME:
-					TBSYS_LOG(INFO, "variable %d data type is ObDateTimeType",i);
-					var->variable_type_=ObDateTimeType;
-					break;
-				case T_TYPE_VARCHAR:
-					TBSYS_LOG(INFO, "variable %d data type is ObVarcharType",i);
-					var->variable_type_=ObVarcharType;
-					break;
-				default:
-					TBSYS_LOG(WARN, "variable %d data type is ObNullType",i);
-					var->variable_type_=ObNullType;
-					break;
-				}
+        for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
+        {
+          ObVariableDef var;
+          /*参数数据类型*/
+          switch(node->children_[1]->type_)//declare 的类型，这里后面可以改进
+          {
+          case T_TYPE_INTEGER:
+            var.variable_type_=ObIntType;
+            break;
+          case T_TYPE_FLOAT:
+            var.variable_type_=ObFloatType;
+            break;
+          case T_TYPE_DOUBLE:
+            var.variable_type_=ObDoubleType;
+            break;
+          case T_TYPE_DECIMAL:
+            var.variable_type_=ObDecimalType;
+            break;
+          case T_TYPE_BOOLEAN:
+            var.variable_type_=ObBoolType;
+            break;
+          case T_TYPE_DATETIME:
+            var.variable_type_=ObDateTimeType;
+            break;
+          case T_TYPE_VARCHAR:
+            var.variable_type_=ObVarcharType;
+            break;
+          default:
+            TBSYS_LOG(WARN, "variable %d data type is ObNullType",i);
+            var.variable_type_=ObNullType;
+            break;
+          }
 
-				if(node->children_[2]!=NULL)//默认值节点
-				{
-					var->default_value_=new ObObj();
-					//设置类型
-					var->default_value_->set_type(var->variable_type_);
-					//设置默认值
-					if((ret = resolve_const_value(result_plan, node->children_[2], *var->default_value_))!=OB_SUCCESS)
-					{
-						TBSYS_LOG(WARN, "resolve_procedure_declare_stmt resolve_const_value error");
-					}
-					else
-					{
-						var->is_default_=true;
+          if(node->children_[2]!=NULL)//默认值节点
+          {
+            //设置类型
+            var.default_value_.set_type(var.variable_type_);
+            //设置默认值
+            if((ret = resolve_const_value(result_plan, node->children_[2], var.default_value_))!=OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "resolve_procedure_declare_stmt resolve_const_value error");
+            }
+            else
+            {
+              var.is_default_=true;
 
-						//node->children_[2]->str_value_;1233123123123.1111121312
-						if(node->children_[1]->type_==T_TYPE_DECIMAL)
-						{
-							int64_t leftint=node->children_[1]->children_[0]->value_;
+              //node->children_[2]->str_value_;1233123123123.1111121312
+              if(node->children_[1]->type_==T_TYPE_DECIMAL)
+              {
+                int64_t leftint=node->children_[1]->children_[0]->value_;
 
-							int64_t rightint=node->children_[1]->children_[1]->value_;
+                int64_t rightint=node->children_[1]->children_[1]->value_;
 
-							int64_t preint=rightint-leftint;
+                int64_t preint=rightint-leftint;
 
-							char *p=(char*)node->children_[2]->str_value_;
-							int32_t index=0;
+                char *p=(char*)node->children_[2]->str_value_;
+                int32_t index=0;
 
-							for(;*p!='.';)
-							{
-								p++;
-								index++;
-							}
-							if(preint<index)
-							{
-								ret=OB_ERR_ILLEGAL_VALUE;
-								TBSYS_LOG(USER_ERROR, "decimal range error");
-							}
-							TBSYS_LOG(INFO, "preint=%ld,leftint=%ld,rightint=%ld,index=%d",preint,leftint,rightint,index);
-						}
-
-
-
-					}
-
-				}
-				else
-				{
-					var->is_default_=false;
-					TBSYS_LOG(INFO, "resolve_procedure_declare_stmt default_expr_id_ null ");
-				}
-				if(ret==OB_SUCCESS)
-				{
-					var->variable_name_=new ObString();
-					if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->str_value_), *var->variable_name_))!=OB_SUCCESS)
-					{
-						PARSER_LOG("Can not malloc space for variable name");
-					}
-					else if((ret=stmt->add_proc_var(*var))!=OB_SUCCESS)
-					{
-						TBSYS_LOG(WARN, "add_proc_param have ERROR!");
-					}
-					else if((ret=ps_stmt->add_declare_var(*var->variable_name_))!=OB_SUCCESS)//把declare的变量加入
-					{
-						TBSYS_LOG(WARN, "add_declare_var have ERROR!");
-					}
-				}
-			}
-
-		}
+                for(;*p!='.';)
+                {
+                  p++;
+                  index++;
+                }
+                if(preint<index)
+                {
+                  ret=OB_ERR_ILLEGAL_VALUE;
+                  TBSYS_LOG(USER_ERROR, "decimal range error");
+                }
+                TBSYS_LOG(TRACE, "preint=%ld,leftint=%ld,rightint=%ld,index=%d",preint,leftint,rightint,index);
+              }
+            }
+          }
+          else
+          {
+            var.is_default_=false;
+            TBSYS_LOG(TRACE, "resolve_procedure_declare_stmt default_expr_id_ null ");
+          }
+          if(ret==OB_SUCCESS)
+          {
+            if(OB_SUCCESS != (ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->str_value_),
+                                                  var.variable_name_)))
+            {
+              PARSER_LOG("Can not malloc space for variable name");
+            }
+            else if((ret=stmt->add_proc_var(var))!=OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "add_proc_param have ERROR!");
+            }
+            else if((ret=ps_stmt->add_declare_var(var.variable_name_))!=OB_SUCCESS)//把declare的变量加入
+            {
+              TBSYS_LOG(WARN, "add_declare_var have ERROR!");
+            }
+          }
+        }
+      }
     }
   }
   return ret;
@@ -2701,10 +2688,10 @@ int resolve_procedure_declare_stmt(
 
 
 int resolve_procedure_assign_stmt(
-    ResultPlan* result_plan,
-    ParseNode* node,
-    uint64_t& query_id,
-    ObProcedureStmt *ps_stmt)
+                ResultPlan* result_plan,
+                ParseNode* node,
+                uint64_t& query_id,
+                ObProcedureStmt *ps_stmt)
 {
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_PROCEDURE_ASSGIN && node->num_child_ == 1);
@@ -2713,87 +2700,91 @@ int resolve_procedure_assign_stmt(
   TBSYS_LOG(INFO, "enter resolve_procedure_assign_stmt");
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
-	  TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
   }
-  else
+  else if( node->children_[0] != NULL)
   {
-    if (ret == OB_SUCCESS)
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    /*解析assign语句参数*/
+    ParseNode* var_node=node->children_[0];
+    OB_ASSERT(var_node->type_==T_VAR_VAL_LIST);
+    //genereate logical plan for each assign
+    ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
+
+    int32_t expr_itr = logic_plan->get_raw_expr_count();
+    for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
     {
-    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-    	/*解析assign语句参数*/
-		if(node->children_[0]!=NULL)
-		{
-			ParseNode* var_node=node->children_[0];
-			OB_ASSERT(var_node->type_==T_VAR_VAL_LIST);
-			for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
-			{
-				ObVariableSetVal var_val;
-        uint64_t expr_id;
-        //analyze the right expr
-				if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
-				{
-          TBSYS_LOG(WARN, "resolve_procedure_assign_stmt resolve_independ_expr error");
-				}
-				else
+      ObVarAssignVal var_val;
+      uint64_t expr_id;
+      //analyze the right expr
+      if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],
+                                       expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "resolve assignment expression error");
+      }
+      else
+      {
+        //analyze the left variable
+        var_val.var_expr_id_=expr_id;
+        if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_),
+                                var_val.variable_name_))!=OB_SUCCESS)
         {
-          //analyze the left variable
-					var_val.var_expr_id_=expr_id;
-					if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_), var_val.variable_name_))!=OB_SUCCESS)
-					{
-						PARSER_LOG("Can not malloc space for variable name");
-					}
-          else if((ret=stmt->add_var_val(var_val))!=OB_SUCCESS) //add the assign into stmt
-					{
-						TBSYS_LOG(WARN, "add_proc_param have ERROR!");
-					}
+          PARSER_LOG("Can not malloc space for variable name");
+        }
+        else
+        {
+          //get the variable set used in the expression
+          int32_t expr_new_itr = logic_plan->get_raw_expr_count();
+          for(;expr_itr < expr_new_itr; ++expr_itr)
+          {
+            ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
+            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
+            {
+              ObString var_name;
+              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
+              var_val.add_rs_var(var_name);
+              TBSYS_LOG(INFO, "Find Variable: %.*s", var_name.length(), var_name.ptr());
+            }
+          }
+        }
+        stmt->add_var_val(var_val);
+      }
 
-          int find=OB_ERROR;
-          //does the variable existence check make sense here?
-          //the variable used in the expr is not checked
-					for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
-					{
-						ObString declare_var=ps_stmt->get_declare_var(j);
-						if(var_val.variable_name_.compare(declare_var)==0)//找到相等的
-						{
-							find=OB_SUCCESS;
-							break;
-						}
-						else
-						{
-							TBSYS_LOG(ERROR, "Declare scope Param1 %.*s  Param2 %.*s",var_val.variable_name_.length(),var_val.variable_name_.ptr(),declare_var.length(),declare_var.ptr());
-						}
-					}
+      int find=OB_ERROR;
+      //does the variable existence check make sense here?
+      //the variable used in the expr is not checked
+      for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
+      {
+        ObString declare_var=ps_stmt->get_declare_var(j);
+        if(var_val.variable_name_.compare(declare_var)==0)//找到相等的
+        {
+          find=OB_SUCCESS;
+          break;
+        }
+      }
 
-					for (int64_t j = 0;  j < ps_stmt->get_param_size(); j++)
-					{
-						ObParamDef* def=ps_stmt->get_param(j);
-						ObString param_var=*def->param_name_;
-						if(var_val.variable_name_.compare(param_var)==0)
-						{
-							find=OB_SUCCESS;
-							break;
-						}
-						else
-						{
-							TBSYS_LOG(ERROR, "Paramter scope Param1 %.*s  Param2 %.*s",var_val.variable_name_.length(),var_val.variable_name_.ptr(),param_var.length(),param_var.ptr());
-						}
-					}
+      for (int64_t j = 0;  j < ps_stmt->get_param_size(); j++)
+      {
+        ObParamDef* def=ps_stmt->get_param(j);
+        ObString param_var=*def->param_name_;
+        if(var_val.variable_name_.compare(param_var)==0)
+        {
+          find=OB_SUCCESS;
+          break;
+        }
+      }
 
-					if(find==OB_ERROR)
-					{
-						ret=-5044;
-						//TBSYS_LOG(USER_ERROR,"params size:%ld",ps_stmt->get_param_size());
-						TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.variable_name_.length(),var_val.variable_name_.ptr());
-						break;
-					}
-				}
-			}
-
-		}
+      if(find==OB_ERROR) //error means the variable is not defined in variables or paramters
+      {
+        ret=-5044;
+        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.variable_name_.length(),var_val.variable_name_.ptr());
+        break;
+      }
     }
   }
   return ret;
 }
+
 int resolve_procedure_case_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -4180,7 +4171,7 @@ int resolve_procedure_stmt(
 int resolve_procedure_proc_block_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
-                ObProcedureStmt *stmt,
+                ObProcedureStmt *stmt
                 )
 {
   ParseNode *vector_node = node;

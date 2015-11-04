@@ -78,6 +78,18 @@ namespace oceanbase
         return ret;
       }
 
+      //add zt 20151102:b
+      int32_t get_raw_expr_count() const
+      {
+        return raw_exprs_store_.size();
+      }
+
+      const ObRawExpr* get_raw_expr(int32_t idx) const
+      {
+        return raw_exprs_store_.at(idx);
+      }
+      //add zt 20151102:e
+
       int fill_result_set(ObResultSet& result_set, ObSQLSessionInfo *session_info, common::ObIAllocator &alloc);
 
       uint64_t generate_table_id()
