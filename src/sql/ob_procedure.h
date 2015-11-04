@@ -92,11 +92,13 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       int set_rdbase_op(ObPhyOperator *op);
+      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
       ObPhyOperator *op_;
       VariableSet rs_; //the row key variable
       VariableSet ws_; //does not contain any variable
+      uint64_t table_id_;
     };
 
     class SpRwDeltaInst : public SpInst
@@ -109,11 +111,13 @@ namespace oceanbase
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
       int set_rwdelta_op(ObPhyOperator *op);
+      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
       ObPhyOperator *op_;
       VariableSet rs_;
       VariableSet ws_;
+      uint64_t table_id_;
     };
 
 //    class SpExprsInst : public SpInst

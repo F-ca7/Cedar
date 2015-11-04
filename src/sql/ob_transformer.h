@@ -125,6 +125,13 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure *proc_op
                   );
+  int gen_physical_procedure_update(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  ObProcedure *proc_op);
+
         int gen_physical_procedure_while(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,

@@ -19,7 +19,16 @@ namespace oceanbase {
 
       int addVariable(ObString &var_name)
       {
-        var_set_.push_back(var_name);
+        bool flag = false;
+        for(int64_t i = 0; i < var_set_.count(); ++i)
+        {
+          if( var_name.compare(var_set_.at(i)) == 0 )
+          {
+            flag = true;
+            break;
+          }
+        }
+        if( !flag ) var_set_.push_back(var_name);
         return OB_SUCCESS;
       }
 

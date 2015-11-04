@@ -67,18 +67,31 @@ int SpRdBaseInst::exec()
   return ret;
 }
 
+const VariableSet& SpRwDeltaInst::get_read_variable_set() const
+{
+  return rs_;
+}
 
-//int SpExprsInst::split(SpBlockInst &block_inst)
-//{
-//  int ret = OB_SUCCESS;
-//  for(int64_t i = 0; i < var_val_list_.count(); ++i)
-//  {
-//    ObVariableSetVal &var_val = var_val_list_.at(i);
-//    SpExprInst expr_inst(var_val);
-//    block_inst.add_inst(expr_inst);
-//  }
-//  return ret;
-//}
+const VariableSet& SpRwDeltaInst::get_write_variable_set() const
+{
+  OB_ASSERT(ws_.var_set_.count() == 0);
+  return ws_;
+}
+
+int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
+{
+  int ret = OB_SUCCESS;
+  OB_ASSERT(op->get_type() == PHY_UPS_EXECUTOR);
+  op_ = op;
+  return ret;
+}
+
+int SpRwDeltaInst::exec()
+{
+  int ret = OB_SUCCESS;
+
+  return ret;
+}
 
 
 ObProcedure::ObProcedure()
@@ -412,8 +425,30 @@ int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
 int64_t SpRdBaseInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  UNUSED(buf);
-  UNUSED(buf_len);
+  databuff_printf(buf, buf_len, pos, "type [B], ws [], rs [");
+  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  for(int64_t i = 0; i < rs.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
+  }
+  if( rs.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+  databuff_printf(buf, buf_len, pos, ", tid[%ld]\n", table_id_);
+  return pos;
+}
+
+int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [D], ws [], rs [");
+  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  for(int64_t i = 0; i < rs.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
+  }
+  if( rs.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+  databuff_printf(buf, buf_len, pos, ", tid[%ld]\n", table_id_);
   return pos;
 }
 
@@ -433,8 +468,10 @@ int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
     case SP_A_INST:
       break;
     case SP_D_INST:
+      pos += inst_d_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
       break;
     case SP_B_INST:
+      pos += inst_b_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
       break;
     case SP_C_INST:
       break;

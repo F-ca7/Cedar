@@ -697,6 +697,12 @@ int ObTransformer::gen_physical_procedure(
         case ObBasicStmt::T_INSERT:
           ret=gen_physical_procedure_insert(logical_plan, physical_plan, err_stat, stmt_id, result_op); //result_op should be added into the procedure
           break;
+        case ObBasicStmt::T_UPDATE:
+          ret=gen_physical_procedure_update(logical_plan, physical_plan, err_stat, stmt_id, result_op);
+          break;
+        case ObBasicStmt::T_SELECT:
+//          ret=gen_physical_procedure_select(logical_plan, physical_plan, err_stat, stmt_id, result_op);
+          break;
         default:
           if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
           {
@@ -708,6 +714,10 @@ int ObTransformer::gen_physical_procedure(
             TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
           }
           break;
+        }
+        if( OB_SUCCESS != ret )
+        {
+          TBSYS_LOG(WARN, "generate insturction failed, id %ld", i);
         }
       }
       TBSYS_LOG(INFO, "Procedure Compile test: %s", to_cstring(*result_op));
@@ -1651,6 +1661,16 @@ int ObTransformer::gen_physical_procedure_assign(
   return ret;
 }
 
+/**
+  wrap the insert physical plan into the stored procedure instruction
+ * @brief ObTransformer::gen_physical_procedure_insert
+ * @param logical_plan
+ * @param physical_plan
+ * @param err_stat
+ * @param query_id
+ * @param proc_op
+ * @return
+ */
 int ObTransformer::gen_physical_procedure_insert(
                 ObLogicalPlan *logical_plan,
                 ObPhysicalPlan *physical_plan,
@@ -1666,51 +1686,179 @@ int ObTransformer::gen_physical_procedure_insert(
   const ObRowkeyInfo *rowkey_info = NULL;
   bool iskey;
   uint64_t column_id = OB_INVALID_ID, tid = OB_INVALID_ID;
-  ret = gen_physical_insert_new(logical_plan, physical_plan, err_stat, query_id, &idx);
+  if( OB_SUCCESS != (ret = gen_physical_insert_new(logical_plan, physical_plan, err_stat, query_id, &idx)) )
+  {}
+  else
+  {
+    SpRdBaseInst rd_base_inst;
+    SpRwDeltaInst rw_delta_inst;
+
+    ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
+
+    //set the read and write variables for each instruction
+    if( OB_SUCCESS != (ret = cons_row_desc(insert_stmt->get_table_id(), insert_stmt,
+                  row_desc_ext, row_desc, rowkey_info, row_desc_map, err_stat)))
+    {
+      ret = OB_ERROR;
+      TRANS_LOG("Fail to get table schema for table[%ld]", insert_stmt->get_table_id());
+    }
+    else
+    {
+      int64_t num = insert_stmt->get_value_row_size();
+      for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
+      {
+        const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
+        OB_ASSERT(value_row.count() == row_desc_map.count());
+        for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+        {
+          ObSqlRawExpr *value_expr = logical_plan->get_expr(value_row.at(row_desc_map.at(j)));
+          if( OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)) ) {}
+          else
+          {
+            iskey = false;
+            if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
+
+            OB_ASSERT(NULL != value_expr);
+            ObArray<const ObRawExpr *> raw_exprs;
+            value_expr->get_raw_var(raw_exprs);
+            for(int64_t k = 0; k < raw_exprs.count(); ++k)
+            {
+              ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
+              if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+              {
+                ObString var_name;
+                ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
+                if( iskey ) rd_base_inst.add_read_var(var_name); //rowkey would be used in read baseline
+                rw_delta_inst.add_read_var(var_name);  //other values are used in update delta
+              }
+            }
+          }
+        }// end for
+      }
+    }
+
+    //set the physical operator for each instruction
+    OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
+
+    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+    OB_ASSERT(inner_plan->get_query_size() == 3);
+    for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
+    {
+      ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
+      const ObPhyOperatorType type = aux_query->get_type();
+      if( PHY_VALUES == type )
+      {
+        rd_base_inst.set_rdbase_op(aux_query);
+        break;
+      }
+    }
+    rw_delta_inst.set_rwdelta_op(ups_exec);
+
+    rd_base_inst.set_tid(insert_stmt->get_table_id());
+    rw_delta_inst.set_tid(insert_stmt->get_table_id());
+
+    //set the relation between instruction and proc_op
+    rd_base_inst.set_owner_procedure(proc_op);
+    rw_delta_inst.set_owner_procedure(proc_op);
+    proc_op->add_inst_b(rd_base_inst); //rd_base_inst should be added before rw_delta_inst
+    proc_op->add_inst_d(rw_delta_inst);
+  }
+  return ret;
+}
+
+
+int ObTransformer::gen_physical_procedure_update(
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat &err_stat,
+                const uint64_t &query_id,
+                ObProcedure *proc_op)
+{
+  int ret = OB_SUCCESS;
+  int32_t idx;
+  ObUpdateStmt* update_stmt = (ObUpdateStmt *)logical_plan->get_query(query_id);
+  //filter expr, set expr
+  //we do not consider the when expr here
 
   SpRdBaseInst rd_base_inst;
   SpRwDeltaInst rw_delta_inst;
 
-  ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
-
-  //set the read and write variables for each instruction
-  cons_row_desc(insert_stmt->get_table_id(), insert_stmt,
-                row_desc_ext, row_desc, rowkey_info, row_desc_map, err_stat);
-
-  int64_t num = insert_stmt->get_value_row_size();
-  for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
+  if(OB_SUCCESS != (ret = gen_physical_update_new(logical_plan, physical_plan, err_stat, query_id, &idx)))
+  {}
+  else
   {
-    const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
-    OB_ASSERT(value_row.count() == row_desc_map.count());
-    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+    //set the read/write variable set
+
+    //get variables in the set expr
+    ObSqlRawExpr *raw_expr = NULL;
+    uint64_t column_id = OB_INVALID_ID;
+    uint64_t expr_id = OB_INVALID_ID;
+
+    ObArray<ObString> var_exprs;
+    for (int64_t column_idx = 0; column_idx < update_stmt->get_update_column_count(); column_idx++)
     {
-      ObSqlRawExpr *value_expr = logical_plan->get_expr(value_row.at(row_desc_map.at(j)));
-      ret = row_desc.get_tid_cid(j, tid, column_id);
-
-      iskey = false;
-      if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
-
-      OB_ASSERT(NULL != value_expr);
-      ObArray<const ObRawExpr *> raw_exprs;
-      value_expr->get_raw_var(raw_exprs);
-      for(int64_t k = 0; k < raw_exprs.count(); ++k)
+      // valid check
+      // 1. rowkey can't be updated
+      // 2. joined column can't be updated
+      if (OB_SUCCESS != (ret = update_stmt->get_update_column_id(column_idx, column_id)))
       {
-        ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
-        if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-        {
-          ObString var_name;
-          ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
-          if( iskey ) rd_base_inst.add_read_var(var_name); //rowkey would be used in read baseline
-          rw_delta_inst.add_read_var(var_name);  //other values are used in update delta
-        }
+        TRANS_LOG("fail to get update column id for table %lu column_idx=%lu", table_id, column_idx);
+        break;
       }
-    }// end for
+      // get expression
+      else if (OB_SUCCESS != (ret = update_stmt->get_update_expr_id(column_idx, expr_id)))
+      {
+        TBSYS_LOG(WARN, "fail to get update expr for table %lu column %lu. column_idx=%ld", table_id, column_id, column_idx);
+        break;
+      }
+      else if (NULL == (raw_expr = logical_plan->get_expr(expr_id)))
+      {
+        TBSYS_LOG(WARN, "fail to get expr from logical plan for table %lu column %lu. column_idx=%ld", table_id, column_id, column_idx);
+        ret = OB_ERR_UNEXPECTED;
+        break;
+      }
+      else if (OB_SUCCESS != (ret = raw_expr->get_raw_var(var_exprs)))
+      {
+        TBSYS_LOG(WARN, "fail to fill sql expression. ret=%d", ret);
+        break;
+      }
+    } // end for
+    for(int64_t i = 0; i < var_exprs.count(); ++i)
+    {
+      rw_delta_inst.add_read_var(var_exprs.at(i));
+    }
+
+    //get variables in the where expr
+    //varialbes used by filter, tablerpcscan, or incscan(exprvalues)
+
+    //set the physical operator for each instruction
+    OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
+
+    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+    OB_ASSERT(inner_plan->get_query_size() == 3);
+    for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
+    {
+      ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
+      const ObPhyOperatorType type = aux_query->get_type();
+      if( PHY_VALUES == type )
+      {
+        rd_base_inst.set_rdbase_op(aux_query);
+        break;
+      }
+    }
+    rw_delta_inst.set_rwdelta_op(ups_exec);
+
+    rd_base_inst.set_tid(upd_stmt->get_table_id());
+    rw_delta_inst.set_tid(upd_stmt->get_table_id());
+
+    //set the relation between instruction and proc_op
+    rd_base_inst.set_owner_procedure(proc_op);
+    rw_delta_inst.set_owner_procedure(proc_op);
+    proc_op->add_inst_b(rd_base_inst); //rd_base_inst should be added before rw_delta_inst
+    proc_op->add_inst_d(rw_delta_inst);
   }
-
-  //set the physical operator for each instruction
-
-  proc_op->add_inst_b(rd_base_inst);
-  proc_op->add_inst_d(rw_delta_inst);
   return ret;
 }
 
@@ -8006,7 +8154,7 @@ int ObTransformer::gen_phy_table_for_update(
   if (ret == OB_SUCCESS)
   {
     if (has_other_cond)
-    {
+    {  //when there are filter(not about the row key), filter_op would exist
       if (OB_SUCCESS != (ret = filter_op->set_child(0, *fuse_op)))
       {
         TRANS_LOG("Failed to set child, err=%d", ret);
@@ -8018,7 +8166,7 @@ int ObTransformer::gen_phy_table_for_update(
     }
     else
     {
-      table_op = fuse_op;
+      table_op = fuse_op; //filter_op is usually exist in the table_rpc_scan op
     }
   }
   return ret;
