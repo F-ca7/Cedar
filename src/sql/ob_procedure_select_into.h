@@ -37,9 +37,6 @@ namespace oceanbase
 			ObArray<ObString> variables_;/*select into定义变量列表*/
 
 		};
-
-
-
 	}
 }
 

@@ -131,6 +131,12 @@ namespace oceanbase
                   ErrStat &err_stat,
                   const uint64_t &query_id,
                   ObProcedure *proc_op);
+  int gen_physical_procedure_select_into(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op);
 
         int gen_physical_procedure_while(
 			ObLogicalPlan *logical_plan,
@@ -145,12 +151,6 @@ namespace oceanbase
 			const uint64_t& query_id,
 			int32_t* index);
         int gen_physical_procedure_casewhen(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_select_into(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
@@ -511,13 +511,23 @@ namespace oceanbase
             const ObRowkeyInfo &rowkey_info,
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
-            ObPhyOperator*& table_op);
+            ObPhyOperator*& table_op,
+            //add zt 20151105 :b
+            SpRdBaseInst *rd_base_inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt 20151105 :e
+            );
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
-            int32_t* index);
+            int32_t* index,
+            //add zt : 20151105 b
+            SpRdBaseInst *inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt : 20151105 e
+            );
         int cons_row_desc(const uint64_t table_id,
             const ObStmt *stmt,
             ObRowDescExt &row_desc_ext,
@@ -554,7 +564,12 @@ namespace oceanbase
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
-            int32_t* index);
+            int32_t* index,
+            //add zt 20151105:b
+            SpRdBaseInst *rd_base_inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt 20151105:e
+            );
         int try_push_down_group_agg(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

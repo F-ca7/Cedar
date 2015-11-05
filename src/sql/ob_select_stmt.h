@@ -256,6 +256,9 @@ namespace oceanbase
       int copy_select_items(ObSelectStmt* select_stmt);
       void print(FILE* fp, int32_t level, int32_t index = 0);
 
+      int add_expr_variable(ObString &var_name) { variable_list_.push_back(var_name); return OB_SUCCESS;}
+      const ObVector<ObString>& get_expr_variables() const { return variable_list_; }
+
     private:
       /* These fields are only used by normal select */
       bool    is_distinct_;
@@ -283,6 +286,10 @@ namespace oceanbase
       bool      for_update_;
 
       uint64_t    gen_joined_tid_;
+
+      //add zt 20151105:b
+      common::ObVector<ObString> variable_list_;
+      //add zt 20151105:e
     };
   }
 }

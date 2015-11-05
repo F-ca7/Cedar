@@ -52,6 +52,24 @@ const VariableSet& SpRdBaseInst::get_write_variable_set() const
   return ws_;
 }
 
+
+void SpRdBaseInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
+{
+  for(int64_t i = 0; i < var_list.count(); ++i)
+  {
+    ObItemType raw_type = var_list.at(i)->get_expr_type();
+    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+    {
+      ObString var_name;
+      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+      rs_.addVariable(var_name);
+//      if( iskey ) rd_base_inst.add_read_var(var_name); //rowkey would be used in read baseline
+//      rw_delta_inst.add_read_var(var_name);  //other values are used in update delta
+    }
+//    add_read_var(var_list.at(i));
+  }
+}
+
 int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op)
 {
   int ret = OB_SUCCESS;
@@ -76,6 +94,23 @@ const VariableSet& SpRwDeltaInst::get_write_variable_set() const
 {
   OB_ASSERT(ws_.var_set_.count() == 0);
   return ws_;
+}
+
+void SpRwDeltaInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
+{
+  for(int64_t i = 0; i < var_list.count(); ++i)
+  {
+    ObItemType raw_type = var_list.at(i)->get_expr_type();
+    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+    {
+      ObString var_name;
+      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+      rs_.addVariable(var_name);
+//      if( iskey ) rd_base_inst.add_read_var(var_name); //rowkey would be used in read baseline
+//      rw_delta_inst.add_read_var(var_name);  //other values are used in update delta
+    }
+//    add_read_var(var_list.at(i));
+  }
 }
 
 int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
@@ -304,8 +339,10 @@ int ObProcedure::open()
       case SP_A_INST:
         break;
       case SP_D_INST:
+        inst_d_.at(ptr.idx_).exec();
         break;
       case SP_B_INST:
+        inst_d_.at(ptr.idx_).exec();
         break;
       case SP_C_INST:
         break;
@@ -346,8 +383,10 @@ int ObProcedure::debug_status() const
   case SP_A_INST:
     break;
   case SP_D_INST:
+    inst = &inst_d_.at(ptr.idx_);
     break;
   case SP_B_INST:
+    inst = &inst_b_.at(ptr.idx_);
     break;
   case SP_C_INST:
     break;

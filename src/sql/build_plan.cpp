@@ -2507,9 +2507,9 @@ int resolve_kill_stmt(
 //add by zhujun:b
 //code_coverage_zhujun
 int resolve_procedure_select_into_stmt(
-    ResultPlan* result_plan,
-    ParseNode* node,
-    uint64_t& query_id)
+                ResultPlan* result_plan,
+                ParseNode* node,
+                uint64_t& query_id)
 {
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_SELECT_INTO && node->num_child_ == 2);
@@ -2517,45 +2517,62 @@ int resolve_procedure_select_into_stmt(
   ObProcedureSelectIntoStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
-	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
   }
   else
   {
     if (ret == OB_SUCCESS)
     {
-    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-    	/*解析select into语句中的参数列表*/
-		if(node->children_[0]!=NULL)
-		{
-			ParseNode* arguments=node->children_[0];
-			for (int32_t i = 0;i < arguments->num_child_; i++)
-			{
-				ObString name;
-				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
-				{
-					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
-				}
-				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
-				{
-					PARSER_LOG("Add Using variable failed");
-				}
-			}
-		}
-		//解析select into语句中的select语句
-		if(node->children_[1]!=NULL)
-		{
-			uint64_t sub_query_id = OB_INVALID_ID;
+      ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+      /*解析select into语句中的参数列表*/
+      if(node->children_[0]!=NULL)
+      {
+        ParseNode* arguments=node->children_[0];
+        for (int32_t i = 0;i < arguments->num_child_; i++)
+        {
+          ObString name;
+          if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+          {
+            PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+          }
+          else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+          {
+            PARSER_LOG("Add Using variable failed");
+          }
+        }
+      }
+      //解析select into语句中的select语句
+      if(node->children_[1]!=NULL)
+      {
+        uint64_t sub_query_id = OB_INVALID_ID;
 
-			if((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "resolve_select_stmt error");
-			}
-			else if((ret=stmt->set_declare_id(sub_query_id))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "set_declare_id error");
-			}
-
-		}
+        ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
+        int32_t expr_itr = logic_plan->get_raw_expr_count();
+        if((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "resolve_select_stmt error");
+        }
+        else if((ret=stmt->set_declare_id(sub_query_id))!=OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "set_declare_id error");
+        }
+        else
+        {
+          int32_t expr_new_itr = logic_plan->get_raw_expr_count();
+          ObSelectStmt* sel_stmt = (ObSelectStmt*) logic_plan->get_query(sub_query_id);
+          for(; expr_itr < expr_new_itr; ++expr_itr)
+          {
+            ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
+            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
+            {
+              ObString var_name;
+              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
+              sel_stmt->add_expr_variable(var_name);
+              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
+            }
+          }
+        }
+      }
     }
   }
   return ret;
@@ -2743,7 +2760,7 @@ int resolve_procedure_assign_stmt(
               ObString var_name;
               ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
               var_val.add_rs_var(var_name);
-              TBSYS_LOG(INFO, "Find Variable: %.*s", var_name.length(), var_name.ptr());
+              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
             }
           }
         }
