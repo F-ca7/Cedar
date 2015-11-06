@@ -55,8 +55,9 @@ namespace oceanbase
     class SpInst
     {
     public:
+//      SpInst() : type_(SP_UNKOWN), proc_(NULL) {}
       SpInst(SpInstType type) : type_(type), proc_(NULL) {}
-      virtual ~SpInst() {}
+//      virtual ~SpInst() {}
       virtual int exec() = 0;  //exec the inst at once
 //      virtual int split(SpBlockInst &block_inst) = 0; //split the inst into small ones
       virtual const VariableSet &get_read_variable_set() const = 0;
@@ -66,7 +67,7 @@ namespace oceanbase
 
       void set_owner_procedure(ObProcedure *proc) { proc_ = proc;}
 
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
     protected:
       SpInstType type_;
       ObProcedure *proc_; //the procedure thats owns this instruction
@@ -76,7 +77,7 @@ namespace oceanbase
     {
     public:
       SpExprInst() : SpInst(SP_E_INST) {}
-      virtual ~SpExprInst() {}
+//      virtual ~SpExprInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -91,7 +92,7 @@ namespace oceanbase
     {
     public:
       SpRdBaseInst() : SpInst(SP_B_INST), op_(NULL) {}
-      virtual ~SpRdBaseInst() {}
+//      virtual ~SpRdBaseInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -111,7 +112,7 @@ namespace oceanbase
     {
     public:
       SpRwDeltaInst() : SpInst(SP_D_INST), op_(NULL) {}
-      virtual ~SpRwDeltaInst() {}
+//      virtual ~SpRwDeltaInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -132,7 +133,10 @@ namespace oceanbase
     {
     public:
       SpRwDeltaIntoVarInst() : SpRwDeltaInst() {}
-      virtual ~SpRwDeltaIntoVarInst() {}
+//      virtual ~SpRwDeltaIntoVarInst() {}
+
+      virtual int exec();
+
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
         for(int64_t i = 0; i < assign_list.count(); ++i)
@@ -152,7 +156,7 @@ namespace oceanbase
     {
     public:
       SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
-      virtual ~SpRwCompInst() {}
+//      virtual ~SpRwCompInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;

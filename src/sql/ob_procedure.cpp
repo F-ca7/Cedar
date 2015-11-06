@@ -106,10 +106,7 @@ void SpRwDeltaInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
       ObString var_name;
       ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
       rs_.addVariable(var_name);
-//      if( iskey ) rd_base_inst.add_read_var(var_name); //rowkey would be used in read baseline
-//      rw_delta_inst.add_read_var(var_name);  //other values are used in update delta
     }
-//    add_read_var(var_list.at(i));
   }
 }
 
@@ -132,6 +129,12 @@ int SpRwCompInst::exec()
 {
   int ret = OB_SUCCESS;
 
+  return ret;
+}
+
+int SpRwDeltaIntoVarInst::exec()
+{
+  int ret = OB_SUCCESS;
   return ret;
 }
 
@@ -159,7 +162,7 @@ ObProcedure::ObProcedure()
 
 ObProcedure::~ObProcedure()
 {
-  for(int64_t i; i < inst_list_.count(); ++i)
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     inst_list_.at(i)->~SpInst();
   }
@@ -358,7 +361,7 @@ int ObProcedure::open()
     pc_ = 0;
     for(; pc_ < inst_list_.count(); ++pc_)
     {
-      inst_list_.at(i)->exec();
+      inst_list_.at(pc_)->exec();
 //      SpPtr ptr = inst_seq_.at(pc_);
 //      switch(ptr.type_)
 //      {
@@ -520,17 +523,56 @@ int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
-int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
-{
-  int64_t pos = 0;
-
-  return pos;
-}
 
 int64_t SpRwCompInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [A], ws [");
 
+  const ObArray<ObString> &ws = get_write_variable_set().var_set_;
+  for(int64_t i = 0; i < ws.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", ws.at(i).length(), ws.at(i).ptr(), ((i == ws.count()-1) ? ']' : ','));
+  }
+  if ( ws.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+
+  databuff_printf(buf, buf_len, pos, ", rs [");
+
+  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  for(int64_t i = 0; i < rs.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
+  }
+  if( rs.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+  databuff_printf(buf, buf_len, pos, ", tid[%ld]\n", table_id_);
+  return pos;
+}
+
+int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [D], ws [");
+
+  const ObArray<ObString> &ws = get_write_variable_set().var_set_;
+  for(int64_t i = 0; i < ws.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", ws.at(i).length(), ws.at(i).ptr(), ((i == ws.count()-1) ? ']' : ','));
+  }
+  if ( ws.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+
+  databuff_printf(buf, buf_len, pos, ", rs [");
+
+  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  for(int64_t i = 0; i < rs.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
+  }
+  if( rs.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+  databuff_printf(buf, buf_len, pos, ", tid[%ld]\n", table_id_);
   return pos;
 }
 

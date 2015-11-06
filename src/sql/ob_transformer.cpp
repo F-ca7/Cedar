@@ -677,9 +677,10 @@ int ObTransformer::gen_physical_procedure(
       //genreate physical operation for each stmt here
       //each operation would divide into small instructions
       //important zt add
-      TBSYS_LOG(INFO, "procedure block stmt size =%ld",stmt->get_stmt_size());
+      TBSYS_LOG(TRACE, "procedure block stmt size =%ld",stmt->get_stmt_size());
       for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_stmt_size(); i++)
       {
+        TBSYS_LOG(TRACE, "handle stmt id [%ld]", i);
         uint64_t stmt_id=stmt->get_stmt(i);
         ObBasicStmt::StmtType type = logical_plan->get_query(stmt_id)->get_stmt_type();
         int32_t idx = OB_INVALID_INDEX;
@@ -1566,12 +1567,12 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
       else
       {
-        if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
-        {
-          TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
-        }
-        OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
-        ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
+//        if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+//        {
+//          TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(*physical_plan->get_phy_operator(idx)));
+//        }
+        OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+        ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
         ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
         OB_ASSERT(inner_plan->get_query_size() == 3);
@@ -1613,6 +1614,7 @@ int ObTransformer::gen_physical_procedure_select_into(
         }
         rw_comp_inst->add_assign_list(stmt->get_var_list());
         rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx));
+        rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
 //      rw_comp_inst.set_owner_procedure(proc_op);
 //      proc_op->add_inst_a(rw_comp_inst);
@@ -1620,7 +1622,7 @@ int ObTransformer::gen_physical_procedure_select_into(
 	}
 	return ret;
 
- }
+}
 int ObTransformer::gen_physical_procedure_assign(
                 ObLogicalPlan *logical_plan,
                 ObPhysicalPlan *physical_plan,
@@ -1781,12 +1783,12 @@ int ObTransformer::gen_physical_procedure_insert(
     }
 
     //set the physical operator for each instruction
-    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
-    {
-      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
-    }
-    OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
-    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
+//    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+//    {
+//      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(*physical_plan->get_phy_operator(idx)));
+//    }
+    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
     ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
     OB_ASSERT(inner_plan->get_query_size() == 3);
@@ -1881,12 +1883,12 @@ int ObTransformer::gen_physical_procedure_update(
     //set the physical operator for each instruction
 
 //    ObUpdateStmt* update_stmt = (ObUpdateStmt *)logical_plan->get_query(query_id);
-    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
-    {
-      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
-    }
-    OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
-    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
+//    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+//    {
+//      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(*physical_plan->get_phy_operator(idx)));
+//    }
+    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
     ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
     OB_ASSERT(inner_plan->get_query_size() == 3);
@@ -8075,12 +8077,14 @@ int ObTransformer::gen_phy_table_for_update(
           TBSYS_LOG(DEBUG, "rowkey obj, i=%ld val=%s", rowkey_idx, to_cstring(cond_val));
 
           //add zt 20151105 : b
-          if( NULL != rd_base_inst ) //must be rowkey info, since base and delta must share the rowkey,
+          if( NULL != rd_base_inst || NULL != rw_delta_inst)
+                                     //must be rowkey info, since base and delta must share the rowkey,
           {                          //then rowkey filter could be adapt to the base data
             ObArray<const ObRawExpr*> var_list;
             cnd_expr->get_raw_var(var_list);
-            rd_base_inst->add_read_var(var_list);
-          }  //table rpc scan fiter
+            if( NULL != rd_base_inst) rd_base_inst->add_read_var(var_list); //table rpc scan fiter, basescan only have row key var
+            if( NULL != rw_delta_inst) rw_delta_inst->add_read_var(var_list); //for incscan filter, incscan have all condition var
+          }
           //add zt 20151105 : e
         }
       }
@@ -8177,19 +8181,6 @@ int ObTransformer::gen_phy_table_for_update(
               default:
                 break;
             }
-
-            //add zt 20151105:b
-            if( NULL != rw_delta_inst ) //incscan filter
-            {
-              if( type_objs[i] == ObPostfixExpression::PARAM_IDX || type_objs[i] == ObPostfixExpression::SYSTEM_VAR
-                  || type_objs[i] == ObPostfixExpression::TEMP_VAR)
-              {
-                ObString var_name;
-                col_expr2.get_value().get_varchar(var_name);
-                rw_delta_inst->add_read_var(var_name);
-              }
-            }
-            //add zt 20151105:e
           }
         }
         else
