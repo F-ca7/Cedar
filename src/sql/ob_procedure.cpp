@@ -128,6 +128,29 @@ int SpRwDeltaInst::exec()
   return ret;
 }
 
+int SpRwCompInst::exec()
+{
+  int ret = OB_SUCCESS;
+
+  return ret;
+}
+
+const VariableSet& SpRwCompInst::get_read_variable_set() const
+{
+  return rs_;
+}
+
+const VariableSet& SpRwCompInst::get_write_variable_set() const
+{
+  return ws_;
+}
+
+int SpRwCompInst::set_rwcomp_op(ObPhyOperator *op)
+{
+  op_ = op;
+  return OB_SUCCESS;
+}
+
 
 ObProcedure::ObProcedure()
 {

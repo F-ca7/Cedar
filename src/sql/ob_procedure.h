@@ -83,7 +83,6 @@ namespace oceanbase
       VariableSet ws_;
     };
 
-
     class SpRdBaseInst :public SpInst
     {
     public:
@@ -123,7 +122,6 @@ namespace oceanbase
       uint64_t table_id_;
     };
 
-
     class SpRwDeltaIntoVarInst : public SpRwDeltaInst
     {
     public:
@@ -134,11 +132,52 @@ namespace oceanbase
         for(int64_t i = 0; i < assign_list.count(); ++i)
         {
           var_list_.push_back(assign_list.at(i));
-          add_write_var(assign_list.at(i));
+          ObString name = assign_list.at(i);
+          add_write_var(name);
         }
       }
 
+//      void add_assign_list(const ObVector<ObString> &assign_list)
+//      {
+//        for(int32_t i = 0; i < assign_list.size(); ++i)
+//        {
+//          var_list_.push_back(assign_list.at(i));
+//          add_write_var(assign_list.at(i));
+//        }
+//      }
+
     private:
+      ObArray<ObString> var_list_;
+    };
+
+    class SpRwCompInst : public SpInst
+    {
+    public:
+      SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
+      virtual int exec();
+      virtual const VariableSet &get_read_variable_set() const;
+      virtual const VariableSet &get_write_variable_set() const;
+      void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
+      void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
+      int set_rwcomp_op(ObPhyOperator *op);
+
+      void add_assign_list(const ObArray<ObString> &assign_list)
+      {
+        for(int64_t i = 0; i < assign_list.count(); ++i)
+        {
+          var_list_.push_back(assign_list.at(i));
+          ObString name = assign_list.at(i);
+          add_write_var(name);
+        }
+      }
+
+      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
+      int64_t to_string(char *buf, const int64_t buf_len) const;
+    private:
+      ObPhyOperator *op_;
+      VariableSet rs_;
+      VariableSet ws_;
+      uint64_t table_id_;
       ObArray<ObString> var_list_;
     };
 
@@ -180,6 +219,43 @@ namespace oceanbase
 
 //    int group_inst(ObArray<SpInst> &in_seq, ObArray<SpInst> &out_seq);
 //    int build_graph(ObArray<SpInst> &in_seq);
+
+
+    template<class T>
+    struct sp_inst_traits
+    {
+      static const bool is_sp_inst = false;
+    };
+
+    template<>
+    struct sp_inst_traits<SpExprInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpRdBaseInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpRwDeltaInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpRwDeltaIntoVarInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpRwCompInst>
+    {
+      static const bool is_sp_inst = true;
+    };
 
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
@@ -233,6 +309,18 @@ namespace oceanbase
         return OB_SUCCESS;
       }
 
+//      int add_inst_a(SpRwCompInst &inst)
+//      {
+//        inst_seq_.push_back(SpPtr(SP_A_INST, inst_a_.count()));
+//        inst_a_.push_back(inst);
+//      }
+
+//      int add_inst_d_into_(SpRwDeltaIntoVarInst &inst)
+//      {
+//        inst_seq_.push_back(SpPtr(SP_D_INST, inst_d_.count()));
+
+//      }
+
       int add_var_def(ObVariableDef def)
       {
         defs_.push_back(def);
@@ -250,7 +338,22 @@ namespace oceanbase
 			ObParamDef* get_param(int64_t index);
 			ObString& get_declare_var(int64_t index);
 			int64_t get_param_num();
-			int64_t get_declare_var_num();
+      int64_t get_declare_var_num();
+
+      template<class T>
+      T * create_inst()
+      {
+        T * ret = NULL;
+        if( sp_inst_traits<T>::is_sp_inst )
+        {
+          void *ptr = arena_.alloc(sizeof(T));
+          ret = new(ptr) T();
+          inst_list_.push_back((SpInst *)ret);
+          ((SpInst*)ret)->set_owner_procedure(this);
+        }
+        return ret;
+      }
+
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
@@ -268,11 +371,27 @@ namespace oceanbase
       ObArray<SpExprInst> inst_e_;
       ObArray<SpRdBaseInst> inst_b_;
       ObArray<SpRwDeltaInst> inst_d_;
+      ObArray<SpRwDeltaIntoVarInst> inst_d_into_;
+      ObArray<SpRwCompInst> inst_a_;
       ObArray<ObVariableDef> defs_;
+
+      ObArray<SpInst *> inst_list_;
+
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
-		};
-	}
+      ModuleArena arena_;
+    };
+
+//    template<class T>
+//    T* create_inst(ObProcedure* proc_op)
+//    {
+//      T* obj = (T *)proc_op->arena_.alloc(sizeof(T));
+//      obj = new(obj) T();
+//      proc_op->add_inst(obj);
+//    }
+  }
 }
+
+
 
 #endif
