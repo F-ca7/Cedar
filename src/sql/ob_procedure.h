@@ -56,6 +56,7 @@ namespace oceanbase
     {
     public:
       SpInst(SpInstType type) : type_(type), proc_(NULL) {}
+      virtual ~SpInst() {}
       virtual int exec() = 0;  //exec the inst at once
 //      virtual int split(SpBlockInst &block_inst) = 0; //split the inst into small ones
       virtual const VariableSet &get_read_variable_set() const = 0;
@@ -64,6 +65,8 @@ namespace oceanbase
       static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
 
       void set_owner_procedure(ObProcedure *proc) { proc_ = proc;}
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     protected:
       SpInstType type_;
       ObProcedure *proc_; //the procedure thats owns this instruction
@@ -73,11 +76,12 @@ namespace oceanbase
     {
     public:
       SpExprInst() : SpInst(SP_E_INST) {}
+      virtual ~SpExprInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       int set_var_val(ObVarAssignVal &var);
-      int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
       ObVarAssignVal var_val_;
       VariableSet ws_;
@@ -87,6 +91,7 @@ namespace oceanbase
     {
     public:
       SpRdBaseInst() : SpInst(SP_B_INST), op_(NULL) {}
+      virtual ~SpRdBaseInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -94,7 +99,7 @@ namespace oceanbase
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
       int set_rdbase_op(ObPhyOperator *op);
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     protected:
       ObPhyOperator *op_;
       VariableSet rs_; //the row key variable
@@ -106,6 +111,7 @@ namespace oceanbase
     {
     public:
       SpRwDeltaInst() : SpInst(SP_D_INST), op_(NULL) {}
+      virtual ~SpRwDeltaInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -114,7 +120,7 @@ namespace oceanbase
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
       int set_rwdelta_op(ObPhyOperator *op);
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     protected:
       ObPhyOperator *op_;
       VariableSet rs_;
@@ -126,7 +132,7 @@ namespace oceanbase
     {
     public:
       SpRwDeltaIntoVarInst() : SpRwDeltaInst() {}
-
+      virtual ~SpRwDeltaIntoVarInst() {}
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
         for(int64_t i = 0; i < assign_list.count(); ++i)
@@ -137,15 +143,7 @@ namespace oceanbase
         }
       }
 
-//      void add_assign_list(const ObVector<ObString> &assign_list)
-//      {
-//        for(int32_t i = 0; i < assign_list.size(); ++i)
-//        {
-//          var_list_.push_back(assign_list.at(i));
-//          add_write_var(assign_list.at(i));
-//        }
-//      }
-
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
       ObArray<ObString> var_list_;
     };
@@ -154,6 +152,7 @@ namespace oceanbase
     {
     public:
       SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
+      virtual ~SpRwCompInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
@@ -172,7 +171,7 @@ namespace oceanbase
       }
 
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
       ObPhyOperator *op_;
       VariableSet rs_;
@@ -180,46 +179,6 @@ namespace oceanbase
       uint64_t table_id_;
       ObArray<ObString> var_list_;
     };
-
-//    class SpExprsInst : public SpInst
-//    {
-//    public:
-//      int exec();
-//      int split(SpBlockInst &block_inst);
-//    private:
-//      ObArray<ObVariableSetVal> var_val_list_;
-//    };
-
-//    class SpBaselineInst : public SpInst
-//    {
-//    private:
-//      ObPhyOperator *read_baseline_op_;
-//    };
-
-//    class SpDeltaInst : public SpInst
-//    {
-//    private:
-//      ObPhyOperator *update_delta_op_;
-//    };
-
-//    class SpGroupDeltaInst : public SpInst
-//    {
-//    public:
-//      int exec(); //here we could define the group execution
-//      int split(SpBlockInst &block_inst);
-//    private:
-//      ObArray<ObPhyOperator *> update_delta_ops_;
-//    };
-
-//    class SpAnalyzeInst : public SpInst
-//    {
-//    private:
-//      ObPhyOperator *complex_analyze_op_;
-//    };
-
-//    int group_inst(ObArray<SpInst> &in_seq, ObArray<SpInst> &out_seq);
-//    int build_graph(ObArray<SpInst> &in_seq);
-
 
     template<class T>
     struct sp_inst_traits
@@ -288,26 +247,26 @@ namespace oceanbase
 			int set_params(ObArray<ObParamDef*> &params);/*存储过程参数*/
 			int add_declare_var(ObString &var);/*添加一个变量*/
 
-      int add_inst_e(SpExprInst &inst)
-      {
-        inst_seq_.push_back(SpPtr(SP_E_INST, inst_e_.count()));
-        inst_e_.push_back(inst);
-        return OB_SUCCESS;
-      }
+//      int add_inst_e(SpExprInst &inst)
+//      {
+//        inst_seq_.push_back(SpPtr(SP_E_INST, inst_e_.count()));
+//        inst_e_.push_back(inst);
+//        return OB_SUCCESS;
+//      }
 
-      int add_inst_b(SpRdBaseInst &inst)
-      {
-        inst_seq_.push_back(SpPtr(SP_B_INST, inst_b_.count()));
-        inst_b_.push_back(inst);
-        return OB_SUCCESS;
-      }
+//      int add_inst_b(SpRdBaseInst &inst)
+//      {
+//        inst_seq_.push_back(SpPtr(SP_B_INST, inst_b_.count()));
+//        inst_b_.push_back(inst);
+//        return OB_SUCCESS;
+//      }
 
-      int add_inst_d(SpRwDeltaInst &inst)
-      {
-        inst_seq_.push_back(SpPtr(SP_D_INST, inst_d_.count()));
-        inst_d_.push_back(inst);
-        return OB_SUCCESS;
-      }
+//      int add_inst_d(SpRwDeltaInst &inst)
+//      {
+//        inst_seq_.push_back(SpPtr(SP_D_INST, inst_d_.count()));
+//        inst_d_.push_back(inst);
+//        return OB_SUCCESS;
+//      }
 
 //      int add_inst_a(SpRwCompInst &inst)
 //      {
@@ -367,12 +326,12 @@ namespace oceanbase
 			ObArray<ObParamDef*> params_;/*存储过程参数*/
       ObArray<ObString> declare_variable_;
 
-      ObArray<SpPtr> inst_seq_;
-      ObArray<SpExprInst> inst_e_;
-      ObArray<SpRdBaseInst> inst_b_;
-      ObArray<SpRwDeltaInst> inst_d_;
-      ObArray<SpRwDeltaIntoVarInst> inst_d_into_;
-      ObArray<SpRwCompInst> inst_a_;
+//      ObArray<SpPtr> inst_seq_;
+//      ObArray<SpExprInst> inst_e_;
+//      ObArray<SpRdBaseInst> inst_b_;
+//      ObArray<SpRwDeltaInst> inst_d_;
+//      ObArray<SpRwDeltaIntoVarInst> inst_d_into_;
+//      ObArray<SpRwCompInst> inst_a_;
       ObArray<ObVariableDef> defs_;
 
       ObArray<SpInst *> inst_list_;
@@ -381,14 +340,6 @@ namespace oceanbase
       ProgramCounter pc_;
       ModuleArena arena_;
     };
-
-//    template<class T>
-//    T* create_inst(ObProcedure* proc_op)
-//    {
-//      T* obj = (T *)proc_op->arena_.alloc(sizeof(T));
-//      obj = new(obj) T();
-//      proc_op->add_inst(obj);
-//    }
   }
 }
 

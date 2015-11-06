@@ -1566,6 +1566,10 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
       else
       {
+        if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+        {
+          TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
+        }
         OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
         ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
 
@@ -1777,6 +1781,10 @@ int ObTransformer::gen_physical_procedure_insert(
     }
 
     //set the physical operator for each instruction
+    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+    {
+      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
+    }
     OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
     ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
 
@@ -1873,6 +1881,10 @@ int ObTransformer::gen_physical_procedure_update(
     //set the physical operator for each instruction
 
 //    ObUpdateStmt* update_stmt = (ObUpdateStmt *)logical_plan->get_query(query_id);
+    if( physical_plan->get_phy_operator(idx)->get_type() != PHY_UPS_EXECUTOR )
+    {
+      TBSYS_LOG(WARN, "unexpected phy_plan: %s", to_cstring(physical_plan->get_phy_operator(idx)));
+    }
     OB_ASSERT(physical_plan->get_phy_operator(idx)->get_type() == PHY_UPS_EXECUTOR);
     ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_operator(idx);
 

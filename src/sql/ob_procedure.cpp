@@ -159,6 +159,11 @@ ObProcedure::ObProcedure()
 
 ObProcedure::~ObProcedure()
 {
+  for(int64_t i; i < inst_list_.count(); ++i)
+  {
+    inst_list_.at(i)->~SpInst();
+  }
+  arena_.free();
 }
 int ObProcedure::set_proc_name(ObString &proc_name)
 {
@@ -351,27 +356,28 @@ int ObProcedure::open()
   else
   {
     pc_ = 0;
-    for(; pc_ < inst_seq_.count(); ++pc_)
+    for(; pc_ < inst_list_.count(); ++pc_)
     {
-      SpPtr ptr = inst_seq_.at(pc_);
-      switch(ptr.type_)
-      {
-      case SP_E_INST:
-        inst_e_.at(ptr.idx_).exec(); //either descripe the execution method, or ?
-        break;
-      case SP_A_INST:
-        break;
-      case SP_D_INST:
-        inst_d_.at(ptr.idx_).exec();
-        break;
-      case SP_B_INST:
-        inst_d_.at(ptr.idx_).exec();
-        break;
-      case SP_C_INST:
-        break;
-      default:
-        break;
-      }
+      inst_list_.at(i)->exec();
+//      SpPtr ptr = inst_seq_.at(pc_);
+//      switch(ptr.type_)
+//      {
+//      case SP_E_INST:
+//        inst_e_.at(ptr.idx_).exec(); //either descripe the execution method, or ?
+//        break;
+//      case SP_A_INST:
+//        break;
+//      case SP_D_INST:
+//        inst_d_.at(ptr.idx_).exec();
+//        break;
+//      case SP_B_INST:
+//        inst_d_.at(ptr.idx_).exec();
+//        break;
+//      case SP_C_INST:
+//        break;
+//      default:
+//        break;
+//      }
       debug_status();
     }
   }
@@ -396,26 +402,26 @@ int ObProcedure::get_var_val(const ObString &var_name, ObObj &val) const
 int ObProcedure::debug_status() const
 {
   int ret = OB_SUCCESS;
-  SpPtr ptr = inst_seq_.at(pc_);
-  const SpInst *inst = NULL;
-  switch(ptr.type_)
-  {
-  case SP_E_INST:
-    inst = &inst_e_.at(ptr.idx_); //either descripe the execution method, or ?
-    break;
-  case SP_A_INST:
-    break;
-  case SP_D_INST:
-    inst = &inst_d_.at(ptr.idx_);
-    break;
-  case SP_B_INST:
-    inst = &inst_b_.at(ptr.idx_);
-    break;
-  case SP_C_INST:
-    break;
-  default:
-    break;
-  }
+//  SpPtr ptr = inst_seq_.at(pc_);
+  const SpInst *inst = inst_list_.at(pc_);
+//  switch(ptr.type_)
+//  {
+//  case SP_E_INST:
+//    inst = &inst_e_.at(ptr.idx_); //either descripe the execution method, or ?
+//    break;
+//  case SP_A_INST:
+//    break;
+//  case SP_D_INST:
+//    inst = &inst_d_.at(ptr.idx_);
+//    break;
+//  case SP_B_INST:
+//    inst = &inst_b_.at(ptr.idx_);
+//    break;
+//  case SP_C_INST:
+//    break;
+//  default:
+//    break;
+//  }
 
   if( inst != NULL )
   {
@@ -514,32 +520,52 @@ int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
+int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+
+  return pos;
+}
+
+int64_t SpRwCompInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+
+  return pos;
+}
+
 int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "procedure ()\n");
-  for(int64_t i = 0; i < inst_seq_.count(); ++i)
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
-    SpPtr ptr = inst_seq_.at(i);
+    SpInst *inst = inst_list_.at(i);
     databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
-    switch(ptr.type_)
-    {
-    case SP_E_INST:
-      pos += inst_e_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
-      break;
-    case SP_A_INST:
-      break;
-    case SP_D_INST:
-      pos += inst_d_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
-      break;
-    case SP_B_INST:
-      pos += inst_b_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
-      break;
-    case SP_C_INST:
-      break;
-    default:
-      break;
-    }
+    pos += inst->to_string(buf + pos, buf_len -pos);
   }
+//  for(int64_t i = 0; i < inst_seq_.count(); ++i)
+//  {
+//    SpPtr ptr = inst_seq_.at(i);
+//    databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
+//    switch(ptr.type_)
+//    {
+//    case SP_E_INST:
+//      pos += inst_e_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
+//      break;
+//    case SP_A_INST:
+//      break;
+//    case SP_D_INST:
+//      pos += inst_d_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
+//      break;
+//    case SP_B_INST:
+//      pos += inst_b_.at(ptr.idx_).to_string(buf + pos, buf_len - pos);
+//      break;
+//    case SP_C_INST:
+//      break;
+//    default:
+//      break;
+//    }
+//  }
   return pos;
 }
