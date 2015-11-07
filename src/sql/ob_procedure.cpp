@@ -1,6 +1,7 @@
 #include "ob_procedure.h"
 #include "ob_result_set.h"
 #include "ob_physical_plan.h"
+#include "ob_ups_executor.h"
 #include "parse_malloc.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
@@ -169,11 +170,24 @@ int SpRwDeltaIntoVarInst::exec()
 {
   int ret = OB_SUCCESS;
   const ObRow *row;
-  if( OB_SUCCESS != (ret = op_->open()) )
+
+  ObRowDesc fake_desc;
+  fake_desc.reset();
+  //we expect the select list has the same length with the variable list
+  //ups use a fake desc to deserialize the result from the ups
+  for(int64_t i = 0; ret == OB_SUCCESS && i < var_list_.count(); ++i)
+  {
+    if ((ret = fake_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID + i)) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "Generate row descriptor of RwDeltaIntoVar failed, err=%d", ret);
+      break;
+    }
+  }
+  if( (OB_SUCCESS == ret) && OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_delta_into_inst fail");
   }
-  else if( OB_SUCCESS != (ret = op_->get_next_row(row))) //properly we need to check only one row is got
+  else if( OB_SUCCESS != (ret = (((ObUpsExecutor *)op_)->get_next_row_for_sp(row, fake_desc)))) //properly we need to check only one row is got
   {
     TBSYS_LOG(WARN, "get next_row fail, %d", ret);
   }

@@ -183,40 +183,40 @@ int ObUpsExecutor::open()
 
 
         //add by zz 2015/2/3:b
-		//在session中存一个变量维护一个影响行数
-		ObString affect=ObString::make_string("affect_row_num");
-		if(session->variable_exists(affect))
-		{
-			ObObj old_val;
-			int64_t old_value=0;
-			ObObj new_val;
-			if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)//取出旧值
-			{
-				 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
-			}
-			else if((ret=old_val.get_int(old_value))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "old_val get_int ERROR");
-			}
-			new_val.set_int(old_value+local_result_.get_affected_rows());
-			if((ret=session->replace_variable(affect,new_val))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "replace_variable affect ERROR");
-			}
-		}
-		else
-		{
-			ObObj new_value_obj;
-			new_value_obj.set_int(local_result_.get_affected_rows());
-			if((ret=session->replace_variable(affect,new_value_obj))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "init replace_variable affect ERROR");
-			}
-			else
-			{
-				TBSYS_LOG(INFO, "init set affect_row success var_name=%s",affect.ptr());
-			}
-		}
+				//try to store affected rows into a session variables, bad design
+//		ObString affect=ObString::make_string("affect_row_num");
+//		if(session->variable_exists(affect))
+//		{
+//			ObObj old_val;
+//			int64_t old_value=0;
+//			ObObj new_val;
+//			if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)
+//			{
+//				 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
+//			}
+//			else if((ret=old_val.get_int(old_value))!=OB_SUCCESS)
+//			{
+//				TBSYS_LOG(WARN, "old_val get_int ERROR");
+//			}
+//			new_val.set_int(old_value+local_result_.get_affected_rows());
+//			if((ret=session->replace_variable(affect,new_val))!=OB_SUCCESS)
+//			{
+//				TBSYS_LOG(WARN, "replace_variable affect ERROR");
+//			}
+//		}
+//		else
+//		{
+//			ObObj new_value_obj;
+//			new_value_obj.set_int(local_result_.get_affected_rows());
+//			if((ret=session->replace_variable(affect,new_value_obj))!=OB_SUCCESS)
+//			{
+//				TBSYS_LOG(WARN, "init replace_variable affect ERROR");
+//			}
+//			else
+//			{
+//				TBSYS_LOG(INFO, "init set affect_row success var_name=%s",affect.ptr());
+//			}
+//		}
 		//add:e
       }
     }
@@ -310,6 +310,34 @@ int ObUpsExecutor::get_next_row(const common::ObRow *&row)
   }
   return ret;
 }
+
+//add zt 20151107:b
+int ObUpsExecutor::get_next_row_for_sp(const common::ObRow *&row, const ObRowDesc &fake_row_desc)
+{
+  int ret = OB_SUCCESS;
+//  OB_ASSERT(my_phy_plan_);
+  // for session stored physical plan, my_phy_plan_->get_result_set() is the result_set who stored the plan,
+  // since the two commands are in the same session, so we can get the real result_set from session.
+  // for global stored physical plan, new coppied plan has itsown my_phy_plan_, so both my_phy_plan_->get_result_set()
+  // and my_phy_plan_->get_result_set()->get_session()->get_current_result_set() are correct
+//  ObResultSet *my_result_set = my_phy_plan_->get_result_set()->get_session()->get_current_result_set();
+//  if (OB_UNLIKELY(!my_result_set->is_with_rows()))
+//  {
+//    ret = OB_NOT_SUPPORTED;
+//  }
+  if (OB_UNLIKELY(curr_row_.get_row_desc() == NULL))
+  {
+    curr_row_.set_row_desc(fake_row_desc);
+  }
+  if (ret == OB_SUCCESS
+    && (ret = local_result_.get_scanner().get_next_row(curr_row_)) == OB_SUCCESS)
+  {
+    row = &curr_row_;
+  }
+  return ret;
+}
+//add zt 20151107:e
+
 
 int ObUpsExecutor::make_fake_desc(const int64_t column_num)
 {
