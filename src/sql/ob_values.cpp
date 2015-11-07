@@ -18,7 +18,7 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
-ObValues::ObValues()
+ObValues::ObValues() : is_open_(false)
 {
 }
 
@@ -31,6 +31,8 @@ void ObValues::reset()
   row_desc_.reset();
   //curr_row_.reset(false, ObRow::DEFAULT_NULL);
   row_store_.clear();
+
+  is_open_ = false; //add zt : 20151107
   ObSingleChildPhyOperator::reset();
 }
 
@@ -39,6 +41,8 @@ void ObValues::reuse()
   row_desc_.reset();
   //curr_row_.reset(false, ObRow::DEFAULT_NULL);
   row_store_.clear();
+
+  is_open_ = false; //add zt : 20151107
   ObSingleChildPhyOperator::reset();
 }
 
@@ -59,12 +63,13 @@ int ObValues::open()
 {
   int ret = OB_SUCCESS;
   curr_row_.set_row_desc(row_desc_);
-  if (NULL != child_op_)
+  if (NULL != child_op_  && !is_open_ ) //modify zt 20151107
   {
     if (OB_SUCCESS != (ret = load_data()))
     {
       TBSYS_LOG(WARN, "failed to load data from child op, err=%d", ret);
     }
+    is_open_ = true; //add zt 20151107
   }
   return ret;
 }

@@ -54,6 +54,7 @@ namespace oceanbase
         common::ObRowDesc row_desc_;
         common::ObRow curr_row_;
         common::ObRowStore row_store_;
+        bool is_open_; //is open
     };
   } // end namespace sql
 } // end namespace oceanbase

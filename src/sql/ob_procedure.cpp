@@ -83,10 +83,10 @@ int SpRdBaseInst::exec()
 {
   int ret = OB_SUCCESS;
   //table rpc scan is in the ups_executor's inner plan that is different from the current plan
-//  op_->get_phy_plan()->set_curr_frozen_version(proc_->my_phy_plan_->get_curr_frozen_version());
-//  op_->get_phy_plan()->set_result_set(proc_->my_phy_plan_->get_result_set());
+  op_->get_phy_plan()->set_curr_frozen_version(proc_->my_phy_plan_->get_curr_frozen_version());
+  op_->get_phy_plan()->set_result_set(proc_->my_phy_plan_->get_result_set());
 
-//  ret = op_->open();
+  ret = op_->open();
   return ret;
 }
 
@@ -431,9 +431,9 @@ int ObProcedure::open()
   else
   {
     pc_ = 0;
-    for(; pc_ < inst_list_.count(); ++pc_)
+    for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
-      inst_list_.at(pc_)->exec();
+      ret = inst_list_.at(pc_)->exec();
 //      SpPtr ptr = inst_seq_.at(pc_);
 //      switch(ptr.type_)
 //      {
