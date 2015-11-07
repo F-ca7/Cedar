@@ -37,13 +37,8 @@ namespace oceanbase
 
 		private:
 			ObString proc_name_;
-
 			ObPhyOperator *insert_op_;
-
 		};
-
-
-
 	}
 }
 

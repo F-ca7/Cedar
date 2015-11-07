@@ -34,7 +34,7 @@ int SpExprInst::exec()
     TBSYS_LOG(WARN, "sp expr compute failed");
   }
   //update the varialbe here
-  else if ( OB_SUCCESS != (ret = proc_->update_variable(var_val_.variable_name_, *val)) )
+  else if ( OB_SUCCESS != (ret = proc_->write_variable(var_val_.variable_name_, *val)) )
   {
 
   }
@@ -81,7 +81,11 @@ int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op)
 int SpRdBaseInst::exec()
 {
   int ret = OB_SUCCESS;
+  //table rpc scan is in the ups_executor's inner plan that is different from the current plan
+//  op_->get_phy_plan()->set_curr_frozen_version(proc_->my_phy_plan_->get_curr_frozen_version());
+//  op_->get_phy_plan()->set_result_set(proc_->my_phy_plan_->get_result_set());
 
+//  ret = op_->open();
   return ret;
 }
 
@@ -92,7 +96,7 @@ const VariableSet& SpRwDeltaInst::get_read_variable_set() const
 
 const VariableSet& SpRwDeltaInst::get_write_variable_set() const
 {
-  OB_ASSERT(ws_.var_set_.count() == 0);
+//  OB_ASSERT(ws_.var_set_.count() == 0); //since select..into inst inherit this, such assert is not valid any more
   return ws_;
 }
 
@@ -122,19 +126,73 @@ int SpRwDeltaInst::exec()
 {
   int ret = OB_SUCCESS;
 
+  if( OB_SUCCESS != (ret = op_->open()) )
+  {
+    TBSYS_LOG(WARN, "execute rw_delta_inst fail");
+  }
+
   return ret;
 }
 
 int SpRwCompInst::exec()
 {
   int ret = OB_SUCCESS;
-
+  const ObRow *row;
+  if( OB_SUCCESS != (ret = op_->open()) )
+  {
+    TBSYS_LOG(WARN, "open rw_com_inst fail");
+  }
+  else if( OB_SUCCESS != (ret = op_->get_next_row(row))) //properly we need to check only one row is got
+  {
+    TBSYS_LOG(WARN, "get new_row fail");
+  }
+  else
+  {
+    for(int64_t var_name_it = 0; var_name_it < var_list_.count(); ++var_name_it)
+    {
+      const ObString &var_name = var_list_.at(var_name_it);
+      const ObObj *cell = NULL;
+      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_name_it, cell)))//取出一列
+      {
+        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_name_it);
+      }
+      else if(OB_SUCCESS !=(proc_->write_variable(var_name, *cell)))
+      {
+        TBSYS_LOG(WARN, "write into variables fail");
+      }
+    }
+  }
   return ret;
 }
 
 int SpRwDeltaIntoVarInst::exec()
 {
   int ret = OB_SUCCESS;
+  const ObRow *row;
+  if( OB_SUCCESS != (ret = op_->open()) )
+  {
+    TBSYS_LOG(WARN, "open rw_delta_into_inst fail");
+  }
+  else if( OB_SUCCESS != (ret = op_->get_next_row(row))) //properly we need to check only one row is got
+  {
+    TBSYS_LOG(WARN, "get next_row fail, %d", ret);
+  }
+  else
+  {
+    for(int64_t var_name_it = 0; var_name_it < var_list_.count(); ++var_name_it)
+    {
+      const ObString &var_name = var_list_.at(var_name_it);
+      const ObObj *cell = NULL;
+      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_name_it, cell)))//取出一列
+      {
+        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_name_it);
+      }
+      else if(OB_SUCCESS !=(proc_->write_variable(var_name, *cell)))
+      {
+        TBSYS_LOG(WARN, "write into variables fail");
+      }
+    }
+  }
   return ret;
 }
 
@@ -387,16 +445,15 @@ int ObProcedure::open()
   return ret;
 }
 
-int ObProcedure::update_variable(const ObString &var_name, const ObObj &val)
+int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
 
   return session->replace_variable(var_name, val);
 }
 
-int ObProcedure::get_var_val(const ObString &var_name, ObObj &val) const
+int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
 {
-
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
 
   return session->get_variable_value(var_name, val);
@@ -439,7 +496,7 @@ int ObProcedure::debug_status() const
     {
       ObObj val;
       const ObString &var_name = rs.var_set_.at(i);
-      if( OB_SUCCESS == get_var_val(var_name, val))
+      if( OB_SUCCESS == read_variable(var_name, val))
       {
         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
                         var_name.length(), var_name.ptr(), to_cstring(val));
@@ -455,7 +512,7 @@ int ObProcedure::debug_status() const
     {
       ObObj val;
       const ObString &var_name = ws.var_set_.at(i);
-      if( OB_SUCCESS == get_var_val(var_name, val))
+      if( OB_SUCCESS == read_variable(var_name, val))
       {
          databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
                          var_name.length(), var_name.ptr(), to_cstring(val));

@@ -1651,7 +1651,7 @@ select_clause:
 /*===========================================================
  *	Select Into sentence
  *===========================================================*/
-select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list opt_where
+select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
 						{
 						  ParseNode* project_list = NULL;
 						  ParseNode* from_list = NULL;
@@ -1672,7 +1672,7 @@ select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list o
                               NULL,           /* 10. later select stmt */
                               NULL,           /* 11. order by */
                               NULL,             /* 12. limit */
-                              NULL,           /* 13. for update */
+                              $8,           /* 13. for update */
                               NULL,             /* 14 hints */
                               NULL            /* 15 when clause */
                               ,NULL

@@ -724,7 +724,7 @@ int ObTransformer::gen_physical_procedure(
           TBSYS_LOG(WARN, "generate insturction failed, id %ld", i);
         }
       }
-      TBSYS_LOG(INFO, "Procedure Compile test: %s", to_cstring(*result_op));
+      TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
     }
   }
   return ret;
@@ -776,12 +776,12 @@ int ObTransformer::gen_physical_procedure_create(
       //generate the physical plan for the procedure block
       if ((ret = gen_physical_procedure(logical_plan,physical_plan,err_stat,stmt->get_proc_id(),&idx)) != OB_SUCCESS)
       {
-        TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+        TBSYS_LOG(WARN, "compile procedure failed");
       }
       else if ((proc_op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *proc_op)) != OB_SUCCESS)
       {
         ret = OB_ERR_ILLEGAL_INDEX;
-        TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+        TBSYS_LOG(WARN,"add proc_op into proc_create fail");
       }
       else
       {
@@ -791,12 +791,12 @@ int ObTransformer::gen_physical_procedure_create(
         /*这里应该过滤一些类型的语句*/
         if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
         {
-          TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+          TBSYS_LOG(WARN, "generate proc save plan fail");
         }
         else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
         {
           ret = OB_ERR_ILLEGAL_INDEX;
-          TBSYS_LOG(ERROR,"Set child of insert failed");
+          TBSYS_LOG(WARN,"add proc_save_op into proc_create fail");
         }
       }
     }
@@ -1557,8 +1557,8 @@ int ObTransformer::gen_physical_procedure_select_into(
     {}
     else if(sel_stmt->is_for_update())
     {
-      SpRwDeltaIntoVarInst* rw_delta_into_var_inst = proc_op->create_inst<SpRwDeltaIntoVarInst>();
       SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>();
+      SpRwDeltaIntoVarInst* rw_delta_into_var_inst = proc_op->create_inst<SpRwDeltaIntoVarInst>();
       rw_delta_into_var_inst->add_assign_list(stmt->get_var_list()); //add the 'into var jobs' into the delta_inst
 
       if(OB_SUCCESS != (ret = gen_phy_select_for_update(logical_plan, physical_plan, err_stat, stmt->get_declare_id(), &idx, rd_base_inst, rw_delta_into_var_inst)))

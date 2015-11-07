@@ -12,7 +12,9 @@ ObProcedureCreate::ObProcedureCreate()
 
 ObProcedureCreate::~ObProcedureCreate()
 {
+//  insert_op_->~ObPhyOperator();
 }
+
 int ObProcedureCreate::set_proc_name(ObString &proc_name)
 {
 	proc_name_=proc_name;
@@ -57,7 +59,7 @@ int ObProcedureCreate::get_next_row(const common::ObRow *&row)
 	if (NULL == child_op_)
 	{
 		ret = OB_ERR_UNEXPECTED;
-		TBSYS_LOG(ERROR, "child_op_ is NULL");
+    TBSYS_LOG(WARN, "child_op_ is NULL");
 	}
 	else
 	{
@@ -68,12 +70,11 @@ int ObProcedureCreate::get_next_row(const common::ObRow *&row)
 
 int ObProcedureCreate::open()
 {
-	TBSYS_LOG(INFO, "zz:ObProcedureCreate::open()");
 	int ret = OB_SUCCESS;
 	if (NULL == child_op_)
 	{
 		ret = OB_ERR_GEN_PLAN;
-		TBSYS_LOG(ERROR, "child_op_ is NULL");
+    TBSYS_LOG(WARN, "child_op_ is NULL");
 	}
 	else
 	{
@@ -94,18 +95,14 @@ int ObProcedureCreate::open()
 			TBSYS_LOG(INFO, "zz:ObProcedureCreate store proc_name_=%s plan  success!",proc_name_.ptr());
 		}
 		*/
-		if((ret=insert_op_->open())!=OB_SUCCESS)//打开插入表的insert操作符
-		{
-			ret=-17;
-			ObResultSet *result_set = my_phy_plan_->get_result_set();
-			result_set->set_message("procedure exist!");
-			TBSYS_LOG(USER_ERROR, "procedure exist!");
-		}
-		char buff[30000];
-		memset(buff,0,30000);
-		to_string(buff,30000);
-		TBSYS_LOG(INFO, "procedure plan is %s",buff);
-
+    if((ret=insert_op_->open())!=OB_SUCCESS)//打开插入表的insert操作符
+    {
+      ret=-17;
+      ObResultSet *result_set = my_phy_plan_->get_result_set();
+      result_set->set_message("procedure exist!");
+      TBSYS_LOG(USER_ERROR, "procedure exist!");
+    }
+//		TBSYS_LOG(INFO, "procedure plan is %s",buff);
 	}
 	return ret;
 }
@@ -119,12 +116,13 @@ namespace oceanbase{
 int64_t ObProcedureCreate::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "procedure create(child_num_=%s)\n", proc_name_.ptr());
-  int64_t pos_temp=0;
-  pos_temp=child_op_->to_string(buf+pos, buf_len-pos);
-  pos+=pos_temp;
+  databuff_printf(buf, buf_len, pos, "Create Procedure(%.*s)\n", proc_name_.length(), proc_name_.ptr());
 
-  pos_temp=insert_op_->to_string(buf+pos,buf_len-pos);
-  pos+=pos_temp;
+  databuff_printf(buf, buf_len, pos, "Procedure execution plan: \n");
+  pos += child_op_->to_string(buf+pos, buf_len-pos);
+
+  databuff_printf(buf, buf_len, pos, "Save procedure plan: \n");
+  pos += insert_op_->to_string(buf+pos,buf_len-pos);
+
   return pos;
 }

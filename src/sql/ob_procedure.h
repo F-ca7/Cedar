@@ -229,7 +229,13 @@ namespace oceanbase
      */
     class ObProcedure : public ObNoChildrenPhyOperator
 		{
-		public:
+    public:
+      friend class SpInst;
+      friend class SpExprInst;
+      friend class SpRdBaseInst;
+      friend class SpRwDeltaInst;
+      friend class SpRwDeltaIntoVarInst;
+      friend class SpRwCompInst;
 			ObProcedure();
 			virtual ~ObProcedure();
 			virtual void reset();
@@ -291,13 +297,12 @@ namespace oceanbase
       }
 
       int create_variables();
-      int get_var_val(const ObString &var_name, ObObj &val) const;
+      int write_variable(const ObString &var_name, const ObObj & val);
+      int read_variable(const ObString &var_name, ObObj &val) const;
+
       int debug_status() const;
 
       ObArray<ObParamDef*>& get_params();
-
-      int update_variable(const ObString &var_name, const ObObj & val);
-
 			ObParamDef* get_param(int64_t index);
 			ObString& get_declare_var(int64_t index);
 			int64_t get_param_num();

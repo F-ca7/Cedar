@@ -3926,7 +3926,7 @@ int resolve_procedure_create_stmt(
 		  std::string proc_insert_sql="insert into __all_procedure values('{1}','{2}')";
 		  size_t pos_1 = proc_insert_sql.find("{1}");
 		  //proc_insert_sql.replace(pos_1,3,proc_name.ptr());
-		  proc_insert_sql.replace(pos_1,3,node->children_[0]->children_[0]->str_value_);
+      proc_insert_sql.replace(pos_1,3,node->children_[0]->children_[0]->str_value_); //proc name
 		  size_t pos_2 = proc_insert_sql.find("{2}");
 
 		  //把'替换为\'
@@ -3952,13 +3952,10 @@ int resolve_procedure_create_stmt(
 		  {
 			  p[i]='\0';
 		  }
-
 		  //add some char after @
       replaceArray(p, "@", "@__"); //is the way to solve the variable name conflict bug?
 
-
-
-		  TBSYS_LOG(INFO, "p:%s j:%d length:%lu",p,j,strlen(p));
+      TBSYS_LOG(TRACE, "p:%s j:%d length:%lu",p,j,strlen(p));
 		  proc_insert_sql.replace(pos_2,3,p);
 		  ObString insertstmt=ObString::make_string(proc_insert_sql.c_str());
 		  parse_result.malloc_pool_=result_plan->name_pool_;
@@ -3983,7 +3980,6 @@ int resolve_procedure_create_stmt(
 		  }
 		  delete p;
 	  }
-
   }
   return ret;
 }
