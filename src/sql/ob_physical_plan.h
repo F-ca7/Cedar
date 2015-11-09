@@ -115,6 +115,13 @@ namespace oceanbase
         int32_t get_type(){return 0;};
         static ObPhysicalPlan *alloc();
         static void free(ObPhysicalPlan *plan);
+
+        //add zt 20151109 :b
+//        int get_variable(ObPostfixExpression::ObPostExprNodeType type,
+//                                   const ObObj &expr_node, const ObObj *) const;
+        bool is_proc_exec() const { return procedure_execution_; }
+        void set_proc_exec(bool exec_flag) { procedure_execution_ = exec_flag; }
+        //add zt 20151109 :e
       private:
         static const int64_t COMMON_OP_NUM = 16;
         static const int64_t COMMON_SUB_QUERY_NUM = 6;
@@ -145,6 +152,9 @@ namespace oceanbase
         bool cons_from_assign_;
         common::ObTransReq start_trans_req_;
         uint64_t next_phy_operator_id_;
+        //add zt 20151109 :b
+        bool procedure_execution_;
+        //add zt 20151109 :e
     };
 
     inline int ObPhysicalPlan::set_operator_factory(ObPhyOperatorFactory* factory)

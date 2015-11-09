@@ -337,6 +337,7 @@ namespace oceanbase
       int create_variables();
       int write_variable(const ObString &var_name, const ObObj & val);
       int read_variable(const ObString &var_name, ObObj &val) const;
+      int read_variable(const ObString &var_name, const ObObj *&val) const;
 
       int debug_status() const;
 

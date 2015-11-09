@@ -595,6 +595,15 @@ int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
   return session->get_variable_value(var_name, val);
 }
 
+int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
+{
+  ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
+
+  val = session->get_variable_value(var_name);
+
+  return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
+}
+
 int ObProcedure::debug_status() const
 {
   int ret = OB_SUCCESS;

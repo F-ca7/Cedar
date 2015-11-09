@@ -352,6 +352,11 @@ namespace oceanbase
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add zt 20151109 :b
+        int serialize_variables(char *buf, const int64_t buf_len, int64_t &pos, int64_t type, const ObObj &expr_node) const;
+//        int deserialize_variables(int64_t type, const ObObj &expr_node);
+        //add zt 20151109 :e
       private:
         class ExprUtil
         {

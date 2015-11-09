@@ -18,6 +18,7 @@
 #include "common/utility.h"
 #include "common/ob_obj_cast.h"
 #include "common/hash/ob_hashmap.h"
+#include "ob_physical_plan.h" //add zt 20151109
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 ObExprValues::ObExprValues()
@@ -313,37 +314,65 @@ PHY_OPERATOR_ASSIGN(ObExprValues)
   return ret;
 }
 
+/*******************************************************************
+  *We need to define different serialize methods for procedure
+  *execution or physical plan execution.
+  * > For procedure execution, exprValues cannot be calculted until
+  * 	until precede plans done
+  * > For phy_plan execution, exprValues can be calcuted, since there's
+  *   no precede plans
+  *****************************************************************/
 DEFINE_SERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  if (do_eval_when_serialize_)
+  serialization::encode_bool(buf, buf_len, pos, my_phy_plan_->is_proc_exec()); //determine the serialize methods
+  //add zt 20151109 :b
+  if( ! my_phy_plan_->is_proc_exec() )
   {
-    if (OB_SUCCESS != (ret = (const_cast<ObExprValues*>(this))->open()))
+  //add zt 20151109 :e
+    if (do_eval_when_serialize_)
     {
-      TBSYS_LOG(WARN, "failed to open expr_values, err=%d", ret);
+      if (OB_SUCCESS != (ret = (const_cast<ObExprValues*>(this))->open()))
+      {
+        TBSYS_LOG(WARN, "failed to open expr_values, err=%d", ret);
+      }
     }
-  }
 
-  if (OB_LIKELY(OB_SUCCESS == ret))
+    if (OB_LIKELY(OB_SUCCESS == ret))
+    {
+      if (OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+      {
+        TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
+      }
+      else if (OB_SUCCESS != (ret = row_store_.serialize(buf, buf_len, tmp_pos)))
+      {
+        TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
+      }
+      else
+      {
+        pos = tmp_pos;
+      }
+    }
+    if (do_eval_when_serialize_)
+    {
+      (const_cast<ObExprValues*>(this))->close();
+    }
+  //add zt 20151109 :b
+  }
+  else
   {
-    if (OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+    serialization::encode_i64(buf, buf_len, pos, values_.count());
+    for(int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
     {
-      TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
-    }
-    else if (OB_SUCCESS != (ret = row_store_.serialize(buf, buf_len, tmp_pos)))
-    {
-      TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
-    }
-    else
-    {
-      pos = tmp_pos;
+      if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, pos)))
+      {
+        TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
+        break;
+      }
     }
   }
-  if (do_eval_when_serialize_)
-  {
-    (const_cast<ObExprValues*>(this))->close();
-  }
+  //add zt 20151109 :e
   return ret;
 }
 
@@ -351,23 +380,78 @@ DEFINE_DESERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  if (OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, tmp_pos)))
+  //add zt 20151109:b
+  bool proc_exec = false;
+  if( NULL != my_phy_plan_ && my_phy_plan_->is_proc_exec() ) proc_exec = true;
+  serialization::decode_bool(buf, data_len, tmp_pos, &proc_exec);
+
+  if( !proc_exec )
   {
-    TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p data_len=%ld pos=%ld", ret, buf, data_len, tmp_pos);
-  }
-  else if (OB_SUCCESS != (ret = row_store_.deserialize(buf, data_len, tmp_pos)))
-  {
-    TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p data_len=%ld pos=%ld", ret, buf, data_len, tmp_pos);
+    //add zt 20151109:e
+    if (OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, tmp_pos)))
+    {
+      TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p data_len=%ld pos=%ld", ret, buf, data_len, tmp_pos);
+    }
+    else if (OB_SUCCESS != (ret = row_store_.deserialize(buf, data_len, tmp_pos)))
+    {
+      TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p data_len=%ld pos=%ld", ret, buf, data_len, tmp_pos);
+    }
+    else
+    {
+      from_deserialize_ = true;
+      pos = tmp_pos;
+    }
+    //add zt 20151109:b
   }
   else
   {
-    from_deserialize_ = true;
-    pos = tmp_pos;
+    int64_t expr_value_count;
+    if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, tmp_pos, &expr_value_count)) )
+    {
+      TBSYS_LOG(WARN, "deserialize the expr values count fail, ret=%d", ret);
+    }
+    else
+    {
+      for(int64_t i = 0; OB_SUCCESS == ret && i < expr_value_count; ++i)
+      {
+        ObSqlExpression expr;
+        values_.push_back(expr);
+        if( OB_SUCCESS != (ret = values_.at(i).deserialize(buf, data_len, tmp_pos)) )
+        {
+          TBSYS_LOG(WARN, "Fail to deserialize expr[%ld], ret=%d", i, ret);
+        }
+      }
+    }
+    if( OB_SUCCESS == ret )
+    {
+      //yes, it is from deserialize, but we need to behavior as construct
+      //each time when opened, it should read from the expr_values;
+      from_deserialize_ = false;
+      pos = tmp_pos;
+    }
   }
+  //add zt 20151109:e
   return ret;
 }
 
 DEFINE_GET_SERIALIZE_SIZE(ObExprValues)
 {
-  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
+  //delete by zt 20151109 :b
+//  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
+  //delete by zt 20151109 :e
+  bool proc_exec = false;
+  if( NULL != my_phy_plan_ && my_phy_plan_->is_proc_exec() ) proc_exec = true;
+  if( !proc_exec )
+  {
+    return (row_desc_.get_serialize_size() + row_store_.get_serialize_size() + sizeof(bool));
+  }
+  else
+  {
+    int64_t size = sizeof(bool) + sizeof(int64_t);
+    for(int64_t i = 0; i < values_.count(); ++i)
+    {
+      size += values_.at(i).get_serialize_size();
+    }
+    return size;
+  }
 }

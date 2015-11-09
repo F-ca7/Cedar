@@ -19,7 +19,7 @@
 #include "ob_mem_sstable_scan.h"
 #include "common/serialization.h"
 #include "ob_phy_operator_factory.h"
-
+#include "ob_postfix_expression.h"  //add zt 20151109
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 using namespace oceanbase::common::serialization;
@@ -45,7 +45,10 @@ ObPhysicalPlan::ObPhysicalPlan()
    start_trans_(false),
    in_ups_executor_(false),
    cons_from_assign_(false),
-   next_phy_operator_id_(0)
+   next_phy_operator_id_(0),
+   //add zt 20151109 :b
+   procedure_execution_(false)
+   //add zt 20151109 :e
 {
 }
 
@@ -588,3 +591,77 @@ DEFINE_GET_SERIALIZE_SIZE(ObPhysicalPlan)
   int64_t size = 0;
   return size;
 }
+//add zt 20151109:b
+//namespace oceanbase
+//{
+//  namespace sql
+//  {
+//    //add zt 20151109 :b
+//    int ObPhysicalPlan::get_variable(ObPostfixExpression::ObPostExprNodeType type, const ObObj &expr_node, const ObObj *&val) const
+//    {
+//      int ret = OB_SUCCESS;
+//      if( NULL != my_result_set_ ) //read from result_set
+//      {
+//        if (type == ObPostfixExpression::PARAM_IDX)
+//        {
+//          int64_t param_idx = OB_INVALID_INDEX;
+//          if ((ret = expr_node.get_int(param_idx)) != OB_SUCCESS)
+//          {
+//            TBSYS_LOG(ERROR, "Can not get param index, ret=%d", ret);
+//          }
+//          else if (param_idx < 0 || param_idx >= my_result_set_->get_params().count())
+//          {
+//            ret = OB_ERR_ILLEGAL_INDEX;
+//            TBSYS_LOG(ERROR, "Wrong index of question mark position, pos = %ld\n", param_idx);
+//          }
+//          else
+//          {
+//            val = my_result_set_->get_params().at(param_idx);
+//          }
+//        }
+//        else if (type == ObPostfixExpression::SYSTEM_VAR || type == ObPostfixExpression::TEMP_VAR)
+//        {
+//          ObString var_name;
+//          ObSQLSessionInfo *session_info = my_result_set_->get_session();
+//          if (!session_info)
+//          {
+//            ret = OB_ERR_UNEXPECTED;
+//            TBSYS_LOG(WARN, "Can not get session info.err=%d", ret);
+//          }
+//          else if ((ret = expr_node.get_varchar(var_name)) != OB_SUCCESS)
+//          {
+//            TBSYS_LOG(ERROR, "Can not get variable name");
+//          }
+//          else if (type == ObPostfixExpression::SYSTEM_VAR
+//                   && (val = session_info->get_sys_variable_value(var_name)) == NULL)
+//          {
+//            ret = OB_ERR_VARIABLE_UNKNOWN;
+//            TBSYS_LOG(USER_ERROR, "System variable %.*s does not exists", var_name.length(), var_name.ptr());
+//          }
+//          else if (type == ObPostfixExpression::TEMP_VAR
+//                   && (val = session_info->get_variable_value(var_name)) == NULL)
+//          {
+//            ret = OB_ERR_VARIABLE_UNKNOWN;
+//            TBSYS_LOG(USER_ERROR, "Variable %.*s does not exists", var_name.length(), var_name.ptr());
+//          }
+//        }
+//        else if (type == ObPostfixExpression::CUR_TIME_OP)
+//        {
+//          if ((val = my_result_set_->get_cur_time_place()) == NULL)
+//          {
+//            ret = OB_ERR_UNEXPECTED;
+//            TBSYS_LOG(WARN, "Can not get current time. err=%d", ret);
+//          }
+//        }
+//      }
+//      else if( main_query_->get_type() == PHY_PROCEDURE)//read from procedure
+//      {
+
+//      }
+//      return ret;
+//    }
+//    //add zt 20151109 :e
+
+//  }
+//}
+//add zt 20151109:e
