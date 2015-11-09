@@ -32,6 +32,8 @@ namespace oceanbase {
         return OB_SUCCESS;
       }
 
+//      NEED_SERIALIZE_AND_DESERIALIZE;
+
       ObArray<ObString> var_set_;
     };
 

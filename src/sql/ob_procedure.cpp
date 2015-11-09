@@ -6,7 +6,31 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
+/* ========================================================
+ *      SpInst Definition
+ * =======================================================*/
+DEFINE_SERIALIZE(SpInst)
+{
+  UNUSED(buf);
+  UNUSED(pos);
+  UNUSED(buf_len);
+  TBSYS_LOG(WARN, "Could not serialize inst[%d]", type_);
+  return OB_ERROR;
+}
 
+DEFINE_DESERIALIZE(SpInst)
+{
+  UNUSED(buf);
+  UNUSED(data_len);
+  UNUSED(pos);
+  TBSYS_LOG(WARN, "Could not deserialize inst[%d]", type_);
+  return OB_ERROR;
+}
+
+
+/* ==============================================
+ *    SpExprInst Definition
+ * ===============================================*/
 int SpExprInst::set_var_val(ObVarAssignVal &var)
 {
   var_val_ = var;
@@ -42,6 +66,9 @@ int SpExprInst::exec()
   return ret;
 }
 
+/* ===============================================
+ *    SpRdBaseInst Definition
+ * ==============================================*/
 const VariableSet& SpRdBaseInst::get_read_variable_set() const
 {
   return rs_;
@@ -90,6 +117,10 @@ int SpRdBaseInst::exec()
   return ret;
 }
 
+
+/* ========================================================
+ *      SpRwDeltaInst Definition
+ * =======================================================*/
 const VariableSet& SpRwDeltaInst::get_read_variable_set() const
 {
   return rs_;
@@ -135,6 +166,9 @@ int SpRwDeltaInst::exec()
   return ret;
 }
 
+/* ========================================================
+ *      SpRwCompInst Definition
+ * =======================================================*/
 int SpRwCompInst::exec()
 {
   int ret = OB_SUCCESS;
@@ -166,6 +200,9 @@ int SpRwCompInst::exec()
   return ret;
 }
 
+/* ========================================================
+ *      SpRwDeltaIntoInst Definition
+ * =======================================================*/
 int SpRwDeltaIntoVarInst::exec()
 {
   int ret = OB_SUCCESS;
@@ -226,6 +263,137 @@ int SpRwCompInst::set_rwcomp_op(ObPhyOperator *op)
   return OB_SUCCESS;
 }
 
+/* ========================================================
+ *      SpBlockInsts Definition
+ * =======================================================*/
+/**
+ * @brief SpBlockInsts::exec
+ * important protocal, a group of instructions would be sent to ups
+ * @return
+ */
+int SpBlockInsts::exec()
+{
+  int ret = OB_SUCCESS;
+  /**
+    * sub_procedure_ should be serializable and deserializable
+    * local_result_ should contains variables calculated by ups
+    */
+//  proc_->rpc_->procedure_execute(remain_us, *sub_procedure_, local_result);
+  return ret;
+}
+
+DEFINE_SERIALIZE(SpBlockInsts)
+{
+  int ret = OB_SUCCESS;
+  int64_t count = inst_list_.count();
+
+  if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, count)) )
+  {
+    TBSYS_LOG(WARN, "serialize inst count fail");
+  }
+
+  //serialize instructions
+  for(int64_t i = 0; i < count && OB_SUCCESS == ret; ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    SpInstType type = inst->get_type();
+    switch(type)
+    {
+    case SP_E_INST:
+    case SP_D_INST:
+    case SP_DE_INST:
+      ret = serialization::encode_i32(buf, buf_len, pos, type);
+      inst->serialize(buf, buf_len,pos);
+      break;
+    default:
+      TBSYS_LOG(WARN, "Unsupport serialize inst[%d] to UPS", type);
+      break;
+    }
+  }
+
+  //serialize read variables
+//  rs_.serialize(buf, buf_len, pos);
+  int64_t rd_var_count = rs_.var_set_.count();
+  if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_var_count)))
+  {
+    TBSYS_LOG(WARN, "serialize read variables count fail");
+  }
+  ObSQLSessionInfo *session_info = proc_->get_phy_plan()->get_result_set()->get_session();
+  for(int64_t rd_var_itr = 0; rd_var_itr < rs_.var_set_.count() && OB_SUCCESS == ret; ++rd_var_itr)
+  {
+    const ObString &var_name = rs_.var_set_.at(rd_var_itr);
+    const ObObj* obj = session_info->get_variable_value(var_name);
+    if( NULL == obj )
+    {
+      TBSYS_LOG(WARN, "variable[%.*s] does not found in session", var_name.length(), var_name.ptr());
+    }
+    else if( OB_SUCCESS != (ret = var_name.serialize(buf, buf_len, pos)) )
+    {
+      TBSYS_LOG(WARN, "variable name serialization fail");
+    }
+    else if( OB_SUCCESS != (ret = obj->serialize(buf, buf_len, pos)) )
+    {
+      TBSYS_LOG(WARN, "variable value serialization fail");
+    }
+  }
+  return ret;
+}
+
+DEFINE_DESERIALIZE(SpBlockInsts)
+{
+  int ret = OB_SUCCESS;
+  int64_t count = 0;
+
+  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &count)) )
+  {
+    TBSYS_LOG(WARN, "deserialize inst count fail");
+  }
+  for(int64_t i = 0; i < count && OB_SUCCESS == ret; ++i)
+  {
+    SpInstType type;
+    SpInst *inst = NULL;
+    int32_t type_int_value = 0;
+    serialization::decode_i32(buf, data_len, pos, &type_int_value);
+    type = static_cast<SpInstType>(type_int_value);
+    switch (type) {
+    case SP_E_INST:
+      inst = proc_->create_inst<SpExprInst>();
+      inst->deserialize(buf, data_len, pos);
+      break;
+    case SP_D_INST:
+      inst = proc_->create_inst<SpRwDeltaInst>();
+      inst->deserialize(buf, data_len, pos);
+      break;
+    case SP_DE_INST:
+      inst = proc_->create_inst<SpRwDeltaIntoVarInst>();
+      inst->deserialize(buf, data_len, pos);
+      break;
+    default:
+      TBSYS_LOG(WARN, "Unsupport deserialize inst[%d]", type);
+      ret = OB_ERROR;
+      break;
+    }
+    if( OB_SUCCESS == ret )
+      add_inst(inst);
+    else
+      break;
+  }
+
+  //how to keep the variable set on ups remains a problem,
+  //it should be consider with the expr execution
+  int64_t rd_var_count = 0;
+  serialization::decode_i64(buf, data_len, pos, &rd_var_count);
+  for(int64_t i = 0; i < rd_var_count && OB_SUCCESS == ret; ++i)
+  {
+
+  }
+  return ret;
+}
+
+
+/*=================================================
+ *           ObProcedure Definition
+===================================================*/
 
 ObProcedure::ObProcedure()
 {
@@ -347,32 +515,6 @@ int ObProcedure::get_next_row(const common::ObRow *&row)
   return ret;
 }
 
-//int ObProcedure::set_child(int32_t child_idx, ObPhyOperator &child_operator)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(child_idx);
-//  UNUSED(child_operator);
-//  if ((ret = ObMultiChildrenPhyOperator::set_child(child_idx, child_operator)) == OB_SUCCESS)
-//  {
-//    if (ObMultiChildrenPhyOperator::get_child_num() > child_num_)
-//    {
-//      child_num_++;
-//    }
-//  }
-//  return ret;
-//}
-
-//int32_t ObProcedure::get_child_num() const
-//{
-//  int child_num = child_num_;
-//  if (child_num_ < ObMultiChildrenPhyOperator::get_child_num())
-//  {
-//    child_num = ObMultiChildrenPhyOperator::get_child_num();
-//  }
-//  return child_num;
-//  return 0;
-//}
-
 /**
   create declared variables for the procedure
  * @brief ObProcedure::create_variables
@@ -425,34 +567,14 @@ int ObProcedure::open()
   int ret = OB_SUCCESS;
 
   if( OB_SUCCESS != (ret = create_variables()))
-  {
-
-  }
+  {}
   else
   {
     pc_ = 0;
     for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
       ret = inst_list_.at(pc_)->exec();
-//      SpPtr ptr = inst_seq_.at(pc_);
-//      switch(ptr.type_)
-//      {
-//      case SP_E_INST:
-//        inst_e_.at(ptr.idx_).exec(); //either descripe the execution method, or ?
-//        break;
-//      case SP_A_INST:
-//        break;
-//      case SP_D_INST:
-//        inst_d_.at(ptr.idx_).exec();
-//        break;
-//      case SP_B_INST:
-//        inst_d_.at(ptr.idx_).exec();
-//        break;
-//      case SP_C_INST:
-//        break;
-//      default:
-//        break;
-//      }
+
       debug_status();
     }
   }
@@ -476,26 +598,7 @@ int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
 int ObProcedure::debug_status() const
 {
   int ret = OB_SUCCESS;
-//  SpPtr ptr = inst_seq_.at(pc_);
   const SpInst *inst = inst_list_.at(pc_);
-//  switch(ptr.type_)
-//  {
-//  case SP_E_INST:
-//    inst = &inst_e_.at(ptr.idx_); //either descripe the execution method, or ?
-//    break;
-//  case SP_A_INST:
-//    break;
-//  case SP_D_INST:
-//    inst = &inst_d_.at(ptr.idx_);
-//    break;
-//  case SP_B_INST:
-//    inst = &inst_b_.at(ptr.idx_);
-//    break;
-//  case SP_C_INST:
-//    break;
-//  default:
-//    break;
-//  }
 
   if( inst != NULL )
   {
@@ -647,10 +750,23 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
+int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type[Block]\n");
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    databuff_printf(buf, buf_len, pos, "\t sub-inst %ld: ", i);
+    pos += inst->to_string(buf + pos, buf_len -pos);
+  }
+  return pos;
+}
+
 int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "procedure ()\n");
+  databuff_printf(buf, buf_len, pos, "Procedure %.*s\n", proc_name_.length(), proc_name_.ptr());
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *inst = inst_list_.at(i);

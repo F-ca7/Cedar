@@ -5,6 +5,20 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
+//DEFINE_SERIALIZE(VariableSet)
+//{
+//  int ret = OB_SUCCESS;
+
+//  return ret;
+//}
+
+//DEFINE_DESERIALIZE(VariableSet)
+//{
+//  int ret = OB_SUCCESS;
+
+//  return ret;
+//}
+
 ObProcedureAssgin::ObProcedureAssgin()
 {
 }

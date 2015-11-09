@@ -8,6 +8,7 @@
 #include "ob_procedure_assgin_stmt.h"
 #include "ob_procedure_declare_stmt.h"
 #include "ob_raw_expr.h"
+#include "mergeserver/ob_ms_rpc_proxy.h"
 using namespace oceanbase::common;
 namespace oceanbase
 {
@@ -21,7 +22,9 @@ namespace oceanbase
       SP_C_INST, //control instruction
       SP_B_INST, //read baseline data
       SP_D_INST, //maintain delta data
+      SP_DE_INST, //maintain delta data, read into variables
       SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
+      SP_BLOCK_INST, //for a block of instructions
       SP_UNKOWN
     };
 
@@ -66,7 +69,9 @@ namespace oceanbase
       static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
 
       void set_owner_procedure(ObProcedure *proc) { proc_ = proc;}
+      SpInstType get_type() const { return type_; }
 
+      VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
     protected:
       SpInstType type_;
@@ -83,6 +88,7 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const;
       int set_var_val(ObVarAssignVal &var);
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      NEED_SERIALIZE_AND_DESERIALIZE;
     private:
       ObVarAssignVal var_val_;
       VariableSet ws_;
@@ -111,7 +117,8 @@ namespace oceanbase
     class SpRwDeltaInst : public SpInst
     {
     public:
-      SpRwDeltaInst() : SpInst(SP_D_INST), op_(NULL) {}
+      SpRwDeltaInst(SpInstType type = SP_D_INST) : SpInst(type), op_(NULL) {}
+//      SpRwDeltaInst(SpInstType type) : SpInst(type), op_(NULL) {}
 //      virtual ~SpRwDeltaInst() {}
       virtual int exec();
       virtual const VariableSet &get_read_variable_set() const;
@@ -122,6 +129,7 @@ namespace oceanbase
       int set_rwdelta_op(ObPhyOperator *op);
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      NEED_SERIALIZE_AND_DESERIALIZE;
     protected:
       ObPhyOperator *op_;
       VariableSet rs_;
@@ -132,7 +140,7 @@ namespace oceanbase
     class SpRwDeltaIntoVarInst : public SpRwDeltaInst
     {
     public:
-      SpRwDeltaIntoVarInst() : SpRwDeltaInst() {}
+      SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST) {}
 //      virtual ~SpRwDeltaIntoVarInst() {}
 
       virtual int exec();
@@ -148,6 +156,7 @@ namespace oceanbase
       }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      NEED_SERIALIZE_AND_DESERIALIZE;
     private:
       ObArray<ObString> var_list_;
     };
@@ -184,6 +193,29 @@ namespace oceanbase
       ObArray<ObString> var_list_;
     };
 
+    /**
+     * @brief The SpInstBlock class
+     * a list of each instruction, which would be sent to ups for further execution
+     */
+    class SpBlockInsts : public SpInst
+    {
+    public:
+      SpBlockInsts() : SpInst(SP_BLOCK_INST), inst_list_() {}
+      virtual int exec();
+
+      virtual const VariableSet &get_read_variable_set() const { return rs_; }
+      virtual const VariableSet &get_write_variable_set() const { return ws_; }
+
+      void add_inst(SpInst *inst) { inst_list_.push_back(inst); }
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    private:
+      ObArray<SpInst *> inst_list_;
+      VariableSet rs_; //fake
+      VariableSet ws_; //fake
+    };
+
     template<class T>
     struct sp_inst_traits
     {
@@ -216,6 +248,12 @@ namespace oceanbase
 
     template<>
     struct sp_inst_traits<SpRwCompInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpBlockInsts>
     {
       static const bool is_sp_inst = true;
     };
@@ -348,10 +386,9 @@ namespace oceanbase
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
       ModuleArena arena_;
+      mergeserver::ObMergerRpcProxy* rpc_;
     };
   }
 }
-
-
 
 #endif
