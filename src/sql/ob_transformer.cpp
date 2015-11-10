@@ -656,7 +656,7 @@ int ObTransformer::gen_physical_procedure(
     }
     else
     {
-
+      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);
       for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
       {
         if((ret=result_op->add_param(*stmt->get_param(i)))!=OB_SUCCESS)

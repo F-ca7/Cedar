@@ -506,7 +506,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
  *      SpBlockInsts Definition
  * =======================================================*/
 
-int SpBlockInsts::init_physical_plan(ObPhysicalPlan &exec_plan, const ObPhysicalPlan &out_plan)
+int SpBlockInsts::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan)
 {
   bool start_new_trans = false;
   ObSQLSessionInfo *session = out_plan.get_result_set()->get_session();
@@ -584,7 +584,7 @@ int SpBlockInsts::exec()
   ObProcedure proc;
   ObUpsResult result;
 
-  init_physical_plan(exec_plan, proc_->my_phy_plan_);
+  init_physical_plan(exec_plan, *proc_->my_phy_plan_);
 
   proc.add_inst(this);
   exec_plan.add_phy_query(&proc, NULL, true); //add as the main query
@@ -603,7 +603,7 @@ int SpBlockInsts::exec()
       ret = OB_PROCESS_TIMEOUT;
       TBSYS_LOG(WARN, "ups execute timeout. remain_us[%ld]", remain_us);
     }
-    else if (OB_UNLIKELY(NULL != out_plan->my_phy_plan_ && out_plan->is_terminate(ret)))
+    else if (OB_UNLIKELY(NULL != out_plan && out_plan->is_terminate(ret)))
     {
       TBSYS_LOG(WARN, "execution was terminated ret is %d", ret);
     }
@@ -620,7 +620,6 @@ int SpBlockInsts::exec()
       }
     }
   }
-  proc_->rpc_->ups_plan_execute(remain_us, *exec_plan, result);
   proc_->get_phy_plan()->set_proc_exec(false);
   return ret;
 }
@@ -733,8 +732,8 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   {
     ObString var_name;
     ObObj obj;
-    var_name.deserialize(buf, buf_len, pos);
-    obj.deserialize(buf, buf_len, pos);
+    var_name.deserialize(buf, data_len, pos);
+    obj.deserialize(buf, data_len, pos);
 
     proc_->write_variable(var_name, obj);
   }
@@ -911,16 +910,64 @@ int ObProcedure::create_variables()
   return ret;
 }
 
+/**
+ * @brief ObProcedure::optimize
+ *  adjust the execution path of instructions
+ *  here we first try to group the instructions
+ *  scan the original instructions list, and save
+ *  into the real execution list
+ * @return
+ */
+int ObProcedure::optimize()
+{
+  if( proc_name_.compare("ups_proc_test"))
+  {
+    // 0 2 6 8 { 1 3 4 5 7 9 }
+    exec_list_.reserve(5);
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(6));
+    exec_list_.push_back(inst_list_.at(8));
+
+    SpBlockInsts *block_inst =  create_inst<SpBlockInsts>();
+    block_inst->add_inst(inst_list_.at(1));
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(9));
+    exec_list_.push_back(block_inst);
+  }
+  //else do nothing
+  else
+  {
+    exec_list_.reserve(inst_list_.count());
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      exec_list_.push_back(inst_list_.at(i));
+    }
+  }
+  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
+  return OB_SUCCESS;
+}
+
+
 int ObProcedure::open()
 {
   int ret = OB_SUCCESS;
-
+  optimize();
   if( OB_SUCCESS != (ret = create_variables()))
   {}
   else
   {
     pc_ = 0;
-    for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
+//    for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
+//    {
+//      ret = inst_list_.at(pc_)->exec();
+
+//      debug_status();
+//    }
+    for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
       ret = inst_list_.at(pc_)->exec();
 
@@ -956,7 +1003,8 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
 int ObProcedure::debug_status() const
 {
   int ret = OB_SUCCESS;
-  const SpInst *inst = inst_list_.at(pc_);
+//  const SpInst *inst = inst_list_.at(pc_);
+  const SpInst *inst = exec_list_.at(pc_);
 
   if( inst != NULL )
   {
@@ -1024,12 +1072,19 @@ DEFINE_DESERIALIZE(ObProcedure)
   int ret = OB_SUCCESS;
   SpBlockInsts* block_inst = create_inst<SpBlockInsts>();
   if( OB_SUCCESS != (ret = block_inst->deserialize_inst(
-                       buf, data_len, pos, my_phy_plan_->allocator_,
+                       buf, data_len, pos, *my_phy_plan_->allocator_,
                        my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )
   {
     TBSYS_LOG(WARN, "deserialize instruction fail");
   }
   return ret;
+}
+
+DEFINE_GET_SERIALIZE_SIZE(ObProcedure)
+{
+  OB_ASSERT(0);
+  TBSYS_LOG(WARN, "do not get here, i do not implement");
+  return 0;
 }
 
 namespace oceanbase{

@@ -231,7 +231,7 @@ namespace oceanbase
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
-      int init_physical_plan(ObPhysicalPlan &exec_plan, const ObPhysicalPlan &out_plan);
+      int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
 
     private:
       ObArray<SpInst *> inst_list_;
@@ -314,43 +314,11 @@ namespace oceanbase
 //			virtual int set_child(int32_t child_idx, ObPhyOperator &child_operator);
 //			virtual int32_t get_child_num() const;
 
+      int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
 			int set_proc_name(ObString &proc_name);/*设置存储过程名*/
 			int add_param(ObParamDef &proc_param);
 			int set_params(ObArray<ObParamDef*> &params);/*存储过程参数*/
 			int add_declare_var(ObString &var);/*添加一个变量*/
-
-//      int add_inst_e(SpExprInst &inst)
-//      {
-//        inst_seq_.push_back(SpPtr(SP_E_INST, inst_e_.count()));
-//        inst_e_.push_back(inst);
-//        return OB_SUCCESS;
-//      }
-
-//      int add_inst_b(SpRdBaseInst &inst)
-//      {
-//        inst_seq_.push_back(SpPtr(SP_B_INST, inst_b_.count()));
-//        inst_b_.push_back(inst);
-//        return OB_SUCCESS;
-//      }
-
-//      int add_inst_d(SpRwDeltaInst &inst)
-//      {
-//        inst_seq_.push_back(SpPtr(SP_D_INST, inst_d_.count()));
-//        inst_d_.push_back(inst);
-//        return OB_SUCCESS;
-//      }
-
-//      int add_inst_a(SpRwCompInst &inst)
-//      {
-//        inst_seq_.push_back(SpPtr(SP_A_INST, inst_a_.count()));
-//        inst_a_.push_back(inst);
-//      }
-
-//      int add_inst_d_into_(SpRwDeltaIntoVarInst &inst)
-//      {
-//        inst_seq_.push_back(SpPtr(SP_D_INST, inst_d_.count()));
-
-//      }
 
       int add_var_def(ObVariableDef def)
       {
@@ -364,6 +332,8 @@ namespace oceanbase
       int read_variable(const ObString &var_name, const ObObj *&val) const;
 
       int debug_status() const;
+
+      int optimize();
 
       ObArray<ObParamDef*>& get_params();
 			ObParamDef* get_param(int64_t index);
@@ -416,10 +386,12 @@ namespace oceanbase
       ObArray<ObVariableDef> defs_;
 
       ObArray<SpInst *> inst_list_;
+      ObArray<SpInst *> exec_list_;
 
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
       ModuleArena arena_;
+      mergeserver::ObMergerRpcProxy *rpc_;
     };
 
 //    class ObProcedureUpsCall : public ObNoChildrenPhyOperator
