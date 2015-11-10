@@ -881,7 +881,7 @@ namespace oceanbase
             * */
           else if( owner_op_->get_phy_plan()->get_main_query()->get_type() == PHY_PROCEDURE ) //execute in procedure and on ups
           {
-            ObProcedure *proc = static_cast<ObProcedure *>(owner_op_->get_phy_plan()->get_main_query());
+            SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
             if( type == PARAM_IDX )
             {
               TBSYS_LOG(WARN, "Unsupported read");
@@ -1676,6 +1676,7 @@ namespace oceanbase
       return ret;
     }
 
+    //TODO COMMENT BY ZT, serialize methods have changed, we have to update the get_serialize methods
     DEFINE_GET_SERIALIZE_SIZE(ObPostfixExpression)
     {
       int64_t size = 0;

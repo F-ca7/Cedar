@@ -28,12 +28,14 @@ namespace oceanbase
   namespace sql
   {
     class ObTableRpcScan;
-    class ObProcedure; //add zt 20151110
+//    class ObProcedure; //add zt 20151110
+    class SpProcedure; //add zt 20151110
     class ObResultSet;
     class ObPhysicalPlan: public common::DLink
     {
       public:
-      friend class ObProcedure; //add zt 20151110
+//      friend class ObProcedure; //add zt 20151110
+      friend class SpProcedure; //add zt 20151110
         struct ObTableVersion
         {
           ObTableVersion()

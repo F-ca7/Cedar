@@ -9,7 +9,7 @@ using namespace oceanbase::common;
 /* ========================================================
  *   Serialize & Deserialize methods
  * ========================================================*/
-int ObProcedure::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const
+int SpProcedure::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const
 {
   int ret = OB_SUCCESS;
 
@@ -47,7 +47,7 @@ int ObProcedure::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const 
   return ret;
 }
 
-int ObProcedure::deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator,
+int SpProcedure::deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator,
                                      ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root)
 {
   int ret = OB_SUCCESS;
@@ -172,6 +172,22 @@ int SpExprInst::exec()
   return ret;
 }
 
+int SpExprInst::ups_exec()
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "sp expr inst exec on ups()");
+  common::ObRow input_row;
+  const ObObj *val = NULL;
+  if((ret=var_val_.var_value_->calc(input_row, val))!=OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "sp expr compute failed");
+  }
+  //update the varialbe here
+  else if ( OB_SUCCESS != (ret = proc_->write_variable(var_val_.variable_name_, *val)) )
+  {}
+  return ret;
+}
+
 int SpExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   int ret = OB_SUCCESS;
@@ -185,7 +201,6 @@ int SpExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   }
   return ret;
 }
-
 
 int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
@@ -226,7 +241,6 @@ const VariableSet& SpRdBaseInst::get_write_variable_set() const
   OB_ASSERT(ws_.var_set_.count() == 0);
   return ws_;
 }
-
 
 void SpRdBaseInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
 {
@@ -313,21 +327,17 @@ int SpRwDeltaInst::exec()
   return ret;
 }
 
-//DEFINE_SERIALIZE(SpRwDeltaInst)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(buf);
-//  UNUSED(buf_len);
-//  UNUSED(pos);
-//  ObUpsExecutor *ups_exec = static_cast<ObUpsExecutor *>(op_);
-//  ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
-
-//  if( OB_SUCCESS != (ret = serialize_tree(buf, buf_len, pos, *ups_main_query)) )
-//  {
-//    TBSYS_LOG(WARN, "Serialize ups main query fail: ret=%d", ret);
-//  }
-//  return ret;
-//}
+int SpRwDeltaInst::ups_exec()
+{
+  int ret = OB_SUCCESS;
+  //it should be a ObUpsModify
+  TBSYS_LOG(TRACE, "rw delta inst plan: %s", to_cstring(*op_));
+  if( OB_SUCCESS != (ret = op_->open()) )
+  {
+    TBSYS_LOG(WARN, "execute rw_delta_inst on ups");
+  }
+  return ret;
+}
 
 int SpRwDeltaInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -351,18 +361,6 @@ int SpRwDeltaInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &
   }
   return ret;
 }
-
-
-//DEFINE_DESERIALIZE(SpRwDeltaInst)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(buf);
-//  UNUSED(data_len);
-//  UNUSED(pos);
-//  // try to provide alloator, operators_store, op_factory
-//  deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, op_);
-//  return ret;
-//}
 
 /* ========================================================
  *      SpRwCompInst Definition
@@ -445,6 +443,40 @@ int SpRwDeltaIntoVarInst::exec()
   return ret;
 }
 
+int SpRwDeltaIntoVarInst::ups_exec()
+{
+  int ret = OB_SUCCESS;
+  const common::ObRow *row;
+  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: %s", to_cstring(*op_));
+  if(NULL != op_)
+  {
+    op_->open();
+    ret = op_->get_next_row(row);
+
+    if( ret == OB_ITER_END )
+    {
+      ret = OB_ERROR; //does not get row
+    }
+    else if( ret == OB_SUCCESS )
+    {
+      for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
+      {
+        const ObString &var_name = var_list_.at(i);
+        const ObObj *cell = NULL;
+        if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))//取出一列
+        {
+          TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
+        }
+        else if(OB_SUCCESS !=(proc_->write_variable(var_name, *cell)))
+        {
+          TBSYS_LOG(WARN, "write into variables fail");
+        }
+
+      }
+    }
+  }
+  return ret;
+}
 
 int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -452,6 +484,10 @@ int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &po
   ObUpsExecutor *ups_exec = static_cast<ObUpsExecutor *>(op_);
   ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
 
+  /**
+   * serialize the main query[ObUpsModifyWithDmlType] to the ups
+   * caution. not the ups_executor
+   * */
   if( OB_SUCCESS != (ret = proc_->serialize_tree(buf, buf_len, pos, *ups_main_query)) )
   {
     TBSYS_LOG(WARN, "Serialize ups main query fail: ret=%d", ret);
@@ -505,6 +541,13 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
 /* ========================================================
  *      SpBlockInsts Definition
  * =======================================================*/
+void SpBlockInsts::add_inst(SpInst *inst)
+{
+  inst_list_.push_back(inst);
+  rs_.addVariable(inst->get_read_variable_set());
+  ws_.addVariable(inst->get_write_variable_set());
+}
+
 
 int SpBlockInsts::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan)
 {
@@ -575,52 +618,82 @@ int SpBlockInsts::set_trans_params(ObSQLSessionInfo *session, common::ObTransReq
 int SpBlockInsts::exec()
 {
   int ret = OB_SUCCESS;
+
   /**
-    * sub_procedure_ should be serializable and deserializable
+    * proc should be serializable and deserializable
     * local_result_ should contains variables calculated by ups
     */
-//  proc_->rpc_->procedure_execute(remain_us, *sub_procedure_, local_result);
   ObPhysicalPlan exec_plan;
   ObProcedure proc;
   ObUpsResult result;
 
-  init_physical_plan(exec_plan, *proc_->my_phy_plan_);
+  ObPhysicalPlan *out_plan = proc_->get_phy_plan();
+  if( NULL == out_plan )
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "procedure does not have physical plan");
+  }
+  else
+  {
+    /**
+   *  set the execution context variables for the exec_plan
+   * */
+    init_physical_plan(exec_plan, *proc_->my_phy_plan_);
 
-  proc.add_inst(this);
-  exec_plan.add_phy_query(&proc, NULL, true); //add as the main query
+    /**
+   * build the relationship between block_inst <----> proc <----> exec_plan
+   * */
+    proc.add_inst(this);
+    exec_plan.add_phy_query(&proc, NULL, true);
 
-  //adjust the serialize methods for ObExprValues/ ObPostfixExpression
-  proc_->get_phy_plan()->set_proc_exec(true);
-  /******************************************************
+    //adjust the serialize methods for ObExprValues/ ObPostfixExpression
+    proc_->get_phy_plan()->set_proc_exec(true);
+
+    /******************************************************
     * the procedure rpc call protocal should be modified
     *****************************************************/
-  int64_t remain_us = 0;
-  ObPhysicalPlan *out_plan = proc_->get_phy_plan();
-  if (OB_LIKELY(OB_SUCCESS == ret))
-  {
-    if (out_plan->is_timeout(&remain_us))
+    int64_t remain_us = 0;
+    if (OB_LIKELY(OB_SUCCESS == ret))
     {
-      ret = OB_PROCESS_TIMEOUT;
-      TBSYS_LOG(WARN, "ups execute timeout. remain_us[%ld]", remain_us);
-    }
-    else if (OB_UNLIKELY(NULL != out_plan && out_plan->is_terminate(ret)))
-    {
-      TBSYS_LOG(WARN, "execution was terminated ret is %d", ret);
-    }
-    else if (OB_SUCCESS != (ret = proc_->rpc_->ups_plan_execute(remain_us, exec_plan, result)))
-    {
-      TBSYS_LOG(WARN, "failed to execute plan on updateserver, err=%d", ret);
-      if (OB_TRANS_ROLLBACKED == ret)
+      if (out_plan->is_timeout(&remain_us))
       {
-        // when updateserver returning TRANS_ROLLBACKED, it cannot get local_result_ to fill error message
-        TBSYS_LOG(USER_ERROR, "transaction is rolled back");
-        // reset transaction id
-        ObTransID invalid_trans;
-        out_plan->get_result_set()->get_session()->set_trans_id(invalid_trans);
+        ret = OB_PROCESS_TIMEOUT;
+        TBSYS_LOG(WARN, "ups execute timeout. remain_us[%ld]", remain_us);
+      }
+      else if (OB_UNLIKELY(NULL != out_plan && out_plan->is_terminate(ret)))
+      {
+        TBSYS_LOG(WARN, "execution was terminated ret is %d", ret);
+      }
+      else if (OB_SUCCESS != (ret = static_cast<ObProcedure *>(proc_)->rpc_->ups_plan_execute(remain_us, exec_plan, result)))
+      {
+        TBSYS_LOG(WARN, "failed to execute plan on updateserver, err=%d", ret);
+        if (OB_TRANS_ROLLBACKED == ret)
+        {
+          TBSYS_LOG(USER_ERROR, "transaction is rolled back");
+          // reset transaction id
+          ObTransID invalid_trans;
+          out_plan->get_result_set()->get_session()->set_trans_id(invalid_trans);
+        }
       }
     }
+    //adjust the serialize methods for ObExprValues / ObPostfixExpression
+    out_plan->set_proc_exec(false);
+    proc.inst_list_.clear(); //avoid destruction of instruction
   }
-  proc_->get_phy_plan()->set_proc_exec(false);
+  TBSYS_LOG(INFO, "End execution of SpBlockInst, ret=%d", ret);
+  return ret;
+}
+
+int SpBlockInsts::ups_exec()
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    ret = inst->ups_exec();
+    //try to debug status here
+    proc_->debug_status(inst);
+  }
   return ret;
 }
 
@@ -654,7 +727,6 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   }
 
   //serialize read variables
-//  rs_.serialize(buf, buf_len, pos);
   int64_t rd_var_count = rs_.var_set_.count();
   if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_var_count)))
   {
@@ -681,7 +753,6 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   return ret;
 }
 
-//DEFINE_DESERIALIZE(SpBlockInsts)
 int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena& allocator,
                                    ObPhysicalPlan::OperatorStore& operators_store, ObPhyOperatorFactory *op_factory)
 {
@@ -692,6 +763,7 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   {
     TBSYS_LOG(WARN, "deserialize inst count fail");
   }
+  inst_list_.reserve(count);
   for(int64_t i = 0; i < count && OB_SUCCESS == ret; ++i)
   {
     SpInstType type;
@@ -756,6 +828,7 @@ ObProcedure::~ObProcedure()
   }
   arena_.free();
 }
+
 int ObProcedure::set_proc_name(ObString &proc_name)
 {
   proc_name_=proc_name;
@@ -969,9 +1042,9 @@ int ObProcedure::open()
 //    }
     for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
-      ret = inst_list_.at(pc_)->exec();
+      ret = exec_list_.at(pc_)->exec();
 
-      debug_status();
+      debug_status(exec_list_.at(pc_));
     }
   }
   return ret;
@@ -1000,13 +1073,19 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
   return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
 }
 
-int ObProcedure::debug_status() const
+//int SpProcedure::debug_status() const
+//{
+//  int ret = OB_SUCCESS;
+//  const SpInst *inst = exec_list_.at(pc_);
+//  ret = debug_status(inst);
+//  return ret;
+//}
+
+int SpProcedure::debug_status(const SpInst *inst) const
 {
   int ret = OB_SUCCESS;
-//  const SpInst *inst = inst_list_.at(pc_);
-  const SpInst *inst = exec_list_.at(pc_);
 
-  if( inst != NULL )
+  if( inst != NULL && inst->get_ownner() == this )
   {
     const VariableSet &rs = inst->get_read_variable_set();
     const VariableSet &ws = inst->get_write_variable_set();
@@ -1051,7 +1130,7 @@ int ObProcedure::debug_status() const
   return ret;
 }
 
-DEFINE_SERIALIZE(ObProcedure)
+DEFINE_SERIALIZE(SpProcedure)
 {
   //must be only one block inst
   int ret = OB_SUCCESS;
@@ -1066,7 +1145,7 @@ DEFINE_SERIALIZE(ObProcedure)
   return ret;
 }
 
-DEFINE_DESERIALIZE(ObProcedure)
+DEFINE_DESERIALIZE(SpProcedure)
 {
   //must be only one block inst
   int ret = OB_SUCCESS;
@@ -1080,7 +1159,7 @@ DEFINE_DESERIALIZE(ObProcedure)
   return ret;
 }
 
-DEFINE_GET_SERIALIZE_SIZE(ObProcedure)
+DEFINE_GET_SERIALIZE_SIZE(SpProcedure)
 {
   OB_ASSERT(0);
   TBSYS_LOG(WARN, "do not get here, i do not implement");
@@ -1092,7 +1171,6 @@ namespace oceanbase{
     REGISTER_PHY_OPERATOR(ObProcedure, PHY_PROCEDURE);
   }
 }
-
 
 int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
 {

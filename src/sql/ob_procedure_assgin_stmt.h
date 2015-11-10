@@ -32,6 +32,25 @@ namespace oceanbase {
         return OB_SUCCESS;
       }
 
+      int addVariable(const VariableSet& var_set)
+      {
+        for(int64_t i = 0; i < var_set.var_set_.count(); ++i)
+        {
+          bool flag = true;
+          const ObString &var_name = var_set.var_set_.at(i);
+          for(int64_t i = 0; i < var_set_.count(); ++i)
+          {
+            if( var_name.compare(var_set_.at(i)) == 0 )
+            {
+              flag = true;
+              break;
+            }
+          }
+          if( !flag ) var_set_.push_back(var_name);
+        }
+        return OB_SUCCESS;
+      }
+
 //      NEED_SERIALIZE_AND_DESERIALIZE;
 
       ObArray<ObString> var_set_;

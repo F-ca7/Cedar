@@ -16,6 +16,7 @@ namespace oceanbase
 	{
     class ObPhysicalPlan;
     class ObProcedure;
+    class SpProcedure;
     enum SpInstType
     {
       SP_E_INST, //expr instruction
@@ -61,14 +62,16 @@ namespace oceanbase
 //      SpInst() : type_(SP_UNKOWN), proc_(NULL) {}
       SpInst(SpInstType type) : type_(type), proc_(NULL) {}
 //      virtual ~SpInst() {}
-      virtual int exec() = 0;  //exec the inst at once
+      virtual int exec() = 0;  //exec the inst on mergeserver
+      virtual int ups_exec() = 0; //exec the inst on updateserver
 //      virtual int split(SpBlockInst &block_inst) = 0; //split the inst into small ones
       virtual const VariableSet &get_read_variable_set() const = 0;
       virtual const VariableSet &get_write_variable_set() const = 0;
 
       static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
 
-      void set_owner_procedure(ObProcedure *proc) { proc_ = proc;}
+      void set_owner_procedure(SpProcedure *proc) { proc_ = proc;}
+      const SpProcedure *get_ownner() const { return proc_; }
       SpInstType get_type() const { return type_; }
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
@@ -79,7 +82,7 @@ namespace oceanbase
       virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
     protected:
       SpInstType type_;
-      ObProcedure *proc_; //the procedure thats owns this instruction
+      SpProcedure *proc_; //the procedure thats owns this instruction
     };
 
     class SpExprInst : public SpInst
@@ -88,6 +91,7 @@ namespace oceanbase
       SpExprInst() : SpInst(SP_E_INST) {}
 //      virtual ~SpExprInst() {}
       virtual int exec();
+      virtual int ups_exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       int set_var_val(ObVarAssignVal &var);
@@ -108,6 +112,7 @@ namespace oceanbase
       SpRdBaseInst() : SpInst(SP_B_INST), op_(NULL) {}
 //      virtual ~SpRdBaseInst() {}
       virtual int exec();
+      virtual int ups_exec() { /*undefined*/ return OB_ERROR;}
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
@@ -129,6 +134,7 @@ namespace oceanbase
 //      SpRwDeltaInst(SpInstType type) : SpInst(type), op_(NULL) {}
 //      virtual ~SpRwDeltaInst() {}
       virtual int exec();
+      virtual int ups_exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
@@ -154,8 +160,8 @@ namespace oceanbase
     public:
       SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST) {}
 //      virtual ~SpRwDeltaIntoVarInst() {}
-
       virtual int exec();
+      virtual int ups_exec();
 
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
@@ -183,6 +189,7 @@ namespace oceanbase
       SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
 //      virtual ~SpRwCompInst() {}
       virtual int exec();
+      virtual int ups_exec() {/*undefined*/ return OB_ERROR;}
       virtual const VariableSet &get_read_variable_set() const {return rs_;}
       virtual const VariableSet &get_write_variable_set() const {return ws_;}
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
@@ -218,11 +225,11 @@ namespace oceanbase
     public:
       SpBlockInsts() : SpInst(SP_BLOCK_INST), inst_list_() {}
       virtual int exec();
-
+      virtual int ups_exec();
       virtual const VariableSet &get_read_variable_set() const { return rs_; }
       virtual const VariableSet &get_write_variable_set() const { return ws_; }
 
-      void add_inst(SpInst *inst) { inst_list_.push_back(inst); }
+      void add_inst(SpInst *inst);
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 //      NEED_SERIALIZE_AND_DESERIALIZE;
@@ -281,6 +288,72 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
+    class SpProcedure : public ObNoChildrenPhyOperator
+    {
+    public:
+      friend class SpInst;
+      friend class SpExprInst;
+      friend class SpRdBaseInst;
+      friend class SpRwDeltaInst;
+      friend class SpRwDeltaIntoVarInst;
+      friend class SpRwCompInst;
+      friend class SpBlockInsts;
+      SpProcedure();
+      virtual ~SpProcedure();
+      virtual ObPhyOperatorType get_type() const
+      {
+        return PHY_PROCEDURE;
+      }
+
+      virtual void reset();
+      virtual void reuse();
+      virtual int open();
+      virtual int close();
+      virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+      virtual int get_next_row(const common::ObRow *&row);
+
+      virtual int write_variable(const ObString &var_name, const ObObj & val);
+      virtual int read_variable(const ObString &var_name, ObObj &val) const;
+      virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
+
+      template<class T>
+      T * create_inst()
+      {
+        T * ret = NULL;
+        if( sp_inst_traits<T>::is_sp_inst )
+        {
+          void *ptr = arena_.alloc(sizeof(T));
+          ret = new(ptr) T();
+          inst_list_.push_back((SpInst *)ret);
+          ((SpInst*)ret)->set_owner_procedure(this);
+        }
+        return ret;
+      }
+
+      virtual void add_inst(SpInst *inst)
+      {
+        inst_list_.push_back(inst);
+      }
+
+      int debug_status(const SpInst *inst) const;
+
+      int deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root);
+      int serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const;
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    private:
+      SpProcedure(const SpProcedure &other);
+      SpProcedure& operator=(const SpProcedure &other);
+
+    protected:
+
+      ObArray<SpInst *> inst_list_;
+
+      typedef int64_t ProgramCounter;
+      ProgramCounter pc_;
+      ModuleArena arena_;
+    };
+
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
      * in this class, but the execution model could not be the iterator model
@@ -288,7 +361,7 @@ namespace oceanbase
      * the real execution plan is owned by the procedure, instead of sp inst
      * @brief The ObProcedure class
      */
-    class ObProcedure : public ObNoChildrenPhyOperator
+    class ObProcedure : public SpProcedure
 		{
     public:
       friend class SpInst;
@@ -303,12 +376,9 @@ namespace oceanbase
 			virtual void reset();
 			virtual void reuse();
 			virtual int open();
-			virtual int close();
-			virtual ObPhyOperatorType get_type() const
-			{
-				return PHY_PROCEDURE;
-			}
-			virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+      virtual int close();
+
+      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 			virtual int get_next_row(const common::ObRow *&row);
 //			virtual int set_child(int32_t child_idx, ObPhyOperator &child_operator);
@@ -331,8 +401,6 @@ namespace oceanbase
       int read_variable(const ObString &var_name, ObObj &val) const;
       int read_variable(const ObString &var_name, const ObObj *&val) const;
 
-      int debug_status() const;
-
       int optimize();
 
       ObArray<ObParamDef*>& get_params();
@@ -340,61 +408,24 @@ namespace oceanbase
 			ObString& get_declare_var(int64_t index);
 			int64_t get_param_num();
       int64_t get_declare_var_num();
-
-      template<class T>
-      T * create_inst()
-      {
-        T * ret = NULL;
-        if( sp_inst_traits<T>::is_sp_inst )
-        {
-          void *ptr = arena_.alloc(sizeof(T));
-          ret = new(ptr) T();
-          inst_list_.push_back((SpInst *)ret);
-          ((SpInst*)ret)->set_owner_procedure(this);
-        }
-        return ret;
-      }
-
-      void add_inst(SpInst *inst)
-      {
-        inst_list_.push_back(inst);
-      }
-
-      int deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root);
-      int serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const;
-      NEED_SERIALIZE_AND_DESERIALIZE;
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
 			ObProcedure& operator=(const ObProcedure &other);
       //function members
 
-		private:
-			//data members
-//			int32_t child_num_;
-			ObString proc_name_;
+    private:
+      ObString proc_name_;
 			ObArray<ObParamDef*> params_;/*存储过程参数*/
       ObArray<ObString> declare_variable_;
-
-//      ObArray<SpPtr> inst_seq_;
-//      ObArray<SpExprInst> inst_e_;
-//      ObArray<SpRdBaseInst> inst_b_;
-//      ObArray<SpRwDeltaInst> inst_d_;
-//      ObArray<SpRwDeltaIntoVarInst> inst_d_into_;
-//      ObArray<SpRwCompInst> inst_a_;
       ObArray<ObVariableDef> defs_;
 
-      ObArray<SpInst *> inst_list_;
       ObArray<SpInst *> exec_list_;
 
-      typedef int64_t ProgramCounter;
-      ProgramCounter pc_;
-      ModuleArena arena_;
       mergeserver::ObMergerRpcProxy *rpc_;
     };
 
-//    class ObProcedureUpsCall : public ObNoChildrenPhyOperator
+//    class ObProcedureUpsCall : public
 //    {
 //    public:
 
