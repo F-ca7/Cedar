@@ -305,16 +305,16 @@ namespace oceanbase
         return PHY_PROCEDURE;
       }
 
-      virtual void reset();
-      virtual void reuse();
-      virtual int open();
-      virtual int close();
-      virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
-      virtual int get_next_row(const common::ObRow *&row);
+      virtual void reset() {}
+      virtual void reuse() {}
+      virtual int open() {return OB_SUCCESS;}
+      virtual int close() {return OB_SUCCESS;}
+      virtual int get_row_desc(const common::ObRowDesc *&row_desc) const {UNUSED(row_desc); return OB_SUCCESS;}
+      virtual int get_next_row(const common::ObRow *&row) {UNUSED(row); return OB_ITER_END;}
 
       virtual int write_variable(const ObString &var_name, const ObObj & val);
-      virtual int read_variable(const ObString &var_name, ObObj &val) const;
-      virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
+      virtual int read_variable(const ObString &var_name, ObObj &val) const ;
+      virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
 
       template<class T>
       T * create_inst()
@@ -341,6 +341,8 @@ namespace oceanbase
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root);
       int serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const;
       NEED_SERIALIZE_AND_DESERIALIZE;
+      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+
     private:
       SpProcedure(const SpProcedure &other);
       SpProcedure& operator=(const SpProcedure &other);
@@ -397,9 +399,9 @@ namespace oceanbase
       }
 
       int create_variables();
-      int write_variable(const ObString &var_name, const ObObj & val);
-      int read_variable(const ObString &var_name, ObObj &val) const;
-      int read_variable(const ObString &var_name, const ObObj *&val) const;
+      virtual int write_variable(const ObString &var_name, const ObObj & val);
+      virtual int read_variable(const ObString &var_name, ObObj &val) const;
+      virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
 
       int optimize();
 
@@ -425,14 +427,45 @@ namespace oceanbase
       mergeserver::ObMergerRpcProxy *rpc_;
     };
 
-//    class ObProcedureUpsCall : public
-//    {
-//    public:
+    class ObUpsProcedure : public SpProcedure
+    {
+    public:
+      ObUpsProcedure();
+      virtual ~ObUpsProcedure();
+      virtual void reset();
+      virtual void reuse();
+      virtual int open();
+      virtual int close();
 
-//      NEED_SERIALIZE_AND_DESERIALIZE;
-//    private:
-//      SpBlockInsts *block_inst_;
-//    };
+      int create_variable_table();
+      virtual int write_variable(const ObString &var_name, const ObObj &val);
+      virtual int read_variable(const ObString &var_name, ObObj &val) const;
+      virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
+//      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+    private:
+      //disallow copy
+      static const int64_t SMALL_BLOCK_SIZE = 4 * 1024LL;
+      ObUpsProcedure(const ObUpsProcedure &other);
+      ObUpsProcedure& operator=(const ObUpsProcedure &other);
+    private:
+
+      typedef common::ObPooledAllocator<common::hash::HashMapTypes<common::ObString, common::ObObj>::AllocType, common::ObWrapperAllocator> VarNameValMapAllocer;
+      typedef common::hash::ObHashMap<common::ObString,
+      common::ObObj,
+      common::hash::NoPthreadDefendMode,
+      common::hash::hash_func<common::ObString>,
+      common::hash::equal_to<common::ObString>,
+      VarNameValMapAllocer,
+      common::hash::NormalPointer,
+      common::ObSmallBlockAllocator<>
+      > VarNameValMap;
+
+      //save the variables
+      common::ObSmallBlockAllocator<> block_allocator_;
+      VarNameValMapAllocer var_name_val_map_allocer_;
+      VarNameValMap var_name_val_map_;
+      common::ObStringBuf name_pool_;
+    };
   }
 }
 

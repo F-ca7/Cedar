@@ -6,109 +6,6 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
-/* ========================================================
- *   Serialize & Deserialize methods
- * ========================================================*/
-int SpProcedure::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const
-{
-  int ret = OB_SUCCESS;
-
-  if (OB_SUCCESS == ret)
-  {
-    if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, root.get_type())))
-    {
-      TBSYS_LOG(WARN, "fail to encode op type:ret[%d]", ret);
-    }
-    else if (OB_SUCCESS != (ret = root.serialize(buf, buf_len, pos)))
-    {
-      TBSYS_LOG(WARN, "fail to serialize root:ret[%d] type=%d op=%s", ret, root.get_type(), to_cstring(root));
-    }
-    else
-    {
-      TBSYS_LOG(DEBUG, "serialize operator succ, type=%d", root.get_type());
-    }
-  }
-
-  for (int64_t i=0;OB_SUCCESS == ret && i<root.get_child_num();i++)
-  {
-    if (NULL != root.get_child(static_cast<int32_t>(i)) )
-    {
-      if (OB_SUCCESS != (ret = serialize_tree(buf, buf_len, pos, *(root.get_child(static_cast<int32_t>(i))))))
-      {
-        TBSYS_LOG(WARN, "fail to serialize tree:ret[%d]", ret);
-      }
-    }
-    else
-    {
-      ret = OB_ERR_UNEXPECTED;
-      TBSYS_LOG(WARN, "this operator should has child:type[%d]", root.get_type());
-    }
-  }
-  return ret;
-}
-
-int SpProcedure::deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator,
-                                     ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root)
-{
-  int ret = OB_SUCCESS;
-  int32_t phy_operator_type = 0;
-  if (NULL == op_factory)
-  {
-    ret = OB_NOT_INIT;
-    TBSYS_LOG(ERROR, "op_factory == NULL");
-  }
-  else if (OB_SUCCESS != (ret = serialization::decode_vi32(buf, data_len, pos, &phy_operator_type)))
-  {
-    TBSYS_LOG(WARN, "fail to decode phy operator type:ret[%d]", ret);
-  }
-
-  if (OB_SUCCESS == ret)
-  {
-    root = op_factory->get_one(static_cast<ObPhyOperatorType>(phy_operator_type), allocator);
-    if (NULL == root)
-    {
-      ret = OB_ALLOCATE_MEMORY_FAILED;
-      TBSYS_LOG(WARN, "get operator fail:type[%d]", phy_operator_type);
-    }
-  }
-  if (OB_SUCCESS == ret)
-  {
-    if (OB_SUCCESS != (ret = root->deserialize(buf, data_len, pos)))
-    {
-      TBSYS_LOG(WARN, "fail to deserialize operator:ret[%d]", ret);
-    }
-    else if (OB_SUCCESS != (ret = operators_store.push_back(root)))
-    {
-      TBSYS_LOG(WARN, "fail to push operator to operators_store:ret[%d]", ret);
-    }
-  }
-
-  if (OB_SUCCESS == ret)
-  {
-    if (root->get_type() <= PHY_INVALID || root->get_type() >= PHY_END)
-    {
-      ret = OB_ERR_UNEXPECTED;
-      TBSYS_LOG(WARN, "invalid operator type:[%d]", root->get_type());
-    }
-  }
-
-  if (OB_SUCCESS == ret)
-  {
-    for (int32_t i=0; OB_SUCCESS == ret && i<root->get_child_num(); i++)
-    {
-      ObPhyOperator *child = NULL;
-      if (OB_SUCCESS != (ret = deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, child)))
-      {
-        TBSYS_LOG(WARN, "fail to deserialize tree:ret[%d]", ret);
-      }
-      else if (OB_SUCCESS != (ret = root->set_child(i, *child)))
-      {
-        TBSYS_LOG(WARN, "fail to set child:ret[%d]", ret);
-      }
-    }
-  }
-  return ret;
-}
 
 /* ========================================================
  *      SpInst Definition
@@ -624,7 +521,7 @@ int SpBlockInsts::exec()
     * local_result_ should contains variables calculated by ups
     */
   ObPhysicalPlan exec_plan;
-  ObProcedure proc;
+  SpProcedure proc;
   ObUpsResult result;
 
   ObPhysicalPlan *out_plan = proc_->get_phy_plan();
@@ -813,6 +710,227 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
 }
 
 /*=================================================
+ * 					SpProcedure Defintion
+ * ===============================================*/
+SpProcedure::SpProcedure(){}
+
+SpProcedure::~SpProcedure()
+{
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    inst_list_.at(i)->~SpInst();
+  }
+  arena_.free();
+}
+
+int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
+{
+  UNUSED(var_name);
+  UNUSED(val);
+  return OB_SUCCESS;
+}
+
+int SpProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
+{
+  UNUSED(var_name);
+  UNUSED(val);
+  return OB_SUCCESS;
+}
+
+int SpProcedure::read_variable(const ObString &var_name, ObObj &val) const
+{
+  UNUSED(var_name);
+  UNUSED(val);
+  return OB_SUCCESS;
+}
+
+int SpProcedure::debug_status(const SpInst *inst) const
+{
+  int ret = OB_SUCCESS;
+
+  if( inst != NULL && inst->get_ownner() == this )
+  {
+    const VariableSet &rs = inst->get_read_variable_set();
+    const VariableSet &ws = inst->get_write_variable_set();
+    char debug_buf[1024];
+    int64_t buf_len = 1024, pos = 0;
+
+    databuff_printf(debug_buf, buf_len, pos, "inst %ld\n", pc_);
+
+    for(int64_t i = 0; i < rs.var_set_.count(); ++i)
+    {
+      ObObj val;
+      const ObString &var_name = rs.var_set_.at(i);
+      if( OB_SUCCESS == read_variable(var_name, val))
+      {
+        databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
+                        var_name.length(), var_name.ptr(), to_cstring(val));
+      }
+      else
+      {
+         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
+                         var_name.length(), var_name.ptr());
+      }
+    }
+
+    for(int64_t i = 0; i < ws.var_set_.count(); ++i)
+    {
+      ObObj val;
+      const ObString &var_name = ws.var_set_.at(i);
+      if( OB_SUCCESS == read_variable(var_name, val))
+      {
+         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
+                         var_name.length(), var_name.ptr(), to_cstring(val));
+      }
+      else
+      {
+         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
+                         var_name.length(), var_name.ptr());
+      }
+    }
+    TBSYS_LOG(INFO, "%s", debug_buf);
+  }
+  return ret;
+}
+
+int SpProcedure::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const
+{
+  int ret = OB_SUCCESS;
+
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, root.get_type())))
+    {
+      TBSYS_LOG(WARN, "fail to encode op type:ret[%d]", ret);
+    }
+    else if (OB_SUCCESS != (ret = root.serialize(buf, buf_len, pos)))
+    {
+      TBSYS_LOG(WARN, "fail to serialize root:ret[%d] type=%d op=%s", ret, root.get_type(), to_cstring(root));
+    }
+    else
+    {
+      TBSYS_LOG(DEBUG, "serialize operator succ, type=%d", root.get_type());
+    }
+  }
+
+  for (int64_t i=0;OB_SUCCESS == ret && i<root.get_child_num();i++)
+  {
+    if (NULL != root.get_child(static_cast<int32_t>(i)) )
+    {
+      if (OB_SUCCESS != (ret = serialize_tree(buf, buf_len, pos, *(root.get_child(static_cast<int32_t>(i))))))
+      {
+        TBSYS_LOG(WARN, "fail to serialize tree:ret[%d]", ret);
+      }
+    }
+    else
+    {
+      ret = OB_ERR_UNEXPECTED;
+      TBSYS_LOG(WARN, "this operator should has child:type[%d]", root.get_type());
+    }
+  }
+  return ret;
+}
+
+int SpProcedure::deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator,
+                                     ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root)
+{
+  int ret = OB_SUCCESS;
+  int32_t phy_operator_type = 0;
+  if (NULL == op_factory)
+  {
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(ERROR, "op_factory == NULL");
+  }
+  else if (OB_SUCCESS != (ret = serialization::decode_vi32(buf, data_len, pos, &phy_operator_type)))
+  {
+    TBSYS_LOG(WARN, "fail to decode phy operator type:ret[%d]", ret);
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    root = op_factory->get_one(static_cast<ObPhyOperatorType>(phy_operator_type), allocator);
+    if (NULL == root)
+    {
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      TBSYS_LOG(WARN, "get operator fail:type[%d]", phy_operator_type);
+    }
+  }
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = root->deserialize(buf, data_len, pos)))
+    {
+      TBSYS_LOG(WARN, "fail to deserialize operator:ret[%d]", ret);
+    }
+    else if (OB_SUCCESS != (ret = operators_store.push_back(root)))
+    {
+      TBSYS_LOG(WARN, "fail to push operator to operators_store:ret[%d]", ret);
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if (root->get_type() <= PHY_INVALID || root->get_type() >= PHY_END)
+    {
+      ret = OB_ERR_UNEXPECTED;
+      TBSYS_LOG(WARN, "invalid operator type:[%d]", root->get_type());
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    for (int32_t i=0; OB_SUCCESS == ret && i<root->get_child_num(); i++)
+    {
+      ObPhyOperator *child = NULL;
+      if (OB_SUCCESS != (ret = deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, child)))
+      {
+        TBSYS_LOG(WARN, "fail to deserialize tree:ret[%d]", ret);
+      }
+      else if (OB_SUCCESS != (ret = root->set_child(i, *child)))
+      {
+        TBSYS_LOG(WARN, "fail to set child:ret[%d]", ret);
+      }
+    }
+  }
+  return ret;
+}
+
+DEFINE_SERIALIZE(SpProcedure)
+{
+  //must be only one block inst
+  int ret = OB_SUCCESS;
+  if( inst_list_.at(0)->get_type() != SP_BLOCK_INST )
+  {
+    TBSYS_LOG(WARN, "unexpected ups procedure execution");
+  }
+  else
+  {
+    inst_list_.at(0)->serialize_inst(buf, buf_len, pos);
+  }
+  return ret;
+}
+
+DEFINE_DESERIALIZE(SpProcedure)
+{
+  //must be only one block inst
+  int ret = OB_SUCCESS;
+  SpBlockInsts* block_inst = create_inst<SpBlockInsts>();
+  if( OB_SUCCESS != (ret = block_inst->deserialize_inst(
+                       buf, data_len, pos, *my_phy_plan_->allocator_,
+                       my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )
+  {
+    TBSYS_LOG(WARN, "deserialize instruction fail");
+  }
+  return ret;
+}
+
+DEFINE_GET_SERIALIZE_SIZE(SpProcedure)
+{
+  OB_ASSERT(0);
+  TBSYS_LOG(WARN, "do not get here, i do not implement");
+  return 0;
+}
+
+/*=================================================
  *           ObProcedure Definition
 ===================================================*/
 ObProcedure::ObProcedure()
@@ -821,13 +939,7 @@ ObProcedure::ObProcedure()
 }
 
 ObProcedure::~ObProcedure()
-{
-  for(int64_t i = 0; i < inst_list_.count(); ++i)
-  {
-    inst_list_.at(i)->~SpInst();
-  }
-  arena_.free();
-}
+{}
 
 int ObProcedure::set_proc_name(ObString &proc_name)
 {
@@ -1034,12 +1146,6 @@ int ObProcedure::open()
   else
   {
     pc_ = 0;
-//    for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
-//    {
-//      ret = inst_list_.at(pc_)->exec();
-
-//      debug_status();
-//    }
     for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
       ret = exec_list_.at(pc_)->exec();
@@ -1073,98 +1179,92 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
   return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
 }
 
-//int SpProcedure::debug_status() const
-//{
-//  int ret = OB_SUCCESS;
-//  const SpInst *inst = exec_list_.at(pc_);
-//  ret = debug_status(inst);
-//  return ret;
-//}
+/*============================================================================
+ *                    ObUpsProcedure  Definition
+ * ==========================================================================*/
+ObUpsProcedure::ObUpsProcedure() :
+  block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
+  var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
+  name_pool_()
+{
+}
 
-int SpProcedure::debug_status(const SpInst *inst) const
+ObUpsProcedure::~ObUpsProcedure()
+{
+
+}
+
+int ObUpsProcedure::create_variable_table()
+{
+  return var_name_val_map_.create(hash::cal_next_prime(16), &var_name_val_map_allocer_, &block_allocator_);
+}
+
+int ObUpsProcedure::open()
 {
   int ret = OB_SUCCESS;
-
-  if( inst != NULL && inst->get_ownner() == this )
+  pc_ = 0;
+  for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
   {
-    const VariableSet &rs = inst->get_read_variable_set();
-    const VariableSet &ws = inst->get_write_variable_set();
-    char debug_buf[1024];
-    int64_t buf_len = 1024, pos = 0;
-
-    databuff_printf(debug_buf, buf_len, pos, "inst %ld\n", pc_);
-
-    for(int64_t i = 0; i < rs.var_set_.count(); ++i)
-    {
-      ObObj val;
-      const ObString &var_name = rs.var_set_.at(i);
-      if( OB_SUCCESS == read_variable(var_name, val))
-      {
-        databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
-                        var_name.length(), var_name.ptr(), to_cstring(val));
-      }
-      else
-      {
-         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
-                         var_name.length(), var_name.ptr());
-      }
-    }
-
-    for(int64_t i = 0; i < ws.var_set_.count(); ++i)
-    {
-      ObObj val;
-      const ObString &var_name = ws.var_set_.at(i);
-      if( OB_SUCCESS == read_variable(var_name, val))
-      {
-         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
-                         var_name.length(), var_name.ptr(), to_cstring(val));
-      }
-      else
-      {
-         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
-                         var_name.length(), var_name.ptr());
-      }
-    }
-    TBSYS_LOG(INFO, "%s", debug_buf);
+    ret = inst_list_.at(pc_)->ups_exec();
+    debug_status(inst_list_.at(pc_));
   }
   return ret;
 }
 
-DEFINE_SERIALIZE(SpProcedure)
+int ObUpsProcedure::close()
 {
-  //must be only one block inst
+  return OB_SUCCESS;
+}
+
+void ObUpsProcedure::reset()
+{
+  pc_ = 0;
+}
+
+void ObUpsProcedure::reuse()
+{
+  pc_ = 0;
+}
+
+int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
+{
   int ret = OB_SUCCESS;
-  if( inst_list_.at(0)->get_type() != SP_BLOCK_INST )
+  ObString tmp_var;
+  ObObj tmp_val;
+  if (var_name.length() <= 0)
   {
-    TBSYS_LOG(WARN, "unexpected ups procedure execution");
+    ret = OB_ERROR;
+    TBSYS_LOG(ERROR, "Empty variable name");
+  }
+  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS
+           || (ret = name_pool_.write_obj(val, &tmp_val)) != OB_SUCCESS
+           || ((ret = var_name_val_map_.set(tmp_var, tmp_val, 1)) != hash::HASH_INSERT_SUCC
+               && ret != hash::HASH_OVERWRITE_SUCC))
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(ERROR, "Add variable %.*s error", var_name.length(), var_name.ptr());
   }
   else
   {
-    inst_list_.at(0)->serialize_inst(buf, buf_len, pos);
+    ret = OB_SUCCESS;
   }
   return ret;
 }
 
-DEFINE_DESERIALIZE(SpProcedure)
+int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
 {
-  //must be only one block inst
   int ret = OB_SUCCESS;
-  SpBlockInsts* block_inst = create_inst<SpBlockInsts>();
-  if( OB_SUCCESS != (ret = block_inst->deserialize_inst(
-                       buf, data_len, pos, *my_phy_plan_->allocator_,
-                       my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )
-  {
-    TBSYS_LOG(WARN, "deserialize instruction fail");
-  }
+  if (var_name_val_map_.get(var_name, val) != hash::HASH_EXIST)
+    ret = OB_ERR_VARIABLE_UNKNOWN;
   return ret;
 }
 
-DEFINE_GET_SERIALIZE_SIZE(SpProcedure)
+int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
-  OB_ASSERT(0);
-  TBSYS_LOG(WARN, "do not get here, i do not implement");
-  return 0;
+  val =  var_name_val_map_.get(var_name);
+  return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
 }
+
 
 namespace oceanbase{
   namespace sql{
@@ -1278,6 +1378,19 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
   {
     SpInst *inst = inst_list_.at(i);
     databuff_printf(buf, buf_len, pos, "\t sub-inst %ld: ", i);
+    pos += inst->to_string(buf + pos, buf_len -pos);
+  }
+  return pos;
+}
+
+int64_t SpProcedure::to_string(char* buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "Procedure\n");
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
     pos += inst->to_string(buf + pos, buf_len -pos);
   }
   return pos;
