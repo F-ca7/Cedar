@@ -28,10 +28,12 @@ namespace oceanbase
   namespace sql
   {
     class ObTableRpcScan;
+    class ObProcedure; //add zt 20151110
     class ObResultSet;
     class ObPhysicalPlan: public common::DLink
     {
       public:
+      friend class ObProcedure; //add zt 20151110
         struct ObTableVersion
         {
           ObTableVersion()
@@ -126,9 +128,13 @@ namespace oceanbase
         static const int64_t COMMON_OP_NUM = 16;
         static const int64_t COMMON_SUB_QUERY_NUM = 6;
         static const int64_t COMMON_BASE_TABLE_NUM = 64;
-        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore;
+//        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore; //delete by zt 20151110
         typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_SUB_QUERY_NUM> SubQueries;
         typedef oceanbase::common::ObSEArray<ObTableVersion, COMMON_BASE_TABLE_NUM> BaseTableStore;
+        //add zt 20151110 :b
+    public:
+        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore;
+        //add zt 20151110 :e
 
       private:
         DISALLOW_COPY_AND_ASSIGN(ObPhysicalPlan);

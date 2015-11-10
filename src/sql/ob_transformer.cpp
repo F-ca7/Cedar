@@ -7853,7 +7853,7 @@ int ObTransformer::gen_physical_insert_new(
         }
         else
         {
-          inc_scan->set_values(input_values->get_id(), true);
+          inc_scan->set_values(input_values->get_id(), true); //inc scan could evaluate the expr_op, since it only get the rowkey info
           insert_sem->set_input_values(input_values->get_id());
         }
       }

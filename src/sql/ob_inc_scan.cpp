@@ -302,6 +302,12 @@ namespace oceanbase
                 }
               }
             } // end for
+            /**************************************************
+             *  Seems to used for distribute the job to a dedicated thread on ups
+             *  A strong assumption, what if the rowkey is not known at advance, then such a sign cannot be calculated
+             *  This optimization strategy is the same as Calvin
+             *  The first row key is caculcated for distribute the job
+             * **************************************************/
             if (0 == request_sign
                 && hotspot_)
             {
