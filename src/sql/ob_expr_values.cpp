@@ -326,7 +326,7 @@ DEFINE_SERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  serialization::encode_bool(buf, buf_len, pos, my_phy_plan_->is_proc_exec()); //determine the serialize methods
+  serialization::encode_bool(buf, buf_len, tmp_pos, my_phy_plan_->is_proc_exec()); //determine the serialize methods
   //add zt 20151109 :b
   if( ! my_phy_plan_->is_proc_exec() )
   {
@@ -362,14 +362,18 @@ DEFINE_SERIALIZE(ObExprValues)
   }
   else
   {
-    serialization::encode_i64(buf, buf_len, pos, values_.count());
+    serialization::encode_i64(buf, buf_len, tmp_pos, values_.count());
     for(int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
     {
-      if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, pos)))
+      if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
       {
         TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
         break;
       }
+    }
+    if( OB_SUCCESS == ret )
+    {
+      pos = tmp_pos;
     }
   }
   //add zt 20151109 :e
@@ -382,7 +386,6 @@ DEFINE_DESERIALIZE(ObExprValues)
   int64_t tmp_pos = pos;
   //add zt 20151109:b
   bool proc_exec = false;
-  if( NULL != my_phy_plan_ && my_phy_plan_->is_proc_exec() ) proc_exec = true;
   serialization::decode_bool(buf, data_len, tmp_pos, &proc_exec);
 
   if( !proc_exec )

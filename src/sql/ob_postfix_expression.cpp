@@ -818,7 +818,7 @@ namespace oceanbase
         }
         else
         {
-          if( owner_op_->get_phy_plan()->get_result_set() != NULL )
+          if( (result_set = owner_op_->get_phy_plan()->get_result_set()) != NULL )
           {
             if( OB_SUCCESS != ret ) {}
             //add by zt 20151109:e

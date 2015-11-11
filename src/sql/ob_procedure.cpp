@@ -6,7 +6,9 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
-
+/*==================================================================
+ *							Instruction Execution Strategy
+ * ================================================================*/
 int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
  int ret = OB_SUCCESS;
@@ -134,6 +136,8 @@ int SpMsInstExecStrategy::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysic
 {
   bool start_new_trans = false;
   ObSQLSessionInfo *session = out_plan.get_result_set()->get_session();
+
+  exec_plan.set_result_set(out_plan.get_result_set()); //need when serialize
 
   start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
   exec_plan.set_start_trans(start_new_trans);
@@ -441,7 +445,7 @@ int ObProcedure::create_variables()
  */
 int ObProcedure::optimize()
 {
-  if( proc_name_.compare("ups_proc_test"))
+  if( proc_name_.compare("ups_proc_test") == 0 )
   {
     // 0 2 6 8 { 1 3 4 5 7 9 }
     exec_list_.reserve(5);

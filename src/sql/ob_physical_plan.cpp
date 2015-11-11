@@ -302,6 +302,12 @@ int ObPhysicalPlan::deserialize_tree(const char *buf, int64_t data_len, int64_t 
       ret = OB_ALLOCATE_MEMORY_FAILED;
       TBSYS_LOG(WARN, "get operator fail:type[%d]", phy_operator_type);
     }
+    //add zt 20151111:b
+    else
+    {
+      root->set_phy_plan(this);
+    }
+    //add zt 20151111:e
   }
   if (OB_SUCCESS == ret)
   {
