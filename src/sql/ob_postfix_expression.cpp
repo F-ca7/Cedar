@@ -36,6 +36,15 @@ namespace oceanbase
 {
   namespace sql
   {
+    //add fanqiushi_index
+    ObObj& ObPostfixExpression::get_expr_by_index(int64_t index){
+     //int64_t index;
+     if(expr_.count()<=index){
+         index=expr_.count()-1;
+     }
+     return expr_.at(index);
+   }
+    //add:e
     bool ObPostfixExpression::ExprUtil::is_column_idx(const ObObj &obj)
     {
       int64_t val = 0;

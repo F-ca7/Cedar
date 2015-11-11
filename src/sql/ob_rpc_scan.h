@@ -59,6 +59,19 @@ namespace oceanbase
         virtual ObPhyOperatorType get_type() const { return PHY_RPC_SCAN; }
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+
+        //add fanqiushi_index
+        int set_main_tid(uint64_t main_tid);
+        int set_is_use_index_for_storing(uint64_t main_tid,common::ObRowDesc &row_desc);
+        int get_next_compact_row_for_index(const common::ObRow *&row);
+        int set_main_rowkey_info(common::ObRowkeyInfo RI);
+        int add_main_output_column(const ObSqlExpression& expr);
+        int add_main_filter(ObSqlExpression* expr);
+        int get_other_row_desc(const common::ObRowDesc *&row_desc);
+        int set_second_rowdesc(common::ObRowDesc *row_desc);
+        int fill_read_param_for_first_scan(ObSqlReadParam &dest_param);
+        //add:e
+
         /**
          * 添加一个需输出的column
          *
@@ -141,12 +154,34 @@ namespace oceanbase
         int cons_get_rows(ObSqlGetParam &get_param);
         void set_hint(const common::ObRpcScanHint &hint);
         void cleanup_request();
+
+        //add fanqiushi_index
+        int create_get_param_for_index(ObSqlGetParam &get_param);
+        int fill_read_param_for_index(ObSqlReadParam &dest_param);
+        int cons_get_rows_for_index(ObSqlGetParam &get_param);
+        int reset_read_param_for_index();
+        int cons_index_row_desc(const ObSqlGetParam &sql_get_param, ObRowDesc &row_desc);
+        //add:e
+
       private:
         static const int64_t REQUEST_EVENT_QUEUE_SIZE = 8192;
         // 等待结果返回的超时时间
         int64_t timeout_us_;
         mergeserver::ObMsSqlScanRequest *sql_scan_request_;
         mergeserver::ObMsSqlGetRequest *sql_get_request_;
+
+        //add fanqiushi_index
+        //mergeserver::ObMsSqlGetRequest *index_sql_get_request_;
+        bool is_use_index_;         //是否使用回表的索引
+        bool is_use_index_for_storing_;  //是否使用不回表的索引
+        uint64_t main_table_id_;    //主表的tid
+        int64_t get_next_row_count_;    //判断是否是第一次调用get_new_row
+        ObProject main_project;     //第二次get原表时的输出列
+        ObFilter main_filter_;      //where条件中如果有不在索引表中的列的表达式，就把它存到这里，第二次get原表时用做过滤。
+        common::ObRowkeyInfo main_rowkey_info_;    //主表的主键信息
+        common::ObRowDesc second_row_desc_;  //回表时，第二次get原表时用到的行描述
+        //add:e
+
         ObSqlScanParam *scan_param_;
         ObSqlGetParam *get_param_;
         ObSqlReadParam *read_param_;
@@ -162,6 +197,12 @@ namespace oceanbase
         common::ObObj start_key_objs_[OB_MAX_ROWKEY_COLUMN_NUMBER];
         common::ObObj end_key_objs_[OB_MAX_ROWKEY_COLUMN_NUMBER];
         common::ObRow cur_row_;
+
+        //add fanqiushi_index
+        common::ObRow cur_row_for_storing_;  //在不回表的查询中，需要对CS返回的数据修改tid，修改后的行存到cur_row_for_storing_里面
+        common::ObRowDesc cur_row_desc_for_storing;
+        //add:e
+
         common::ObRowDesc cur_row_desc_;
         uint64_t table_id_;
         uint64_t base_table_id_;

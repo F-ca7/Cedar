@@ -240,6 +240,8 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
+  T_USE_INDEX,// add by zcd 20141216
+  T_UNKOWN_HINT,// add by zcd 20150601
 
   T_KILL,
 

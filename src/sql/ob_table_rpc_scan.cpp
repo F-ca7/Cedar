@@ -48,7 +48,12 @@ namespace oceanbase
       rpc_scan_(), scalar_agg_(NULL), group_(NULL), group_columns_sort_(), limit_(),
       has_rpc_(false), has_scalar_agg_(false), has_group_(false),
       has_group_columns_sort_(false), has_limit_(false), is_skip_empty_row_(true),
-      read_method_(ObSqlReadStrategy::USE_SCAN)
+      read_method_(ObSqlReadStrategy::USE_SCAN),
+      //add fanqiushi_index
+      is_use_index_rpc_scan_(false),is_use_index_for_storing(false),is_use_index_for_storing_for_tostring_(false),
+      index_tid_for_storing_for_tostring_(OB_INVALID_ID),is_use_index_without_storing_for_tostring_(false),
+      index_tid_without_storing_for_tostring_(OB_INVALID_ID)
+      //add:e
     {
     }
 
@@ -106,6 +111,14 @@ namespace oceanbase
       empty_row_filter_.reset();
       is_skip_empty_row_ = true;
       read_method_ = ObSqlReadStrategy::USE_SCAN;
+      //add fanqiushi_index
+      is_use_index_rpc_scan_=false;
+      is_use_index_for_storing=false;
+      is_use_index_for_storing_for_tostring_=false;
+      index_tid_for_storing_for_tostring_=OB_INVALID_ID;
+      is_use_index_without_storing_for_tostring_=false;
+      index_tid_without_storing_for_tostring_=OB_INVALID_ID;
+      //add:e
       ObTableScan::reset();
     }
 
@@ -309,6 +322,126 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add fanqiushi_index
+       void ObTableRpcScan::set_main_tid(uint64_t tid)
+       {
+           //is_use_index_rpc_scan_=true;
+           main_tid_=tid;
+           rpc_scan_.set_main_tid(tid);
+       }
+       void ObTableRpcScan::set_is_index_for_storing(bool is_use,uint64_t tid)
+       {
+           is_use_index_for_storing_for_tostring_=is_use;
+           index_tid_for_storing_for_tostring_=tid;
+       }
+       void ObTableRpcScan::set_is_index_without_storing(bool is_use,uint64_t tid)
+       {
+           is_use_index_without_storing_for_tostring_=is_use;
+           index_tid_without_storing_for_tostring_=tid;
+       }
+
+       void ObTableRpcScan::set_is_use_index_without_storing()
+       {
+           is_use_index_rpc_scan_=true;
+       }
+       void ObTableRpcScan::set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc)
+       {
+           is_use_index_for_storing = true;
+           rpc_scan_.set_is_use_index_for_storing(tid,row_desc);
+       }
+
+       void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo RI)
+       {
+           rpc_scan_.set_main_rowkey_info(RI);
+       }
+
+       int ObTableRpcScan::cons_second_row_desc(ObRowDesc &row_desc)
+       {
+           int ret = OB_SUCCESS;
+
+           if (OB_SUCCESS == ret)
+           {
+             const common::ObSEArray<ObSqlExpression, OB_PREALLOCATED_NUM, common::ModulePageAllocator, ObArrayExpressionCallBack<ObSqlExpression> > &columns = main_project_.get_output_columns();
+             for (int64_t i = 0; OB_SUCCESS == ret && i < columns.count(); i ++)
+             {
+               const ObSqlExpression &expr = columns.at(i);
+               if (OB_SUCCESS != (ret = row_desc.add_column_desc(expr.get_table_id(), expr.get_column_id())))
+               {
+                 TBSYS_LOG(WARN, "fail to add column desc:ret[%d]", ret);
+               }
+             }
+           }
+           return ret;
+       }
+       int ObTableRpcScan::set_second_row_desc(ObRowDesc *row_desc)
+       {
+           int ret = OB_SUCCESS;
+
+           ret=rpc_scan_.set_second_rowdesc(row_desc);
+           return ret;
+       }
+
+       int ObTableRpcScan::add_main_output_column(const ObSqlExpression& expr)
+       {
+           int ret = OB_SUCCESS;
+           if (OB_SUCCESS == ret)
+           {
+             // add output column to scan param
+             ret = main_project_.add_output_column(expr);
+             ret=rpc_scan_.add_main_output_column(expr);
+             //add fanqiushi_index
+             //if(is_use_index_rpc_scan_)
+            // {
+                // ret = index_rpc_scan_.add_output_column(expr);
+             //}
+             //add:e
+             if (OB_SUCCESS != ret)
+             {
+               TBSYS_LOG(WARN, "fail to add column to rpc scan operator. ret=%d", ret);
+             }
+           }
+           return ret;
+       }
+
+       int ObTableRpcScan::add_main_filter(ObSqlExpression* expr)
+       {
+           int ret = OB_SUCCESS;
+           //ret = main_filter_.add_filter(expr);
+           ObSqlExpression* expr_clone = ObSqlExpression::alloc(); // @todo temporary work around
+           if (NULL == expr_clone)
+           {
+             ret = OB_ALLOCATE_MEMORY_FAILED;
+             TBSYS_LOG(WARN, "no memory");
+           }
+           else
+           {
+               *expr_clone = *expr;
+               ret=rpc_scan_.add_main_filter(expr_clone);
+           }
+           return ret;
+       }
+
+       int ObTableRpcScan::add_index_filter(ObSqlExpression* expr)
+       {
+           int ret = OB_SUCCESS;
+           ObSqlExpression* expr_clone = ObSqlExpression::alloc(); // @todo temporary work around
+           if (NULL == expr_clone)
+           {
+             ret = OB_ALLOCATE_MEMORY_FAILED;
+             TBSYS_LOG(WARN, "no memory");
+           }
+           else
+           {
+             *expr_clone = *expr;
+             if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
+             {
+               TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
+             }
+           }
+           return ret;
+       }
+       //add:e
 
     int ObTableRpcScan::add_output_column(const ObSqlExpression& expr)
     {

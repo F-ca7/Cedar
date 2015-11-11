@@ -40,6 +40,7 @@ namespace oceanbase
         void set_tid_cid(const uint64_t tid, const uint64_t cid);
         const uint64_t get_column_id() const;
         const uint64_t get_table_id() const;
+        void set_table_id(uint64_t tid); // add longfei [secondary index select] 20151102 e
 
         void set_aggr_func(ObItemType aggr_fun, bool is_distinct);
         int get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const;
@@ -58,6 +59,9 @@ namespace oceanbase
          * 获取解码后的表达式
          */
         inline const ObPostfixExpression &get_decoded_expression() const;
+        //add wenghaixing for fix insert bug decimal key 2014/10/11
+        inline  ObPostfixExpression &get_decoded_expression_v2() ;
+        //add e
         inline bool is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const;
         /**
          * 根据表达式语义对row的值进行计算
@@ -145,6 +149,13 @@ namespace oceanbase
       return table_id_;
     }
 
+    // add longfei [secondary index select] 20151102 :b
+    inline void ObSqlExpression::set_table_id(uint64_t tid)
+    {
+            table_id_ = tid;
+    }
+    // add e
+
     inline int ObSqlExpression::get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const
     {
       int ret = OB_SUCCESS;
@@ -170,6 +181,11 @@ namespace oceanbase
     }
 
     inline const ObPostfixExpression &ObSqlExpression::get_decoded_expression() const
+    {
+      return post_expr_;
+    }
+
+    inline ObPostfixExpression &ObSqlExpression::get_decoded_expression_v2()
     {
       return post_expr_;
     }

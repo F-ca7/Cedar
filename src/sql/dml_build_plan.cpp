@@ -32,6 +32,9 @@
 #include "common/ob_hint.h"
 #include <stdint.h>
 
+//add longfei for hint
+#include "ob_stmt.h"
+
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 
@@ -103,6 +106,12 @@ int resolve_hints(
     ResultPlan * result_plan,
     ObStmt* stmt,
     ParseNode* node);
+// add by zcd 20141217 :b
+int generate_index_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node);
+// add:e
 int resolve_when_clause(
     ResultPlan * result_plan,
     ObStmt* stmt,
@@ -2948,6 +2957,7 @@ int resolve_hints(
     ObStmt* stmt,
     ParseNode* node)
 {
+  TBSYS_LOG(ERROR, "test::longfei>>>in resolve_hints func.");
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   if (node)
   {
@@ -2957,7 +2967,11 @@ int resolve_hints(
     {
       ParseNode* hint_node = node->children_[i];
       if (!hint_node)
+      {
+        TBSYS_LOG(ERROR, "test::longfei>>>hint_node is null");
         continue;
+      }
+      TBSYS_LOG(ERROR, "test::longfei>>>hint_node->type_ = %d", hint_node->type_);
       switch (hint_node->type_)
       {
         case T_READ_STATIC:
@@ -2989,6 +3003,16 @@ int resolve_hints(
             TBSYS_LOG(ERROR, "unknown hint value, ret=%d", ret);
           }
           break;
+          // add by zcd 20141216:b
+        case T_USE_INDEX:
+          TBSYS_LOG(ERROR, "test::longfei>>>This select has set hint to use index table.");
+          ret = generate_index_hint(result_plan, stmt, hint_node);
+          break;
+          // add 20141216:e
+          // add by zcd 20150601:b
+        case T_UNKOWN_HINT:
+          break;
+          // add by zcd 20150601:e
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -3544,4 +3568,134 @@ int generate_expire_col_list(ObString input, ObStrings &out)
   return ret;
 }
 
+// add longfei 20151105
+// too many generate_inner_index_table_name, need to be optimized
+int generate_inner_index_table_name(ObString& index_name, ObString& original_table_name, char *out_buff, int64_t& str_len)
+{
+    int ret = OB_SUCCESS;
+    char str[OB_MAX_TABLE_NAME_LENGTH];
+    char raw[OB_MAX_TABLE_NAME_LENGTH];
+    memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
+    memset(raw,0,OB_MAX_TABLE_NAME_LENGTH);
+    if(index_name.length() > OB_MAX_TABLE_NAME_LENGTH || original_table_name.length() > OB_MAX_TABLE_NAME_LENGTH)
+    {
+        TBSYS_LOG(WARN,"buff is not enough to generate index table name");
+        ret=OB_ERROR;
+    }
+    else
+    {
+       strncpy(str, index_name.ptr(), index_name.length());
+       strncpy(raw, original_table_name.ptr(), original_table_name.length());
+       int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___%s_%s",  raw, str);
+       if((size_t)wlen > (size_t)OB_MAX_TABLE_NAME_LENGTH)
+       {
+          ret = OB_ERROR;
+       }
+       str_len = wlen;
+    }
+    return ret;
+}
+//add e
+
+// add by zcd 20141217:b
+int generate_index_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node)
+{
+  int ret = OB_SUCCESS;
+  /* 解析在hint中强制使用index的hint，根据表名来获取表的ID */
+  IndexTableNamePair pair;
+  ObQueryHint& query_hint = stmt->get_query_hint();
+
+  // 单表查询的情况下不应该有多个index的hint
+  //remove zhuyanchao multi hint
+  /*if(query_hint.use_index_array_.size() >= 1)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "too much index hint");
+    TBSYS_LOG(ERROR, "too much index hint, ret=[%d]", ret);
+    return ret;
+  }
+ */
+  OB_ASSERT(2 == hint_node->num_child_);
+
+  ObSchemaChecker* schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+  if (schema_checker == NULL)
+  {
+    ret = OB_ERR_SCHEMA_UNSET;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "Schema(s) are not set");
+    return ret;
+  }
+
+  const ObTableSchema *src_table_schema = NULL;
+  const ObTableSchema *index_table_schema = NULL;
+
+  // 查找原表的table_id
+  if(NULL != (src_table_schema = schema_checker->get_table_schema(hint_node->children_[0]->str_value_)))
+  {
+    pair.src_table_name_.write(hint_node->children_[0]->str_value_,
+                               (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
+    pair.src_table_id_ = src_table_schema->get_table_id();
+  }
+  else
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[0]->str_value_);
+    TBSYS_LOG(ERROR, "unknown table name '%s', ret=[%d]", hint_node->children_[0]->str_value_, ret);
+    return ret;
+  }
+
+  // 查找索引表的table_id，判断其是否是索引表，如果是则判断此索引表的原表是否与上面的原表是一致的
+  char tablename[OB_MAX_TABLE_NAME_LENGTH];
+  int64_t len = 0;
+  ObString index_table_name;
+  ObString org_tab_name;
+  index_table_name.assign_ptr(
+      (char*)(hint_node->children_[1]->str_value_),
+      static_cast<int32_t>(strlen(hint_node->children_[1]->str_value_))
+  );
+  org_tab_name.assign_ptr(
+      (char*)(hint_node->children_[0]->str_value_),
+      static_cast<int32_t>(strlen(hint_node->children_[0]->str_value_))
+  );
+  generate_inner_index_table_name(index_table_name,
+                            org_tab_name,
+                            tablename, len);
+  if(NULL != (index_table_schema = schema_checker->get_table_schema(tablename)))
+  {
+    pair.index_table_name_.write(tablename, (ObString::obstr_size_t)strlen(tablename));
+    pair.index_table_id_ = index_table_schema->get_table_id();
+
+    uint64_t index_src_tid = index_table_schema->get_original_table_id();
+    if(OB_INVALID_ID == index_src_tid || pair.src_table_id_ != index_src_tid)
+    {
+      ret = OB_ERR_UNEXPECTED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "unknown index name '%s' of '%s'",
+               hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_);
+      TBSYS_LOG(ERROR, "unknown index name '%s' of '%s', index table name '%s', ret=[%d]",
+               hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_, tablename, ret);
+    }
+  }
+  else
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "unknown index name '%s'",
+             hint_node->children_[1]->str_value_);
+    TBSYS_LOG(ERROR, "unknown index name '%s', index table name '%s', ret=[%d]",
+             hint_node->children_[1]->str_value_, tablename, ret);
+
+  }
+  // 将index的hint加入到数组中
+  if (OB_SUCCESS == ret)
+  {
+    query_hint.use_index_array_.push_back(pair);
+  }
+  IndexTableNamePair& pair_test = query_hint.use_index_array_.at(0);
+  TBSYS_LOG(ERROR, "test::longfei>>>show use_index_array_[0].origin table name = %s, index table name = %s", pair_test.src_table_name_.ptr(),
+      pair_test.index_table_name_.ptr());
+  return ret;
+}
+// add:e
 //add e

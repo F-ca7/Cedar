@@ -10,6 +10,43 @@
 
 namespace oceanbase
 {
+  // add by zcd 20141216 :b
+  namespace sql
+  {
+    using namespace common;
+    struct IndexTableNamePair
+    {
+      common::ObString src_table_name_;
+      common::ObString index_table_name_;
+      uint64_t src_table_id_;
+      uint64_t index_table_id_;
+      IndexTableNamePair()
+      {
+        src_table_id_ = common::OB_INVALID_ID;
+        index_table_id_ = common::OB_INVALID_ID;
+        src_table_name_.assign_buffer(src_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+        index_table_name_.assign_buffer(index_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+      }
+    private:
+      char src_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+      char index_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+    };
+  }
+
+  namespace common
+  {
+    template <>
+    struct ob_vector_traits<oceanbase::sql::IndexTableNamePair>
+    {
+      typedef oceanbase::sql::IndexTableNamePair* pointee_type;
+      typedef oceanbase::sql::IndexTableNamePair value_type;
+      typedef const oceanbase::sql::IndexTableNamePair const_value_type;
+      typedef value_type* iterator;
+      typedef const value_type* const_iterator;
+      typedef int32_t difference_type;
+    };
+  }
+  // add :e
   namespace sql
   {
     struct ObQueryHint
@@ -20,8 +57,15 @@ namespace oceanbase
         read_consistency_ = common::NO_CONSISTENCY;
       }
 
+      // add by zcd 20141218 :b
+      bool has_index_hint() const
+      {
+        return use_index_array_.size() > 0 ? true : false;
+      }
+      // end :e
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
+      common::ObVector<IndexTableNamePair> use_index_array_; // add by zcd 20141216
     };
     
     struct TableItem
@@ -182,6 +226,7 @@ namespace oceanbase
 
       ObQueryHint& get_query_hint()
       {
+        TBSYS_LOG(ERROR, "test::longfei>>>in get_query_hint() func.");
         return query_hint_;
       }
       
@@ -216,8 +261,8 @@ namespace oceanbase
 
     protected:
       common::ObStringBuf* name_pool_;
-      common::ObVector<TableItem>    table_items_;
-      common::ObVector<ColumnItem>   column_items_;
+      common::ObVector<TableItem>    table_items_;  // from (what)
+      common::ObVector<ColumnItem>   column_items_; // select (what)
 
     private:
       //uint64_t  where_expr_id_;

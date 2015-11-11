@@ -994,6 +994,14 @@ namespace oceanbase
       }
       return ret;
     }
+    //add fanqiushi_index
+    int ObSqlReadParam::reset_project_and_filter()
+    {
+        project_.reset();
+        filter_.reset();
+        return OB_SUCCESS;
+    }
+    // add e
 
   } /* sql */
 } /* oceanbase */

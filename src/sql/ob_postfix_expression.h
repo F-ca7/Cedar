@@ -359,6 +359,7 @@ namespace oceanbase
          * @return current ObPostExprNodeType's params number
          */
         int64_t get_type_num(int64_t idx,int64_t type) const;
+        ObObj& get_expr_by_index(int64_t index);
         // add e
 
         NEED_SERIALIZE_AND_DESERIALIZE;

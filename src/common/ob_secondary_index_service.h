@@ -1,5 +1,5 @@
 /*
- * ob_secondry_index_service.h
+ * ob_secondary_index_service.h
  *
  *  Created on: 2015年10月29日
  *      Author: longfei
@@ -19,13 +19,13 @@ namespace oceanbase
 {
   namespace common
   {
+    static const int64_t EXPR_COUNT = 64;
+    typedef ObSEArray<ObObj, EXPR_COUNT> ExprArray; //
+    typedef common::ObArray<sql::ObSqlExpression>  Expr_Array;// storing filter column && project column
     class ObSecondaryIndexService
     {
     public:
-      static const int64_t EXPR_COUNT = 64;
-      typedef common::ObArray<sql::ObSqlExpression>  Expr_Array;
-      typedef ObSEArray<ObObj, EXPR_COUNT> ExprArray;
-    public:
+      virtual int init(const ObSchemaManagerV2* schema_manager_) = 0;
       virtual ~ObSecondaryIndexService() {}
       virtual bool is_this_table_avalibale(uint64_t tid) = 0;
       virtual bool is_index_table_has_all_cid_V2(uint64_t index_tid, Expr_Array *filter_array, Expr_Array *project_array) = 0;
@@ -42,8 +42,11 @@ namespace oceanbase
       virtual bool is_can_use_hint_index_V2(Expr_Array *filter_ayyay, uint64_t index_table_id) = 0;
     public:
       virtual int find_cid(sql::ObSqlExpression& sql_expr, uint64_t &cid) = 0;
+      virtual int change_tid(sql::ObSqlExpression* sql_expr, uint64_t& array_index) = 0;
+      virtual int get_cid(sql::ObSqlExpression* sql_expr, uint64_t& cid) = 0;
+      //virtual ObObj& get_expr_by_index(sql::ObSqlExpression* sql_expr, int64_t index) = 0;
       virtual bool is_have_main_cid(sql::ObSqlExpression& sql_expr, uint64_t main_column_id) = 0;
-      virtual bool is_all_expr_cid_in_indextable(uint64_t index_tid, sql::ObPostfixExpression& expr_, const ObSchemaManagerV2 *sm_v2) = 0;
+      virtual bool is_all_expr_cid_in_indextable(uint64_t index_tid, const sql::ObPostfixExpression& expr_, const ObSchemaManagerV2 *sm_v2) = 0;
       virtual int get_all_cloumn(sql::ObSqlExpression& sql_expr,ObArray<uint64_t> &column_index) = 0;
       virtual bool is_this_expr_can_use_index(sql::ObSqlExpression& sql_expr, uint64_t &index_tid,uint64_t main_tid,const ObSchemaManagerV2 *sm_v2) = 0;
     };

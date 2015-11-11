@@ -675,6 +675,11 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>READ_CONSISTENCY  {
   return READ_CONSISTENCY;
 }
+<hint>INDEX {
+  /* add by longfei 20151105 :b */
+  return INDEX;
+  /* add :e */
+}
 <hint>WEAK  {
   return WEAK;
 }
@@ -693,7 +698,29 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>HOTSPOT  {
   return HOTSPOT;
 }
-<hint>{identifer} {}
+<hint>{identifer} {
+  // add by zcd 20141216:b
+  int ret = NAME;
+  const NonReservedKeyword *word = NULL;
+  if ((word = non_reserved_keyword_lookup(yytext)) == NULL)
+  {
+    ParseNode* node = NULL;
+    malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_IDENT, 0);
+    yylval->node = node;
+    char *dup_value = parse_strdup(yytext, ((ParseResult*)yyextra)->malloc_pool_);
+    check_value(dup_value);
+    node->str_value_ = str_tolower(dup_value);
+    node->value_ = strlen(node->str_value_);
+    ret = NAME;
+  }
+  else
+  {
+    yylval->non_reserved_keyword = word;
+    ret = word->keyword_type;
+  }
+  return ret;
+  // add :e
+}
 <hint>. {}
 
 {comment} { /* ignore */ }

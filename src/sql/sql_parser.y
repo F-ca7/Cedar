@@ -1605,7 +1605,21 @@ hint_option:
     {
       malloc_terminal_node($$, result->malloc_pool_, T_READ_CONSISTENCY);
       $$->value_ = $3;
+    }  
+    // add longfei 20151106
+  | INDEX '(' relation_factor relation_factor ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_USE_INDEX, 2, $3, $4);
     }
+    // add e
+    // add by zcd 20150601:b
+  | NAME '(' NAME ')'
+    {
+	  (void)($1);
+	  (void)($3);
+      malloc_terminal_node($$, result->malloc_pool_, T_UNKOWN_HINT);
+    }
+    // add by zcd 20150601:e
   | '(' opt_comma_list ')'
     {
       $$ = $2;

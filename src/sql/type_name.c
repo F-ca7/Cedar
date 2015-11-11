@@ -196,7 +196,9 @@ const char* get_type_name(int type)
 	case T_HINT_OPTION_LIST : return "T_HINT_OPTION_LIST";
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
+	case T_UNKOWN_HINT: return "T_UNKOWN_HINT";// add by zcd 20150601
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
+	case T_USE_INDEX : return "T_USE_INDEX"; // add zcd 20141216
 	case T_KILL : return "T_KILL";
 	case T_MAX : return "T_MAX";
 

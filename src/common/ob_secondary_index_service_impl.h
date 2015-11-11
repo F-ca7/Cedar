@@ -8,7 +8,7 @@
 #ifndef COMMON_OB_SECONDARY_INDEX_SERVICE_IMPL_H_
 #define COMMON_OB_SECONDARY_INDEX_SERVICE_IMPL_H_
 
-#include "ob_secondry_index_service.h"
+#include "ob_secondary_index_service.h"
 
 namespace oceanbase
 {
@@ -31,17 +31,20 @@ namespace oceanbase
         END_TYPE
       };
     public:
+      virtual int init(const ObSchemaManagerV2* schema_manager_);
       ObSecondaryIndexServiceImpl();
       const ObSchemaManagerV2* getSchemaManager() const;
-      void setSchemaManager(ObSchemaManagerV2* schemaManager);
+      void setSchemaManager(const ObSchemaManagerV2* schemaManager);
     public:
       virtual int find_cid(sql::ObSqlExpression& sql_expr, uint64_t &cid);
+      virtual int change_tid(sql::ObSqlExpression* sql_expr, uint64_t& array_index);
+      virtual int get_cid(sql::ObSqlExpression* sql_expr, uint64_t& cid);
       virtual bool is_have_main_cid(sql::ObSqlExpression& sql_expr, uint64_t main_column_id);
       virtual bool is_all_expr_cid_in_indextable(uint64_t index_tid, const sql::ObPostfixExpression& expr_, const ObSchemaManagerV2 *sm_v2);
       virtual int get_all_cloumn(sql::ObSqlExpression& sql_expr,ObArray<uint64_t> &column_index);
       virtual bool is_this_expr_can_use_index(sql::ObSqlExpression& sql_expr, uint64_t &index_tid,uint64_t main_tid,const ObSchemaManagerV2 *sm_v2);
     public:
-      virtual bool is_this_table_avalibale(uint64_t tid) const ;
+      virtual bool is_this_table_avalibale(uint64_t tid);
       virtual bool is_index_table_has_all_cid_V2(uint64_t index_tid, Expr_Array *filter_array, Expr_Array *project_array);
       virtual int64_t is_cid_in_index_table(uint64_t cid, uint64_t tid);
       virtual bool is_expr_can_use_storing_V2(sql::ObSqlExpression c_filter, uint64_t mian_tid, uint64_t &index_tid, Expr_Array * filter_array, Expr_Array *project_array);
@@ -53,14 +56,9 @@ namespace oceanbase
     private:
       DISALLOW_COPY_AND_ASSIGN(ObSecondaryIndexServiceImpl);
     private:
-      ObSchemaManagerV2* schema_manager_; // index service need schema manager to get some information about index table
+      const ObSchemaManagerV2* schema_manager_; // index service need schema manager to get some information about index table
     };
   }
 }
-
-
-
-
-
 
 #endif /* COMMON_OB_SECONDARY_INDEX_SERVICE_IMPL_H_ */

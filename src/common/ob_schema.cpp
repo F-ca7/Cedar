@@ -5491,10 +5491,10 @@ namespace oceanbase
           {
             for (int64_t i = 0; i < il.get_count(); i++)
             {
-              const ObTableSchema *index_table_schema = NULL;
+              const ObTableSchema *table_schema = NULL;
               il.get_idx_id(i, tmp_tid);
               //TBSYS_LOG(ERROR,"test::fanqs4,,tmp_tid=%ld",tmp_tid);
-              if (NULL == (index_table_schema = get_table_schema(tmp_tid)))
+              if (NULL == (table_schema = get_table_schema(tmp_tid)))
               {
                 ret = false;
                 TBSYS_LOG(WARN, "fail to get table schema for table[%ld]", tmp_tid);
@@ -5502,12 +5502,13 @@ namespace oceanbase
               else
               {
                 const ObRowkeyInfo *rowkey_info =
-                    &index_table_schema->get_rowkey_info();
+                    &table_schema->get_rowkey_info();
                 uint64_t index_first_cid = OB_INVALID_ID;
                 rowkey_info->get_column_id(0, index_first_cid);
                 //TBSYS_LOG(ERROR,"test::fanqs4,,enter this,index_first_cid=%ld,cid=%ld",index_first_cid,cid);
+                //查询条件的列id如果和索引表的第一件主键id相等，并且索引表可用，就把这张索引表选出来
                 if (index_first_cid == cid
-                    && index_table_schema->get_index_status() == AVALIBALE)
+                    && table_schema->get_index_status() == AVALIBALE)
                 {
                   index_tid_array[array_index] = tmp_tid;
                   //TBSYS_LOG(ERROR,"test::fanqs4,,enter this,tmp_tid=%ld,tid=%ld,,,array_index=%d",tmp_tid,tid,array_index);

@@ -675,7 +675,6 @@ namespace oceanbase
       WRITE_ONLY,//3
       INDEX_INIT,//4
     };
-
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \

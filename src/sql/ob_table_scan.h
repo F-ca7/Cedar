@@ -49,6 +49,14 @@ namespace oceanbase
         virtual int close() = 0;
         virtual int get_next_row(const common::ObRow *&row) = 0;
 
+        //add fanqiushi_index
+        virtual int add_main_output_column(const ObSqlExpression& expr) = 0;
+        virtual int cons_second_row_desc(ObRowDesc &row_desc) = 0;
+        virtual int set_second_row_desc(ObRowDesc *row_desc) = 0;
+        virtual int add_main_filter( ObSqlExpression* expr) = 0;
+        virtual int add_index_filter(ObSqlExpression* expr) = 0;
+        //add:e
+
         /**
          * 添加一个需输出的column
          *

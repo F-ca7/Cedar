@@ -29,6 +29,11 @@
 #include "common/ob_list.h"
 #include "common/ob_row_desc_ext.h"
 #include "common/ob_se_array.h"
+
+//add longfei [secondary index select]
+#include "common/ob_secondary_index_service.h"
+//add e
+
 namespace oceanbase
 {
   namespace sql
@@ -155,11 +160,39 @@ namespace oceanbase
             oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias);
         int gen_physical_kill_stmt(
-          ObLogicalPlan *logical_plan,
-          ObPhysicalPlan* physical_plan,
-          ErrStat& err_stat,
-          const uint64_t& query_id,
-          int32_t* index);
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan* physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+
+        //add fanqiushi_index
+        int gen_phy_table_for_storing(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            ObPhyOperator*& table_op,
+            bool* group_agg_pushed_down = NULL,
+            bool* limit_pushed_down = NULL,
+            bool is_use_storing_column = false,
+            uint64_t index_tid=OB_INVALID_ID,
+            common::Expr_Array *filter_array=NULL,
+            common::Expr_Array *project_array=NULL );
+        int gen_phy_table_without_storing(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            ObPhyOperator*& table_op,
+            bool* group_agg_pushed_down = NULL,
+            bool* limit_pushed_down = NULL,
+            uint64_t index_tid_without_storing=OB_INVALID_ID,
+            common::Expr_Array * filter_array = NULL,
+            common::Expr_Array * project_array = NULL);
+        //add e
         int gen_phy_table(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -169,6 +202,19 @@ namespace oceanbase
             ObPhyOperator*& table_op,
             bool* group_agg_pushed_down = NULL,
             bool* limit_pushed_down = NULL);
+
+        //add fanqiushi_index
+        bool handle_index_for_one_table(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            ObPhyOperator*& table_op,
+            bool* group_agg_pushed_down = NULL,
+            bool* limit_pushed_down = NULL);
+        //add:e
+
         int gen_phy_joins(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
