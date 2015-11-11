@@ -1,6 +1,6 @@
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_H
 #define OCEANBASE_SQL_OB_PROCEDURE_H
-//#include "ob_multi_children_phy_operator.h"
+#include "ob_sp_procedure.h"
 #include "ob_no_children_phy_operator.h"
 #include "ob_sql_session_info.h"
 #include "common/dlist.h"
@@ -17,343 +17,18 @@ namespace oceanbase
     class ObPhysicalPlan;
     class ObProcedure;
     class SpProcedure;
-    enum SpInstType
-    {
-      SP_E_INST, //expr instruction
-      SP_C_INST, //control instruction
-      SP_B_INST, //read baseline data
-      SP_D_INST, //maintain delta data
-      SP_DE_INST, //maintain delta data, read into variables
-      SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
-      SP_BLOCK_INST, //for a block of instructions
-      SP_UNKOWN
-    };
 
-    struct SpPtr
-    {
-      SpInstType type_;
-      int64_t 	 idx_;
-      SpPtr(const SpInstType &type, const int64_t &idx) : type_(type), idx_(idx)
-      {}
-      SpPtr() : type_(SP_UNKOWN), idx_(-1)
-      {}
-    };
-
-
-    enum DepDirection //dependence direction between two instructions
-    {
-      Da_True_Dep, //data true dependence
-      Da_Anti_Dep, //data anti dependecne
-      Da_Out_Dep,  //data output dependece
-      Tr_Itm_Dep   //transaction item dependence
-    };
-
-//    class SpBlockInst;
-    /**
-      spInst could use the decorator model to describe
-
-      SpInst should be a simple wrapper, do not own big memory area which
-      should belongs to the physical plan or the result set
-     * @brief The SpInst class
-     */
-    class SpInst
+    class SpMsInstExecStrategy
     {
     public:
-//      SpInst() : type_(SP_UNKOWN), proc_(NULL) {}
-      SpInst(SpInstType type) : type_(type), proc_(NULL) {}
-//      virtual ~SpInst() {}
-      virtual int exec() = 0;  //exec the inst on mergeserver
-      virtual int ups_exec() = 0; //exec the inst on updateserver
-//      virtual int split(SpBlockInst &block_inst) = 0; //split the inst into small ones
-      virtual const VariableSet &get_read_variable_set() const = 0;
-      virtual const VariableSet &get_write_variable_set() const = 0;
-
-      static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
-
-      void set_owner_procedure(SpProcedure *proc) { proc_ = proc;}
-      const SpProcedure *get_ownner() const { return proc_; }
-      SpInstType get_type() const { return type_; }
-
-      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-//      VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
-    protected:
-      SpInstType type_;
-      SpProcedure *proc_; //the procedure thats owns this instruction
-    };
-
-    class SpExprInst : public SpInst
-    {
-    public:
-      SpExprInst() : SpInst(SP_E_INST) {}
-//      virtual ~SpExprInst() {}
-      virtual int exec();
-      virtual int ups_exec();
-      virtual const VariableSet &get_read_variable_set() const;
-      virtual const VariableSet &get_write_variable_set() const;
-      int set_var_val(ObVarAssignVal &var);
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-//      NEED_SERIALIZE_AND_DESERIALIZE;
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-    private:
-      ObVarAssignVal var_val_;
-      VariableSet ws_;
-    };
-
-    class SpRdBaseInst :public SpInst
-    {
-    public:
-      SpRdBaseInst() : SpInst(SP_B_INST), op_(NULL) {}
-//      virtual ~SpRdBaseInst() {}
-      virtual int exec();
-      virtual int ups_exec() { /*undefined*/ return OB_ERROR;}
-      virtual const VariableSet &get_read_variable_set() const;
-      virtual const VariableSet &get_write_variable_set() const;
-      void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
-      void add_read_var(ObArray<const ObRawExpr *> &var_list);
-      int set_rdbase_op(ObPhyOperator *op);
-      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-    protected:
-      ObPhyOperator *op_;
-      VariableSet rs_; //the row key variable
-      VariableSet ws_; //does not contain any variable
-      uint64_t table_id_;
-    };
-
-    class SpRwDeltaInst : public SpInst
-    {
-    public:
-      SpRwDeltaInst(SpInstType type = SP_D_INST) : SpInst(type), op_(NULL) {}
-//      SpRwDeltaInst(SpInstType type) : SpInst(type), op_(NULL) {}
-//      virtual ~SpRwDeltaInst() {}
-      virtual int exec();
-      virtual int ups_exec();
-      virtual const VariableSet &get_read_variable_set() const;
-      virtual const VariableSet &get_write_variable_set() const;
-      void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
-      void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
-      void add_read_var(ObArray<const ObRawExpr *> &var_list);
-      int set_rwdelta_op(ObPhyOperator *op);
-      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-//      NEED_SERIALIZE_AND_DESERIALIZE;
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-    protected:
-      ObPhyOperator *op_;
-      VariableSet rs_;
-      VariableSet ws_;
-      uint64_t table_id_;
-    };
-
-    class SpRwDeltaIntoVarInst : public SpRwDeltaInst
-    {
-    public:
-      SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST) {}
-//      virtual ~SpRwDeltaIntoVarInst() {}
-      virtual int exec();
-      virtual int ups_exec();
-
-      void add_assign_list(const ObArray<ObString> &assign_list)
-      {
-        for(int64_t i = 0; i < assign_list.count(); ++i)
-        {
-          var_list_.push_back(assign_list.at(i));
-          ObString name = assign_list.at(i);
-          add_write_var(name);
-        }
-      }
-
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-//      NEED_SERIALIZE_AND_DESERIALIZE;
-    private:
-      ObArray<ObString> var_list_;
-    };
-
-    class SpRwCompInst : public SpInst
-    {
-    public:
-      SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
-//      virtual ~SpRwCompInst() {}
-      virtual int exec();
-      virtual int ups_exec() {/*undefined*/ return OB_ERROR;}
-      virtual const VariableSet &get_read_variable_set() const {return rs_;}
-      virtual const VariableSet &get_write_variable_set() const {return ws_;}
-      void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
-      void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
-      int set_rwcomp_op(ObPhyOperator *op) { op_ = op; return OB_SUCCESS; }
-
-      void add_assign_list(const ObArray<ObString> &assign_list)
-      {
-        for(int64_t i = 0; i < assign_list.count(); ++i)
-        {
-          var_list_.push_back(assign_list.at(i));
-          ObString name = assign_list.at(i);
-          add_write_var(name);
-        }
-      }
-
-      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-    private:
-      ObPhyOperator *op_;
-      VariableSet rs_;
-      VariableSet ws_;
-      uint64_t table_id_;
-      ObArray<ObString> var_list_;
-    };
-
-    /**
-     * @brief The SpInstBlock class
-     * a list of each instruction, which would be sent to ups for further execution
-     */
-    class SpBlockInsts : public SpInst
-    {
-    public:
-      SpBlockInsts() : SpInst(SP_BLOCK_INST), inst_list_() {}
-      virtual int exec();
-      virtual int ups_exec();
-      virtual const VariableSet &get_read_variable_set() const { return rs_; }
-      virtual const VariableSet &get_write_variable_set() const { return ws_; }
-
-      void add_inst(SpInst *inst);
-
-      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-//      NEED_SERIALIZE_AND_DESERIALIZE;
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-      int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
+      virtual int execute_expr(SpExprInst *inst);
+      virtual int execute_rd_base(SpRdBaseInst *inst);
+      virtual int execute_rw_delta(SpRwDeltaInst *inst);
+      virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst);
+      virtual int execute_rw_comp(SpRwCompInst *inst);
+      virtual int execute_block(SpBlockInsts *inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
-
-    private:
-      ObArray<SpInst *> inst_list_;
-      VariableSet rs_;
-      VariableSet ws_;
-    };
-
-    template<class T>
-    struct sp_inst_traits
-    {
-      static const bool is_sp_inst = false;
-    };
-
-    template<>
-    struct sp_inst_traits<SpExprInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRdBaseInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwDeltaInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwDeltaIntoVarInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwCompInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpBlockInsts>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    class SpProcedure : public ObNoChildrenPhyOperator
-    {
-    public:
-      friend class SpInst;
-      friend class SpExprInst;
-      friend class SpRdBaseInst;
-      friend class SpRwDeltaInst;
-      friend class SpRwDeltaIntoVarInst;
-      friend class SpRwCompInst;
-      friend class SpBlockInsts;
-      SpProcedure();
-      virtual ~SpProcedure();
-      virtual ObPhyOperatorType get_type() const
-      {
-        return PHY_PROCEDURE;
-      }
-
-      virtual void reset() {}
-      virtual void reuse() {}
-      virtual int open() {return OB_SUCCESS;}
-      virtual int close() {return OB_SUCCESS;}
-      virtual int get_row_desc(const common::ObRowDesc *&row_desc) const {UNUSED(row_desc); return OB_SUCCESS;}
-      virtual int get_next_row(const common::ObRow *&row) {UNUSED(row); return OB_ITER_END;}
-
-      virtual int write_variable(const ObString &var_name, const ObObj & val);
-      virtual int read_variable(const ObString &var_name, ObObj &val) const ;
-      virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
-
-      template<class T>
-      T * create_inst()
-      {
-        T * ret = NULL;
-        if( sp_inst_traits<T>::is_sp_inst )
-        {
-          void *ptr = arena_.alloc(sizeof(T));
-          ret = new(ptr) T();
-          inst_list_.push_back((SpInst *)ret);
-          ((SpInst*)ret)->set_owner_procedure(this);
-        }
-        return ret;
-      }
-
-      virtual void add_inst(SpInst *inst)
-      {
-        inst_list_.push_back(inst);
-      }
-
-      int debug_status(const SpInst *inst) const;
-
-      int deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory, ObPhyOperator *&root);
-      int serialize_tree(char *buf, int64_t buf_len, int64_t &pos, const ObPhyOperator &root) const;
-      NEED_SERIALIZE_AND_DESERIALIZE;
-      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
-
-    private:
-      SpProcedure(const SpProcedure &other);
-      SpProcedure& operator=(const SpProcedure &other);
-
-    protected:
-
-      ObArray<SpInst *> inst_list_;
-
-      typedef int64_t ProgramCounter;
-      ProgramCounter pc_;
-      ModuleArena arena_;
+      int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
     };
 
     /**
@@ -361,6 +36,8 @@ namespace oceanbase
      * in this class, but the execution model could not be the iterator model
      *
      * the real execution plan is owned by the procedure, instead of sp inst
+     *
+     * ObProcedure is the sub-class of SpProcedure that executed on ms
      * @brief The ObProcedure class
      */
     class ObProcedure : public SpProcedure
@@ -387,7 +64,8 @@ namespace oceanbase
 //			virtual int32_t get_child_num() const;
 
       int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
-			int set_proc_name(ObString &proc_name);/*设置存储过程名*/
+      mergeserver::ObMergerRpcProxy * get_rpc_stub() { return rpc_; }
+      int set_proc_name(ObString &proc_name);/*设置存储过程名*/
 			int add_param(ObParamDef &proc_param);
 			int set_params(ObArray<ObParamDef*> &params);/*存储过程参数*/
 			int add_declare_var(ObString &var);/*添加一个变量*/
@@ -425,47 +103,7 @@ namespace oceanbase
       ObArray<SpInst *> exec_list_;
 
       mergeserver::ObMergerRpcProxy *rpc_;
-    };
-
-    class ObUpsProcedure : public SpProcedure
-    {
-    public:
-      ObUpsProcedure();
-      virtual ~ObUpsProcedure();
-      virtual void reset();
-      virtual void reuse();
-      virtual int open();
-      virtual int close();
-
-      int create_variable_table();
-      virtual int write_variable(const ObString &var_name, const ObObj &val);
-      virtual int read_variable(const ObString &var_name, ObObj &val) const;
-      virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
-//      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
-    private:
-      //disallow copy
-      static const int64_t SMALL_BLOCK_SIZE = 4 * 1024LL;
-      ObUpsProcedure(const ObUpsProcedure &other);
-      ObUpsProcedure& operator=(const ObUpsProcedure &other);
-    private:
-
-      typedef common::ObPooledAllocator<common::hash::HashMapTypes<common::ObString, common::ObObj>::AllocType, common::ObWrapperAllocator> VarNameValMapAllocer;
-      typedef common::hash::ObHashMap<common::ObString,
-      common::ObObj,
-      common::hash::NoPthreadDefendMode,
-      common::hash::hash_func<common::ObString>,
-      common::hash::equal_to<common::ObString>,
-      VarNameValMapAllocer,
-      common::hash::NormalPointer,
-      common::ObSmallBlockAllocator<>
-      > VarNameValMap;
-
-      //save the variables
-      common::ObSmallBlockAllocator<> block_allocator_;
-      VarNameValMapAllocer var_name_val_map_allocer_;
-      VarNameValMap var_name_val_map_;
-      common::ObStringBuf name_pool_;
-    };
+    }; 
   }
 }
 

@@ -15,7 +15,7 @@
 #include "ob_ups_lock_filter.h"
 #include "ob_ups_inc_scan.h"
 #include "ob_memtable_modify.h"
-#include "sql/ob_procedure.h" //add zt 20151110
+#include "ob_ups_procedure.h" //add zt 20151111
 #define new_operator(__type__, __allocator__, ...)      \
   ({                                                    \
     __type__ *ret = NULL;                               \

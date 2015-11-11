@@ -1586,7 +1586,8 @@ int ObTransformer::gen_physical_procedure_select_into(
             break;
           }
         }
-        rw_delta_into_var_inst->set_rwdelta_op(ups_exec);
+        rw_delta_into_var_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+        rw_delta_into_var_inst->set_ups_exec_op(ups_exec);
 
 //        rd_base_inst->set_tid(sel_stmt->get_table_id());
 //        rw_delta_into_var_inst->set_tid(insert_stmt->get_table_id());
@@ -1802,7 +1803,8 @@ int ObTransformer::gen_physical_procedure_insert(
         break;
       }
     }
-    rw_delta_inst->set_rwdelta_op(ups_exec);
+    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst->set_ups_exec_op(ups_exec);
 
     rd_base_inst->set_tid(insert_stmt->get_table_id());
     rw_delta_inst->set_tid(insert_stmt->get_table_id());
@@ -1902,7 +1904,8 @@ int ObTransformer::gen_physical_procedure_update(
         break;
       }
     }
-    rw_delta_inst->set_rwdelta_op(ups_exec);
+    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst->set_ups_exec_op(ups_exec);
 
     //set the relation between instruction and proc_op
 //    rd_base_inst->set_owner_procedure(proc_op);
