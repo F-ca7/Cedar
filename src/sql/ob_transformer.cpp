@@ -1644,7 +1644,7 @@ int ObTransformer::gen_physical_procedure_assign(
     uint64_t expr_id = var_val.var_expr_id_;
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
     ObSqlExpression *expr = ObSqlExpression::alloc();
-    expr->set_owner_op(proc_op);
+    expr->set_owner_op(proc_op); //important
 
     ret = raw_expr->fill_sql_expression(*expr, this, logical_plan, physical_plan);
 

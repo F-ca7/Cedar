@@ -82,6 +82,7 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
     else
     {
       var_val_.var_value_ = expr;
+      var_val_.var_value_->set_owner_op(proc_);
     }
   }
   return ret;
@@ -246,6 +247,8 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
     var_list_.reserve(var_count);
     for(int64_t i = 0; i < var_count; ++i)
     {
+      ObString var_name;
+      var_list_.push_back(var_name);
       if( OB_SUCCESS != (ret = var_list_.at(i).deserialize(buf, data_len, pos)) )
       {
         TBSYS_LOG(WARN, "Deserialize var list[%ld] fail, ret=%d", i, ret);
@@ -264,11 +267,20 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
 /* ========================================================
  *      SpBlockInsts Definition
  * =======================================================*/
-void SpBlockInsts::add_inst(SpInst *inst)
+int SpBlockInsts::add_inst(SpInst *inst)
 {
-  inst_list_.push_back(inst);
-  rs_.addVariable(inst->get_read_variable_set());
-  ws_.addVariable(inst->get_write_variable_set());
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != inst_list_.push_back(inst) )
+  {
+    TBSYS_LOG(WARN, "add instruction fail");
+  }
+  else if ( OB_SUCCESS !=  (ret=rs_.addVariable(inst->get_read_variable_set())) )
+  {}
+  else if ( OB_SUCCESS != (ret = ws_.addVariable(inst->get_write_variable_set())) )
+  {}
+  else
+  {}
+  return ret;
 }
 
 int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
@@ -302,6 +314,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
   //serialize read variables
   int64_t rd_var_count = rs_.var_set_.count();
+  TBSYS_LOG(INFO, "Block inst serialization, rd_var count: %ld", rd_var_count);
   if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_var_count)))
   {
     TBSYS_LOG(WARN, "serialize read variables count fail");
@@ -322,6 +335,10 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     else if( OB_SUCCESS != (ret = obj->serialize(buf, buf_len, pos)) )
     {
       TBSYS_LOG(WARN, "variable value serialization fail");
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
     }
   }
   return ret;
@@ -348,15 +365,15 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     switch (type) {
     case SP_E_INST:
       inst = proc_->create_inst<SpExprInst>();
-      inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     case SP_D_INST:
       inst = proc_->create_inst<SpRwDeltaInst>();
-      inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     case SP_DE_INST:
       inst = proc_->create_inst<SpRwDeltaIntoVarInst>();
-      inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     default:
       TBSYS_LOG(WARN, "Unsupport deserialize inst[%d]", type);
@@ -366,22 +383,36 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     if( OB_SUCCESS == ret )
       add_inst(inst);
     else
+    {
+      TBSYS_LOG(WARN, "Deserialize instructions %ld fail, ret=%d", i, ret);
       break;
+    }
   }
 
   //Varialbles are saved in ObSqlSessionInfo on ms
   // 	and saved in ObProcedure on ups
   int64_t rd_var_count = 0;
-  serialization::decode_i64(buf, data_len, pos, &rd_var_count);
-
-  for(int64_t i = 0; i < rd_var_count && OB_SUCCESS == ret; ++i)
+  if( OB_SUCCESS == ret )
   {
-    ObString var_name;
-    ObObj obj;
-    var_name.deserialize(buf, data_len, pos);
-    obj.deserialize(buf, data_len, pos);
-
-    proc_->write_variable(var_name, obj);
+    ret = serialization::decode_i64(buf, data_len, pos, &rd_var_count);
+    TBSYS_LOG(INFO, "block inst, rd_var count: %ld", rd_var_count);
+    for(int64_t i = 0; i < rd_var_count && OB_SUCCESS == ret; ++i)
+    {
+      ObString var_name;
+      ObObj obj;
+      if( OB_SUCCESS != (ret = var_name.deserialize(buf, data_len, pos)) )
+      {
+        TBSYS_LOG(WARN, "Deserialize var_name fail");
+      }
+      else if( OB_SUCCESS != (ret = obj.deserialize(buf, data_len, pos)) )
+      {
+        TBSYS_LOG(WARN, "Deserialize val fail");
+      }
+      else if( OB_SUCCESS != (ret = proc_->write_variable(var_name, obj)))
+      {
+        TBSYS_LOG(WARN, "write variables into table fail");
+      }
+    }
   }
   return ret;
 }

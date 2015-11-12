@@ -19,6 +19,7 @@ namespace oceanbase {
 
       int addVariable(ObString &var_name)
       {
+        int ret = OB_SUCCESS;
         bool flag = false;
         for(int64_t i = 0; i < var_set_.count(); ++i)
         {
@@ -28,15 +29,18 @@ namespace oceanbase {
             break;
           }
         }
-        if( !flag ) var_set_.push_back(var_name);
-        return OB_SUCCESS;
+        if( flag ) {}
+        else if( OB_SUCCESS != (ret = var_set_.push_back(var_name)) )
+        {}
+        return ret;
       }
 
       int addVariable(const VariableSet& var_set)
       {
+        int ret = OB_SUCCESS;
         for(int64_t i = 0; i < var_set.var_set_.count(); ++i)
         {
-          bool flag = true;
+          bool flag = false;
           const ObString &var_name = var_set.var_set_.at(i);
           for(int64_t i = 0; i < var_set_.count(); ++i)
           {
@@ -46,11 +50,14 @@ namespace oceanbase {
               break;
             }
           }
-          if( !flag ) var_set_.push_back(var_name);
+          if( flag ) {}
+          else if( OB_SUCCESS != (ret = var_set_.push_back(var_name)) )
+          {
+            TBSYS_LOG(WARN, "add varialbes into var_set fail");
+          }
         }
-        return OB_SUCCESS;
+        return ret;
       }
-
 //      NEED_SERIALIZE_AND_DESERIALIZE;
 
       ObArray<ObString> var_set_;

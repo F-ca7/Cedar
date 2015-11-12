@@ -34,7 +34,7 @@ namespace oceanbase
       virtual int write_variable(const ObString &var_name, const ObObj &val);
       virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
-//      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
     private:
       //disallow copy
       static const int64_t SMALL_BLOCK_SIZE = 4 * 1024LL;

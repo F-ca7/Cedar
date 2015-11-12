@@ -415,6 +415,7 @@ DEFINE_DESERIALIZE(ObExprValues)
     }
     else
     {
+      values_.reserve(expr_value_count);
       for(int64_t i = 0; OB_SUCCESS == ret && i < expr_value_count; ++i)
       {
         ObSqlExpression expr;
@@ -422,6 +423,10 @@ DEFINE_DESERIALIZE(ObExprValues)
         if( OB_SUCCESS != (ret = values_.at(i).deserialize(buf, data_len, tmp_pos)) )
         {
           TBSYS_LOG(WARN, "Fail to deserialize expr[%ld], ret=%d", i, ret);
+        }
+        else
+        {
+          values_.at(i).set_owner_op(this);
         }
       }
     }

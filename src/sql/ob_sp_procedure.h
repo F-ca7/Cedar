@@ -144,7 +144,7 @@ namespace oceanbase
     public:
       friend class SpInstExecStrategy;
       friend class SpMsInstExecStrategy;
-      SpRwDeltaInst(SpInstType type = SP_D_INST) : SpInst(type), op_(NULL), ups_exec_op_(NULL) {}
+      SpRwDeltaInst(SpInstType type = SP_D_INST) : SpInst(type), op_(NULL), ups_exec_op_(NULL), table_id_(0) {}
 //      SpRwDeltaInst(SpInstType type) : SpInst(type), op_(NULL) {}
 //      virtual ~SpRwDeltaInst() {}
 //      virtual int exec();
@@ -210,7 +210,7 @@ namespace oceanbase
       friend class SpInstExecStrategy;
       friend class SpMsInstExecStrategy;
 
-      SpRwCompInst() : SpInst(SP_A_INST), op_(NULL) {}
+      SpRwCompInst() : SpInst(SP_A_INST), op_(NULL), table_id_(0) {}
 //      virtual ~SpRwCompInst() {}
 //      virtual int exec();
 //      virtual int ups_exec() {/*undefined*/ return OB_ERROR;}
@@ -256,7 +256,7 @@ namespace oceanbase
       virtual const VariableSet &get_read_variable_set() const { return rs_; }
       virtual const VariableSet &get_write_variable_set() const { return ws_; }
 
-      void add_inst(SpInst *inst);
+      int add_inst(SpInst *inst);
       ObArray<SpInst *> & get_inst_list() { return inst_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;

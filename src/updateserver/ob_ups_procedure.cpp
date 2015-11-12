@@ -134,39 +134,44 @@ int ObUpsProcedure::open()
 {
   int ret = OB_SUCCESS;
   SpUpsInstExecStrategy strategy;
+  TBSYS_LOG(INFO, "UpsProcedure open, inst list:\n %s", to_cstring(*this));
   pc_ = 0;
-  for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
-  {
-    SpInst *inst = inst_list_.at(pc_);
-    SpInstType type = inst->get_type();
-    switch(type)
-    {
-    case SP_E_INST:
-      ret = strategy.execute_expr(static_cast<SpExprInst*>(inst));
-      break;
-    case SP_B_INST:
-//      ret = strategy.execute_rd_base(static_cast<SpRdBaseInst*>(inst));
-      ret = OB_ERROR;
-      break;
-    case SP_D_INST:
-      ret = strategy.execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
-      break;
-    case SP_DE_INST:
-      ret = strategy.execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
-      break;
-    case SP_A_INST:
-//      ret = strategy.execute_rw_comp(static_cast<SpRwCompInst*>(inst));
-      ret = OB_ERROR;
-      break;
-    case SP_BLOCK_INST:
-      ret = strategy.execute_block(static_cast<SpBlockInsts*>(inst));
-      break;
-    default:
-      TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
-      break;
-    }
-    debug_status(inst);
-  }
+  //we need only to execute the block instructions
+  SpInst *inst = inst_list_.at(0);
+  ret = strategy.execute_block(static_cast<SpBlockInsts*>(inst));
+
+//  for(; pc_ < inst_list_.count() && OB_SUCCESS == ret; ++pc_)
+//  {
+//    SpInst *inst = inst_list_.at(pc_);
+//    SpInstType type = inst->get_type();
+//    switch(type)
+//    {
+//    case SP_E_INST:
+//      ret = strategy.execute_expr(static_cast<SpExprInst*>(inst));
+//      break;
+//    case SP_B_INST:
+////      ret = strategy.execute_rd_base(static_cast<SpRdBaseInst*>(inst));
+//      ret = OB_ERROR;
+//      break;
+//    case SP_D_INST:
+//      ret = strategy.execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
+//      break;
+//    case SP_DE_INST:
+//      ret = strategy.execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
+//      break;
+//    case SP_A_INST:
+////      ret = strategy.execute_rw_comp(static_cast<SpRwCompInst*>(inst));
+//      ret = OB_ERROR;
+//      break;
+//    case SP_BLOCK_INST:
+//      ret = strategy.execute_block(static_cast<SpBlockInsts*>(inst));
+//      break;
+//    default:
+//      TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
+//      break;
+//    }
+//    debug_status(inst);
+//  }
   return ret;
 }
 
@@ -218,6 +223,7 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   }
   else
   {
+    TBSYS_LOG(INFO, "Add variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
     ret = OB_SUCCESS;
   }
   return ret;
@@ -237,4 +243,18 @@ int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) c
 {
   val =  var_name_val_map_.get(var_name);
   return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
+}
+
+int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "Procedure instruction list:\n");
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
+    pos += inst->to_string(buf + pos, buf_len -pos);
+  }
+  databuff_printf(buf, buf_len, pos, "Procedure variable status:\n");
+  return pos;
 }
