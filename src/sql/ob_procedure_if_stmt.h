@@ -5,7 +5,6 @@
 #include "common/ob_array.h"
 #include "ob_basic_stmt.h"
 #include "parse_node.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {
@@ -43,11 +42,11 @@ class ObProcedureIfStmt: public ObBasicStmt {
 		/*if表达的id*/
 		uint64_t get_expr_id();
 
-		ObArray<uint64_t> get_then_stmts();		/*then语句列表*/
+    const ObArray<uint64_t> &get_then_stmts() const;		/*then语句列表*/
 
 		uint64_t& get_then_stmt(int64_t index);
 
-		ObArray<uint64_t> get_elseif_stmts();	/*else if语句列表*/
+    const ObArray<uint64_t> &get_elseif_stmts() const;	/*else if语句列表*/
 
 		uint64_t& get_elseif_stmt(int64_t index);
 

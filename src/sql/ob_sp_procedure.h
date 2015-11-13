@@ -64,11 +64,7 @@ namespace oceanbase
       friend class SpMsInstExecStrategy;
       //      SpInst() : type_(SP_UNKOWN), proc_(NULL) {}
       SpInst(SpInstType type) : type_(type), proc_(NULL) {}
-      //      virtual ~SpInst() {}
-//      virtual int exec() = 0;  //exec the inst on mergeserver
-//      virtual int ups_exec() = 0; //exec the inst on updateserver
-      //      virtual int split(SpBlockInst &block_inst) = 0; //split the inst into small ones
-      virtual const VariableSet &get_read_variable_set() const = 0;
+      virtual const VariableSet &get_read_variable_set() const = 0; //bad design ret type as ref ... try to correct later
       virtual const VariableSet &get_write_variable_set() const = 0;
 
       static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
@@ -86,6 +82,25 @@ namespace oceanbase
     protected:
       SpInstType type_;
       SpProcedure *proc_; //the procedure thats owns this instruction
+    };
+
+    const static int SP_INST_LIST_SIZE = 5;
+    typedef ObSEArray<SpInst *, SP_INST_LIST_SIZE> SpInstList;
+
+    class SpMultiInsts
+    {
+    public:
+      SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
+      int add_inst(SpInst *inst) { return inst_list_.push_back(inst); }
+      int get_inst(int64_t idx, SpInst *&inst);
+      int64_t inst_count() const { return inst_list_.count(); }
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+    private:
+      SpInstList inst_list_;
+      SpInst *ownner_;
     };
 
     class SpExprInst : public SpInst
@@ -270,6 +285,43 @@ namespace oceanbase
       VariableSet ws_;
     };
 
+    class SpIfCtrlInsts;
+    class SpIfBlock : public SpMultiInsts
+    {
+    public:
+      friend class SpIfCtrlInsts;
+      SpIfBlock(SpInst *ownner) : SpMultiInsts(ownner) {}
+      int optimize() {return OB_SUCCESS;}  //optimize as if block
+
+    };
+
+
+    class SpIfCtrlInsts : public SpInst
+    {
+    public:
+      SpIfCtrlInsts() : SpInst(SP_C_INST), then_branch_(this), else_branch_(this) {}
+      int add_then_inst(SpInst *inst);
+      int add_else_inst(SpInst *inst);
+      ObSqlExpression & get_if_expr() { return if_expr_; }
+      void add_read_var(ObArray<const ObRawExpr *> &var_list);
+      SpMultiInsts* get_then_block() { return &then_branch_; }
+      SpMultiInsts* get_else_block() { return &else_branch_; }
+
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+      virtual const VariableSet &get_read_variable_set() const  { return expr_rs_set_; }
+      virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
+
+    private:
+
+      ObSqlExpression if_expr_;
+      VariableSet expr_rs_set_;
+      VariableSet ws_set_; //fake design
+      SpIfBlock then_branch_;
+      SpIfBlock else_branch_;
+    };
+
     template<class T>
     struct sp_inst_traits
     {
@@ -312,6 +364,12 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
+    template<>
+    struct sp_inst_traits<SpIfCtrlInsts>
+    {
+      static const bool is_sp_inst = true;
+    };
+
     class SpInstExecStrategy
     {
     public:
@@ -321,6 +379,8 @@ namespace oceanbase
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) = 0;
       virtual int execute_rw_comp(SpRwCompInst *inst) = 0;
       virtual int execute_block(SpBlockInsts *inst) = 0;
+      virtual int execute_if_ctrl(SpIfCtrlInsts *inst) = 0;
+      virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
     };
 
 
@@ -350,7 +410,7 @@ namespace oceanbase
       void clear_inst_list() { inst_list_.clear(); }
 
       template<class T>
-      T * create_inst()
+      T * create_inst(SpMultiInsts *mul_inst)
       {
         T * ret = NULL;
         if( sp_inst_traits<T>::is_sp_inst )
@@ -359,6 +419,8 @@ namespace oceanbase
           ret = new(ptr) T();
           inst_list_.push_back((SpInst *)ret);
           ((SpInst*)ret)->set_owner_procedure(this);
+          if( NULL != mul_inst)
+            mul_inst->add_inst(ret);
         }
         return ret;
       }

@@ -64,7 +64,7 @@ uint64_t ObProcedureIfStmt::get_expr_id()
 	return expr_id_;
 }
 
-ObArray<uint64_t> ObProcedureIfStmt::get_then_stmts()/*then语句列表*/
+const ObArray<uint64_t> &ObProcedureIfStmt::get_then_stmts() const/*then语句列表*/
 {
 	return then_stmts_;
 }
@@ -74,7 +74,7 @@ uint64_t& ObProcedureIfStmt::get_then_stmt(int64_t index)/*then语句*/
 	return then_stmts_.at(index);
 }
 
-ObArray<uint64_t> ObProcedureIfStmt::get_elseif_stmts()/*else if语句列表*/
+const ObArray<uint64_t> &ObProcedureIfStmt::get_elseif_stmts() const/*else if语句列表*/
 {
 	return elseif_stmts_;
 }

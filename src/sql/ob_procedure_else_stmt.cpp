@@ -17,7 +17,7 @@ int ObProcedureElseStmt::add_else_stmt(uint64_t& stmt_id)
 	return else_stmts_.push_back(stmt_id);
 }
 
-ObArray<uint64_t> ObProcedureElseStmt::get_else_stmts()/*else语句列表*/
+const ObArray<uint64_t> &ObProcedureElseStmt::get_else_stmts() const
 {
 	return else_stmts_;
 }

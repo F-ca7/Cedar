@@ -315,6 +315,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
       break;
     default:
       TBSYS_LOG(WARN, "Unsupport serialize inst[%d] to UPS", type);
+      ret = OB_ERROR;
       break;
     }
   }
@@ -371,15 +372,15 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     type = static_cast<SpInstType>(type_int_value);
     switch (type) {
     case SP_E_INST:
-      inst = proc_->create_inst<SpExprInst>();
+      inst = proc_->create_inst<SpExprInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     case SP_D_INST:
-      inst = proc_->create_inst<SpRwDeltaInst>();
+      inst = proc_->create_inst<SpRwDeltaInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     case SP_DE_INST:
-      inst = proc_->create_inst<SpRwDeltaIntoVarInst>();
+      inst = proc_->create_inst<SpRwDeltaIntoVarInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     default:
@@ -427,6 +428,148 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   }
   return ret;
 }
+
+/*================================================
+ *				SpMultiInsts Definition
+ * ===============================================*/
+int SpMultiInsts::get_inst(int64_t idx, SpInst *&inst)
+{
+  if( idx < 0 || idx > inst_list_.count() ) inst = NULL;
+  else inst = inst_list_.at(idx);
+  return inst == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
+}
+
+int SpMultiInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  int64_t count = inst_list_.count();
+  if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, count)) )
+  {
+    TBSYS_LOG(WARN, "serialize inst count fail");
+  }
+
+  //serialize instructions
+  for(int64_t i = 0; i < count && OB_SUCCESS == ret; ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    SpInstType type = inst->get_type();
+    switch(type)
+    {
+    case SP_E_INST:
+    case SP_D_INST:
+    case SP_DE_INST:
+      ret = serialization::encode_i32(buf, buf_len, pos, type);
+      inst->serialize_inst(buf, buf_len,pos);
+      break;
+    default:
+      TBSYS_LOG(WARN, "Unsupport serialize inst[%d] to UPS", type);
+      ret = OB_ERROR;
+      break;
+    }
+  }
+  return ret;
+}
+
+int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  int64_t count = inst_list_.count();
+  SpProcedure *proc_ = ownner_->get_ownner();
+  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &count)) )
+  {
+    TBSYS_LOG(WARN, "deserialize inst count fail");
+  }
+  inst_list_.reserve(count);
+  for(int64_t i = 0; i < count && OB_SUCCESS == ret; ++i)
+  {
+    SpInstType type;
+    SpInst *inst = NULL;
+    int32_t type_int_value = 0;
+    serialization::decode_i32(buf, data_len, pos, &type_int_value);
+    type = static_cast<SpInstType>(type_int_value);
+    switch (type) {
+    case SP_E_INST:
+      inst = proc_->create_inst<SpExprInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
+    case SP_D_INST:
+      inst = proc_->create_inst<SpRwDeltaInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
+    case SP_DE_INST:
+      inst = proc_->create_inst<SpRwDeltaIntoVarInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
+    default:
+      TBSYS_LOG(WARN, "Unsupport deserialize inst[%d]", type);
+      ret = OB_ERROR;
+      break;
+    }
+    if( OB_SUCCESS == ret )
+      add_inst(inst);
+    else
+    {
+      TBSYS_LOG(WARN, "Deserialize instructions %ld fail, ret=%d", i, ret);
+      break;
+    }
+  }
+  return ret;
+}
+
+/*================================================
+ * 					SpIfContrlInsts Definition
+ * ==============================================*/
+void SpIfCtrlInsts::add_read_var(ObArray<const ObRawExpr*> &var_list)
+{
+  for(int64_t i = 0; i < var_list.count(); ++i)
+  {
+    ObItemType raw_type = var_list.at(i)->get_expr_type();
+    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+    {
+      ObString var_name;
+      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+      expr_rs_set_.addVariable(var_name);
+    }
+  }
+}
+
+int SpIfCtrlInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = if_expr_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize if_expr fail");
+  }
+  else if( OB_SUCCESS != (ret = then_branch_.serialize_inst(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize then_branch fail");
+  }
+  else if( OB_SUCCESS != (ret = else_branch_.serialize_inst(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize else_branch fail");
+  }
+  return ret;
+}
+
+int SpIfCtrlInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                                    ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = if_expr_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize i_expr fail");
+  }
+  else if( OB_SUCCESS != (ret = then_branch_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "deserialize then_branch fail");
+  }
+  else if( OB_SUCCESS != (ret = else_branch_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "deserialize else_branch fail");
+  }
+  return ret;
+}
+
 /*=================================================
  * 					SpProcedure Defintion
  * ===============================================*/
@@ -635,7 +778,7 @@ DEFINE_DESERIALIZE(SpProcedure)
 {
   //must be only one block inst
   int ret = OB_SUCCESS;
-  SpBlockInsts* block_inst = create_inst<SpBlockInsts>();
+  SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
   if( OB_SUCCESS != (ret = block_inst->deserialize_inst(
                        buf, data_len, pos, *my_phy_plan_->allocator_,
                        my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )

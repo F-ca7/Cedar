@@ -194,6 +194,77 @@ int SpMsInstExecStrategy::set_trans_params(ObSQLSessionInfo *session, common::Ob
   return ret;
 }
 
+int SpMsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
+{
+  int ret = OB_SUCCESS;
+  common::ObRow fake_row;
+  const ObObj *flag = NULL;
+  if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
+  {
+    TBSYS_LOG(WARN, "if expr evalute failed");
+  }
+  else if( flag->is_true() )
+  { //execute the then branch
+    if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_then_block())) )
+    {
+      TBSYS_LOG(WARN, "execute then block fail");
+    }
+  }
+  else
+  { //execute the fail branch
+    if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+    {
+      TBSYS_LOG(WARN, "execute else block fail");
+    }
+  }
+  return ret;
+}
+
+int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
+{
+  int ret = OB_SUCCESS;
+  int64_t pc = 0;
+  for(; pc < mul_inst->inst_count() && OB_SUCCESS == ret; ++pc)
+  {
+    SpInst *inst = NULL;
+    mul_inst->get_inst(pc, inst);
+    if( inst != NULL )
+    {
+      SpInstType type = inst->get_type();
+      switch(type)
+      {
+      case SP_E_INST:
+        ret = execute_expr(static_cast<SpExprInst*>(inst));
+        break;
+      case SP_B_INST:
+        ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
+        break;
+      case SP_D_INST:
+        ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
+        break;
+      case SP_DE_INST:
+        ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
+        break;
+      case SP_A_INST:
+        ret = execute_rw_comp(static_cast<SpRwCompInst*>(inst));
+        break;
+      case SP_BLOCK_INST:
+        ret = execute_block(static_cast<SpBlockInsts*>(inst));
+        break;
+      default:
+        TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
+        break;
+      }
+    }
+    else
+    {
+      ret = OB_ERROR;
+      TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
+    }
+  }
+  return ret;
+}
+
 
 /**
  * @brief SpBlockInsts::exec
@@ -453,14 +524,18 @@ int ObProcedure::optimize()
     exec_list_.push_back(inst_list_.at(2));
     exec_list_.push_back(inst_list_.at(6));
     exec_list_.push_back(inst_list_.at(8));
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
 
-    SpBlockInsts *block_inst =  create_inst<SpBlockInsts>();
+    SpBlockInsts *block_inst =  create_inst<SpBlockInsts>(NULL);
     block_inst->add_inst(inst_list_.at(1));
     block_inst->add_inst(inst_list_.at(3));
     block_inst->add_inst(inst_list_.at(4));
     block_inst->add_inst(inst_list_.at(5));
     block_inst->add_inst(inst_list_.at(7));
     block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
     exec_list_.push_back(block_inst);
   }
   //else do nothing
