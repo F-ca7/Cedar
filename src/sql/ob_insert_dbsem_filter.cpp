@@ -195,7 +195,15 @@ namespace oceanbase
 
     DEFINE_DESERIALIZE(ObInsertDBSemFilter)
     {
-      return insert_values_.deserialize(buf, data_len, pos);;
+      //delete zt 20151113:b
+      //return insert_values_.deserialize(buf, data_len, pos);;
+      //delete zt 20151113:e
+
+      //add zt 20151113:b
+      int ret = insert_values_.deserialize(buf, data_len, pos);
+      if( OB_SUCCESS == ret) insert_values_.set_phy_plan(my_phy_plan_); //inner op
+      return ret;
+      //add zt 20151113:e
     }
 
     DEFINE_GET_SERIALIZE_SIZE(ObInsertDBSemFilter)

@@ -362,13 +362,20 @@ DEFINE_SERIALIZE(ObExprValues)
   }
   else
   {
-    serialization::encode_i64(buf, buf_len, tmp_pos, values_.count());
-    for(int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
+    if( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
     {
-      if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
+      TBSYS_LOG(WARN, "serialzie row_desc ext fail");
+    }
+    else
+    {
+      serialization::encode_i64(buf, buf_len, tmp_pos, values_.count());
+      for(int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
       {
-        TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
-        break;
+        if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
+        {
+          TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
+          break;
+        }
       }
     }
     if( OB_SUCCESS == ret )
@@ -409,16 +416,20 @@ DEFINE_DESERIALIZE(ObExprValues)
   else
   {
     int64_t expr_value_count;
-    if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, tmp_pos, &expr_value_count)) )
+    if( OB_SUCCESS != (ret = row_desc_ext_.deserialize(buf, data_len, tmp_pos)) )
+    {
+      TBSYS_LOG(WARN, "deserialize the row_desc_ext fail");
+    }
+    else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, tmp_pos, &expr_value_count)) )
     {
       TBSYS_LOG(WARN, "deserialize the expr values count fail, ret=%d", ret);
     }
     else
     {
       values_.reserve(expr_value_count);
+      ObSqlExpression expr;
       for(int64_t i = 0; OB_SUCCESS == ret && i < expr_value_count; ++i)
       {
-        ObSqlExpression expr;
         values_.push_back(expr);
         if( OB_SUCCESS != (ret = values_.at(i).deserialize(buf, data_len, tmp_pos)) )
         {
@@ -436,6 +447,7 @@ DEFINE_DESERIALIZE(ObExprValues)
       //each time when opened, it should read from the expr_values;
       from_deserialize_ = false;
       pos = tmp_pos;
+      row_desc_.assign(row_desc_ext_.get_row_desc());
     }
   }
   //add zt 20151109:e
@@ -455,7 +467,7 @@ DEFINE_GET_SERIALIZE_SIZE(ObExprValues)
   }
   else
   {
-    int64_t size = sizeof(bool) + sizeof(int64_t);
+    int64_t size = sizeof(bool) + sizeof(int64_t) + row_desc_ext_.get_serialize_size();
     for(int64_t i = 0; i < values_.count(); ++i)
     {
       size += values_.at(i).get_serialize_size();

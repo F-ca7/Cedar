@@ -240,7 +240,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
   int ret = OB_SUCCESS;
 
   int64_t var_count = 0;
-  TBSYS_LOG(INFO, "deserialize RwDeltaInto");
+  TBSYS_LOG(TRACE, "deserialize RwDeltaInto");
   if( OB_SUCCESS != (ret = proc_->deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, op_)))
   {
     TBSYS_LOG(WARN, "Deserialize main query fail: ret=%d", ret);

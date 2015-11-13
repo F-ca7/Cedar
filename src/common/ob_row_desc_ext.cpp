@@ -106,3 +106,66 @@ int ObRowDescExt::add_column_desc(const uint64_t table_id, const uint64_t column
   }
   return ret;
 }
+
+//add zt 20151113:b
+DEFINE_SERIALIZE(ObRowDescExt)
+{
+  int ret = OB_SUCCESS;
+  const common::ObObj *cell = NULL;
+  if( OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize obrow_desc fail");
+  }
+  else
+  {
+    for(int64_t i = 0; (OB_SUCCESS == ret) && (i < row_desc_.get_column_num()); ++i)
+    {
+      data_type_.get_cell(i, cell);
+      if( OB_SUCCESS != (ret = cell->serialize(buf, buf_len, pos)) )
+      {
+        TBSYS_LOG(WARN, "serialize datatype [%ld] fail", i);
+      }
+    }
+  }
+  return ret;
+}
+
+
+DEFINE_DESERIALIZE(ObRowDescExt)
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize obrow_desc fail");
+  }
+  else
+  {
+    ObObj cell;
+    for(int64_t i = 0; (OB_SUCCESS == ret) && (i < row_desc_.get_column_num()); ++i)
+    {
+      if( OB_SUCCESS != (ret = cell.deserialize(buf, data_len, pos)) )
+      {
+        TBSYS_LOG(WARN, "serialize datatype [%ld] fail", i);
+      }
+      else
+      {
+        data_type_.set_cell(i, cell);
+      }
+    }
+  }
+  return ret;
+}
+
+DEFINE_GET_SERIALIZE_SIZE(ObRowDescExt)
+{
+  int64_t size = row_desc_.get_serialize_size();
+  const common::ObObj *cell = NULL;
+  for(int64_t i = 0; i < row_desc_.get_column_num(); ++i)
+  {
+    data_type_.get_cell(i, cell);
+    size += cell->get_serialize_size();
+  }
+  return size;
+}
+
+//add zt 20151113:e

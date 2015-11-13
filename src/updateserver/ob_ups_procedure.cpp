@@ -77,11 +77,12 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
 {
   int ret = OB_SUCCESS;
   ObArray<SpInst*>& inst_list_ = inst->get_inst_list();
-  const SpProcedure *proc_ = inst->get_ownner();
+//  const SpProcedure *proc_ = inst->get_ownner();
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {
     SpInst *inst = inst_list_.at(i);
     SpInstType type = inst->get_type();
+    TBSYS_LOG(TRACE, "execute inst[%ld]", i);
     switch(type)
     {
     case SP_E_INST:
@@ -105,7 +106,7 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
       TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
       break;
     }
-    proc_->debug_status(inst);
+//    proc_->debug_status(inst);
   }
   return ret;
 }

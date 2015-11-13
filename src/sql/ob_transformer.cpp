@@ -8250,6 +8250,9 @@ int ObTransformer::gen_phy_table_for_update(
   return ret;
 }
 
+/**
+ * @brief ObTransformer::cons_row_desc: construct row_desc and row_desc_ext from table schema
+ */
 int ObTransformer::cons_row_desc(const uint64_t table_id,
                                  const ObStmt *stmt,
                                  ObRowDescExt &row_desc_ext,
