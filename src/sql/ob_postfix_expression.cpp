@@ -814,7 +814,7 @@ namespace oceanbase
         if( !owner_op_ || !owner_op_ ->get_phy_plan())
         {
           ret = OB_ERR_UNEXPECTED;
-          TBSYS_LOG(WARN, "Can not get physical plan. err=%d", ret);
+          TBSYS_LOG(WARN, "Can not get physical plan. err=%d, owner_op: %p, phyplan: %p, postexpr: %p", ret, owner_op_, owner_op_ == 0 ? 0 : owner_op_->get_phy_plan(), this);
         }
         else
         {

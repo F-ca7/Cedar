@@ -76,7 +76,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
 {
   int ret = OB_SUCCESS;
-  ObArray<SpInst*> inst_list_ = inst->get_inst_list();
+  ObArray<SpInst*>& inst_list_ = inst->get_inst_list();
   const SpProcedure *proc_ = inst->get_ownner();
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {
@@ -203,10 +203,11 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
     }
     else
     {
+      TBSYS_LOG(TRACE, "create var table successful");
       is_var_tab_created = true;
     }
   }
-  if( OB_SUCCESS == ret )
+  if( OB_SUCCESS != ret )
   {}
   else if (var_name.length() <= 0)
   {
@@ -223,7 +224,7 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   }
   else
   {
-    TBSYS_LOG(INFO, "Add variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    TBSYS_LOG(INFO, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
     ret = OB_SUCCESS;
   }
   return ret;
@@ -233,16 +234,40 @@ int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
 {
   int ret = OB_SUCCESS;
   if( OB_UNLIKELY(!is_var_tab_created) )
+	{
+		TBSYS_LOG(WARN, "var_table does not create");
     ret = OB_ERR_VARIABLE_UNKNOWN;
+	}
   else if (var_name_val_map_.get(var_name, val) != hash::HASH_EXIST)
+	{
+		TBSYS_LOG(WARN, "var does not exist");
     ret = OB_ERR_VARIABLE_UNKNOWN;
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+  }
   return ret;
 }
 
 int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
-  val =  var_name_val_map_.get(var_name);
-  return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
+	int ret = OB_SUCCESS;
+  if( OB_UNLIKELY(!is_var_tab_created) )
+	{
+		TBSYS_LOG(WARN, "var_table does not create");
+    ret = OB_ERR_VARIABLE_UNKNOWN;
+	}
+  else if ((val=var_name_val_map_.get(var_name)) == NULL)
+	{
+		TBSYS_LOG(WARN, "var does not exist");
+    ret = OB_ERR_VARIABLE_UNKNOWN;
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
+  }
+	return ret;
 }
 
 int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
@@ -254,6 +279,19 @@ int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
     SpInst *inst = inst_list_.at(i);
     databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
     pos += inst->to_string(buf + pos, buf_len -pos);
+//    switch(inst->get_type())
+//    {
+//    case SP_E_INST:
+//      pos += inst->to_string(buf+pos, buf_len-pos);
+//      break;
+//    case SP_D_INST:
+//    case SP_DE_INST:
+//      pos += static_cast<SpRwDeltaInst*>(inst)->get_rwdelta_op()->to_string(buf, buf_len-pos);
+//      break;
+//    default:
+//      pos += inst->to_string(buf +pos, buf_len -pos);
+//      break;
+//    }
   }
   databuff_printf(buf, buf_len, pos, "Procedure variable status:\n");
   return pos;

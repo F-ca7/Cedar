@@ -67,6 +67,7 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   UNUSED(allocator);
   UNUSED(operators_store);
   UNUSED(op_factory);
+  TBSYS_LOG(TRACE, "deserialize expr inst");
   if( OB_SUCCESS != (ret = var_val_.variable_name_.deserialize(buf, data_len, pos)) )
   {
     TBSYS_LOG(WARN, "deserialize var name fail, ret=%d", ret);
@@ -177,6 +178,8 @@ int SpRwDeltaInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) cons
 //  ObUpsExecutor *ups_exec = static_cast<ObUpsExecutor *>(op_);
 //  ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
 
+  //op_'s phyplan is different with proc_'s phyplan, op_ is in the ups_executor's innerplan
+  op_->get_phy_plan()->set_proc_exec(true);
   if( OB_SUCCESS != (ret = proc_->serialize_tree(buf, buf_len, pos, *op_)) )
   {
     TBSYS_LOG(WARN, "Serialize ups main query fail: ret=%d", ret);
@@ -187,6 +190,7 @@ int SpRwDeltaInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) cons
 int SpRwDeltaInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "deserialize rwdelta");
   if( OB_SUCCESS != (ret = proc_->deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, op_)) )
   {
     TBSYS_LOG(WARN, "Deserialize rw delta inst query fail: ret=%d", ret);
@@ -203,6 +207,8 @@ int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &po
 //  ObUpsExecutor *ups_exec = static_cast<ObUpsExecutor *>(op_);
 //  ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
 
+  //op_'s phyplan is different with proc_'s phyplan, op_ is in the ups_executor's innerplan
+  op_->get_phy_plan()->set_proc_exec(true);
   /**
    * serialize the main query[ObUpsModifyWithDmlType] to the ups
    * caution. not the ups_executor
@@ -234,6 +240,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
   int ret = OB_SUCCESS;
 
   int64_t var_count = 0;
+  TBSYS_LOG(INFO, "deserialize RwDeltaInto");
   if( OB_SUCCESS != (ret = proc_->deserialize_tree(buf, data_len, pos, allocator, operators_store, op_factory, op_)))
   {
     TBSYS_LOG(WARN, "Deserialize main query fail: ret=%d", ret);
@@ -314,7 +321,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
   //serialize read variables
   int64_t rd_var_count = rs_.var_set_.count();
-  TBSYS_LOG(INFO, "Block inst serialization, rd_var count: %ld", rd_var_count);
+  TBSYS_LOG(TRACE, "Block inst serialization, rd_var count: %ld", rd_var_count);
   if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_var_count)))
   {
     TBSYS_LOG(WARN, "serialize read variables count fail");
@@ -338,7 +345,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     }
     else
     {
-      TBSYS_LOG(INFO, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
+      TBSYS_LOG(TRACE, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
     }
   }
   return ret;
@@ -395,7 +402,7 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   if( OB_SUCCESS == ret )
   {
     ret = serialization::decode_i64(buf, data_len, pos, &rd_var_count);
-    TBSYS_LOG(INFO, "block inst, rd_var count: %ld", rd_var_count);
+    TBSYS_LOG(TRACE, "block inst, rd_var count: %ld", rd_var_count);
     for(int64_t i = 0; i < rd_var_count && OB_SUCCESS == ret; ++i)
     {
       ObString var_name;
@@ -412,6 +419,10 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
       {
         TBSYS_LOG(WARN, "write variables into table fail");
       }
+			else 
+			{
+        TBSYS_LOG(TRACE, "try to write variables var_name: %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(obj));
+			}
     }
   }
   return ret;
@@ -560,6 +571,10 @@ int SpProcedure::deserialize_tree(const char *buf, int64_t data_len, int64_t &po
     {
       ret = OB_ALLOCATE_MEMORY_FAILED;
       TBSYS_LOG(WARN, "get operator fail:type[%d]", phy_operator_type);
+    }
+    else
+    {
+      root->set_phy_plan(my_phy_plan_); //set the phyplan, used when expr calculation
     }
   }
   if (OB_SUCCESS == ret)
@@ -759,7 +774,19 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
   {
     SpInst *inst = inst_list_.at(i);
     databuff_printf(buf, buf_len, pos, "\t sub-inst %ld: ", i);
-    pos += inst->to_string(buf + pos, buf_len -pos);
+//    pos += inst->to_string(buf + pos, buf_len -pos);
+    switch( inst->get_type() )
+    {
+    case SP_DE_INST:
+    case SP_D_INST:
+      pos += (static_cast<SpRwDeltaInst *>(inst)->get_rwdelta_op())->to_string(buf + pos, buf_len - pos);
+      break;
+    case SP_E_INST:
+      pos += (static_cast<SpExprInst *>(inst)->get_val())->to_string(buf + pos, buf_len-pos);
+    default:
+      pos += inst->to_string(buf + pos, buf_len -pos);
+      break;
+    }
   }
   return pos;
 }
