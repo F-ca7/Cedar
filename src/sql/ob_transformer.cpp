@@ -5064,7 +5064,39 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
     }
 
     ObObj IndexCol_obj;
-    IndexCol_obj.set_varchar(tmp.make_string("@TODO"));
+    char idx_rowkey_buf[OB_MAX_INDEX_COLUMNS * OB_MAX_COLUMN_NAME_LENGTH];
+    int buf_size = sizeof(char) * OB_MAX_INDEX_COLUMNS * OB_MAX_COLUMN_NAME_LENGTH;
+    memset(idx_rowkey_buf, 0, buf_size);
+    ObString IndexCol_str(buf_size, 0, idx_rowkey_buf);
+    const ObRowkeyInfo& idx_rowkey_info = idx_tschema->get_rowkey_info();
+    uint64_t table_id = idx_tschema->get_table_id();
+    int64_t size = idx_rowkey_info.get_size();
+    const ObColumnSchemaV2* tmp_col_schema;
+
+    uint64_t col_id;
+    for (int64_t i = 0; i < size; i++)
+    {
+      if ((ret = idx_rowkey_info.get_column_id(i, col_id)) != OB_SUCCESS)
+      {
+        TRANS_LOG("get index table rowkey column id failed");
+        break;
+      }
+      TBSYS_LOG(ERROR, "test::longfei>>>rowkey column id is %ld", col_id);
+      tmp_col_schema = sql_context_->schema_manager_->get_column_schema(table_id, col_id);
+      if (tmp_col_schema != NULL)
+      {
+        const char* col_name = tmp_col_schema->get_name();
+        IndexCol_str.add_string(col_name, 10); //10 need to be change to an mirco
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "column schema not exits");
+        break;
+      }
+    }  //end for
+    TBSYS_LOG(ERROR, "test::longfei>>>IndexCol_str is %.*s",
+        IndexCol_str.length(), IndexCol_str.ptr());
+    IndexCol_obj.set_varchar(IndexCol_str);
 
     uint64_t column_id = OB_APP_MIN_COLUMN_ID;
     if ((ret = val_row.set_cell(sys_tid, column_id++, name_obj)) != OB_SUCCESS)
@@ -5087,7 +5119,7 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
       TRANS_LOG("Add value row failed");
       break;
     }
-  }
+  } // end for
 
   if (ret == OB_SUCCESS)
   {

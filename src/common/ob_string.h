@@ -169,6 +169,30 @@ namespace oceanbase
           }
         }
 
+        //add longfei 20151114 :b
+        /*
+         * add a string to Obstring
+         * 将一个字符串加入ObString中
+         */
+        inline int add_string(const char* str, const obstr_size_t length)
+        {
+          int ret = OB_SUCCESS;
+          if (data_length_ + length > buffer_size_)
+          {
+            TBSYS_LOG(ERROR, "cannot add string into Obstring");
+            ret = OB_ERROR;
+          }
+          char *head = ptr_;
+          ptr_ += data_length_;
+          memcpy(ptr_, str, length);
+          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.the string %s will add.",ptr_);
+          ptr_ = head;
+          data_length_ += length;
+          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.this Obstring is %s.",ptr_);
+          return ret;
+        }
+        // add e
+
         /*
          * attach myself to other's buff, so you can read through me, but not write
          * 把ob_string 关联到一块不属于自己的内存空间上, 该 obstring 可读,不可写
