@@ -88,11 +88,6 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
     case SP_E_INST:
       ret = execute_expr(static_cast<SpExprInst*>(inst));
       break;
-    case SP_B_INST:
-    case SP_A_INST:
-//      ret = strategy.execute_rd_base(static_cast<SpRdBaseInst*>(inst));
-      ret = OB_ERROR;
-      break;
     case SP_D_INST:
       ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
       break;
@@ -102,11 +97,82 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
     case SP_BLOCK_INST:
       ret = execute_block(static_cast<SpBlockInsts*>(inst));
       break;
+    case SP_C_INST:
+      ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
+      break;
     default:
+      ret = OB_NOT_SUPPORTED;
       TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
       break;
     }
 //    proc_->debug_status(inst);
+  }
+  return ret;
+}
+
+int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
+{
+  int ret = OB_SUCCESS;
+  common::ObRow fake_row;
+  const ObObj *flag = NULL;
+  if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
+  {
+    TBSYS_LOG(WARN, "if expr evalute failed");
+  }
+  else if( flag->is_true() )
+  { //execute the then branch
+    if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_then_block())) )
+    {
+      TBSYS_LOG(WARN, "execute then block fail");
+    }
+  }
+  else
+  { //execute the fail branch
+    if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+    {
+      TBSYS_LOG(WARN, "execute else block fail");
+    }
+  }
+  return ret;
+
+  return ret;
+}
+
+int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
+{
+  int ret = OB_SUCCESS;
+  int64_t pc = 0;
+  for(; pc < mul_inst->inst_count() && OB_SUCCESS == ret; ++pc)
+  {
+    SpInst *inst = NULL;
+    mul_inst->get_inst(pc, inst);
+    if( inst != NULL )
+    {
+      SpInstType type = inst->get_type();
+      switch(type)
+      {
+      case SP_E_INST:
+        ret = execute_expr(static_cast<SpExprInst*>(inst));
+        break;
+      case SP_D_INST:
+        ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
+        break;
+      case SP_DE_INST:
+        ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
+        break;
+      case SP_BLOCK_INST:
+        ret = execute_block(static_cast<SpBlockInsts*>(inst));
+        break;
+      default:
+        TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
+        break;
+      }
+    }
+    else
+    {
+      ret = OB_ERROR;
+      TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
+    }
   }
   return ret;
 }

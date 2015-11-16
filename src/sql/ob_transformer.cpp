@@ -1249,7 +1249,7 @@ int ObTransformer::gen_physical_procedure_if(
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
     SpIfCtrlInsts* if_contrl = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
     ObSqlExpression &expr= if_contrl->get_if_expr();
-
+    expr.set_owner_op(proc_op); //important
     if (OB_UNLIKELY(raw_expr == NULL))
     {
       ret = OB_ERR_ILLEGAL_ID;

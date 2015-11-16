@@ -18,6 +18,8 @@ namespace oceanbase
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) ;
       virtual int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
       virtual int execute_block(SpBlockInsts *inst) ;
+      virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
+      virtual int execute_multi_inst(SpMultiInsts *mul_inst);
     };
 
    class ObUpsProcedure : public sql::SpProcedure

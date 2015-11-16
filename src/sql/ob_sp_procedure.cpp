@@ -310,6 +310,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     case SP_E_INST:
     case SP_D_INST:
     case SP_DE_INST:
+    case SP_C_INST:
       ret = serialization::encode_i32(buf, buf_len, pos, type);
       inst->serialize_inst(buf, buf_len,pos);
       break;
@@ -381,6 +382,10 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
       break;
     case SP_DE_INST:
       inst = proc_->create_inst<SpRwDeltaIntoVarInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
+    case SP_C_INST:
+      inst = proc_->create_inst<SpIfCtrlInsts>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     default:
@@ -458,6 +463,7 @@ int SpMultiInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     case SP_E_INST:
     case SP_D_INST:
     case SP_DE_INST:
+    case SP_C_INST:
       ret = serialization::encode_i32(buf, buf_len, pos, type);
       inst->serialize_inst(buf, buf_len,pos);
       break;
@@ -500,6 +506,10 @@ int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
       inst = proc_->create_inst<SpRwDeltaIntoVarInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
+    case SP_C_INST:
+      inst = proc_->create_inst<SpIfCtrlInsts>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
     default:
       TBSYS_LOG(WARN, "Unsupport deserialize inst[%d]", type);
       ret = OB_ERROR;
@@ -532,6 +542,7 @@ void SpIfCtrlInsts::add_read_var(ObArray<const ObRawExpr*> &var_list)
     }
   }
 }
+
 
 int SpIfCtrlInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -566,6 +577,66 @@ int SpIfCtrlInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &
   else if( OB_SUCCESS != (ret = else_branch_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
   {
     TBSYS_LOG(WARN, "deserialize else_branch fail");
+  }
+  else
+  {
+    if_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+int SpIfBlock::optimize(SpInstList &exec_list)
+{
+  int ret = OB_SUCCESS;
+
+  for(int64_t inst_itr = 0; inst_itr < inst_list_.count(); ++inst_itr)
+  {
+    if( inst_list_.at(inst_itr)->get_type() == SP_B_INST )
+    {
+      exec_list.push_back(inst_list_.at(inst_itr));
+      inst_list_.remove(inst_itr);
+      inst_itr --;
+    }
+  }
+  return ret;
+}
+
+/**
+ * @brief SpIfCtrlInsts::optimize
+ * 	try to optimize the if execution here
+ * @param inst_list
+ * @return
+ */
+int SpIfCtrlInsts::optimize(SpInstList &exec_list)
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = then_branch_.optimize(exec_list)) )
+  {
+    TBSYS_LOG(WARN, "optimize then_branch fail");
+  }
+  else if ( OB_SUCCESS != (ret = else_branch_.optimize(exec_list)) )
+  {
+    TBSYS_LOG(WARN, "optimize else_branch fail");
+  }
+  else
+  {
+    //construct read set
+    exec_list.push_back(this);
+    rs_set_.var_set_.clear();
+    rs_set_.addVariable(expr_rs_set_);
+    for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
+    {
+      SpInst *inst;
+      then_branch_.get_inst(i, inst);
+      rs_set_.addVariable(inst->get_read_variable_set());
+    }
+    for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
+    {
+      SpInst *inst;
+      else_branch_.get_inst(i, inst);
+      rs_set_.addVariable(inst->get_read_variable_set());
+    }
   }
   return ret;
 }
@@ -815,7 +886,7 @@ int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [E], ws [%.*s], rs [", var_val_.variable_name_.length(), var_val_.variable_name_.ptr());
-  const ObArray<ObString> &rs = var_val_.rs_.var_set_;
+  const VariableSet::VarArray &rs = var_val_.rs_.var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
@@ -830,7 +901,7 @@ int64_t SpRdBaseInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [B], ws [], rs [");
-  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  const VariableSet::VarArray &rs = get_read_variable_set().var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
@@ -845,7 +916,7 @@ int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [D], ws [], rs [");
-  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  const  VariableSet::VarArray  &rs = get_read_variable_set().var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
@@ -862,7 +933,7 @@ int64_t SpRwCompInst::to_string(char *buf, const int64_t buf_len) const
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [A], ws [");
 
-  const ObArray<ObString> &ws = get_write_variable_set().var_set_;
+  const VariableSet::VarArray &ws = get_write_variable_set().var_set_;
   for(int64_t i = 0; i < ws.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", ws.at(i).length(), ws.at(i).ptr(), ((i == ws.count()-1) ? ']' : ','));
@@ -872,7 +943,7 @@ int64_t SpRwCompInst::to_string(char *buf, const int64_t buf_len) const
 
   databuff_printf(buf, buf_len, pos, ", rs [");
 
-  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  const VariableSet::VarArray &rs = get_read_variable_set().var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
@@ -888,7 +959,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [D], ws [");
 
-  const ObArray<ObString> &ws = get_write_variable_set().var_set_;
+  const VariableSet::VarArray &ws = get_write_variable_set().var_set_;
   for(int64_t i = 0; i < ws.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", ws.at(i).length(), ws.at(i).ptr(), ((i == ws.count()-1) ? ']' : ','));
@@ -898,7 +969,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
 
   databuff_printf(buf, buf_len, pos, ", rs [");
 
-  const ObArray<ObString> &rs = get_read_variable_set().var_set_;
+  const VariableSet::VarArray &rs = get_read_variable_set().var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
@@ -912,7 +983,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
 int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "type[Block]\n");
+  databuff_printf(buf, buf_len, pos, "type [Block]\n");
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *inst = inst_list_.at(i);
@@ -922,10 +993,13 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
     {
     case SP_DE_INST:
     case SP_D_INST:
-      pos += (static_cast<SpRwDeltaInst *>(inst)->get_rwdelta_op())->to_string(buf + pos, buf_len - pos);
+//      pos += (static_cast<SpRwDeltaInst *>(inst)->get_rwdelta_op())->to_string(buf + pos, buf_len - pos);
+      pos += inst->to_string(buf + pos, buf_len - pos);
       break;
     case SP_E_INST:
-      pos += (static_cast<SpExprInst *>(inst)->get_val())->to_string(buf + pos, buf_len-pos);
+//      pos += (static_cast<SpExprInst *>(inst)->get_val())->to_string(buf + pos, buf_len-pos);
+      pos += inst->to_string(buf + pos, buf_len - pos);
+      break;
     default:
       pos += inst->to_string(buf + pos, buf_len -pos);
       break;
@@ -934,3 +1008,28 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
+int64_t SpMultiInsts::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    SpInst *inst = inst_list_.at(i);
+    databuff_printf(buf, buf_len, pos, "\t\tsub-inst %ld: ", i);
+    pos += inst->to_string(buf + pos, buf_len -pos);
+  }
+  return pos;
+}
+
+int64_t SpIfCtrlInsts::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [If]\n");
+  databuff_printf(buf, buf_len, pos, "\tThen\n");
+
+  pos += then_branch_.to_string(buf + pos, buf_len - pos);
+
+  databuff_printf(buf, buf_len, pos, "\tElse\n");
+
+  pos += else_branch_.to_string(buf + pos, buf_len - pos);
+  return pos;
+}

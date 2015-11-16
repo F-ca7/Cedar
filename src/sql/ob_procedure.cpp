@@ -538,6 +538,68 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(13));
     exec_list_.push_back(block_inst);
   }
+  else if( proc_name_.compare("if_test") == 0 )
+  {
+    SpInstList temp_exec_list;
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      if( inst_list_.at(i)->get_type() == SP_C_INST )
+        static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->optimize(temp_exec_list);
+      else
+        temp_exec_list.push_back(inst_list_.at(i));
+    }
+
+    for(int64_t i = 0; i < temp_exec_list.count(); ++i)
+    {
+      TBSYS_LOG(INFO, "inst[%ld]\n:%s", i, to_cstring(*temp_exec_list.at(i)));
+    }
+
+    exec_list_.push_back(temp_exec_list.at(0));
+    exec_list_.push_back(temp_exec_list.at(1));
+    exec_list_.push_back(temp_exec_list.at(2));
+    exec_list_.push_back(temp_exec_list.at(3));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(temp_exec_list.at(4));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("payment") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+    exec_list_.push_back(inst_list_.at(8));
+
+    static_cast<SpIfCtrlInsts*>(inst_list_.at(13))->optimize(exec_list_);
+    exec_list_.remove(exec_list_.count() - 1);
+//    inst_list_.remove(inst_list_.count() - 1);
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(1));
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(12));
+    block_inst->add_inst(inst_list_.at(13));
+
+    exec_list_.push_back(block_inst);
+
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(15));
+    exec_list_.push_back(inst_list_.at(16));
+
+    char buf[4096];
+    int64_t pos = 0;
+    for(int64_t i = 0; i < exec_list_.count(); ++i) {
+      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
+    }
+    buf[pos] = '\0';
+    TBSYS_LOG(INFO, "Payment optimize:\n %s", buf);
+  }
   //else do nothing
   else
   {
@@ -546,8 +608,9 @@ int ObProcedure::optimize()
     {
       exec_list_.push_back(inst_list_.at(i));
     }
+
   }
-  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
+//  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
   return OB_SUCCESS;
 }
 
@@ -584,6 +647,9 @@ int ObProcedure::open()
         break;
       case SP_BLOCK_INST:
         ret = strategy.execute_block(static_cast<SpBlockInsts*>(inst));
+        break;
+      case SP_C_INST:
+        ret = strategy.execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
         break;
     default:
       TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);

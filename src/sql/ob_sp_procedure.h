@@ -98,7 +98,8 @@ namespace oceanbase
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
-    private:
+      int64_t to_string(char *buf, const int64_t buf_len) const;
+    protected:
       SpInstList inst_list_;
       SpInst *ownner_;
     };
@@ -265,7 +266,7 @@ namespace oceanbase
       friend class SpInstExecStrategy;
       friend class SpMsInstExecStrategy;
 
-      SpBlockInsts() : SpInst(SP_BLOCK_INST), inst_list_() {}
+      SpBlockInsts() : SpInst(SP_BLOCK_INST) {}
 //      virtual int exec();
 //      virtual int ups_exec();
       virtual const VariableSet &get_read_variable_set() const { return rs_; }
@@ -281,6 +282,7 @@ namespace oceanbase
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
     private:
       ObArray<SpInst *> inst_list_;
+//      SpMultiInsts block_insts_;
       VariableSet rs_;
       VariableSet ws_;
     };
@@ -291,8 +293,7 @@ namespace oceanbase
     public:
       friend class SpIfCtrlInsts;
       SpIfBlock(SpInst *ownner) : SpMultiInsts(ownner) {}
-      int optimize() {return OB_SUCCESS;}  //optimize as if block
-
+      int optimize(SpInstList &exec_list);  //optimize as if block
     };
 
 
@@ -307,16 +308,19 @@ namespace oceanbase
       SpMultiInsts* get_then_block() { return &then_branch_; }
       SpMultiInsts* get_else_block() { return &else_branch_; }
 
+      int optimize(SpInstList &exec_list);
+
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
       virtual const VariableSet &get_read_variable_set() const  { return expr_rs_set_; }
       virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
-
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
     private:
 
       ObSqlExpression if_expr_;
       VariableSet expr_rs_set_;
+      VariableSet rs_set_;
       VariableSet ws_set_; //fake design
       SpIfBlock then_branch_;
       SpIfBlock else_branch_;
@@ -417,10 +421,12 @@ namespace oceanbase
         {
           void *ptr = arena_.alloc(sizeof(T));
           ret = new(ptr) T();
-          inst_list_.push_back((SpInst *)ret);
+          //inst_list_.push_back((SpInst *)ret);
           ((SpInst*)ret)->set_owner_procedure(this);
           if( NULL != mul_inst)
             mul_inst->add_inst(ret);
+          else
+            inst_list_.push_back((SpInst*)ret);
         }
         return ret;
       }

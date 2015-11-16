@@ -102,7 +102,7 @@ namespace oceanbase
       ObArray<ObString> declare_variable_;
       ObArray<ObVariableDef> defs_;
 
-      ObArray<SpInst *> exec_list_;
+      SpInstList exec_list_;
 
       mergeserver::ObMergerRpcProxy *rpc_;
     }; 

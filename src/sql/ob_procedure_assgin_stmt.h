@@ -13,9 +13,11 @@ namespace oceanbase {
 
     struct VariableSet
     {
+//      typedef ObSEArray<ObString, 4> VarArray;
+      typedef ObArray<ObString> VarArray;
       VariableSet() {}
-      VariableSet(ObArray<ObString> &array) : var_set_(array)
-      {}
+//      VariableSet(ObArray<ObString> &array) : var_set_(array)
+//      {}
 
       int addVariable(ObString &var_name)
       {
@@ -60,7 +62,8 @@ namespace oceanbase {
       }
 //      NEED_SERIALIZE_AND_DESERIALIZE;
 
-      ObArray<ObString> var_set_;
+//      ObArray<ObString> var_set_;
+      VarArray var_set_;
     };
 
     struct ObVarAssignVal
