@@ -41,7 +41,10 @@ namespace oceanbase
         virtual int get_next_row(const common::ObRow *&row);
         virtual int close();
         virtual ObPhyOperatorType get_type() const;
-        void set_tmp_table(uint64_t subquery_id) {tmp_table_subquery_ = subquery_id;};
+        void set_tmp_table(uint64_t subquery_id) {tmp_table_subquery_ = subquery_id;}
+        //add maoxx
+        void reset_iterator() { row_store_.reset_iterator();}
+        //add e
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;

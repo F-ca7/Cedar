@@ -86,8 +86,10 @@ namespace oceanbase
       PHY_OB_CHANGE_OBI,
       PHY_ADD_PROJECT,
       PHY_UPS_MODIFY_WITH_DML_TYPE,
-
-      //add wenghaixing [secondary index drop index]20141222
+      //add maoxx
+      PHY_INDEX_TRIGGER,
+      //add e
+	  //add wenghaixing [secondary index drop index]20141222
       PHY_DROP_INDEX,
       //add e
 

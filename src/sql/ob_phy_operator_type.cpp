@@ -95,6 +95,7 @@ namespace oceanbase
         DEF_OP(PHY_ADD_PROJECT);
         DEF_OP(PHY_KILL_SESSION);
         DEF_OP(PHY_UPS_MODIFY_WITH_DML_TYPE);
+        DEF_OP(PHY_INDEX_TRIGGER);//add maoxx
         default:
           break;
       }

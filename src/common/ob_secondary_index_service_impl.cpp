@@ -105,6 +105,7 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
   if (column_count == 1 && ret == OB_SUCCESS)
   {
     cid = tmp_cid;
+    TBSYS_LOG(ERROR, "test::longfei>>>in find_cid() func() && cid = %d", (int)cid);
   }
   else
   {
@@ -537,7 +538,7 @@ bool ObSecondaryIndexServiceImpl::is_this_table_avalibale(uint64_t tid) //判断
 bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
     uint64_t index_tid, Expr_Array *filter_array, Expr_Array *project_array)
 {
-  //判断索引表是否包含sql语句中出现的��?有列
+  //判断索引表是否包含sql语句中出现的所有列
   bool ret = true;
   if (is_this_table_avalibale(index_tid))
   {
@@ -683,7 +684,6 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
 bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
     Expr_Array *filter_array, uint64_t main_cid)
 {   //如果where条件的某个表达式有main_cid或�?�某个表达式有多个列,返回true
-  TBSYS_LOG(ERROR, "test::longfei>>>in is_wherecondition_have_main_cid_V2() func.");
   bool return_ret = false;
   int ret = OB_SUCCESS;
 
@@ -691,15 +691,14 @@ bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
   int32_t i = 0;
   for (; ret == OB_SUCCESS && i < c_num; i++)
   {
-
     ObSqlExpression c_filter = filter_array->at(i);
     if (is_have_main_cid(c_filter, main_cid))
     {
       return_ret = true;
       break;
     }
-
   }
+  TBSYS_LOG(ERROR, "test::longfei>>>in is_wherecondition_have_main_cid_V2() func and return_ret is %s", return_ret?"true":"false");
   return return_ret;
 }
 
@@ -747,14 +746,16 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
   {
     const ObRowkeyInfo *rowkey_info = &mian_table_schema->get_rowkey_info();
     uint64_t main_cid = OB_INVALID_ID;
-    rowkey_info->get_column_id(0, main_cid); //获得原表的第��?主键的column id,存到main_cid里�??
-    if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid)) //判断where条件中是否有原表的第��?主键，如果有，则不用索引
+    rowkey_info->get_column_id(0, main_cid); //获得原表的第一主键的column id,存到main_cid里�??
+    if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid)) //判断where条件中是否有原表的第一主键，如果有，则不用索引
     {
       int64_t c_num = filter_array->count();
+      TBSYS_LOG(ERROR, "test::longfei>>>do not have original tab main_cid in filter array and # of filter array is %ld", c_num);
       int32_t i = 0;
       for (; ret == OB_SUCCESS && i < c_num; i++)    //对where条件中的��?有表达式依次处理
       {
         ObSqlExpression c_filter = filter_array->at(i);
+        TBSYS_LOG(ERROR, "test::longfei>>>filter arrary is %s",to_cstring(c_filter));
         //判断该表达式能否使用不回表的索引
         if (is_expr_can_use_storing_V2(c_filter, tid, index_tid, filter_array,
             project_array))

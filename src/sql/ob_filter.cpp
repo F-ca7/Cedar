@@ -15,6 +15,7 @@
  */
 #include "ob_filter.h"
 #include "common/utility.h"
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -146,6 +147,17 @@ int64_t ObFilter::to_string(char* buf, const int64_t buf_len) const
   return pos;
 }
 
+//add maoxx
+void ObFilter::reset_iterator()
+{
+  if(child_op_ && PHY_MULTIPLE_GET_MERGE == child_op_->get_type())
+  {
+    ObMultipleGetMerge *fuse_op = NULL;
+    fuse_op = static_cast<ObMultipleGetMerge*>(child_op_);
+    fuse_op->reset_iterator();
+  }
+}
+//add e
 
 DEFINE_SERIALIZE(ObFilter)
 {

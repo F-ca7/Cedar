@@ -730,5 +730,155 @@ namespace oceanbase
       deep_copy_ = false;
       allocator_.reuse();
     }
+
+    //add maoxx
+    ObRowCellIterAdaptor::ObRowCellIterAdaptor() : row_iter_(NULL),
+                                                   row_desc_(),
+                                                   index_row_tmp_(),
+                                                   rk_size_(0),
+                                                   single_row_iter_(),
+                                                   is_iter_end_(false),
+                                                   set_row_iter_ret_(OB_SUCCESS)
+    {
+    }
+
+    ObRowCellIterAdaptor::~ObRowCellIterAdaptor()
+    {
+    }
+
+    int ObRowCellIterAdaptor::next_cell()
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS != set_row_iter_ret_)
+      {
+        ret = set_row_iter_ret_;
+      }
+      else if (NULL == row_iter_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else
+      {
+
+        ret = single_row_iter_.next_cell();
+        if (OB_ITER_END == ret)
+        {
+          index_row_tmp_.set_row_desc(row_desc_);
+          if (OB_SUCCESS != (ret = row_iter_->get_next_row(index_row_tmp_)))
+          {
+            ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
+          }
+          else
+          {
+            single_row_iter_.set_row(&index_row_tmp_, rk_size_);
+            ret = single_row_iter_.next_cell();
+          }
+        }
+      }
+      is_iter_end_ = (OB_SUCCESS != ret);
+      return ret;
+    }
+
+    int ObRowCellIterAdaptor::get_cell(ObCellInfo** cell)
+    {
+      return get_cell(cell, NULL);
+    }
+
+    int ObRowCellIterAdaptor::get_cell(ObCellInfo** cell, bool* is_row_changed)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == row_iter_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else if (NULL == cell)
+      {
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        ret = single_row_iter_.get_cell(cell, is_row_changed);
+      }
+      return ret;
+    }
+
+    int ObRowCellIterAdaptor::is_row_finished(bool* is_row_finished)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == row_iter_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else
+      {
+        ret = single_row_iter_.is_row_finished(is_row_finished);
+      }
+      return ret;
+    }
+
+    void ObRowCellIterAdaptor::set_row_iter(ObRowStore *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr, ObRowDesc row_desc)
+    {
+        row_iter_ = NULL;
+        rk_size_ = 0;
+        single_row_iter_.reset();
+        row_desc_.reset();
+        is_iter_end_ = false;
+        if (NULL != row_iter
+            && 0 < rk_size )
+        {
+          int tmp_ret = OB_SUCCESS;
+          if (NULL != schema_mgr)
+          {
+              tmp_ret = single_row_iter_.get_och().reset(row_desc, *schema_mgr);
+          }
+          else
+          {
+            single_row_iter_.get_och().set_need_cast(false);
+          }
+          if (OB_SUCCESS == tmp_ret)
+          {
+            row_desc_=row_desc;
+            index_row_tmp_.set_row_desc(row_desc_);
+            tmp_ret = row_iter->get_next_row(index_row_tmp_);
+            TBSYS_LOG(DEBUG, "INDEX_ITER_ADAPTOR ret=%d row_tmp2= %s", tmp_ret, to_cstring(index_row_tmp_));
+            if (OB_SUCCESS == tmp_ret || OB_ITER_END == tmp_ret)
+            {
+              row_iter_ = row_iter;
+              rk_size_ = rk_size;
+              if (OB_ITER_END == tmp_ret)
+              {
+                is_iter_end_ = true;
+              }
+              else
+              {
+                single_row_iter_.set_row(&index_row_tmp_, rk_size);
+              }
+            }
+          }
+          set_row_iter_ret_ = tmp_ret;
+        }
+    }
+
+    void ObRowCellIterAdaptor::reset()
+    {
+      row_iter_ = NULL;
+      row_desc_.reset();
+      rk_size_ = 0;
+      single_row_iter_.reset();
+      is_iter_end_ = false;
+    }
+    //add e
   }
 }

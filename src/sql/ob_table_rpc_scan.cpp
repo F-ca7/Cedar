@@ -158,6 +158,14 @@ namespace oceanbase
       }
       empty_row_filter_.reuse();
       is_skip_empty_row_ = true;
+      //add fanqiushi_index
+      is_use_index_rpc_scan_=false;
+      is_use_index_for_storing=false;
+      is_use_index_for_storing_for_tostring_=false;
+      index_tid_for_storing_for_tostring_=OB_INVALID_ID;
+      is_use_index_without_storing_for_tostring_=false;
+      index_tid_without_storing_for_tostring_=OB_INVALID_ID;
+      //add:e
       read_method_ = ObSqlReadStrategy::USE_SCAN;
     }
 
@@ -178,6 +186,13 @@ namespace oceanbase
             select_get_filter_.set_child(0, empty_row_filter_);
             child_op_ = &select_get_filter_;
           }
+          //add fanqiushi_index
+          else if(ObSqlReadStrategy::USE_SCAN == read_method_ && is_use_index_rpc_scan_)
+          {
+              select_get_filter_.set_child(0, *child_op_);
+              child_op_ = &select_get_filter_;
+          }
+          //add:e
         }
         else
         {
@@ -323,7 +338,7 @@ namespace oceanbase
       return ret;
     }
 
-    //add fanqiushi_index
+    //add longfei [secondary index select] 20151116 :b
        void ObTableRpcScan::set_main_tid(uint64_t tid)
        {
            //is_use_index_rpc_scan_=true;
@@ -596,10 +611,23 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "fail to add filter to rpc scan operator. ret=%d", ret);
         }
+        /* del longfei 20151116:b
         else if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
         {
           TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
         }
+        del e */
+        else
+         {//modify by fanqiushi_index
+             if(!is_use_index_rpc_scan_)   //如果回表，这里不能再把表达式存到select_get_filter_里了，因为我在函数add_index_filter里已经放进去过了。
+             {
+                 if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
+                 {
+                   TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
+                 }
+             }
+             //modify:e
+         }
       }
       return ret;
     }
@@ -754,6 +782,9 @@ namespace oceanbase
         has_group_columns_sort_ = o_ptr->has_group_columns_sort_;
         has_limit_ = o_ptr->has_limit_;
         is_skip_empty_row_ = o_ptr->is_skip_empty_row_;
+        //add fanqiushi_index
+        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+        //add:e
         read_method_ = o_ptr->read_method_;
       }
       return ret;

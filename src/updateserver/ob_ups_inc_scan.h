@@ -24,8 +24,8 @@ namespace oceanbase
     class ObRowDescPrepare : public RowkeyInfoCache
     {
       public:
-        ObRowDescPrepare() {};
-        virtual ~ObRowDescPrepare() {};
+        ObRowDescPrepare() {}
+        virtual ~ObRowDescPrepare() {}
       protected:
         int set_rowkey_size(ObUpsTableMgr* table_mgr, ObRowDesc* row_desc);
     };
@@ -69,6 +69,9 @@ namespace oceanbase
         int get_next_row(const common::ObRow *&row);
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
         int64_t to_string(char* buf, const int64_t buf_len) const { return snprintf(buf, buf_len, "%s", "inc_get_iter"); }
+        //add maoxx
+        void reset_iterator() { last_cell_idx_ = 0;}
+        //add e
       private:
         common::ObRowDesc row_desc_;
         sql::ObLockFlag lock_flag_;
@@ -100,8 +103,8 @@ namespace oceanbase
         {}
         ObUpsIncScan(): session_ctx_(NULL), result_(NULL)
         {}
-        void set_session_ctx(BaseSessionCtx *session_ctx) {session_ctx_ = session_ctx;};
-        virtual ~ObUpsIncScan() {};
+        void set_session_ctx(BaseSessionCtx *session_ctx) {session_ctx_ = session_ctx;}
+        virtual ~ObUpsIncScan() {}
         void reset()
         {
           session_ctx_ = NULL;
@@ -113,6 +116,9 @@ namespace oceanbase
         int open();
         int close();
         int64_t to_string(char* buf, const int64_t buf_len) const;
+        //add maoxx
+        virtual void reset_iterator() { get_iter_.reset_iterator();}
+        //add e
       public:
         int get_next_row(const common::ObRow *&row);
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
@@ -124,7 +130,7 @@ namespace oceanbase
         ObIncGetIter get_iter_;
         ObIncScanIter scan_iter_;
     };
-  }; // end namespace updateserver
-}; // end namespace oceanbase
+  } // end namespace updateserver
+} // end namespace oceanbase
 
 #endif /* __OB_UPDATESERVER_OB_INC_SCAN_IMPL_H__ */

@@ -36,7 +36,7 @@ namespace oceanbase
         void reserve_values(int64_t num) {values_.reserve(num);}
         void set_check_rowkey_duplicate(bool flag) { check_rowkey_duplicat_ = flag; }
         void set_do_eval_when_serialize(bool v) { do_eval_when_serialize_ = v;}
-        ObExpressionArray &get_values() {return values_;};
+        ObExpressionArray &get_values() {return values_;}
         virtual int open();
         virtual int close();
         virtual void reset();
@@ -45,6 +45,10 @@ namespace oceanbase
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
         enum ObPhyOperatorType get_type() const {return PHY_EXPR_VALUES;}
+        //add maoxx
+        void reset_iterator() { row_store_.reset_iterator();}
+        //add e
+
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
       private:

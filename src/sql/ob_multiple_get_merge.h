@@ -31,8 +31,11 @@ namespace oceanbase
         virtual void reset();
         virtual void reuse();
         int get_next_row(const ObRow *&row);
-        enum ObPhyOperatorType get_type() const{return PHY_MULTIPLE_GET_MERGE;};
+        enum ObPhyOperatorType get_type() const{return PHY_MULTIPLE_GET_MERGE;}
         int64_t to_string(char *buf, int64_t buf_len) const;
+        //add maoxx
+        void reset_iterator();
+        //add e
 
         DECLARE_PHY_OPERATOR_ASSIGN;
       private:

@@ -49,7 +49,7 @@ namespace oceanbase
 
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
 
-        //add fanqiushi_index
+        //add longfei [secondary index select] 20151116 :b
         void set_main_tid(uint64_t tid);  //存原表的tid
         void set_is_index_for_storing(bool is_use,uint64_t tid);  //设置这次查询是否用到不回表的索引
         void set_is_index_without_storing(bool is_use,uint64_t tid);//设置这次查询是否用到回表的索引

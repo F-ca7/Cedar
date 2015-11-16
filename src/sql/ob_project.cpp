@@ -172,6 +172,57 @@ int ObProject::get_next_row(const common::ObRow *&row)
   return ret;
 }
 
+//add maoxx
+int ObProject::get_next_row_with_index(const common::ObRow *&row, common::ObRowStore *pre_data_row_store, common::ObRowStore *post_data_row_store)
+{
+  int ret = OB_SUCCESS;
+  const common::ObRow *input_row = NULL;
+  if (NULL == child_op_)
+  {
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(ERROR, "child_op_ is NULL");
+  }
+  else if (OB_SUCCESS != (ret = child_op_->get_next_row(input_row)))
+  {
+    if (OB_ITER_END != ret
+        && !IS_SQL_ERR(ret))
+    {
+      TBSYS_LOG(WARN, "failed to get next row, err=%d", ret);
+    }
+  }
+  else
+  {
+    TBSYS_LOG(DEBUG, "PROJECT ret=%d op=%p type=%d %s",
+              ret, child_op_, child_op_->get_type(), (NULL == input_row) ? "nil" : to_cstring(*input_row));
+    const ObObj *result = NULL;
+    for (int32_t i = 0; i < columns_.count(); ++i)
+    {
+      ObSqlExpression &expr = columns_.at(i);
+      if (OB_SUCCESS != (ret = expr.calc(*input_row, result)))
+      {
+        TBSYS_LOG(WARN, "failed to calculate, err=%d", ret);
+        break;
+      }
+      else if (OB_SUCCESS != (ret = row_.set_cell(expr.get_table_id(), expr.get_column_id(), *result)))
+      {
+        TBSYS_LOG(WARN, "failed to set row cell, err=%d", ret);
+        break;
+      }
+    } // end for
+    if (OB_SUCCESS == ret)
+    {
+      row = &row_;
+    }
+    const ObRowStore::StoredRow *stored_row = NULL;
+    if(NULL != pre_data_row_store)
+        pre_data_row_store->add_row(*input_row, stored_row);
+    if(NULL != post_data_row_store)
+        post_data_row_store->add_row(*row, stored_row);
+  }
+  return ret;
+}
+//add e
+
 namespace oceanbase{
   namespace sql{
     REGISTER_PHY_OPERATOR(ObProject, PHY_PROJECT);
@@ -200,6 +251,23 @@ int64_t ObProject::to_string(char* buf, const int64_t buf_len) const
   return pos;
 }
 
+//add maoxx
+void ObProject::reset_iterator()
+{
+  if(child_op_ && PHY_MULTIPLE_GET_MERGE == child_op_->get_type())
+  {
+    ObMultipleGetMerge *fuse_op = NULL;
+    fuse_op = dynamic_cast<ObMultipleGetMerge*>(child_op_);
+    fuse_op->reset_iterator();
+  }
+  if(child_op_ && PHY_FILTER == child_op_->get_type())
+  {
+    ObFilter *filter_op = NULL;
+    filter_op = dynamic_cast<ObFilter*>(child_op_);
+    filter_op->reset_iterator();
+  }
+}
+//add e
 
 DEFINE_SERIALIZE(ObProject)
 {

@@ -681,7 +681,14 @@ namespace oceanbase
         bool check_table_expire_condition() const;
         bool check_compress_name() const;
         static const int64_t MAX_COLUMNS_LIMIT = OB_MAX_TABLE_NUMBER * OB_MAX_COLUMN_NUMBER;
-        static const int64_t DEFAULT_MAX_COLUMNS = 16 * OB_MAX_COLUMN_NUMBER;;
+        static const int64_t DEFAULT_MAX_COLUMNS = 16 * OB_MAX_COLUMN_NUMBER;
+        //add maoxx
+        int get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const;
+        bool is_have_modifiable_index(uint64_t table_id) const;
+        int column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const;
+        int column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const;
+        int column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const;
+        //add e
 
       private:
         int replace_system_variable(char* expire_condition, const int64_t buf_size) const;

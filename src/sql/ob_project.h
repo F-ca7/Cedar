@@ -19,6 +19,11 @@
 #include "ob_sql_expression.h"
 #include "common/page_arena.h"
 #include "common/ob_se_array.h"
+//add maoxx
+#include "common/ob_row_store.h"
+#include "ob_multiple_get_merge.h"
+#include "ob_filter.h"
+//add e
 
 namespace oceanbase
 {
@@ -38,11 +43,18 @@ namespace oceanbase
         virtual int open();
         virtual int close();
         virtual int get_next_row(const common::ObRow *&row);
+        //add maoxx
+        int get_next_row_with_index(const common::ObRow *&row, common::ObRowStore *pre_data_row_store, common::ObRowStore *post_data_row_store);
+        //add e
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
         void assign(const ObProject &other);
         const common::ObSEArray<ObSqlExpression, OB_PREALLOCATED_NUM, common::ModulePageAllocator, ObArrayExpressionCallBack<ObSqlExpression> >  &get_output_columns() const;
         virtual ObPhyOperatorType get_type() const;
+        //add maoxx
+        void reset_iterator();
+        //add e
+
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
 

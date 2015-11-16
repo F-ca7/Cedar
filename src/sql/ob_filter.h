@@ -18,6 +18,9 @@
 #include "ob_single_child_phy_operator.h"
 #include "ob_sql_expression.h"
 #include "common/dlist.h"
+//add maoxx
+#include "ob_multiple_get_merge.h"
+//add e
 
 namespace oceanbase
 {
@@ -44,6 +47,9 @@ namespace oceanbase
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
         virtual ObPhyOperatorType get_type() const;
+        //add maoxx
+        void reset_iterator();
+        //add e
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;

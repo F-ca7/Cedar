@@ -34,6 +34,9 @@
 #include "ob_row_count.h"
 #include "ob_when_filter.h"
 #include "ob_dual_table_scan.h"
+//add maoxx
+#include "ob_index_trigger.h"
+//add e
 
 using namespace oceanbase;
 using namespace sql;
@@ -95,6 +98,11 @@ ObPhyOperator *ObPhyOperatorFactory::get_one(ObPhyOperatorType phy_operator_type
       //ret = pool_multiple_scan_merge_.alloc();
       ret = tc_rp_alloc(ObMultipleScanMerge);
       break;
+    //add maoxx
+    case PHY_INDEX_TRIGGER:
+      ret = tc_rp_alloc(ObIndexTrigger);
+      break;
+    //add e
     //CASE_CLAUSE(PHY_PROJECT, ObProject);
     CASE_CLAUSE(PHY_LIMIT, ObLimit);
     //CASE_CLAUSE(PHY_FILTER, ObFilter);
@@ -167,6 +175,11 @@ void ObPhyOperatorFactory::release_one(ObPhyOperator *opt)
         //pool_multiple_scan_merge_.free(dynamic_cast<ObMultipleScanMerge*>(opt));
         tc_rp_free(dynamic_cast<ObMultipleScanMerge*>(opt));
         break;
+      //add maoxx
+      case PHY_INDEX_TRIGGER:
+        tc_rp_free(dynamic_cast<ObIndexTrigger*>(opt));
+        break;
+      //add e
       default:
         opt->~ObPhyOperator();
         break;

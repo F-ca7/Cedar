@@ -58,6 +58,9 @@ namespace oceanbase
         virtual ~ObIncScan();
         virtual void reset();
         virtual void reuse();
+        //add maoxx
+        virtual void reset_iterator(){}
+        //add e
       public:
         // implement virtual function
         enum ObPhyOperatorType get_type() const

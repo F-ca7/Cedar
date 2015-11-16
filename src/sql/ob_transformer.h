@@ -22,6 +22,9 @@
 #include "ob_multi_logic_plan.h"
 #include "ob_sql_context.h"
 #include "ob_insert_stmt.h"
+//add maoxx
+#include "ob_update_stmt.h"
+//add e
 #include "ob_show_stmt.h"
 #include "ob_values.h"
 #include "ob_expr_values.h"
@@ -377,6 +380,57 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+        //add maoxx
+        int cons_whole_row_desc_for_delete(uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+        int cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+        int cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+        int column_in_stmt(const ObStmt* stmt, uint64_t table_id, uint64_t cid, bool &in_stmt_flag);
+        int gen_phy_table_for_update_new(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan*& physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            const ObRowkeyInfo &rowkey_info,
+            const ObRowDesc &row_desc,
+            const ObRowDescExt &row_desc_ext,
+            ObPhyOperator*& table_op);
+        int gen_phy_table_for_delete(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan*& physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            const ObRowkeyInfo &rowkey_info,
+            const ObRowDesc &row_desc,
+            const ObRowDescExt &row_desc_ext,
+            ObPhyOperator*& table_op);
+        int gen_physical_replace_new(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+        int gen_phy_static_data_scan_for_replace(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const ObInsertStmt *insert_stmt,
+            const ObRowDesc& row_desc,
+            const ObSEArray<int64_t, 64> &row_desc_map,
+            const uint64_t table_id,
+            const ObRowkeyInfo &rowkey_info,
+            ObTableRpcScan &table_scan);
+        int gen_phy_values_for_replace(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const ObInsertStmt *insert_stmt,
+            const ObRowDesc& row_desc,
+            const ObRowDescExt& row_desc_ext,
+            const ObSEArray<int64_t, 64> *row_desc_map,
+            ObExprValues& value_op);
+        //add e
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,

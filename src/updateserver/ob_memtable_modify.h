@@ -22,6 +22,9 @@
 #include "ob_sessionctx_factory.h"
 #include "ob_ups_table_mgr.h"
 #include "ob_ups_utils.h"
+//add maoxx
+#include "sql/ob_index_trigger.h"
+//add e
 
 namespace oceanbase
 {
@@ -111,10 +114,62 @@ namespace oceanbase
         }
         else
         {
-          ObCellIterAdaptor cia;
-          cia.set_row_iter(T::child_op_, rki->get_size(), sm);
-          ret = host_.apply(session_, cia, T::get_dml_type());
-          session_.inc_dml_count(T::get_dml_type());
+            //add maoxx
+            if(T::child_op_->get_type() == sql::PHY_INDEX_TRIGGER)
+            {
+                ObIUpsTableMgr* host = &host_;
+                sql::ObIndexTrigger *tmp_index_trigger = NULL;
+                tmp_index_trigger = static_cast<sql::ObIndexTrigger*>(T::child_op_);
+                if(OB_SUCCESS == (ret = (tmp_index_trigger->cons_data_row_store())))
+                {
+                    int sql_type;
+                    ObRowDesc *row_desc = NULL;
+                    ObRowStore *pre_row_store = NULL;
+                    ObRowStore *post_row_store = NULL;
+                    ObRowCellIterAdaptor cia;
+                    tmp_index_trigger->get_sql_type(sql_type);
+                    if(1 == sql_type)
+                    {
+                        tmp_index_trigger->get_pre_data_row_desc(row_desc);
+                        if (OB_SUCCESS != (ret = row_desc->add_column_desc(table_id, OB_ACTION_FLAG_COLUMN_ID)))
+                        {
+                          TBSYS_LOG(ERROR, "Failed to add column desc, ret=%d", ret);
+                        }
+                        else
+                        {
+                            tmp_index_trigger->get_pre_data_row_store(pre_row_store);
+                            cia.set_row_iter(pre_row_store, row_desc->get_rowkey_cell_count(), sm, *row_desc);
+                        }
+                    }
+                    else if(0 == sql_type || 2 == sql_type || 3 == sql_type)
+                    {
+                        tmp_index_trigger->get_post_data_row_desc(row_desc);
+                        tmp_index_trigger->get_post_data_row_store(post_row_store);
+                        cia.set_row_iter(post_row_store, row_desc->get_rowkey_cell_count(), sm, *row_desc);
+                    }
+                    ret = host->apply(session_, cia, T::get_dml_type());
+                    session_.inc_dml_count(T::get_dml_type());
+
+                    if(OB_SUCCESS != (ret = tmp_index_trigger->handle_trigger(sm, host, session_)))
+                    {
+                        TBSYS_LOG(ERROR, "modify index table fail");
+                    }
+                    /*else
+                    {
+                      index_num = tmp_index_tri->get_index_num();
+                    }*/
+                }
+                else
+                    TBSYS_LOG(WARN, "index_trigger get_next_data_row fail ret=%d", ret);
+            }
+            else
+            {
+                ObCellIterAdaptor cia;
+                cia.set_row_iter(T::child_op_, rki->get_size(), sm);
+                ret = host_.apply(session_, cia, T::get_dml_type());
+                session_.inc_dml_count(T::get_dml_type());
+            }
+            //add e
         }
       }
       if (OB_SUCCESS != ret)
