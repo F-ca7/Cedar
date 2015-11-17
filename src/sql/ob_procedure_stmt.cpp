@@ -14,7 +14,7 @@ namespace oceanbase
       fprintf(fp, "<ObProcedureStmt %d End>\n", index);
     }
 
-    int ObProcedureStmt::set_proc_name(ObString &proc_name)
+    int ObProcedureStmt::set_proc_name(const ObString &proc_name)
     {
       proc_name_=proc_name;
       return OB_SUCCESS;

@@ -38,7 +38,7 @@ namespace oceanbase {
       virtual ~ObProcedureStmt() {
       }
 
-      int set_proc_name(ObString &proc_name);
+      int set_proc_name(const ObString &proc_name);
 
       int add_proc_param(const ObParamDef &proc_param);/*添加一个参数*/
 
