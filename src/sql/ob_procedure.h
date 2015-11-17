@@ -65,10 +65,10 @@ namespace oceanbase
 
       int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
       mergeserver::ObMergerRpcProxy * get_rpc_stub() { return rpc_; }
-      int set_proc_name(ObString &proc_name);/*设置存储过程名*/
+      int set_proc_name(const ObString &proc_name);/*设置存储过程名*/
 			int add_param(ObParamDef &proc_param);
 			int set_params(ObArray<ObParamDef*> &params);/*存储过程参数*/
-			int add_declare_var(ObString &var);/*添加一个变量*/
+      int add_declare_var(const ObString &var);/*添加一个变量*/
 
       int add_var_def(ObVariableDef def)
       {

@@ -659,7 +659,10 @@ int ObTransformer::gen_physical_procedure(
       result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);
       for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
       {
-        if((ret=result_op->add_param(*stmt->get_param(i)))!=OB_SUCCESS)
+        ObParamDef def = stmt->get_param(i);
+        //change the memory location
+        ob_write_string(*mem_pool_, def.param_name_, def.param_name_);
+        if((ret=result_op->add_param(def))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "result_op set params error");
         }
@@ -667,7 +670,10 @@ int ObTransformer::gen_physical_procedure(
       //复制声明的变量
       for(int64_t i=0;i<stmt->get_declare_var_size();++i)
       {
-        if((ret=result_op->add_declare_var(stmt->get_declare_var(i)))!=OB_SUCCESS)
+        //potentially, we need have own name memory
+        ObString declare_var_name;
+        ob_write_string(*mem_pool_, stmt->get_declare_var(i), declare_var_name);
+        if((ret=result_op->add_declare_var(declare_var_name))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "result_op add_declare_var error");
           break;

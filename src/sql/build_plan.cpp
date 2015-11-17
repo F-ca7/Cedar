@@ -2772,7 +2772,7 @@ int resolve_procedure_assign_stmt(
       //the variable used in the expr is not checked
       for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
       {
-        ObString declare_var=ps_stmt->get_declare_var(j);
+        const ObString &declare_var=ps_stmt->get_declare_var(j);
         if(var_val.variable_name_.compare(declare_var)==0)//找到相等的
         {
           find=OB_SUCCESS;
@@ -2780,11 +2780,11 @@ int resolve_procedure_assign_stmt(
         }
       }
 
-      for (int64_t j = 0;  j < ps_stmt->get_param_size(); j++)
+      for (int64_t j = 0;  find != OB_SUCCESS && j < ps_stmt->get_param_size(); j++)
       {
-        ObParamDef* def=ps_stmt->get_param(j);
-        ObString param_var=*def->param_name_;
-        if(var_val.variable_name_.compare(param_var)==0)
+        const ObParamDef& def=ps_stmt->get_param(j);
+//        ObString param_var = def.param_name_;
+        if(var_val.variable_name_.compare(def.param_name_)==0)
         {
           find=OB_SUCCESS;
           break;
@@ -4084,7 +4084,7 @@ int resolve_procedure_stmt(
     }
     else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
     {
-      TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
+      TBSYS_LOG(WARN, "set_proc_name have ERROR!");
     }
     else
     {
@@ -4095,25 +4095,25 @@ int resolve_procedure_stmt(
         OB_ASSERT(param_node->type_==T_PARAM_LIST);
         for (int32_t i = 0; ret == OB_SUCCESS && i < param_node->num_child_; i++)
         {
-          ObParamDef* param=(ObParamDef *)malloc(sizeof(ObParamDef));
+          ObParamDef param;
           /*参数输出类型*/
           switch(param_node->children_[i]->type_)
           {
           case T_PARAM_DEFINITION:
             TBSYS_LOG(INFO, "param %d out type is DEFAULT_TYPE",i);
-            param->out_type_=DEFAULT_TYPE;
+            param.out_type_=DEFAULT_TYPE;
             break;
           case T_IN_PARAM_DEFINITION:
             TBSYS_LOG(INFO, "param %d out type is IN_TYPE",i);
-            param->out_type_=IN_TYPE;
+            param.out_type_=IN_TYPE;
             break;
           case T_OUT_PARAM_DEFINITION:
             TBSYS_LOG(INFO, "param %d out type is OUT_TYPE",i);
-            param->out_type_=OUT_TYPE;
+            param.out_type_=OUT_TYPE;
             break;
           case T_INOUT_PARAM_DEFINITION:
             TBSYS_LOG(INFO, "param %d out type is INOUT_TYPE",i);
-            param->out_type_=INOUT_TYPE;
+            param.out_type_=INOUT_TYPE;
             break;
           default:
             break;
@@ -4123,52 +4123,50 @@ int resolve_procedure_stmt(
           {
           case T_TYPE_INTEGER:
             TBSYS_LOG(INFO, "param %d data type is ObIntType",i);
-            param->param_type_=ObIntType;
+            param.param_type_=ObIntType;
             break;
           case T_TYPE_FLOAT:
             TBSYS_LOG(INFO, "param %d data type is ObFloatType",i);
-            param->param_type_=ObFloatType;
+            param.param_type_=ObFloatType;
             break;
           case T_TYPE_DOUBLE:
             TBSYS_LOG(INFO, "param %d data type is ObDoubleType",i);
-            param->param_type_=ObDoubleType;
+            param.param_type_=ObDoubleType;
             break;
           case T_TYPE_DECIMAL:
             TBSYS_LOG(INFO, "param %d data type is ObDecimalType",i);
-            param->param_type_=ObDecimalType;
+            param.param_type_=ObDecimalType;
             break;
           case T_TYPE_BOOLEAN:
             TBSYS_LOG(INFO, "param %d data type is ObBoolType",i);
-            param->param_type_=ObBoolType;
+            param.param_type_=ObBoolType;
             break;
           case T_TYPE_DATETIME:
             TBSYS_LOG(INFO, "param %d data type is ObDateTimeType",i);
-            param->param_type_=ObDateTimeType;
+            param.param_type_=ObDateTimeType;
             break;
           case T_TYPE_VARCHAR:
             TBSYS_LOG(INFO, "param %d data type is ObVarcharType",i);
-            param->param_type_=ObVarcharType;
+            param.param_type_=ObVarcharType;
             break;
           default:
             TBSYS_LOG(WARN, "param %d data type is ObNullType",i);
-            param->param_type_=ObNullType;
+            param.param_type_=ObNullType;
             break;
           }
-          param->param_name_=new ObString();
-          if((ret=ob_write_string(*name_pool, ObString::make_string(param_node->children_[i]->children_[0]->str_value_), *param->param_name_))!=OB_SUCCESS)
+          if((ret=ob_write_string(*name_pool, ObString::make_string(param_node->children_[i]->children_[0]->str_value_), param.param_name_))!=OB_SUCCESS)
           {
             PARSER_LOG("Can not malloc space for param name");
           }
-          if((ret=stmt->add_proc_param(*param))!=OB_SUCCESS)
+          if((ret=stmt->add_proc_param(param))!=OB_SUCCESS)
           {
-            TBSYS_LOG(ERROR, "add_proc_param have ERROR!");
+            TBSYS_LOG(WARN, "add_proc_param have ERROR!");
           }
           else
           {
-            TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param->param_name_->length(),param->param_name_->ptr(),stmt->get_param_size());
+            TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param.param_name_.length(),param.param_name_.ptr(),stmt->get_param_size());
           }
         }
-
       }
       if(node->children_[1]!=NULL)
       {
