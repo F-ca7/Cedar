@@ -2773,7 +2773,7 @@ int resolve_procedure_assign_stmt(
       for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
       {
         const ObString &declare_var=ps_stmt->get_declare_var(j);
-        if(var_val.variable_name_.compare(declare_var)==0)//找到相等的
+        if(var_val.variable_name_.compare(declare_var)==0) //check existence
         {
           find=OB_SUCCESS;
           break;

@@ -357,58 +357,64 @@ int ObProcedure::set_proc_name(const ObString &proc_name)
   proc_name_=proc_name;
   return OB_SUCCESS;
 }
-int ObProcedure::set_params(ObArray<ObParamDef*> &params)
+
+//int ObProcedure::set_params(ObArray<ObParamDef> &params)
+//{
+//  params_=params;
+//  return OB_SUCCESS;
+//}
+
+int ObProcedure::add_param(const ObParamDef &proc_param)
 {
-  params_=params;
-  return OB_SUCCESS;
+  return params_.push_back(proc_param);
 }
 
-int ObProcedure::add_param(ObParamDef &proc_param)
+int ObProcedure::add_var_def(const ObVariableDef &def)
 {
-  return params_.push_back(&proc_param);
+  return defs_.push_back(def);
 }
 
-int ObProcedure::add_declare_var(const ObString &var)
-{
-  int ret=OB_SUCCESS;
-  for (int64_t i = 0;i < declare_variable_.count();i++)//判断变量是否重复定义了
-  {
-    TBSYS_LOG(TRACE, "declare %ld %.*s compare with %.*s  ret=%d",i,declare_variable_.at(i).length(),declare_variable_.at(i).ptr(),var.length(),var.ptr(),declare_variable_.at(i).compare(var));
-    if(declare_variable_.at(i).compare(var)==0)
-    {
-      TBSYS_LOG(WARN, "same variable");
-      ret=OB_ENTRY_EXIST;
-      break;
-    }
-  }
-  if(ret==OB_SUCCESS)
-  {
-    declare_variable_.push_back(var);
-  }
-  return ret;
-}
+//int ObProcedure::add_declare_var(const ObString &var)
+//{
+//  int ret=OB_SUCCESS;
+//  for (int64_t i = 0;i < declare_variable_.count();i++)//判断变量是否重复定义了
+//  {
+//    TBSYS_LOG(TRACE, "declare %ld %.*s compare with %.*s  ret=%d",i,declare_variable_.at(i).length(),declare_variable_.at(i).ptr(),var.length(),var.ptr(),declare_variable_.at(i).compare(var));
+//    if(declare_variable_.at(i).compare(var)==0)
+//    {
+//      TBSYS_LOG(WARN, "same variable");
+//      ret=OB_ENTRY_EXIST;
+//      break;
+//    }
+//  }
+//  if(ret==OB_SUCCESS)
+//  {
+//    declare_variable_.push_back(var);
+//  }
+//  return ret;
+//}
 
 
-ObString& ObProcedure::get_declare_var(int64_t index)
+const ObString& ObProcedure::get_declare_var(int64_t index) const
 {
-  return declare_variable_.at(index);
+  return defs_.at(index).variable_name_;
 }
-ObArray<ObParamDef*>& ObProcedure::get_params()
-{
-  return params_;
-}
-ObParamDef* ObProcedure::get_param(int64_t index)
+
+const ObParamDef& ObProcedure::get_param(int64_t index) const
 {
   return params_.at(index);
 }
-int64_t ObProcedure::get_param_num()
+
+int64_t ObProcedure::get_param_num() const
 {
   return params_.count();
 }
-int64_t ObProcedure::get_declare_var_num()
+
+int64_t ObProcedure::get_declare_var_num() const
 {
-  return declare_variable_.count();
+  return defs_.count();
 }
+
 void ObProcedure::reset()
 {
 //  child_num_ = 0;

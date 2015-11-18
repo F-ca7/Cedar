@@ -2,6 +2,7 @@
 using namespace oceanbase::common;
 namespace oceanbase{
   namespace sql{
+
     void ObProcedureDeclareStmt::print(FILE* fp, int32_t level, int32_t index) {
       UNUSED(index);
       print_indentation(fp, level);
@@ -12,23 +13,22 @@ namespace oceanbase{
       fprintf(fp, "<ObProcedureDeclareStmt %d End>\n", index);
     }
 
-    int ObProcedureDeclareStmt::add_proc_var(ObVariableDef &proc_var)
+    int ObProcedureDeclareStmt::add_proc_var(const ObVariableDef &proc_var)
     {
-      variables_.push_back(proc_var);
-      return OB_SUCCESS;
+      return variables_.push_back(proc_var);
     }
 
-    ObArray<ObVariableDef>& ObProcedureDeclareStmt::get_variables()
-    {
-      return variables_;
-    }
+//    ObArray<ObVariableDef>& ObProcedureDeclareStmt::get_variables()
+//    {
+//      return variables_;
+//    }
 
-    ObVariableDef& ObProcedureDeclareStmt::get_variable(int64_t index)
+    const ObVariableDef& ObProcedureDeclareStmt::get_variable(int64_t index) const
     {
       return variables_.at(index);
     }
 
-    int64_t ObProcedureDeclareStmt::get_variable_size()
+    int64_t ObProcedureDeclareStmt::get_variable_size() const
     {
       return variables_.count();
     }

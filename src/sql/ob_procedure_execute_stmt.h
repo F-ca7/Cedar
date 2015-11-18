@@ -20,23 +20,27 @@ class ObProcedureExecuteStmt: public ObBasicStmt {
 		virtual ~ObProcedureExecuteStmt() {
 		}
 
-		int set_proc_name(ObString &proc_name);
+    int set_proc_name(const ObString &proc_name);
 
-		int set_proc_stmt_id(uint64_t& proc_stmt_id);
+    int set_proc_stmt_id(uint64_t proc_stmt_id);
 
-		ObString& get_proc_name();/*获取存储过程名*/
+    const ObString& get_proc_name() const;/*获取存储过程名*/
 
-		uint64_t& get_proc_stmt_id();/*获取存储过程对应语句id*/
+    uint64_t get_proc_stmt_id() const;/*获取存储过程对应语句id*/
 
 		virtual void print(FILE* fp, int32_t level, int32_t index);
 
-		int add_variable_name(ObString& name);
-		ObString& get_variable_name(int64_t index);
-		int64_t get_variable_size();
+    int add_variable_name(const ObString& name);
 
-		int add_param_expr(uint64_t& expr_id);
-		uint64_t get_param_expr(int64_t index);
-		int64_t get_param_size();
+    const ObString& get_variable_name(int64_t index) const;
+
+    int64_t get_variable_size() const;
+
+    int add_param_expr(uint64_t expr_id);
+
+    uint64_t get_param_expr(int64_t index) const;
+
+    int64_t get_param_size() const;
 
 	private:
 		ObString proc_name_;

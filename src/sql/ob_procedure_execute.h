@@ -28,15 +28,19 @@ namespace oceanbase
 			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 			virtual int get_next_row(const common::ObRow *&row);
 
-			int set_proc_name(ObString &proc_name);/*设置存储过程名*/
-			int set_stmt_id(uint64_t &stmt_id);
-			int64_t get_param_num();
+      int set_proc_name(const ObString &proc_name); //proc name
 
-			int add_param_name(common::ObString& name);
+      int set_stmt_id(uint64_t stmt_id);			//the cached ObProcedure plan id
+
+      int64_t get_param_num() const;
+
+      int add_param_name(const ObString& name);
 
 			int add_param_expr(ObSqlExpression& expr);
 
-			int64_t get_param_size();
+      ObSqlExpression & get_expr(int64_t idx) { return param_list_.at(idx); }
+
+      int64_t get_param_size() const;
 		private:
 			//disallow copy
 			ObProcedureExecute(const ObProcedureExecute &other);
@@ -50,9 +54,6 @@ namespace oceanbase
 			common::ObArray<ObSqlExpression> param_list_;
 			uint64_t stmt_id_;
 		};
-
-
-
 	}
 }
 

@@ -67,16 +67,11 @@ namespace oceanbase
 
       int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
       mergeserver::ObMergerRpcProxy * get_rpc_stub() { return rpc_; }
-      int set_proc_name(const ObString &proc_name);/*设置存储过程名*/
-			int add_param(ObParamDef &proc_param);
-			int set_params(ObArray<ObParamDef*> &params);/*存储过程参数*/
-      int add_declare_var(const ObString &var);/*添加一个变量*/
 
-      int add_var_def(ObVariableDef def)
-      {
-        defs_.push_back(def);
-        return OB_SUCCESS;
-      }
+      int set_proc_name(const ObString &proc_name); //proc name
+      int add_param(const ObParamDef &proc_param);	//add param def
+
+      int add_var_def(const ObVariableDef &def);
 
       int create_variables();
       virtual int write_variable(const ObString &var_name, const ObObj & val);
@@ -85,11 +80,11 @@ namespace oceanbase
 
       int optimize();
 
-      ObArray<ObParamDef*>& get_params();
-			ObParamDef* get_param(int64_t index);
-			ObString& get_declare_var(int64_t index);
-			int64_t get_param_num();
-      int64_t get_declare_var_num();
+//      ObArray<ObParamDef*>& get_params();
+      const ObParamDef& get_param(int64_t index) const;
+      const ObString& get_declare_var(int64_t index) const;
+      int64_t get_param_num() const;
+      int64_t get_declare_var_num() const;
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
@@ -98,8 +93,8 @@ namespace oceanbase
 
     private:
       ObString proc_name_;
-			ObArray<ObParamDef*> params_;/*存储过程参数*/
-      ObArray<ObString> declare_variable_;
+      ObArray<ObParamDef> params_;/*存储过程参数*/
+//      ObArray<ObString> declare_variable_;
       ObArray<ObVariableDef> defs_;
 
       SpInstList exec_list_;

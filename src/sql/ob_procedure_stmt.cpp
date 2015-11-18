@@ -22,13 +22,13 @@ namespace oceanbase
 
     int ObProcedureStmt::add_proc_param(const ObParamDef &proc_param)
     {
-      return params_.push_back(&proc_param);
+      return params_.push_back(proc_param);
     }
 
     int ObProcedureStmt::add_declare_var(const ObString &var)
     {
       int ret=OB_SUCCESS;
-      for (int64_t i = 0;i < declare_variable_.count();i++)//判断变量是否重复定义了
+      for (int64_t i = 0;i < declare_variable_.count();i++) //is there var_name conflict
       {
         if(declare_variable_.at(i).compare(var)==0)
         {
@@ -79,10 +79,10 @@ namespace oceanbase
       return declare_variable_.count();
     }
 
-    const ObArray<ObParamDef>& ObProcedureStmt::get_params() const
-    {
-      return params_;
-    }
+//    const ObArray<ObParamDef>& ObProcedureStmt::get_params() const
+//    {
+//      return params_;
+//    }
 
     const ObParamDef &ObProcedureStmt::get_param(int64_t index) const
     {

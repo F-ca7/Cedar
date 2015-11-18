@@ -27,17 +27,17 @@ namespace oceanbase {
       }
 
 
-      int add_proc_var(ObVariableDef &proc_var);/*添加一个变量*/
+      int add_proc_var(const ObVariableDef &proc_var);/*添加一个变量*/
 
-      ObArray<ObVariableDef>& get_variables();/*返回所有变量*/
+//      ObArray<ObVariableDef>& get_variables();/*返回所有变量*/
 
-      ObVariableDef& get_variable(int64_t index);/*返回变量*/
+      const ObVariableDef& get_variable(int64_t index) const;
 
-      int64_t get_variable_size();/*返回变量列表大小*/
+      int64_t get_variable_size() const;
 
       virtual void print(FILE* fp, int32_t level, int32_t index);
     private:
-      ObArray<ObVariableDef> variables_;/*declare定义变量列表*/
+      ObArray<ObVariableDef> variables_;
     };
   }
 }
