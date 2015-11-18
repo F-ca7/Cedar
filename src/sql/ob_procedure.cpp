@@ -352,7 +352,7 @@ ObProcedure::ObProcedure()
 ObProcedure::~ObProcedure()
 {}
 
-int ObProcedure::set_proc_name(ObString &proc_name)
+int ObProcedure::set_proc_name(const ObString &proc_name)
 {
   proc_name_=proc_name;
   return OB_SUCCESS;
@@ -368,7 +368,7 @@ int ObProcedure::add_param(ObParamDef &proc_param)
   return params_.push_back(&proc_param);
 }
 
-int ObProcedure::add_declare_var(ObString &var)
+int ObProcedure::add_declare_var(const ObString &var)
 {
   int ret=OB_SUCCESS;
   for (int64_t i = 0;i < declare_variable_.count();i++)//判断变量是否重复定义了
