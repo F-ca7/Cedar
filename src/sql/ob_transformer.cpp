@@ -755,6 +755,9 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_INSERT:
     ret = gen_physical_procedure_insert(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst); //result_op should be added into the procedure
     break;
+  case ObBasicStmt::T_REPLACE:
+    ret = gen_physical_procedure_replace(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
+    break;
   case ObBasicStmt::T_UPDATE:
     ret = gen_physical_procedure_update(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
@@ -1836,6 +1839,82 @@ int ObTransformer::gen_physical_procedure_insert(
   return ret;
 }
 
+int ObTransformer::gen_physical_procedure_replace(
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat &err_stat,
+                const uint64_t &query_id,
+                ObProcedure *proc_op, SpMultiInsts *mul_inst)
+{
+  int ret = OB_SUCCESS;
+  int32_t idx;
+  ObRowDesc row_desc;
+  ObRowDescExt row_desc_ext;
+  ObSEArray<int64_t , 64> row_desc_map;
+  const ObRowkeyInfo *rowkey_info = NULL;
+  bool iskey;
+  uint64_t column_id = OB_INVALID_ID, tid = OB_INVALID_ID;
+  if( OB_SUCCESS != (ret = gen_physical_replace(logical_plan, physical_plan, err_stat, query_id, &idx)) )
+  {}
+  else
+  {
+    SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
+
+    ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
+
+    //set the read and write variables for each instruction
+    if( OB_SUCCESS != (ret = cons_row_desc(insert_stmt->get_table_id(), insert_stmt,
+                  row_desc_ext, row_desc, rowkey_info, row_desc_map, err_stat)))
+    {
+      ret = OB_ERROR;
+      TRANS_LOG("Fail to get table schema for table[%ld]", insert_stmt->get_table_id());
+    }
+    else
+    {
+      int64_t num = insert_stmt->get_value_row_size();
+      for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
+      {
+        const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
+        OB_ASSERT(value_row.count() == row_desc_map.count());
+        for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+        {
+          ObSqlRawExpr *value_expr = logical_plan->get_expr(value_row.at(row_desc_map.at(j)));
+          if( OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)) ) {}
+          else
+          {
+            iskey = false;
+            if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
+
+            OB_ASSERT(NULL != value_expr);
+            ObArray<const ObRawExpr *> raw_exprs;
+            value_expr->get_raw_var(raw_exprs);
+            for(int64_t k = 0; k < raw_exprs.count(); ++k)
+            {
+              ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
+              if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+              {
+                ObString var_name;
+                ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
+                rw_delta_inst->add_read_var(var_name);  //other values are used in update delta
+              }
+            }
+          }
+        }// end for
+      }
+    }
+
+    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
+
+    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+    OB_ASSERT(inner_plan->get_query_size() == 3);
+    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst->set_ups_exec_op(ups_exec);
+
+    rw_delta_inst->set_tid(insert_stmt->get_table_id());
+  }
+  return ret;
+}
 
 int ObTransformer::gen_physical_procedure_update(
                 ObLogicalPlan *logical_plan,

@@ -131,6 +131,14 @@ namespace oceanbase
                   ObProcedure *proc_op,
       SpMultiInsts *mul_inst = NULL
       );
+  int gen_physical_procedure_replace(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
   int gen_physical_procedure_update(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,

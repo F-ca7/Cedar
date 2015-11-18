@@ -4372,38 +4372,40 @@ int resolve_procedure_execute_stmt(
 						 ObString name=ObString::make_string("null");
 						 stmt->add_variable_name(name);
 					}
-
-
 			  }
-		  }
-		  if(ret==OB_SUCCESS)
-		  {
-			  /*把存储过程源码生成逻辑计划*/
-			  ParseResult parse_result;
-			  uint64_t proc_query_id = OB_INVALID_ID;
-			  ObString procstmt=ObString::make_string(result_plan->source_sql_);
-			  parse_result.malloc_pool_=result_plan->name_pool_;
-			  if (OB_SUCCESS != (ret = parse_init(&parse_result)))
-			  {
-				  TBSYS_LOG(WARN, "parser init err");
-				  ret = OB_ERR_PARSER_INIT;
-			  }
-			  else if (parse_sql(&parse_result, procstmt.ptr(), static_cast<size_t>(procstmt.length())) != 0
-					|| NULL == parse_result.result_tree_)
-			  {
-				  TBSYS_LOG(WARN, "parser procedure sql error");
-				  ret = OB_ERR_PARSE_SQL;
-			  }
-			  else if((ret = resolve_procedure_stmt(result_plan, parse_result.result_tree_->children_[0], proc_query_id))!=OB_SUCCESS)
-			  {
-				  TBSYS_LOG(WARN, "resolve_procedure_stmt error");
-			  }
-			  else
-			  {
-				  stmt->set_proc_stmt_id(proc_query_id);
-				  parse_free(parse_result.result_tree_);
-			  }
-		  }
+      }
+      //delete by zt 20151117 :b
+      //here the author wants to gen logical plan for the procedure source
+      //but I believe the source should be compile some other places.
+//		  if(ret==OB_SUCCESS)
+//		  {
+//			  /*把存储过程源码生成逻辑计划*/
+//			  ParseResult parse_result;
+//			  uint64_t proc_query_id = OB_INVALID_ID;
+//			  ObString procstmt=ObString::make_string(result_plan->source_sql_);
+//			  parse_result.malloc_pool_=result_plan->name_pool_;
+//			  if (OB_SUCCESS != (ret = parse_init(&parse_result)))
+//			  {
+//				  TBSYS_LOG(WARN, "parser init err");
+//				  ret = OB_ERR_PARSER_INIT;
+//			  }
+//			  else if (parse_sql(&parse_result, procstmt.ptr(), static_cast<size_t>(procstmt.length())) != 0
+//					|| NULL == parse_result.result_tree_)
+//			  {
+//				  TBSYS_LOG(WARN, "parser procedure sql error");
+//				  ret = OB_ERR_PARSE_SQL;
+//			  }
+//			  else if((ret = resolve_procedure_stmt(result_plan, parse_result.result_tree_->children_[0], proc_query_id))!=OB_SUCCESS)
+//			  {
+//				  TBSYS_LOG(WARN, "resolve_procedure_stmt error");
+//			  }
+//			  else
+//			  {
+//				  stmt->set_proc_stmt_id(proc_query_id);
+//				  parse_free(parse_result.result_tree_);
+//			  }
+//		  }
+      //delete by zt 201151117 :e
 	  }
   }
   return ret;

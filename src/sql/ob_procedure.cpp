@@ -598,7 +598,7 @@ int ObProcedure::optimize()
       pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
     }
     buf[pos] = '\0';
-    TBSYS_LOG(INFO, "Payment optimize:\n %s", buf);
+    TBSYS_LOG(INFO, "Payment optimize:\n%s", buf);
   }
   //else do nothing
   else

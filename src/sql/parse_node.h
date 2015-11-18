@@ -23,7 +23,7 @@ typedef struct
   ErrStat err_stat_;
   int   is_prepare_;
   const char* input_sql_;//add by zz 2014-12-25
-  const char* source_sql_;//add by zz 2014-12-27
+//  const char* source_sql_;//add by zz 2014-12-27, delete by zt 20151117
 } ResultPlan;
 
 struct _ParseNode;
