@@ -7,7 +7,19 @@
 namespace oceanbase
 {
 	namespace sql
-	{
+  {
+    struct ObVarAssignVal
+    {
+      ObString    variable_name_;
+      ObSqlExpression var_value_;
+      VariableSet rs_;
+      int add_rs_var(ObString &r_var)
+      {
+        rs_.addVariable(r_var); //potential has some memory problem
+        return OB_SUCCESS;
+      }
+    };
+
 		class ObPhysicalPlan;
 		class ObProcedureAssgin : public ObSingleChildPhyOperator
 		{

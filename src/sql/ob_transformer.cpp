@@ -734,6 +734,7 @@ int ObTransformer::gen_physical_procedure(
 //        }
       }
       TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
+      result_op->optimize();
     }
   }
   return ret;
@@ -1538,12 +1539,12 @@ int ObTransformer::gen_physical_procedure_select_into(
           const ObPhyOperatorType type = aux_query->get_type();
           if( PHY_VALUES == type )
           {
-            rd_base_inst->set_rdbase_op(aux_query);
+            rd_base_inst->set_rdbase_op(aux_query, idx);
             break;
           }
         }
         rw_delta_into_var_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-        rw_delta_into_var_inst->set_ups_exec_op(ups_exec);
+        rw_delta_into_var_inst->set_ups_exec_op(ups_exec, idx);
 
 //        rd_base_inst->set_tid(sel_stmt->get_table_id());
 //        rw_delta_into_var_inst->set_tid(insert_stmt->get_table_id());
@@ -1570,7 +1571,7 @@ int ObTransformer::gen_physical_procedure_select_into(
           rw_comp_inst->add_read_var(name);
         }
         rw_comp_inst->add_assign_list(stmt->get_var_list());
-        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx));
+        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
         rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
 //      rw_comp_inst.set_owner_procedure(proc_op);
@@ -1755,12 +1756,12 @@ int ObTransformer::gen_physical_procedure_insert(
       const ObPhyOperatorType type = aux_query->get_type();
       if( PHY_VALUES == type )
       {
-        rd_base_inst->set_rdbase_op(aux_query);
+        rd_base_inst->set_rdbase_op(aux_query, idx);
         break;
       }
     }
     rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec);
+    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
 
     rd_base_inst->set_tid(insert_stmt->get_table_id());
     rw_delta_inst->set_tid(insert_stmt->get_table_id());
@@ -1844,7 +1845,7 @@ int ObTransformer::gen_physical_procedure_replace(
     ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
     OB_ASSERT(inner_plan->get_query_size() == 3);
     rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec);
+    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
 
     rw_delta_inst->set_tid(insert_stmt->get_table_id());
   }
@@ -1932,12 +1933,12 @@ int ObTransformer::gen_physical_procedure_update(
       const ObPhyOperatorType type = aux_query->get_type();
       if( PHY_VALUES == type )
       {
-        rd_base_inst->set_rdbase_op(aux_query);
+        rd_base_inst->set_rdbase_op(aux_query, idx);
         break;
       }
     }
     rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec);
+    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
 
     //set the relation between instruction and proc_op
 //    rd_base_inst->set_owner_procedure(proc_op);

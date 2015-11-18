@@ -77,8 +77,9 @@ namespace oceanbase
                                    ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
-      //      VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
+
+      virtual int assign(const SpInst *inst) = 0;
     protected:
       SpInstType type_;
       SpProcedure *proc_; //the procedure thats owns this instruction
@@ -99,6 +100,7 @@ namespace oceanbase
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
+      int assign(const SpMultiInsts &mul_inst);
     protected:
       SpInstList inst_list_;
       SpInst *ownner_;
@@ -121,11 +123,12 @@ namespace oceanbase
       const ObString & get_var() { return var_val_.variable_name_ ;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-      //      NEED_SERIALIZE_AND_DESERIALIZE;
+
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
+      int assign(const SpInst *inst);
     private:
       ObVarAssignVal var_val_;
       VariableSet ws_;
@@ -139,17 +142,18 @@ namespace oceanbase
 
       SpRdBaseInst() : SpInst(SP_B_INST), op_(NULL) {}
 //      virtual ~SpRdBaseInst() {}
-//      virtual int exec();
-//      virtual int ups_exec() { /*undefined*/ return OB_ERROR;}
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
-      int set_rdbase_op(ObPhyOperator *op);
+      int set_rdbase_op(ObPhyOperator *op, uint64_t query_id);
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      int assign(const SpInst *inst);
     protected:
       ObPhyOperator *op_;
+      uint64_t query_id_; //corresponde to the op_
       VariableSet rs_; //the row key variable
       VariableSet ws_; //does not contain any variable
       uint64_t table_id_;
@@ -163,15 +167,13 @@ namespace oceanbase
       SpRwDeltaInst(SpInstType type = SP_D_INST) : SpInst(type), op_(NULL), ups_exec_op_(NULL), table_id_(0) {}
 //      SpRwDeltaInst(SpInstType type) : SpInst(type), op_(NULL) {}
 //      virtual ~SpRwDeltaInst() {}
-//      virtual int exec();
-//      virtual int ups_exec();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
       int set_rwdelta_op(ObPhyOperator *op);
-      int set_ups_exec_op(ObPhyOperator *op);
+      int set_ups_exec_op(ObPhyOperator *op, uint64_t query_id);
 
       ObPhyOperator* get_rwdelta_op() { return op_; }
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
@@ -181,9 +183,11 @@ namespace oceanbase
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
+      int assign(const SpInst *inst);
     protected:
       ObPhyOperator *op_; //the main query of the ups execution plan
       ObPhyOperator *ups_exec_op_; //the ObUpsExecutor wrapper operator
+      uint64_t query_id_;
       VariableSet rs_;
       VariableSet ws_;
       uint64_t table_id_;
@@ -197,8 +201,6 @@ namespace oceanbase
 
       SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST) {}
 //      virtual ~SpRwDeltaIntoVarInst() {}
-//      virtual int exec();
-//      virtual int ups_exec();
 
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
@@ -215,7 +217,7 @@ namespace oceanbase
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
-//      NEED_SERIALIZE_AND_DESERIALIZE;
+      int assign(const SpInst *inst);
     private:
       ObArray<ObString> var_list_;
     };
@@ -234,7 +236,7 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const {return ws_;}
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
-      int set_rwcomp_op(ObPhyOperator *op) { op_ = op; return OB_SUCCESS; }
+      int set_rwcomp_op(ObPhyOperator *op, uint64_t query_id) { op_ = op; query_id_ = query_id; return OB_SUCCESS; }
 
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
@@ -248,8 +250,11 @@ namespace oceanbase
 
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      int assign(const SpInst *inst);
     private:
       ObPhyOperator *op_;
+      uint64_t query_id_;
       VariableSet rs_;
       VariableSet ws_;
       uint64_t table_id_;
@@ -276,13 +281,14 @@ namespace oceanbase
       ObArray<SpInst *> & get_inst_list() { return inst_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-//      NEED_SERIALIZE_AND_DESERIALIZE;
+
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+      int assign(const SpInst *inst);
     private:
       ObArray<SpInst *> inst_list_;
-//      SpMultiInsts block_insts_;
       VariableSet rs_;
       VariableSet ws_;
     };
@@ -316,6 +322,8 @@ namespace oceanbase
       virtual const VariableSet &get_read_variable_set() const  { return expr_rs_set_; }
       virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      int assign(const SpInst *inst);
     private:
 
       ObSqlExpression if_expr_;

@@ -31,6 +31,7 @@ namespace oceanbase
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
+      int close(SpInst *inst);
     };
 
     /**
@@ -85,6 +86,8 @@ namespace oceanbase
       const ObString& get_declare_var(int64_t index) const;
       int64_t get_param_num() const;
       int64_t get_declare_var_num() const;
+
+      DECLARE_PHY_OPERATOR_ASSIGN;
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);

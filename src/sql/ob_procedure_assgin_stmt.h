@@ -60,25 +60,16 @@ namespace oceanbase {
         }
         return ret;
       }
-//      NEED_SERIALIZE_AND_DESERIALIZE;
 
-//      ObArray<ObString> var_set_;
       VarArray var_set_;
     };
 
-    struct ObVarAssignVal
+    struct ObRawVarAssignVal
     {
-      ObString    variable_name_;/*参数名称*/
-      uint64_t	var_expr_id_;
-      ObSqlExpression* var_value_;/*赋值*/
-      VariableSet rs_;
-      int add_rs_var(ObString &r_var)
-      {
-        rs_.addVariable(r_var); //potential has some memory problem
-        return OB_SUCCESS;
-      }
-
+      ObString var_name_;
+      uint64_t val_expr_id_;
     };
+
 
     class ObProcedureAssginStmt: public ObBasicStmt {
     public:
@@ -99,7 +90,8 @@ namespace oceanbase {
 
       virtual void print(FILE* fp, int32_t level, int32_t index);
     private:
-      ObArray<ObVarAssignVal> var_val_list_;/*赋值变量列表*/
+//      ObArray<ObVarAssignVal> var_val_list_;/*赋值变量列表*/
+      ObArray<ObRawVarAssignVal> var_val_list_;
     };
   }
 }

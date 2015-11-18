@@ -89,6 +89,13 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   return ret;
 }
 
+int SpExprInst::assign(const SpInst *inst)
+{
+//  SpExprInst *old_expr = static_cast<SpExprInst*>(inst);
+
+//  var_val_ = old_expr->var_val_;
+}
+
 /* ===============================================
  *    SpRdBaseInst Definition
  * ==============================================*/
@@ -164,11 +171,12 @@ int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
   return ret;
 }
 
-int SpRwDeltaInst::set_ups_exec_op(ObPhyOperator *op)
+int SpRwDeltaInst::set_ups_exec_op(ObPhyOperator *op, uint64_t query_id)
 {
  int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_UPS_EXECUTOR);
   ups_exec_op_ = op;
+  query_id_ = query_id;
   return ret;
 }
 

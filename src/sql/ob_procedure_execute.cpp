@@ -66,7 +66,15 @@ void ObProcedureExecute::reuse()
 
 int ObProcedureExecute::close()
 {
-	return OB_SUCCESS;
+  int ret = OB_SUCCESS;
+  if( NULL != child_op_ && OB_SUCCESS != (ret = child_op_->close()) )
+  {
+    if( stmt_id_ != OB_INVALID_ID )
+    {
+      my_phy_plan_->get_result_set()->get_session()->remove_plan(stmt_id_);
+    }
+  }
+  return ret;
 }
 
 int ObProcedureExecute::get_row_desc(const common::ObRowDesc *&row_desc) const
@@ -108,6 +116,8 @@ int ObProcedureExecute::open()
   ObProcedure *proc = NULL;
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
 
+  ObPhysicalPlan *physical_plan = NULL;
+  ObResultSet *result_set = NULL;
   if (stmt_id_ == OB_INVALID_ID)
   {
 //    proc = child_op_;
@@ -116,8 +126,6 @@ int ObProcedureExecute::open()
   }
   else
   {
-    ObResultSet *result_set = NULL;
-    ObPhysicalPlan *physical_plan = NULL;
     if ((result_set = session->get_plan(stmt_id_)) == NULL
                     || (physical_plan = result_set->get_physical_plan()) == NULL
                     || (proc = static_cast<ObProcedure *>(physical_plan->get_main_query())) == NULL)
@@ -129,6 +137,8 @@ int ObProcedureExecute::open()
   }
   if( proc != NULL )
   {
+    OB_ASSERT(proc->get_type() == PHY_PROCEDURE);
+    child_op_ = proc;
     int64_t param_desired = proc->get_param_num();
     int64_t param_provided = get_param_size();
     if(param_desired!=param_provided)
@@ -169,7 +179,7 @@ int ObProcedureExecute::open()
 
       if(ret == OB_SUCCESS)
       {
-        if((ret=child_op_->open())!=OB_SUCCESS)
+        if((ret=result_set->open())!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "procedure execute error!");
         }
@@ -264,9 +274,6 @@ int ObProcedureExecute::open()
 		return ret;
 	else
 		return clear_ret;
-//	ObDeallocate np;
-//	np.open();
-//	session->remove_plan(stmt_id_);
 }
 
 
@@ -280,7 +287,7 @@ int64_t ObProcedureExecute::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "procedure execute(stmt_id=%ld)\n", stmt_id_);
-  int64_t pos_temp=child_op_->to_string(buf+pos,buf_len-pos);
-  pos+=pos_temp;
+//  int64_t pos_temp=child_op_->to_string(buf+pos,buf_len-pos);
+//  pos+=pos_temp;
   return pos;
 }

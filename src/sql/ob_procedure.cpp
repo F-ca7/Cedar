@@ -341,6 +341,51 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
   return ret;
 }
 
+int SpMsInstExecStrategy::close(SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  SpMultiInsts *mul_inst = NULL;
+  switch(inst->get_type())
+  {
+  case SP_E_INST:
+    break;
+  case SP_B_INST:
+    ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
+    break;
+  case SP_D_INST:
+    ret = static_cast<SpRwDeltaInst*>(inst)->ups_exec_op_->close();
+    break;
+  case SP_DE_INST:
+    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->ups_exec_op_->close();
+    break;
+  case SP_A_INST:
+    ret = static_cast<SpRwCompInst*>(inst)->op_->close();
+    break;
+  case SP_BLOCK_INST:
+    break;
+  case SP_C_INST:
+    mul_inst = static_cast<SpIfCtrlInsts*>(inst)->get_then_block();
+    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+      SpInst *inner_inst = NULL;
+      mul_inst->get_inst(i, inner_inst);
+      if( NULL != inner_inst) ret = close(inner_inst);
+    }
+    mul_inst = static_cast<SpIfCtrlInsts*>(inst)->get_else_block();
+    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+      SpInst *inner_inst = NULL;
+      mul_inst->get_inst(i, inner_inst);
+      if( NULL != inner_inst) ret = close(inner_inst);
+    }
+    break;
+  case SP_UNKOWN:
+  default:
+    TBSYS_LOG(WARN, "close unsupport inst[%d] on mergeserver", inst->get_type());
+    ret = OB_NOT_SUPPORTED;
+    break;
+  }
+  return ret;
+}
+
 /*=================================================
  *           ObProcedure Definition
 ===================================================*/
@@ -358,12 +403,6 @@ int ObProcedure::set_proc_name(const ObString &proc_name)
   return OB_SUCCESS;
 }
 
-//int ObProcedure::set_params(ObArray<ObParamDef> &params)
-//{
-//  params_=params;
-//  return OB_SUCCESS;
-//}
-
 int ObProcedure::add_param(const ObParamDef &proc_param)
 {
   return params_.push_back(proc_param);
@@ -373,27 +412,6 @@ int ObProcedure::add_var_def(const ObVariableDef &def)
 {
   return defs_.push_back(def);
 }
-
-//int ObProcedure::add_declare_var(const ObString &var)
-//{
-//  int ret=OB_SUCCESS;
-//  for (int64_t i = 0;i < declare_variable_.count();i++)//判断变量是否重复定义了
-//  {
-//    TBSYS_LOG(TRACE, "declare %ld %.*s compare with %.*s  ret=%d",i,declare_variable_.at(i).length(),declare_variable_.at(i).ptr(),var.length(),var.ptr(),declare_variable_.at(i).compare(var));
-//    if(declare_variable_.at(i).compare(var)==0)
-//    {
-//      TBSYS_LOG(WARN, "same variable");
-//      ret=OB_ENTRY_EXIST;
-//      break;
-//    }
-//  }
-//  if(ret==OB_SUCCESS)
-//  {
-//    declare_variable_.push_back(var);
-//  }
-//  return ret;
-//}
-
 
 const ObString& ObProcedure::get_declare_var(int64_t index) const
 {
@@ -427,41 +445,31 @@ void ObProcedure::reuse()
 }
 int ObProcedure::close()
 {
-//  return ObMultiChildrenPhyOperator::close();
-  return OB_SUCCESS;
+  int ret = OB_SUCCESS;
+  SpMsInstExecStrategy strategy;
+  for(int64_t i = 0; i < exec_list_.count() && OB_SUCCESS == ret; ++i)
+  {
+    if( OB_SUCCESS != (ret = strategy.close(exec_list_.at(i))) )
+    {
+      TBSYS_LOG(WARN, "close inst fail[%ld], ret=%d", i, ret);
+    }
+  }
+//  exec_list_.clear();
+  my_phy_plan_->set_proc_exec(false);
+  pc_ = 0;
+  return ret;
 }
 
 int ObProcedure::get_row_desc(const common::ObRowDesc *&row_desc) const
 {
-//  int ret = OB_SUCCESS;
-//  if (OB_UNLIKELY(get_child(0) == NULL))
-//  {
-//    ret = OB_NOT_INIT;
-//    TBSYS_LOG(ERROR, "children_ops_[0] is NULL");
-//  }
-//  else
-//  {
-//    ret = get_child(0)->get_row_desc(row_desc);
-//  }
-  //does not return desc now
   UNUSED(row_desc);
   return OB_SUCCESS;
-//  return ret;
 }
+
 int ObProcedure::get_next_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
   UNUSED(row);
-//  if (OB_UNLIKELY(ObMultiChildrenPhyOperator::get_child_num() <= 0))
-//  {
-//    ret = OB_NOT_INIT;
-//    TBSYS_LOG(WARN, "ObProcedureCreate has no child, ret=%d", ret);
-//  }
-//  else
-//  {
-//    /*返回第一个操作符的next_row*/
-//    ret = get_child(0)->get_next_row(row);
-//  }
   return ret;
 }
 
@@ -624,7 +632,6 @@ int ObProcedure::open()
 {
   int ret = OB_SUCCESS;
   SpMsInstExecStrategy strategy;
-  optimize();
   if( OB_SUCCESS != (ret = create_variables()))
   {}
   else
@@ -694,6 +701,63 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
 namespace oceanbase{
   namespace sql{
     REGISTER_PHY_OPERATOR(ObProcedure, PHY_PROCEDURE);
+  }
+}
+
+/**
+ * @brief ObProcedure::assign
+ *  reconstruct according to the execution plan
+ * @param other
+ * @return
+ */
+int ObProcedure::assign(const ObPhyOperator* other)
+{
+  const ObProcedure *old_proc = static_cast<const ObProcedure *>(other);
+  for(int64_t i = 0; i < old_proc->params_.count(); ++i)
+  {
+    const ObParamDef & param = old_proc->params_.at(i);
+    params_.push_back(param); //should alloc memory for name ?
+  }
+  for(int64_t i = 0; i < old_proc->defs_.count(); ++i)
+  {
+    const ObVariableDef & def = old_proc->params_.at(i);
+    defs_.push_back(def);
+  }
+
+  for(int64_t i = 0; i < old_proc->exec_list_.count(); ++i)
+  {
+    SpInst *inst = old_proc->exec_list_.at(i);
+    SpInst *new_inst = NULL;
+    switch(inst->get_type())
+    {
+    case SP_E_INST:
+      new_inst = create_inst<SpExprInst>(NULL);
+      break;
+    case SP_B_INST:
+      new_inst = create_inst<SpRdBaseInst>(NULL);
+      break;
+    case SP_A_INST:
+      new_inst = create_inst<SpRwCompInst>(NULL);
+      break;
+    case SP_C_INST:
+      new_inst = create_inst<SpIfCtrlInsts>(NULL);
+      break;
+    case SP_D_INST:
+      new_inst = create_inst<SpRwDeltaInst>(NULL);
+      break;
+    case SP_DE_INST:
+      new_inst = create_inst<SpRwDeltaIntoVarInst>(NULL);
+      break;
+    case SP_BLOCK_INST:
+      new_inst = create_inst<SpBlockInsts>(NULL);
+      break;
+    case SP_UNKOWN:
+    default:
+      new_inst = NULL;
+      TBSYS_LOG(WARN, "unknown type here");
+      break;
+    }
+    if( new_inst != NULL ) new_inst->assign(inst);
   }
 }
 

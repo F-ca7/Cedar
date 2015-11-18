@@ -1421,7 +1421,7 @@ int ObSql::copy_plan_from_store(ObResultSet *result, ObPsStoreItem *item, ObSqlC
           {
             TBSYS_LOG(WARN, "Get ps session info failed sql_id=%lu, ret=%d", sql_id, ret);
           }
-          else if (OB_SUCCESS != (ret = result->from_store(value, info)))
+          else if (OB_SUCCESS != (ret = result->from_store(value, info))) //set the paramters info
           {
             TBSYS_LOG(WARN, "Assemble Result from ObPsStoreItem(%p) and ObPsSessionInfo(%p) failed, ret=%d",
                       value, info, ret);
@@ -1760,15 +1760,16 @@ int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
     //ObProcedure, the main execution plan,
     //ObInsert, a op used to insert the proc_source into the catalog
     //we only need the ObProcedure op
-    if( OB_SUCCESS == ret )
+    if( OB_SUCCESS != ret )
     {}
-    else if( OB_SUCCESS == (ret = direct_execute(proc_sour, proc_result_plan, context)) )
+    else if( OB_SUCCESS != (ret = direct_execute(proc_sour, proc_result_plan, context)) )
     {
       TBSYS_LOG(WARN, "prepare the procedure plan fail");
       context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
     }
     else
     {
+      TBSYS_LOG(INFO, "successful generate proc phyplan:\n%s", to_cstring(*(proc_result_plan.get_physical_plan())));
       proc_result_plan.get_physical_plan()->set_main_query(proc_result_plan.get_physical_plan()->get_main_query()->get_child(0));
       if ((ret = context.session_info_->store_plan(proc_name, proc_result_plan)) != OB_SUCCESS)
       {
@@ -1809,15 +1810,16 @@ int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour,
   int ret = OB_SUCCESS;
   char bufstr[128];
   int str_len = 0;
-  if( (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
+  if( 123 <= (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
   {
-    TBSYS_LOG(WARN, "try to read proc_source from catalog fail, buffer overflow, maybe too long proc_name");
+    TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from __all_procedure where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
     ret = OB_ERROR;
   }
   else
   {
     ObResultSet proc_result;
     ObString get_proc_sql = ObString::make_string(bufstr);
+    TBSYS_LOG(INFO, "read catalog: %.*s", get_proc_sql.length(), get_proc_sql.ptr());
     if (OB_UNLIKELY(no_enough_memory()))
     {
       TBSYS_LOG(WARN, "no memory to get procedure source");
@@ -1864,6 +1866,7 @@ int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour,
       }
       proc_result.close();
     }
+    TBSYS_LOG(INFO, "proc_source:\n%.*s", proc_sour.length(), proc_sour.ptr());
   }
   return ret;
 }
