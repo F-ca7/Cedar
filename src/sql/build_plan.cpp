@@ -2726,12 +2726,12 @@ int resolve_procedure_assign_stmt(
     ParseNode* var_node=node->children_[0];
     OB_ASSERT(var_node->type_==T_VAR_VAL_LIST);
     //genereate logical plan for each assign
-    ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
+//    ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
 
-    int32_t expr_itr = logic_plan->get_raw_expr_count();
+//    int32_t expr_itr = logic_plan->get_raw_expr_count();
     for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
     {
-      ObVarAssignVal var_val;
+      ObRawVarAssignVal var_val;
       uint64_t expr_id;
       //analyze the right expr
       if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],
@@ -2742,29 +2742,16 @@ int resolve_procedure_assign_stmt(
       else
       {
         //analyze the left variable
-        var_val.var_expr_id_=expr_id;
+        var_val.val_expr_id_ = expr_id;
         if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_),
-                                var_val.variable_name_))!=OB_SUCCESS)
+                                var_val.var_name_))!=OB_SUCCESS)
         {
           PARSER_LOG("Can not malloc space for variable name");
         }
         else
         {
-          //get the variable set used in the expression
-          int32_t expr_new_itr = logic_plan->get_raw_expr_count();
-          for(;expr_itr < expr_new_itr; ++expr_itr)
-          {
-            ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
-            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
-            {
-              ObString var_name;
-              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
-              var_val.add_rs_var(var_name);
-              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
-            }
-          }
+          stmt->add_var_val(var_val);
         }
-        stmt->add_var_val(var_val);
       }
 
       int find=OB_ERROR;
@@ -2773,7 +2760,7 @@ int resolve_procedure_assign_stmt(
       for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
       {
         const ObString &declare_var=ps_stmt->get_declare_var(j);
-        if(var_val.variable_name_.compare(declare_var)==0) //check existence
+        if(var_val.var_name_.compare(declare_var)==0) //check existence
         {
           find=OB_SUCCESS;
           break;
@@ -2784,7 +2771,7 @@ int resolve_procedure_assign_stmt(
       {
         const ObParamDef& def=ps_stmt->get_param(j);
 //        ObString param_var = def.param_name_;
-        if(var_val.variable_name_.compare(def.param_name_)==0)
+        if(var_val.var_name_.compare(def.param_name_)==0)
         {
           find=OB_SUCCESS;
           break;
@@ -2794,7 +2781,7 @@ int resolve_procedure_assign_stmt(
       if(find==OB_ERROR) //error means the variable is not defined in variables or paramters
       {
         ret=-5044;
-        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.variable_name_.length(),var_val.variable_name_.ptr());
+        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.var_name_.length(),var_val.var_name_.ptr());
         break;
       }
     }

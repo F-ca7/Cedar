@@ -80,13 +80,13 @@ namespace oceanbase {
       }
 
 
-      int add_var_val(ObVarAssignVal &var_val);/*添加一个var_val*/
+      int add_var_val(ObRawVarAssignVal &var_val);/*添加一个var_val*/
 
-      ObArray<ObVarAssignVal>& get_var_val_list();/*返回所有赋值*/
+      const ObArray<ObRawVarAssignVal>& get_var_val_list() const;/*返回所有赋值*/
 
-      ObVarAssignVal& get_var_val(int64_t index);/*返回一个赋值*/
+      const ObRawVarAssignVal& get_var_val(int64_t index) const;/*返回一个赋值*/
 
-      int64_t get_var_val_size();/*返回变量列表大小*/
+      int64_t get_var_val_size() const;/*返回变量列表大小*/
 
       virtual void print(FILE* fp, int32_t level, int32_t index);
     private:

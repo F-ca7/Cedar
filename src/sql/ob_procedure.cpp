@@ -15,12 +15,12 @@ int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
   TBSYS_LOG(TRACE, "sp expr inst exec()");
   common::ObRow input_row; //fake paramters
   const ObObj *val = NULL;
-  if((ret=inst->var_val_.var_value_->calc(input_row, val))!=OB_SUCCESS)
+  if((ret=inst->get_val()->calc(input_row, val))!=OB_SUCCESS)
   {
     TBSYS_LOG(WARN, "sp expr compute failed");
   }
   //update the varialbe here
-  else if ( OB_SUCCESS != (ret = inst->proc_->write_variable(inst->var_val_.variable_name_, *val)) )
+  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->var_val_.variable_name_, *val)) )
   {
 
   }
@@ -31,7 +31,7 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
 {
   int ret = OB_SUCCESS;
   ObPhyOperator *op_ = inst->op_; //op_ is in the UpsExecutor::inner_plan, that is different from the procedure->my_phy_plan_
-  ObPhysicalPlan *phy_plan = inst->proc_->get_phy_plan();
+  ObPhysicalPlan *phy_plan = inst->get_ownner()->get_phy_plan();
   //table rpc scan is in the ups_executor's inner plan that is different from the current plan
   op_->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
   op_->get_phy_plan()->set_result_set(phy_plan->get_result_set());
@@ -712,7 +712,11 @@ namespace oceanbase{
  */
 int ObProcedure::assign(const ObPhyOperator* other)
 {
+  int ret = OB_SUCCESS;
   const ObProcedure *old_proc = static_cast<const ObProcedure *>(other);
+
+  proc_name_ = old_proc->proc_name_;
+
   for(int64_t i = 0; i < old_proc->params_.count(); ++i)
   {
     const ObParamDef & param = old_proc->params_.at(i);
@@ -720,11 +724,11 @@ int ObProcedure::assign(const ObPhyOperator* other)
   }
   for(int64_t i = 0; i < old_proc->defs_.count(); ++i)
   {
-    const ObVariableDef & def = old_proc->params_.at(i);
+    const ObVariableDef & def = old_proc->defs_.at(i);
     defs_.push_back(def);
   }
 
-  for(int64_t i = 0; i < old_proc->exec_list_.count(); ++i)
+  for(int64_t i = 0; (OB_SUCCESS == ret) && i < old_proc->exec_list_.count(); ++i)
   {
     SpInst *inst = old_proc->exec_list_.at(i);
     SpInst *new_inst = NULL;
@@ -757,8 +761,9 @@ int ObProcedure::assign(const ObPhyOperator* other)
       TBSYS_LOG(WARN, "unknown type here");
       break;
     }
-    if( new_inst != NULL ) new_inst->assign(inst);
+    if( new_inst != NULL ) ret = new_inst->assign(inst);
   }
+  return ret;
 }
 
 int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const

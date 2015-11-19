@@ -6,6 +6,7 @@
 #include "ob_procedure_stmt.h"
 #include "ob_procedure_assgin_stmt.h"
 #include "ob_procedure_declare_stmt.h"
+#include "ob_procedure_assgin.h"
 #include "ob_physical_plan.h"
 #include "ob_raw_expr.h"
 
@@ -119,8 +120,9 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const;
       int set_var_val(ObVarAssignVal &var);
 
-      ObSqlExpression * get_val() { return var_val_.var_value_; }
+      ObSqlExpression * get_val() { return &var_val_.var_value_; }
       const ObString & get_var() { return var_val_.variable_name_ ;}
+      ObVarAssignVal &get_var_val() { return var_val_; } //used to construct var_val, so not const
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -462,8 +464,7 @@ namespace oceanbase
 
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
-      ModuleArena arena_;
-//      SpInstExecStrategy* strategy_;
+      ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
     };
 #endif // SPPROCEDURE_H
   }

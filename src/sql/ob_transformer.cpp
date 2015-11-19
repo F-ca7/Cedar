@@ -1579,8 +1579,8 @@ int ObTransformer::gen_physical_procedure_select_into(
     }
 	}
 	return ret;
-
 }
+
 int ObTransformer::gen_physical_procedure_assign(
                 ObLogicalPlan *logical_plan,
                 ObPhysicalPlan *physical_plan,
@@ -1591,76 +1591,50 @@ int ObTransformer::gen_physical_procedure_assign(
   int &ret = err_stat.err_code_ = OB_SUCCESS;
 //  ObProcedureAssgin*result_op = NULL;
   ObProcedureAssginStmt *stmt = NULL;
-  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个ExecuteStmt语句和逻辑执行计划树
+  get_stmt(logical_plan, err_stat, query_id, stmt);
   TBSYS_LOG(TRACE,"enter gen_physical_procedure_assign");
 
   for(int64_t i = 0 ; i < stmt->get_var_val_size() && OB_SUCCESS == ret; ++i)
   {
     SpExprInst* expr_inst = proc_op->create_inst<SpExprInst>(mul_inst);
-    ObVarAssignVal &var_val = stmt->get_var_val(i);
-    uint64_t expr_id = var_val.var_expr_id_;
-    ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-    ObSqlExpression *expr = ObSqlExpression::alloc();
-    expr->set_owner_op(proc_op); //important
+    const ObRawVarAssignVal &raw_var_val = stmt->get_var_val(i);
 
-    ret = raw_expr->fill_sql_expression(*expr, this, logical_plan, physical_plan);
+    ObVarAssignVal& var_val = expr_inst->get_var_val();
 
-    var_val.var_value_ = expr;
+    ob_write_string(*mem_pool_, raw_var_val.var_name_, var_val.variable_name_); //set var_name
 
-    expr_inst->set_var_val(var_val);
-    //assignment need procedure ptr to find the variables table
-    expr_inst->set_owner_procedure(proc_op);
+    ObSqlRawExpr *raw_expr = logical_plan->get_expr(raw_var_val.val_expr_id_);
 
-//    proc_op->add_sp_inst(expr_inst);
-//    proc_op->add_inst_e(expr_inst);
+    ObSqlExpression &expr = var_val.var_value_;
+    expr.set_owner_op(proc_op); //important, used to find the variables table
+
+    ret = raw_expr->fill_sql_expression(expr, this, logical_plan, physical_plan); //set var_value
+
+    if( OB_SUCCESS == ret )
+    {
+      //assignment need procedure ptr to find the variables table
+      expr_inst->set_owner_procedure(proc_op);
+
+      ObArray<const ObRawExpr *> raw_var_exprs;
+      raw_expr->get_raw_var(raw_var_exprs);
+      //get the variable set used in the expression
+
+      for(int64_t i = 0; i < raw_var_exprs.count(); ++i)
+      {
+        const ObRawExpr *raw_expr = raw_var_exprs.at(i);
+        if( raw_expr->get_expr_type() == T_SYSTEM_VARIABLE || raw_expr->get_expr_type() == T_TEMP_VARIABLE )
+        {
+          ObString var_name;
+          ((const ObConstRawExpr *)raw_expr)->get_value().get_varchar(var_name);
+
+          ob_write_string(*mem_pool_, var_name, var_name); //bind to the transformation memory
+
+          var_val.add_rs_var(var_name);
+          TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
+        }
+      }
+    }
   }
-
-  //	if (ret == OB_SUCCESS)
-  //	{
-  //	   CREATE_PHY_OPERRATOR(result_op, ObProcedureAssgin, physical_plan, err_stat);
-  //	   if (ret == OB_SUCCESS)
-  //	   {
-  //	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
-  //	   }
-  //	}
-  //	if (ret == OB_SUCCESS)
-  //	{
-  //		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_var_val_size(); i++)
-  //		{
-  //			ObVariableSetVal var_val=stmt->get_var_val(i);
-
-  //			//TODO var_val-.variable_name_ 判断这个变量是否被定义了
-
-  //			 /*获取表达式的值*/
-  //			uint64_t expr_id = var_val.var_expr_id_;
-  //			ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-  //			ObSqlExpression *expr=ObSqlExpression::alloc();
-  //			expr->set_owner_op(result_op);
-  //			if (OB_UNLIKELY(raw_expr == NULL))
-  //			{
-  //				ret = OB_ERR_ILLEGAL_ID;
-  //				TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
-  //			}
-  //			else if ((ret = raw_expr->fill_sql_expression(
-  //												 *expr,
-  //												 this,
-  //												 logical_plan,
-  //												 physical_plan)
-  //												 ) != OB_SUCCESS)
-  //			{
-  //				TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
-  //			}
-  //			else
-  //			{
-  //				var_val.var_value_=*expr;
-  //			}
-  //			if((ret = result_op->add_var_val(var_val)) != OB_SUCCESS)
-  //			{
-  //				TRANS_LOG("add ObVariableDef failed, ret=%d", ret);
-  //			}
-
-  //		}
-  //	}
   return ret;
 }
 

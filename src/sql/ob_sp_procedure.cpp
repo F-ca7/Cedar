@@ -54,7 +54,7 @@ int SpExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   {
     TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
   }
-  else if( OB_SUCCESS != (ret = var_val_.var_value_->serialize(buf, buf_len, pos)) )
+  else if( OB_SUCCESS != (ret = var_val_.var_value_.serialize(buf, buf_len, pos)) )
   {
     TBSYS_LOG(WARN, "serialize var_value fail, ret=%d", ret);
   }
@@ -74,16 +74,16 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   }
   else
   {
-    ObSqlExpression* expr = ObSqlExpression::alloc(); //seems bad design, try to refactor ObVarAssignVal
+//    ObSqlExpression* expr = ObSqlExpression::alloc(); //seems bad design, try to refactor ObVarAssignVal
 
-    if( OB_SUCCESS != (ret = expr->deserialize(buf, data_len, pos)) )
+    if( OB_SUCCESS != (ret = var_val_.var_value_.deserialize(buf, data_len, pos)) )
     {
       TBSYS_LOG(WARN, "deserialize expr fail, ret=%d", ret);
     }
     else
     {
-      var_val_.var_value_ = expr;
-      var_val_.var_value_->set_owner_op(proc_);
+//      var_val_.var_value_ = expr;
+      var_val_.var_value_.set_owner_op(proc_);
     }
   }
   return ret;
@@ -91,9 +91,13 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
 
 int SpExprInst::assign(const SpInst *inst)
 {
-//  SpExprInst *old_expr = static_cast<SpExprInst*>(inst);
+  int ret = OB_SUCCESS;
+  const SpExprInst *old_expr = static_cast<const SpExprInst*>(inst);
 
-//  var_val_ = old_expr->var_val_;
+  var_val_ = old_expr->var_val_;
+  ws_ = old_expr->ws_;
+
+  return ret;
 }
 
 /* ===============================================
@@ -127,11 +131,26 @@ void SpRdBaseInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
   }
 }
 
-int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op)
+int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, uint64_t query_id)
 {
   int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_VALUES);
   op_ = op;
+  query_id_ = query_id;
+  return ret;
+}
+
+int SpRdBaseInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+
+  const SpRdBaseInst *old_inst = static_cast<const SpRdBaseInst*>(inst);
+
+  op_ = NULL; //get the op_ from query_id_'s inner plan
+  query_id_ = old_inst->query_id_;
+  rs_ = old_inst->rs_;
+  ws_ = old_inst->ws_;
+  table_id_ = old_inst->table_id_;
   return ret;
 }
 
@@ -206,6 +225,19 @@ int SpRwDeltaInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &
   return ret;
 }
 
+int SpRwDeltaInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  const SpRwDeltaInst *old_inst = static_cast<const SpRwDeltaInst*>(inst);
+  op_ = NULL;
+  ups_exec_op_ = NULL;
+  query_id_ = old_inst->query_id_;
+  rs_ = old_inst->rs_;
+  ws_ = old_inst->ws_;
+  table_id_ = old_inst->table_id_;
+  return ret;
+}
+
 /* ========================================================
  *      SpRwDeltaIntoInst Definition
  * =======================================================*/
@@ -274,10 +306,30 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
   return ret;
 }
 
+int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  ret = SpRwDeltaInst::assign(inst);
+  var_list_ = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
+  return ret;
+}
+
 /* ========================================================
  *      SpRwCompInst Definition
  * =======================================================*/
+int SpRwCompInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
 
+  const SpRwCompInst *old_inst = static_cast<const SpRwCompInst*>(inst);
+  op_ = NULL;
+  query_id_ = old_inst->query_id_;
+  rs_ = old_inst->rs_;
+  ws_ = old_inst->ws_;
+  table_id_ = old_inst->table_id_;
+  var_list_ = old_inst->var_list_;
+  return ret;
+}
 
 /* ========================================================
  *      SpBlockInsts Definition
@@ -442,6 +494,51 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   return ret;
 }
 
+int SpBlockInsts::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  const SpBlockInsts *old_inst = static_cast<const SpBlockInsts*>(inst);
+
+  inst_list_.clear();
+  for(int64_t i = 0; i < old_inst->inst_list_.count(); ++i)
+  {
+    SpInst *inner_inst = old_inst->inst_list_.at(i);
+    SpInst *new_inst = NULL;
+    switch(inner_inst->get_type())
+    {
+    case SP_E_INST:
+      new_inst = proc_->create_inst<SpExprInst>(NULL);
+      break;
+    case SP_C_INST:
+      new_inst = proc_->create_inst<SpIfCtrlInsts>(NULL);
+      break;
+    case SP_D_INST:
+      new_inst = proc_->create_inst<SpRwDeltaInst>(NULL);
+      break;
+    case SP_DE_INST:
+      new_inst = proc_->create_inst<SpRwDeltaIntoVarInst>(NULL);
+      break;
+    case SP_BLOCK_INST:
+    case SP_B_INST:
+    case SP_A_INST:
+    case SP_UNKOWN:
+    default:
+      new_inst = NULL;
+      TBSYS_LOG(WARN, "unknown supported type here");
+      ret = OB_NOT_SUPPORTED;
+      break;
+    }
+    if( new_inst != NULL )
+    {
+      new_inst->assign(inner_inst);
+      inst_list_.push_back(new_inst);
+    }
+  }
+  rs_ = old_inst->rs_;
+  ws_ = old_inst->ws_;
+  return ret;
+}
+
 /*================================================
  *				SpMultiInsts Definition
  * ===============================================*/
@@ -534,6 +631,51 @@ int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   return ret;
 }
 
+int SpMultiInsts::assign(const SpMultiInsts &mul_inst)
+{
+  int ret = OB_SUCCESS;
+  SpProcedure *proc = mul_inst.ownner_->get_ownner();
+  for(int64_t i = 0; i < mul_inst.inst_list_.count(); ++i)
+  {
+    SpInst *inner_inst = mul_inst.inst_list_.at(i);
+    SpInst *new_inst = NULL;
+    switch(inner_inst->get_type())
+    {
+    case SP_E_INST:
+      new_inst = proc->create_inst<SpExprInst>(this);
+      break;
+    case SP_B_INST:
+      new_inst = proc->create_inst<SpRdBaseInst>(this);
+      break;
+    case SP_A_INST:
+      new_inst = proc->create_inst<SpRwCompInst>(this);
+      break;
+    case SP_C_INST:
+      new_inst = proc->create_inst<SpIfCtrlInsts>(this);
+      break;
+    case SP_D_INST:
+      new_inst = proc->create_inst<SpRwDeltaInst>(this);
+      break;
+    case SP_DE_INST:
+      new_inst = proc->create_inst<SpRwDeltaIntoVarInst>(this);
+      break;
+    case SP_BLOCK_INST:
+      new_inst = proc->create_inst<SpBlockInsts>(this);
+      break;
+    case SP_UNKOWN:
+    default:
+      new_inst = NULL;
+      TBSYS_LOG(WARN, "unknown type here");
+      break;
+    }
+    if( new_inst != NULL )
+    {
+      new_inst->assign(inner_inst);
+    }
+  }
+  return ret;
+}
+
 /*================================================
  * 					SpIfContrlInsts Definition
  * ==============================================*/
@@ -589,6 +731,26 @@ int SpIfCtrlInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &
   else
   {
     if_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+int SpIfCtrlInsts::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+
+  const SpIfCtrlInsts *old_inst = static_cast<const SpIfCtrlInsts*>(inst);
+  if_expr_ = old_inst->if_expr_;
+  expr_rs_set_ = old_inst->expr_rs_set_;
+  rs_set_ = old_inst->rs_set_;
+  ws_set_ = old_inst->ws_set_;
+  if( OB_SUCCESS != (ret = then_branch_.assign(old_inst->then_branch_)) )
+  {
+    TBSYS_LOG(WARN, "assign then branch fail");
+  }
+  else if( OB_SUCCESS != (ret = else_branch_.assign(old_inst->else_branch_)) )
+  {
+    TBSYS_LOG(WARN, "assign else branch fail");
   }
   return ret;
 }
