@@ -38,7 +38,7 @@ ObRowDesc::~ObRowDesc()
 int64_t ObRowDesc::get_idx(const uint64_t table_id, const uint64_t column_id) const
 {
   int64_t ret = OB_INVALID_INDEX;
-  TBSYS_LOG(ERROR,"test::longfei,,,column_id = %d",(int)column_id);
+  //TBSYS_LOG(ERROR,"test::longfei,,,column_id = %d",(int)column_id);
   if (0 != table_id && 0 != column_id)
   {
     int64_t index = 0;

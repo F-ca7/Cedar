@@ -4967,7 +4967,7 @@ int ObTransformer::gen_physical_drop_table(ObLogicalPlan *logical_plan, ObPhysic
         ret = OB_ERR_TABLE_UNKNOWN;
         TBSYS_LOG(ERROR, "table not exists.");
       }
-      else
+      else if (table != NULL)
       {
         uint64_t tid = table->get_table_id();
         IndexList tmp_idxlist;
