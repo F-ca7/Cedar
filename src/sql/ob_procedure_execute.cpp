@@ -116,23 +116,27 @@ int ObProcedureExecute::open()
   ObProcedure *proc = NULL;
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
 
-  ObPhysicalPlan *physical_plan = NULL;
-  ObResultSet *result_set = NULL;
+//  ObPhysicalPlan *physical_plan = inner_result_set_.get_physical_plan();
+  ObResultSet *result_set = &inner_result_set_;
   if (stmt_id_ == OB_INVALID_ID)
   {
-//    proc = child_op_;
     TBSYS_LOG(WARN, "procedure is not prepared");
     ret = OB_ENTRY_NOT_EXIST;
   }
   else
   {
-    if ((result_set = session->get_plan(stmt_id_)) == NULL
-                    || (physical_plan = result_set->get_physical_plan()) == NULL
-                    || (proc = static_cast<ObProcedure *>(physical_plan->get_main_query())) == NULL)
+    ObPhyOperator *tmp_op = result_set->get_physical_plan()->get_main_query();
+    if( PHY_PROCEDURE != tmp_op->get_type() )
     {
-      ret = OB_NOT_INIT;
-      TBSYS_LOG(WARN, "plan not exist, result_set=%p main_query=%p phy_plan=%p",
-                result_set, proc, physical_plan);
+      TBSYS_LOG(WARN, "the procedure plan is not correct");
+      ret = OB_ENTRY_NOT_EXIST;
+    }
+    else
+    {
+      proc = static_cast<ObProcedure*>(tmp_op);
+      //since the procedur comes from assign, we need to
+      //set the phy_operator point
+      proc->set_inst_op();
     }
   }
   if( proc != NULL )

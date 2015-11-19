@@ -41,6 +41,8 @@ namespace oceanbase
       ObSqlExpression & get_expr(int64_t idx) { return param_list_.at(idx); }
 
       int64_t get_param_size() const;
+
+      ObResultSet & get_procedure_result_set() { return inner_result_set_; }
 		private:
 			//disallow copy
 			ObProcedureExecute(const ObProcedureExecute &other);
@@ -52,7 +54,8 @@ namespace oceanbase
 			ObString proc_name_;
 			common::ObArray<common::ObString> param_names_;
 			common::ObArray<ObSqlExpression> param_list_;
-			uint64_t stmt_id_;
+      uint64_t stmt_id_;
+      ObResultSet inner_result_set_;
 		};
 	}
 }

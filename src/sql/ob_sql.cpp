@@ -1675,6 +1675,14 @@ int ObSql::set_execute_context(ObPhysicalPlan& plan, ObSqlContext& context)
         get_cur_time_op->set_rpc_stub(context.merger_rpc_proxy_);
         break;
       }
+      //add zt 20151119 :b
+      case PHY_PROCEDURE:
+      {
+        ObProcedure *procedure_op = dynamic_cast<ObProcedure*>(op);
+        procedure_op->set_rpc_stub(context.merger_rpc_proxy_);
+        break;
+      }
+      //add zt 20151119 :e
       default:
         break;
     }

@@ -949,6 +949,39 @@ int ObTransformer::gen_physical_procedure_execute(
         }
         else
         {
+          ObResultSet *result_set = session_info->get_plan(stmt_id);
+
+          //copy the physical plan from the prepared one
+          //following the code from ObSql::copy_plan_from_store
+          //          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
+          //          ObSql::copy_physical_plan(new_plan, result_set->get_physical_plan(), sql_context_);
+
+          ObResultSet &new_result_set = result_op->get_procedure_result_set();
+          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
+          new_plan->set_result_set(&new_result_set);
+          if (NULL == new_plan)
+          {
+            TBSYS_LOG(ERROR, "can not alloc mem for ObPhysicalPlan");
+            ret = OB_ERR_UNEXPECTED;
+          }
+          else
+          {
+            TBSYS_LOG(DEBUG, "copy from store ob_malloc plan is %p store plan %p", new_plan, result_set->get_physical_plan());
+            //        phy_plan->set_result_set();
+            ret = ObSql::copy_physical_plan(*new_plan, *(result_set->get_physical_plan()), sql_context_);//phy_plan->assign(value->plan_);
+            if (OB_SUCCESS != ret)
+            {
+              new_plan->clear();
+              ObPhysicalPlan::free(new_plan);
+              TBSYS_LOG(ERROR, "Copy Physical plan from ObPsStoreItem to Current ResultSet failed ret=%d", ret);
+            }
+            else
+            {
+              new_result_set.set_physical_plan(new_plan, true);
+              new_result_set.set_session(sql_context_->session_info_);
+              new_result_set.set_plan_from_assign(true);
+            }
+          }
           result_op->set_stmt_id(stmt_id);
         }
       }

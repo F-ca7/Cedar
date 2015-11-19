@@ -30,20 +30,22 @@ int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
 {
   int ret = OB_SUCCESS;
-  ObPhyOperator *op_ = inst->op_; //op_ is in the UpsExecutor::inner_plan, that is different from the procedure->my_phy_plan_
+  ObPhyOperator *op = inst->get_rd_op(); //op_ is in the UpsExecutor::inner_plan, that is different from the procedure->my_phy_plan_
+
   ObPhysicalPlan *phy_plan = inst->get_ownner()->get_phy_plan();
   //table rpc scan is in the ups_executor's inner plan that is different from the current plan
-  op_->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
-  op_->get_phy_plan()->set_result_set(phy_plan->get_result_set());
+  op->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
+  op->get_phy_plan()->set_result_set(phy_plan->get_result_set());
 
-  ret = op_->open();
+  ret = op->open();
   return ret;
 }
 
 int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
-  ObPhyOperator *op = inst->ups_exec_op_;
+
+  ObPhyOperator *op = inst->get_ups_exec_op();
   if( OB_SUCCESS != (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "execute rw_delta_inst fail");
@@ -55,8 +57,8 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
 {
   int ret = OB_SUCCESS;
   const ObRow *row;
-  ObPhyOperator* op_ = inst->op_;
-  ObArray<ObString> &var_list = inst->var_list_;
+  ObPhyOperator* op_ = inst->get_rwcomp_op();
+  const ObArray<ObString> &var_list = inst->get_var_list();
   if( OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
@@ -75,14 +77,13 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
       {
         TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_name_it);
       }
-      else if(OB_SUCCESS !=(inst->proc_->write_variable(var_name, *cell)))
+      else if(OB_SUCCESS !=(inst->get_ownner()->write_variable(var_name, *cell)))
       {
         TBSYS_LOG(WARN, "write into variables fail");
       }
     }
   }
   return ret;
-
 }
 
 int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
@@ -92,9 +93,9 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 
   ObRowDesc fake_desc;
   fake_desc.reset();
-  const ObArray<ObString> &var_list = inst->var_list_;
-  ObPhyOperator *op = inst->ups_exec_op_;
-  SpProcedure *proc = inst->proc_;
+  const ObArray<ObString> &var_list = inst->get_var_list();
+  ObPhyOperator *op = inst->get_ups_exec_op();
+  SpProcedure *proc = inst->get_ownner();
   //we expect the select list has the same length with the variable list
   //ups use a fake desc to deserialize the result from the ups
   for(int64_t i = 0; ret == OB_SUCCESS && i < var_list.count(); ++i)
@@ -703,6 +704,105 @@ namespace oceanbase{
     REGISTER_PHY_OPERATOR(ObProcedure, PHY_PROCEDURE);
   }
 }
+
+
+int ObProcedure::set_inst_op()
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; i < exec_list_.count(); ++i)
+  {
+    if( OB_SUCCESS != (ret = set_inst_op(exec_list_.at(i))))
+    {
+      TBSYS_LOG(WARN, "set inst op fail at idx[%ld]", i);
+      break;
+    }
+  }
+  return ret;
+}
+
+/**
+ * If the procedure is constructed by assign methods,
+ * each instrcution only have the query_id, the op_ filed would be null
+ * we need to set the op_ according to the query_id
+ * @brief ObProcedure::set_inst_op
+ */
+int ObProcedure::set_inst_op(SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  switch(inst->get_type())
+  {
+  case SP_B_INST:
+    {
+      SpRdBaseInst *rd_inst = static_cast<SpRdBaseInst*>(inst);
+      int32_t idx = rd_inst->get_query_id();
+      OB_ASSERT(my_phy_plan_->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+      ObUpsExecutor *ups_exec = (ObUpsExecutor *)my_phy_plan_->get_phy_query(idx);
+
+      ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+      OB_ASSERT(inner_plan->get_query_size() == 3);
+      for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
+      {
+        ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
+        const ObPhyOperatorType type = aux_query->get_type();
+        if( PHY_VALUES == type )
+        {
+          rd_inst->set_rdbase_op(aux_query, idx);
+          break;
+        }
+      }
+      break;
+    }
+  case SP_A_INST:
+    {
+      SpRwCompInst *rw_comp_inst = static_cast<SpRwCompInst*>(inst);
+      int32_t idx = rw_comp_inst->get_query_id();
+      rw_comp_inst->set_rwcomp_op(my_phy_plan_->get_phy_query(idx), idx);
+      break;
+    }
+  case SP_D_INST:
+  case SP_DE_INST:
+    {
+      SpRwDeltaInst *rw_delta_inst = static_cast<SpRwDeltaInst*>(inst);
+      int32_t idx = rw_delta_inst->get_query_id();
+
+      OB_ASSERT(my_phy_plan_->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+      ObUpsExecutor *ups_exec = (ObUpsExecutor *)my_phy_plan_->get_phy_query(idx);
+
+      rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+      rw_delta_inst->set_ups_exec_op(ups_exec, idx);
+      break;
+    }
+   case SP_C_INST:
+    {
+      SpIfCtrlInsts *if_ctrl_inst = static_cast<SpIfCtrlInsts*>(inst);
+      SpMultiInsts *mul_inst = if_ctrl_inst->get_then_block();
+      for(int64_t i = 0; i < mul_inst->inst_count(); ++i)
+      {
+        set_inst_op(mul_inst->get_inst(i));
+      }
+      mul_inst = if_ctrl_inst->get_else_block();
+      for(int64_t i = 0; i < mul_inst->inst_count(); ++i)
+      {
+        set_inst_op(mul_inst->get_inst(i));
+      }
+      break;
+    }
+  case SP_BLOCK_INST:
+    {
+      SpBlockInsts *block_inst = static_cast<SpBlockInsts*>(inst);
+      ObArray<SpInst *> &inst_list = block_inst->get_inst_list();
+      for(int64_t i = 0; i < inst_list.count(); ++i)
+      {
+         set_inst_op(inst_list.at(i));
+      }
+      break;
+    }
+  default:
+    break;
+  }
+  return ret;
+}
+
 
 /**
  * @brief ObProcedure::assign

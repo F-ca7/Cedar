@@ -131,7 +131,7 @@ void SpRdBaseInst::add_read_var(ObArray<const ObRawExpr*> &var_list)
   }
 }
 
-int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, uint64_t query_id)
+int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, int32_t query_id)
 {
   int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_VALUES);
@@ -190,7 +190,7 @@ int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
   return ret;
 }
 
-int SpRwDeltaInst::set_ups_exec_op(ObPhyOperator *op, uint64_t query_id)
+int SpRwDeltaInst::set_ups_exec_op(ObPhyOperator *op, int32_t query_id)
 {
  int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_UPS_EXECUTOR);
@@ -544,9 +544,15 @@ int SpBlockInsts::assign(const SpInst *inst)
  * ===============================================*/
 int SpMultiInsts::get_inst(int64_t idx, SpInst *&inst)
 {
-  if( idx < 0 || idx > inst_list_.count() ) inst = NULL;
+  if( idx < 0 || idx >= inst_list_.count() ) inst = NULL;
   else inst = inst_list_.at(idx);
   return inst == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
+}
+
+SpInst* SpMultiInsts::get_inst(int64_t idx)
+{
+  OB_ASSERT(idx >= 0 && idx < inst_list_.count() );
+  return inst_list_.at(idx);
 }
 
 int SpMultiInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const

@@ -26,10 +26,13 @@ namespace oceanbase
   namespace sql
   {
     struct ObStmtPrepareResult;
+
+    class ObTransformer;  //add zt 20151119
     // this class is the main interface for sql module
     class ObSql
     {
       public:
+      friend class ObTransformer; //add zt 20151119 bad design, in order to visit the copy_plan function
         /**
          * execute the SQL statement directly
          *

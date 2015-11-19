@@ -95,6 +95,7 @@ namespace oceanbase
       SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
       int add_inst(SpInst *inst) { return inst_list_.push_back(inst); }
       int get_inst(int64_t idx, SpInst *&inst);
+      SpInst* get_inst(int64_t idx);
       int64_t inst_count() const { return inst_list_.count(); }
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
@@ -148,14 +149,16 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const;
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
-      int set_rdbase_op(ObPhyOperator *op, uint64_t query_id);
+      int set_rdbase_op(ObPhyOperator *op, int32_t query_id);
+      ObPhyOperator* get_rd_op() { return op_;}
+      int32_t get_query_id() {return query_id_; } const
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
       int assign(const SpInst *inst);
     protected:
       ObPhyOperator *op_;
-      uint64_t query_id_; //corresponde to the op_
+      int32_t query_id_; //corresponde to the op_
       VariableSet rs_; //the row key variable
       VariableSet ws_; //does not contain any variable
       uint64_t table_id_;
@@ -175,9 +178,10 @@ namespace oceanbase
       void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
       void add_read_var(ObArray<const ObRawExpr *> &var_list);
       int set_rwdelta_op(ObPhyOperator *op);
-      int set_ups_exec_op(ObPhyOperator *op, uint64_t query_id);
-
+      int set_ups_exec_op(ObPhyOperator *op, int32_t query_id);
+      int32_t get_query_id() { return query_id_; } const
       ObPhyOperator* get_rwdelta_op() { return op_; }
+      ObPhyOperator* get_ups_exec_op() { return ups_exec_op_; }
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 //      NEED_SERIALIZE_AND_DESERIALIZE;
@@ -189,7 +193,7 @@ namespace oceanbase
     protected:
       ObPhyOperator *op_; //the main query of the ups execution plan
       ObPhyOperator *ups_exec_op_; //the ObUpsExecutor wrapper operator
-      uint64_t query_id_;
+      int32_t query_id_;
       VariableSet rs_;
       VariableSet ws_;
       uint64_t table_id_;
@@ -238,8 +242,10 @@ namespace oceanbase
       virtual const VariableSet &get_write_variable_set() const {return ws_;}
       void add_read_var(ObString &var_name) { rs_.addVariable(var_name); }
       void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
-      int set_rwcomp_op(ObPhyOperator *op, uint64_t query_id) { op_ = op; query_id_ = query_id; return OB_SUCCESS; }
-
+      int set_rwcomp_op(ObPhyOperator *op, int32_t query_id) { op_ = op; query_id_ = query_id; return OB_SUCCESS; }
+      ObPhyOperator * get_rwcomp_op() { return op_; }
+      int32_t get_query_id() const { return query_id_; }
+      const ObArray<ObString> & get_var_list() const { return var_list_;}
       void add_assign_list(const ObArray<ObString> &assign_list)
       {
         for(int64_t i = 0; i < assign_list.count(); ++i)
@@ -256,7 +262,7 @@ namespace oceanbase
       int assign(const SpInst *inst);
     private:
       ObPhyOperator *op_;
-      uint64_t query_id_;
+      int32_t query_id_;
       VariableSet rs_;
       VariableSet ws_;
       uint64_t table_id_;

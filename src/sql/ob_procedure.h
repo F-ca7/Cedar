@@ -88,12 +88,14 @@ namespace oceanbase
       int64_t get_declare_var_num() const;
 
       DECLARE_PHY_OPERATOR_ASSIGN;
+      int set_inst_op();
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
 			ObProcedure& operator=(const ObProcedure &other);
       //function members
 
+      int set_inst_op(SpInst *inst);
     private:
       ObString proc_name_;
       ObArray<ObParamDef> params_;/*存储过程参数*/
