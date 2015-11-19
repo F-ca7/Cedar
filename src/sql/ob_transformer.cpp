@@ -1,4 +1,4 @@
-/**
+﻿/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -4962,7 +4962,7 @@ int ObTransformer::gen_physical_drop_table(ObLogicalPlan *logical_plan, ObPhysic
       }
       // add longfei [drop index] 20151028
       const ObTableSchema* table = sql_context_->schema_manager_->get_table_schema(table_name);
-      if (table == NULL)
+      if (table == NULL && !drp_tab_op->get_if_exists()))
       {
         ret = OB_ERR_TABLE_UNKNOWN;
         TBSYS_LOG(ERROR, "table not exists.");
