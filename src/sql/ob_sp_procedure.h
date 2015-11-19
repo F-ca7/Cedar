@@ -414,7 +414,7 @@ namespace oceanbase
         return PHY_PROCEDURE;
       }
 
-      virtual void reset() {}
+      virtual void reset();
       virtual void reuse() {}
       virtual int open() {return OB_SUCCESS;}
       virtual int close() {return OB_SUCCESS;}
@@ -466,7 +466,7 @@ namespace oceanbase
 
     protected:
 
-      ObArray<SpInst *> inst_list_;
+      ObArray<SpInst *> inst_list_; //would there be memory leak ?
 
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;

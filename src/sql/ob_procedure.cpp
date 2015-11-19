@@ -436,8 +436,10 @@ int64_t ObProcedure::get_declare_var_num() const
 
 void ObProcedure::reset()
 {
-//  child_num_ = 0;
-//  ObMultiChildrenPhyOperator::reset();
+  params_.clear();
+  defs_.clear();
+  exec_list_.clear();
+  SpProcedure::reset();
 }
 void ObProcedure::reuse()
 {
@@ -634,7 +636,9 @@ int ObProcedure::open()
   int ret = OB_SUCCESS;
   SpMsInstExecStrategy strategy;
   if( OB_SUCCESS != (ret = create_variables()))
-  {}
+  {
+    TBSYS_LOG(WARN, "create varialbes fail");
+  }
   else
   {
     pc_ = 0;
@@ -670,6 +674,10 @@ int ObProcedure::open()
         break;
       }
       debug_status(inst);
+      if( OB_SUCCESS != ret )
+      {
+        TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
+      }
     }
   }
   return ret;
@@ -815,6 +823,7 @@ int ObProcedure::assign(const ObPhyOperator* other)
   int ret = OB_SUCCESS;
   const ObProcedure *old_proc = static_cast<const ObProcedure *>(other);
 
+  reset();
   proc_name_ = old_proc->proc_name_;
 
   for(int64_t i = 0; i < old_proc->params_.count(); ++i)
@@ -861,7 +870,11 @@ int ObProcedure::assign(const ObPhyOperator* other)
       TBSYS_LOG(WARN, "unknown type here");
       break;
     }
-    if( new_inst != NULL ) ret = new_inst->assign(inst);
+    if( new_inst != NULL ) 
+		{
+			ret = new_inst->assign(inst);
+			exec_list_.push_back(new_inst);
+		}
   }
   return ret;
 }

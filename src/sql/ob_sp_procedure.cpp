@@ -831,6 +831,13 @@ SpProcedure::~SpProcedure()
   arena_.free();
 }
 
+void SpProcedure::reset()
+{
+  inst_list_.clear();
+  arena_.free();
+}
+
+
 int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   UNUSED(var_name);

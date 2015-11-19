@@ -437,11 +437,14 @@ int ObTransformer::generate_physical_plan(
         	ret=gen_physical_procedure_create(logical_plan, physical_plan, err_stat, query_id, index);
         	break;
         case ObBasicStmt::T_PROCEDURE_DROP:
-			ret=gen_physical_procedure_drop(logical_plan, physical_plan, err_stat, query_id, index);
-			break;
+          ret=gen_physical_procedure_drop(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
         case ObBasicStmt::T_PROCEDURE_EXEC:
-			ret=gen_physical_procedure_execute(logical_plan, physical_plan, err_stat, query_id, index);
-			break;
+          ret=gen_physical_procedure_execute(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_PROCEDURE:
+          ret = gen_physical_procedure(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
 //        case ObBasicStmt::T_PROCEDURE_IF:
 //			ret=gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, index);
 //			break;
@@ -452,11 +455,11 @@ int ObTransformer::generate_physical_plan(
 //      ret=gen_physical_procedure_assgin(logical_plan, physical_plan, err_stat, query_id, index);
 //				break;
         case ObBasicStmt::T_PROCEDURE_WHILE:
-			ret=gen_physical_procedure_while(logical_plan, physical_plan, err_stat, query_id, index);
-				break;
+          ret=gen_physical_procedure_while(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
         case ObBasicStmt::T_PROCEDURE_CASE:
-			ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
-				break;
+          ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
 //        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
 //        	ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, query_id, index);
 //        	break;
@@ -977,6 +980,7 @@ int ObTransformer::gen_physical_procedure_execute(
             }
             else
             {
+              TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
               new_result_set.set_physical_plan(new_plan, true);
               new_result_set.set_session(sql_context_->session_info_);
               new_result_set.set_plan_from_assign(true);

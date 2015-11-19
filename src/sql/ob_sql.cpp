@@ -1768,6 +1768,7 @@ int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
     //ObProcedure, the main execution plan,
     //ObInsert, a op used to insert the proc_source into the catalog
     //we only need the ObProcedure op
+    context.is_prepare_protocol_ = true;
     if( OB_SUCCESS != ret )
     {}
     else if( OB_SUCCESS != (ret = direct_execute(proc_sour, proc_result_plan, context)) )
@@ -1777,8 +1778,8 @@ int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
     }
     else
     {
-      TBSYS_LOG(INFO, "successful generate proc phyplan:\n%s", to_cstring(*(proc_result_plan.get_physical_plan())));
-      proc_result_plan.get_physical_plan()->set_main_query(proc_result_plan.get_physical_plan()->get_main_query()->get_child(0));
+      TBSYS_LOG(TRACE, "successful generate proc phyplan:\n%s", to_cstring(*(proc_result_plan.get_physical_plan())));
+      //proc_result_plan.get_physical_plan()->set_main_query(proc_result_plan.get_physical_plan()->get_main_query()->get_child(0));
       if ((ret = context.session_info_->store_plan(proc_name, proc_result_plan)) != OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "Store current result failed.");
@@ -1795,6 +1796,7 @@ int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
       context.session_info_->get_transformer_mem_pool().end_batch_alloc(false);
       //keep the buffer here
     }
+    context.is_prepare_protocol_ = false;
     context.session_info_->get_transformer_mem_pool().start_batch_alloc();
   }
   else
