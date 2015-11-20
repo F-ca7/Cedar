@@ -226,6 +226,7 @@ namespace oceanbase
       /// READ_PARAM
       if (OB_SUCCESS == ret)
       {
+        TBSYS_LOG(INFO, "sql_get, read_param: %ld %ld", buf_len, pos);
         ret = ObSqlReadParam::serialize(buf, buf_len, pos);
       }
       return ret;
@@ -369,15 +370,18 @@ namespace oceanbase
       if (OB_SUCCESS == ret)
       {
         ret = serialize_basic_field(buf, buf_len, pos);
+        TBSYS_LOG(INFO, "sql_get, basic: %ld, %ld", buf_len, pos);
       }
       if (OB_SUCCESS == ret)
       {
         ret = serialize_rowkeys(buf, buf_len, pos, rowkey_list_);
-      }
+         TBSYS_LOG(INFO, "sql_get, basic: %ld, %ld", buf_len, pos);
+     }
       if (OB_SUCCESS == ret)
       {
         ret = serialize_flag(buf, buf_len, pos, ObActionFlag::END_PARAM_FIELD);
-      }
+        TBSYS_LOG(INFO, "sql_get, basic: %ld, %ld", buf_len, pos);
+    }
       return ret;
     }
 

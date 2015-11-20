@@ -229,6 +229,10 @@ namespace oceanbase
       table_store_.clear();
       in_ups_executor_ = false;
       cons_from_assign_ = false;
+
+      //add zt 20151119
+      procedure_execution_ = false;
+      //add zt 20151119
     }
 
     inline const common::ObTransID& ObPhysicalPlan::get_trans_id() const

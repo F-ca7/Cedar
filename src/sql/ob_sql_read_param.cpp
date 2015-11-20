@@ -494,7 +494,6 @@ namespace oceanbase
           TBSYS_LOG(WARN, "fail to serialize basic param. buf=%p, buf_len=%ld, pos=%ld, ret=%d", buf, buf_len, pos, ret);
         }
       }
-
       // SQL_PROJECT_PARAM_FIELD
       if (OB_SUCCESS == ret && has_project_)
       {
