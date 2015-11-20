@@ -676,7 +676,16 @@ namespace oceanbase
     int64_t ObTableRpcScan::to_string(char* buf, const int64_t buf_len) const
     {
       int64_t pos = 0;
-      databuff_printf(buf, buf_len, pos, "TableRpcScan(read_method=%s, ", read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN":"GET");
+      //modify longfei [secondary index select] 20151120 :b
+      //databuff_printf(buf, buf_len, pos, "TableRpcScan(read_method=%s, ", read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN":"GET");
+      databuff_printf(buf, buf_len, pos,
+          "TableRpcScan(read_method=%s, is use index for storing=%d,index tid=%ld; is use index without storing=%d,index tid=%ld",
+          read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET",
+          is_use_index_for_storing_for_tostring_,
+          index_tid_for_storing_for_tostring_,
+          is_use_index_without_storing_for_tostring_,
+          index_tid_without_storing_for_tostring_);
+      //modify e
       if (has_limit_)
       {
         databuff_printf(buf, buf_len, pos, "limit=<");
