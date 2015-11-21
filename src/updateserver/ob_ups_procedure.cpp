@@ -6,7 +6,7 @@ using namespace oceanbase::sql;
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
-  TBSYS_LOG(TRACE, "sp expr inst exec on ups()");
+  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(*(inst->get_val())));
   common::ObRow input_row;
   const ObObj *val = NULL;
   if((ret= inst->get_val()->calc(input_row, val))!=OB_SUCCESS)
@@ -25,7 +25,7 @@ int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
   //it should be a ObUpsModify
-  TBSYS_LOG(TRACE, "rw delta inst plan: %s", to_cstring(*(inst->get_rwdelta_op())));
+  TBSYS_LOG(TRACE, "rw delta inst plan: \n%s", to_cstring(*(inst->get_rwdelta_op())));
   if( OB_SUCCESS != (ret = inst->get_rwdelta_op()->open()) )
   {
     TBSYS_LOG(WARN, "execute rw_delta_inst on ups");
@@ -41,7 +41,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   ObPhyOperator *op_ = inst->get_rwdelta_op();
   const ObArray<ObString> &var_list_ = inst->get_var_list();
   SpProcedure *proc = inst->get_ownner();
-  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: %s", to_cstring(*op_));
+  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
   if(NULL != op_)
   {
     op_->open();
@@ -115,6 +115,7 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   int ret = OB_SUCCESS;
   common::ObRow fake_row;
   const ObObj *flag = NULL;
+  TBSYS_LOG(TRACE, "if_ctrl inst:\n%s", to_cstring(inst->get_if_expr()));
   if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
   {
     TBSYS_LOG(WARN, "if expr evalute failed");
@@ -201,7 +202,7 @@ int ObUpsProcedure::open()
 {
   int ret = OB_SUCCESS;
   SpUpsInstExecStrategy strategy;
-  TBSYS_LOG(INFO, "UpsProcedure open, inst list:\n %s", to_cstring(*this));
+  TBSYS_LOG(TRACE, "UpsProcedure open, inst list:\n %s", to_cstring(*this));
   pc_ = 0;
   //we need only to execute the block instructions
   SpInst *inst = inst_list_.at(0);
@@ -291,7 +292,7 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   }
   else
   {
-    TBSYS_LOG(INFO, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
     ret = OB_SUCCESS;
   }
   return ret;
@@ -312,7 +313,7 @@ int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
   }
   else
   {
-    TBSYS_LOG(INFO, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
   }
   return ret;
 }
@@ -332,7 +333,7 @@ int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) c
   }
   else
   {
-    TBSYS_LOG(INFO, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
+    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
   }
 	return ret;
 }

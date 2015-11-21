@@ -354,10 +354,10 @@ int resolve_expr(
       c_expr->set_result_type(ObVarcharType);
       c_expr->set_value(val);
       expr = c_expr;
-      if (node->type_ == T_TEMP_VARIABLE)
-      {
-        TBSYS_LOG(INFO, "resolve tmp variable, name=%.*s", str.length(), str.ptr());
-      }
+//      if (node->type_ == T_TEMP_VARIABLE)
+//      {
+//        TBSYS_LOG(INFO, "resolve tmp variable, name=%.*s", str.length(), str.ptr());
+//      }
       break;
     }
     case T_FLOAT:

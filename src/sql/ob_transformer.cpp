@@ -981,8 +981,10 @@ int ObTransformer::gen_physical_procedure_execute(
             else
             {
               TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
-              new_result_set.set_physical_plan(new_plan, true);
+              new_result_set.from_prepared(*result_set);
+              new_result_set.change_phy_plan(new_plan, true);
               new_result_set.set_session(sql_context_->session_info_);
+
               new_result_set.set_plan_from_assign(true);
             }
           }
@@ -991,7 +993,7 @@ int ObTransformer::gen_physical_procedure_execute(
       }
       if( OB_SUCCESS == ret ) //save paramters into the execute_operators
       {
-        TBSYS_LOG(INFO,"argument size =%ld",stmt->get_param_size());
+//        TBSYS_LOG(INFO,"argument size =%ld",stmt->get_param_size());
         for (int64_t i = 0;i < stmt->get_param_size(); i++)
         {
           uint64_t expr_id = stmt->get_param_expr(i);
@@ -1022,7 +1024,7 @@ int ObTransformer::gen_physical_procedure_execute(
           ObString param_name;
           ob_write_string(*mem_pool_, stmt->get_variable_name(i), param_name);
           result_op->add_param_name(param_name);
-          TBSYS_LOG(INFO,"add_param_name %.*s", param_name.length(), param_name.ptr());
+//          TBSYS_LOG(TRACE,"add_param_name %.*s", param_name.length(), param_name.ptr());
         }
       }
     }
@@ -1853,8 +1855,6 @@ int ObTransformer::gen_physical_procedure_replace(
     OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
     ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
-    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
-    OB_ASSERT(inner_plan->get_query_size() == 3);
     rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
     rw_delta_inst->set_ups_exec_op(ups_exec, idx);
 

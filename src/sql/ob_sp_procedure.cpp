@@ -7,6 +7,12 @@ using namespace oceanbase::common;
 /* ========================================================
  *      SpInst Definition
  * =======================================================*/
+
+SpInst::~SpInst()
+{
+  proc_ = NULL;
+}
+
 int SpInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   UNUSED(buf);
@@ -31,6 +37,9 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
 /* ==============================================
  *    SpExprInst Definition
  * ===============================================*/
+SpExprInst::~SpExprInst()
+{}
+
 int SpExprInst::set_var_val(ObVarAssignVal &var)
 {
   var_val_ = var;
@@ -95,14 +104,17 @@ int SpExprInst::assign(const SpInst *inst)
   const SpExprInst *old_expr = static_cast<const SpExprInst*>(inst);
 
   var_val_ = old_expr->var_val_;
+  var_val_.var_value_.set_owner_op(proc_);
   ws_ = old_expr->ws_;
-
   return ret;
 }
 
 /* ===============================================
  *    SpRdBaseInst Definition
  * ==============================================*/
+SpRdBaseInst::~SpRdBaseInst()
+{}
+
 const VariableSet& SpRdBaseInst::get_read_variable_set() const
 {
   return rs_;
@@ -157,6 +169,10 @@ int SpRdBaseInst::assign(const SpInst *inst)
 /* ========================================================
  *      SpRwDeltaInst Definition
  * =======================================================*/
+SpRwDeltaInst::~SpRwDeltaInst()
+{}
+
+
 const VariableSet& SpRwDeltaInst::get_read_variable_set() const
 {
   return rs_;
@@ -241,6 +257,9 @@ int SpRwDeltaInst::assign(const SpInst *inst)
 /* ========================================================
  *      SpRwDeltaIntoInst Definition
  * =======================================================*/
+SpRwDeltaIntoVarInst::~SpRwDeltaIntoVarInst()
+{}
+
 int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   int ret = OB_SUCCESS;
@@ -317,6 +336,9 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
 /* ========================================================
  *      SpRwCompInst Definition
  * =======================================================*/
+SpRwCompInst::~SpRwCompInst()
+{}
+
 int SpRwCompInst::assign(const SpInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -334,6 +356,11 @@ int SpRwCompInst::assign(const SpInst *inst)
 /* ========================================================
  *      SpBlockInsts Definition
  * =======================================================*/
+SpBlockInsts::~SpBlockInsts()
+{
+  //sp_block_insts doesn't really own the memory of inst_list_
+}
+
 int SpBlockInsts::add_inst(SpInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -542,6 +569,15 @@ int SpBlockInsts::assign(const SpInst *inst)
 /*================================================
  *				SpMultiInsts Definition
  * ===============================================*/
+SpMultiInsts::~SpMultiInsts()
+{
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    //release the memory, placement allocated, manually release
+    inst_list_.at(i)->~SpInst();
+  }
+}
+
 int SpMultiInsts::get_inst(int64_t idx, SpInst *&inst)
 {
   if( idx < 0 || idx >= inst_list_.count() ) inst = NULL;
@@ -685,6 +721,12 @@ int SpMultiInsts::assign(const SpMultiInsts &mul_inst)
 /*================================================
  * 					SpIfContrlInsts Definition
  * ==============================================*/
+SpIfBlock::~SpIfBlock()
+{}
+
+SpIfCtrlInsts::~SpIfCtrlInsts()
+{}
+
 void SpIfCtrlInsts::add_read_var(ObArray<const ObRawExpr*> &var_list)
 {
   for(int64_t i = 0; i < var_list.count(); ++i)
@@ -747,6 +789,7 @@ int SpIfCtrlInsts::assign(const SpInst *inst)
 
   const SpIfCtrlInsts *old_inst = static_cast<const SpIfCtrlInsts*>(inst);
   if_expr_ = old_inst->if_expr_;
+  if_expr_.set_owner_op(proc_);
   expr_rs_set_ = old_inst->expr_rs_set_;
   rs_set_ = old_inst->rs_set_;
   ws_set_ = old_inst->ws_set_;
@@ -824,15 +867,15 @@ SpProcedure::SpProcedure(){}
 
 SpProcedure::~SpProcedure()
 {
-  for(int64_t i = 0; i < inst_list_.count(); ++i)
-  {
-    inst_list_.at(i)->~SpInst();
-  }
-  arena_.free();
+  reset();
 }
 
 void SpProcedure::reset()
 {
+  for(int64_t i = 0 ; i < inst_list_.count(); ++i)
+  {
+    inst_list_.at(i)->~SpInst();
+  }
   inst_list_.clear();
   arena_.free();
 }
@@ -870,7 +913,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
     char debug_buf[1024];
     int64_t buf_len = 1024, pos = 0;
 
-    databuff_printf(debug_buf, buf_len, pos, "inst %ld\n", pc_);
+    databuff_printf(debug_buf, buf_len, pos, "\ninst %ld\n", pc_);
 
     for(int64_t i = 0; i < rs.var_set_.count(); ++i)
     {
@@ -903,7 +946,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
                          var_name.length(), var_name.ptr());
       }
     }
-    TBSYS_LOG(INFO, "%s", debug_buf);
+    TBSYS_LOG(TRACE, "%s", debug_buf);
   }
   return ret;
 }
@@ -1038,6 +1081,10 @@ DEFINE_DESERIALIZE(SpProcedure)
                        my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )
   {
     TBSYS_LOG(WARN, "deserialize instruction fail");
+  }
+  else
+  {
+    my_phy_plan_->set_proc_exec(true); //help the ups to determine the execution strategy
   }
   return ret;
 }

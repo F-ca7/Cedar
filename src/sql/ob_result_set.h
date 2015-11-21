@@ -109,6 +109,9 @@ namespace oceanbase
         int add_field_column(const Field & field);
         int add_param_column(const Field & field);
         int pre_assign_params_room(const int64_t& size, common::ObIAllocator &alloc);
+
+//        int pre_assign_cur_time_room(common::ObObj *place_holder);  //add zt 20151121
+
         int pre_assign_cur_time_room(common::ObIAllocator &alloc);
         int fill_params(const common::ObIArray<obmysql::EMySQLFieldType>& types,
                         const common::ObIArray<common::ObObj>& values);
@@ -144,6 +147,8 @@ namespace oceanbase
         {
           plan_from_assign_ = flag;
         }
+
+        void change_phy_plan(ObPhysicalPlan *plan, bool did_own);
         void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;};
       private:
         // types and constants
@@ -398,6 +403,14 @@ namespace oceanbase
       physical_plan_ = physical_plan;
       own_physical_plan_ = did_own;
     }
+
+    //add zt 20151121:b
+    inline void ObResultSet::change_phy_plan(ObPhysicalPlan *plan, bool did_own)
+    {
+      physical_plan_ = plan;
+      own_physical_plan_ = did_own;
+    }
+    //add zt 20151121:e
 
     inline void ObResultSet::fileds_clear()
     {

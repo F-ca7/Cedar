@@ -18,6 +18,8 @@ ObProcedureExecute::ObProcedureExecute()
 
 ObProcedureExecute::~ObProcedureExecute()
 {
+  //inner_result_set_ has a physical plan from assign, we need to clear it
+  inner_result_set_.reset();
 }
 
 int ObProcedureExecute::set_proc_name(const ObString &proc_name)
@@ -137,6 +139,11 @@ int ObProcedureExecute::open()
       //since the procedur comes from assign, we need to
       //set the phy_operator point
       proc->set_inst_op();
+
+//      if( result_set->get_cur_time_place() != NULL  )
+//      {
+//        my_phy_plan_->get_result_set()->pre_assign_cur_time_room(static_cast<ObObj*>(result_set->get_cur_time_place()));
+//      }
     }
   }
   if( proc != NULL )
@@ -189,7 +196,7 @@ int ObProcedureExecute::open()
         }
         else
         {
-          TBSYS_LOG(INFO, "procedure execute success!");
+          TBSYS_LOG(TRACE, "procedure execute success!");
         }
       }
       else
@@ -244,15 +251,15 @@ int ObProcedureExecute::open()
       }
       else
       {
-        const ObString &var_name = param_names_.at(var_index++);//赋值的参数名 取出占位的变量名
-        TBSYS_LOG(INFO,"zz:varname is %.*s",var_name.length(),var_name.ptr());
+//        const ObString &var_name = param_names_.at(var_index++);//赋值的参数名 取出占位的变量名
+//        TBSYS_LOG(INFO,"zz:varname is %.*s",var_name.length(),var_name.ptr());
         if ((clear_ret = session->remove_variable(param_name)) != OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
         }
         else
         {
-          TBSYS_LOG(INFO,"zz:remove %.*s success",param_name.length(),param_name.ptr());
+          TBSYS_LOG(TRACE,"zz:remove %.*s success",param_name.length(),param_name.ptr());
         }
       }
       //		delete param->param_name_;
@@ -270,7 +277,7 @@ int ObProcedureExecute::open()
       }
       else
       {
-        TBSYS_LOG(INFO,"zz:Remove variable success var_name=%.*s", var_name.length(), var_name.ptr());
+        TBSYS_LOG(TRACE, "zz:Remove variable success var_name=%.*s", var_name.length(), var_name.ptr());
       }
     }
   }

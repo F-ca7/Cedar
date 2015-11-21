@@ -882,16 +882,17 @@ namespace oceanbase
           else if( owner_op_->get_phy_plan()->get_main_query()->get_type() == PHY_PROCEDURE ) //execute in procedure and on ups
           {
             SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
-            if( type == PARAM_IDX )
+            if( type == PARAM_IDX  || type == CUR_TIME_OP )
             {
               TBSYS_LOG(WARN, "Unsupported read");
+              ret = OB_NOT_SUPPORTED;
             }
             else
             {
                ObString var_name;
                if( OB_SUCCESS != (ret = expr_node.get_varchar(var_name)) )
                {
-                 TBSYS_LOG(ERROR, "Can not get variable name");
+                 TBSYS_LOG(ERROR, "Can not get variable name, %.*s", var_name.length(), var_name.ptr());
                }
                else if(OB_SUCCESS != (ret = proc->read_variable(var_name, val)) )
                {
@@ -1361,7 +1362,32 @@ namespace oceanbase
             ret = OB_ERR_UNEXPECTED;
             break;
           }
-          else if (type == PARAM_IDX || type == SYSTEM_VAR || type == TEMP_VAR || type == CUR_TIME_OP)
+          //add zt 20151121:b
+          else if( type == CUR_TIME_OP )
+          {
+            ObObj new_type;
+            new_type.set_int(CONST_OBJ);
+            const ObObj *val = NULL;
+            if (OB_SUCCESS != (ret = new_type.serialize(buf, buf_len, pos)))
+            {
+              TBSYS_LOG(WARN, "Fail to serialize type CONST_OBJ");
+              break;
+            }
+            else if (i >= expr_.count() - 1
+              || OB_SUCCESS != (ret = get_var_obj(static_cast<ObPostExprNodeType>(type), expr_[++i], val)))
+            {
+              ret = OB_ERR_UNEXPECTED;
+              TBSYS_LOG(WARN,"Get value ObObj failed [err:%d]", ret);
+              break;
+            }
+            else if (OB_SUCCESS != (ret = val->serialize(buf, buf_len, pos)))
+            {
+              TBSYS_LOG(WARN, "fail to serialize expr[%d]. ret=%d", i, ret);
+              break;
+            }
+          }
+          //add zt 20151121:e
+          else if (type == PARAM_IDX || type == SYSTEM_VAR || type == TEMP_VAR) // || type == CUR_TIME_OP) //delete by zt 20151121
           {
             //delete zt 20151109:b
 //            ObObj new_type;

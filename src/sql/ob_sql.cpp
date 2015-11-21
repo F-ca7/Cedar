@@ -160,6 +160,7 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
           result.set_inner_stmt_type(stmt_type);
 
           //add zt 20151117:b bad degin
+          //perhaps we can do it in the fill_result_set
           if( stmt_type == ObBasicStmt::T_PROCEDURE_EXEC )
           {
             //check the whether the procedure exist in the session, if not, try to build the plan from source code

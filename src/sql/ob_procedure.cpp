@@ -141,6 +141,7 @@ int SpMsInstExecStrategy::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysic
   exec_plan.set_result_set(out_plan.get_result_set()); //need when serialize
 
   start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
+  start_new_trans = false; //a hack for payment test
   exec_plan.set_start_trans(start_new_trans);
 
 //  common::ObTransReq &start_trans_req = exec_plan.get_trans_req();
@@ -333,12 +334,19 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
           out_plan->get_result_set()->get_session()->set_trans_id(invalid_trans);
         }
       }
+      else
+      {
+//        if( start_new_trans && result.get_trans_id().is_valid() )
+//        {
+
+//        }
+      }
     }
     //adjust the serialize methods for ObExprValues / ObPostfixExpression
     out_plan->set_proc_exec(false);
     proc.clear_inst_list(); //avoid destruction of instruction
   }
-  TBSYS_LOG(INFO, "End execution of SpBlockInst, ret=%d", ret);
+//  TBSYS_LOG(INFO, "End execution of SpBlockInst, ret=%d", ret);
   return ret;
 }
 
@@ -539,16 +547,19 @@ int ObProcedure::optimize()
     exec_list_.reserve(5);
     exec_list_.push_back(inst_list_.at(0));
     exec_list_.push_back(inst_list_.at(2));
+
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(3));
+
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(5));
+
     exec_list_.push_back(inst_list_.at(6));
     exec_list_.push_back(inst_list_.at(8));
     exec_list_.push_back(inst_list_.at(10));
     exec_list_.push_back(inst_list_.at(12));
 
     SpBlockInsts *block_inst =  create_inst<SpBlockInsts>(NULL);
-    block_inst->add_inst(inst_list_.at(1));
-    block_inst->add_inst(inst_list_.at(3));
-    block_inst->add_inst(inst_list_.at(4));
-    block_inst->add_inst(inst_list_.at(5));
     block_inst->add_inst(inst_list_.at(7));
     block_inst->add_inst(inst_list_.at(9));
     block_inst->add_inst(inst_list_.at(11));
@@ -602,12 +613,9 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(11));
     block_inst->add_inst(inst_list_.at(12));
     block_inst->add_inst(inst_list_.at(13));
-
+    block_inst->add_inst(inst_list_.at(14));
+    block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
-
-    exec_list_.push_back(inst_list_.at(14));
-    exec_list_.push_back(inst_list_.at(15));
-    exec_list_.push_back(inst_list_.at(16));
 
     char buf[4096];
     int64_t pos = 0;
@@ -673,7 +681,8 @@ int ObProcedure::open()
       TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
         break;
       }
-      debug_status(inst);
+      if( OB_UNLIKELY(TBSYS_LOGGER._level >= TBSYS_LOG_LEVEL_TRACE))
+        debug_status(inst);
       if( OB_SUCCESS != ret )
       {
         TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
