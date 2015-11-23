@@ -7086,13 +7086,13 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
                                  }
                              }
                          }
-                         if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                         /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                          {
                            if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                            {
                              TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                            }
-                         }
+                         }*/
                          if(OB_SUCCESS == ret && OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins)))
                          {
                              TBSYS_LOG(ERROR,"construct row desc error");
@@ -8684,15 +8684,13 @@ int ObTransformer::gen_physical_update_new(
                                   }
                                 }
                                }//end for
-                              //maoxx todo
-                              if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                              /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                               {
                                   if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                                   {
                                       TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                                   }
-                              }
-                              //todo e
+                              }*/
                           }
                           if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
                           {
@@ -9022,6 +9020,20 @@ int ObTransformer::gen_physical_delete_new(ObLogicalPlan *logical_plan, ObPhysic
                   }
               }
           }//end for
+          if(OB_SUCCESS == ret)
+          {
+              row_desc.reset();
+              row_desc_ext.reset();
+              if(OB_SUCCESS == (ret = cons_whole_row_desc_for_delete(table_id, row_desc, row_desc_ext)))
+              {
+                  index_trigger->set_pre_data_row_desc(row_desc);
+              }
+              else
+              {
+                  TBSYS_LOG(ERROR,"cons whole row desc error!");
+                  ret = OB_INVALID_ARGUMENT;
+              }
+          }
       }
     }
     //add e
@@ -9444,15 +9456,13 @@ int ObTransformer::gen_physical_replace_new(
                                             }
                                         }
                                     }//end for
-                                    //maoxx todo
-                                    if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                                    /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                                     {
                                         if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                                         {
                                             TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                                         }
-                                    }
-                                    //todo e
+                                    }*/
                                 }
                                 if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
                                 {
