@@ -676,7 +676,8 @@ int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
 int SpMultiInsts::assign(const SpMultiInsts &mul_inst)
 {
   int ret = OB_SUCCESS;
-  SpProcedure *proc = mul_inst.ownner_->get_ownner();
+//  SpProcedure *proc = mul_inst.ownner_->get_ownner(); //wtf, why would I ever use the old inst's proc pointer
+  SpProcedure *proc = ownner_->get_ownner();
   for(int64_t i = 0; i < mul_inst.inst_list_.count(); ++i)
   {
     SpInst *inner_inst = mul_inst.inst_list_.at(i);

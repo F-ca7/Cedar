@@ -37,14 +37,16 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   op->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
   op->get_phy_plan()->set_result_set(phy_plan->get_result_set());
 
-  ret = op->open();
+  if( OB_SUCCESS !=  (ret = op->open()) )
+  {
+    TBSYS_LOG(WARN, "rd_base fail, sp rdbase inst exec(proc_op: %p, phy_plan: %p, result_set: %p)", inst->get_ownner(), phy_plan, phy_plan->get_result_set());
+  }
   return ret;
 }
 
 int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
-
   ObPhyOperator *op = inst->get_ups_exec_op();
   if( OB_SUCCESS != (ret = op->open()) )
   {
@@ -90,7 +92,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 {
   int ret = OB_SUCCESS;
   const ObRow *row;
-
+  TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
   fake_desc.reset();
   const ObArray<ObString> &var_list = inst->get_var_list();
