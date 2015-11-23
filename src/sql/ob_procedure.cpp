@@ -606,15 +606,15 @@ int ObProcedure::optimize()
 //    inst_list_.remove(inst_list_.count() - 1);
 
     SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
-    block_inst->add_inst(inst_list_.at(1));
-    block_inst->add_inst(inst_list_.at(3));
-    block_inst->add_inst(inst_list_.at(5));
-    block_inst->add_inst(inst_list_.at(7));
     block_inst->add_inst(inst_list_.at(9));
     block_inst->add_inst(inst_list_.at(10));
     block_inst->add_inst(inst_list_.at(11));
     block_inst->add_inst(inst_list_.at(12));
     block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(1));
+    block_inst->add_inst(inst_list_.at(3));
     block_inst->add_inst(inst_list_.at(14));
     block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
