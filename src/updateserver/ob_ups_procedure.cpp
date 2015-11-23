@@ -190,7 +190,7 @@ ObUpsProcedure::ObUpsProcedure() :
 
 ObUpsProcedure::~ObUpsProcedure()
 {
-
+//  TBSYS_LOG(INFO, "release ob_ups_procedure");
 }
 
 int ObUpsProcedure::create_variable_table()
@@ -251,6 +251,10 @@ int ObUpsProcedure::close()
 void ObUpsProcedure::reset()
 {
   pc_ = 0;
+
+  SpProcedure::reset();
+  name_pool_.clear();
+  var_name_val_map_.destroy();
 }
 
 void ObUpsProcedure::reuse()
