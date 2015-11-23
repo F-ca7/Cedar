@@ -5553,10 +5553,10 @@ namespace oceanbase
           ret = false;
         return ret;
       }
-		//add:e
+       //add:e
 		
-      // add maoxx
-		          int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const
+       //add maoxx
+       int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const
         {
             int ret = OB_SUCCESS;
             IndexList index_list;
