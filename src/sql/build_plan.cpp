@@ -38,6 +38,7 @@
 //longfei [create index]
 #include "ob_create_index_stmt.h"
 //longfei [drop index]
+//#include "ob_drop_index_stmt.h"
 #include "ob_drop_index_stmt.h"
 
 using namespace oceanbase::common;
