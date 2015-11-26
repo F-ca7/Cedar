@@ -2,7 +2,43 @@
 
 using namespace oceanbase::updateserver;
 using namespace oceanbase::sql;
-//int SpExprInst::ups_exec()
+
+int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+//  UNUSED(inst);
+//  SpInst *inst = inst_list_.at(i);
+  SpInstType type = inst->get_type();
+//  TBSYS_LOG(TRACE, "execute inst[%ld]", i);
+  switch(type)
+  {
+  case SP_E_INST:
+    ret = execute_expr(static_cast<SpExprInst*>(inst));
+    break;
+  case SP_EA_INST:
+    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+    break;
+  case SP_D_INST:
+    ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
+    break;
+  case SP_DE_INST:
+    ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
+    break;
+//  case SP_BLOCK_INST:
+//    ret = execute_block(static_cast<SpBlockInsts*>(inst));
+//    break;
+  case SP_C_INST:
+    ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
+    break;
+  default:
+    ret = OB_NOT_SUPPORTED;
+    TBSYS_LOG(WARN, "Unsupport execute inst[%d] on updateserver", type);
+    break;
+  }
+  return ret;
+}
+
+
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -112,34 +148,8 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
 //  const SpProcedure *proc_ = inst->get_ownner();
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {
-    SpInst *inst = inst_list_.at(i);
-    SpInstType type = inst->get_type();
     TBSYS_LOG(TRACE, "execute inst[%ld]", i);
-    switch(type)
-    {
-    case SP_E_INST:
-      ret = execute_expr(static_cast<SpExprInst*>(inst));
-      break;
-    case SP_EA_INST:
-      ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-      break;
-    case SP_D_INST:
-      ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
-      break;
-    case SP_DE_INST:
-      ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
-      break;
-    case SP_BLOCK_INST:
-      ret = execute_block(static_cast<SpBlockInsts*>(inst));
-      break;
-    case SP_C_INST:
-      ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
-      break;
-    default:
-      ret = OB_NOT_SUPPORTED;
-      TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
-      break;
-    }
+    ret = execute_inst(inst);
 //    proc_->debug_status(inst);
   }
   return ret;
@@ -170,8 +180,6 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
     }
   }
   return ret;
-
-  return ret;
 }
 
 int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
@@ -184,32 +192,11 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     mul_inst->get_inst(pc, inst);
     if( inst != NULL )
     {
-      SpInstType type = inst->get_type();
-      switch(type)
-      {
-      case SP_E_INST:
-        ret = execute_expr(static_cast<SpExprInst*>(inst));
-        break;
-      case SP_EA_INST:
-        ret = execute_expr(static_cast<SpExprInst*>(inst));
-        break;
-      case SP_D_INST:
-        ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
-        break;
-      case SP_DE_INST:
-        ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
-        break;
-      case SP_BLOCK_INST:
-        ret = execute_block(static_cast<SpBlockInsts*>(inst));
-        break;
-      default:
-        TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
-        break;
-      }
+      ret = execute_inst(inst);
     }
     else
     {
-      ret = OB_ERROR;
+      ret = OB_ERR_ILLEGAL_INDEX;
       TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
     }
   }

@@ -21,7 +21,9 @@ namespace oceanbase
     class SpMsInstExecStrategy : public SpInstExecStrategy
     {
     public:
-      //virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
+      virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
+      int close(SpInst *inst);
+    private:
       virtual int execute_expr(SpExprInst *inst);
       virtual int execute_array_expr(SpArrayExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
@@ -33,7 +35,6 @@ namespace oceanbase
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
-      int close(SpInst *inst);
     };
 
 

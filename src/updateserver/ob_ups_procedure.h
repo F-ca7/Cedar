@@ -12,14 +12,15 @@ namespace oceanbase
     class SpUpsInstExecStrategy : public sql::SpInstExecStrategy
     {
     public:
-      //virtual int execute_inst(SpInst *inst); //provide the simple routine
+      virtual int execute_inst(SpInst *inst); //provide the simple routine
+      virtual int execute_block(SpBlockInsts *inst) ;
+    private:
       virtual int execute_expr(SpExprInst *inst) ;
       virtual int execute_array_expr(SpArrayExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst)  { UNUSED(inst); return OB_ERROR; }
       virtual int execute_rw_delta(SpRwDeltaInst *inst) ;
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) ;
       virtual int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
-      virtual int execute_block(SpBlockInsts *inst) ;
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
     };

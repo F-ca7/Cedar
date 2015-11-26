@@ -9,6 +9,45 @@ using namespace oceanbase::common;
 /*==================================================================
  *							Instruction Execution Strategy
  * ================================================================*/
+int SpMsInstExecStrategy::execute_inst(SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  SpInstType type = inst->get_type();
+  switch(type)
+  {
+  case SP_E_INST:
+    ret = execute_expr(static_cast<SpExprInst*>(inst));
+    break;
+  case SP_EA_INST:
+    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+    break;
+  case SP_B_INST:
+    ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
+    break;
+  case SP_D_INST:
+    ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
+    break;
+  case SP_DE_INST:
+    ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
+    break;
+  case SP_A_INST:
+    ret = execute_rw_comp(static_cast<SpRwCompInst*>(inst));
+    break;
+  case SP_BLOCK_INST:
+    ret = execute_block(static_cast<SpBlockInsts*>(inst));
+    break;
+  case SP_C_INST:
+    ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
+    break;
+  default:
+    TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
+    ret = OB_NOT_SUPPORTED;
+    break;
+  }
+  return ret;
+}
+
+
 int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -266,38 +305,11 @@ int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     mul_inst->get_inst(pc, inst);
     if( inst != NULL )
     {
-      SpInstType type = inst->get_type();
-      switch(type)
-      {
-      case SP_E_INST:
-        ret = execute_expr(static_cast<SpExprInst*>(inst));
-        break;
-      case SP_EA_INST:
-        ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-        break;
-      case SP_B_INST:
-        ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
-        break;
-      case SP_D_INST:
-        ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
-        break;
-      case SP_DE_INST:
-        ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
-        break;
-      case SP_A_INST:
-        ret = execute_rw_comp(static_cast<SpRwCompInst*>(inst));
-        break;
-      case SP_BLOCK_INST:
-        ret = execute_block(static_cast<SpBlockInsts*>(inst));
-        break;
-      default:
-        TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
-        break;
-      }
+      ret = execute_inst(inst);
     }
     else
     {
-      ret = OB_ERROR;
+      ret = OB_ERR_ILLEGAL_INDEX;
       TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
     }
   }
@@ -699,40 +711,9 @@ int ObProcedure::open()
     pc_ = 0;
     for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
-      SpInst *inst = exec_list_.at(pc_);
-      SpInstType type = inst->get_type();
-      switch(type)
-      {
-      case SP_E_INST:
-        ret = strategy.execute_expr(static_cast<SpExprInst*>(inst));
-        break;
-      case SP_EA_INST:
-        ret = strategy.execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-        break;
-      case SP_B_INST:
-        ret = strategy.execute_rd_base(static_cast<SpRdBaseInst*>(inst));
-        break;
-      case SP_D_INST:
-        ret = strategy.execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
-        break;
-      case SP_DE_INST:
-        ret = strategy.execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
-        break;
-      case SP_A_INST:
-        ret = strategy.execute_rw_comp(static_cast<SpRwCompInst*>(inst));
-        break;
-      case SP_BLOCK_INST:
-        ret = strategy.execute_block(static_cast<SpBlockInsts*>(inst));
-        break;
-      case SP_C_INST:
-        ret = strategy.execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
-        break;
-    default:
-      TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
-        break;
-      }
+      ret = strategy.execute_inst(exec_list_.at(pc_));
       if( OB_UNLIKELY(TBSYS_LOGGER._level >= TBSYS_LOG_LEVEL_TRACE))
-        debug_status(inst);
+        debug_status(exec_list_.at(pc_));
       if( OB_SUCCESS != ret )
       {
         TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));

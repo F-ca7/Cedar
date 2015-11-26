@@ -431,7 +431,8 @@ namespace oceanbase
     class SpInstExecStrategy
     {
     public:
-      //virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
+      virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
+    private:
       virtual int execute_expr(SpExprInst *inst) = 0;
       virtual int execute_array_expr(SpArrayExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
