@@ -425,8 +425,10 @@ namespace oceanbase
       virtual int get_next_row(const common::ObRow *&row) {UNUSED(row); return OB_ITER_END;}
 
       virtual int write_variable(const ObString &var_name, const ObObj & val);
+      virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
       virtual int read_variable(const ObString &var_name, ObObj &val) const ;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
+      virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object

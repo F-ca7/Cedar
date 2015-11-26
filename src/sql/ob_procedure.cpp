@@ -501,7 +501,15 @@ int ObProcedure::create_variables()
     {
       ObVariableDef &var= defs_.at(i);
 
-      if(var.is_default_)
+      if( var.is_array_ ) //save the array vairable in th procedure
+      {
+        ObProcArray temp;
+        arrays_.push_back(temp);
+        ObProcArray &arr_var = arrays_.at(arrays_.count() - 1);
+        arr_var.array_name_ = var.variable_name_;
+        arr_var.val_type_ = var.variable_type_;
+      }
+      else if(var.is_default_)
       {
         if((ret=session->replace_variable(var.variable_name_,var.default_value_))!=OB_SUCCESS)
         {
@@ -701,6 +709,46 @@ int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)
   return session->replace_variable(var_name, val);
 }
 
+int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+
+  for(int64_t i = 0; i < arrays_.count(); ++i)
+  {
+    ObProcArray &arr = arrays_.at(i);
+    if( arr.array_name_.compare(array_name) == 0 )
+    {
+      find = true;
+      if( idx_value < 0 )
+      {
+        ret = OB_ERR_ILLEGAL_INDEX;
+      }
+      else if( val.get_type() != arr.val_type_ )
+      {
+        TBSYS_LOG(USER_ERROR, "write the wrong type into array, %.*s", arr.array_name_.length(), arr.array_name_.ptr());
+        ret = OB_ERR_ILLEGAL_TYPE;
+      }
+      else if( idx_value >= arr.array_value_.count() )
+      {
+        while( OB_SUCCESS == ret && idx_value >= arr.array_value_.count() )
+        {
+          ObObj tmp_obj;
+          tmp_obj.set_null();
+          ret = arr.array_value_.push_back(tmp_obj);
+        }
+      }
+      if( OB_SUCCESS == ret )
+      {
+        arr.array_value_.at(i) = val;
+      }
+      break;
+    }
+  }
+  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+  return ret;
+}
+
 int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
 {
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
@@ -717,13 +765,37 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
   return val == NULL ? OB_ENTRY_NOT_EXIST : OB_SUCCESS;
 }
 
+int ObProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+  for(int64_t i = 0; i < arrays_.count(); ++i)
+  {
+    const ObProcArray &arr = arrays_.at(i);
+    if( arr.array_name_.compare(array_name) == 0 )
+    {
+      if( idx_value >= 0 && idx_value < arr.array_value_.count() )
+      {
+        val = & (arr.array_value_.at(idx_value));
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+        ret = OB_ERR_ILLEGAL_INDEX;
+      }
+      find = true;
+      break;
+    }
+  }
+  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+  return ret;
+}
 
 namespace oceanbase{
   namespace sql{
     REGISTER_PHY_OPERATOR(ObProcedure, PHY_PROCEDURE);
   }
 }
-
 
 int ObProcedure::set_inst_op()
 {

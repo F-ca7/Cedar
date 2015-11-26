@@ -886,21 +886,37 @@ int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   UNUSED(var_name);
   UNUSED(val);
-  return OB_SUCCESS;
+  return OB_NOT_SUPPORTED;
+}
+
+int SpProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
+{
+  UNUSED(array_name);
+  UNUSED(idx_value);
+  UNUSED(val);
+  return OB_NOT_SUPPORTED;
 }
 
 int SpProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
   UNUSED(var_name);
   UNUSED(val);
-  return OB_SUCCESS;
+  return OB_NOT_SUPPORTED;
 }
 
 int SpProcedure::read_variable(const ObString &var_name, ObObj &val) const
 {
   UNUSED(var_name);
   UNUSED(val);
-  return OB_SUCCESS;
+  return OB_NOT_SUPPORTED;
+}
+
+int SpProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
+{
+  UNUSED(array_name);
+  UNUSED(val);
+  UNUSED(idx_value);
+  return OB_NOT_SUPPORTED;
 }
 
 int SpProcedure::debug_status(const SpInst *inst) const

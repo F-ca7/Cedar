@@ -1517,16 +1517,17 @@ int ObTransformer::gen_physical_procedure_declare(
 {
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   ObProcedureDeclareStmt *stmt = NULL;
-  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个ExecuteStmt语句和逻辑执行计划树
 
-  if (ret == OB_SUCCESS)
+  if( OB_SUCCESS != (ret = get_stmt(logical_plan, err_stat, query_id, stmt)) )
   {
-    for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
-    {
-      ObVariableDef var_def = stmt->get_variable(i);
-      ob_write_string(*mem_pool_, var_def.variable_name_, var_def.variable_name_);
-      proc_op->add_var_def(var_def);
-    }
+    TBSYS_LOG(WARN, "get logical plan faild");
+  }
+
+  for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+  {
+    ObVariableDef var_def = stmt->get_variable(i);
+    ob_write_string(*mem_pool_, var_def.variable_name_, var_def.variable_name_);
+    proc_op->add_var_def(var_def);
   }
   return ret;
 }

@@ -34,6 +34,13 @@ namespace oceanbase
       int close(SpInst *inst);
     };
 
+    struct ObProcArray
+    {
+      ObString array_name_;
+      ObObjType val_type_;
+      ObArray<ObObj> array_value_;
+    };
+
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
      * in this class, but the execution model could not be the iterator model
@@ -76,9 +83,10 @@ namespace oceanbase
 
       int create_variables();
       virtual int write_variable(const ObString &var_name, const ObObj & val);
+      virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
       virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
-
+      virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
       int optimize();
 
 //      ObArray<ObParamDef*>& get_params();
@@ -104,6 +112,7 @@ namespace oceanbase
 
       SpInstList exec_list_;
 
+      ObArray<ObProcArray> arrays_;
       mergeserver::ObMergerRpcProxy *rpc_;
     }; 
   }

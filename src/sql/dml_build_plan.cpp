@@ -360,6 +360,30 @@ int resolve_expr(
 //      }
       break;
     }
+    //add zt 20151125:b
+  case T_ARRAY:
+    {
+      ObString str;
+      if (OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), str)))
+      {
+        TBSYS_LOG(WARN, "out of memory");
+        break;
+      }
+      ObArrayRawExpr *array_expr = NULL;
+      if (CREATE_RAW_EXPR(array_expr, ObArrayRawExpr, result_plan) == NULL)
+        break;
+      array_expr->set_result_type(ObVarcharType);
+
+      ObRawExpr *idx_expr;
+      if( OB_SUCCESS != (ret = resolve_expr(result_plan, stmt, node->children_[1], sql_expr, idx_expr, expr_scope_type, true)) )
+      {
+        break;
+      }
+      array_expr->set_idx_expr(idx_expr);
+      expr = array_expr;
+      break;
+    }
+    //add zt 20151125:e
     case T_FLOAT:
     {
       ObObj val;

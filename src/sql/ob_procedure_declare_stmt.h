@@ -16,8 +16,10 @@ namespace oceanbase {
       ObString    variable_name_;/*参数名称*/
       ObObjType   variable_type_;/*参数类型*/
       bool   is_default_;/*是否有默认值*/
+      bool 	 is_array_;  //does represents array
       ObObj default_value_;/*默认值*/
     };
+
     class ObProcedureDeclareStmt: public ObBasicStmt {
     public:
       ObProcedureDeclareStmt() :

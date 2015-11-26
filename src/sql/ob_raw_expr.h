@@ -81,6 +81,35 @@ namespace oceanbase
       oceanbase::common::ObObj value_;
     };
 
+    //add zt 20151125:b
+    class ObArrayRawExpr : public ObRawExpr
+    {
+    public:
+      ObArrayRawExpr():ObRawExpr(T_ARRAY), idx_expr_(NULL)
+      {
+      }
+
+      void set_array_name(const oceanbase::common::ObString &array_name) { array_name_ = array_name; }
+      void set_idx_expr(ObRawExpr *idx_expr) { idx_expr_ = idx_expr; }
+      virtual int fill_sql_expression(
+          ObSqlExpression& inter_expr,
+          ObTransformer *transformer = NULL,
+          ObLogicalPlan *logical_plan = NULL,
+          ObPhysicalPlan *physical_plan = NULL) const;
+
+      void print(FILE* fp, int32_t level) const;
+
+      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      {
+        //remains problem, how to answer this questions
+        exprs.push_back(this);
+      }
+    private:
+      oceanbase::common::ObString array_name_;
+      ObRawExpr *idx_expr_;
+    };
+    //add zt 20151125:e
+
     class ObCurTimeExpr : public ObRawExpr
     {
       public:

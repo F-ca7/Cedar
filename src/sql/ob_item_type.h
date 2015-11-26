@@ -289,6 +289,10 @@ typedef enum ObItemType
   //add:e
 
 
+  //add by zt 20151125:b
+  T_ARRAY,
+  //add by zt 20151125:e
+
 } ObItemType;
 
 #ifdef __cplusplus
