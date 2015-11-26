@@ -21,7 +21,9 @@ namespace oceanbase
     class SpMsInstExecStrategy : public SpInstExecStrategy
     {
     public:
+      //virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
       virtual int execute_expr(SpExprInst *inst);
+      virtual int execute_array_expr(SpArrayExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
       virtual int execute_rw_delta(SpRwDeltaInst *inst);
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst);
@@ -34,6 +36,11 @@ namespace oceanbase
       int close(SpInst *inst);
     };
 
+
+    /**
+     * @brief The ObProcArray struct
+     * save the array variables in the procedure
+     */
     struct ObProcArray
     {
       ObString array_name_;

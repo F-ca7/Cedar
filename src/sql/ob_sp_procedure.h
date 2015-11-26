@@ -23,6 +23,7 @@ namespace oceanbase
     enum SpInstType
     {
       SP_E_INST, //expr instruction
+      SP_EA_INST,
       SP_C_INST, //control instruction
       SP_B_INST, //read baseline data
       SP_D_INST, //maintain delta data
@@ -118,7 +119,6 @@ namespace oceanbase
       virtual ~SpExprInst();
       virtual const VariableSet &get_read_variable_set() const;
       virtual const VariableSet &get_write_variable_set() const;
-      int set_var_val(ObVarAssignVal &var);
 
       ObSqlExpression * get_val() { return &var_val_.var_value_; }
       const ObString & get_var() { return var_val_.variable_name_ ;}
@@ -133,7 +133,36 @@ namespace oceanbase
       int assign(const SpInst *inst);
     private:
       ObVarAssignVal var_val_;
+      VariableSet ws_; //save the variable_set is a bad idea, since it is only used once when optimze
+    };
+
+    class SpArrayExprInst : public SpInst
+    {
+    public:
+      SpArrayExprInst() : SpInst(SP_EA_INST) {}
+      virtual ~SpArrayExprInst();
+
+      virtual const VariableSet &get_read_variable_set() const { return rs_; }
+      virtual const VariableSet &get_write_variable_set() const { return ws_; }
+
+      ObSqlExpression * get_idx_expr() { return &idx_expr_; }
+      ObSqlExpression * get_val_expr() { return &val_expr_; }
+      void set_array_name(const ObString &arr_name) { array_name_ = arr_name; }
+      const ObString & get_array_name() const { return array_name_; }
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+      int assign(const SpInst *inst);
+    private:
+      ObString array_name_;
+      ObSqlExpression idx_expr_;
+      ObSqlExpression val_expr_;
       VariableSet ws_;
+      VariableSet rs_;
     };
 
     class SpRdBaseInst :public SpInst
@@ -393,10 +422,18 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
+    template<>
+    struct sp_inst_traits<SpArrayExprInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
     class SpInstExecStrategy
     {
     public:
+      //virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
       virtual int execute_expr(SpExprInst *inst) = 0;
+      virtual int execute_array_expr(SpArrayExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
       virtual int execute_rw_delta(SpRwDeltaInst *inst) = 0;
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) = 0;

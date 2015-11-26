@@ -40,12 +40,12 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
 SpExprInst::~SpExprInst()
 {}
 
-int SpExprInst::set_var_val(ObVarAssignVal &var)
-{
-  var_val_ = var;
-  ws_.addVariable(var.variable_name_);
-  return OB_SUCCESS;
-}
+//int SpExprInst::set_var_val(ObVarAssignVal &var)
+//{
+//  var_val_ = var;
+//  ws_.addVariable(var.variable_name_);
+//  return OB_SUCCESS;
+//}
 
 const VariableSet &SpExprInst::get_read_variable_set() const
 {
@@ -81,19 +81,13 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   {
     TBSYS_LOG(WARN, "deserialize var name fail, ret=%d", ret);
   }
+  else if( OB_SUCCESS != (ret = var_val_.var_value_.deserialize(buf, data_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize expr fail, ret=%d", ret);
+  }
   else
   {
-//    ObSqlExpression* expr = ObSqlExpression::alloc(); //seems bad design, try to refactor ObVarAssignVal
-
-    if( OB_SUCCESS != (ret = var_val_.var_value_.deserialize(buf, data_len, pos)) )
-    {
-      TBSYS_LOG(WARN, "deserialize expr fail, ret=%d", ret);
-    }
-    else
-    {
-//      var_val_.var_value_ = expr;
-      var_val_.var_value_.set_owner_op(proc_);
-    }
+    var_val_.var_value_.set_owner_op(proc_);
   }
   return ret;
 }
@@ -106,6 +100,74 @@ int SpExprInst::assign(const SpInst *inst)
   var_val_ = old_expr->var_val_;
   var_val_.var_value_.set_owner_op(proc_);
   ws_ = old_expr->ws_;
+  return ret;
+}
+
+/* ===============================================
+ *    SpArrayExprInst Definition
+ * ==============================================*/
+SpArrayExprInst::~SpArrayExprInst()
+{
+
+}
+
+int SpArrayExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  UNUSED(allocator);
+  UNUSED(operators_store);
+  UNUSED(op_factory);
+  TBSYS_LOG(TRACE, "deserialize array_expr inst");
+  if( OB_SUCCESS != (ret = array_name_.deserialize(buf, data_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize array name fail, ret=%d", ret);
+  }
+  else if( OB_SUCCESS != (ret = val_expr_.deserialize(buf, data_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize val_expr fail, ret=%d", ret);
+  }
+  else if ( OB_SUCCESS != (ret = idx_expr_.deserialize(buf, data_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize idx_expr fail, ret=%d", ret);
+  }
+  else
+  {
+    val_expr_.set_owner_op(proc_);
+    val_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+
+int SpArrayExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = array_name_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
+  }
+  else if( OB_SUCCESS != (ret = val_expr_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize val_expr fail, ret=%d", ret);
+  }
+  else if( OB_SUCCESS != (ret = idx_expr_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize idx_expr fail, ret=%d", ret);
+  }
+  return ret;
+}
+
+int SpArrayExprInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  const SpArrayExprInst *old_expr = static_cast<const SpArrayExprInst*>(inst);
+
+  array_name_ = old_expr->array_name_;
+  idx_expr_ = old_expr->idx_expr_;
+  val_expr_ = old_expr->val_expr_;
+
+  idx_expr_.set_owner_op(proc_);
+  val_expr_.set_owner_op(proc_);
   return ret;
 }
 
@@ -395,6 +457,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     switch(type)
     {
     case SP_E_INST:
+    case SP_EA_INST:
     case SP_D_INST:
     case SP_DE_INST:
     case SP_C_INST:
@@ -461,6 +524,10 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     switch (type) {
     case SP_E_INST:
       inst = proc_->create_inst<SpExprInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+      break;
+    case SP_EA_INST:
+      inst = proc_->create_inst<SpArrayExprInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
     case SP_D_INST:
@@ -536,6 +603,9 @@ int SpBlockInsts::assign(const SpInst *inst)
     case SP_E_INST:
       new_inst = proc_->create_inst<SpExprInst>(NULL);
       break;
+    case SP_EA_INST:
+      new_inst = proc_->create_inst<SpArrayExprInst>(NULL);
+      break;
     case SP_C_INST:
       new_inst = proc_->create_inst<SpIfCtrlInsts>(NULL);
       break;
@@ -608,6 +678,7 @@ int SpMultiInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     switch(type)
     {
     case SP_E_INST:
+    case SP_EA_INST:
     case SP_D_INST:
     case SP_DE_INST:
     case SP_C_INST:
@@ -640,11 +711,14 @@ int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     int32_t type_int_value = 0;
     serialization::decode_i32(buf, data_len, pos, &type_int_value);
     type = static_cast<SpInstType>(type_int_value);
-    switch (type) {
+    switch (type) { //potential has problem here, seems would cause deconstruct error
     case SP_E_INST:
       inst = proc_->create_inst<SpExprInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
       break;
+    case SP_EA_INST:
+      inst = proc_->create_inst<SpArrayExprInst>(NULL);
+      ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
     case SP_D_INST:
       inst = proc_->create_inst<SpRwDeltaInst>(NULL);
       ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
@@ -685,6 +759,9 @@ int SpMultiInsts::assign(const SpMultiInsts &mul_inst)
     switch(inner_inst->get_type())
     {
     case SP_E_INST:
+      new_inst = proc->create_inst<SpExprInst>(this);
+      break;
+    case SP_EA_INST:
       new_inst = proc->create_inst<SpExprInst>(this);
       break;
     case SP_B_INST:
@@ -1144,6 +1221,21 @@ int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
+int64_t SpArrayExprInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [EA], ws [%.*s], rs [", array_name_.length(), array_name_.ptr());
+  const VariableSet::VarArray &rs = rs_.var_set_;
+  for(int64_t i = 0; i < rs.count(); ++i)
+  {
+    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
+  }
+  if( rs.count() == 0 )
+    databuff_printf(buf, buf_len, pos, "]");
+  databuff_printf(buf, buf_len, pos, "\n");
+  return pos;
+}
+
 int64_t SpRdBaseInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
@@ -1244,6 +1336,7 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
       pos += inst->to_string(buf + pos, buf_len - pos);
       break;
     case SP_E_INST:
+    case SP_EA_INST:
 //      pos += (static_cast<SpExprInst *>(inst)->get_val())->to_string(buf + pos, buf_len-pos);
       pos += inst->to_string(buf + pos, buf_len - pos);
       break;

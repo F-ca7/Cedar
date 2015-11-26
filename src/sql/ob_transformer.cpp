@@ -1652,8 +1652,8 @@ int ObTransformer::gen_physical_procedure_assign(
 
     if( OB_SUCCESS == ret )
     {
-      //assignment need procedure ptr to find the variables table
-      expr_inst->set_owner_procedure(proc_op);
+//      //assignment need procedure ptr to find the variables table
+//      expr_inst->set_owner_procedure(proc_op);
 
       ObArray<const ObRawExpr *> raw_var_exprs;
       raw_expr->get_raw_var(raw_var_exprs);
@@ -1674,6 +1674,39 @@ int ObTransformer::gen_physical_procedure_assign(
         }
       }
     }
+  }
+
+  for(int64_t i = 0; i < stmt->get_arr_val_size() && OB_SUCCESS == ret; ++i)
+  {
+    SpArrayExprInst* array_expr_inst = proc_op->create_inst<SpArrayExprInst>(mul_inst);
+    const ObRawArrAssignVal &raw_arr_val = stmt->get_arr_val(i);
+    ObString array_name;
+
+    ob_write_string(*mem_pool_, raw_arr_val.var_name_, array_name); //set var_name
+
+    array_expr_inst->set_array_name(array_name);
+
+    ObSqlExpression * idx_expr = array_expr_inst->get_idx_expr();
+    ObSqlExpression * val_expr = array_expr_inst->get_val_expr();
+
+    ObSqlRawExpr *idx_raw_expr = logical_plan->get_expr(raw_arr_val.idx_expr_id_);
+    ObSqlRawExpr *val_raw_expr = logical_plan->get_expr(raw_arr_val.val_expr_id_);
+
+    if( OB_SUCCESS != (ret = idx_raw_expr->fill_sql_expression(*idx_expr, this, logical_plan, physical_plan)) )
+    {
+      TBSYS_LOG(WARN, "fill expression for the idx_expr fail");
+    }
+    else if (OB_SUCCESS != (ret = val_raw_expr->fill_sql_expression(*val_expr, this, logical_plan, physical_plan)))
+    {
+      TBSYS_LOG(WARN, "fill expression for the val_expr fail");
+    }
+    else
+    {
+      idx_expr->set_owner_op(proc_op);
+      val_expr->set_owner_op(proc_op);
+    }
+    TBSYS_LOG(INFO, "decalre array %.*s", array_name.length(), array_name.ptr());
+    //maybe we need to set the variables set for them
   }
   return ret;
 }

@@ -2882,6 +2882,14 @@ var_and_val:
       malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
       $$->value_ = 2;
     }
+    //add zt 20151126:b
+  | array_expr to_or_eq expr
+    {
+      (void)($2);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
+      $$->value_ = 2;
+    }
+    //add zt 20151126:e
   ;
 
 to_or_eq:

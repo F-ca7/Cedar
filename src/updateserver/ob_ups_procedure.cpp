@@ -19,6 +19,38 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   return ret;
 }
 
+int SpUpsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(*(inst->get_val_expr())));
+  common::ObRow input_row;
+  const ObObj *val = NULL;
+  int64_t idx = 0;
+  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
+  {
+    TBSYS_LOG(WARN, "sp idx_expr calc failed");
+  }
+  else if( val->get_type() != ObIntType)
+  {
+    TBSYS_LOG(WARN, "idx value type is not int, value = %s", to_cstring(*val));
+    ret = OB_ERR_ILLEGAL_INDEX;
+  }
+  else
+  {
+    ret = val->get_int(idx);
+  }
+
+  if( OB_SUCCESS == ret) {}
+  else if((ret= inst->get_val_expr()->calc(input_row, val))!=OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "sp expr compute failed");
+  }
+  //update the varialbe here
+  //have some problem here, to store the array value on ups
+  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_array_name(), *val)) )
+  {}
+  return ret;
+}
 
 //int SpRwDeltaInst::ups_exec()
 int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
@@ -88,6 +120,9 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
     case SP_E_INST:
       ret = execute_expr(static_cast<SpExprInst*>(inst));
       break;
+    case SP_EA_INST:
+      ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+      break;
     case SP_D_INST:
       ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
       break;
@@ -153,6 +188,9 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
       switch(type)
       {
       case SP_E_INST:
+        ret = execute_expr(static_cast<SpExprInst*>(inst));
+        break;
+      case SP_EA_INST:
         ret = execute_expr(static_cast<SpExprInst*>(inst));
         break;
       case SP_D_INST:

@@ -18,19 +18,34 @@ namespace oceanbase{
       return var_val_list_.push_back(var_val);
     }
 
-    const ObArray<ObRawVarAssignVal>& ObProcedureAssginStmt::get_var_val_list() const
+    int ObProcedureAssginStmt::add_arr_val(ObRawArrAssignVal &arr_val)
     {
-      return var_val_list_;
+      return arr_val_list_.push_back(arr_val);
     }
+
+//    const ObArray<ObRawVarAssignVal>& ObProcedureAssginStmt::get_var_val_list() const
+//    {
+//      return var_val_list_;
+//    }
 
     const ObRawVarAssignVal& ObProcedureAssginStmt::get_var_val(int64_t index) const
     {
       return var_val_list_.at(index);
     }
 
+    const ObRawArrAssignVal& ObProcedureAssginStmt::get_arr_val(int64_t index) const
+    {
+      return arr_val_list_.at(index);
+    }
+
     int64_t ObProcedureAssginStmt::get_var_val_size() const
     {
       return var_val_list_.count();
+    }
+
+    int64_t ObProcedureAssginStmt::get_arr_val_size() const
+    {
+      return arr_val_list_.count();
     }
   }
 }

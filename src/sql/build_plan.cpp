@@ -2731,7 +2731,7 @@ int resolve_procedure_assign_stmt(
   OB_ASSERT(node && node->type_ == T_PROCEDURE_ASSGIN && node->num_child_ == 1);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureAssginStmt *stmt = NULL;
-  TBSYS_LOG(INFO, "enter resolve_procedure_assign_stmt");
+
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
     TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
@@ -2740,27 +2740,27 @@ int resolve_procedure_assign_stmt(
   {
     ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
     /*解析assign语句参数*/
-    ParseNode* var_node=node->children_[0];
-    OB_ASSERT(var_node->type_==T_VAR_VAL_LIST);
-    //genereate logical plan for each assign
-//    ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
+    ParseNode* var_val_list_node=node->children_[0];
+    OB_ASSERT(var_val_list_node->type_==T_VAR_VAL_LIST);
 
-//    int32_t expr_itr = logic_plan->get_raw_expr_count();
-    for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
+    ObString var_name;
+    //genereate logical plan for each assign
+    for (int32_t i = 0; ret == OB_SUCCESS && i < var_val_list_node->num_child_; i++)
     {
-      ObRawVarAssignVal var_val;
-      uint64_t expr_id;
+      ParseNode* var_val_node = var_val_list_node->children_[i];
+      uint64_t expr_id = 0;
       //analyze the right expr
-      if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],
-                                       expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+      if (OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL,var_val_node->children_[1],
+                                       expr_id,T_NONE_LIMIT)))
       {
         TBSYS_LOG(WARN, "resolve assignment expression error");
       }
-      else
+      //analyze the left variable
+      else if ( var_val_node->children_[0]->type_ == T_TEMP_VARIABLE )
       {
-        //analyze the left variable
+        ObRawVarAssignVal var_val;
         var_val.val_expr_id_ = expr_id;
-        if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_),
+        if((ret=ob_write_string(*name_pool, ObString::make_string(var_val_node->children_[0]->str_value_),
                                 var_val.var_name_))!=OB_SUCCESS)
         {
           PARSER_LOG("Can not malloc space for variable name");
@@ -2768,37 +2768,66 @@ int resolve_procedure_assign_stmt(
         else
         {
           stmt->add_var_val(var_val);
+          var_name = var_val.var_name_;
         }
       }
+      else if ( var_val_node->children_[0]->type_ == T_ARRAY )
+      {
+        ObRawArrAssignVal arr_val;
+        arr_val.val_expr_id_ = expr_id;
+        ParseNode *arr_node = var_val_node->children_[0];
 
-      int find=OB_ERROR;
+        if( OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(
+                                                 arr_node->children_[0]->str_value_),
+                                                 arr_val.var_name_)))
+        {
+          PARSER_LOG("Can not malloc space for array name");
+        }
+        else if( OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, arr_node->children_[1],
+                                                            arr_val.idx_expr_id_, T_NONE_LIMIT)))
+        {
+          TBSYS_LOG(WARN, "resolve array index expression fail");
+        }
+        else
+        {
+          stmt->add_arr_val(arr_val);
+          var_name = arr_val.var_name_;
+        }
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "unsupported left value");
+        ret = OB_NOT_SUPPORTED;
+      }
+
+      bool find = false;
       //does the variable existence check make sense here?
       //the variable used in the expr is not checked
       for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
       {
         const ObString &declare_var=ps_stmt->get_declare_var(j);
-        if(var_val.var_name_.compare(declare_var)==0) //check existence
+        if( var_name.compare(declare_var) == 0 ) //check existence
         {
-          find=OB_SUCCESS;
+          find = true;
           break;
         }
       }
 
-      for (int64_t j = 0;  find != OB_SUCCESS && j < ps_stmt->get_param_size(); j++)
+      for (int64_t j = 0;  !find && j < ps_stmt->get_param_size(); j++)
       {
         const ObParamDef& def=ps_stmt->get_param(j);
 //        ObString param_var = def.param_name_;
-        if(var_val.var_name_.compare(def.param_name_)==0)
+        if( var_name.compare(def.param_name_)==0 )
         {
-          find=OB_SUCCESS;
+          find = true;
           break;
         }
       }
 
-      if(find==OB_ERROR) //error means the variable is not defined in variables or paramters
+      if( !find ) //error means the variable is not defined in variables or paramters
       {
         ret=-5044;
-        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.var_name_.length(),var_val.var_name_.ptr());
+        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare", var_name.length(), var_name.ptr());
         break;
       }
     }

@@ -11,7 +11,7 @@ using namespace oceanbase::common;
  * ================================================================*/
 int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
- int ret = OB_SUCCESS;
+  int ret = OB_SUCCESS;
   TBSYS_LOG(TRACE, "sp expr inst exec()");
   common::ObRow input_row; //fake paramters
   const ObObj *val = NULL;
@@ -24,6 +24,38 @@ int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
   {
 
   }
+  return ret;
+}
+
+int SpMsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "sp array expr inst exec()");
+  common::ObRow input_row; //fake paramters
+  const ObObj *val = NULL;
+  int64_t idx = 0;
+  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
+  {
+    TBSYS_LOG(WARN, "idx expr compute failed");
+  }
+  else if( val->get_type() != ObIntType ) //check the idx type
+  {
+    TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*val));
+    ret = OB_ERR_ILLEGAL_INDEX;
+  }
+  else
+  {
+    ret = val->get_int(idx);
+  }
+
+  if( OB_SUCCESS == ret ) {}
+  else if( OB_SUCCESS != (ret = inst->get_val_expr()->calc(input_row, val)))
+  {
+    TBSYS_LOG(WARN, "val expr compute failed");
+  }
+  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(
+                             inst->get_array_name(), idx, *val)) )
+  {}
   return ret;
 }
 
@@ -240,6 +272,9 @@ int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
       case SP_E_INST:
         ret = execute_expr(static_cast<SpExprInst*>(inst));
         break;
+      case SP_EA_INST:
+        ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+        break;
       case SP_B_INST:
         ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
         break;
@@ -359,6 +394,8 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   switch(inst->get_type())
   {
   case SP_E_INST:
+    break;
+  case SP_EA_INST:
     break;
   case SP_B_INST:
     ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
@@ -669,6 +706,9 @@ int ObProcedure::open()
       case SP_E_INST:
         ret = strategy.execute_expr(static_cast<SpExprInst*>(inst));
         break;
+      case SP_EA_INST:
+        ret = strategy.execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+        break;
       case SP_B_INST:
         ret = strategy.execute_rd_base(static_cast<SpRdBaseInst*>(inst));
         break;
@@ -928,6 +968,9 @@ int ObProcedure::assign(const ObPhyOperator* other)
     {
     case SP_E_INST:
       new_inst = create_inst<SpExprInst>(NULL);
+      break;
+    case SP_EA_INST:
+      new_inst = create_inst<SpArrayExprInst>(NULL);
       break;
     case SP_B_INST:
       new_inst = create_inst<SpRdBaseInst>(NULL);
