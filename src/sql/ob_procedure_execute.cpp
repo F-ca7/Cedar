@@ -199,12 +199,11 @@ int ObProcedureExecute::open()
           TBSYS_LOG(TRACE, "procedure execute success!");
         }
       }
-      else
-      {
-        ret = OB_NOT_INIT;
-        TBSYS_LOG(ERROR, "child_op_ is NULL");
-      }
-
+//      else
+//      {
+//        ret = OB_NOT_INIT;
+//        TBSYS_LOG(ERROR, "child_op_ is NULL");
+//      }
     }
 
     //clear paramaters, remove input paramters, keep output paramters
@@ -268,18 +267,19 @@ int ObProcedureExecute::open()
 
     //clear the declared variables
     //better to put into the ObProcedure class, a reverse operation of create variables
-    for(int64_t i=0;i<proc->get_declare_var_num();i++)
-    {
-      const ObString &var_name = proc->get_declare_var(i);
-      if ((clear_ret = session->remove_variable(var_name)) != OB_SUCCESS)
-      {
-        TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", var_name.length(), var_name.ptr(), ret);
-      }
-      else
-      {
-        TBSYS_LOG(TRACE, "zz:Remove variable success var_name=%.*s", var_name.length(), var_name.ptr());
-      }
-    }
+    //do what in the ObProcedure
+//    for(int64_t i=0;i<proc->get_declare_var_num();i++)
+//    {
+//      const ObString &var_name = proc->get_declare_var(i);
+//      if ((clear_ret = session->remove_variable(var_name)) != OB_SUCCESS)
+//      {
+//        TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", var_name.length(), var_name.ptr(), ret);
+//      }
+//      else
+//      {
+//        TBSYS_LOG(TRACE, "zz:Remove variable success var_name=%.*s", var_name.length(), var_name.ptr());
+//      }
+//    }
   }
 	if(clear_ret==OB_SUCCESS)
 		return ret;

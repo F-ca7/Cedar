@@ -2530,18 +2530,49 @@ int resolve_procedure_select_into_stmt(
         ParseNode* arguments=node->children_[0];
         for (int32_t i = 0;i < arguments->num_child_; i++)
         {
-          ObString name;
-          if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+          SpRawVar raw_var;
+          if( arguments->children_[i]->type_ == T_TEMP_VARIABLE )
           {
-            PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+            if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), raw_var.var_name_)) != OB_SUCCESS)
+            {
+              PARSER_LOG("copy variable name %s error", arguments->children_[i]->str_value_);
+            }
+            else if ((ret = stmt->add_variable(raw_var)) != OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "add variables into stmt fail");
+            }
           }
-          else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+          else if( arguments->children_[i]->type_ == T_ARRAY )
           {
-            PARSER_LOG("Add Using variable failed");
+            if( OB_SUCCESS != (ret = ob_write_string(
+                                       *name_pool,
+                                       ObString::make_string(arguments->children_[i]->children_[0]->str_value_),
+                                       raw_var.var_name_)))
+            {
+              PARSER_LOG("copy variable name %s error", arguments->children_[i]->children_[0]->str_value_);
+            }
+            else if( OB_SUCCESS != (ret = resolve_independ_expr(result_plan,
+                                                                NULL,
+                                                                arguments->children_[i]->children_[1],
+                                                                raw_var.idx_expr_id_,
+                                                                T_NONE_LIMIT)))
+            {
+
+              PARSER_LOG("resolve idx_expr id fail");
+            }
+            else if( OB_SUCCESS != (ret = stmt->add_variable(raw_var)))
+            {
+              TBSYS_LOG(WARN, "add variables into stmt fail");
+            }
+
+          }
+          else
+          {
+            TBSYS_LOG(WARN, "unsupported variables type here");
           }
         }
       }
-      //解析select into语句中的select语句
+      //resolve select clause
       if(node->children_[1]!=NULL)
       {
         uint64_t sub_query_id = OB_INVALID_ID;

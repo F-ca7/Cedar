@@ -2900,6 +2900,9 @@ to_or_eq:
 argument:
     TEMP_VARIABLE
     { $$ = $1; }
+  |
+    array_expr
+    { $$ = $1; }
   ;
 
 

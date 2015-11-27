@@ -18,9 +18,9 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_E_INST:
     ret = execute_expr(static_cast<SpExprInst*>(inst));
     break;
-  case SP_EA_INST:
-    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-    break;
+//  case SP_EA_INST:
+//    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
+//    break;
   case SP_B_INST:
     ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
     break;
@@ -54,47 +54,14 @@ int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
   TBSYS_LOG(TRACE, "sp expr inst exec()");
   common::ObRow input_row; //fake paramters
   const ObObj *val = NULL;
-  if((ret=inst->get_val()->calc(input_row, val))!=OB_SUCCESS)
+  if( OB_SUCCESS != (ret = inst->get_val().calc(input_row, val)) )
   {
     TBSYS_LOG(WARN, "sp expr compute failed");
   }
-  //update the varialbe here
-  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->var_val_.variable_name_, *val)) )
+  else if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_var(), *val)))
   {
-
+    TBSYS_LOG(WARN, "write variables fail");
   }
-  return ret;
-}
-
-int SpMsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
-{
-  int ret = OB_SUCCESS;
-  TBSYS_LOG(TRACE, "sp array expr inst exec()");
-  common::ObRow input_row; //fake paramters
-  const ObObj *val = NULL;
-  int64_t idx = 0;
-  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
-  {
-    TBSYS_LOG(WARN, "idx expr compute failed");
-  }
-  else if( val->get_type() != ObIntType ) //check the idx type
-  {
-    TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*val));
-    ret = OB_ERR_ILLEGAL_INDEX;
-  }
-  else
-  {
-    ret = val->get_int(idx);
-  }
-
-  if( OB_SUCCESS == ret ) {}
-  else if( OB_SUCCESS != (ret = inst->get_val_expr()->calc(input_row, val)))
-  {
-    TBSYS_LOG(WARN, "val expr compute failed");
-  }
-  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(
-                             inst->get_array_name(), idx, *val)) )
-  {}
   return ret;
 }
 
@@ -131,7 +98,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   int ret = OB_SUCCESS;
   const ObRow *row;
   ObPhyOperator* op_ = inst->get_rwcomp_op();
-  const ObArray<ObString> &var_list = inst->get_var_list();
+  ObArray<SpVar> &var_list = inst->get_var_list();
   if( OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
@@ -142,15 +109,15 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   }
   else
   {
-    for(int64_t var_name_it = 0; var_name_it < var_list.count(); ++var_name_it)
+    for(int64_t var_it = 0; var_it < var_list.count(); ++var_it)
     {
-      const ObString &var_name = var_list.at(var_name_it);
+      SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
-      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_name_it, cell)))//取出一列
+      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_it, cell)))
       {
-        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_name_it);
+        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_it);
       }
-      else if(OB_SUCCESS !=(inst->get_ownner()->write_variable(var_name, *cell)))
+      else if(OB_SUCCESS !=(inst->get_ownner()->write_variable(var, *cell)))
       {
         TBSYS_LOG(WARN, "write into variables fail");
       }
@@ -166,11 +133,14 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
   fake_desc.reset();
-  const ObArray<ObString> &var_list = inst->get_var_list();
+  ObArray<SpVar> &var_list = inst->get_var_list();
   ObPhyOperator *op = inst->get_ups_exec_op();
   SpProcedure *proc = inst->get_ownner();
-  //we expect the select list has the same length with the variable list
-  //ups use a fake desc to deserialize the result from the ups
+
+  /**
+   * we expect the select list has the same length with the variable list
+   * ups use a fake desc to deserialize the result from the ups
+  */
   for(int64_t i = 0; ret == OB_SUCCESS && i < var_list.count(); ++i)
   {
     if ((ret = fake_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID + i)) != OB_SUCCESS)
@@ -179,6 +149,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
       break;
     }
   }
+
   if( (OB_SUCCESS == ret) && OB_SUCCESS != (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "open rw_delta_into_inst fail");
@@ -189,15 +160,15 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   }
   else
   {
-    for(int64_t var_name_it = 0; var_name_it < var_list.count(); ++var_name_it)
+    for(int64_t var_it = 0; var_it < var_list.count(); ++var_it)
     {
-      const ObString &var_name = var_list.at(var_name_it);
+      SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
-      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_name_it, cell)))//取出一列
+      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_it, cell)))
       {
-        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_name_it);
+        TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_it);
       }
-      else if(OB_SUCCESS !=(proc->write_variable(var_name, *cell)))
+      else if(OB_SUCCESS !=(proc->write_variable(var, *cell)))
       {
         TBSYS_LOG(WARN, "write into variables fail");
       }
@@ -407,8 +378,8 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   {
   case SP_E_INST:
     break;
-  case SP_EA_INST:
-    break;
+//  case SP_EA_INST:
+//    break;
   case SP_B_INST:
     ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
     break;
@@ -473,11 +444,6 @@ int ObProcedure::add_var_def(const ObVariableDef &def)
   return defs_.push_back(def);
 }
 
-const ObString& ObProcedure::get_declare_var(int64_t index) const
-{
-  return defs_.at(index).variable_name_;
-}
-
 const ObParamDef& ObProcedure::get_param(int64_t index) const
 {
   return params_.at(index);
@@ -488,11 +454,6 @@ int64_t ObProcedure::get_param_num() const
   return params_.count();
 }
 
-int64_t ObProcedure::get_declare_var_num() const
-{
-  return defs_.count();
-}
-
 void ObProcedure::reset()
 {
   params_.clear();
@@ -500,11 +461,11 @@ void ObProcedure::reset()
   exec_list_.clear();
   SpProcedure::reset();
 }
+
 void ObProcedure::reuse()
 {
-//  child_num_ = 0;
-//  ObMultiChildrenPhyOperator::reset();
 }
+
 int ObProcedure::close()
 {
   int ret = OB_SUCCESS;
@@ -586,6 +547,40 @@ int ObProcedure::create_variables()
         }
       }
     }
+  }
+  return ret;
+}
+
+int ObProcedure::clear_variables()
+{
+  int ret = OB_SUCCESS;
+  if( defs_.count() > 0 )
+  {
+    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
+    for (int64_t i = 0; i < defs_.count() && OB_SUCCESS == ret; ++i)
+    {
+      ObVariableDef &var= defs_.at(i);
+
+      if( !var.is_array_ )
+      {
+        if( OB_SUCCESS != (ret=session->remove_variable(var.variable_name_)) )
+        {
+          TBSYS_LOG(WARN, "replace_variable default_value_  ERROR");
+        }
+        else
+        {
+          TBSYS_LOG(TRACE, "declare %.*s and set default_value",
+                    var.variable_name_.length(),var.variable_name_.ptr());
+        }
+      }
+    }
+
+    for(int64_t i = 0; i < arrays_.count(); ++i)
+    {
+      ObProcArray & arr_var = arrays_.at(i);
+      arr_var.array_value_.clear();;
+    }
+    arrays_.clear();
   }
   return ret;
 }
@@ -720,6 +715,11 @@ int ObProcedure::open()
       }
     }
   }
+
+  if( OB_SUCCESS != clear_variables() )
+  {
+    TBSYS_LOG(WARN, "clear varialbes fail");
+  }
   return ret;
 }
 
@@ -767,6 +767,35 @@ int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, c
     }
   }
   if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+  return ret;
+}
+
+int ObProcedure::write_variable(SpVar &var, const ObObj &val)
+{
+  int ret = OB_SUCCESS;
+  common::ObRow input_row; //fake row
+  if( var.is_array() ) //process array variable
+  {
+    const ObObj *idx_obj = NULL;
+    int64_t idx = 0;
+    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+    {
+      TBSYS_LOG(WARN, 'idx expr calc failed');
+    }
+    else if( idx_obj->get_type() != ObIntType )
+    {
+      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+    else
+    {
+      idx_obj->get_int(idx);
+      if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(var.var_name_, idx, *val)) )
+      {}
+    }
+  } //process ordinary variable
+  else if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(var.var_name_, *val)) )
+  {}
   return ret;
 }
 
@@ -945,38 +974,9 @@ int ObProcedure::assign(const ObPhyOperator* other)
   {
     SpInst *inst = old_proc->exec_list_.at(i);
     SpInst *new_inst = NULL;
-    switch(inst->get_type())
-    {
-    case SP_E_INST:
-      new_inst = create_inst<SpExprInst>(NULL);
-      break;
-    case SP_EA_INST:
-      new_inst = create_inst<SpArrayExprInst>(NULL);
-      break;
-    case SP_B_INST:
-      new_inst = create_inst<SpRdBaseInst>(NULL);
-      break;
-    case SP_A_INST:
-      new_inst = create_inst<SpRwCompInst>(NULL);
-      break;
-    case SP_C_INST:
-      new_inst = create_inst<SpIfCtrlInsts>(NULL);
-      break;
-    case SP_D_INST:
-      new_inst = create_inst<SpRwDeltaInst>(NULL);
-      break;
-    case SP_DE_INST:
-      new_inst = create_inst<SpRwDeltaIntoVarInst>(NULL);
-      break;
-    case SP_BLOCK_INST:
-      new_inst = create_inst<SpBlockInsts>(NULL);
-      break;
-    case SP_UNKOWN:
-    default:
-      new_inst = NULL;
-      TBSYS_LOG(WARN, "unknown type here");
-      break;
-    }
+
+    new_inst = create_inst(inst->get_type(), NULL);
+
     if( new_inst != NULL ) 
 		{
 			ret = new_inst->assign(inst);

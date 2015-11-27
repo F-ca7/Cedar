@@ -10,6 +10,14 @@ using namespace oceanbase::common;
 namespace oceanbase {
   namespace sql {
 
+    struct SpRawVar
+    {
+      ObString var_name_;
+      uint64_t idx_expr_id_;
+
+      SpRawVar() : idx_expr_id_(OB_INVALID_ID) {}
+    };
+
     class ObProcedureSelectIntoStmt: public ObBasicStmt {
     public:
       ObProcedureSelectIntoStmt() :
@@ -21,18 +29,16 @@ namespace oceanbase {
       virtual void print(FILE* fp, int32_t level, int32_t index);
 
       int set_declare_id(uint64_t query_id);
+
       uint64_t get_declare_id();
-      int add_variable(ObString &name);
-      ObString& get_variable(int64_t index);
+
+      int add_variable(const SpRawVar &raw_var);
+      const SpRawVar & get_variable(int64_t index);
       int64_t get_variable_size();
-      const ObArray<ObString> & get_var_list() const
-      {
-        return variable_name_;
-      }
 
     private:
       uint64_t declare_query_id_;
-      ObArray<ObString> variable_name_;
+      ObArray<SpRawVar> raw_vars_;
 
     };
   }
