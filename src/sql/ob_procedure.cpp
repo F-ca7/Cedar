@@ -18,9 +18,6 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_E_INST:
     ret = execute_expr(static_cast<SpExprInst*>(inst));
     break;
-//  case SP_EA_INST:
-//    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-//    break;
   case SP_B_INST:
     ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
     break;
@@ -109,15 +106,15 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   }
   else
   {
-    for(int64_t var_it = 0; var_it < var_list.count(); ++var_it)
+    for(int64_t var_it = 0; OB_SUCCESS == ret && var_it < var_list.count(); ++var_it)
     {
       SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
-      if(OB_SUCCESS !=(ret=row->raw_get_cell(var_it, cell)))
+      if(OB_SUCCESS !=(ret = row->raw_get_cell(var_it, cell)))
       {
         TBSYS_LOG(WARN, "raw_get_cell %ld failed",var_it);
       }
-      else if(OB_SUCCESS !=(inst->get_ownner()->write_variable(var, *cell)))
+      else if(OB_SUCCESS !=(ret = inst->get_ownner()->write_variable(var, *cell)))
       {
         TBSYS_LOG(WARN, "write into variables fail");
       }
@@ -761,7 +758,7 @@ int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, c
       }
       if( OB_SUCCESS == ret )
       {
-        arr.array_value_.at(i) = val;
+        arr.array_value_.at(idx_value) = val;
       }
       break;
     }
@@ -780,7 +777,7 @@ int ObProcedure::write_variable(SpVar &var, const ObObj &val)
     int64_t idx = 0;
     if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
     {
-      TBSYS_LOG(WARN, 'idx expr calc failed');
+      TBSYS_LOG(WARN, "idx expr calc failed, expr: %s", to_cstring(*(var.idx_value_)));
     }
     else if( idx_obj->get_type() != ObIntType )
     {
@@ -790,11 +787,11 @@ int ObProcedure::write_variable(SpVar &var, const ObObj &val)
     else
     {
       idx_obj->get_int(idx);
-      if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(var.var_name_, idx, *val)) )
+      if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)) )
       {}
     }
   } //process ordinary variable
-  else if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(var.var_name_, *val)) )
+  else if( OB_SUCCESS != (ret = write_variable(var.var_name_, val)) )
   {}
   return ret;
 }
@@ -838,6 +835,39 @@ int ObProcedure::read_variable(const ObString &array_name, int64_t idx_value, co
     }
   }
   if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+  return ret;
+}
+
+int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
+{
+  int ret = OB_SUCCESS;
+
+  if( var.is_array() )
+  {
+    const ObObj *idx_obj = NULL;
+    common::ObRow input_row;
+    int64_t idx = 0;
+    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+    {
+      TBSYS_LOG(WARN, "idx expr calc failed");
+    }
+    else if( idx_obj->get_type() != ObIntType )
+    {
+      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+    else
+    {
+      idx_obj->get_int(idx);
+      if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)) )
+      {}
+    }
+  }
+  else
+  {
+    ret = read_variable(var.var_name_, val);
+  }
+
   return ret;
 }
 

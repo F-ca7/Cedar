@@ -19,7 +19,7 @@ namespace oceanbase {
 //      VariableSet(ObArray<ObString> &array) : var_set_(array)
 //      {}
 
-      int addVariable(ObString &var_name)
+      int addVariable(const ObString &var_name)
       {
         int ret = OB_SUCCESS;
         bool flag = false;

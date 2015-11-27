@@ -977,7 +977,7 @@ namespace oceanbase
         SpProcedure *proc_op = static_cast<SpProcedure*>(owner_op_->get_phy_plan()->get_main_query());
         if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)) )
         {
-          TBSYS_LOG(WARN, "can read array value from the procedure");
+          TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
           ret = OB_ERR_VARIABLE_UNKNOWN;
         }
         else

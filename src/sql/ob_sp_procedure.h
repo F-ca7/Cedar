@@ -33,7 +33,10 @@ namespace oceanbase
 
     /**
      * @brief The SpVar struct
-     * SpVariables
+     * SpVariables,
+     * be careful of the usage of SpVar,
+     * remember call clear to totally desconstruct the object,
+     * the ~SpVar doesnot free the memory used by idx_value_
      */
     struct SpVar
     {
@@ -47,8 +50,11 @@ namespace oceanbase
       int deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProcedure *proc);
       int serialize(char *buf, int64_t buf_len, int64_t &pos) const;
 
+      int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      void clear();
       //comment, donot forget the set the ownner op of the idx_value_
-      int assign(const SpVar *other);
+      int assign(const SpVar &other);
     };
 
     enum DepDirection //dependence direction between two instructions
@@ -224,7 +230,7 @@ namespace oceanbase
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 
-      ObArray<SpVar> & get_var_list() const { return var_list_;}
+      ObArray<SpVar> & get_var_list() { return var_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -257,7 +263,7 @@ namespace oceanbase
 
       int32_t get_query_id() const { return query_id_; }
 
-      ObArray<SpVar> & get_var_list() const { return var_list_;}
+      ObArray<SpVar> & get_var_list() { return var_list_;}
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 

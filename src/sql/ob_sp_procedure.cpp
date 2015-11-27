@@ -8,6 +8,20 @@ using namespace oceanbase::common;
  *      SpInst Definition
  * =======================================================*/
 
+int64_t SpVar::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "SpVar: ");
+  pos += var_name_.to_string(buf + pos, buf_len - pos);
+
+  if( idx_value_ != NULL )
+  {
+    databuff_printf(buf, buf_len, pos, ", idx[%p]: ", idx_value_);
+    pos += idx_value_->to_string(buf + pos, buf_len - pos);
+  }
+  return pos;
+}
+
 int SpVar::serialize(char *buf, int64_t buf_len, int64_t &pos) const
 {
    int ret = OB_SUCCESS;
@@ -46,21 +60,36 @@ int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProced
   return ret;
 }
 
-int SpVar::assign(const SpVar *other)
+int SpVar::assign(const SpVar &other)
 {
-  var_name_ = other->var_name_;
-  if( other ->idx_value_ != NULL )
+  var_name_ = other.var_name_;
+  if( other.idx_value_ != NULL )
   {
     idx_value_ = ObSqlExpression::alloc();
-    *idx_value_ = *(other->idx_value_);
+    *idx_value_ = *(other.idx_value_);
   }
   return OB_SUCCESS;
 }
 
-SpVar::~SpVar()
+void SpVar::clear()
 {
   if( idx_value_ != NULL )
+  {
     ObSqlExpression::free(idx_value_);
+    idx_value_ = NULL;
+  }
+}
+
+SpVar::~SpVar()
+{
+  /**
+    *  do not release sql memory here,
+    *  because we allow the copy and copy construction function
+    *  there would be multiple SpVar object share the same idx_value_ pointer
+    *  once one of them is deconstructed, the idx_value_ becomes wild pointer
+    *  so, we manully use clear function to release memory
+    * */
+  idx_value_ = NULL;
 }
 
 SpInst::~SpInst()
@@ -93,7 +122,9 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
  *    SpExprInst Definition
  * ===============================================*/
 SpExprInst::~SpExprInst()
-{}
+{
+  left_var_.clear();
+}
 
 //int SpExprInst::set_var_val(ObVarAssignVal &var)
 //{
@@ -401,7 +432,12 @@ int SpRwDeltaInst::assign(const SpInst *inst)
  *      SpRwDeltaIntoInst Definition
  * =======================================================*/
 SpRwDeltaIntoVarInst::~SpRwDeltaIntoVarInst()
-{}
+{
+  for(int64_t i = 0; i < var_list_.count(); ++i)
+  {
+    var_list_.at(i).clear();
+  }
+}
 
 int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -476,6 +512,8 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
 //  var_list_ = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
   const ObArray<SpVar>& old_var_list = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
 
+  int64_t var_count = old_var_list.count();
+
   var_list_.reserve(var_count);
   for(int64_t i = 0; i < var_count; ++i)
   {
@@ -498,7 +536,12 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
  *      SpRwCompInst Definition
  * =======================================================*/
 SpRwCompInst::~SpRwCompInst()
-{}
+{
+  for(int64_t i = 0; i < var_list_.count(); ++i)
+  {
+    var_list_.at(i).clear();
+  }
+}
 
 int SpRwCompInst::assign(const SpInst *inst)
 {
@@ -510,7 +553,24 @@ int SpRwCompInst::assign(const SpInst *inst)
   rs_ = old_inst->rs_;
   ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
-  var_list_ = old_inst->var_list_;
+
+  int64_t var_count = old_inst->var_list_.count();
+
+  var_list_.reserve(var_count);
+  for(int64_t i = 0; i < var_count; ++i)
+  {
+    SpVar tmp_var;
+    var_list_.push_back(tmp_var);
+    if( OB_SUCCESS != (ret = var_list_.at(i).assign(old_inst->var_list_.at(i))) )
+    {
+      TBSYS_LOG(WARN, "assign failure, at %ld", i);
+    }
+    else
+    {
+      if( var_list_.at(i).idx_value_ != NULL )
+        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
+    }
+  }
   return ret;
 }
 
@@ -561,7 +621,6 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     {
       TBSYS_LOG(WARN, "serialize inst fail, %ld", i);
     }
-    return ret;
   }
 
   //serialize read variables
@@ -616,7 +675,10 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     type = static_cast<SpInstType>(type_int_value);
 
     inst = proc_->create_inst(type, NULL);
-    ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
+    if(OB_SUCCESS != (ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+    {
+      TBSYS_LOG(WARN, "deserialize inst [%ld] fail, type: %d", i, type_int_value);
+    }
 
     if( OB_SUCCESS == ret )
       add_inst(inst);
@@ -748,9 +810,7 @@ int SpMultiInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
     inst = proc_->create_inst(type, this);
     ret = inst->deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory);
 
-    if( OB_SUCCESS == ret )
-      add_inst(inst);
-    else
+    if( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "Deserialize instructions %ld fail, ret=%d", i, ret);
       break;
@@ -1241,7 +1301,7 @@ int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [E], ws [%.*s], rs [", left_var_.var_name_.length(), left_var_.var_name_.ptr());
-  const VariableSet::VarArray &rs = rs_;
+  const VariableSet::VarArray &rs = rs_.var_set_;
   for(int64_t i = 0; i < rs.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));

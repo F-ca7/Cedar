@@ -13,9 +13,6 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_E_INST:
     ret = execute_expr(static_cast<SpExprInst*>(inst));
     break;
-  case SP_EA_INST:
-    ret = execute_array_expr(static_cast<SpArrayExprInst*>(inst));
-    break;
   case SP_D_INST:
     ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
     break;
@@ -53,38 +50,38 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   return ret;
 }
 
-int SpUpsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
-{
-  int ret = OB_SUCCESS;
-  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(*(inst->get_val_expr())));
-  common::ObRow input_row;
-  const ObObj *val = NULL;
-  int64_t idx = 0;
-  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
-  {
-    TBSYS_LOG(WARN, "sp idx_expr calc failed");
-  }
-  else if( val->get_type() != ObIntType)
-  {
-    TBSYS_LOG(WARN, "idx value type is not int, value = %s", to_cstring(*val));
-    ret = OB_ERR_ILLEGAL_INDEX;
-  }
-  else
-  {
-    ret = val->get_int(idx);
-  }
+//int SpUpsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
+//{
+//  int ret = OB_SUCCESS;
+//  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(*(inst->get_val_expr())));
+//  common::ObRow input_row;
+//  const ObObj *val = NULL;
+//  int64_t idx = 0;
+//  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
+//  {
+//    TBSYS_LOG(WARN, "sp idx_expr calc failed");
+//  }
+//  else if( val->get_type() != ObIntType)
+//  {
+//    TBSYS_LOG(WARN, "idx value type is not int, value = %s", to_cstring(*val));
+//    ret = OB_ERR_ILLEGAL_INDEX;
+//  }
+//  else
+//  {
+//    ret = val->get_int(idx);
+//  }
 
-  if( OB_SUCCESS == ret) {}
-  else if((ret= inst->get_val_expr()->calc(input_row, val))!=OB_SUCCESS)
-  {
-    TBSYS_LOG(WARN, "sp expr compute failed");
-  }
-  //update the varialbe here
-  //have some problem here, to store the array value on ups
-  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_array_name(), *val)) )
-  {}
-  return ret;
-}
+//  if( OB_SUCCESS == ret) {}
+//  else if((ret= inst->get_val_expr()->calc(input_row, val))!=OB_SUCCESS)
+//  {
+//    TBSYS_LOG(WARN, "sp expr compute failed");
+//  }
+//  //update the varialbe here
+//  //have some problem here, to store the array value on ups
+//  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_array_name(), *val)) )
+//  {}
+//  return ret;
+//}
 
 //int SpRwDeltaInst::ups_exec()
 int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
@@ -147,7 +144,10 @@ int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {
     TBSYS_LOG(TRACE, "execute inst[%ld]", i);
-    ret = execute_inst(inst);
+    if( OB_SUCCESS != (ret = execute_inst(inst_list_.at(i))) )
+    {
+      TBSYS_LOG(WARN, "execute instruction fail idx[%ld]", i);
+    }
 //    proc_->debug_status(inst);
   }
   return ret;
@@ -289,6 +289,20 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   {
     TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
     ret = OB_SUCCESS;
+  }
+  return ret;
+}
+
+int ObUpsProcedure::write_variable(SpVar &var, const ObObj &val)
+{
+  int ret = OB_SUCCESS;
+  if( !var.is_array() )
+  {
+    ret = write_variable(var.var_name_, val);
+  }
+  else //write array variables
+  {
+    ret = OB_NOT_SUPPORTED;
   }
   return ret;
 }

@@ -24,7 +24,7 @@ namespace oceanbase{
       return declare_query_id_;
     }
 
-    int ObProcedureSelectIntoStmt::add_variable(const SpRawVar var)
+    int ObProcedureSelectIntoStmt::add_variable(const SpRawVar& var)
     {
       return raw_vars_.push_back(var);
     }
@@ -36,7 +36,7 @@ namespace oceanbase{
 
     int64_t ObProcedureSelectIntoStmt::get_variable_size()
     {
-      return variable_name_.count();
+      return raw_vars_.count();
     }
   }
 }

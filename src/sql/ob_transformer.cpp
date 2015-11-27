@@ -1622,7 +1622,6 @@ int ObTransformer::gen_physical_procedure_select_into(
           name = var_list.at(var_itr);
           rw_comp_inst->add_read_var(name);
         }
-        //        rw_comp_inst->add_assign_list(stmt->get_var_list());
         for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
         {
           const SpRawVar &raw_var = stmt->get_variable(i);
@@ -1634,10 +1633,10 @@ int ObTransformer::gen_physical_procedure_select_into(
             var.idx_value_ = ObSqlExpression::alloc();
             ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
             raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
+            var.idx_value_->set_owner_op(proc_op);
           }
           rw_comp_inst->add_assign_var(var);
         }
-
         rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
         rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
@@ -1677,7 +1676,6 @@ int ObTransformer::gen_physical_procedure_assign(
 
     if( OB_SUCCESS == ret )
     {
-
       ObArray<const ObRawExpr *> raw_var_exprs;
       raw_expr->get_raw_var(raw_var_exprs);
       //get the variable set used in the expression

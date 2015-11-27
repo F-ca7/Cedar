@@ -373,6 +373,7 @@ int resolve_expr(
       if (CREATE_RAW_EXPR(array_expr, ObArrayRawExpr, result_plan) == NULL)
         break;
       array_expr->set_result_type(ObVarcharType);
+      array_expr->set_array_name(str);
 
       ObRawExpr *idx_expr;
       if( OB_SUCCESS != (ret = resolve_expr(result_plan, stmt, node->children_[1], sql_expr, idx_expr, expr_scope_type, true)) )
