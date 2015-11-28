@@ -22,7 +22,8 @@ namespace oceanbase
     enum SpInstType
     {
       SP_E_INST, //expr instruction
-      SP_C_INST, //control instruction
+      SP_C_INST, //if control instruction
+      SP_L_INST, //loop instruction
       SP_B_INST, //read baseline data
       SP_D_INST, //maintain delta data
       SP_DE_INST, //maintain delta data, read into variables
@@ -356,6 +357,33 @@ namespace oceanbase
       SpIfBlock else_branch_;
     };
 
+    class SpLoopInsts : public SpInst
+    {
+    public:
+      SpLoopInsts() : SpInst(SP_L_INST), step_size_(1), loop_body_(this) {}
+      virtual ~SpLoopInsts();
+
+      ObSqlExpression & get_lowest_expr() { return lowest_expr_; }
+      ObSqlExpression & get_highest_expr() { return highest_expr_; }
+
+      void set_step_size(int64_t step) { step_size_ = step; }
+      void set_loop_var(const SpVar &var) { loop_counter_var_ = var; }
+//      int add_loop_inst(SpInst *inst) { return loop_body_.add_inst(inst); }
+      void set_reverse(bool rev) { reverse_ = rev; }
+      SpMultiInsts* get_body_block() { return &loop_body_; }
+
+    private:
+      SpVar loop_counter_var_;       //loop counter var
+      ObSqlExpression lowest_expr_;  //lowest value
+      ObSqlExpression highest_expr_; //highest value
+      int64_t step_size_;						 //step size
+      SpMultiInsts loop_body_;       //loop body
+      bool reverse_;   //this variable could be elimated
+
+      VariableSet rs_set_;
+      VariableSet ws_set_;
+    };
+
     template<class T>
     struct sp_inst_traits
     {
@@ -400,6 +428,12 @@ namespace oceanbase
 
     template<>
     struct sp_inst_traits<SpIfCtrlInsts>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpLoopInsts>
     {
       static const bool is_sp_inst = true;
     };

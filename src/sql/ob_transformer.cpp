@@ -158,6 +158,7 @@
 #include "ob_procedure_casewhen.h"
 #include "ob_procedure_select_into_stmt.h"
 #include "ob_procedure_select_into.h"
+#include "ob_procedure_loop_stmt.h"
 //code_coverage_zhujun
 //add:e
 using namespace oceanbase::common;
@@ -778,6 +779,9 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_PROCEDURE_IF:
     ret = gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
+  case ObBasicStmt::T_PROCEDURE_LOOP:
+    ret = gen_physical_procedure_loop(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
+    break;
   default:
     TBSYS_LOG(WARN, "Current does not support this type: %d", type);
     ret = OB_ERROR;
@@ -1388,6 +1392,71 @@ int ObTransformer::gen_physical_procedure_elseif(
 	return ret;
 
  }
+
+//add zt 20151128:b
+int ObTransformer::gen_physical_procedure_loop(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat &err_stat,
+    const uint64_t &query_id,
+    ObProcedure *proc_op,
+    SpMultiInsts *mul_inst)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+
+  ObProcedureLoopStmt *loop_stmt = NULL;
+  get_stmt(logical_plan, err_stat, query_id, loop_stmt);
+
+  SpLoopInsts* loop_inst = proc_op->create_inst<SpLoopInsts>(mul_inst);
+
+  SpVar loop_var;
+  if( OB_SUCCESS != (ret = ob_write_string(*mem_pool_, loop_stmt->get_loop_counter_name(), loop_var.var_name_)) )
+  {
+    TBSYS_LOG(WARN, "construct loop var name fail");
+  }
+  else
+  {
+    loop_inst->set_loop_var(loop_var);
+  }
+
+  ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
+  ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
+
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
+                              loop_inst->get_lowest_expr(),
+                              this,
+                              logical_plan,
+                              physical_plan)))
+  {
+    TBSYS_LOG(WARN, "generate lowest value expression fail");
+  }
+  else if( OB_SUCCESS != (ret = highest_raw_expr->fill_sql_expression(
+                            loop_inst->get_highest_expr(),
+                            this,
+                            logical_plan,
+                            physical_plan)))
+  {
+    TBSYS_LOG(WARN, "generate highest value expression fail");
+  }
+  else
+  {
+    loop_inst->set_step_size(loop_stmt->get_step_size());
+    loop_inst->set_reverse(loop_stmt->is_reverse());
+
+    for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
+    {
+      uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
+
+      if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
+      {
+        TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
+      }
+    }
+  }
+  return ret;
+}
+//add zt 20151128:e
 
 int ObTransformer::gen_physical_procedure_while(
 		  ObLogicalPlan *logical_plan,

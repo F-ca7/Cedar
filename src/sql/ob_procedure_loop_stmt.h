@@ -46,6 +46,8 @@ namespace oceanbase
 
       bool is_reverse() const { return reverse_; }
 
+      int64_t get_step_size() const { return step_size_; }
+
     private:
 
       ObString loop_count_; 		//loop variable name
