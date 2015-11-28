@@ -63,6 +63,7 @@
 #include "ob_procedure_declare_stmt.h"
 #include "ob_procedure_assgin_stmt.h"
 #include "ob_procedure_while_stmt.h"
+#include "ob_procedure_loop_stmt.h"
 #include "ob_procedure_case_stmt.h"
 #include "ob_procedure_casewhen_stmt.h"
 #include "ob_procedure_select_into_stmt.h"
@@ -271,6 +272,19 @@ int resolve_procedure_proc_block_stmt(
     ResultPlan *result_plan,
     ParseNode *node,
     ObProcedureStmt *stmt);
+
+int resolve_procedure_loop_stmt(
+    ResultPlan *result_plan,
+    ParseNode *node,
+    uint64_t &query_id,
+    ObProcedureStmt *stmt);
+
+int resolve_procedure_inner_stmt(
+    ResultPlan *result_plan,
+    ParseNode *node,
+    uint64_t &query_id,
+    ObProcedureStmt *stmt);
+
 //code_coverage_zhujun
 //add:e
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node)
@@ -3529,6 +3543,106 @@ int resolve_procedure_elseif_stmt(
   return ret;
 }
 
+int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &query_id, ObProcedureStmt *proc_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_LOOP && node->num_child_ == 5);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureLoopStmt *loop_stmt = NULL;
+  TBSYS_LOG(TRACE, "enter resolve_procedure_loop_stmt");
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, loop_stmt)))
+  {
+    TBSYS_LOG(ERROR, "resolve_procedure_while_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+
+    //resolve loop_counter
+    //TODO we need to solve the variable name conflict problem
+    //we can check whether the variable name is declared in the procedure
+    if( node->children_[0] != NULL && node->children_[0]->type_ == T_TEMP_VARIABLE )
+    {
+      ObString loop_counter_name;
+      if( OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), loop_counter_name)) )
+      {
+        PARSER_LOG("Can not malloc space for loop counter name");
+      }
+      else
+      {
+        loop_stmt->set_loop_count_name(loop_counter_name);
+      }
+    }
+    else
+    {
+      ret = OB_ERR_PARSE_SQL;
+    }
+
+    //resolve reverse flag
+    if( OB_SUCCESS == ret && node->children_[1] != NULL && node->children_[1]->type_ == T_BOOL )
+    {
+      loop_stmt->set_reverse(true);
+    }
+
+    //resolve lowest value
+    if( OB_SUCCESS == ret && node->children_[2] != NULL )
+    {
+      uint64_t lowest_expr_id;
+      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[2], lowest_expr_id, T_NONE_LIMIT)) )
+      {
+        TBSYS_LOG(WARN, "resolve loop's lowest expression fail");
+      }
+      else
+      {
+        loop_stmt->set_lowest_expr(lowest_expr_id);
+      }
+    }
+
+    //resolve highest value
+    if( OB_SUCCESS == ret && node->children_[3] != NULL )
+    {
+      uint64_t highest_expr_id;
+      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[3], highest_expr_id, T_NONE_LIMIT)) )
+      {
+        TBSYS_LOG(WARN, "resolve loop's highest expression fail");
+      }
+      else
+      {
+        loop_stmt->set_lowest_expr(highest_expr_id);
+      }
+    }
+
+    //resolve loop body
+    if (ret == OB_SUCCESS && node->children_[4] != NULL )
+    {
+      ParseNode* loop_body_node = node->children_[1];
+
+      TBSYS_LOG(TRACE, "loop body num_child_=%d", loop_body_node->num_child_);
+
+      for (int32_t i = 0; ret == OB_SUCCESS && i < loop_body_node->num_child_; i++)
+      {
+        uint64_t sub_query_id = OB_INVALID_ID;
+
+        //filter some stmt here
+        if( loop_body_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+        {
+          TBSYS_LOG(WARN, "dose not support stmt type[%d] in loop", loop_body_node->children_[i]->type_);
+          ret = OB_ERR_PARSE_SQL;
+        }
+        else if( OB_SUCCESS != ( ret = resolve_procedure_inner_stmt(result_plan, loop_body_node->children_[i], sub_query_id, proc_stmt)))
+        {
+          TBSYS_LOG(WARN, "resolve body stmt fail at [%d]", i);
+        }
+        else if( OB_SUCCESS != (ret = loop_stmt->add_loop_stmt(sub_query_id)))
+        {
+          TBSYS_LOG(WARN, "loop body add stmt fail at [%d]", i);
+        }
+      }
+    }
+  }
+  return ret;
+}
+
 
 int resolve_procedure_while_stmt(
     ResultPlan* result_plan,
@@ -4310,6 +4424,10 @@ int resolve_procedure_proc_block_stmt(
       TBSYS_LOG(DEBUG, "type = T_SELECT_INTO");
       ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
       break;
+    case T_PROCEDURE_LOOP:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_LOOP");
+      ret = resolve_procedure_loop_stmt(result_plan, vector_node->children_[i], sub_query_id, stmt);
+      break;
 
       //cursor support
     case T_CURSOR_DECLARE:
@@ -4374,6 +4492,121 @@ int resolve_procedure_proc_block_stmt(
   }
   return ret;
 }
+
+
+//add zt 20151128:b
+/**
+ * The name is an accident, better to be resolve_procedure_stmt which has be used
+ * Use this function to resolve a stmt inside procedure,
+ * But the caller should filter some stmt by himself
+ * For example, in if-then block, there should be no declare_stmt
+ ***/
+int resolve_procedure_inner_stmt(
+                ResultPlan *result_plan,
+                ParseNode *node,
+                uint64_t &query_id,
+                ObProcedureStmt *stmt)
+{
+  int ret = OB_SUCCESS;
+  switch(node->type_)
+  {
+  case T_SELECT:
+    TBSYS_LOG(DEBUG, "type = T_SELECT");
+    ret = resolve_select_stmt(result_plan, node, query_id);
+    break;
+  case T_DELETE:
+    TBSYS_LOG(DEBUG, "type = T_DELETE");
+    ret = resolve_delete_stmt(result_plan, node, query_id);
+    break;
+  case T_INSERT:
+    TBSYS_LOG(DEBUG, "type = T_INSERT");
+    ret = resolve_insert_stmt(result_plan, node, query_id);
+    break;
+  case T_UPDATE:
+    TBSYS_LOG(DEBUG, "type = T_UPDATE");
+    ret = resolve_update_stmt(result_plan, node, query_id);
+    break;
+
+    //control flow
+  case T_PROCEDURE_IF:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_IF");
+    ret = resolve_procedure_if_stmt(result_plan, node, query_id, stmt);
+    break;
+  case T_PROCEDURE_DECLARE:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_DECLARE");
+    ret = resolve_procedure_declare_stmt(result_plan, node, query_id, stmt);
+    break;
+  case T_PROCEDURE_ASSGIN:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_ASSGIN");
+    ret = resolve_procedure_assign_stmt(result_plan, node, query_id, stmt);
+    break;
+  case T_PROCEDURE_WHILE:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_WHILE");
+    ret = resolve_procedure_while_stmt(result_plan, node, query_id, stmt);
+    break;
+  case T_PROCEDURE_CASE:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_CASE");
+    ret = resolve_procedure_case_stmt(result_plan, node, query_id, stmt);
+    break;
+  case T_SELECT_INTO: //select and assign
+    TBSYS_LOG(DEBUG, "type = T_SELECT_INTO");
+    ret = resolve_procedure_select_into_stmt(result_plan, node, query_id);
+    break;
+  case T_PROCEDURE_LOOP:
+    TBSYS_LOG(DEBUG, "type = T_PROCEDURE_LOOP");
+    ret = resolve_procedure_loop_stmt(result_plan, node, query_id, stmt);
+    break;
+
+    //cursor support
+  case T_CURSOR_DECLARE:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_DECLARE");
+    ret = resolve_cursor_declare_stmt(result_plan,node, query_id);
+    break;
+  case T_CURSOR_OPEN:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_OPEN");
+    ret = resolve_cursor_open_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_CLOSE:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_CLOSE");
+    ret = resolve_cursor_close_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_INTO");
+    ret = resolve_cursor_fetch_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_NEXT_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_NEXT_INTO");
+    ret = resolve_cursor_fetch_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_PRIOR_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_PRIOR_INTO");
+    ret = resolve_cursor_fetch_prior_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_FIRST_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_FIRST_INTO");
+    ret = resolve_cursor_fetch_first_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_LAST_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_LAST_INTO");
+    ret = resolve_cursor_fetch_last_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_ABS_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_ABS_INTO");
+    ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, node, query_id);
+    break;
+  case T_CURSOR_FETCH_RELATIVE_INTO:
+    TBSYS_LOG(DEBUG, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+    ret = resolve_cursor_fetch_relative_into_stmt(result_plan, node, query_id);
+    break;
+
+  default:
+    ret=OB_ERR_PARSE_SQL;
+    TBSYS_LOG(ERROR, "could not resovle type[%d] in procedure", node->type_);
+    break;
+  }
+  return ret;
+}
+//add zt 20151128:e
 
 int resolve_procedure_execute_stmt(
     ResultPlan* result_plan,

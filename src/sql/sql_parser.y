@@ -127,7 +127,7 @@ do \
 %left '.'
 
 /*add by zhujun*/
-%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL ARRAY
+%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL ARRAY REVERSE
 /*zhounan unmark*/
 %token CURSOR OPEN FETCH CLOSE NEXT PRIOR FIRST LAST ABSOLUTE RELATIVE 
 
@@ -3602,8 +3602,34 @@ case_else		:
  *===========================================================*/
 stmt_loop		:	LOOP control_sect END LOOP ';'
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 1, $2);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     $2);
+          }
+        | FOR TEMP_VARIABLE IN expr_const TO expr_const LOOP control_sect END LOOP
+            {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2,
+                                       NULL,
+                                       $4,
+                                       $6,
+                                       $8);
+            }
+        | FOR TEMP_VARIABLE IN REVERSE expr_const TO expr_const LOOP control_sect END LOOP
+            {
+              ParseNode *rev_flag = NULL;
+              malloc_terminal_node(rev_flag, result->malloc_pool_, T_BOOL);
+              rev_flag->value_ = 1;
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2, 				//loop counter
+                                       rev_flag,  //reverse loop
+                                       $5,        //lowest_number
+                                       $7,        //highest number
+                                       $9);       //loop body
+            }
 				;
 
 
