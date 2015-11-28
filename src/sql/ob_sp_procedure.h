@@ -357,20 +357,32 @@ namespace oceanbase
       SpIfBlock else_branch_;
     };
 
-    class SpLoopInsts : public SpInst
+    class SpLoopInst : public SpInst
     {
     public:
-      SpLoopInsts() : SpInst(SP_L_INST), step_size_(1), loop_body_(this) {}
-      virtual ~SpLoopInsts();
+      SpLoopInst() : SpInst(SP_L_INST), step_size_(1), loop_body_(this) {}
+      virtual ~SpLoopInst();
 
       ObSqlExpression & get_lowest_expr() { return lowest_expr_; }
       ObSqlExpression & get_highest_expr() { return highest_expr_; }
 
       void set_step_size(int64_t step) { step_size_ = step; }
       void set_loop_var(const SpVar &var) { loop_counter_var_ = var; }
-//      int add_loop_inst(SpInst *inst) { return loop_body_.add_inst(inst); }
+
       void set_reverse(bool rev) { reverse_ = rev; }
       SpMultiInsts* get_body_block() { return &loop_body_; }
+
+      SpVar & get_loop_var() { return loop_counter_var_; }
+
+      virtual const VariableSet &get_read_variable_set() const { return rs_set_; }
+      virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
+
+      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+      virtual int assign(const SpInst *inst);
 
     private:
       SpVar loop_counter_var_;       //loop counter var
@@ -433,7 +445,7 @@ namespace oceanbase
     };
 
     template<>
-    struct sp_inst_traits<SpLoopInsts>
+    struct sp_inst_traits<SpLoopInst>
     {
       static const bool is_sp_inst = true;
     };
@@ -450,6 +462,7 @@ namespace oceanbase
       virtual int execute_rw_comp(SpRwCompInst *inst) = 0;
       virtual int execute_block(SpBlockInsts *inst) = 0;
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst) = 0;
+      virtual int execute_loop(SpLoopInst *inst) = 0;
       virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
     };
 

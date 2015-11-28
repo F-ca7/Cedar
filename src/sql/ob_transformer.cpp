@@ -1407,7 +1407,7 @@ int ObTransformer::gen_physical_procedure_loop(
   ObProcedureLoopStmt *loop_stmt = NULL;
   get_stmt(logical_plan, err_stat, query_id, loop_stmt);
 
-  SpLoopInsts* loop_inst = proc_op->create_inst<SpLoopInsts>(mul_inst);
+  SpLoopInst* loop_inst = proc_op->create_inst<SpLoopInst>(mul_inst);
 
   SpVar loop_var;
   if( OB_SUCCESS != (ret = ob_write_string(*mem_pool_, loop_stmt->get_loop_counter_name(), loop_var.var_name_)) )
@@ -1441,6 +1441,9 @@ int ObTransformer::gen_physical_procedure_loop(
   }
   else
   {
+    loop_inst->get_lowest_expr().set_owner_op(proc_op);
+    loop_inst->get_highest_expr().set_owner_op(proc_op);
+
     loop_inst->set_step_size(loop_stmt->get_step_size());
     loop_inst->set_reverse(loop_stmt->is_reverse());
 

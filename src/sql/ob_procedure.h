@@ -32,6 +32,7 @@ namespace oceanbase
       virtual int execute_rw_comp(SpRwCompInst *inst);
       virtual int execute_block(SpBlockInsts *inst);
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
+      virtual int execute_loop(SpLoopInst *inst);
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);

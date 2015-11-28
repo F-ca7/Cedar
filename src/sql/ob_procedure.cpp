@@ -36,6 +36,9 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_C_INST:
     ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
     break;
+  case SP_L_INST:
+    ret = execute_loop(static_cast<SpLoopInst*>(inst));
+    break;
   default:
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
     ret = OB_NOT_SUPPORTED;
@@ -263,6 +266,53 @@ int SpMsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   return ret;
 }
 
+int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
+{
+  int ret = OB_SUCCESS;
+
+  const ObObj *lowest_value, *highest_value;
+  common::ObRow fake_row;
+
+  SpProcedure *proc = inst->get_ownner();
+
+  inst->get_lowest_expr().calc(fake_row, lowest_value);
+
+  if( lowest_value->get_type() != ObIntType )
+  {
+    TBSYS_LOG(WARN, "unsupported loop range type: %d", lowest_value->get_type());
+    ret = OB_NOT_SUPPORTED;
+  }
+  else if( OB_SUCCESS != (ret = proc->write_variable(inst->get_loop_var(), *lowest_value)) )
+  {
+    TBSYS_LOG(WARN, "write lowest value fail");
+  }
+  else
+  {
+    int64_t itr = 0, itr_end = -1;
+    if( OB_SUCCESS!= (ret = inst->get_highest_expr().calc(fake_row, highest_value)) )
+    {
+      TBSYS_LOG(WARN, "highest value calculate failed");
+    }
+    else if( OB_SUCCESS != lowest_value->get_int(itr) || OB_SUCCESS != highest_value->get_int(itr_end) )
+    {
+      TBSYS_LOG(WARN, "unsupported loop range type");
+    }
+    else
+    {
+      for(; itr < itr_end && OB_SUCCESS == ret; itr ++)
+      {
+        ret = execute_multi_inst(inst->get_body_block());
+
+        //perhaps we could judge whether it is a static loop
+        //the judgement static loop is very important to do loop distribution
+        inst->get_highest_expr().calc(fake_row, highest_value);
+        highest_value->get_int(itr_end);
+      }
+    }
+  }
+  return ret;
+}
+
 int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 {
   int ret = OB_SUCCESS;
@@ -375,8 +425,6 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   {
   case SP_E_INST:
     break;
-//  case SP_EA_INST:
-//    break;
   case SP_B_INST:
     ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
     break;
@@ -404,6 +452,10 @@ int SpMsInstExecStrategy::close(SpInst *inst)
       mul_inst->get_inst(i, inner_inst);
       if( NULL != inner_inst) ret = close(inner_inst);
     }
+    break;
+  case SP_L_INST:
+    TBSYS_LOG(ERROR, "remains unimplemented");
+    ret = OB_ERROR;
     break;
   case SP_UNKOWN:
   default:
@@ -965,6 +1017,15 @@ int ObProcedure::set_inst_op(SpInst *inst)
       for(int64_t i = 0; i < inst_list.count(); ++i)
       {
          set_inst_op(inst_list.at(i));
+      }
+      break;
+    }
+  case SP_L_INST:
+    {
+      SpMultiInsts *loop_body = static_cast<SpLoopInst*>(inst)->get_body_block();
+      for(int64_t i = 0; i < loop_body->inst_count(); ++i)
+      {
+        set_inst_op(loop_body->get_inst(i));
       }
       break;
     }

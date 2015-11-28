@@ -982,6 +982,103 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
 }
 
 /*=================================================
+ * 					SpLoopInst Defintion
+ * ===============================================*/
+int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = loop_counter_var_.deserialize(buf, data_len, pos, proc_)))
+  {
+    TBSYS_LOG(WARN, "deserialize loop counter var fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &reverse_)))
+  {
+    TBSYS_LOG(WARN, "deserialize direction fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &step_size_)))
+  {
+    TBSYS_LOG(WARN, "deserialize step size fail");
+  }
+  else if( OB_SUCCESS != (ret = lowest_expr_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize lowest_expr fail");
+  }
+  else if( OB_SUCCESS != (ret = highest_expr_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize highest_expr fail");
+  }
+  else if( OB_SUCCESS != (ret = loop_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "deserialize loop body fail");
+  }
+  else
+  {
+    lowest_expr_.set_owner_op(proc_);
+    highest_expr_.set_owner_op(proc_);
+  }
+
+  return ret;
+}
+
+int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = loop_counter_var_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize loop counter var fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, reverse_)))
+  {
+    TBSYS_LOG(WARN, "serialize direction fail");
+  }
+  else if ( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, step_size_)))
+  {
+    TBSYS_LOG(WARN, "serialize step size fail");
+  }
+  else if( OB_SUCCESS != (ret = lowest_expr_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize lowest expr fail");
+  }
+  else if( OB_SUCCESS != (ret = highest_expr_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize highest expr fail");
+  }
+  else if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize loop body fail");
+  }
+
+  return ret;
+}
+
+int SpLoopInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  const SpLoopInst *old_inst = static_cast<const SpLoopInst *>(inst);
+
+  loop_counter_var_.assign(old_inst->loop_counter_var_);
+
+  //carefull handle the ownner op
+  //useless now, just in case
+  if( loop_counter_var_.idx_value_ != NULL )
+    loop_counter_var_.idx_value_->set_owner_op(proc_);
+
+  lowest_expr_ = old_inst->lowest_expr_;
+  lowest_expr_.set_owner_op(proc_);
+
+  highest_expr_ = old_inst->highest_expr_;
+  highest_expr_.set_owner_op(proc_);
+
+  step_size_ = old_inst->step_size_;
+  reverse_ = old_inst->reverse_;
+
+  loop_body_.assign(old_inst->loop_body_);
+  return ret;
+}
+
+/*=================================================
  * 					SpProcedure Defintion
  * ===============================================*/
 SpProcedure::SpProcedure(){}
@@ -1079,6 +1176,8 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
   case SP_BLOCK_INST:
     new_inst = create_inst<SpBlockInsts>(mul_inst);
     break;
+  case SP_L_INST:
+    new_inst = create_inst<SpLoopInst>(mul_inst);
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");
@@ -1447,5 +1546,16 @@ int64_t SpIfCtrlInsts::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "\tElse\n");
 
   pos += else_branch_.to_string(buf + pos, buf_len - pos);
+  return pos;
+}
+
+int64_t SpLoopInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [for], begin: %s, end: %s\n", to_cstring(lowest_expr_), to_cstring(highest_expr_));
+  databuff_printf(buf, buf_len, pos, "\tLoop Body\n");
+
+  pos += loop_body_.to_string(buf + pos, buf_len - pos);
+
   return pos;
 }
