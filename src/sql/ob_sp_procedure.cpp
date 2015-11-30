@@ -984,6 +984,11 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
 /*=================================================
  * 					SpLoopInst Defintion
  * ===============================================*/
+SpLoopInst::~SpLoopInst()
+{
+  loop_counter_var_.clear();
+}
+
 int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
@@ -1178,6 +1183,7 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
     break;
   case SP_L_INST:
     new_inst = create_inst<SpLoopInst>(mul_inst);
+    break;
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");
@@ -1546,6 +1552,8 @@ int64_t SpIfCtrlInsts::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "\tElse\n");
 
   pos += else_branch_.to_string(buf + pos, buf_len - pos);
+
+  databuff_printf(buf, buf_len, pos, "\tEnd If");
   return pos;
 }
 
@@ -1556,6 +1564,6 @@ int64_t SpLoopInst::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "\tLoop Body\n");
 
   pos += loop_body_.to_string(buf + pos, buf_len - pos);
-
+  databuff_printf(buf, buf_len, pos, "\tEnd loop");
   return pos;
 }

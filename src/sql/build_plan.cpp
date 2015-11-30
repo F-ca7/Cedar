@@ -3608,14 +3608,14 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
       }
       else
       {
-        loop_stmt->set_lowest_expr(highest_expr_id);
+        loop_stmt->set_highest_expr(highest_expr_id);
       }
     }
 
     //resolve loop body
     if (ret == OB_SUCCESS && node->children_[4] != NULL )
     {
-      ParseNode* loop_body_node = node->children_[1];
+      ParseNode* loop_body_node = node->children_[4];
 
       TBSYS_LOG(TRACE, "loop body num_child_=%d", loop_body_node->num_child_);
 

@@ -82,6 +82,7 @@ sql_parser_sources=                                    \
   ob_procedure_declare.h      ob_procedure_declare.cpp \
   ob_procedure_assgin_stmt.h  ob_procedure_assgin_stmt.cpp\
   ob_procedure_assgin.h       ob_procedure_assgin.cpp\
+  ob_procedure_loop_stmt.h    ob_procedure_loop_stmt.cpp\
   ob_procedure_while_stmt.h   ob_procedure_while_stmt.cpp\
   ob_procedure_while.h        ob_procedure_while.cpp\
   ob_procedure_if_stmt.h      ob_procedure_if_stmt.cpp \
