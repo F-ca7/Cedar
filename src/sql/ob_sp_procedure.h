@@ -80,8 +80,16 @@ namespace oceanbase
       friend class SpMsInstExecStrategy;
       SpInst(SpInstType type) : type_(type), proc_(NULL) {}
       virtual ~SpInst();
-      virtual const VariableSet &get_read_variable_set() const = 0; //bad design ret type as ref ... try to correct later
-      virtual const VariableSet &get_write_variable_set() const = 0;
+//      virtual const VariableSet &get_read_variable_set() const = 0; //bad design ret type as ref ... try to correct later
+//      virtual const VariableSet &get_write_variable_set() const = 0;
+      /**
+       * how to handle the array var in the variable set?
+       * @brief get_read_variable_set
+       * @brief get_write_variable_set
+       * @param read_set, write_set
+       */
+      virtual int get_read_variable_set(VariableSet &read_set) const = 0;
+      virtual int get_write_variable_set(VariableSet &write_set) const = 0;
 
       static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
 
@@ -124,6 +132,11 @@ namespace oceanbase
       SpInst *ownner_;
     };
 
+    /**
+     * read variable: expr of right val
+     * write variable: left value, variable
+     * @brief The SpExprInst class
+     */
     class SpExprInst : public SpInst
     {
     public:
@@ -131,8 +144,10 @@ namespace oceanbase
       friend class SpMsInstExecStrategy;
       SpExprInst() : SpInst(SP_E_INST) {}
       virtual ~SpExprInst();
-      virtual const VariableSet &get_read_variable_set() const;
-      virtual const VariableSet &get_write_variable_set() const;
+//      virtual const VariableSet &get_read_variable_set() const;
+//      virtual const VariableSet &get_write_variable_set() const;
+      virtual int get_read_variable_set(VariableSet &read_set) const;
+      virtual int get_write_variable_set(VariableSet &write_set) const;
 
       ObSqlExpression& get_val() { return right_val_; }
       SpVar & get_var() { return left_var_; }
@@ -154,6 +169,11 @@ namespace oceanbase
       VariableSet rs_;
     };
 
+    /**
+     * read variable: var used in the ObValues operation
+     * write variable: nothing
+     * @brief The SpRdBaseInst class
+     */
     class SpRdBaseInst :public SpInst
     {
     public:
@@ -181,6 +201,12 @@ namespace oceanbase
       uint64_t table_id_;
     };
 
+    /**
+     * read variable: var used on the ObUpsExecutor
+     * write variable: nothing
+     * tableId: tableId
+     * @brief The SpRwDeltaInst class
+     */
     class SpRwDeltaInst : public SpInst
     {
     public:
@@ -220,6 +246,11 @@ namespace oceanbase
       uint64_t table_id_;
     };
 
+    /**
+     * read variable: read variables used in ObUpsExecutor
+     * write variable: left_val_ define in the SpRwDeltaIntoVarInst
+     * @brief The SpRwDeltaIntoVarInst class
+     */
     class SpRwDeltaIntoVarInst : public SpRwDeltaInst
     {
     public:
@@ -245,6 +276,11 @@ namespace oceanbase
       ObArray<SpVar> var_list_;
     };
 
+    /**
+     * read variable: read variables used in the ObPhyOperator
+     * write variable: left_var_ defined in the SpRwCompInst
+     * @brief The SpRwCompInst class
+     */
     class SpRwCompInst : public SpInst
     {
     public:
@@ -325,7 +361,11 @@ namespace oceanbase
       int optimize(SpInstList &exec_list);  //optimize as if block
     };
 
-
+    /**
+     * read variable: read vars_ used in the blocks and the in the condition_expr_
+     * write variable: write vars_ used in the blocks
+     * @brief The SpIfCtrlInsts class
+     */
     class SpIfCtrlInsts : public SpInst
     {
     public:
@@ -357,6 +397,16 @@ namespace oceanbase
       SpIfBlock else_branch_;
     };
 
+    /**
+     * read variable: read vars_ used in the loop body plus loop_counter_var, vars_ in the lowest and highest exprs
+     * write variable: write vars_ used in the loop body plus the loop_counter_var
+     *
+     * how to handle the loop_counter_var?
+     * If we are handling a simple loop, the loop_counter_var is a read-only var, then there is not dependence
+     * If we are handling a complex loop, ..., very hard to optimze
+     *
+     * @brief The SpLoopInst class
+     */
     class SpLoopInst : public SpInst
     {
     public:
