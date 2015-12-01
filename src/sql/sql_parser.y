@@ -127,7 +127,7 @@ do \
 %left '.'
 
 /*add by zhujun*/
-%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL
+%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL ARRAY REVERSE
 /*zhounan unmark*/
 %token CURSOR OPEN FETCH CLOSE NEXT PRIOR FIRST LAST ABSOLUTE RELATIVE 
 
@@ -177,7 +177,9 @@ do \
 %type <node> cursor_declare_stmt cursor_open_stmt cursor_fetch_stmt cursor_close_stmt cursor_name fetch_prior_stmt fetch_first_stmt fetch_last_stmt  fetch_relative_stmt fetch_absolute_stmt fetch_fromto_stmt next_or_prior
 %type <node> cursor_fetch_into_stmt cursor_fetch_next_into_stmt cursor_fetch_first_into_stmt cursor_fetch_last_into_stmt cursor_fetch_prior_into_stmt cursor_fetch_absolute_into_stmt cursor_fetch_relative_into_stmt
 
-
+//add zt 20151125:b
+%type <node> array_expr
+//add zt 20151125:e
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
 %type <node> create_table_stmt opt_table_option_list table_option
@@ -388,6 +390,10 @@ simple_expr:
     {
     	malloc_non_terminal_node($$, result->malloc_pool_, T_OP_EXISTS, 1, $2);
     }
+  | array_expr
+    {
+      $$ = $1;
+    }
   ;
 
 /* used by the expression that use range value, e.g. between and */
@@ -532,6 +538,15 @@ case_default:
   	ELSE expr                { $$ = $2; }
   | /*EMPTY*/                { malloc_terminal_node($$, result->malloc_pool_, T_NULL); }
   ;
+
+//add zt 20151125:b
+array_expr:
+    TEMP_VARIABLE '(' expr ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
+    }
+  ;
+//add zt 20151125:e
 
 func_expr:
     function_name '(' '*' ')'
@@ -2867,6 +2882,14 @@ var_and_val:
       malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
       $$->value_ = 2;
     }
+    //add zt 20151126:b
+  | array_expr to_or_eq expr
+    {
+      (void)($2);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
+      $$->value_ = 2;
+    }
+    //add zt 20151126:e
   ;
 
 to_or_eq:
@@ -2876,6 +2899,9 @@ to_or_eq:
 
 argument:
     TEMP_VARIABLE
+    { $$ = $1; }
+  |
+    array_expr
     { $$ = $1; }
   ;
 
@@ -3451,14 +3477,28 @@ stmt_declare	:	DECLARE argument_list data_type ';'
 					{
 						ParseNode *args = NULL;
 						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, NULL);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4, args, $3, NULL, NULL);
 					}
 				|	DECLARE argument_list data_type DEFAULT expr_const ';'
 					{
 						ParseNode *args = NULL;
 						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, $5);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4, args, $3, $5, NULL);
+          }
+        | DECLARE argument_list data_type ARRAY ';'
+          {
+            ParseNode *args = NULL;
+            ParseNode *arr = NULL;
+            malloc_terminal_node(arr, result->malloc_pool_, T_BOOL);
+            arr->value_ = 1;
+            merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4,
+                                     args,  //arguments
+                                     $3,    //data type
+                                     NULL, 	//default value
+                                     arr 		//is array
+                                     );
+          }
 				;
 
 				
@@ -3562,8 +3602,34 @@ case_else		:
  *===========================================================*/
 stmt_loop		:	LOOP control_sect END LOOP ';'
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 1, $2);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     $2);
+          }
+        | FOR TEMP_VARIABLE IN expr_const TO expr_const LOOP control_sect END LOOP
+            {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2,
+                                       NULL,
+                                       $4,
+                                       $6,
+                                       $8);
+            }
+        | FOR TEMP_VARIABLE IN REVERSE expr_const TO expr_const LOOP control_sect END LOOP
+            {
+              ParseNode *rev_flag = NULL;
+              malloc_terminal_node(rev_flag, result->malloc_pool_, T_BOOL);
+              rev_flag->value_ = 1;
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2, 				//loop counter
+                                       rev_flag,  //reverse loop
+                                       $5,        //lowest_number
+                                       $7,        //highest number
+                                       $9);       //loop body
+            }
 				;
 
 

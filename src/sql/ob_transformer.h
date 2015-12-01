@@ -115,7 +115,7 @@ namespace oceanbase
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-      SpMultiInsts *mul_inst = NULL
+                  SpMultiInsts *mul_inst = NULL
                   );
   int gen_physical_procedure_insert(
                   ObLogicalPlan *logical_plan,
@@ -123,8 +123,8 @@ namespace oceanbase
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-      SpMultiInsts *mul_inst = NULL
-      );
+                  SpMultiInsts *mul_inst = NULL
+                  );
   int gen_physical_procedure_replace(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -139,23 +139,31 @@ namespace oceanbase
                   ErrStat &err_stat,
                   const uint64_t &query_id,
                   ObProcedure *proc_op,
-      SpMultiInsts *mul_inst = NULL
-      );
+                  SpMultiInsts *mul_inst = NULL
+                  );
   int gen_physical_procedure_select_into(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-      SpMultiInsts *mul_inst = NULL
-      );
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_loop(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
   int gen_physical_procedure_inst(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-      SpMultiInsts *mul_inst = NULL
+                  SpMultiInsts *mul_inst = NULL
                   );
   int gen_physical_procedure_elseif(
                   ObLogicalPlan *logical_plan,

@@ -21,17 +21,33 @@ namespace oceanbase
     class SpMsInstExecStrategy : public SpInstExecStrategy
     {
     public:
+      virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
+      int close(SpInst *inst);
+    private:
       virtual int execute_expr(SpExprInst *inst);
+//      virtual int execute_array_expr(SpArrayExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
       virtual int execute_rw_delta(SpRwDeltaInst *inst);
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst);
       virtual int execute_rw_comp(SpRwCompInst *inst);
       virtual int execute_block(SpBlockInsts *inst);
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
+      virtual int execute_loop(SpLoopInst *inst);
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
-      int close(SpInst *inst);
+    };
+
+
+    /**
+     * @brief The ObProcArray struct
+     * save the array variables in the procedure
+     */
+    struct ObProcArray
+    {
+      ObString array_name_;
+      ObObjType val_type_;
+      ObArray<ObObj> array_value_;
     };
 
     /**
@@ -75,17 +91,25 @@ namespace oceanbase
       int add_var_def(const ObVariableDef &def);
 
       int create_variables();
+      int clear_variables();
+
       virtual int write_variable(const ObString &var_name, const ObObj & val);
+      virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
+      virtual int write_variable(SpVar &var, const ObObj &val);
+
       virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
+      virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
+      virtual int read_variable(SpVar &var, const ObObj *&val) const;
 
       int optimize();
 
 //      ObArray<ObParamDef*>& get_params();
       const ObParamDef& get_param(int64_t index) const;
-      const ObString& get_declare_var(int64_t index) const;
+//      const ObVariableDef &get_declare_var(int64_t index) const;
+//      const ObString& get_declare_var(int64_t index) const;
       int64_t get_param_num() const;
-      int64_t get_declare_var_num() const;
+//      int64_t get_declare_var_num() const;
 
       DECLARE_PHY_OPERATOR_ASSIGN;
       int set_inst_op();
@@ -98,12 +122,12 @@ namespace oceanbase
       int set_inst_op(SpInst *inst);
     private:
       ObString proc_name_;
-      ObArray<ObParamDef> params_;/*存储过程参数*/
-//      ObArray<ObString> declare_variable_;
+      ObArray<ObParamDef> params_;
       ObArray<ObVariableDef> defs_;
 
       SpInstList exec_list_;
 
+      ObArray<ObProcArray> arrays_;
       mergeserver::ObMergerRpcProxy *rpc_;
     }; 
   }

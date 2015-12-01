@@ -5,7 +5,6 @@
 #include "common/ob_array.h"
 #include "ob_basic_stmt.h"
 #include "parse_node.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {

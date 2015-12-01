@@ -149,7 +149,7 @@ am__objects_1 = ob_cursor_declare_stmt.$(OBJEXT) \
 	ob_procedure_declare_stmt.$(OBJEXT) \
 	ob_procedure_declare.$(OBJEXT) \
 	ob_procedure_assgin_stmt.$(OBJEXT) \
-	ob_procedure_assgin.$(OBJEXT) \
+	ob_procedure_assgin.$(OBJEXT) ob_procedure_loop_stmt.$(OBJEXT) \
 	ob_procedure_while_stmt.$(OBJEXT) ob_procedure_while.$(OBJEXT) \
 	ob_procedure_if_stmt.$(OBJEXT) ob_procedure_if.$(OBJEXT) \
 	ob_procedure_elseif_stmt.$(OBJEXT) \
@@ -533,6 +533,7 @@ sql_parser_sources = \
   ob_procedure_declare.h      ob_procedure_declare.cpp \
   ob_procedure_assgin_stmt.h  ob_procedure_assgin_stmt.cpp\
   ob_procedure_assgin.h       ob_procedure_assgin.cpp\
+  ob_procedure_loop_stmt.h    ob_procedure_loop_stmt.cpp\
   ob_procedure_while_stmt.h   ob_procedure_while_stmt.cpp\
   ob_procedure_while.h        ob_procedure_while.cpp\
   ob_procedure_if_stmt.h      ob_procedure_if_stmt.cpp \
@@ -902,6 +903,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_execute_stmt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_if.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_if_stmt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_loop_stmt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_select_into.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_select_into_stmt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_procedure_stmt.Po@am__quote@

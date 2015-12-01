@@ -255,6 +255,44 @@ int ObConstRawExpr::fill_sql_expression(
   return ret;
 }
 
+//add zt 20151125:b
+int ObArrayRawExpr::fill_sql_expression(
+    ObSqlExpression &inter_expr,
+    ObTransformer *transformer,
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan) const
+{
+  int ret = OB_SUCCESS;
+  ExprItem item;
+  if( OB_SUCCESS != (ret = idx_expr_->fill_sql_expression(
+                             inter_expr,
+                             transformer,
+                             logical_plan,
+                             physical_plan)))
+  {
+    TBSYS_LOG(WARN, "fill expression for the array idx fail");
+  }
+
+  item.type_ = get_expr_type();
+  item.data_type_ = get_result_type();
+  item.string_ = array_name_;
+
+  if( OB_SUCCESS == ret )
+  {
+    ret = inter_expr.add_expr_item(item);
+  }
+  return ret;
+}
+
+void ObArrayRawExpr::print(FILE *fp, int32_t level) const
+{
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "%s : ", get_type_name(get_expr_type()));
+  fprintf(fp, "%.*s\n", array_name_.length(), array_name_.ptr());
+  idx_expr_->print(fp, level+1);
+}
+//add zt 20151125:e
+
 void ObCurTimeExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");

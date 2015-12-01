@@ -442,6 +442,20 @@ namespace oceanbase
           else if (OB_SUCCESS != (ret = expr_.push_back(obj2)))
           {}
           break;
+        //add zt 20151126:b
+        case T_ARRAY:
+          item_type.set_int(ARRAY_VAR);
+          obj.set_varchar(item.string_);
+          if( OB_SUCCESS != (ret = str_buf_.write_obj(obj, &obj2)))
+          {
+            TBSYS_LOG(WARN, "fail to write variable name to string buffer. err=%d", ret);
+          }
+          else if( OB_SUCCESS != (ret = expr_.push_back(item_type)))
+          {}
+          else if ( OB_SUCCESS != (ret = expr_.push_back(obj2)))
+          {}
+          break;
+        //add zt 20151126:e
         case T_NULL:
           item_type.set_int(CONST_OBJ);
           obj.set_null();
@@ -708,6 +722,21 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "Can not get value ObObj. err=%d", ret);
               }
               break;
+            //add zt 20151126:b
+            case ARRAY_VAR:
+            {
+              if( idx_i < 1 || stack_[idx_i-1].get_type() != ObIntType )
+              {
+                TBSYS_LOG(WARN, "array is not indexed by right value");
+                ret =  OB_ERR_ILLEGAL_INDEX;
+              }
+              else if( OB_SUCCESS == (ret = get_array_var(expr_[idx++], stack_[--idx_i].get_int(), var)))
+              {
+                stack_[idx_i++].assign(*var);
+              }
+              break;
+            }
+            //add zt 20151126:e
             case OP:
               // 根据OP的类型，从堆栈中弹出1个或多个操作数，进行计算
               if (OB_SUCCESS != (ret = expr_[idx++].get_int(value)))
@@ -796,7 +825,9 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       ObResultSet *result_set = NULL;
-      if (type != PARAM_IDX && type != SYSTEM_VAR && type != TEMP_VAR && type != CUR_TIME_OP)
+      if (type != PARAM_IDX && type != SYSTEM_VAR && type != TEMP_VAR && type != CUR_TIME_OP
+            && type != ARRAY_VAR //add zt 20151126
+          )
       {
         val = &expr_node;
       }
@@ -873,6 +904,19 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "Can not get current time. err=%d", ret);
               }
             }
+            //add zt 20151126:b
+//            else if( type == ARRAY_VAR )
+//            {
+//              //we tends to find the array_value from the ObProcedure now, later we can bind the array_value with the session
+//              SpProcedure *proc = result_set->get_running_procedure();
+//              ObString var_name;
+//              if( OB_SUCCESS != (ret = expr_node.get_varchar(var_name)))
+//              {
+//                TBSYS_LOG(ERROR, "Can not get array variable name, %.*s", var_name.length(), var_name.ptr());
+//              }
+//            }
+            //add zt 20151126:e
+
           }
           //add zt 20151109 :b
           /**
@@ -881,7 +925,7 @@ namespace oceanbase
             * */
           else if( owner_op_->get_phy_plan()->get_main_query()->get_type() == PHY_PROCEDURE ) //execute in procedure and on ups
           {
-            SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
+            const SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
             if( type == PARAM_IDX  || type == CUR_TIME_OP )
             {
               TBSYS_LOG(WARN, "Unsupported read");
@@ -910,6 +954,40 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add zt 20151126:b
+    int ObPostfixExpression::get_array_var(const ObObj &expr_node, int64_t array_idx_value, const ObObj *&val) const
+    {
+      int ret = OB_SUCCESS;
+      ObString array_name;
+      int64_t idx_value = array_idx_value;
+      if( OB_SUCCESS != (ret = expr_node.get_varchar(array_name)) )
+      {
+        TBSYS_LOG(USER_ERROR, "Variable %.*s does not exists", array_name.length(), array_name.ptr());
+        ret = OB_ERR_VARIABLE_UNKNOWN;
+      }
+      //now we only support use array in the procedure
+      else if( owner_op_->get_phy_plan()->get_result_set() == NULL)
+      {
+        TBSYS_LOG(WARN, "cannot use array value outside the ms");
+        ret = OB_NOT_SUPPORTED;
+      }
+      else
+      {
+        const SpProcedure *proc_op = owner_op_->get_phy_plan()->get_result_set()->get_running_procedure();
+        if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)) )
+        {
+          TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
+          ret = OB_ERR_VARIABLE_UNKNOWN;
+        }
+        else
+        {
+          TBSYS_LOG(TRACE, "read %.*s[%ld] = %s", array_name.length(), array_name.ptr(), idx_value, to_cstring(*val));
+        }
+      }
+      return ret;
+    }
+    //add zt 20151126:e
 
     int ObPostfixExpression::is_const_expr(bool &is_type) const
     {

@@ -173,7 +173,8 @@ EXIT 				{ return EXIT; }
 CONTINUE			{ return CONTINUE; }
 DO					{ return DO; }
 CALL				{ return CALL; }
-
+ARRAY 	    { return ARRAY; }
+REVERSE     { return REVERSE; }
 
 CURSOR            { return CURSOR; }
 OPEN              { return OPEN; }

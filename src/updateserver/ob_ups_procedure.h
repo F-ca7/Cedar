@@ -12,13 +12,16 @@ namespace oceanbase
     class SpUpsInstExecStrategy : public sql::SpInstExecStrategy
     {
     public:
+      virtual int execute_inst(SpInst *inst); //provide the simple routine
+      virtual int execute_block(SpBlockInsts *inst) ;
+    private:
       virtual int execute_expr(SpExprInst *inst) ;
       virtual int execute_rd_base(SpRdBaseInst *inst)  { UNUSED(inst); return OB_ERROR; }
       virtual int execute_rw_delta(SpRwDeltaInst *inst) ;
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) ;
       virtual int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
-      virtual int execute_block(SpBlockInsts *inst) ;
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
+      virtual int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
     };
 
@@ -34,6 +37,8 @@ namespace oceanbase
 
       int create_variable_table();
       virtual int write_variable(const ObString &var_name, const ObObj &val);
+      virtual int write_variable(SpVar &var, const ObObj &val);
+
       virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
       virtual int64_t to_string(char* buf, const int64_t buf_len) const;

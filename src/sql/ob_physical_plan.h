@@ -121,9 +121,10 @@ namespace oceanbase
         static void free(ObPhysicalPlan *plan);
 
         //add zt 20151109 :b
-//        int get_variable(ObPostfixExpression::ObPostExprNodeType type,
-//                                   const ObObj &expr_node, const ObObj *) const;
-        bool is_proc_exec() const { return procedure_execution_; }
+        //bind the proc_exec flag with phy_plan is not a good idea,
+        //better bind with result_set, since all operators points to the same result_set,
+        //but may binds with different physical_plans
+        bool is_proc_exec() { return procedure_execution_; }
         void set_proc_exec(bool exec_flag) { procedure_execution_ = exec_flag; }
         //add zt 20151109 :e
       private:

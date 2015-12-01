@@ -150,6 +150,12 @@ namespace oceanbase
 
         void change_phy_plan(ObPhysicalPlan *plan, bool did_own);
         void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;};
+
+        //add zt 20151201:b
+        //for postfix_expr to get procedure obj, read array variables
+        void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
+        const SpProcedure* get_running_procedure() const{ return proc_; }
+        //add zt 20151201:e
       private:
         // types and constants
         static const int64_t MSG_SIZE = 512;
@@ -186,6 +192,8 @@ namespace oceanbase
         common::ObArenaAllocator *ps_trans_allocator_;
         int64_t query_string_id_;
         common::ObObj *cur_time_; // only used when the sql contains fun like current_time
+
+        SpProcedure *proc_; //add zt: 20151201
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
