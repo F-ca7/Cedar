@@ -126,13 +126,6 @@ SpExprInst::~SpExprInst()
   left_var_.clear();
 }
 
-//int SpExprInst::set_var_val(ObVarAssignVal &var)
-//{
-//  var_val_ = var;
-//  ws_.addVariable(var.variable_name_);
-//  return OB_SUCCESS;
-//}
-
 const VariableSet &SpExprInst::get_read_variable_set() const
 {
   return rs_;
@@ -214,74 +207,6 @@ int SpExprInst::assign(const SpInst *inst)
 //  ws_ = old_expr->ws_;
   return ret;
 }
-
-///* ===============================================
-// *    SpArrayExprInst Definition
-// * ==============================================*/
-//SpArrayExprInst::~SpArrayExprInst()
-//{
-
-//}
-
-//int SpArrayExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(allocator);
-//  UNUSED(operators_store);
-//  UNUSED(op_factory);
-//  TBSYS_LOG(TRACE, "deserialize array_expr inst");
-//  if( OB_SUCCESS != (ret = array_name_.deserialize(buf, data_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "deserialize array name fail, ret=%d", ret);
-//  }
-//  else if( OB_SUCCESS != (ret = val_expr_.deserialize(buf, data_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "deserialize val_expr fail, ret=%d", ret);
-//  }
-//  else if ( OB_SUCCESS != (ret = idx_expr_.deserialize(buf, data_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "deserialize idx_expr fail, ret=%d", ret);
-//  }
-//  else
-//  {
-//    val_expr_.set_owner_op(proc_);
-//    val_expr_.set_owner_op(proc_);
-//  }
-//  return ret;
-//}
-
-
-//int SpArrayExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
-//{
-//  int ret = OB_SUCCESS;
-//  if( OB_SUCCESS != (ret = array_name_.serialize(buf, buf_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
-//  }
-//  else if( OB_SUCCESS != (ret = val_expr_.serialize(buf, buf_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "serialize val_expr fail, ret=%d", ret);
-//  }
-//  else if( OB_SUCCESS != (ret = idx_expr_.serialize(buf, buf_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "serialize idx_expr fail, ret=%d", ret);
-//  }
-//  return ret;
-//}
-
-//int SpArrayExprInst::assign(const SpInst *inst)
-//{
-//  int ret = OB_SUCCESS;
-//  const SpArrayExprInst *old_expr = static_cast<const SpArrayExprInst*>(inst);
-
-//  array_name_ = old_expr->array_name_;
-//  idx_expr_ = old_expr->idx_expr_;
-//  val_expr_ = old_expr->val_expr_;
-
-//  idx_expr_.set_owner_op(proc_);
-//  val_expr_.set_owner_op(proc_);
-//  return ret;
-//}
 
 /* ===============================================
  *    SpRdBaseInst Definition
@@ -1416,21 +1341,6 @@ int64_t SpExprInst::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "\n");
   return pos;
 }
-
-//int64_t SpArrayExprInst::to_string(char *buf, const int64_t buf_len) const
-//{
-//  int64_t pos = 0;
-//  databuff_printf(buf, buf_len, pos, "type [EA], ws [%.*s], rs [", array_name_.length(), array_name_.ptr());
-//  const VariableSet::VarArray &rs = rs_.var_set_;
-//  for(int64_t i = 0; i < rs.count(); ++i)
-//  {
-//    databuff_printf(buf, buf_len, pos, " %.*s%c", rs.at(i).length(), rs.at(i).ptr(), ((i == rs.count()-1) ? ']' : ','));
-//  }
-//  if( rs.count() == 0 )
-//    databuff_printf(buf, buf_len, pos, "]");
-//  databuff_printf(buf, buf_len, pos, "\n");
-//  return pos;
-//}
 
 int64_t SpRdBaseInst::to_string(char *buf, const int64_t buf_len) const
 {

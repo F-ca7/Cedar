@@ -138,6 +138,7 @@ int ObProcedureExecute::open()
       proc = static_cast<ObProcedure*>(tmp_op);
       //since the procedur comes from assign, we need to
       //set the phy_operator point
+      result_set->set_running_procedure(proc);
       proc->set_inst_op();
 
 //      if( result_set->get_cur_time_place() != NULL  )

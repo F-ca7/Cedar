@@ -905,11 +905,16 @@ namespace oceanbase
               }
             }
             //add zt 20151126:b
-            else if( type == ARRAY_VAR )
-            {
-              //we tends to find the array_value from the ObProcedure now, later we can bind the array_value with the session
-
-            }
+//            else if( type == ARRAY_VAR )
+//            {
+//              //we tends to find the array_value from the ObProcedure now, later we can bind the array_value with the session
+//              SpProcedure *proc = result_set->get_running_procedure();
+//              ObString var_name;
+//              if( OB_SUCCESS != (ret = expr_node.get_varchar(var_name)))
+//              {
+//                TBSYS_LOG(ERROR, "Can not get array variable name, %.*s", var_name.length(), var_name.ptr());
+//              }
+//            }
             //add zt 20151126:e
 
           }
@@ -920,7 +925,7 @@ namespace oceanbase
             * */
           else if( owner_op_->get_phy_plan()->get_main_query()->get_type() == PHY_PROCEDURE ) //execute in procedure and on ups
           {
-            SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
+            const SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
             if( type == PARAM_IDX  || type == CUR_TIME_OP )
             {
               TBSYS_LOG(WARN, "Unsupported read");
@@ -961,20 +966,15 @@ namespace oceanbase
         TBSYS_LOG(USER_ERROR, "Variable %.*s does not exists", array_name.length(), array_name.ptr());
         ret = OB_ERR_VARIABLE_UNKNOWN;
       }
-//      else if( OB_SUCCESS != (ret = array_idx_value.get_int(idx_value)) )
-//      {
-//        TBSYS_LOG(ERROR, "Array idx is not int type, %s", to_cstring(array_idx_value));
-//        ret = OB_ERR_ILLEGAL_INDEX;
-//      }
       //now we only support use array in the procedure
-      else if( owner_op_->get_phy_plan()->get_main_query()->get_type() != PHY_PROCEDURE)
+      else if( owner_op_->get_phy_plan()->get_result_set() == NULL)
       {
-        TBSYS_LOG(WARN, "cannot use array value outside the procedure");
+        TBSYS_LOG(WARN, "cannot use array value outside the ms");
         ret = OB_NOT_SUPPORTED;
       }
       else
       {
-        SpProcedure *proc_op = static_cast<SpProcedure*>(owner_op_->get_phy_plan()->get_main_query());
+        const SpProcedure *proc_op = owner_op_->get_phy_plan()->get_result_set()->get_running_procedure();
         if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)) )
         {
           TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
