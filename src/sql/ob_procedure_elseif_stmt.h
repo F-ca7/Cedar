@@ -27,7 +27,7 @@ class ObProcedureElseIfStmt: public ObBasicStmt {
 		/*else if表达的id*/
 		uint64_t get_expr_id();
 
-		ObArray<uint64_t> get_then_stmts();			/*else if then语句列表*/
+    ObArray<uint64_t> get_then_stmts();			/*else if then语句列表*/
 
 		uint64_t& get_then_stmt(int64_t index);
 

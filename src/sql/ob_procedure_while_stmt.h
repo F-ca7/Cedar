@@ -26,7 +26,7 @@ class ObProcedureWhileStmt: public ObBasicStmt {
 
 		uint64_t get_expr_id();
 
-		ObArray<uint64_t> get_then_stmts();
+        ObArray<uint64_t> get_then_stmts();
 
 		uint64_t& get_then_stmt(int64_t index);
 

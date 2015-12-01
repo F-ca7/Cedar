@@ -778,6 +778,8 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_PROCEDURE_IF:
     ret = gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
+  case ObBasicStmt::T_PROCEDURE_ELSEIF:
+    ret = gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
   default:
     TBSYS_LOG(WARN, "Current does not support this type: %d", type);
     ret = OB_ERROR;
@@ -1239,8 +1241,8 @@ int ObTransformer::gen_physical_procedure_if(
   {
     uint64_t expr_id = stmt->get_expr_id();
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-    SpIfCtrlInsts* if_contrl = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
-    ObSqlExpression &expr= if_contrl->get_if_expr();
+    SpIfCtrlInsts* if_control = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
+    ObSqlExpression &expr= if_control->get_if_expr();
     expr.set_owner_op(proc_op); //important
     if (OB_UNLIKELY(raw_expr == NULL))
     {
@@ -1260,7 +1262,7 @@ int ObTransformer::gen_physical_procedure_if(
     {
       ObArray<const ObRawExpr *> var_if_expr;
       raw_expr->get_raw_var(var_if_expr);
-      if_contrl->add_read_var(var_if_expr);
+      if_control->add_read_var(var_if_expr);
     }
     if (ret == OB_SUCCESS)
     {
@@ -1269,34 +1271,19 @@ int ObTransformer::gen_physical_procedure_if(
       {
         uint64_t stmt_id=stmt->get_then_stmt(i);
 
-        if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, if_contrl->get_then_block())) )
+        if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, if_control->get_then_block())) )
         {}
       }
+
+      SpIfCtrlInsts* elseif_control = if_control;
       if(stmt->have_elseif())
-      {
-        TBSYS_LOG(WARN, "does not support else if now");
-        ret = OB_ERROR;
-//        TBSYS_LOG(INFO, "else if stmt size= %ld",stmt->get_elseif_stmt_size());
-//        for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_elseif_stmt_size(); i++)
-//        {
-//          uint64_t stmt_id=stmt->get_elseif_stmt(i);
-//          int32_t idx = OB_INVALID_INDEX;
-//          ObPhyOperator* op = NULL;
-//          /*循环生成elseif语句的物理执行计划*/
-//          if ((ret = gen_physical_procedure_elseif(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
-//          {
-//            TBSYS_LOG(ERROR, "gen_physical_procedure_elseif wrong!");
-//          }
-//          else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->add_elseif_op(*op)) != OB_SUCCESS)
-//          {
-//            ret = OB_ERR_ILLEGAL_INDEX;
-//            TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
-//          }
-//          else if((ret=result_op->set_have_elseif(true))!=OB_SUCCESS)
-//          {
-//            TBSYS_LOG(ERROR, "set_have_elseif wrong!");
-//          }
-//        }
+      {        for(int64_t i = 0; ret = OB_SUCCESS && i < stmt->get_elseif_stmt_size(); i++)
+        {
+          uint64_t stmt_id = stmt->get_elseif_stmt(i);
+
+          if(OB_SUCCESS != gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, stmt_id, proc_op, elseif_control->get_else_block()))
+          {}
+        }
       }
       if(stmt->have_else())
       {
@@ -1306,7 +1293,7 @@ int ObTransformer::gen_physical_procedure_if(
         {
           uint64_t stmt_id = else_stmt->get_else_stmt(i);
 
-          if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, if_contrl->get_else_block())) )
+          if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, elseif_control->get_else_block())) )
           {}
         }
       }
@@ -1317,77 +1304,63 @@ int ObTransformer::gen_physical_procedure_if(
 
 
 
+
 int ObTransformer::gen_physical_procedure_elseif(
-		  ObLogicalPlan *logical_plan,
-		  ObPhysicalPlan *physical_plan,
-		  ErrStat& err_stat,
-		  const uint64_t& query_id,
-		  int32_t* index)
- {
-	int &ret = err_stat.err_code_ = OB_SUCCESS;
-	ObProcedureElseIf*result_op = NULL;
-	ObProcedureElseIfStmt *stmt = NULL;
-	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
-	if (ret == OB_SUCCESS)
-	{
-	   CREATE_PHY_OPERRATOR(result_op, ObProcedureElseIf, physical_plan, err_stat);
-	   if (ret == OB_SUCCESS)
-	   {
-	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
-	   }
-	}
-	if (ret == OB_SUCCESS)
-	{
-		/*获取表达式的值*/
-		uint64_t expr_id = stmt->get_expr_id();
-		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-		ObSqlExpression *expr=ObSqlExpression::alloc();
-		if (OB_UNLIKELY(raw_expr == NULL))
-		{
-			ret = OB_ERR_ILLEGAL_ID;
-			TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
-		}
-		else if ((ret = raw_expr->fill_sql_expression(
-											 *expr,
-											 this,
-											 logical_plan,
-											 physical_plan)
-											 ) != OB_SUCCESS)
-		{
-			TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
-		}
-		else
-		{
-			ret = result_op->set_expr(*expr);
-			TBSYS_LOG(INFO,"set else if expr success!");
-		}
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat& err_stat,
+                const uint64_t& query_id,
+                ObProcedure *proc_op, SpMultiInsts *mul_inst)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
 
-		if (ret == OB_SUCCESS)
-		{
-			TBSYS_LOG(INFO, "else if then stmt size=%ld",stmt->get_then_stmt_size());
-			//-----------------------------else if then 语句的物理计划生成---------------------------
-			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
-			{
-				uint64_t stmt_id=stmt->get_then_stmt(i);
-				int32_t idx = OB_INVALID_INDEX;
-				ObPhyOperator* op = NULL;
-				/*这里应该过滤一些类型的语句*/
-				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
-				{
-					TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
-				}
-				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
-				{
-					ret = OB_ERR_ILLEGAL_INDEX;
-					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
-				}
-			}
-		}
+  ObProcedureElseIfStmt *stmt = NULL;
+  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
 
-	}
-	return ret;
+  if (ret == OB_SUCCESS)
+  {
+    /*获取表达式的值*/
+    uint64_t expr_id = stmt->get_expr_id();
+    ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+    SpIfCtrlInsts *elseif_control = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
+    if (OB_UNLIKELY(raw_expr == NULL))
+    {
+      ret = OB_ERR_ILLEGAL_ID;
+      TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+    }
+    else if ((ret = raw_expr->fill_sql_expression(
+                      elseif_control->get_if_expr(),
+                      this,
+                      logical_plan,
+                      physical_plan)
+              ) != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+    }
+    else
+    {
+      ObArray<const ObRawExpr* > var_elseif_expr;
+      raw_expr->get_raw_var(var_elseif_expr);
+      elseif_control->add_read_var(var_elseif_expr);
+    }
 
- }
+    if (ret == OB_SUCCESS)
+    {
+      TBSYS_LOG(TRACE, "else if then stmt size=%ld",stmt->get_then_stmt_size());
+
+      for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+      {
+        uint64_t stmt_id=stmt->get_then_stmt(i);
+
+        if ((ret != gen_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, elseif_control->get_then_block())) != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "generate procedure instruction fail at %ld", i);
+        }
+      }
+    }
+  }
+  return ret;
+}
 
 int ObTransformer::gen_physical_procedure_while(
 		  ObLogicalPlan *logical_plan,
