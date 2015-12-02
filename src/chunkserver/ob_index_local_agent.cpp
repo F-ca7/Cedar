@@ -1,0 +1,277 @@
+/*
+ * ob_index_local_agent.cpp
+ *
+ *  Created on: 2015年12月2日
+ *      Author: longfei
+ *  longfei1lantern@gmail.com
+ */
+#include "ob_index_local_agent.h"
+#include "common/ob_scan_param.h"
+
+namespace oceanbase
+{
+  namespace chunkserver
+  {
+    ObIndexLocalAgent::ObIndexLocalAgent()
+    {
+      local_idx_scan_finishi_ = false;
+      local_idx_block_end_ = false;
+      first_scan_ = false;
+      hash_index_ = 0;
+    }
+
+    ObIndexLocalAgent::~ObIndexLocalAgent()
+    {
+    }
+
+    int ObIndexLocalAgent::open()
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS == (ret = build_sst_scan_param()))
+      {
+        ret = scan();
+      }
+      cur_row_.set_row_desc(row_desc_);
+      if (OB_ITER_END == ret)
+      {
+        local_idx_scan_finishi_ = true;
+        ret = OB_SUCCESS;
+      }
+      return ret;
+    }
+
+    int ObIndexLocalAgent::close()
+    {
+      int ret = OB_SUCCESS;
+
+      return ret;
+    }
+
+    void ObIndexLocalAgent::reset()
+    {
+      row_desc_.reset();
+    }
+
+    void ObIndexLocalAgent::reuse()
+    {
+
+    }
+
+    int ObIndexLocalAgent::scan()
+    {
+      int ret = OB_ERROR;
+      ObNewRange fake_range;
+      sst_scan_.close();
+      sst_scan_.reset();
+      ret = get_next_local_range(fake_range);
+      if (OB_SUCCESS == ret)
+      {
+        ret = sst_scan_.open_scan_context_local_idx(sst_scan_param_, sc_,
+            fake_range);
+        //TBSYS_LOG(ERROR,"test::whx ObIndexLocalAgent fake_range[%s]",to_cstring(fake_range));
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = sst_scan_.init_sstable_scanner_for_local_idx(fake_range);
+        //@todo(longfei):ignore the failed fake range
+//        if (OB_SUCCESS != ret)
+//        {
+//          if (!query_agent_)
+//          {
+//            TBSYS_LOG(ERROR, "inner stat error, query agent cannot be null");
+//          }
+//          else
+//          {
+//            query_agent_->set_failed_fake_range(fake_range);
+//          }
+//        }
+      }
+
+      if (OB_ITER_END == ret)
+      {
+        local_idx_block_end_ = true;
+        //TBSYS_LOG(ERROR,"test::whx ObIndexLocalAgent local_idx_block_end_");
+        //ret = OB_SUCCESS;
+      }
+      return ret;
+    }
+
+    int ObIndexLocalAgent::get_next_local_row(const ObRow *&row)
+    {
+      int ret = OB_SUCCESS;
+      const ObRowkey *row_key = NULL;
+      {
+        ret = sst_scan_.get_next_row(row_key, row);
+        //TBSYS_LOG(ERROR,"test::whx ObIndexLocalAgent row[%s]",to_cstring(*row));
+        if (OB_ITER_END == ret)
+        {
+          do
+          {
+            ret = scan();
+            if (OB_ITER_END == ret)
+            {
+              break;
+            }
+            else if (OB_SUCCESS == ret)
+            {
+              ret = sst_scan_.get_next_row(row_key, row);
+            }
+            else
+            {
+              break;
+            }
+            if (OB_ITER_END == ret)
+            {
+              continue;
+            }
+          } while (OB_SUCCESS != ret);
+        }
+      }
+      if (OB_ITER_END == ret && local_idx_block_end_)
+      {
+        local_idx_scan_finishi_ = true;
+        //TBSYS_LOG(ERROR,"test::whx row_count = %ld",row_count_);
+        sst_scan_.close();
+      }
+//      if (OB_ITER_END == ret && !query_agent_->has_no_use())
+//      {
+//        sst_scan_.close();
+//      }
+
+      return ret;
+    }
+    int ObIndexLocalAgent::get_next_local_range(ObNewRange &range)
+    {
+      int ret = OB_SUCCESS;
+      bool find = false;
+      if (OB_UNLIKELY(NULL == range_server_hash_))
+      {
+        ret = OB_ERR_UNEXPECTED;
+        TBSYS_LOG(WARN, "should not be here");
+      }
+      if (OB_SUCCESS == ret)
+      {
+        HashIterator itr = range_server_hash_->begin();
+        ObTabletLocationList list;
+
+        int64_t lp = 0;
+        for (; itr != range_server_hash_->end(); ++itr)
+        {
+          ++lp;
+          if (lp <= hash_index_)
+          {
+            continue;
+          }
+          else
+          {
+            list = itr->second;
+            if (list[0].server_.chunkserver_.get_ipv4() == self_.get_ipv4()
+                && list[0].server_.chunkserver_.get_port() == self_.get_port())
+            {
+              range = (itr->first);
+              hash_index_ = lp;
+              find = true;
+              break;
+            }
+            if (find)
+            {
+              //TBSYS_LOG(INFO,"test:whx I find local range,range[%s]",to_cstring(range));
+              break;
+            }
+          }
+        }
+      }
+      if (OB_SUCCESS == ret && !find)
+      {
+        ret = OB_ITER_END;
+      }
+      return ret;
+    }
+
+    int ObIndexLocalAgent::get_next_row(const ObRow *&row)
+    {
+      int ret = OB_SUCCESS;
+      const ObRow* tmp_row = &cur_row_;
+      if (!local_idx_scan_finishi_)
+      {
+        if (OB_SUCCESS == (ret = get_next_local_row(tmp_row)))
+        {
+          row = tmp_row;
+        }
+      }
+      if (local_idx_scan_finishi_)
+      {
+        //@todo(longfei):local agent don't care this function
+      }
+      return ret;
+    }
+
+    int ObIndexLocalAgent::get_row_desc(const ObRowDesc *&row_desc) const
+    {
+      int ret = OB_SUCCESS;
+      row_desc = &row_desc_;
+      return ret;
+    }
+
+    void ObIndexLocalAgent::set_row_desc(const ObRowDesc &desc)
+    {
+      row_desc_ = desc;
+    }
+
+    int ObIndexLocalAgent::build_sst_scan_param()
+    {
+      int ret = OB_SUCCESS;
+      ObTabletScan tmp_table_scan;
+      ObSqlScanParam ob_sql_scan_param;
+      ObArray <uint64_t> basic_columns;
+      if (OB_UNLIKELY(NULL == scan_param_))
+      {
+        TBSYS_LOG(WARN, "null pointer of scan_param!");
+        ret = OB_ERROR;
+      }
+
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS
+            != (ret = ob_sql_scan_param.set_range(*(scan_param_.get_range()))))
+        {
+          TBSYS_LOG(WARN, "set range failed!,ret[%d]", ret);
+        }
+        else
+        {
+          uint64_t tid = OB_INVALID_ID;
+          uint64_t cid = OB_INVALID_ID;
+          for (int64_t i = 0; i < row_desc_.get_column_num(); i++)
+          {
+            if (OB_SUCCESS != row_desc_.get_tid_cid(i, tid, cid))
+            {
+              TBSYS_LOG(WARN, "get tid cid failed! ret [%d]", ret);
+              break;
+            }
+            else if (OB_SUCCESS != (ret = basic_columns.push_back(cid)))
+            {
+              break;
+            }
+          }
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = tmp_table_scan.build_sstable_scan_param_pub(basic_columns,
+            ob_sql_scan_param, sst_scan_param_);
+      }
+      return ret;
+    }
+
+    PHY_OPERATOR_ASSIGN(ObIndexLocalAgent)
+    {
+      int ret = OB_SUCCESS;
+      CAST_TO_INHERITANCE(ObIndexLocalAgent);
+      reset();
+      row_desc_ = o_ptr->row_desc_;
+      return ret;
+    }
+
+  }        //end sql
+}        //end oceanbase
+
