@@ -360,7 +360,7 @@ namespace oceanbase
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 鏉ヨ嚜鐩戞帶鐨勮繛鎺ヤ細绔嬮┈鏂紑
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
 
-    //add longfei [drop table timeout] 151202:b
+    //add longfei [drop table with index timeout] 151202:b
     const int OB_INDEX_NOT_EXIST = -5075;
     //add e
 
