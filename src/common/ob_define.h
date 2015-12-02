@@ -208,6 +208,12 @@ namespace oceanbase
     const int OB_COLUMN_GROUP_NOT_FOUND = -1039;
     const int OB_NO_IMPORT_SSTABLE = -1040;
     const int OB_IMPORT_SSTABLE_NOT_EXIST = -1041;
+    //add longfei [cons static index] 151202:b
+    const int OB_CS_STATIC_INDEX_TIMEOUT = -1042;
+    const int OB_TABLET_HAS_NO_LOCAL_SSTABLE = -1043;
+    const int OB_TABLET_FOR_INDEX_ALL_FAILED = -1044;
+    const int OB_INDEX_BUILD_FAILED = -1045;
+    //add e
 
     //error code for update server -2001 ---- -3000
     const int OB_UPS_TRANS_RUNNING = -2001;     // 浜嬪姟姝ｅ湪鎵ц

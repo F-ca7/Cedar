@@ -85,6 +85,14 @@ namespace oceanbase
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
         int get_last_rowkey(const ObRowkey *&rowkey);
 
+      public:
+        //add longfei [cons static index] 151202:b
+        int open_scan_context_local_idx(
+            const sstable::ObSSTableScanParam& param,
+            const ScanContext& context, ObNewRange &fake_range);
+        int init_sstable_scanner_for_local_idx(ObNewRange &fake_range);
+        //add e
+
       private:
         int init_sstable_scanner();
         // disallow copy

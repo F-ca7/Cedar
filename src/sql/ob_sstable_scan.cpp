@@ -268,3 +268,100 @@ int ObSSTableScan::get_last_rowkey(const ObRowkey *&rowkey)
   rowkey = last_rowkey_;
   return ret;
 }
+
+//add longfei [cons static index] 151202:b
+int ObSSTableScan::open_scan_context_local_idx(const sstable::ObSSTableScanParam &param, const ScanContext &context, ObNewRange &fake_range)
+{
+  int ret = OB_SUCCESS;
+  scan_param_ = param;
+  scan_context_ = context;
+  // acquire tablet object.
+  int64_t query_version = 0;
+  if ((query_version = scan_param_.get_version_range().get_query_version()) < 0)
+  {
+    TBSYS_LOG(ERROR, "empty version range to scan, version_range=%s",
+        to_cstring(scan_param_.get_version_range()));
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = scan_context_.tablet_image_->acquire_tablet(fake_range,
+          ObMultiVersionTabletImage::SCAN_FORWARD, query_version, scan_context_.tablet_)))
+  {
+    TBSYS_LOG(WARN, "cannot acquire tablet with scan range: %s, version: %ld",
+        to_cstring(fake_range), query_version);
+  }
+  //add [cons static index.bug_fix.merge_error]
+  else if (NULL == scan_context_.tablet_)
+  {
+    TBSYS_LOG(WARN, "tablet is null point!");
+    ret = OB_ERROR;
+  }
+  //add e
+  else if (NULL != scan_context_.tablet_ && (scan_context_.tablet_->is_removed()
+           || scan_context_.tablet_->get_range().compare_with_startkey2(fake_range) > 0))
+  {
+    TBSYS_LOG(WARN, "tablet is removed or tablet_range.start_key > scan_range.start_key, "
+                    "can't scan, tablet_range=%s, scan_range=%s",
+        to_cstring(scan_context_.tablet_->get_range()), to_cstring(fake_range));
+    ret = scan_context_.tablet_image_->release_tablet(scan_context_.tablet_);
+    if (OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "failed to release tablet, tablet=%p, range:%s",
+        scan_context_.tablet_, to_cstring(scan_context_.tablet_->get_range()));
+    }
+    scan_context_.tablet_ = NULL;
+    ret = OB_CS_TABLET_NOT_EXIST;
+  }
+  return ret;
+}
+
+int ObSSTableScan::init_sstable_scanner_for_local_idx(ObNewRange &fake_range)
+{
+  int ret = OB_SUCCESS;
+  int32_t size = 1;
+  ObTablet* tablet = scan_context_.tablet_;
+
+  if (NULL == tablet)
+  {
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else if ((sstable_version_ = tablet->get_sstable_version()) < SSTableReader::COMPACT_SSTABLE_VERSION)
+  {
+    TBSYS_LOG(DEBUG, "scan_param = (%s)",to_cstring(scan_param_));
+    if (OB_SUCCESS != (ret = tablet->find_loc_idx_sstable(
+            fake_range, &scan_context_.sstable_reader_, size)) )
+    {
+      TBSYS_LOG(ERROR, "cannot find sstable with scan range: %s, sstable version: %ld",
+          to_cstring(fake_range), sstable_version_);
+    }
+    else if (OB_SUCCESS != (ret = scanner_.set_scan_param(scan_param_, &scan_context_)))
+    {
+      TBSYS_LOG(ERROR, "set_scan_param to scanner error, range: %s, sstable version: %ld",
+          to_cstring(scan_param_.get_range()), sstable_version_);
+    }
+    else
+    {
+      iterator_ = &scanner_;
+
+    }
+  }
+  else
+  {
+    if (OB_SUCCESS != (ret = tablet->find_loc_idx_sstable(
+            fake_range, &scan_context_.compact_context_.sstable_reader_, size)) )
+    {
+      TBSYS_LOG(ERROR, "cannot find sstable with scan range: %s, sstable version: %ld",
+          to_cstring(fake_range), sstable_version_);
+    }
+    else if (OB_SUCCESS != (ret = compact_scanner_.set_scan_param(&scan_param_, &scan_context_.compact_context_)))
+    {
+      TBSYS_LOG(ERROR, "set_scan_param to scanner error, range: %s, sstable version: %ld",
+          to_cstring(scan_param_.get_range()), sstable_version_);
+    }
+    else
+    {
+      iterator_ = &compact_scanner_;
+    }
+  }
+  return ret;
+}
+//add e

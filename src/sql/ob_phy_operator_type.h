@@ -89,9 +89,10 @@ namespace oceanbase
       //add maoxx
       PHY_INDEX_TRIGGER,
       //add e
-	  //add wenghaixing [secondary index drop index]20141222
+	  //add longfei [secondary index drop index]
       PHY_DROP_INDEX,
       //add e
+      PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
 
       PHY_END /* end of phy operator type */
     };
