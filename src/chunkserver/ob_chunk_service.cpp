@@ -57,6 +57,9 @@ namespace oceanbase
       service_started_(false), in_register_process_(false),
       service_expired_time_(0),
       migrate_task_count_(0), lease_checker_(this), merge_task_(this),
+      //add longfei [cons static index] 151120:b
+      se_index_task_(this),
+      //add e
       fetch_ups_task_(this), report_tablet_task_(this)
 
     {
@@ -228,7 +231,15 @@ namespace oceanbase
           }
         }
       }
-
+      //add longfei [cons static index] 151117:b
+      if(OB_SUCCESS == rc)
+      {
+        if (OB_SUCCESS != (rc = tablet_manager.init_index_handle_pool()))
+        {
+          TBSYS_LOG(ERROR,"start index handler thread failed.");
+        }
+      }
+      //add e
       return rc;
     }
 
@@ -1824,6 +1835,26 @@ namespace oceanbase
             out_buffer, connection, channel_id);
       }
       */
+      //add longfei [cons static index] 151120:b
+      IndexBeat beat;
+      if(OB_SUCCESS == rc.result_code_)
+      {
+        rc.result_code_ = beat.deserialize(in_buffer.get_data(),
+                                           in_buffer.get_capacity(),
+                                           in_buffer.get_position()
+                                           );
+        if (OB_SUCCESS != (rc.result_code_))
+        {
+          TBSYS_LOG(ERROR, "parse heartbeat index beat failed: ret[%d]",
+                    rc.result_code_);
+        }
+        else
+        {
+          rc.result_code_ = handle_index_beat(beat);
+          TBSYS_LOG(ERROR, "test::longfei>>> index beat tid[%ld]", beat.idx_tid_);
+        }
+      }
+      //add e
       return rc.result_code_;
     }
 
@@ -4649,6 +4680,166 @@ namespace oceanbase
       return timer_.schedule(report_tablet_task_,
           report_tablet_task_.get_next_wait_useconds(), false);
     }
+
+    /**
+      * add longfei [cons static index] 151120:b
+      * construct static data of secondary index
+      */
+     int ObChunkService::handle_index_beat(IndexBeat beat)
+     {
+       int ret = OB_SUCCESS;
+       int64_t wait_time = 5000000;
+       if (OB_INVALID_ID == beat.idx_tid_ && ERROR == beat.status_ && 0 == beat.hist_width_ && ConIdxStage::STAGE_INIT == beat.stage_)
+       {
+         //NORMAL STATUS, DO NOTHING AT THIS TIME
+       }
+       else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_ && LOCAL_INDEX_STAGE == beat.stage_)
+       {
+         //TODO:con local static index
+         se_index_task_.set_which_stage(LOCAL_INDEX_STAGE);
+
+       }
+       else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_ && GLOBAL_INDEX_STAGE == beat.stage_)
+       {
+         //TODO:con global static index
+         se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
+
+       }
+       else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_)
+       {
+         //@todo:del this module
+         TBSYS_LOG(DEBUG, "test::whx index index_task_ schedule tid[%ld],boolean[%d]", se_index_task_.get_schedule_idx_tid(),
+             se_index_task_.is_scheduled());
+         if (!se_index_task_.is_scheduled() && se_index_task_.get_round_end())
+         {
+           if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
+           {
+             se_index_task_.set_hist_width(beat.hist_width_);
+             TBSYS_LOG(INFO, "index_task: set_schedule_tid[%ld],hist_width[%ld]", beat.idx_tid_, beat.hist_width_);
+             if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false))))    //async
+             {
+               TBSYS_LOG(WARN, "cannot schedule index_task_ after wait %ld us", wait_time);
+             }
+             else
+             {
+               TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
+               se_index_task_.set_scheduled();
+             }
+           }
+         }
+         else if (!se_index_task_.get_round_end())
+         {
+           se_index_task_.try_stop_mission(beat.idx_tid_);
+           //TBSYS_LOG(ERROR, "test::whx try stop mission");
+         }
+       }
+       if (OB_UNLIKELY(NULL == chunk_server_))
+       {
+         TBSYS_LOG(ERROR, "shuold not be here, null chunk ");
+       }
+       else
+       {
+         chunk_server_->get_tablet_manager().set_beat_tid(beat.idx_tid_);
+       }
+       return ret;
+     }
+
+     int ObChunkService::cs_recieve_wok(const int32_t version, const int32_t channel_id, easy_request_t *req,
+         ObDataBuffer &in_buffer, ObDataBuffer &out_buffer)
+     {
+       common::ObResultCode rc;
+       rc.result_code_ = OB_SUCCESS;
+       BlackList list;
+       UNUSED(channel_id);
+       // UNUSED(req);
+       //UNUSED(out_buffer);
+       UNUSED(version);
+       int MY_VERSION = 1;
+       if (NULL == chunk_server_)
+       {
+         rc.result_code_ = OB_INVALID_ARGUMENT;
+         TBSYS_LOG(ERROR, "chunk server pointer can not be null");
+       }
+       if (OB_SUCCESS == rc.result_code_)
+       {
+         if (OB_SUCCESS
+             != (rc.result_code_ = list.deserialize(in_buffer.get_data(), in_buffer.get_capacity(), in_buffer.get_position())))
+         {
+           TBSYS_LOG(WARN, "desirialize black list failed, ret = %d", rc.result_code_);
+         }
+         else
+         {
+           ObTabletManager& tablet_manager = chunk_server_->get_tablet_manager();
+           rc.result_code_ = tablet_manager.get_index_handle_pool().push_wok(list);
+         }
+       }
+       if (OB_SUCCESS == rc.serialize(out_buffer.get_data(), out_buffer.get_capacity(), out_buffer.get_position()))
+       {
+         chunk_server_->send_response(OB_WHIPPING_WOK_RESPONSE, MY_VERSION, out_buffer, req, channel_id);
+       }
+       return rc.result_code_;
+     }
+
+     //add longfei [cons static index] 151120:b
+     void ObChunkService::SeIndexTask::runTimerTask()
+     {
+       int err = OB_SUCCESS;
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       unset_scheduled();
+       TBSYS_LOG(INFO,"I want to start round to build index!");
+       if(tablet_manager.get_index_handle_pool().can_launch_next_round())
+       {
+         TBSYS_LOG(INFO,"I can launch next round!");
+         // mod longfei [] 151121:b
+         //err = tablet_manager.get_ready_for_con_index();
+         err = tablet_manager.get_ready_for_con_index(which_stage_);
+         // mod e
+         if(OB_SUCCESS != err)
+         {
+           TBSYS_LOG(INFO,"wait for next round!");
+         }
+       }
+     }
+
+     int ObChunkService::SeIndexTask::set_schedule_idx_tid(uint64_t table_id)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().set_schedule_idx_tid(table_id);
+     }
+
+     void ObChunkService::SeIndexTask::set_hist_width(int64_t hist_width)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       tablet_manager.get_index_handle_pool().set_hist_width(hist_width);
+     }
+
+     bool ObChunkService::SeIndexTask::get_round_end()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().get_round_end();
+     }
+
+     uint64_t ObChunkService::SeIndexTask::get_schedule_idx_tid()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().get_schedule_idx_tid();
+     }
+
+     void ObChunkService::SeIndexTask::try_stop_mission(uint64_t index_tid)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().try_stop_mission(index_tid);
+     }
+
+     void ObChunkService::SeIndexTask::set_which_stage(common::ConIdxStage stage)
+     {
+       which_stage_ = stage;
+     }
+     //add e
+
+     /**
+      * add longfei e
+      */
 
   } // end namespace chunkserver
 } // end namespace oceanbase

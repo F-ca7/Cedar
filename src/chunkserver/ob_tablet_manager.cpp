@@ -80,6 +80,9 @@ namespace oceanbase
       tablet_image_(fileinfo_cache_, disk_manager_),
       config_(NULL)
     {
+      //add longfei [cons static index] 151120:b
+      index_beat_tid_ = OB_INVALID_ID;
+      //add e
     }
 
     ObTabletManager::~ObTabletManager()
@@ -2222,6 +2225,60 @@ namespace oceanbase
 
       return ret;
     }
+
+    // add longfei [cons static index] 151120:b
+    ObIndexHandlePool & ObTabletManager::get_index_handle_pool()
+    {
+      return index_handle_pool_;
+    }
+
+    int ObTabletManager::init_index_handle_pool()
+    {
+      return index_handle_pool_.init(this);
+    }
+
+    int ObTabletManager::get_ready_for_con_index(common::ConIdxStage which_stage)
+    {
+      int ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "start to build index");
+      if (OB_SUCCESS == ret)
+      {
+        //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
+        //disk_manager_.scan(config_->datadir,OB_DEFAULT_MAX_TABLET_SIZE);
+        //index_worker_.schedule();
+        if (OB_SUCCESS
+            != (ret = disk_manager_.scan(config_->datadir,
+                OB_DEFAULT_MAX_TABLET_SIZE))) // scan the datadir
+        {
+          TBSYS_LOG(ERROR, "failed to scan config datadir!");
+        }
+        else
+        {
+          if (common::ConIdxStage::STAGE_INIT == which_stage)
+          {
+            ret = OB_ERROR;
+            //@todo(longfei):add an err code
+            TBSYS_LOG(ERROR,"can't understand the stage of cons static index,which_stage = %d",(int)which_stage);
+          }
+          else
+          {
+            index_handle_pool_.set_which_stage(which_stage);
+            ret = index_handle_pool_.schedule(which_stage);
+          }
+        }
+        //modify e
+      }
+      return ret;
+    }
+
+    void ObTabletManager::set_beat_tid(const uint64_t tid)
+    {
+      if(index_beat_tid_ != tid)
+      {
+        index_beat_tid_ = tid;
+      }
+    }
+  //add e
 
   }
 }

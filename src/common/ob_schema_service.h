@@ -29,6 +29,33 @@ namespace oceanbase
   namespace common
   {
     typedef ObObjType ColumnType;
+
+    //add longfei [cons static index] 151120:b
+    // index beat is a type of heart beat, can carry some information between rs and cs
+    typedef struct IndexHeartBeat
+    {
+      uint64_t idx_tid_;
+      IndexStatus status_;
+      int64_t hist_width_;
+      ConIdxStage stage_;
+      IndexHeartBeat()
+      {
+        idx_tid_ = OB_INVALID_ID;
+        status_ = IndexStatus::ERROR;
+        hist_width_ = 0;
+        stage_ = ConIdxStage::STAGE_INIT;
+      }
+      void reset()
+      {
+        idx_tid_ = OB_INVALID_ID;
+        status_ = IndexStatus::ERROR;
+        hist_width_ = 0;
+        stage_ = ConIdxStage::STAGE_INIT;
+      }
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    }IndexBeat;
+    //add e
+
     /* 表单join关系描述，对应于__all_join_info内部表 */
     struct JoinInfo
     {

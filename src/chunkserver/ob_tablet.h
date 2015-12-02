@@ -66,7 +66,11 @@ namespace oceanbase
     class ObTablet
     {
       public:
-        static const int64_t MAX_SSTABLE_PER_TABLET = 1;
+        //mod longfei [cons static index] 151121:b
+        //static const int64_t MAX_SSTABLE_PER_TABLET = 1;
+        static const int64_t MAX_SSTABLE_PER_TABLET = 2;
+        //mod e
+
         static const int64_t TABLET_ARRAY_BLOCK_SIZE = 256;
         static const int64_t MAX_COMPACTSSTABLE_PER_TABLET = 8;
       public:

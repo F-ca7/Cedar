@@ -40,6 +40,9 @@
 #include "ob_multi_tablet_merger.h"
 #include "ob_bypass_sstable_loader.h"
 #include "ob_file_recycle.h"
+// add longfei [cons static index] 151120:b
+#include "ob_index_handle_pool.h"
+// add e
 
 namespace oceanbase
 {
@@ -82,6 +85,17 @@ namespace oceanbase
         int start_bypass_loader_thread();
         int load_tablets(const int32_t* disk_no_array, const int32_t size);
         void destroy();
+        // add longfei [cons static index] 151120:b
+      public:
+        ObIndexHandlePool &get_index_handle_pool();
+        int init_index_handle_pool();
+        // mod longfei [cons static index]151121:b
+        //int get_ready_for_con_index();
+        int get_ready_for_con_index(common::ConIdxStage which_stage =
+            common::ConIdxStage::STAGE_INIT);
+        // mod e
+        void set_beat_tid(const uint64_t tid);
+        // add e
 
       public:
         /**
@@ -279,6 +293,10 @@ namespace oceanbase
         ObSwitchCacheUtility switch_cache_utility_;
 
         ObChunkMerge chunk_merge_;
+        // add longfei [cons static index] 151120:b
+        ObIndexHandlePool index_handle_pool_;
+        uint64_t index_beat_tid_;
+        // add e
         ObCompactSSTableMemThread cache_thread_;
         const ObChunkServerConfig* config_;
         ObBypassSSTableLoader bypass_sstable_loader_;

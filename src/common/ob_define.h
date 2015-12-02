@@ -682,6 +682,15 @@ namespace oceanbase
       WRITE_ONLY,//3
       INDEX_INIT,//4
     };
+
+    // add longfei [cons static index] 151120:b
+    enum ConIdxStage
+    {
+      STAGE_INIT = -1,
+      LOCAL_INDEX_STAGE = 0, //局部索引创建阶段
+      GLOBAL_INDEX_STAGE     //全局索引创建阶段
+    };
+    // add e
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \

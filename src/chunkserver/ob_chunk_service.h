@@ -319,7 +319,21 @@ namespace oceanbase
             easy_request_t* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
+        /**
+         * add longfei [cons static index] 151120:b
+         * construct static data of secondary index
+         */
+        int cs_recieve_wok(
+            const int32_t version,
+            const int32_t channel_id,
+            easy_request_t* req,
+            common::ObDataBuffer& in_buffer,
+            common::ObDataBuffer& out_buffer);
 
+        int handle_index_beat(IndexBeat beat);
+        /**
+         * add e
+         */
 
       private:
         class LeaseChecker : public common::ObTimerTask
@@ -363,6 +377,35 @@ namespace oceanbase
             bool task_scheduled_;
             ObChunkService* service_;
         };
+
+        // add longfei [cons static index] 111520:b
+        class SeIndexTask : public common::ObTimerTask
+        {
+          public:
+            SeIndexTask(ObChunkService* service)
+              :which_stage_(STAGE_INIT),task_scheduled_(false),service_(service){}
+          public:
+            inline bool is_scheduled() const { return task_scheduled_;}
+            inline void set_scheduled() { task_scheduled_ = true;}
+            inline void unset_scheduled() { task_scheduled_ = false;}
+            int set_schedule_idx_tid(uint64_t table_id);
+            void set_hist_width(int64_t hist_width);
+            bool get_round_end();
+            uint64_t get_schedule_idx_tid();
+            void try_stop_mission(uint64_t index_tid);
+            virtual void runTimerTask();
+          public:
+            // add longfei [cons static index] :b
+            inline int get_which_stage() const {return which_stage_;}
+            void set_which_stage(common::ConIdxStage stage);
+            // add e
+
+          private:
+            common::ConIdxStage which_stage_; // add longfei [cons static index] e
+            bool task_scheduled_;
+            ObChunkService* service_;
+        };
+        // add e
 
         class FetchUpsTask : public common::ObTimerTask
         {
@@ -418,6 +461,9 @@ namespace oceanbase
         LeaseChecker lease_checker_;
         StatUpdater  stat_updater_;
         MergeTask    merge_task_;
+        // add longfei [cons static index] 111520:b
+        SeIndexTask se_index_task_; // se_index_task_ is aimed to construct static data for secondary index
+        // add e
         FetchUpsTask fetch_ups_task_;
         ObMergerSchemaTask fetch_schema_task_;
         ReportTabletTask report_tablet_task_;

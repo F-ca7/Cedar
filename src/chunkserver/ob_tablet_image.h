@@ -116,7 +116,9 @@ namespace oceanbase
         int release_tablet(ObTablet* tablet, bool* is_remove_sstable = NULL) const;
         int acquire_tablet(const sstable::ObSSTableId& sstable_id, ObTablet* &tablet) const;
         int include_sstable(const sstable::ObSSTableId& sstable_id) const;
-
+        //add longfei [cons static index] 151121:b
+        const int acquire_tablets_by_table_id(const uint64_t table_id, common::ObVector<ObTablet*>& table_tablets) const ;
+        //add e
         int remove_sstable(ObTablet* tablet) const;
 
         int remove_tablet(const common::ObNewRange& range, int32_t &disk_no);

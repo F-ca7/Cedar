@@ -285,6 +285,14 @@ int ObTabletScan::build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
   return ret;
 }
 
+// add longfei [cons static index] 151130:b
+int ObTabletScan::build_sstable_scan_param_pub(ObArray<uint64_t> &basic_columns,
+    const ObSqlScanParam &sql_scan_param, sstable::ObSSTableScanParam &sstable_scan_param) const
+{
+  return build_sstable_scan_param(basic_columns, sql_scan_param, sstable_scan_param);
+}
+// add e
+
 int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
 {
   int ret = OB_SUCCESS;

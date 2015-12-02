@@ -667,3 +667,84 @@ DEFINE_DESERIALIZE(AlterTableSchema)
   }
   return ret;
 }
+
+//add longfei [cons static index] 151120:b
+DEFINE_SERIALIZE(IndexBeat)
+{
+  int ret=OB_SUCCESS;
+  if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, idx_tid)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, hist_width)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, status)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, stage)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+
+  return ret;
+}
+
+DEFINE_DESERIALIZE(IndexBeat)
+{
+  int ret = OB_SUCCESS;
+  int32_t status;
+  int32_t stage;
+  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&idx_tid))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&hist_width))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&status))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&stage))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else
+  {
+    if(0 == status)
+    {
+      status_ = NOT_AVALIBALE;
+    }
+    else if(1 == status)
+    {
+      status_ = AVALIBALE;
+    }
+    else if(3 == status)
+    {
+      status_ = WRITE_ONLY;
+    }
+    else if(4 == status)
+    {
+      status_ = INDEX_INIT;
+    }
+    else
+    {
+      status_ = ERROR;
+    }
+
+    if (0 == stage)
+    {
+      stage_ = ConIdxStage::LOCAL_INDEX_STAGE;
+    }
+    else if (1 == stage)
+    {
+      stage_ = ConIdxStage::GLOBAL_INDEX_STAGE;
+    }
+  }
+  return ret;
+}
+// add e

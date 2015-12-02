@@ -956,6 +956,40 @@ namespace oceanbase
       return ret;
     }
 
+    // add longfei [cons static index] 151121:b
+    const int ObTabletImage::acquire_tablets_by_table_id(
+        const uint64_t table_id,
+        common::ObVector<ObTablet *> &table_tablets) const
+    {
+      int ret = OB_SUCCESS;
+      if (OB_INVALID_ID == table_id)
+      {
+        TBSYS_LOG(WARN, "tablet image acquire_tablets, invalid table_id=%lu",
+            table_id);
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        ObSortedVector<ObTablet*>::iterator it = tablet_list_.begin();
+        for (; it != tablet_list_.end(); ++it)
+        {
+          if (0 == table_id || (*it)->get_range().table_id_ == table_id)
+          {
+            acquire();
+            (*it)->inc_ref();
+            if (OB_SUCCESS != (ret = table_tablets.push_back(*it)))
+            {
+              TBSYS_LOG(WARN, "failed to push back tablet into "
+                  "tablet vector, range=%s", to_cstring((*it)->get_range()));
+              break;
+            }
+          }
+        }
+      }
+      return ret;
+    }
+    //add e
+
     int ObTabletImage::remove_sstable(ObTablet* tablet) const
     {
       int ret = OB_SUCCESS;

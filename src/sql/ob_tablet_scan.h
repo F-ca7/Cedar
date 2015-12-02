@@ -87,6 +87,12 @@ namespace oceanbase
         {
           scan_context_ = scan_context;
         }
+        // add longfei [cons static index] 151130:b
+        // to public
+        int build_sstable_scan_param_pub(ObArray<uint64_t> &basic_columns,
+            const ObSqlScanParam &sql_scan_param,
+            sstable::ObSSTableScanParam &sstable_scan_param) const;
+        // add e
 
       private:
         // disallow copy
