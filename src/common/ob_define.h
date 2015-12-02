@@ -166,8 +166,11 @@ namespace oceanbase
     const int OB_WAITING_COMMIT = -148;
     const int OB_STMT_EXPIRED = -149;
     const int OB_DISCARD_PACKET = -150;
+    //del longfei 151201
     //longfei [drop index]
-    const int OB_INDEX_NOT_EXIST = -151;
+    //move this to SQL specific error code
+//    const int OB_INDEX_NOT_EXIST = -151;
+    //del e
 
 
     //error code for chunk server -1001 ---- -2000
@@ -356,6 +359,10 @@ namespace oceanbase
     const int OB_ERR_PROTOCOL_NOT_RECOGNIZE = -5068;
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 鏉ヨ嚜鐩戞帶鐨勮繛鎺ヤ細绔嬮┈鏂紑
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
+
+    //add longfei [drop table timeout] 151202:b
+    const int OB_INDEX_NOT_EXIST = -5075;
+    //add e
 
     const int OB_ERR_PS_TOO_MANY_PARAM = -5080;
     const int OB_ERR_READ_ONLY = -5081;

@@ -39,6 +39,10 @@ namespace oceanbase
       // retry interval time
       static const int64_t RETRY_INTERVAL_TIME = 20; // 20 ms usleep
       static const int64_t CREATE_DROP_TABLE_TIME_OUT = 5 * 1000 * 1000; // 5s
+      //add longfei [drop table with index timeout] 151202:b
+      static const int64_t DROP_INDEX_TIME_OUT = 30 * 1000 * 1000; // 30s
+      //add e
+
       ///
       int init(common::ObGeneralRpcStub *rpc_stub);
 

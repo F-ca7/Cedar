@@ -5809,7 +5809,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         return ret;
     }
 
-    //add wenghaixing [secondary index drop index]20141223
+    //add longfei [secondary index drop index]20141223
     int ObRootWorker::rt_drop_index(const int32_t version, ObDataBuffer &in_buff, easy_request_t *req, const uint32_t channel_id, ObDataBuffer &out_buff)
     {
       int ret = OB_SUCCESS;
@@ -5842,9 +5842,10 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         }
         else if (OB_SUCCESS != (ret = root_server_.drop_indexs(if_exists, index)))
         {
-          TBSYS_LOG(WARN, "failed to drop table, err=%d", ret);
+          TBSYS_LOG(WARN, "failed to drop index, err=%d", ret);
         }
         res.result_code_ = ret;
+        //TBSYS_LOG(ERROR,"test::longfei>>>res.result_code_ = %d",ret);//[drop table with index timeout] 151202
         ret = OB_SUCCESS;
       }
       if (OB_SUCCESS == ret)
@@ -5860,10 +5861,16 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         {
           TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
         }
+        else
+        {
+          // add longfei 151202
+          TBSYS_LOG(INFO,"drop index>response to mergerserve success");
+          // add e
+        }
       }
       return ret;
     }
     //add e
 
-  }; // end namespace
-}
+  }
+} // end namespace

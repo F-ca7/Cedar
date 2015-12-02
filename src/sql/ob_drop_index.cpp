@@ -38,7 +38,11 @@ int ObDropIndex::open()
   }
   else if(0 >= indexs_.count())
   {
-    ret=OB_INDEX_NOT_EXIST;
+    //mod longfei 151201
+    //ret=OB_INDEX_NOT_EXIST;
+    //TRANS_LOG("This table don't have index");
+    ret = OB_INDEX_NOT_EXIST;
+    //mod e
     TBSYS_LOG(WARN,"not index to drop");
   }
   //modify e

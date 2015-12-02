@@ -232,6 +232,7 @@ int ObCreateIndexStmt::set_storing_columns(ResultPlan& result_plan, const common
   }
   if(common::OB_SUCCESS == ret)
   {
+    // 冗余列不能是原表主键列
 	if(schema_checker->is_rowkey_column(table_name,storing_column))
 	{
 	  ret = common::OB_ERR_COLUMN_NOT_FOUND;
@@ -272,8 +273,7 @@ int ObCreateIndexStmt::set_storing_columns(ResultPlan& result_plan, const common
   {
 	if (common::OB_SUCCESS != (ret = ob_write_string(*name_pool_, storing_column, str)))
 	{
-	  TBSYS_LOG(ERROR,
-					"Make space for %.*s failed", storing_column.length(), storing_column.ptr());
+	  TBSYS_LOG(ERROR,"Make space for %.*s failed", storing_column.length(), storing_column.ptr());
 	}
 	else
 	{

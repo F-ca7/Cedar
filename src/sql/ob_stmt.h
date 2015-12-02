@@ -226,7 +226,7 @@ namespace oceanbase
 
       ObQueryHint& get_query_hint()
       {
-        TBSYS_LOG(ERROR, "test::longfei>>>in get_query_hint() func.");
+//        TBSYS_LOG(ERROR, "test::longfei>>>in get_query_hint() func.");
         return query_hint_;
       }
       

@@ -7345,7 +7345,7 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
 //add longfei [drop index] 20151027
 int ObRootServer2::drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh)
 {
-  TBSYS_LOG(ERROR,"test::longfei,,,in drop_one_index in ob_root_server.cpp table_name = %.*s , if_exists = %d",table_name.length(), table_name.ptr(), if_exists);
+//  TBSYS_LOG(INFO,"test::longfei,,,in drop_one_index in ob_root_server.cpp table_name = %.*s , if_exists = %d",table_name.length(), table_name.ptr(), if_exists);
   bool exist = false;
   refresh = false;
   int ret = check_table_exist(table_name, exist);

@@ -475,7 +475,7 @@ int ObRpcScan::open()
       if(is_use_index_for_storing_)
       {
         cur_row_for_storing_.set_row_desc(cur_row_desc_for_storing);
-        TBSYS_LOG(ERROR,"test::fanqs,,11,cur_row_desc_for_storing=%s",to_cstring(cur_row_desc_for_storing));
+//        TBSYS_LOG(ERROR,"test::fanqs,,11,cur_row_desc_for_storing=%s",to_cstring(cur_row_desc_for_storing));
       }
       //add:e
       FILL_TRACE_LOG("open %s", to_cstring(cur_row_desc_));
@@ -934,7 +934,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
   //modify by fanqiushi_index
-  TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d",is_use_index_);
+//  TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d",is_use_index_);
   if(!is_use_index_)   //如果不使用回表的索引，则按照原来的实现走
   {
       bool can_break = false;
@@ -992,7 +992,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
   }
   else
   {
-      TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d,,get_next_row_count_=%ld",is_use_index_,get_next_row_count_);
+//      TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d,,get_next_row_count_=%ld",is_use_index_,get_next_row_count_);
       if(get_next_row_count_==0)   //只有在第一次get_next_row的时候
       {
           if (NULL != get_param_)   //重置下get_param_
@@ -1044,7 +1044,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
                 if(OB_SUCCESS == ret)
                     get_next_row_count_++;
                 //add fanqiushi_index
-                TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
+//                TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
                 //add:e
             }
           }
@@ -1053,7 +1053,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
       }
       else if(get_next_row_count_% 5375 == 0)
       {
-          TBSYS_LOG(ERROR,"test::fanqs,,,get_next_row_count_=%ld",get_next_row_count_);
+//          TBSYS_LOG(ERROR,"test::fanqs,,,get_next_row_count_=%ld",get_next_row_count_);
           if (NULL != get_param_)   //重置下get_param_
           {
             get_param_->~ObSqlGetParam();
@@ -1118,24 +1118,24 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
           if(OB_SUCCESS == ret)
               get_next_row_count_++;
           //add fanqiushi_index
-          TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
+//          TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
           //add:e
       }
   }
 
   if (OB_SUCCESS == ret)
   {
-    TBSYS_LOG(ERROR,"test::fanqs,1110,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
+//    TBSYS_LOG(ERROR,"test::fanqs,1110,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
     if(is_use_index_for_storing_)
     {
         uint64_t tid=OB_INVALID_ID;
         uint64_t cid=OB_INVALID_ID;
         const ObObj *obj_tmp=NULL;
-        TBSYS_LOG(ERROR,"test::fanqs,,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
+//        TBSYS_LOG(ERROR,"test::fanqs,,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
         for(int64_t i=0;i<cur_row_.get_column_num();i++)   //根据索引表的一行构造原表的一行
         {
             cur_row_desc_.get_tid_cid(i,tid,cid);
-            TBSYS_LOG(ERROR,"test::fanqs,,tid=%ld,,main_table_id_=%ld,base_table_id_=%ld",tid,main_table_id_,base_table_id_);
+//            TBSYS_LOG(ERROR,"test::fanqs,,tid=%ld,,main_table_id_=%ld,base_table_id_=%ld",tid,main_table_id_,base_table_id_);
             if(tid == base_table_id_)
             {
                 cur_row_.raw_get_cell(i,obj_tmp);
@@ -1155,7 +1155,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
     else
         row = &cur_row_;
     //add fanqiushi_index
-    TBSYS_LOG(ERROR, "test::fanqs,,row=%s",to_cstring(*row) );
+//    TBSYS_LOG(ERROR, "test::fanqs,,row=%s",to_cstring(*row) );
     //add:e
   }
   //modify:e

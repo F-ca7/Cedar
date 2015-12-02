@@ -2123,6 +2123,7 @@ namespace oceanbase
             message = ObString::make_string(msg_buf); // default error message
           }
         }
+        //给mysql客户端发送错误包
         if (OB_SUCCESS == (ret = epacket.set_oberrcode(result->get_errcode()))
             && OB_SUCCESS == (ret = epacket.set_message(message)))
         {

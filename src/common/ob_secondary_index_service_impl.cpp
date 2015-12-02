@@ -16,7 +16,7 @@ using namespace sql;
 
 int ObSecondaryIndexServiceImpl::init(const ObSchemaManagerV2* schema_manager_)
 {
-  TBSYS_LOG(ERROR, "test::longfei>>>init secondary index service.");
+//  TBSYS_LOG(ERROR, "test::longfei>>>init secondary index service.");
   int ret = OB_SUCCESS;
   if(NULL == schema_manager_)
   {
@@ -105,7 +105,7 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
   if (column_count == 1 && ret == OB_SUCCESS)
   {
     cid = tmp_cid;
-    TBSYS_LOG(ERROR, "test::longfei>>>in find_cid() func() && cid = %d", (int)cid);
+//    TBSYS_LOG(ERROR, "test::longfei>>>in find_cid() func() && cid = %d", (int)cid);
   }
   else
   {
@@ -289,7 +289,7 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
 bool ObSecondaryIndexServiceImpl::is_have_main_cid(
     sql::ObSqlExpression& sql_expr, uint64_t main_column_id)
 { //如果表达式中有主表的第一主键，或者表达式中有超过两列的，返回true
-  TBSYS_LOG(ERROR, "test::longfei>>>in is_have_main_cid() func.");
+//  TBSYS_LOG(ERROR, "test::longfei>>>in is_have_main_cid() func.");
   int ret = OB_SUCCESS;
   bool return_ret = false;
   int64_t type = 0;
@@ -492,7 +492,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
     }
     //add:e
   }
-  TBSYS_LOG(ERROR,"test::fanqs,column_count=%d,EQ_count=%d",column_count,EQ_count);
+//  TBSYS_LOG(ERROR,"test::fanqs,column_count=%d,EQ_count=%d",column_count,EQ_count);
   if ((column_count == 1 && EQ_count == 1)
       || (column_count == 1 && IN_count == 1))
   {
@@ -505,7 +505,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
     {
       index_tid = tmp_index_tid[0];
       return_ret = true;
-      TBSYS_LOG(ERROR,"test::fanqs,column_count=%d,EQ_count=%d",column_count,EQ_count);
+//      TBSYS_LOG(ERROR,"test::fanqs,column_count=%d,EQ_count=%d",column_count,EQ_count);
     }
   }
   return return_ret;
@@ -548,7 +548,7 @@ bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
       ObSqlExpression col_expr = project_array->at(i);
       const sql::ObPostfixExpression& postfix_pro_expr =
           col_expr.get_decoded_expression();
-      TBSYS_LOG(ERROR,"test::fanqs,,col_expr=%s",to_cstring(col_expr));
+//      TBSYS_LOG(ERROR,"test::fanqs,,col_expr=%s",to_cstring(col_expr));
       if (!is_all_expr_cid_in_indextable(index_tid, postfix_pro_expr,
           schema_manager_))
       {
@@ -660,7 +660,7 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
     {
       for (int32_t i = 0; i < OB_MAX_INDEX_NUMS; i++)  //对每��?张符合条件的索引��?
       {
-        TBSYS_LOG(ERROR,"test::fanqs,,index_tid_array[i]=%ld",index_tid_array[i]);
+//        TBSYS_LOG(ERROR,"test::fanqs,,index_tid_array[i]=%ld",index_tid_array[i]);
         //uint64_t tmp_tid=index_tid_array[i];
         if (index_tid_array[i] != OB_INVALID_ID)
         {
@@ -669,7 +669,7 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
               project_array))
           {
             tmp_index_tid = index_tid_array[i];
-            TBSYS_LOG(ERROR,"test::fanqs,,tmp_index_tid=%ld",tmp_index_tid);
+//            TBSYS_LOG(ERROR,"test::fanqs,,tmp_index_tid=%ld",tmp_index_tid);
             ret = true;
             break;
           }
@@ -698,7 +698,7 @@ bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
       break;
     }
   }
-  TBSYS_LOG(ERROR, "test::longfei>>>in is_wherecondition_have_main_cid_V2() func and return_ret is %s", return_ret?"true":"false");
+//  TBSYS_LOG(ERROR, "test::longfei>>>in is_wherecondition_have_main_cid_V2() func and return_ret is %s", return_ret?"true":"false");
   return return_ret;
 }
 
@@ -730,7 +730,7 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
     Expr_Array *filter_array, Expr_Array *project_array,
     uint64_t &index_table_id, uint64_t main_tid)
 {
-  TBSYS_LOG(ERROR, "test::longfei>>>in decide_is_use_storing_or_not_V2() func.");
+//  TBSYS_LOG(ERROR, "test::longfei>>>in decide_is_use_storing_or_not_V2() func.");
   //输出：bool类型   返回值： uint64_t &index_table_id：索引表的tid
   bool return_ret = false;
   int ret = OB_SUCCESS;
@@ -750,12 +750,12 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
     if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid)) //判断where条件中是否有原表的第一主键，如果有，则不用索引
     {
       int64_t c_num = filter_array->count();
-      TBSYS_LOG(ERROR, "test::longfei>>>do not have original tab main_cid in filter array and # of filter array is %ld", c_num);
+//      TBSYS_LOG(ERROR, "test::longfei>>>do not have original tab main_cid in filter array and # of filter array is %ld", c_num);
       int32_t i = 0;
       for (; ret == OB_SUCCESS && i < c_num; i++)    //对where条件中的��?有表达式依次处理
       {
         ObSqlExpression c_filter = filter_array->at(i);
-        TBSYS_LOG(ERROR, "test::longfei>>>filter arrary is %s",to_cstring(c_filter));
+//        TBSYS_LOG(ERROR, "test::longfei>>>filter arrary is %s",to_cstring(c_filter));
         //判断该表达式能否使用不回表的索引
         if (is_expr_can_use_storing_V2(c_filter, tid, index_tid, filter_array,
             project_array))
@@ -767,7 +767,7 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
       }
     }
   }
-  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,index_table_id=%ld",return_ret,index_table_id);
+//  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,index_table_id=%ld",return_ret,index_table_id);
   return return_ret;
 }
 
@@ -775,7 +775,7 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
     Expr_Array *filter_array, Expr_Array *project_array,
     uint64_t index_table_id)
 {
-  TBSYS_LOG(ERROR, "test::longfei>>>in is_can_use_hint_for_storing_V2() func.");
+//  TBSYS_LOG(ERROR, "test::longfei>>>in is_can_use_hint_for_storing_V2() func.");
   bool cond_has_main_cid = false;
   bool can_use_hint_for_storing = false;
   const ObTableSchema *index_table_schema = NULL;

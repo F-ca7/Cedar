@@ -185,10 +185,10 @@ namespace oceanbase
           char *head = ptr_;
           ptr_ += data_length_;
           memcpy(ptr_, str, length);
-          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.the string %s will add.",ptr_);
+//          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.the string %s will add.",ptr_);
           ptr_ = head;
           data_length_ += length;
-          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.this Obstring is %s.",ptr_);
+//          TBSYS_LOG(ERROR, "test::longfei>>>in add_string func.this Obstring is %s.",ptr_);
           return ret;
         }
         // add e

@@ -917,6 +917,7 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
 
 int ObSchemaServiceImpl::get_table_id(const ObString& table_name, uint64_t& table_id)
 {
+//  TBSYS_LOG(ERROR,"test::longfei>>>table_name is %.*s",table_name.length(),table_name.ptr());
   int ret = OB_SUCCESS;
   if(!check_inner_stat())
   {
@@ -1778,7 +1779,7 @@ bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 
 	int64_t len = 1;
 	bool flag = true;
-    char temp[table_name.length()];
+  char temp[table_name.length()];
 	len = table_name.to_string(temp,table_name.length());
 //     TBSYS_LOG(ERROR,"test::longfei>>>in is_index_table_or_not() && table_name is %.*s && table_length is %ld",table_name.length(), table_name.ptr(),len);
 	if(len <= 0)

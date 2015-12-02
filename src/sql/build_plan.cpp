@@ -924,7 +924,6 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
 	ObString original_table_name_;
 	ObString index_table_name_;
 	uint64_t original_table_id_ = OB_INVALID_ID;
-	//@todo
 	if (result_plan->plan_tree_ == NULL)
 	{
 		logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
@@ -1052,8 +1051,11 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
 			);
 			if(OB_SUCCESS != (ret = create_index_stmt->set_index_columns(*result_plan, original_table_name_, index_column)))
 			{
-				snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-						"failed to add_index_colums!");
+        //mod longfei 151201
+//        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+//        						"failed to add_index_colums!");
+        TBSYS_LOG(ERROR, "failed to set_index_columns!");
+        //mod e
 				break;
 			}
 		}
@@ -1078,8 +1080,11 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
 				);
 				if(OB_SUCCESS != (ret = create_index_stmt->set_storing_columns(*result_plan, original_table_name_, storing_column)))
 				{
-					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-							"failed to add_index_colums!");
+                    //mod longfei 151201
+//					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+//							"failed to add_index_colums!");
+                    TBSYS_LOG(ERROR, "failed to set_storing_columns!");
+                    //mod e
 					break;
 				}
 			}
@@ -1299,7 +1304,7 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
        drp_idx_stmt->setDrpAll(true);
      }
    }
-   TBSYS_LOG(ERROR, "test::longfei,,,drp_all = %d, drop index logical plan succ!",drp_idx_stmt->isDrpAll());
+//   TBSYS_LOG(ERROR, "test::longfei,,,drp_all = %d, drop index logical plan succ!",drp_idx_stmt->isDrpAll());
    return ret;
 }
 //add e

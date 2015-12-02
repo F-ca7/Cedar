@@ -442,7 +442,7 @@ int ObMergerRootRpcProxy::fetch_master_ups(const ObServer &rootserver, ObServer 
 
 int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & indexs)
 {
-  TBSYS_LOG(ERROR, "test::longfei,,,You have got into drop index line.");
+//  TBSYS_LOG(ERROR, "test::longfei,,,You have got into drop index line.");
   int ret = OB_SUCCESS;
   if (!check_inner_stat())
   {
@@ -451,7 +451,10 @@ int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & i
   }
   else
   {
-    ret = rpc_stub_->drop_index(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, indexs);
+    // mod longfei [drop table with index timeout] 151202:b
+    //ret = rpc_stub_->drop_index(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, indexs);
+    ret = rpc_stub_->drop_index(DROP_INDEX_TIME_OUT, root_server_, if_exists, indexs);
+    // mod e
     if (ret != OB_SUCCESS)
     {
       TBSYS_LOG(WARN, "failed to drop index, err=%d", ret);
