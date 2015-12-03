@@ -209,10 +209,11 @@ int ObValues::load_data()
       row_desc_ = *row_desc;
     }
   }
-
+  TBSYS_LOG(INFO, "wjh_test ObValues_while start");
   while (OB_SUCCESS == ret)
   {
     ret = child_op_->get_next_row(row);
+    TBSYS_LOG(INFO, "wjh_test ObValues_row %s ret=%d", to_cstring(*row), ret);
     if (OB_ITER_END == ret)
     {
       ret = OB_SUCCESS;
@@ -231,6 +232,8 @@ int ObValues::load_data()
       }
     }
   }
+  TBSYS_LOG(INFO, "wjh_test ObValues_while stop");
+
   if (OB_SUCCESS != (err = child_op_->close()))
   {
     TBSYS_LOG(WARN, "fail to close rpc scan:err[%d]", err);
