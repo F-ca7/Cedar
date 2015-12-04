@@ -291,6 +291,8 @@ typedef enum ObItemType
 
   //add by zt 20151125:b
   T_ARRAY,
+  T_VAR_ARRAY_VAL,
+  T_ARRAY_VAL
   //add by zt 20151125:e
 
 } ObItemType;

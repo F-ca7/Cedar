@@ -25,6 +25,9 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_C_INST:
     ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
     break;
+  case SP_L_INST:
+    ret = execute_ups_loop(static_cast<SpUpsLoopInst*>(inst));
+    break;
   default:
     ret = OB_NOT_SUPPORTED;
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on updateserver", type);
@@ -49,39 +52,6 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   {}
   return ret;
 }
-
-//int SpUpsInstExecStrategy::execute_array_expr(SpArrayExprInst *inst)
-//{
-//  int ret = OB_SUCCESS;
-//  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(*(inst->get_val_expr())));
-//  common::ObRow input_row;
-//  const ObObj *val = NULL;
-//  int64_t idx = 0;
-//  if( OB_SUCCESS != (ret = inst->get_idx_expr()->calc(input_row, val)) )
-//  {
-//    TBSYS_LOG(WARN, "sp idx_expr calc failed");
-//  }
-//  else if( val->get_type() != ObIntType)
-//  {
-//    TBSYS_LOG(WARN, "idx value type is not int, value = %s", to_cstring(*val));
-//    ret = OB_ERR_ILLEGAL_INDEX;
-//  }
-//  else
-//  {
-//    ret = val->get_int(idx);
-//  }
-
-//  if( OB_SUCCESS == ret) {}
-//  else if((ret= inst->get_val_expr()->calc(input_row, val))!=OB_SUCCESS)
-//  {
-//    TBSYS_LOG(WARN, "sp expr compute failed");
-//  }
-//  //update the varialbe here
-//  //have some problem here, to store the array value on ups
-//  else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_array_name(), *val)) )
-//  {}
-//  return ret;
-//}
 
 //int SpRwDeltaInst::ups_exec()
 int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
@@ -199,6 +169,76 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     }
   }
   return ret;
+}
+
+int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; OB_SUCCESS == ret && i < inst->get_itr_count(); ++i)
+  {
+    SpMultiInsts & loop_body_itr = inst->get_loop_body(i);
+    if( OB_SUCCESS != (ret = execute_multi_inst(&loop_body_itr)) )
+    {
+      TBSYS_LOG(WARN, "execute loop inst failed at iteration: %ld", i);
+    }
+  }
+  return ret;
+}
+
+/*============================================================================
+ *                     SpUpsLoopInst  Definition
+ * ==========================================================================*/
+SpUpsLoopInst::~SpUpsLoopInst()
+{}
+
+int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  int64_t itr_count = 0;
+  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &itr_count)) )
+  {
+    TBSYS_LOG(WARN, "deserialize iteration count failed");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "expanded loop iteration count: %ld", itr_count);
+    expanded_loop_body_.reserve(itr_count);
+  }
+  for(int64_t i = 0; OB_SUCCESS == ret && i < itr_count; ++i)
+  {
+    SpMultiInsts mul_inst(this);
+    if( OB_SUCCESS != (ret = expanded_loop_body_.push_back(mul_inst)) )
+    {
+      TBSYS_LOG(WARN, "add iteration failed");
+    }
+    else if( OB_SUCCESS != (ret = expanded_loop_body_.at(expanded_loop_body_.count() - 1).
+                            deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)) )
+    {
+      TBSYS_LOG(WARN, "deserialize loop body failed at iteration: %ld", i);
+    }
+  }
+  return ret;
+}
+
+int SpUpsLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  UNUSED(buf);
+  UNUSED(buf_len);
+  UNUSED(pos);
+  return OB_NOT_SUPPORTED;
+}
+
+int64_t SpUpsLoopInst::to_string(char *buf, const int64_t buf_len) const
+{
+  UNUSED(buf);
+  UNUSED(buf_len);
+  return 0ll;
+}
+
+int SpUpsLoopInst::assign(const SpInst *inst)
+{
+  UNUSED(inst);
+  return OB_NOT_SUPPORTED;
 }
 
 /*============================================================================
@@ -345,6 +385,20 @@ int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) c
     TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
   }
 	return ret;
+}
+
+SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
+{
+  SpInst *new_inst = NULL;
+  if( type == SP_L_INST )
+  { //loop have a different deserialization methods
+    new_inst = create_inst<SpUpsLoopInst>(mul_inst);
+  }
+  else
+  {
+    new_inst = SpProcedure::create_inst(type, mul_inst);
+  }
+  return new_inst;
 }
 
 int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const

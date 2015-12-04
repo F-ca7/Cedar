@@ -577,11 +577,13 @@ int ObProcedure::create_variables()
 
       if( var.is_array_ ) //save the array vairable in th procedure
       {
-        ObProcArray temp;
-        arrays_.push_back(temp);
-        ObProcArray &arr_var = arrays_.at(arrays_.count() - 1);
-        arr_var.array_name_ = var.variable_name_;
-        arr_var.val_type_ = var.variable_type_;
+        ObArray<ObObj> tmp_array;
+        session->replace_vararray(var.variable_name_, tmp_array);
+//        ObProcArray temp;
+//        arrays_.push_back(temp);
+//        ObProcArray &arr_var = arrays_.at(arrays_.count() - 1);
+//        arr_var.array_name_ = var.variable_name_;
+//        arr_var.val_type_ = var.variable_type_;
       }
       else if(var.is_default_)
       {
@@ -629,22 +631,34 @@ int ObProcedure::clear_variables()
       {
         if( OB_SUCCESS != (ret=session->remove_variable(var.variable_name_)) )
         {
-          TBSYS_LOG(WARN, "replace_variable default_value_  ERROR");
+          TBSYS_LOG(WARN, "remove variable from sql_session[%p] fail", session);
         }
         else
         {
-          TBSYS_LOG(TRACE, "declare %.*s and set default_value",
-                    var.variable_name_.length(),var.variable_name_.ptr());
+          TBSYS_LOG(TRACE, "remove %.*s from sql_session[%p]",
+                    var.variable_name_.length(),var.variable_name_.ptr(), session);
+        }
+      }
+      else
+      {
+        if( OB_SUCCESS != (ret = session->remove_vararray(var.variable_name_)))
+        {
+          TBSYS_LOG(WARN, "remove vararray from sql_session[%p] fail", session);
+        }
+        else
+        {
+          TBSYS_LOG(TRACE, "remove %.*s[] from sql_session[%p]",
+                    var.variable_name_.length(),var.variable_name_.ptr(), session);
         }
       }
     }
 
-    for(int64_t i = 0; i < arrays_.count(); ++i)
+/*    for(int64_t i = 0; i < arrays_.count(); ++i)
     {
       ObProcArray & arr_var = arrays_.at(i);
       arr_var.array_value_.clear();;
     }
-    arrays_.clear();
+    arrays_.clear();*/
   }
   return ret;
 }
@@ -761,6 +775,8 @@ int ObProcedure::open()
 {
   int ret = OB_SUCCESS;
   SpMsInstExecStrategy strategy;
+
+  set_exec_strategy(&strategy);
   if( OB_SUCCESS != (ret = create_variables()))
   {
     TBSYS_LOG(WARN, "create varialbes fail");
@@ -779,7 +795,7 @@ int ObProcedure::open()
       }
     }
   }
-
+  set_exec_strategy(NULL);
   if( OB_SUCCESS != clear_variables() )
   {
     TBSYS_LOG(WARN, "clear varialbes fail");
@@ -797,40 +813,46 @@ int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)
 int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  bool find = false;
+//  bool find = false;
 
-  for(int64_t i = 0; i < arrays_.count(); ++i)
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->replace_vararray(array_name, idx_value, val)))
   {
-    ObProcArray &arr = arrays_.at(i);
-    if( arr.array_name_.compare(array_name) == 0 )
-    {
-      find = true;
-      if( idx_value < 0 )
-      {
-        ret = OB_ERR_ILLEGAL_INDEX;
-      }
-      else if( val.get_type() != arr.val_type_ )
-      {
-        TBSYS_LOG(USER_ERROR, "write the wrong type into array, %.*s", arr.array_name_.length(), arr.array_name_.ptr());
-        ret = OB_ERR_ILLEGAL_TYPE;
-      }
-      else if( idx_value >= arr.array_value_.count() )
-      {
-        while( OB_SUCCESS == ret && idx_value >= arr.array_value_.count() )
-        {
-          ObObj tmp_obj;
-          tmp_obj.set_null();
-          ret = arr.array_value_.push_back(tmp_obj);
-        }
-      }
-      if( OB_SUCCESS == ret )
-      {
-        arr.array_value_.at(idx_value) = val;
-      }
-      break;
-    }
+    TBSYS_LOG(WARN, "update %.*s[%ld] = %s in sqlsession[%p] fail",
+              array_name.length(), array_name.ptr(), idx_value,
+              to_cstring(val), my_phy_plan_->get_result_set()->get_session());
   }
-  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+//  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  {
+//    ObProcArray &arr = arrays_.at(i);
+//    if( arr.array_name_.compare(array_name) == 0 )
+//    {
+//      find = true;
+//      if( idx_value < 0 )
+//      {
+//        ret = OB_ERR_ILLEGAL_INDEX;
+//      }
+//      else if( val.get_type() != arr.val_type_ )
+//      {
+//        TBSYS_LOG(USER_ERROR, "write the wrong type into array, %.*s", arr.array_name_.length(), arr.array_name_.ptr());
+//        ret = OB_ERR_ILLEGAL_TYPE;
+//      }
+//      else if( idx_value >= arr.array_value_.count() )
+//      {
+//        while( OB_SUCCESS == ret && idx_value >= arr.array_value_.count() )
+//        {
+//          ObObj tmp_obj;
+//          tmp_obj.set_null();
+//          ret = arr.array_value_.push_back(tmp_obj);
+//        }
+//      }
+//      if( OB_SUCCESS == ret )
+//      {
+//        arr.array_value_.at(idx_value) = val;
+//      }
+//      break;
+//    }
+//  }
+//  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
   return ret;
 }
 
@@ -882,26 +904,33 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
 int ObProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
 {
   int ret = OB_SUCCESS;
-  bool find = false;
-  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  bool find = false;
+//  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  {
+//    const ObProcArray &arr = arrays_.at(i);
+//    if( arr.array_name_.compare(array_name) == 0 )
+//    {
+//      if( idx_value >= 0 && idx_value < arr.array_value_.count() )
+//      {
+//        val = & (arr.array_value_.at(idx_value));
+//      }
+//      else
+//      {
+//        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+//        ret = OB_ERR_ILLEGAL_INDEX;
+//      }
+//      find = true;
+//      break;
+//    }
+//  }
+
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->get_variable_value(array_name, idx_value, val)) )
   {
-    const ObProcArray &arr = arrays_.at(i);
-    if( arr.array_name_.compare(array_name) == 0 )
-    {
-      if( idx_value >= 0 && idx_value < arr.array_value_.count() )
-      {
-        val = & (arr.array_value_.at(idx_value));
-      }
-      else
-      {
-        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
-        ret = OB_ERR_ILLEGAL_INDEX;
-      }
-      find = true;
-      break;
-    }
+    TBSYS_LOG(WARN, "read %.*s[%ld] from sql_session_info[%p] fail",
+              array_name.length(), array_name.ptr(), idx_value, my_phy_plan_->get_result_set()->get_session());
   }
-  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+
+//  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
   return ret;
 }
 

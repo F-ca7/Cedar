@@ -9,6 +9,7 @@ namespace oceanbase
   namespace updateserver
   {
 
+    class SpUpsLoopInst;
     class SpUpsInstExecStrategy : public sql::SpInstExecStrategy
     {
     public:
@@ -23,6 +24,37 @@ namespace oceanbase
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
       virtual int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
+      int execute_ups_loop(SpUpsLoopInst *inst);
+    };
+
+    class SpUpsLoopInst : public sql::SpInst
+    {
+    public:
+      SpUpsLoopInst() : SpInst(SP_L_INST) {}
+      virtual ~SpUpsLoopInst();
+      virtual const VariableSet &get_read_variable_set() const { return rs_set_; }
+      virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
+
+      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+      int64_t get_iteration_count() const { return expanded_loop_body_.count(); }
+      SpMultiInsts & get_loop_body(int64_t itr) { return expanded_loop_body_.at(itr); }
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+      virtual int assign(const SpInst *inst);
+
+    private:
+      ObArray<SpMultiInsts> expanded_loop_body_;
+
+      VariableSet rs_set_;
+      VariableSet ws_set_;
+    };
+
+    template<>
+    struct sp_inst_traits<SpUpsLoopInst>
+    {
+      static const bool is_sp_inst = true;
     };
 
    class ObUpsProcedure : public sql::SpProcedure
@@ -41,6 +73,10 @@ namespace oceanbase
 
       virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
+
+      //specially handle the loop inst creataion
+      virtual SpInst * create_inst(SpInstType type, SpMultiInsts *mul_inst);
+
       virtual int64_t to_string(char* buf, const int64_t buf_len) const;
     private:
       //disallow copy

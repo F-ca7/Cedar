@@ -158,23 +158,26 @@ am__objects_1 = ob_cursor_declare_stmt.$(OBJEXT) \
 	ob_procedure_execute_stmt.$(OBJEXT) \
 	ob_procedure_execute.$(OBJEXT) \
 	ob_procedure_select_into_stmt.$(OBJEXT) \
-	ob_procedure_select_into.$(OBJEXT) ob_explain_stmt.$(OBJEXT) \
-	ob_insert_stmt.$(OBJEXT) ob_logical_plan.$(OBJEXT) \
-	ob_multi_logic_plan.$(OBJEXT) ob_multi_phy_plan.$(OBJEXT) \
-	ob_physical_plan.$(OBJEXT) ob_prepare_stmt.$(OBJEXT) \
-	ob_raw_expr.$(OBJEXT) ob_schema_checker.$(OBJEXT) \
-	ob_select_stmt.$(OBJEXT) ob_show_schema_manager.$(OBJEXT) \
-	ob_show_stmt.$(OBJEXT) ob_stmt.$(OBJEXT) \
-	ob_sys_params_mgr.$(OBJEXT) ob_transformer.$(OBJEXT) \
-	ob_update_stmt.$(OBJEXT) ob_variable_set_stmt.$(OBJEXT) \
-	ob_kill_stmt.$(OBJEXT) parse_malloc.$(OBJEXT) \
-	parse_node.$(OBJEXT) sql_parser.lex.$(OBJEXT) \
-	sql_parser.tab.$(OBJEXT) type_name.$(OBJEXT) \
-	priv_build_plan.$(OBJEXT) ob_drop_user_stmt.$(OBJEXT) \
-	ob_set_password_stmt.$(OBJEXT) ob_rename_user_stmt.$(OBJEXT) \
-	ob_lock_user_stmt.$(OBJEXT) ob_grant_stmt.$(OBJEXT) \
-	ob_revoke_stmt.$(OBJEXT) ob_non_reserved_keywords.$(OBJEXT) \
-	ob_priv_executor.$(OBJEXT) ob_change_obi_stmt.$(OBJEXT)
+	ob_procedure_select_into.$(OBJEXT) \
+	ob_variable_set_array_value_stmt.$(OBJEXT) \
+	ob_variable_set_array_value.$(OBJEXT) \
+	ob_explain_stmt.$(OBJEXT) ob_insert_stmt.$(OBJEXT) \
+	ob_logical_plan.$(OBJEXT) ob_multi_logic_plan.$(OBJEXT) \
+	ob_multi_phy_plan.$(OBJEXT) ob_physical_plan.$(OBJEXT) \
+	ob_prepare_stmt.$(OBJEXT) ob_raw_expr.$(OBJEXT) \
+	ob_schema_checker.$(OBJEXT) ob_select_stmt.$(OBJEXT) \
+	ob_show_schema_manager.$(OBJEXT) ob_show_stmt.$(OBJEXT) \
+	ob_stmt.$(OBJEXT) ob_sys_params_mgr.$(OBJEXT) \
+	ob_transformer.$(OBJEXT) ob_update_stmt.$(OBJEXT) \
+	ob_variable_set_stmt.$(OBJEXT) ob_kill_stmt.$(OBJEXT) \
+	parse_malloc.$(OBJEXT) parse_node.$(OBJEXT) \
+	sql_parser.lex.$(OBJEXT) sql_parser.tab.$(OBJEXT) \
+	type_name.$(OBJEXT) priv_build_plan.$(OBJEXT) \
+	ob_drop_user_stmt.$(OBJEXT) ob_set_password_stmt.$(OBJEXT) \
+	ob_rename_user_stmt.$(OBJEXT) ob_lock_user_stmt.$(OBJEXT) \
+	ob_grant_stmt.$(OBJEXT) ob_revoke_stmt.$(OBJEXT) \
+	ob_non_reserved_keywords.$(OBJEXT) ob_priv_executor.$(OBJEXT) \
+	ob_change_obi_stmt.$(OBJEXT)
 am__objects_2 = ob_cursor_fetch.$(OBJEXT) \
 	ob_cursor_fetch_first.$(OBJEXT) ob_cursor_fetch_last.$(OBJEXT) \
 	ob_cursor_fetch_fromto.$(OBJEXT) \
@@ -546,6 +549,8 @@ sql_parser_sources = \
   ob_procedure_execute.h      ob_procedure_execute.cpp \
   ob_procedure_select_into_stmt.h  ob_procedure_select_into_stmt.cpp\
   ob_procedure_select_into.h  ob_procedure_select_into.cpp\
+  ob_variable_set_array_value_stmt.h   ob_variable_set_array_value_stmt.cpp\
+  ob_variable_set_array_value.h   ob_variable_set_array_value.cpp\
   ob_explain_stmt.h           ob_explain_stmt.cpp      \
   ob_insert_stmt.h            ob_insert_stmt.cpp       \
   ob_item_type.h                                       \
@@ -973,6 +978,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_ups_scan.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_values.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_variable_set.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_variable_set_array_value.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_variable_set_array_value_stmt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_variable_set_stmt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_when_filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse_malloc.Po@am__quote@

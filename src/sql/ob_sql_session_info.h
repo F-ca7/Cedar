@@ -185,6 +185,14 @@ namespace oceanbase
         int store_params_type(int64_t stmt_id, const common::ObIArray<obmysql::EMySQLFieldType> &params_type);
         int replace_variable(const common::ObString& var, const common::ObObj& val);
         int remove_variable(const common::ObString& var);
+
+        //add zt 20151202:b
+        int replace_vararray(const common::ObString& var, const common::ObArray<ObObj> &val);
+        int replace_vararray(const ObString &var, int64_t idx_value, const ObObj &val);
+        int remove_vararray(const common::ObString& var);
+        int get_variable_value(const common::ObString &var, int64_t idx, const common::ObObj* &val) const;
+        //add zt 20151202:e
+
         int update_system_variable(const common::ObString& var, const common::ObObj& val);
         int load_system_variable(const common::ObString& name, const common::ObObj& type, const common::ObObj& value);
         int get_variable_value(const common::ObString& var, common::ObObj& val) const;
@@ -277,6 +285,17 @@ namespace oceanbase
         common::ObPooledAllocator<ObResultSet, common::ObWrapperAllocator> result_set_pool_;
         common::ObPooledAllocator<ObPsSessionInfo, common::ObWrapperAllocator> ps_session_info_pool_;
         common::ObPooledAllocator<ObObj, common::ObWrapperAllocator> ps_session_info_param_pool_;
+
+        //add zt 20151202:b
+        struct ObVarArray
+        {
+          ObString var_array_name_;
+          ObArray<ObObj> value_;
+        };
+
+        const static int VAR_ARRAY_COUNT = 5;
+        ObSEArray<ObVarArray, VAR_ARRAY_COUNT>  var_arrays_;
+        //add zt 20151202:e
     };
 
     inline const common::ObString ObSQLSessionInfo::get_current_query_string() const

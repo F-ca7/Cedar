@@ -193,6 +193,13 @@ namespace oceanbase
         int64_t query_string_id_;
         common::ObObj *cur_time_; // only used when the sql contains fun like current_time
 
+        /**
+         * When add this pointer, I would use is the located the running procedure, then I
+         * can read variables or array from that. This is important when doing postfix_exprssion
+         * calculation. However, if we only read variables or array from ObSqlSession, Such desgin
+         * is not necessary.
+         * @brief proc_
+         */
         SpProcedure *proc_; //add zt: 20151201
     };
 
@@ -226,7 +233,8 @@ namespace oceanbase
        my_session_(NULL),
        ps_trans_allocator_(NULL),
        query_string_id_(0),
-       cur_time_(NULL)
+       cur_time_(NULL),
+       proc_(NULL) //add zt 20151202
     {
       message_[0] = '\0';
     }

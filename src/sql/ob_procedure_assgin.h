@@ -8,16 +8,16 @@ namespace oceanbase
 {
 	namespace sql
   {
-    struct ObVarAssignVal
-    {
-      ObString    variable_name_;
-      ObSqlExpression var_value_;
-      VariableSet rs_;
-      int add_rs_var(ObString &r_var)
-      {
-        return rs_.addVariable(r_var);
-      }
-    };
+//    struct ObVarAssignVal
+//    {
+//      ObString    variable_name_;
+//      ObSqlExpression var_value_;
+//      VariableSet rs_;
+//      int add_rs_var(ObString &r_var)
+//      {
+//        return rs_.addVariable(r_var);
+//      }
+//    };
 
 //		class ObPhysicalPlan;
 //		class ObProcedureAssgin : public ObSingleChildPhyOperator

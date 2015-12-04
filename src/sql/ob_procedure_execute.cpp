@@ -168,6 +168,7 @@ int ObProcedureExecute::open()
         common::ObRow tmp_row;
         const ObObj *result = NULL;
 
+        TBSYS_LOG(INFO, "param %ld: %s", i, to_cstring(expr));
         // 如果是输出参数则
         if( param_def.out_type_ == OUT_TYPE )
         {

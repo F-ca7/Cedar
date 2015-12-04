@@ -43,12 +43,12 @@ namespace oceanbase
      * @brief The ObProcArray struct
      * save the array variables in the procedure
      */
-    struct ObProcArray
-    {
-      ObString array_name_;
-      ObObjType val_type_;
-      ObArray<ObObj> array_value_;
-    };
+//    struct ObProcArray
+//    {
+//      ObString array_name_;
+//      ObObjType val_type_;
+//      ObArray<ObObj> array_value_;
+//    };
 
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
@@ -127,7 +127,7 @@ namespace oceanbase
 
       SpInstList exec_list_;
 
-      ObArray<ObProcArray> arrays_;
+//      ObArray<ObProcArray> arrays_;
       mergeserver::ObMergerRpcProxy *rpc_;
     }; 
   }

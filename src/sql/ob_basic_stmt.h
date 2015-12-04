@@ -105,7 +105,8 @@ namespace oceanbase
 		T_PROCEDURE_ELSEIF,
 		T_PROCEDURE_ELSE,
 		T_PROCEDURE_EXEC,
-		T_PROCEDURE_SELECT_INTO
+    T_PROCEDURE_SELECT_INTO,
+    T_VARIABLE_SET_ARRAY_VALUE
 		//code_coverage_zhujun
 		//add:e
       };

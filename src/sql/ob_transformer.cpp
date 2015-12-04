@@ -159,6 +159,8 @@
 #include "ob_procedure_select_into_stmt.h"
 #include "ob_procedure_select_into.h"
 #include "ob_procedure_loop_stmt.h"
+#include "ob_variable_set_array_value_stmt.h"
+#include "ob_variable_set_array_value.h"
 //code_coverage_zhujun
 //add:e
 using namespace oceanbase::common;
@@ -434,6 +436,9 @@ int ObTransformer::generate_physical_plan(
           break;
 		//add by zhujun:b
         //code_coverage_zhujun
+        case ObBasicStmt::T_VARIABLE_SET_ARRAY_VALUE:
+          ret = gen_physical_set_array_value(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
         case ObBasicStmt::T_PROCEDURE_CREATE:
         	ret=gen_physical_procedure_create(logical_plan, physical_plan, err_stat, query_id, index);
         	break;
@@ -633,6 +638,45 @@ int ObTransformer::add_phy_query(
 
 //add by zhujun:b
 //code_coverage_zhujun
+int ObTransformer::gen_physical_set_array_value(
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat &err_stat,
+                const uint64_t &query_id,
+                int32_t *index
+                )
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+//  ObVariableSet *result_op = NULL;
+  ObVariableSetArrayValue *result_op = NULL;
+  ObVariableSetArrayValueStmt *stmt = NULL;
+  /* get variable set statement */
+  get_stmt(logical_plan, err_stat, query_id, stmt);
+  /* generate operator */
+  if (ret == OB_SUCCESS)
+  {
+    CREATE_PHY_OPERRATOR(result_op, ObVariableSetArrayValue, physical_plan, err_stat);
+    if (ret == OB_SUCCESS)
+    {
+      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+    }
+
+    if( OB_SUCCESS != ret ) {}
+    else
+    {
+      result_op->set_var_name(stmt->get_var_name());
+      for(int64_t i = 0; i < stmt->count(); ++i)
+      {
+        //TODO for varchar object, we need to write a new obj here
+        result_op->add_array_value(stmt->get_value(i));
+      }
+    }
+  }
+  return ret;
+}
+
+
+
 int ObTransformer::gen_physical_procedure(
                 ObLogicalPlan *logical_plan,
                 ObPhysicalPlan *physical_plan,
@@ -695,47 +739,6 @@ int ObTransformer::gen_physical_procedure(
         uint64_t stmt_id=stmt->get_stmt(i);
 
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//        ObBasicStmt::StmtType type = logical_plan->get_query(stmt_id)->get_stmt_type();
-//        int32_t idx = OB_INVALID_INDEX;
-//        ObPhyOperator* op = NULL;
-//        /*这里应该过滤一些类型的语句*/
-
-//        switch(type)
-//        {
-//        case ObBasicStmt::T_PROCEDURE_ASSGIN:
-//          gen_physical_procedure_assign(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_DECLARE:
-//          ret=gen_physical_procedure_declare(logical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_INSERT:
-//          ret=gen_physical_procedure_insert(logical_plan, physical_plan, err_stat, stmt_id, result_op); //result_op should be added into the procedure
-//          break;
-//        case ObBasicStmt::T_UPDATE:
-//          ret=gen_physical_procedure_update(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
-//          ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_IF:
-//          ret=gen_physical_procedure_if(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        default:
-//          if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
-//          {
-//            TBSYS_LOG(ERROR, "generate_physical_plan failed, type %d, idx %ld", type, i);
-//          }
-//          else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
-//          {
-//            ret = OB_ERR_ILLEGAL_INDEX;
-//            TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
-//          }
-//          break;
-//        }
-//        if( OB_SUCCESS != ret )
-//        {
-//          TBSYS_LOG(WARN, "generate insturction failed, id %ld", i);
-//        }
       }
       TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
       result_op->optimize();
@@ -1282,7 +1285,8 @@ int ObTransformer::gen_physical_procedure_if(
 
       SpIfCtrlInsts* elseif_control = if_control;
       if(stmt->have_elseif())
-      {        for(int64_t i = 0; ret = OB_SUCCESS && i < stmt->get_elseif_stmt_size(); i++)
+      {
+        for(int64_t i = 0; OB_SUCCESS ==ret && i < stmt->get_elseif_stmt_size(); i++)
         {
           uint64_t stmt_id = stmt->get_elseif_stmt(i);
 

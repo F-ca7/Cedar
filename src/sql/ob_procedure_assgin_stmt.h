@@ -11,59 +11,6 @@ using namespace oceanbase::common;
 namespace oceanbase {
   namespace sql {
 
-    struct VariableSet
-    {
-//      typedef ObSEArray<ObString, 4> VarArray;
-      typedef ObArray<ObString> VarArray;
-      VariableSet() {}
-//      VariableSet(ObArray<ObString> &array) : var_set_(array)
-//      {}
-
-      int addVariable(const ObString &var_name)
-      {
-        int ret = OB_SUCCESS;
-        bool flag = false;
-        for(int64_t i = 0; i < var_set_.count(); ++i)
-        {
-          if( var_name.compare(var_set_.at(i)) == 0 )
-          {
-            flag = true;
-            break;
-          }
-        }
-        if( flag ) {}
-        else if( OB_SUCCESS != (ret = var_set_.push_back(var_name)) )
-        {}
-        return ret;
-      }
-
-      int addVariable(const VariableSet& var_set)
-      {
-        int ret = OB_SUCCESS;
-        for(int64_t i = 0; i < var_set.var_set_.count(); ++i)
-        {
-          bool flag = false;
-          const ObString &var_name = var_set.var_set_.at(i);
-          for(int64_t i = 0; i < var_set_.count(); ++i)
-          {
-            if( var_name.compare(var_set_.at(i)) == 0 )
-            {
-              flag = true;
-              break;
-            }
-          }
-          if( flag ) {}
-          else if( OB_SUCCESS != (ret = var_set_.push_back(var_name)) )
-          {
-            TBSYS_LOG(WARN, "add varialbes into var_set fail");
-          }
-        }
-        return ret;
-      }
-
-      VarArray var_set_;
-    };
-
     struct ObRawVarAssignVal
     {
       ObString var_name_;

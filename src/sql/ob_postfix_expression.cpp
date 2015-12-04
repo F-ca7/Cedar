@@ -904,19 +904,6 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "Can not get current time. err=%d", ret);
               }
             }
-            //add zt 20151126:b
-//            else if( type == ARRAY_VAR )
-//            {
-//              //we tends to find the array_value from the ObProcedure now, later we can bind the array_value with the session
-//              SpProcedure *proc = result_set->get_running_procedure();
-//              ObString var_name;
-//              if( OB_SUCCESS != (ret = expr_node.get_varchar(var_name)))
-//              {
-//                TBSYS_LOG(ERROR, "Can not get array variable name, %.*s", var_name.length(), var_name.ptr());
-//              }
-//            }
-            //add zt 20151126:e
-
           }
           //add zt 20151109 :b
           /**
@@ -969,17 +956,25 @@ namespace oceanbase
       //now we only support use array in the procedure
       else if( owner_op_->get_phy_plan()->get_result_set() == NULL)
       {
-        TBSYS_LOG(WARN, "cannot use array value outside the ms");
+        TBSYS_LOG(WARN, "cannot use array value outside the ms"); //perhaps it is a ups execution
         ret = OB_NOT_SUPPORTED;
       }
       else
       {
-        const SpProcedure *proc_op = owner_op_->get_phy_plan()->get_result_set()->get_running_procedure();
-        if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)) )
+//        const SpProcedure *proc_op = owner_op_->get_phy_plan()->get_result_set()->get_running_procedure();
+
+//        if( proc_op == NULL )
+//        {
+        if( OB_SUCCESS != (ret =  owner_op_->get_phy_plan()->get_result_set()->get_session()->get_variable_value(array_name, idx_value, val)) )
         {
-          TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
-          ret = OB_ERR_VARIABLE_UNKNOWN;
+          TBSYS_LOG(WARN, "read %.*s[%ld] from session_info fail, ret=%d", array_name.length(), array_name.ptr(), array_idx_value, ret);
         }
+        //        }
+        //        else if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)))
+        //        {
+        //          TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
+        //          ret = OB_ERR_VARIABLE_UNKNOWN;
+        //        }
         else
         {
           TBSYS_LOG(TRACE, "read %.*s[%ld] = %s", array_name.length(), array_name.ptr(), idx_value, to_cstring(*val));
@@ -1381,23 +1376,31 @@ namespace oceanbase
         * PARAM_IDX could be resolved on ups
         * we send the real value to ups
         */
-      if( !owner_op_->get_phy_plan()->is_proc_exec() || type == PARAM_IDX)
+      if( !owner_op_->get_phy_plan()->is_proc_exec() || type == PARAM_IDX )
       { //normal execution path
-        ObObj new_type;
-        new_type.set_int(CONST_OBJ);
-        const ObObj *val = NULL;
-        if (OB_SUCCESS != (ret = new_type.serialize(buf, buf_len, pos)))
+        if( type == ARRAY_VAR )
         {
-          TBSYS_LOG(WARN, "Fail to serialize type CONST_OBJ");
+          TBSYS_LOG(WARN, "serialize array variable outsize of stored procedure is not supported");
+          ret = OB_NOT_SUPPORTED;
         }
-        else if (OB_SUCCESS != (ret = get_var_obj(static_cast<ObPostExprNodeType>(type), expr_node, val)))
+        else
         {
-          ret = OB_ERR_UNEXPECTED;
-          TBSYS_LOG(WARN,"Get value ObObj failed [err:%d]", ret);
-        }
-        else if (OB_SUCCESS != (ret = val->serialize(buf, buf_len, pos)))
-        {
-          TBSYS_LOG(WARN, "fail to serialize expr. ret=%d", ret);
+          ObObj new_type;
+          new_type.set_int(CONST_OBJ);
+          const ObObj *val = NULL;
+          if (OB_SUCCESS != (ret = new_type.serialize(buf, buf_len, pos)))
+          {
+            TBSYS_LOG(WARN, "Fail to serialize type CONST_OBJ");
+          }
+          else if (OB_SUCCESS != (ret = get_var_obj(static_cast<ObPostExprNodeType>(type), expr_node, val)))
+          {
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(WARN,"Get value ObObj failed [err:%d]", ret);
+          }
+          else if (OB_SUCCESS != (ret = val->serialize(buf, buf_len, pos)))
+          {
+            TBSYS_LOG(WARN, "fail to serialize expr. ret=%d", ret);
+          }
         }
       }
       else
@@ -1465,7 +1468,8 @@ namespace oceanbase
             }
           }
           //add zt 20151121:e
-          else if (type == PARAM_IDX || type == SYSTEM_VAR || type == TEMP_VAR) // || type == CUR_TIME_OP) //delete by zt 20151121
+          //else if( type == PARAM_IDX || type == SYSTEM_VAR || type == TEMP_VAR || type == CUR_TIME_OP )  //delete by zt
+          else if (type == PARAM_IDX || type == SYSTEM_VAR || type == TEMP_VAR || type == ARRAY_VAR) //add by zt
           {
             //delete zt 20151109:b
 //            ObObj new_type;

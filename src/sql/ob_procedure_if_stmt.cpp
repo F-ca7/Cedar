@@ -48,18 +48,18 @@ int ObProcedureIfStmt::set_have_else(bool flag)
 	return OB_SUCCESS;
 }
 
-bool ObProcedureIfStmt::have_elseif()
+bool ObProcedureIfStmt::have_elseif() const
 {
 	return have_else_if_;
 }
 
-bool ObProcedureIfStmt::have_else()
+bool ObProcedureIfStmt::have_else() const
 {
 	return have_else_;
 }
 
 /*if表达的id*/
-uint64_t ObProcedureIfStmt::get_expr_id()
+uint64_t ObProcedureIfStmt::get_expr_id() const
 {
 	return expr_id_;
 }
@@ -69,32 +69,32 @@ const ObArray<uint64_t> &ObProcedureIfStmt::get_then_stmts() const/*then语句�
 	return then_stmts_;
 }
 
-uint64_t& ObProcedureIfStmt::get_then_stmt(int64_t index)/*then语句*/
+uint64_t ObProcedureIfStmt::get_then_stmt(int64_t index) const
 {
 	return then_stmts_.at(index);
 }
 
-const ObArray<uint64_t> &ObProcedureIfStmt::get_elseif_stmts() const/*else if语句列表*/
+const ObArray<uint64_t> &ObProcedureIfStmt::get_elseif_stmts() const
 {
 	return elseif_stmts_;
 }
 
-uint64_t& ObProcedureIfStmt::get_elseif_stmt(int64_t index)/*else if语句*/
+uint64_t ObProcedureIfStmt::get_elseif_stmt(int64_t index) const
 {
 	return elseif_stmts_.at(index);
 }
 
-uint64_t ObProcedureIfStmt::get_else_stmt()/*else语句*/
+uint64_t ObProcedureIfStmt::get_else_stmt() const
 {
 	return else_stmt_;
 }
 
-int64_t ObProcedureIfStmt::get_then_stmt_size()
+int64_t ObProcedureIfStmt::get_then_stmt_size() const
 {
 	return then_stmts_.count();
 }
 
-int64_t ObProcedureIfStmt::get_elseif_stmt_size()
+int64_t ObProcedureIfStmt::get_elseif_stmt_size() const
 {
 	return elseif_stmts_.count();
 }

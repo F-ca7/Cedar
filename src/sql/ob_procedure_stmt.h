@@ -24,6 +24,7 @@ namespace oceanbase {
       ObString    param_name_;/*参数名称*/
       ObObjType   param_type_;/*参数类型*/
       ObObj       default_value_;/*默认值*/
+      bool				is_array;
       ParamType	out_type_;/*输出类型*/
     };
 
