@@ -1245,8 +1245,6 @@ int SpProcedure::debug_status(const SpInst *inst) const
   SpVariableSet rs, ws;
   if( inst != NULL && inst->get_ownner() == this )
   {
-//    const VariableSet &rs = inst->get_read_variable_set();
-//    const VariableSet &ws = inst->get_write_variable_set();
     inst->get_read_variable_set(rs);
     inst->get_write_variable_set(ws);
     char debug_buf[1024];
@@ -1254,19 +1252,39 @@ int SpProcedure::debug_status(const SpInst *inst) const
 
     databuff_printf(debug_buf, buf_len, pos, "\ninst %ld\n", pc_);
 
-    for(int64_t i = 0; i < rs.var_set_.count(); ++i)
+    for(int64_t i = 0; i < rs.var_info_set_.count(); ++i)
     {
-      ObObj val;
-      const ObString &var_name = rs.var_set_.at(i);
-      if( OB_SUCCESS == read_variable(var_name, val))
+      const SpVarInfo &var_info = rs.var_info_set_.at(i);
+
+      if( var_info.using_method_ == VM_TMP_VAR )
       {
-        databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
-                        var_name.length(), var_name.ptr(), to_cstring(val));
+        //read temp variable
+        ObObj val;
+        if( OB_SUCCESS == read_variable(var_info.var_name_, *val) )
+        {
+          databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
+                          var_info.var_name_.length(), var_info.var_name_.ptr(), to_cstring(val));
+        }
+        else
+        {
+          databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
+                          var_info.var_name_.length(), var_info.var_name_.ptr());
+        }
       }
-      else
+      else if( var_info.using_method_ == VM_FUL_ARY )
       {
-         databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] not found.\n",
-                         var_name.length(), var_name.ptr());
+        //read full array
+        ObObj *val;
+        int64_t arr_size = 0;
+        read_array_size(var_info.var_name_, arr_size);
+        databuff_printf(debug_buf, buf_len, pos, "\tvar [");
+        for(int64_t j = 0; j <  arr_size; ++j)
+        {
+          read_variable(var_info.var_name_, j, val);
+          databuff_printf(debug_buf, buf_len, pos, "%s ", to_cstring(*val));
+        }
+        pos -= 1; //elimate the last white space
+        databuff_printf(debug_buf, buf_len, pos, "]\n");
       }
     }
 
