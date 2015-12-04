@@ -98,6 +98,10 @@ int ObUpsExecutor::open()
         TBSYS_LOG(DEBUG, "execute sub query %d", i);
         if (OB_SUCCESS != (ret = aux_query->open()))
         {
+//add wangjiahao [ob_update_more] 20151204 :b
+          //No data to update, About!
+          if (ret != OB_NO_RESULT)
+//add :e
           TBSYS_LOG(WARN, "failed to execute sub-query, err=%d i=%d", ret, i);
           break;
         }
@@ -197,6 +201,9 @@ int ObUpsExecutor::open()
       }
     }
   }
+//add wangjiahao [ob_update_more] 20151204 :b
+  if (ret == OB_NO_RESULT) ret = OB_SUCCESS;
+//add :e
   return ret;
 }
 

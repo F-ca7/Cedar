@@ -306,6 +306,18 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+//add wangjiahao [update_more] 20151204 :b
+        int gen_phy_table_for_update_more(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan*& physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            const ObRowkeyInfo &rowkey_info,
+            const ObRowDesc &row_desc,
+            const ObRowDescExt &row_desc_ext,
+            ObPhyOperator*& table_op);
+//add :e
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
