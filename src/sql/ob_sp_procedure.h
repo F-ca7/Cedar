@@ -111,6 +111,8 @@ namespace oceanbase
       int add_var_info_set(const SpVariableSet &var_set);
       int add_var_info(const SpVarInfo &var_info);
 
+      int64_t count() const { return var_info_set_.count(); }
+      const SpVarInfo & get_var_info(int64_t idx) const { return var_info_set_.at(idx); }
       int64_t to_string(char *buf, int64_t buf_len) const;
 
     private:
@@ -194,7 +196,7 @@ namespace oceanbase
       ObSqlExpression& get_val() { return right_val_; }
       SpVar & get_var() { return left_var_; }
 
-      int add_rs_var(const ObString &name) { return rs_.add_var(name); }
+      int add_rs_var(const ObString &name) { return rs_.add_tmp_var(name); }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 

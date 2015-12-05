@@ -435,16 +435,16 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   case SP_E_INST:
     break;
   case SP_B_INST:
-    ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
+    ret = static_cast<SpRdBaseInst*>(inst)->get_rd_op()->close();
     break;
   case SP_D_INST:
-    ret = static_cast<SpRwDeltaInst*>(inst)->ups_exec_op_->close();
+    ret = static_cast<SpRwDeltaInst*>(inst)->get_ups_exec_op()->close();
     break;
   case SP_DE_INST:
-    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->ups_exec_op_->close();
+    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->get_ups_exec_op()->close();
     break;
   case SP_A_INST:
-    ret = static_cast<SpRwCompInst*>(inst)->op_->close();
+    ret = static_cast<SpRwCompInst*>(inst)->get_rwcomp_op()->close();
     break;
   case SP_BLOCK_INST:
     break;

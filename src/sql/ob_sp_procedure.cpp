@@ -5,7 +5,7 @@ using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
 /* ========================================================
- *      SpInst Definition
+ *      SpVar Definition
  * =======================================================*/
 
 int64_t SpVar::to_string(char *buf, const int64_t buf_len) const
@@ -156,14 +156,21 @@ int SpVariableSet::add_var_info_set(const SpVariableSet &var_set)
 
 int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
 {
+  int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "[ ");
   for(int64_t i = 0; i < var_info_set_.count(); ++i)
   {
     databuff_printf(buf, buf_len, pos, "%s ", to_cstring(var_info_set_.at(i)));
   }
   databuff_printf(buf, buf_len, pos, "]");
+  return pos;
 }
 
+
+
+/*===================================================================
+ *                       SpInst Definition
+ * ==================================================================*/
 SpInst::~SpInst()
 {
   proc_ = NULL;
@@ -307,7 +314,7 @@ int SpRdBaseInst::assign(const SpInst *inst)
   op_ = NULL; //get the op_ from query_id_'s inner plan
   query_id_ = old_inst->query_id_;
   rs_ = old_inst->rs_;
-  ws_ = old_inst->ws_;
+//  ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
   return ret;
 }
@@ -539,7 +546,7 @@ int SpRwCompInst::assign(const SpInst *inst)
   op_ = NULL;
   query_id_ = old_inst->query_id_;
   rs_ = old_inst->rs_;
-  ws_ = old_inst->ws_;
+//  ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
 
   int64_t var_count = old_inst->var_list_.count();
@@ -625,34 +632,35 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
   //serialize read variables
   //TODO
-  int64_t rd_var_count = rs_.var_info_set_.count();
+  int64_t rd_var_count = rs_.count();
   TBSYS_LOG(TRACE, "Block inst serialization, rd_var count: %ld", rd_var_count);
   if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_var_count)))
   {
     TBSYS_LOG(WARN, "serialize read variables count fail");
   }
-  for(int64_t rd_var_itr = 0; rd_var_itr < rs_.var_set_.count() && OB_SUCCESS == ret; ++rd_var_itr)
-  {
-    const ObString &var_name = rs_.var_set_.at(rd_var_itr);
-    const ObObj *obj;
-    proc_->read_variable(var_name, obj);
-    if( NULL == obj )
-    {
-      TBSYS_LOG(WARN, "variable[%.*s] does not found in session", var_name.length(), var_name.ptr());
-    }
-    else if( OB_SUCCESS != (ret = var_name.serialize(buf, buf_len, pos)) )
-    {
-      TBSYS_LOG(WARN, "variable name serialization fail");
-    }
-    else if( OB_SUCCESS != (ret = obj->serialize(buf, buf_len, pos)) )
-    {
-      TBSYS_LOG(WARN, "variable value serialization fail");
-    }
-    else
-    {
-      TBSYS_LOG(TRACE, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
-    }
-  }
+  //serialize the variable set to ups
+//  for(int64_t rd_var_itr = 0; rd_var_itr < rs_.var_set_.count() && OB_SUCCESS == ret; ++rd_var_itr)
+//  {
+//    const ObString &var_name = rs_.var_set_.at(rd_var_itr);
+//    const ObObj *obj;
+//    proc_->read_variable(var_name, obj);
+//    if( NULL == obj )
+//    {
+//      TBSYS_LOG(WARN, "variable[%.*s] does not found in session", var_name.length(), var_name.ptr());
+//    }
+//    else if( OB_SUCCESS != (ret = var_name.serialize(buf, buf_len, pos)) )
+//    {
+//      TBSYS_LOG(WARN, "variable name serialization fail");
+//    }
+//    else if( OB_SUCCESS != (ret = obj->serialize(buf, buf_len, pos)) )
+//    {
+//      TBSYS_LOG(WARN, "variable value serialization fail");
+//    }
+//    else
+//    {
+//      TBSYS_LOG(TRACE, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
+//    }
+//  }
 
   return ret;
 }
@@ -866,7 +874,7 @@ SpIfBlock::~SpIfBlock()
 SpIfCtrlInsts::~SpIfCtrlInsts()
 {}
 
-void SpIfCtrlInsts::add_read_var(ObArray<const ObRawExpr*> &var_list)
+void SpIfCtrlInsts::add_read_var(const ObArray<const ObRawExpr*> &var_list)
 {
   for(int64_t i = 0; i < var_list.count(); ++i)
   {
@@ -883,11 +891,30 @@ void SpIfCtrlInsts::add_read_var(ObArray<const ObRawExpr*> &var_list)
 void SpIfCtrlInsts::get_read_variable_set(SpVariableSet &read_set) const
 {
   read_set.add_var_info_set(expr_rs_set_);
+  for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
+  {
+    const SpInst *inst = const_cast<SpIfBlock&>(then_branch_).get_inst(i);
+    inst->get_read_variable_set(read_set);
+  }
+  for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
+  {
+    const SpInst *inst = const_cast<SpIfBlock&>(else_branch_).get_inst(i);
+    inst->get_read_variable_set(read_set);
+  }
 }
 
 void SpIfCtrlInsts::get_write_variable_set(SpVariableSet &write_set) const
 {
-  UNUSED(write_set);
+  for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
+  {
+    const SpInst *inst = const_cast<SpIfBlock&>(then_branch_).get_inst(i);
+    inst->get_write_variable_set(write_set);
+  }
+  for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
+  {
+    const SpInst *inst = const_cast<SpIfBlock&>(else_branch_).get_inst(i);
+    inst->get_write_variable_set(write_set);
+  }
 }
 
 int SpIfCtrlInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
@@ -939,8 +966,8 @@ int SpIfCtrlInsts::assign(const SpInst *inst)
   if_expr_ = old_inst->if_expr_;
   if_expr_.set_owner_op(proc_);
   expr_rs_set_ = old_inst->expr_rs_set_;
-  rs_set_ = old_inst->rs_set_;
-  ws_set_ = old_inst->ws_set_;
+//  rs_set_ = old_inst->rs_set_;
+//  ws_set_ = old_inst->ws_set_;
   if( OB_SUCCESS != (ret = then_branch_.assign(old_inst->then_branch_)) )
   {
     TBSYS_LOG(WARN, "assign then branch fail");
@@ -990,19 +1017,16 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
   {
     //construct read set
     exec_list.push_back(this);
-    rs_set_.var_set_.clear();
-    rs_set_.addVariable(expr_rs_set_);
+
     for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
     {
       SpInst *inst;
       then_branch_.get_inst(i, inst);
-      rs_set_.addVariable(inst->get_read_variable_set());
     }
     for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
     {
       SpInst *inst;
       else_branch_.get_inst(i, inst);
-      rs_set_.addVariable(inst->get_read_variable_set());
     }
   }
   return ret;
@@ -1019,11 +1043,19 @@ SpLoopInst::~SpLoopInst()
 void SpLoopInst::get_read_variable_set(SpVariableSet &read_set) const
 {
   read_set.add_tmp_var(loop_counter_var_.var_name_);
+  for(int64_t i = 0; i < loop_body_.inst_count(); ++i)
+  {
+    const_cast<SpMultiInsts&>(loop_body_).get_inst(i)->get_read_variable_set(read_set);
+  }
 }
 
 void SpLoopInst::get_write_variable_set(SpVariableSet &write_set) const
 {
   write_set.add_tmp_var(loop_counter_var_.var_name_);
+  for(int64_t i = 0; i < loop_body_.inst_count(); ++i)
+  {
+    const_cast<SpMultiInsts&>(loop_body_).get_inst(i)->get_write_variable_set(write_set);
+  }
 }
 
 int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
@@ -1123,7 +1155,7 @@ int SpLoopInst::optimize(SpInstList &exec_list)
 }
 
 /*=================================================
- * 					SpProcedure Defintion
+             SpProcedure Defintion
  * ===============================================*/
 
 int SpInstExecStrategy::close(SpInst *inst)
@@ -1252,15 +1284,15 @@ int SpProcedure::debug_status(const SpInst *inst) const
 
     databuff_printf(debug_buf, buf_len, pos, "\ninst %ld\n", pc_);
 
-    for(int64_t i = 0; i < rs.var_info_set_.count(); ++i)
+    for(int64_t i = 0; i < rs.count(); ++i)
     {
-      const SpVarInfo &var_info = rs.var_info_set_.at(i);
+      const SpVarInfo &var_info = rs.get_var_info(i);
 
       if( var_info.using_method_ == VM_TMP_VAR )
       {
         //read temp variable
         ObObj val;
-        if( OB_SUCCESS == read_variable(var_info.var_name_, *val) )
+        if( OB_SUCCESS == read_variable(var_info.var_name_, val) )
         {
           databuff_printf(debug_buf, buf_len, pos, "\tvar [%.*s] = %s\n",
                           var_info.var_name_.length(), var_info.var_name_.ptr(), to_cstring(val));
