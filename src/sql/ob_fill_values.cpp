@@ -150,6 +150,7 @@ int ObFillValues::open()
         } // end for
       }
     }
+    //TBSYS_LOG(INFO, "wjh_test %s", to_cstring(*op_to_));
     if (!has_data)
     {
       ret = OB_NO_RESULT;

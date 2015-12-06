@@ -6206,7 +6206,7 @@ int ObTransformer::gen_phy_table_for_update_more(
         TRANS_LOG("Failed add filter list, err=%d", ret);
         break;
       }
-if (false){
+
       if (filter->is_simple_condition(false, cid, cond_op, cond_val, &val_type)
                && (T_OP_EQ == cond_op || T_OP_IS == cond_op)
                && rowkey_info.is_rowkey_column(cid))
@@ -6215,13 +6215,15 @@ if (false){
       {
         // other condition
         has_other_cond = true;
-        if (OB_SUCCESS != (ret = filter_op->add_filter(filter)))
+        ObSqlExpression *filter_clone = ObSqlExpression::alloc();
+        *filter_clone = *filter;
+        if (OB_SUCCESS != (ret = filter_op->add_filter(filter_clone)))
         {
           TRANS_LOG("Failed to add filter, err=%d", ret);
           break;
         }
       }
-}
+
       if (OB_SUCCESS != (ret = sql_read_strategy.add_filter(*filter)))
       {
         TBSYS_LOG(WARN, "fail to add filter:ret[%d]", ret);
@@ -6302,32 +6304,6 @@ if (false){
             || (ret = table_rpc_scan_op->add_output_column(output_expr)) != OB_SUCCESS)
         {
           TRANS_LOG("Add table output columns faild");
-          break;
-        }
-
-        // for IncScan
-        ObConstRawExpr col_expr2;
-        ObObj null_obj;
-        col_expr2.set_value_and_type(null_obj);
-
-        ObSqlRawExpr col_raw_expr2(
-          common::OB_INVALID_ID,
-          col_item->table_id_,
-          col_item->column_id_,
-          &col_expr2);
-        ObSqlExpression output_expr2;
-        if ((ret = col_raw_expr2.fill_sql_expression(
-               output_expr2,
-               this,
-               logical_plan,
-               physical_plan)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Add table output columns failed");
-          break;
-        }
-        else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
-        {
-          TRANS_LOG("Failed to add cell into get param, err=%d", ret);
           break;
         }
       }
@@ -6808,7 +6784,7 @@ int ObTransformer::gen_physical_delete_new(
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
     ObPhyOperator* table_op = NULL;
-    if (OB_SUCCESS != (ret = gen_phy_table_for_update(logical_plan, inner_plan, err_stat,
+    if (OB_SUCCESS != (ret = gen_phy_table_for_update_more(logical_plan, inner_plan, err_stat,
                                                       delete_stmt, table_id, *rowkey_info,
                                                       row_desc, row_desc_ext, table_op)))
     {
@@ -7201,7 +7177,7 @@ int ObTransformer::gen_phy_select_for_update(
     }
     if (OB_LIKELY(OB_SUCCESS == ret))
     {
-      if ((ret = gen_phy_table_for_update(logical_plan,inner_plan, err_stat,
+      if ((ret = gen_phy_table_for_update_more(logical_plan,inner_plan, err_stat,
                                           select_stmt, table_id, *rowkey_info,
                                           row_desc, row_desc_ext, result_op)
                                           ) != OB_SUCCESS)
