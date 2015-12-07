@@ -885,13 +885,6 @@ int ObProcedure::write_variable(SpVar &var, const ObObj &val)
   return ret;
 }
 
-int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
-{
-  ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
-
-  return session->get_variable_value(var_name, val);
-}
-
 int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
@@ -964,6 +957,18 @@ int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
     ret = read_variable(var.var_name_, val);
   }
 
+  return ret;
+}
+
+int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) const
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                     get_session()->get_variable_array_size(array_name, size)))
+  {
+    TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+  }
   return ret;
 }
 

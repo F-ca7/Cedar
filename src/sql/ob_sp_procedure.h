@@ -38,6 +38,12 @@ namespace oceanbase
      * be careful of the usage of SpVar,
      * remember call clear to totally desconstruct the object,
      * the ~SpVar doesnot free the memory used by idx_value_
+     *
+     * @remind
+     * later I will refactor the SpVar structure. Here we use ObSqlExpression to
+     * represent the index value of an array variable. Each time, we need to caculate
+     * the expr to get the index value. Later, I will force the index value to a constant
+     * such as: int (a raw index) or string (a temp variable name).
      */
     struct SpVar
     {
@@ -166,12 +172,17 @@ namespace oceanbase
     class SpMultiInsts
     {
     public:
+      SpMultiInsts() : ownner_(NULL) {}
       SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
       virtual ~SpMultiInsts();
       int add_inst(SpInst *inst) { return inst_list_.push_back(inst); }
       int get_inst(int64_t idx, SpInst *&inst);
       SpInst* get_inst(int64_t idx);
       int64_t inst_count() const { return inst_list_.count(); }
+
+      void get_read_variable_set(SpVariableSet &read_set) const;
+      void get_write_variable_set(SpVariableSet &write_set) const;
+
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
@@ -549,11 +560,12 @@ namespace oceanbase
 
       virtual int write_variable(SpVar &var, const ObObj &val);
 
-      virtual int read_variable(const ObString &var_name, ObObj &val) const ;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
       virtual int read_variable(SpVar &var, const ObObj *&val) const;
+
+      virtual int read_array_size(const ObString &array_name, int64_t &size) const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object

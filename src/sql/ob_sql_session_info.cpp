@@ -650,6 +650,20 @@ int ObSQLSessionInfo::replace_vararray(const common::ObString &var, int64_t idx_
   return ret;
 }
 
+int ObSQLSessionInfo::get_variable_array_size(const common::ObString &array_name, int64_t &array_size) const
+{
+  int ret = OB_ERR_VARIABLE_UNKNOWN;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if(0 == array_name.compare(var_arrays_.at(i).var_array_name_))
+    {
+      array_size = var_arrays_.at(i).value_.count();
+      ret = OB_SUCCESS;
+    }
+  }
+  return ret;
+}
+
 int ObSQLSessionInfo::remove_vararray(const common::ObString &var)
 {
   int ret = OB_SUCCESS;

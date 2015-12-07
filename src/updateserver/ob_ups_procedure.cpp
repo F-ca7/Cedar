@@ -174,7 +174,7 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
 {
   int ret = OB_SUCCESS;
-  for(int64_t i = 0; OB_SUCCESS == ret && i < inst->get_itr_count(); ++i)
+  for(int64_t i = 0; OB_SUCCESS == ret && i < inst->get_iteration_count(); ++i)
   {
     SpMultiInsts & loop_body_itr = inst->get_loop_body(i);
     if( OB_SUCCESS != (ret = execute_multi_inst(&loop_body_itr)) )
@@ -342,30 +342,101 @@ int ObUpsProcedure::write_variable(SpVar &var, const ObObj &val)
   }
   else //write array variables
   {
-    ret = OB_NOT_SUPPORTED;
+    common::ObRow fake_row;
+    const ObObj *idx = NULL;
+    int64_t idx_val = 0;
+    if( OB_SUCCESS != (ret = var.idx_value_->calc(fake_row, idx)) )
+    {
+      TBSYS_LOG(WARN, "calculate index value fail");
+    }
+    else if( OB_SUCCESS != (ret = idx->get_int(idx_val)) )
+    {
+      TBSYS_LOG(WARN, "get index value fail, %s", to_cstring(*idx));
+    }
+    else
+    {
+      ret = write_variable(var.var_name_, idx_val, val);
+    }
   }
   return ret;
 }
 
-int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
+int ObUpsProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  if( OB_UNLIKELY(!is_var_tab_created) )
-	{
-		TBSYS_LOG(WARN, "var_table does not create");
-    ret = OB_ERR_VARIABLE_UNKNOWN;
-	}
-  else if (var_name_val_map_.get(var_name, val) != hash::HASH_EXIST)
-	{
-		TBSYS_LOG(WARN, "var does not exist");
-    ret = OB_ERR_VARIABLE_UNKNOWN;
-  }
-  else
+  bool find = false;
+  for(int64_t i = 0; i < array_table_.count(); ++i)
   {
-    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    ObUpsArray &array = array_table_.at(i);
+    if( array.array_name_.compare(array_name) == 0 )
+    {
+      find = true;
+      if( idx_value < 0 )
+      {
+        ret = OB_ERR_ILLEGAL_INDEX;
+      }
+      else if( idx_value >= array.array_values_.count() )
+      {
+        while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
+        {
+          ObObj tmp_obj;
+          tmp_obj.set_null();
+          ret = array.array_values_.push_back(tmp_obj);
+        }
+      }
+      if( OB_SUCCESS == ret )
+      {
+        array.array_values_.at(idx_value) = val;
+      }
+      break;
+    }
+  }
+  if ( !find && OB_SUCCESS == ret )
+  {
+    ObUpsArray tmp_array;
+    tmp_array.array_name_ = array_name;
+    array_table_.push_back(tmp_array);
+    ObUpsArray &array = array_table_.at(array_table_.count() - 1);
+    if( idx_value < 0 )
+    {
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+    else if( idx_value >= array.array_values_.count() )
+    {
+      while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
+      {
+        ObObj tmp_obj;
+        tmp_obj.set_null();
+        ret = array.array_values_.push_back(tmp_obj);
+      }
+    }
+    if( OB_SUCCESS == ret )
+    {
+      array.array_values_.at(idx_value) = val;
+    }
   }
   return ret;
 }
+
+//int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
+//{
+//  int ret = OB_SUCCESS;
+//  if( OB_UNLIKELY(!is_var_tab_created) )
+//	{
+//		TBSYS_LOG(WARN, "var_table does not create");
+//    ret = OB_ERR_VARIABLE_UNKNOWN;
+//	}
+//  else if (var_name_val_map_.get(var_name, val) != hash::HASH_EXIST)
+//	{
+//		TBSYS_LOG(WARN, "var does not exist");
+//    ret = OB_ERR_VARIABLE_UNKNOWN;
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+//  }
+//  return ret;
+//}
 
 int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
@@ -387,12 +458,43 @@ int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) c
 	return ret;
 }
 
+int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+  for(int64_t i = 0; i < array_table_.count(); ++i)
+  {
+    const ObUpsArray &arr = array_table_.at(i);
+    if( arr.array_name_.compare(array_name) == 0 )
+    {
+      if( idx_value >= 0 && idx_value < arr.array_values_.count() )
+      {
+        val = & (arr.array_values_.at(idx_value));
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+        ret = OB_ERR_ILLEGAL_INDEX;
+      }
+      find = true;
+      break;
+    }
+  }
+  return ret;
+}
+
 SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
 {
   SpInst *new_inst = NULL;
   if( type == SP_L_INST )
   { //loop have a different deserialization methods
-    new_inst = create_inst<SpUpsLoopInst>(mul_inst);
+    void *ptr = arena_.alloc(sizeof(SpUpsLoopInst));
+    new_inst = new(ptr) SpUpsLoopInst();
+    new_inst->set_owner_procedure(this);
+    if( NULL != mul_inst )
+      mul_inst->add_inst(new_inst);
+    else
+      inst_list_.push_back(new_inst);
   }
   else
   {

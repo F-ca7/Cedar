@@ -189,6 +189,7 @@ namespace oceanbase
         //add zt 20151202:b
         int replace_vararray(const common::ObString& var, const common::ObArray<ObObj> &val);
         int replace_vararray(const ObString &var, int64_t idx_value, const ObObj &val);
+        int get_variable_array_size(const common::ObString &array_name, int64_t &array_size) const;
         int remove_vararray(const common::ObString& var);
         int get_variable_value(const common::ObString &var, int64_t idx, const common::ObObj* &val) const;
         //add zt 20151202:e
