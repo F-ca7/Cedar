@@ -72,7 +72,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   int ret = OB_SUCCESS;
   const common::ObRow *row;
   ObPhyOperator *op_ = inst->get_rwdelta_op();
-  const ObArray<SpVar> &var_list_ = inst->get_var_list();
+  const ObIArray<SpVar> &var_list_ = inst->get_var_list();
   SpProcedure *proc = inst->get_ownner();
   TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
   if(NULL != op_)
@@ -109,7 +109,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
 {
   int ret = OB_SUCCESS;
-  ObArray<SpInst*>& inst_list_ = inst->get_inst_list();
+  ObIArray<SpInst*>& inst_list_ = inst->get_inst_list();
 //  const SpProcedure *proc_ = inst->get_ownner();
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {

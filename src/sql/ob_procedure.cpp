@@ -98,7 +98,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   int ret = OB_SUCCESS;
   const ObRow *row;
   ObPhyOperator* op_ = inst->get_rwcomp_op();
-  const ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   if( OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
@@ -133,7 +133,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
   fake_desc.reset();
-  const ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   ObPhyOperator *op = inst->get_ups_exec_op();
   SpProcedure *proc = inst->get_ownner();
 
@@ -1073,7 +1073,7 @@ int ObProcedure::set_inst_op(SpInst *inst)
   case SP_BLOCK_INST:
     {
       SpBlockInsts *block_inst = static_cast<SpBlockInsts*>(inst);
-      ObArray<SpInst *> &inst_list = block_inst->get_inst_list();
+      ObIArray<SpInst *> &inst_list = block_inst->get_inst_list();
       for(int64_t i = 0; i < inst_list.count(); ++i)
       {
          set_inst_op(inst_list.at(i));

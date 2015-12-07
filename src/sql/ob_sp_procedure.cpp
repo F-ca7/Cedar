@@ -74,14 +74,14 @@ int SpVar::assign(const SpVar &other)
   return OB_SUCCESS;
 }
 
-void SpVar::clear()
-{
+//void SpVar::clear()
+//{
 //  if( idx_value_ != NULL )
 //  {
 //    ObSqlExpression::free(idx_value_);
 //    idx_value_ = NULL;
 //  }
-}
+//}
 
 SpVar::~SpVar()
 {
@@ -205,7 +205,7 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
  * ===============================================*/
 SpExprInst::~SpExprInst()
 {
-  left_var_.clear();
+//  left_var_.clear();
 }
 
 void SpExprInst::get_read_variable_set(SpVariableSet &read_set) const
@@ -215,8 +215,20 @@ void SpExprInst::get_read_variable_set(SpVariableSet &read_set) const
 
 void SpExprInst::get_write_variable_set(SpVariableSet &write_set) const
 {
-  write_set.add_tmp_var(left_var_.var_name_);
+//  write_set.add_tmp_var(left_var_.var_name_);
+  if( left_var_.is_array() )
+    write_set.add_array_var(left_var_.var_name_);
+  else
+    write_set.add_tmp_var(left_var_.var_name_);
 }
+
+//void SpExprInst::add_rs_var(const ObString &name, bool is_array)
+//{
+//  if( is_array )
+//    rs_.add_array_var(name);
+//  else
+//    rs_.add_tmp_var(name);
+//}
 
 int SpExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -285,19 +297,19 @@ void SpRdBaseInst::get_write_variable_set(SpVariableSet &write_set) const
   UNUSED(write_set);
 }
 
-void SpRdBaseInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
-{
-  for(int64_t i = 0; i < var_list.count(); ++i)
-  {
-    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
-    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-    {
-      ObString var_name;
-      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-      rs_.add_tmp_var(var_name);
-    }
-  }
-}
+//void SpRdBaseInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
+//{
+//  for(int64_t i = 0; i < var_list.count(); ++i)
+//  {
+//    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
+//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+//    {
+//      ObString var_name;
+//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+//      rs_.add_tmp_var(var_name);
+//    }
+//  }
+//}
 
 int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, int32_t query_id)
 {
@@ -337,22 +349,23 @@ void SpRwDeltaInst::get_read_variable_set(SpVariableSet &read_set) const
 void SpRwDeltaInst::get_write_variable_set(SpVariableSet &write_set) const
 {
 //  OB_ASSERT(ws_.var_set_.count() == 0); //since select..into inst inherit this, such assert is not valid any more
-  write_set.add_var_info_set(ws_);
+//  write_set.add_var_info_set(ws_);
+  UNUSED(write_set);
 }
 
-void SpRwDeltaInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
-{
-  for(int64_t i = 0; i < var_list.count(); ++i)
-  {
-    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
-    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-    {
-      ObString var_name;
-      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-      rs_.add_tmp_var(var_name);
-    }
-  }
-}
+//void SpRwDeltaInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
+//{
+//  for(int64_t i = 0; i < var_list.count(); ++i)
+//  {
+//    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
+//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+//    {
+//      ObString var_name;
+//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+//      rs_.add_tmp_var(var_name);
+//    }
+//  }
+//}
 
 int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
 {
@@ -405,7 +418,7 @@ int SpRwDeltaInst::assign(const SpInst *inst)
   ups_exec_op_ = NULL;
   query_id_ = old_inst->query_id_;
   rs_ = old_inst->rs_;
-  ws_ = old_inst->ws_;
+//  ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
   return ret;
 }
@@ -415,9 +428,18 @@ int SpRwDeltaInst::assign(const SpInst *inst)
  * =======================================================*/
 SpRwDeltaIntoVarInst::~SpRwDeltaIntoVarInst()
 {
+//  for(int64_t i = 0; i < var_list_.count(); ++i)
+//  {
+//    var_list_.at(i).clear();
+//  }
+}
+
+void SpRwDeltaIntoVarInst::get_write_variable_set(SpVariableSet &write_set) const
+{
   for(int64_t i = 0; i < var_list_.count(); ++i)
   {
-    var_list_.at(i).clear();
+    if( var_list_.at(i).is_array() ) write_set.add_array_var(var_list_.at(i).var_name_);
+    else write_set.add_tmp_var(var_list_.at(i).var_name_);
   }
 }
 
@@ -519,10 +541,10 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
  * =======================================================*/
 SpRwCompInst::~SpRwCompInst()
 {
-  for(int64_t i = 0; i < var_list_.count(); ++i)
-  {
-    var_list_.at(i).clear();
-  }
+//  for(int64_t i = 0; i < var_list_.count(); ++i)
+//  {
+//    var_list_.at(i).clear();
+//  }
 }
 
 void SpRwCompInst::get_read_variable_set(SpVariableSet &read_set) const
@@ -1153,7 +1175,7 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
  * ===============================================*/
 SpLoopInst::~SpLoopInst()
 {
-  loop_counter_var_.clear();
+//  loop_counter_var_.clear();
 }
 
 void SpLoopInst::get_read_variable_set(SpVariableSet &read_set) const
@@ -1244,6 +1266,9 @@ int SpLoopInst::assign(const SpInst *inst)
   highest_expr_ = old_inst->highest_expr_;
   highest_expr_.set_owner_op(proc_);
 
+  lowest_number_ = old_inst->lowest_number_;
+  highest_number_ = old_inst->highest_number_;
+
   step_size_ = old_inst->step_size_;
   reverse_ = old_inst->reverse_;
 
@@ -1260,7 +1285,31 @@ int SpLoopInst::optimize(SpInstList &exec_list)
   {
     TBSYS_LOG(WARN, "optimize loop body fail");
   }
-
+  else
+  {
+    ObRow fake_row;
+    const ObObj *low_obj = NULL, *high_obj = NULL;
+    if( OB_SUCCESS != (ret = lowest_expr_.calc(fake_row, low_obj)))
+    {
+      TBSYS_LOG(WARN, "compute lowest expression failed");
+    }
+    else if( OB_SUCCESS != (low_obj->get_int(lowest_number_)))
+    {
+      TBSYS_LOG(WARN, "low expression does not get int type: %s", to_cstring(*low_obj));
+    }
+    else if (OB_SUCCESS != (ret = highest_expr_.calc(fake_row, high_obj)) )
+    {
+      TBSYS_LOG(WARN, "compute highest expression failed");
+    }
+    else if( OB_SUCCESS != (high_obj->get_int(highest_number_)))
+    {
+      TBSYS_LOG(WARN, "highest expression does not get int type: %s", to_cstring(*high_obj));
+    }
+    else
+    {
+      TBSYS_LOG(TRACE, "optimze loop finished, iterate from %ld to %ld", lowest_number_, highest_number_);
+    }
+  }
   return ret;
 }
 

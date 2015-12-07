@@ -2648,13 +2648,16 @@ int resolve_procedure_select_into_stmt(
           for(; expr_itr < expr_new_itr; ++expr_itr)
           {
             ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
-            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
-            {
-              ObString var_name;
-              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
-              sel_stmt->add_expr_variable(var_name);
-              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
-            }
+            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type || T_ARRAY == raw_type)
+            sel_stmt->add_raw_var_expr(logic_plan->get_raw_expr(expr_itr));
+
+//            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
+//            {
+//              ObString var_name;
+//              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
+//              sel_stmt->add_expr_variable(var_name);
+//              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
+//            }
           }
         }
       }
