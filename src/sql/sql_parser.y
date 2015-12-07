@@ -542,7 +542,11 @@ case_default:
 
 //add zt 20151125:b
 array_expr:
-    TEMP_VARIABLE '(' expr ')'
+    TEMP_VARIABLE '(' INTNUM ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
+    }
+  | TEMP_VARIABLE '(' TEMP_VARIABLE ')'
     {
       malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
     }

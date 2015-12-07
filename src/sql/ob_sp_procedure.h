@@ -48,13 +48,14 @@ namespace oceanbase
     struct SpVar
     {
       ObString var_name_;
-      ObSqlExpression *idx_value_; //NULL for ordinary variable
+//      ObSqlExpression *idx_value_; //NULL for ordinary variable
+      ObObj idx_value_;
 
-      SpVar() : idx_value_(NULL) {}
+      SpVar() { idx_value_.set_null();}
       ~SpVar();
 
-      bool is_array() const { return idx_value_ != NULL; }
-      int deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProcedure *proc);
+      bool is_array() const { return !idx_value_.is_null(); }
+      int deserialize(const char *buf, int64_t data_len, int64_t &pos);
       int serialize(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -299,7 +300,7 @@ namespace oceanbase
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 
-      ObArray<SpVar> & get_var_list() { return var_list_;}
+      const ObArray<SpVar> & get_var_list() const { return var_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -332,7 +333,7 @@ namespace oceanbase
 
       int32_t get_query_id() const { return query_id_; }
 
-      ObArray<SpVar> & get_var_list() { return var_list_;}
+      const ObArray<SpVar> & get_var_list() const { return var_list_;}
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 
@@ -440,7 +441,7 @@ namespace oceanbase
       void set_reverse(bool rev) { reverse_ = rev; }
       SpMultiInsts* get_body_block() { return &loop_body_; }
 
-      SpVar & get_loop_var() { return loop_counter_var_; }
+      const SpVar & get_loop_var() const { return loop_counter_var_; }
 
       int optimize(SpInstList &exec_list);
 
@@ -558,14 +559,15 @@ namespace oceanbase
       virtual int write_variable(const ObString &var_name, const ObObj & val);
       virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
 
-      virtual int write_variable(SpVar &var, const ObObj &val);
+      virtual int write_variable(const SpVar &var, const ObObj &val);
 
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
-      virtual int read_variable(SpVar &var, const ObObj *&val) const;
+      virtual int read_variable(const SpVar &var, const ObObj *&val) const;
 
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
+      virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object

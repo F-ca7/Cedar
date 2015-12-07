@@ -72,7 +72,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   int ret = OB_SUCCESS;
   const common::ObRow *row;
   ObPhyOperator *op_ = inst->get_rwdelta_op();
-  ObArray<SpVar> &var_list_ = inst->get_var_list();
+  const ObArray<SpVar> &var_list_ = inst->get_var_list();
   SpProcedure *proc = inst->get_ownner();
   TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
   if(NULL != op_)
@@ -88,7 +88,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
     {
       for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
       {
-        SpVar &var = var_list_.at(i);
+        const SpVar &var = var_list_.at(i);
         const ObObj *cell = NULL;
         if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))//取出一列
         {
@@ -333,7 +333,7 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   return ret;
 }
 
-int ObUpsProcedure::write_variable(SpVar &var, const ObObj &val)
+int ObUpsProcedure::write_variable(const SpVar &var, const ObObj &val)
 {
   int ret = OB_SUCCESS;
   if( !var.is_array() )
@@ -342,20 +342,25 @@ int ObUpsProcedure::write_variable(SpVar &var, const ObObj &val)
   }
   else //write array variables
   {
-    common::ObRow fake_row;
-    const ObObj *idx = NULL;
-    int64_t idx_val = 0;
-    if( OB_SUCCESS != (ret = var.idx_value_->calc(fake_row, idx)) )
+//    common::ObRow fake_row;
+//    const ObObj *idx = NULL;
+//    int64_t idx_val = 0;
+//    if( OB_SUCCESS != (ret = var.idx_value_->calc(fake_row, idx)) )
+//    {
+//      TBSYS_LOG(WARN, "calculate index value fail");
+//    }
+//    else if( OB_SUCCESS != (ret = idx->get_int(idx_val)) )
+//    {
+//      TBSYS_LOG(WARN, "get index value fail, %s", to_cstring(*idx));
+//    }
+    int64_t idx = 0;
+    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
     {
-      TBSYS_LOG(WARN, "calculate index value fail");
+      TBSYS_LOG(WARN, "read index value failed");
     }
-    else if( OB_SUCCESS != (ret = idx->get_int(idx_val)) )
+    else if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
     {
-      TBSYS_LOG(WARN, "get index value fail, %s", to_cstring(*idx));
-    }
-    else
-    {
-      ret = write_variable(var.var_name_, idx_val, val);
+      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
     }
   }
   return ret;

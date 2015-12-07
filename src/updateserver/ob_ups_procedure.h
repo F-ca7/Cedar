@@ -61,7 +61,7 @@ namespace oceanbase
 
       int create_variable_table();
       virtual int write_variable(const ObString &var_name, const ObObj &val);
-      virtual int write_variable(SpVar &var, const ObObj &val);
+      virtual int write_variable(const SpVar &var, const ObObj &val);
       virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
 
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;

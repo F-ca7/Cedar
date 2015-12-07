@@ -1610,13 +1610,15 @@ int ObTransformer::gen_physical_procedure_select_into(
         const SpRawVar &raw_var = stmt->get_variable(i);
         SpVar var;
         ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
+        ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
+//        var.idx_value_ = raw_var.idx_value_; //maybe we need to copy the obobj to
 
-        if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
-        {
-          var.idx_value_ = ObSqlExpression::alloc();
-          ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
-          raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
-        }
+//        if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
+//        {
+//          var.idx_value_ = ObSqlExpression::alloc();
+//          ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
+//          raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
+//        }
         rw_delta_into_var_inst->add_assign_var(var);
       }
 
@@ -1672,19 +1674,13 @@ int ObTransformer::gen_physical_procedure_select_into(
           name = var_list.at(var_itr);
           rw_comp_inst->add_read_var(name);
         }
+
         for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
         {
           const SpRawVar &raw_var = stmt->get_variable(i);
           SpVar var;
           ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
-
-          if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
-          {
-            var.idx_value_ = ObSqlExpression::alloc();
-            ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
-            raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
-            var.idx_value_->set_owner_op(proc_op);
-          }
+          ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
           rw_comp_inst->add_assign_var(var);
         }
         rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
@@ -1716,6 +1712,7 @@ int ObTransformer::gen_physical_procedure_assign(
     SpVar& left_var = expr_inst->get_var();
 
     ob_write_string(*mem_pool_, raw_var_val.var_name_, left_var.var_name_); //set var_name
+    ob_write_obj(*mem_pool_, raw_var_val.idx_value_, left_var.idx_value_); //set idx_value
 
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(raw_var_val.val_expr_id_);
 
@@ -1742,42 +1739,46 @@ int ObTransformer::gen_physical_procedure_assign(
 
           expr_inst->add_rs_var(var_name);
         }
+        else if( raw_expr->get_expr_type() == T_ARRAY )
+        {
+          //TODO
+        }
       }
     }
   }
 
-  for(int64_t i = 0; i < stmt->get_arr_val_size() && OB_SUCCESS == ret; ++i)
-  {
-    SpExprInst* array_expr_inst = proc_op->create_inst<SpExprInst>(mul_inst);
-    const ObRawArrAssignVal &raw_arr_val = stmt->get_arr_val(i);
-    ObString array_name;
+//  for(int64_t i = 0; i < stmt->get_arr_val_size() && OB_SUCCESS == ret; ++i)
+//  {
+//    SpExprInst* array_expr_inst = proc_op->create_inst<SpExprInst>(mul_inst);
+//    const ObRawArrAssignVal &raw_arr_val = stmt->get_arr_val(i);
+//    ObString array_name;
 
-    SpVar& left_var = array_expr_inst->get_var();
+//    SpVar& left_var = array_expr_inst->get_var();
 
-    ob_write_string(*mem_pool_, raw_arr_val.var_name_, left_var.var_name_); //set var_name
+//    ob_write_string(*mem_pool_, raw_arr_val.var_name_, left_var.var_name_); //set var_name
 
-    ObSqlRawExpr *idx_raw_expr = logical_plan->get_expr(raw_arr_val.idx_expr_id_);
-    ObSqlRawExpr *val_raw_expr = logical_plan->get_expr(raw_arr_val.val_expr_id_);
+//    ObSqlRawExpr *idx_raw_expr = logical_plan->get_expr(raw_arr_val.idx_expr_id_);
+//    ObSqlRawExpr *val_raw_expr = logical_plan->get_expr(raw_arr_val.val_expr_id_);
 
-    left_var.idx_value_ = ObSqlExpression::alloc();
+//    left_var.idx_value_ = ObSqlExpression::alloc();
 
-    if( OB_SUCCESS != (ret = idx_raw_expr->fill_sql_expression(
-                         *(left_var.idx_value_), this, logical_plan, physical_plan)) )
-    {
-      TBSYS_LOG(WARN, "fill expression for the idx_expr fail");
-    }
-    else if (OB_SUCCESS != (ret = val_raw_expr->fill_sql_expression(
-                              array_expr_inst->get_val(), this, logical_plan, physical_plan)))
-    {
-      TBSYS_LOG(WARN, "fill expression for the val_expr fail");
-    }
-    else
-    {
-      array_expr_inst->get_val().set_owner_op(proc_op);
-      left_var.idx_value_->set_owner_op(proc_op);
-    }
-    TBSYS_LOG(INFO, "decalre array %.*s", array_name.length(), array_name.ptr());
-  }
+//    if( OB_SUCCESS != (ret = idx_raw_expr->fill_sql_expression(
+//                         *(left_var.idx_value_), this, logical_plan, physical_plan)) )
+//    {
+//      TBSYS_LOG(WARN, "fill expression for the idx_expr fail");
+//    }
+//    else if (OB_SUCCESS != (ret = val_raw_expr->fill_sql_expression(
+//                              array_expr_inst->get_val(), this, logical_plan, physical_plan)))
+//    {
+//      TBSYS_LOG(WARN, "fill expression for the val_expr fail");
+//    }
+//    else
+//    {
+//      array_expr_inst->get_val().set_owner_op(proc_op);
+//      left_var.idx_value_->set_owner_op(proc_op);
+//    }
+//    TBSYS_LOG(INFO, "decalre array %.*s", array_name.length(), array_name.ptr());
+//  }
   return ret;
 }
 

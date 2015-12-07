@@ -439,7 +439,7 @@ namespace oceanbase
         int check_expr_type(const int64_t type_val, bool &is_type, const int64_t stack_len) const;
         int get_sys_func(const common::ObString &sys_func, ObSqlSysFunc &func_type) const;
         int get_var_obj(ObPostExprNodeType type, const ObObj& expr_node, const ObObj*& val) const;
-        int get_array_var(const ObObj& expr_node, int64_t array_idx_value, const ObObj*& val) const; //add zt 20151126
+        int get_array_var(const ObObj& expr_node, int64_t idx_type, const ObObj &idx_val, const ObObj*& val) const; //add zt 20151126
       private:
         static const int64_t DEF_STRING_BUF_SIZE = 64 * 1024L;
         static const int64_t BASIC_SYMBOL_COUNT = 64;

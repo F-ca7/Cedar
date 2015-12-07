@@ -13,10 +13,9 @@ int64_t SpVar::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "SpVar: ");
   pos += var_name_.to_string(buf + pos, buf_len - pos);
 
-  if( idx_value_ != NULL )
+  if( !idx_value_.is_null() )
   {
-    databuff_printf(buf, buf_len, pos, ", idx[%p]: ", idx_value_);
-    pos += idx_value_->to_string(buf + pos, buf_len - pos);
+    databuff_printf(buf, buf_len, pos, ", idx[%s]: ", to_cstring(idx_value_));
   }
   return pos;
 }
@@ -28,18 +27,18 @@ int SpVar::serialize(char *buf, int64_t buf_len, int64_t &pos) const
   {
     TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
   }
-  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, idx_value_ != NULL)) )
+  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, idx_value_.is_null())) )
   {
     TBSYS_LOG(WARN, "serialize idx flag fail, ret=%d", ret);
   }
-  else if( idx_value_ != NULL )
+  else if( !idx_value_.is_null() )
   {
-    ret = idx_value_->serialize(buf, buf_len, pos);
+    ret = idx_value_.serialize(buf, buf_len, pos);
   }
   return ret;
 }
 
-int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProcedure *proc)
+int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos)
 {
   int ret = OB_SUCCESS;
   bool has_idx = false;
@@ -53,8 +52,12 @@ int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProced
   }
   else if( has_idx )
   {
-    ret = idx_value_->deserialize(buf, data_len, pos);
-    idx_value_->set_owner_op(proc);
+    ret = idx_value_.deserialize(buf, data_len, pos);
+//    idx_value_->set_owner_op(proc);
+  }
+  else
+  {
+    idx_value_.set_null();
   }
   return ret;
 }
@@ -62,21 +65,22 @@ int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProced
 int SpVar::assign(const SpVar &other)
 {
   var_name_ = other.var_name_;
-  if( other.idx_value_ != NULL )
-  {
-    idx_value_ = ObSqlExpression::alloc();
-    *idx_value_ = *(other.idx_value_);
-  }
+  idx_value_ = other.idx_value_;
+//  if( other.idx_value_ != NULL )
+//  {
+//    idx_value_ = ObSqlExpression::alloc();
+//    *idx_value_ = *(other.idx_value_);
+//  }
   return OB_SUCCESS;
 }
 
 void SpVar::clear()
 {
-  if( idx_value_ != NULL )
-  {
-    ObSqlExpression::free(idx_value_);
-    idx_value_ = NULL;
-  }
+//  if( idx_value_ != NULL )
+//  {
+//    ObSqlExpression::free(idx_value_);
+//    idx_value_ = NULL;
+//  }
 }
 
 SpVar::~SpVar()
@@ -88,7 +92,7 @@ SpVar::~SpVar()
     *  once one of them is deconstructed, the idx_value_ becomes wild pointer
     *  so, we manully use clear function to release memory
     * */
-  idx_value_ = NULL;
+//  idx_value_ = NULL;
 }
 
 int64_t SpVarInfo::to_string(char *buf, const int64_t buf_len) const
@@ -237,7 +241,7 @@ int SpExprInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   UNUSED(op_factory);
   TBSYS_LOG(TRACE, "deserialize expr inst");
 
-  if( OB_SUCCESS != (ret = left_var_.deserialize(buf, data_len, pos, proc_)) )
+  if( OB_SUCCESS != (ret = left_var_.deserialize(buf, data_len, pos)) )
   {
     TBSYS_LOG(WARN, "deserialize left_var_ fail, ret=%d", ret);
   }
@@ -258,7 +262,7 @@ int SpExprInst::assign(const SpInst *inst)
   const SpExprInst *old_expr = static_cast<const SpExprInst*>(inst);
 
   left_var_.assign(old_expr->left_var_);
-  if( left_var_.idx_value_ != NULL ) left_var_.idx_value_ ->set_owner_op(proc_);
+//  if( left_var_.idx_value_ != NULL ) left_var_.idx_value_ ->set_owner_op(proc_);
   right_val_ = old_expr->right_val_;
   right_val_.set_owner_op(proc_);
 
@@ -473,7 +477,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
 //      ObString var_name;
       SpVar tmp_var;
       var_list_.push_back(tmp_var);
-      if( OB_SUCCESS != (ret = var_list_.at(i).deserialize(buf, data_len, pos, proc_)) )
+      if( OB_SUCCESS != (ret = var_list_.at(i).deserialize(buf, data_len, pos)) )
       {
         TBSYS_LOG(WARN, "Deserialize var list[%ld] fail, ret=%d", i, ret);
         break;
@@ -503,8 +507,8 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
     }
     else
     {
-      if( var_list_.at(i).idx_value_ != NULL )
-        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
+//      if( var_list_.at(i).idx_value_ != NULL )
+//        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
     }
   }
   return ret;
@@ -561,8 +565,8 @@ int SpRwCompInst::assign(const SpInst *inst)
     }
     else
     {
-      if( var_list_.at(i).idx_value_ != NULL )
-        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
+//      if( var_list_.at(i).idx_value_ != NULL )
+//        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
     }
   }
   return ret;
@@ -1231,8 +1235,8 @@ int SpLoopInst::assign(const SpInst *inst)
 
   //carefull handle the ownner op
   //useless now, just in case
-  if( loop_counter_var_.idx_value_ != NULL )
-    loop_counter_var_.idx_value_->set_owner_op(proc_);
+//  if( loop_counter_var_.idx_value_ != NULL )
+//    loop_counter_var_.idx_value_->set_owner_op(proc_);
 
   lowest_expr_ = old_inst->lowest_expr_;
   lowest_expr_.set_owner_op(proc_);
@@ -1303,7 +1307,7 @@ int SpProcedure::write_variable(const ObString &array_name, int64_t idx_value, c
   return OB_NOT_SUPPORTED;
 }
 
-int SpProcedure::write_variable(SpVar &var, const ObObj &val)
+int SpProcedure::write_variable(const SpVar &var, const ObObj &val)
 {
   UNUSED(var);
   UNUSED(val);
@@ -1325,7 +1329,7 @@ int SpProcedure::read_variable(const ObString &array_name, int64_t idx_value, co
   return OB_NOT_SUPPORTED;
 }
 
-int SpProcedure::read_variable(SpVar &var, const ObObj *&val) const
+int SpProcedure::read_variable(const SpVar &var, const ObObj *&val) const
 {
   UNUSED(var);
   UNUSED(val);
@@ -1337,6 +1341,41 @@ int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   UNUSED(array_name);
   UNUSED(size);
   return OB_NOT_SUPPORTED;
+}
+
+int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
+{
+  int ret = OB_SUCCESS;
+
+  if( ObIntType == obj.get_type() )
+  {
+    obj.get_int(idx_val);
+  }
+  else if( ObVarcharType == obj.get_type() )
+  {
+    ObString idx_var_name;
+    const ObObj  *idx_obj_val;
+    obj.get_varchar(idx_var_name);
+    if( OB_SUCCESS != (ret = read_variable(idx_var_name, idx_obj_val)))
+    {
+      TBSYS_LOG(WARN, "read index variable failed, %.*s", idx_var_name.length(), idx_var_name.ptr());
+    }
+    else if( ObIntType != idx_obj_val->get_type() )
+    {
+      TBSYS_LOG(WARN, "index variable has wrong type[%d], %s",
+                idx_obj_val->get_type(), to_cstring(*idx_obj_val));
+    }
+    else
+    {
+      idx_obj_val->get_int(idx_val);
+    }
+  }
+  else
+  {
+    TBSYS_LOG(WARN, "index object need to be int or varchar, index obj: %s", to_cstring(obj));
+    ret = OB_ERR_ILLEGAL_INDEX;
+  }
+  return ret;
 }
 
 SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)

@@ -13,9 +13,10 @@ namespace oceanbase {
     struct SpRawVar
     {
       ObString var_name_;
-      uint64_t idx_expr_id_;
+      ObObj idx_value_;
+//      uint64_t idx_expr_id_;
 
-      SpRawVar() : idx_expr_id_(OB_INVALID_ID) {}
+      SpRawVar()  { idx_value_.set_null(); }
     };
 
     class ObProcedureSelectIntoStmt: public ObBasicStmt {

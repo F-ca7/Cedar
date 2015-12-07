@@ -85,12 +85,14 @@ namespace oceanbase
     class ObArrayRawExpr : public ObRawExpr
     {
     public:
-      ObArrayRawExpr():ObRawExpr(T_ARRAY), idx_expr_(NULL)
+      ObArrayRawExpr() : ObRawExpr(T_ARRAY)
       {
       }
 
-      void set_array_name(const oceanbase::common::ObString &array_name) { array_name_ = array_name; }
-      void set_idx_expr(ObRawExpr *idx_expr) { idx_expr_ = idx_expr; }
+//      void set_array_name(const oceanbase::common::ObString &array_name) { array_name_ = array_name; }
+//      void set_idx_expr(ObRawExpr *idx_expr) { idx_expr_ = idx_expr; }
+      void set_array_name(const ObString &array_name) { array_name_ = array_name; }
+      void set_idx_value(const ObObj &obj) { idx_value_ = obj; }
       virtual int fill_sql_expression(
           ObSqlExpression& inter_expr,
           ObTransformer *transformer = NULL,
@@ -106,7 +108,8 @@ namespace oceanbase
       }
     private:
       oceanbase::common::ObString array_name_;
-      ObRawExpr *idx_expr_;
+      ObObj idx_value_;
+//      ObRawExpr *idx_expr_;
     };
     //add zt 20151125:e
 
