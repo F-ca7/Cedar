@@ -1301,7 +1301,8 @@ int ObTransformer::gen_physical_procedure_if(
     {
       ObArray<const ObRawExpr *> var_if_expr;
       raw_expr->get_raw_var(var_if_expr);
-      if_control->add_read_var(var_if_expr);
+      gen_physical_procedure_inst_var_set(if_control->cons_read_var_set(), var_if_expr);
+//      if_control->add_read_var(var_if_expr);
     }
     if (ret == OB_SUCCESS)
     {

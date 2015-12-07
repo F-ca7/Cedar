@@ -419,7 +419,9 @@ namespace oceanbase
       int add_then_inst(SpInst *inst);
       int add_else_inst(SpInst *inst);
       ObSqlExpression & get_if_expr() { return if_expr_; }
-      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
+//      void add_read_var(const ObIArray<const ObRawExpr *> &var_list);
+      SpVariableSet & cons_read_var_set() { return expr_rs_set_; }
+
       SpMultiInsts* get_then_block() { return &then_branch_; }
       SpMultiInsts* get_else_block() { return &else_branch_; }
 

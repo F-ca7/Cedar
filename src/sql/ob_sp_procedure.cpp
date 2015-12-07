@@ -514,7 +514,7 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
   int ret = OB_SUCCESS;
   ret = SpRwDeltaInst::assign(inst);
 //  var_list_ = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
-  const ObArray<SpVar>& old_var_list = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
+  const ObIArray<SpVar>& old_var_list = static_cast<const SpRwDeltaIntoVarInst*>(inst)->var_list_;
 
   int64_t var_count = old_var_list.count();
 
@@ -1028,19 +1028,19 @@ SpIfBlock::~SpIfBlock()
 SpIfCtrlInsts::~SpIfCtrlInsts()
 {}
 
-void SpIfCtrlInsts::add_read_var(const ObArray<const ObRawExpr*> &var_list)
-{
-  for(int64_t i = 0; i < var_list.count(); ++i)
-  {
-    ObItemType raw_type = var_list.at(i)->get_expr_type();
-    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-    {
-      ObString var_name;
-      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-      expr_rs_set_.add_tmp_var(var_name);
-    }
-  }
-}
+//void SpIfCtrlInsts::add_read_var(const ObIArray<const ObRawExpr*> &var_list)
+//{
+//  for(int64_t i = 0; i < var_list.count(); ++i)
+//  {
+//    ObItemType raw_type = var_list.at(i)->get_expr_type();
+//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+//    {
+//      ObString var_name;
+//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
+//      expr_rs_set_.add_tmp_var(var_name);
+//    }
+//  }
+//}
 
 void SpIfCtrlInsts::get_read_variable_set(SpVariableSet &read_set) const
 {
