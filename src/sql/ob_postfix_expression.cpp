@@ -3215,6 +3215,12 @@ namespace oceanbase
             databuff_printf(buf, buf_len, pos, "@");
             pos += expr_[idx++].to_string(buf+pos, buf_len-pos);
             break;
+            //add zt 20151208:b
+          case ARRAY_VAR:
+            databuff_printf(buf, buf_len, pos, "@");
+            pos += expr_[idx++].to_string(buf+pos, buf_len-pos);
+            databuff_printf(buf, buf_len, pos, "[]");
+            //add zt 20151208:e
           case OP:
             // 根据OP的类型，从堆栈中弹出1个或多个操作数，进行计算
             if (OB_SUCCESS != (err = expr_[idx++].get_int(value)))

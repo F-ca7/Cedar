@@ -2600,7 +2600,7 @@ int resolve_procedure_select_into_stmt(
     if (ret == OB_SUCCESS)
     {
       ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-      /*解析select into语句中的参数列表*/
+      /*resolve the left vaule list*/
       if(node->children_[0]!=NULL)
       {
         ParseNode* arguments=node->children_[0];
@@ -2634,6 +2634,7 @@ int resolve_procedure_select_into_stmt(
             TBSYS_LOG(WARN, "unsupported variables type here");
           }
         }
+        //TODO we need to check is these variables defined.
       }
       //resolve select clause
       if(node->children_[1]!=NULL)
@@ -2659,14 +2660,6 @@ int resolve_procedure_select_into_stmt(
             ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
             if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type || T_ARRAY == raw_type)
             sel_stmt->add_raw_var_expr(logic_plan->get_raw_expr(expr_itr));
-
-//            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
-//            {
-//              ObString var_name;
-//              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
-//              sel_stmt->add_expr_variable(var_name);
-//              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
-//            }
           }
         }
       }

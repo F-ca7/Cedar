@@ -174,9 +174,18 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
 {
   int ret = OB_SUCCESS;
-  for(int64_t i = 0; OB_SUCCESS == ret && i < inst->get_iteration_count(); ++i)
+
+  ObObj itr_obj;
+  int64_t current_value = inst->get_lowest_number();
+  const SpVar & var = inst->get_loop_counter_var();
+  for(int64_t i = 0; OB_SUCCESS == ret && i < inst->get_iteration_count(); ++i, ++current_value)
   {
     SpMultiInsts & loop_body_itr = inst->get_loop_body(i);
+    itr_obj.set_int(current_value);
+    if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(var, itr_obj)) )
+    {
+      TBSYS_LOG(WARN, "update loop couter var failed");
+    }
     if( OB_SUCCESS != (ret = execute_multi_inst(&loop_body_itr)) )
     {
       TBSYS_LOG(WARN, "execute loop inst failed at iteration: %ld", i);
@@ -195,13 +204,22 @@ int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &
 {
   int ret = OB_SUCCESS;
   int64_t itr_count = 0;
-  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &itr_count)) )
+  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &lowest_number_)) )
   {
-    TBSYS_LOG(WARN, "deserialize iteration count failed");
+    TBSYS_LOG(WARN, "deserialize lowest number failed");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &highest_number_)))
+  {
+    TBSYS_LOG(WARN, "deserialize highest number failed");
+  }
+  else if( OB_SUCCESS != (ret = loop_counter_var_.deserialize(buf, data_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize loop counter variable failed");
   }
   else
   {
-    TBSYS_LOG(TRACE, "expanded loop iteration count: %ld", itr_count);
+    TBSYS_LOG(TRACE, "expanded loop iteration %s in (%ld  %ld)", to_cstring(loop_counter_var_), lowest_number_, highest_number_);
+    itr_count = highest_number_ - lowest_number_;
     expanded_loop_body_.reserve(itr_count);
   }
   for(int64_t i = 0; OB_SUCCESS == ret && i < itr_count; ++i)

@@ -27,7 +27,7 @@ int SpVar::serialize(char *buf, int64_t buf_len, int64_t &pos) const
   {
     TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
   }
-  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, idx_value_.is_null())) )
+  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, !idx_value_.is_null())) )
   {
     TBSYS_LOG(WARN, "serialize idx flag fail, ret=%d", ret);
   }
@@ -695,7 +695,8 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     }
   }
   //serialize array variables
-  if( OB_SUCCESS != ret || OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_array_var_count)))
+  if( OB_SUCCESS != ret ){}
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_array_var_count)) )
   {
     TBSYS_LOG(WARN, "serialize read array variables count fail");
   }
@@ -765,7 +766,6 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 //      TBSYS_LOG(TRACE, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
 //    }
 //  }
-
   return ret;
 }
 
@@ -1220,20 +1220,53 @@ int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
  * @param pos
  * @return
  */
-int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos)
+int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   int ret = OB_SUCCESS;
 
   ObObj itr_var;
-  int64_t itr = lowest_number_, itr_end = highest_number_;
-  if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, itr_end - itr)) )
+  ObRow fake_row;
+  int64_t itr = 0, itr_end = 0;
+  const ObObj *lowest_obj = NULL, *highest_obj = NULL;
+
+  if( OB_SUCCESS != (ret = const_cast<ObSqlExpression&>(lowest_expr_).calc(fake_row, lowest_obj)))
   {
-    TBSYS_LOG(WARN, "serialize expansion loop size fail");
+    ret = OB_ERR_ILLEGAL_VALUE;
+    TBSYS_LOG(WARN,"calculated lowest expr failed");
+  }
+  else if( OB_SUCCESS != (ret = lowest_obj->get_int(itr)))
+  {
+    ret = OB_ERR_ILLEGAL_VALUE;
+    TBSYS_LOG(WARN, "lowest expr does not have int type, %s", to_cstring(*lowest_obj));
+  }
+  else if( OB_SUCCESS != (ret = const_cast<ObSqlExpression&>(highest_expr_).calc(fake_row, highest_obj)))
+  {
+    ret = OB_ERR_ILLEGAL_VALUE;
+    TBSYS_LOG(WARN, "calculated highest expr failed");
+  }
+  else if( OB_SUCCESS != (ret = highest_obj->get_int(itr_end)))
+  {
+    ret = OB_ERR_ILLEGAL_VALUE;
+    TBSYS_LOG(WARN, "highest expr does not have int type: %s", to_cstring(*highest_obj));
+  }
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, itr)) )
+  {
+    TBSYS_LOG(WARN, "serialize lowest_number failed");
+  }
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, itr_end)))
+  {
+    TBSYS_LOG(WARN, "serialize highest_number failed");
+  }
+  else if( OB_SUCCESS != (ret = loop_counter_var_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize loop counter var fail");
   }
   else
   {
+    TBSYS_LOG(TRACE, "loop serialization, (%ld  %ld)", itr, itr_end);
     for(; itr < itr_end && OB_SUCCESS == ret; itr ++)
     {
+//      TBSYS_LOG(TRACE, "loop serialization, itr at: %ld", itr);
       itr_var.set_int(itr);
       if( OB_SUCCESS != (ret = const_cast<SpProcedure *>(proc_)->write_variable(loop_counter_var_, itr_var )))
       {
@@ -1243,7 +1276,7 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos)
       {
         TBSYS_LOG(WARN, "serialize loop body fail");
       }
-      else if( OB_SUCCESS != (ret = const_cast<SpProcedure *>(proc_)->get_exec_strategy()->close(this)) ) //close body inst operation
+      else if( OB_SUCCESS != (ret = const_cast<SpProcedure *>(proc_)->get_exec_strategy()->close(const_cast<SpLoopInst*>(this))) ) //close body inst operation
       {
         TBSYS_LOG(WARN, "reset loop body inst operation fail");
       }
@@ -1270,8 +1303,8 @@ int SpLoopInst::assign(const SpInst *inst)
   highest_expr_ = old_inst->highest_expr_;
   highest_expr_.set_owner_op(proc_);
 
-  lowest_number_ = old_inst->lowest_number_;
-  highest_number_ = old_inst->highest_number_;
+//  lowest_number_ = old_inst->lowest_number_;
+//  highest_number_ = old_inst->highest_number_;
 
   step_size_ = old_inst->step_size_;
   reverse_ = old_inst->reverse_;
@@ -1291,28 +1324,29 @@ int SpLoopInst::optimize(SpInstList &exec_list)
   }
   else
   { //materialize the lowest and highest bound
-    ObRow fake_row;
-    const ObObj *low_obj = NULL, *high_obj = NULL;
-    if( OB_SUCCESS != (ret = lowest_expr_.calc(fake_row, low_obj)))
-    {
-      TBSYS_LOG(WARN, "compute lowest expression failed");
-    }
-    else if( OB_SUCCESS != (low_obj->get_int(lowest_number_)))
-    {
-      TBSYS_LOG(WARN, "low expression does not get int type: %s", to_cstring(*low_obj));
-    }
-    else if (OB_SUCCESS != (ret = highest_expr_.calc(fake_row, high_obj)) )
-    {
-      TBSYS_LOG(WARN, "compute highest expression failed");
-    }
-    else if( OB_SUCCESS != (high_obj->get_int(highest_number_)))
-    {
-      TBSYS_LOG(WARN, "highest expression does not get int type: %s", to_cstring(*high_obj));
-    }
-    else
-    {
-      TBSYS_LOG(TRACE, "optimze loop finished, iterate from %ld to %ld", lowest_number_, highest_number_);
-    }
+    //impossible to marerialize loop bound
+//    ObRow fake_row;
+//    const ObObj *low_obj = NULL, *high_obj = NULL;
+//    if( OB_SUCCESS != (ret = lowest_expr_.calc(fake_row, low_obj)))
+//    {
+//      TBSYS_LOG(WARN, "compute lowest expression failed");
+//    }
+//    else if( OB_SUCCESS != (low_obj->get_int(lowest_number_)))
+//    {
+//      TBSYS_LOG(WARN, "low expression does not get int type: %s", to_cstring(*low_obj));
+//    }
+//    else if (OB_SUCCESS != (ret = highest_expr_.calc(fake_row, high_obj)) )
+//    {
+//      TBSYS_LOG(WARN, "compute highest expression failed");
+//    }
+//    else if( OB_SUCCESS != (high_obj->get_int(highest_number_)))
+//    {
+//      TBSYS_LOG(WARN, "highest expression does not get int type: %s", to_cstring(*high_obj));
+//    }
+//    else
+//    {
+//      TBSYS_LOG(TRACE, "optimze loop finished, iterate from %ld to %ld", lowest_number_, highest_number_);
+//    }
   }
   return ret;
 }
@@ -1785,7 +1819,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
 int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "type [Block]\n");
+  databuff_printf(buf, buf_len, pos, "type [Group]\n");
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *inst = inst_list_.at(i);
@@ -1793,7 +1827,7 @@ int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
 
     pos += inst->to_string(buf + pos, buf_len - pos);
   }
-  databuff_printf(buf, buf_len, pos, "End Block\n");
+  databuff_printf(buf, buf_len, pos, "End Group\n");
   return pos;
 }
 

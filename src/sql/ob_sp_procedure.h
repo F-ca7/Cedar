@@ -468,7 +468,7 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) ;
+      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -478,8 +478,8 @@ namespace oceanbase
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
-      int64_t lowest_number_;
-      int64_t highest_number_;
+//      int64_t lowest_number_;
+//      int64_t highest_number_;
 
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body
