@@ -19,9 +19,6 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_DE_INST:
     ret = execute_rw_delta_into_var(static_cast<SpRwDeltaIntoVarInst*>(inst));
     break;
-//  case SP_BLOCK_INST:
-//    ret = execute_block(static_cast<SpBlockInsts*>(inst));
-//    break;
   case SP_C_INST:
     ret = execute_if_ctrl(static_cast<SpIfCtrlInsts*>(inst));
     break;
@@ -35,7 +32,6 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   }
   return ret;
 }
-
 
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
@@ -53,7 +49,6 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   return ret;
 }
 
-//int SpRwDeltaInst::ups_exec()
 int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -66,7 +61,6 @@ int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
   return ret;
 }
 
-//int SpRwDeltaIntoVarInst::ups_exec()
 int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -105,7 +99,6 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   return ret;
 }
 
-//int SpBlockInsts::ups_exec()
 int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
 {
   int ret = OB_SUCCESS;
@@ -360,17 +353,6 @@ int ObUpsProcedure::write_variable(const SpVar &var, const ObObj &val)
   }
   else //write array variables
   {
-//    common::ObRow fake_row;
-//    const ObObj *idx = NULL;
-//    int64_t idx_val = 0;
-//    if( OB_SUCCESS != (ret = var.idx_value_->calc(fake_row, idx)) )
-//    {
-//      TBSYS_LOG(WARN, "calculate index value fail");
-//    }
-//    else if( OB_SUCCESS != (ret = idx->get_int(idx_val)) )
-//    {
-//      TBSYS_LOG(WARN, "get index value fail, %s", to_cstring(*idx));
-//    }
     int64_t idx = 0;
     if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
     {
@@ -440,26 +422,6 @@ int ObUpsProcedure::write_variable(const ObString &array_name, int64_t idx_value
   }
   return ret;
 }
-
-//int ObUpsProcedure::read_variable(const ObString &var_name, ObObj &val) const
-//{
-//  int ret = OB_SUCCESS;
-//  if( OB_UNLIKELY(!is_var_tab_created) )
-//	{
-//		TBSYS_LOG(WARN, "var_table does not create");
-//    ret = OB_ERR_VARIABLE_UNKNOWN;
-//	}
-//  else if (var_name_val_map_.get(var_name, val) != hash::HASH_EXIST)
-//	{
-//		TBSYS_LOG(WARN, "var does not exist");
-//    ret = OB_ERR_VARIABLE_UNKNOWN;
-//  }
-//  else
-//  {
-//    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
-//  }
-//  return ret;
-//}
 
 int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {

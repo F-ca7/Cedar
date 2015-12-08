@@ -389,8 +389,10 @@ namespace oceanbase
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                           common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store,
+                           ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int assign(const SpInst *inst);
@@ -427,8 +429,10 @@ namespace oceanbase
 
       int optimize(SpInstList &exec_list);
 
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                           common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store,
+                           ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
@@ -460,6 +464,14 @@ namespace oceanbase
       void set_reverse(bool rev) { reverse_ = rev; }
       SpMultiInsts* get_body_block() { return &loop_body_; }
 
+      /**
+       * @brief add_itr_local_inst
+       * instruction used to set the temporary status of each iteration
+       * exectuted at the start of each iteration, just like increase the loop_counter_var_
+       * @param inst
+       */
+      void add_itr_local_inst(int64_t idx) { loop_local_inst_.push_back(idx); }
+
       const SpVar & get_loop_var() const { return loop_counter_var_; }
 
       int optimize(SpInstList &exec_list);
@@ -467,7 +479,10 @@ namespace oceanbase
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
-      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                                   ModuleArena &allocator,
+                                   ObPhysicalPlan::OperatorStore &operators_store,
+                                   ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -478,11 +493,12 @@ namespace oceanbase
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
-//      int64_t lowest_number_;
-//      int64_t highest_number_;
 
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body
+
+      //executed at each iteration started
+      ObSEArray<int64_t, 8> loop_local_inst_;
       bool reverse_;   //this variable could be elimated
     };
 

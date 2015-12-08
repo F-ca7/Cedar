@@ -1158,18 +1158,6 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
   else
   {
     //construct read set
-//    exec_list.push_back(this);
-
-//    for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
-//    {
-//      SpInst *inst;
-//      then_branch_.get_inst(i, inst);
-//    }
-//    for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
-//    {
-//      SpInst *inst;
-//      else_branch_.get_inst(i, inst);
-//    }
   }
   return ret;
 }
@@ -1268,10 +1256,25 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     {
 //      TBSYS_LOG(TRACE, "loop serialization, itr at: %ld", itr);
       itr_var.set_int(itr);
+
       if( OB_SUCCESS != (ret = const_cast<SpProcedure *>(proc_)->write_variable(loop_counter_var_, itr_var )))
       {
         TBSYS_LOG(WARN, "update iterate variable fail");
       }
+      else
+      {
+        for(int64_t loop_local_inst_itr = 0; OB_SUCCESS == ret && loop_local_inst_itr < loop_local_inst_.count(); ++loop_local_inst_itr)
+        {
+          SpInst *pre_inst = const_cast<SpMultiInsts&>(loop_body_).get_inst(loop_local_inst_.at(loop_local_inst_itr));
+          if( OB_SUCCESS != (ret = const_cast<SpProcedure*>(proc_)->
+                             get_exec_strategy()->execute_inst(pre_inst)) )
+          {
+            TBSYS_LOG(WARN, "process pro-loop instruction failed at %ld", loop_local_inst_itr);
+          }
+        }
+      }
+
+      if( OB_SUCCESS != ret) {}
       else if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
       {
         TBSYS_LOG(WARN, "serialize loop body fail");
@@ -1292,24 +1295,19 @@ int SpLoopInst::assign(const SpInst *inst)
 
   loop_counter_var_.assign(old_inst->loop_counter_var_);
 
-  //carefull handle the ownner op
-  //useless now, just in case
-//  if( loop_counter_var_.idx_value_ != NULL )
-//    loop_counter_var_.idx_value_->set_owner_op(proc_);
-
   lowest_expr_ = old_inst->lowest_expr_;
   lowest_expr_.set_owner_op(proc_);
 
   highest_expr_ = old_inst->highest_expr_;
   highest_expr_.set_owner_op(proc_);
 
-//  lowest_number_ = old_inst->lowest_number_;
-//  highest_number_ = old_inst->highest_number_;
 
   step_size_ = old_inst->step_size_;
   reverse_ = old_inst->reverse_;
 
   loop_body_.assign(old_inst->loop_body_);
+  loop_local_inst_ = old_inst->loop_local_inst_;
+
   return ret;
 }
 
@@ -1323,31 +1321,7 @@ int SpLoopInst::optimize(SpInstList &exec_list)
     TBSYS_LOG(WARN, "optimize loop body fail");
   }
   else
-  { //materialize the lowest and highest bound
-    //impossible to marerialize loop bound
-//    ObRow fake_row;
-//    const ObObj *low_obj = NULL, *high_obj = NULL;
-//    if( OB_SUCCESS != (ret = lowest_expr_.calc(fake_row, low_obj)))
-//    {
-//      TBSYS_LOG(WARN, "compute lowest expression failed");
-//    }
-//    else if( OB_SUCCESS != (low_obj->get_int(lowest_number_)))
-//    {
-//      TBSYS_LOG(WARN, "low expression does not get int type: %s", to_cstring(*low_obj));
-//    }
-//    else if (OB_SUCCESS != (ret = highest_expr_.calc(fake_row, high_obj)) )
-//    {
-//      TBSYS_LOG(WARN, "compute highest expression failed");
-//    }
-//    else if( OB_SUCCESS != (high_obj->get_int(highest_number_)))
-//    {
-//      TBSYS_LOG(WARN, "highest expression does not get int type: %s", to_cstring(*high_obj));
-//    }
-//    else
-//    {
-//      TBSYS_LOG(TRACE, "optimze loop finished, iterate from %ld to %ld", lowest_number_, highest_number_);
-//    }
-  }
+  {}
   return ret;
 }
 

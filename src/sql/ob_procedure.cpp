@@ -773,9 +773,31 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(1));
     exec_list_.push_back(block_inst);
   }
-  else if( proc_name_.compare("new_order") == 0 )
+  else if( proc_name_.compare("neworder") == 0 )
   {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
 
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+
+//    SpInstList loop_base_list;
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(9));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(10));
   }
   //else do nothing
   else
