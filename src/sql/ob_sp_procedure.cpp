@@ -1015,6 +1015,10 @@ int SpMultiInsts::optimize(SpInstList &exec_list)
       inst_list_.remove(inst_itr);
       inst_itr --;
     }
+    else if( inst_list_.at(inst_itr)->get_type() == SP_C_INST )
+    {
+      static_cast<SpIfCtrlInsts*>(inst_list_.at(inst_itr))->optimize(exec_list);
+    }
   }
   return ret;
 }
@@ -1154,18 +1158,18 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
   else
   {
     //construct read set
-    exec_list.push_back(this);
+//    exec_list.push_back(this);
 
-    for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
-    {
-      SpInst *inst;
-      then_branch_.get_inst(i, inst);
-    }
-    for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
-    {
-      SpInst *inst;
-      else_branch_.get_inst(i, inst);
-    }
+//    for(int64_t i = 0; i < then_branch_.inst_count(); ++i)
+//    {
+//      SpInst *inst;
+//      then_branch_.get_inst(i, inst);
+//    }
+//    for(int64_t i = 0; i < else_branch_.inst_count(); ++i)
+//    {
+//      SpInst *inst;
+//      else_branch_.get_inst(i, inst);
+//    }
   }
   return ret;
 }
@@ -1286,7 +1290,7 @@ int SpLoopInst::optimize(SpInstList &exec_list)
     TBSYS_LOG(WARN, "optimize loop body fail");
   }
   else
-  {
+  { //materialize the lowest and highest bound
     ObRow fake_row;
     const ObObj *low_obj = NULL, *high_obj = NULL;
     if( OB_SUCCESS != (ret = lowest_expr_.calc(fake_row, low_obj)))

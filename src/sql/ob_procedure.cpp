@@ -705,8 +705,8 @@ int ObProcedure::optimize()
     {
       if( inst_list_.at(i)->get_type() == SP_C_INST )
         static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->optimize(temp_exec_list);
-      else
-        temp_exec_list.push_back(inst_list_.at(i));
+//      else
+      temp_exec_list.push_back(inst_list_.at(i));
     }
 
     for(int64_t i = 0; i < temp_exec_list.count(); ++i)
@@ -732,7 +732,7 @@ int ObProcedure::optimize()
     exec_list_.push_back(inst_list_.at(8));
 
     static_cast<SpIfCtrlInsts*>(inst_list_.at(13))->optimize(exec_list_);
-    exec_list_.remove(exec_list_.count() - 1);
+//    exec_list_.remove(exec_list_.count() - 1);
 //    inst_list_.remove(inst_list_.count() - 1);
 
     SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
@@ -756,6 +756,10 @@ int ObProcedure::optimize()
     }
     buf[pos] = '\0';
     TBSYS_LOG(INFO, "Payment optimize:\n%s", buf);
+  }
+  else if( proc_name_.compare("for_test_1") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
   }
   //else do nothing
   else
