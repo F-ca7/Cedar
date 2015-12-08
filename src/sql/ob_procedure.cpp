@@ -711,7 +711,7 @@ int ObProcedure::optimize()
 
     for(int64_t i = 0; i < temp_exec_list.count(); ++i)
     {
-      TBSYS_LOG(INFO, "inst[%ld]\n:%s", i, to_cstring(*temp_exec_list.at(i)));
+      TBSYS_LOG(INFO, "inst[%ld]: %s", i, to_cstring(*temp_exec_list.at(i)));
     }
 
     exec_list_.push_back(temp_exec_list.at(0));

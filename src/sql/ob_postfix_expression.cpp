@@ -981,7 +981,7 @@ namespace oceanbase
           const SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
           const ObObj *tmp_obj;
           //read idx value
-          if( ObIntType == idx_type ) idx_val.get_int(idx_value);
+          if( CONST_OBJ == idx_type ) idx_val.get_int(idx_value);
           else if( OB_SUCCESS != (ret = get_var_obj(TEMP_VAR, idx_val, tmp_obj)) )
           {
             TBSYS_LOG(WARN, "can not read from index variable [%s]", to_cstring(idx_val));
@@ -990,7 +990,8 @@ namespace oceanbase
           {
             TBSYS_LOG(WARN, "index variables does not contain int type value, %s", to_cstring(idx_val));
           }
-          else if( OB_SUCCESS != (ret = proc->read_variable(array_name, idx_value, val)) )
+
+          if( OB_SUCCESS != ret || OB_SUCCESS != (ret = proc->read_variable(array_name, idx_value, val)) )
           {
             TBSYS_LOG(WARN, "read %.*s[%ld] from procedure %p failed", array_name.length(), array_name.ptr(), idx_value, proc);
           }
@@ -1004,7 +1005,7 @@ namespace oceanbase
       { //read array value on the ms
         const ObObj *tmp_obj;
         //read idx value
-        if( ObIntType == idx_type ) idx_val.get_int(idx_value);
+        if( CONST_OBJ == idx_type ) idx_val.get_int(idx_value);
         else if( OB_SUCCESS != (ret = get_var_obj(TEMP_VAR, idx_val, tmp_obj)) )
         {
           TBSYS_LOG(WARN, "can not read from index variable [%s]", to_cstring(idx_val));
@@ -1013,7 +1014,8 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "index variables does not contain int type value, %s", to_cstring(idx_val));
         }
-        else if( OB_SUCCESS != (ret = result_set->get_session()->get_variable_value(array_name, idx_value, val)) )
+
+        if( OB_SUCCESS != ret || OB_SUCCESS != (ret = result_set->get_session()->get_variable_value(array_name, idx_value, val)) )
         {
           TBSYS_LOG(WARN, "read %.*s[%ld] from session_info fail, ret=%d", array_name.length(), array_name.ptr(), idx_value, ret);
         }

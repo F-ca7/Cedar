@@ -1382,7 +1382,8 @@ int ObTransformer::gen_physical_procedure_elseif(
     {
       ObArray<const ObRawExpr* > var_elseif_expr;
       raw_expr->get_raw_var(var_elseif_expr);
-      elseif_control->add_read_var(var_elseif_expr);
+      gen_physical_procedure_inst_var_set(elseif_control->cons_read_var_set(), var_elseif_expr);
+//      elseif_control->add_read_var(var_elseif_expr);
     }
 
     if (ret == OB_SUCCESS)

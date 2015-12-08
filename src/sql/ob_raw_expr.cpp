@@ -289,7 +289,7 @@ int ObArrayRawExpr::fill_sql_expression(
   else if ( ObVarcharType == idx_value_.get_type() )
   {
     idx_item.type_ = T_TEMP_VARIABLE;
-    idx_value_.get_varchar(item.string_);
+    idx_value_.get_varchar(idx_item.string_);
   }
 
   if( OB_SUCCESS == ret )

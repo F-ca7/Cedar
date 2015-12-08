@@ -1408,6 +1408,15 @@ int resolve_variable_set_stmt(
       OB_ASSERT(var);
       var_node.is_system_variable_ = (var->type_ == T_SYSTEM_VARIABLE) ? true : false;
 
+      //add zt 20151208:b
+      //TODO
+      if( T_ARRAY == var->type_ )
+      {
+        TBSYS_LOG(WARN, "does not support array item as left value now");
+        ret = OB_NOT_SUPPORTED;
+      }
+      else
+      //add zt 20151208:e
       if ((ret = ob_write_string(*name_pool, ObString::make_string(var->str_value_),
                                   var_node.variable_name_)) != OB_SUCCESS)
       {
