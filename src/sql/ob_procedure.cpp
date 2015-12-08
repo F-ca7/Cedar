@@ -673,6 +673,7 @@ int ObProcedure::clear_variables()
  */
 int ObProcedure::optimize()
 {
+  bool special_proc = true;
   if( proc_name_.compare("ups_proc_test") == 0 )
   {
     // 0 2 6 8 { 1 3 4 5 7 9 }
@@ -749,29 +750,54 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
 
-    char buf[4096];
-    int64_t pos = 0;
-    for(int64_t i = 0; i < exec_list_.count(); ++i) {
-      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
-    }
-    buf[pos] = '\0';
-    TBSYS_LOG(INFO, "Payment optimize:\n%s", buf);
   }
   else if( proc_name_.compare("for_test_1") == 0 )
   {
     static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_2") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_3") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(1))->optimize(exec_list_);
+    exec_list_.push_back(inst_list_.at(0));
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(1));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("new_order") == 0 )
+  {
+
   }
   //else do nothing
   else
   {
+    special_proc = false;
     exec_list_.reserve(inst_list_.count());
     for(int64_t i = 0; i < inst_list_.count(); ++i)
     {
       exec_list_.push_back(inst_list_.at(i));
     }
-
   }
-//  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
+  if (special_proc)
+  {
+    char buf[4096];
+    int64_t pos = 0;
+    for(int64_t i = 0; i < exec_list_.count(); ++i)
+    {
+      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
+    }
+    buf[pos] = '\0';
+    TBSYS_LOG(INFO, "%.*s optimize:\n%s", proc_name_.length(), proc_name_.ptr(), buf);
+  }
   return OB_SUCCESS;
 }
 
