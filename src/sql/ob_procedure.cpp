@@ -799,6 +799,33 @@ int ObProcedure::optimize()
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(10));
   }
+  else if( proc_name_.compare("neworder_2") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(2));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(3));
+    exec_list_.push_back(inst_list_.at(5));
+
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(11));
+  }
   //else do nothing
   else
   {
