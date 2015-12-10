@@ -39,6 +39,7 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_L_INST:
     ret = execute_loop(static_cast<SpLoopInst*>(inst));
     break;
+
   default:
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
     ret = OB_NOT_SUPPORTED;

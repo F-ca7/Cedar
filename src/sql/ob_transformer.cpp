@@ -792,9 +792,9 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_PROCEDURE_CASE:
     ret = gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
-  case ObBasicStmt::T_PROCEDURE_CASEWHEN:
-    ret = gen_physical_procedure_casewhen(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
-    break;
+//  case ObBasicStmt::T_PROCEDURE_CASEWHEN:
+//    ret = gen_physical_procedure_casewhen(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
+//    break;
   default:
     TBSYS_LOG(WARN, "Current does not support this type: %d", type);
     ret = OB_ERROR;
@@ -1120,9 +1120,9 @@ int ObTransformer::gen_physical_procedure_case(
     {
       expr.set_owner_op(proc_op);
 
-      ObArray<const ObRawExpr*> var_case_expr;
+      ObSEArray<const ObRawExpr*, 4> var_case_expr;
       raw_expr->get_raw_var(var_case_expr);
-      else_inst->add_read_var(var_case_expr);
+      gen_physical_procedure_inst_var_set(case_inst->cons_read_var_set(), var_case_expr);
 		}
 
     if (ret == OB_SUCCESS)
@@ -1152,7 +1152,6 @@ int ObTransformer::gen_physical_procedure_case(
         {}
         }
       }
-
 	}
 }
 
@@ -1178,9 +1177,9 @@ int ObTransformer::gen_physical_procedure_casewhen(
 		/*获取表达式的值*/
 		uint64_t expr_id = stmt->get_expr_id();
 		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-    SpWhenInst* when_inst = proc_op->create_inst<SpWhenInst>(mul_inst);
+//    SpWhenInst* when_inst = proc_op->create_inst<SpWhenInst>(mul_inst);
+    SpWhenBlock *when_block = static_cast<SpWhenBlock *>(mul_inst);
     ObSqlExpression& expr = when_inst->get_when_expr();
-    expr.set_owner_op(proc_op);
 
     if (OB_UNLIKELY(raw_expr == NULL))
 		{
@@ -1197,7 +1196,13 @@ int ObTransformer::gen_physical_procedure_casewhen(
 		{
 			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
 		}
-
+    else
+    {
+      expr.set_owner_op(proc_op);
+      ObSEArray<const ObRawExpr*, 4> var_when_expr;
+      raw_expr->get_raw_var(var_when_expr);
+      gen_physical_procedure_inst_var_set(when_block->cons_read_var_set(), var_when_expr);
+    }
 
 		if (ret == OB_SUCCESS)
 		{
@@ -1207,7 +1212,7 @@ int ObTransformer::gen_physical_procedure_casewhen(
 			{
 				uint64_t stmt_id=stmt->get_then_stmt(i);
 
-        if (OB_SUCCESS != (ret = generate_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, when_inst->get_then_block)))
+        if (OB_SUCCESS != (ret = generate_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, when_block)))
 				{
           TBSYS_LOG(WARN, "generate procedure instruction failed at %ld", i);
 				}				
@@ -1215,7 +1220,7 @@ int ObTransformer::gen_physical_procedure_casewhen(
 		}
 	}
 	return ret;
- }
+}
 //add by wwd
 
 int ObTransformer::gen_physical_procedure_if(

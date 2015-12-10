@@ -1,11 +1,8 @@
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_CASE_STMT_H_
 #define OCEANBASE_SQL_OB_PROCEDURE_CASE_STMT_H_
 #include "common/ob_string.h"
-#include "common/ob_string_buf.h"
 #include "common/ob_array.h"
 #include "ob_basic_stmt.h"
-#include "parse_node.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {

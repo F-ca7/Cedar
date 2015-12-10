@@ -191,9 +191,9 @@ namespace oceanbase
       void get_read_variable_set(SpVariableSet &read_set) const;
       void get_write_variable_set(SpVariableSet &write_set) const;
 
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int optimize(SpInstList &exec_list);
 
@@ -533,12 +533,21 @@ namespace oceanbase
 
     class SpWhenBlock : public SpMultiInsts
     {
+    public:
+      SpWhenBlock() : SpMultiInsts() {}
+      SpWhenBlock(SpInst *ownner) : SpMultiInsts(ownner) {}
+
+      SpVariableSet & cons_read_var_set() { return when_expr_var_set; }
+
       ObSqlExpression& get_when_expr(){return when_expr_;}
+
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
     private:
       ObSqlExpression when_expr_;
+      SpVariableSet when_expr_var_set;
+//      ObObj when_value_;
     };
 
 
@@ -547,21 +556,16 @@ namespace oceanbase
     public:
       SpCaseInst():SpInst(SP_CW_INST), else_branch_(this) {}
       virtual ~SpCaseInst();
-      int add_then_inst(SpInst *inst);
-      int add_when_inst(SpInst *inst);
-      ObSqlExpression& get_case_expr(){return case_expr_;}
-//      ObSqlExpression& get_when_expr(){return when_expr_;}
-      void add_read_var(ObArray<const ObRawExpr*>& var_list);
-      SpMultiInsts* get_else_block(){return &else_branch_;}
-//      SpMultiInsts* get_when_block(){return &when_branch_;}
-      const ObIArray<SpWhenBlock>& get_when_list() const {return when_list_;}
 
+      ObSqlExpression& get_case_expr(){return case_expr_;}
+      SpMultiInsts* get_else_block(){return &else_branch_;}
+      ObIArray<SpWhenBlock>& get_when_list() {return when_list_;}
 
       int optimize(SpInstList& exec_list);
+      SpVariableSet & cons_read_var_set() { return case_expr_var_set_; }
 
-
-      virtual const VariableSet &get_read_variable_set() const { return rs_set_; }
-      virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
+      virtual void get_read_variable_set(SpVariableSet &read_set) const;
+      virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
@@ -571,14 +575,10 @@ namespace oceanbase
       virtual int assign(const SpInst *inst);
     private:
       ObSqlExpression case_expr_;
-//      ObSqlExpression when_expr_;
-      VariableSet rs_set_;
-      VariableSet ws_set_;
+      SpVariableSet case_expr_var_set_;
 
-      ObArray<SpWhenBlock> when_list_;
-//      SpMultiInsts when_branch_;
+      ObSEArray<SpWhenBlock, 5> when_list_;
       SpMultiInsts else_branch_;
-
     };
 
     template<class T>
@@ -641,11 +641,6 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
-    template<>
-    struct sp_inst_traits<SpWhenInst>
-    {
-      static const bool is_sp_inst =true;
-    };
 
     class SpInstExecStrategy
     {
@@ -661,6 +656,7 @@ namespace oceanbase
       virtual int execute_block(SpBlockInsts *inst) = 0;
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst) = 0;
       virtual int execute_loop(SpLoopInst *inst) = 0;
+      virtual int execute_casewhen(SpCaseInst *inst) = 0;  //TODO
       virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
     };
 
