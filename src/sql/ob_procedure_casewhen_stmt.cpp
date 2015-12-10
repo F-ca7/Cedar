@@ -48,7 +48,7 @@ uint64_t ObProcedureCaseWhenStmt::get_case_value_expr()
 	return case_value_expr_;
 }
 
-ObArray<uint64_t> ObProcedureCaseWhenStmt::get_then_stmts()
+const ObArray<uint64_t>& ObProcedureCaseWhenStmt::get_then_stmts() const
 {
 	return when_then_stmts_;
 }

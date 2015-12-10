@@ -35,7 +35,7 @@ class ObProcedureCaseWhenStmt: public ObBasicStmt {
 
 		uint64_t get_case_value_expr();
 
-		ObArray<uint64_t> get_then_stmts();
+    const ObArray<uint64_t>& get_then_stmts() const;
 
 		uint64_t& get_then_stmt(int64_t index);
 
