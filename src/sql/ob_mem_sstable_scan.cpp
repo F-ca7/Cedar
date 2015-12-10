@@ -156,6 +156,15 @@ DEFINE_SERIALIZE(ObMemSSTableScan)
   {
     TBSYS_LOG(ERROR, "invalid subqeury id=%lu", tmp_table_subquery_);
   }
+  //add zt 20151203:b
+  //make sure the tmp_table is opened
+  else if( ! tmp_table->is_opened() )
+  {
+    ret = const_cast<ObValues*>(tmp_table)->open();
+  }
+
+  if( OB_SUCCESS != ret ) {}
+  //add zt 20151203:e
   else if (OB_SUCCESS != (ret = tmp_table->get_row_desc(row_desc)))
   {
     TBSYS_LOG(WARN, "failed to get row desc, err=%d", ret);

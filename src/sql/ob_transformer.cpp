@@ -160,6 +160,8 @@
 #include "ob_procedure_select_into_stmt.h"
 #include "ob_procedure_select_into.h"
 #include "ob_procedure_loop_stmt.h"
+#include "ob_variable_set_array_value_stmt.h"
+#include "ob_variable_set_array_value.h"
 //code_coverage_zhujun
 //add:e
 using namespace oceanbase::common;
@@ -435,6 +437,9 @@ int ObTransformer::generate_physical_plan(
           break;
 		//add by zhujun:b
         //code_coverage_zhujun
+        case ObBasicStmt::T_VARIABLE_SET_ARRAY_VALUE:
+          ret = gen_physical_set_array_value(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
         case ObBasicStmt::T_PROCEDURE_CREATE:
         	ret=gen_physical_procedure_create(logical_plan, physical_plan, err_stat, query_id, index);
         	break;
@@ -634,6 +639,45 @@ int ObTransformer::add_phy_query(
 
 //add by zhujun:b
 //code_coverage_zhujun
+int ObTransformer::gen_physical_set_array_value(
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat &err_stat,
+                const uint64_t &query_id,
+                int32_t *index
+                )
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+//  ObVariableSet *result_op = NULL;
+  ObVariableSetArrayValue *result_op = NULL;
+  ObVariableSetArrayValueStmt *stmt = NULL;
+  /* get variable set statement */
+  get_stmt(logical_plan, err_stat, query_id, stmt);
+  /* generate operator */
+  if (ret == OB_SUCCESS)
+  {
+    CREATE_PHY_OPERRATOR(result_op, ObVariableSetArrayValue, physical_plan, err_stat);
+    if (ret == OB_SUCCESS)
+    {
+      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+    }
+
+    if( OB_SUCCESS != ret ) {}
+    else
+    {
+      result_op->set_var_name(stmt->get_var_name());
+      for(int64_t i = 0; i < stmt->count(); ++i)
+      {
+        //TODO for varchar object, we need to write a new obj here
+        result_op->add_array_value(stmt->get_value(i));
+      }
+    }
+  }
+  return ret;
+}
+
+
+
 int ObTransformer::gen_physical_procedure(
                 ObLogicalPlan *logical_plan,
                 ObPhysicalPlan *physical_plan,
@@ -696,47 +740,6 @@ int ObTransformer::gen_physical_procedure(
         uint64_t stmt_id=stmt->get_stmt(i);
 
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//        ObBasicStmt::StmtType type = logical_plan->get_query(stmt_id)->get_stmt_type();
-//        int32_t idx = OB_INVALID_INDEX;
-//        ObPhyOperator* op = NULL;
-//        /*这里应该过滤一些类型的语句*/
-
-//        switch(type)
-//        {
-//        case ObBasicStmt::T_PROCEDURE_ASSGIN:
-//          gen_physical_procedure_assign(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_DECLARE:
-//          ret=gen_physical_procedure_declare(logical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_INSERT:
-//          ret=gen_physical_procedure_insert(logical_plan, physical_plan, err_stat, stmt_id, result_op); //result_op should be added into the procedure
-//          break;
-//        case ObBasicStmt::T_UPDATE:
-//          ret=gen_physical_procedure_update(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
-//          ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_IF:
-//          ret=gen_physical_procedure_if(logical_plan, physical_plan, err_stat, stmt_id, result_op);
-//          break;
-//        default:
-//          if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
-//          {
-//            TBSYS_LOG(ERROR, "generate_physical_plan failed, type %d, idx %ld", type, i);
-//          }
-//          else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
-//          {
-//            ret = OB_ERR_ILLEGAL_INDEX;
-//            TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
-//          }
-//          break;
-//        }
-//        if( OB_SUCCESS != ret )
-//        {
-//          TBSYS_LOG(WARN, "generate insturction failed, id %ld", i);
-//        }
       }
       TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
       result_op->optimize();
@@ -799,6 +802,37 @@ int ObTransformer::gen_physical_procedure_inst(
   if( OB_SUCCESS != ret )
   {
     TBSYS_LOG(WARN, "generate insturction failed, query_id %ld", query_id);
+  }
+  return ret;
+}
+
+/**
+ * @brief ObTransformer::gen_physical_procedure_inst_var_set
+ * used to analyze the structure of expression, find out the variables used in the instruction
+ * and update the corresponding variable set.
+ * @param var_set  the variable set that variables/array added into
+ * @param raw_expr_list  the expression to be analyzed
+ * @return
+ */
+int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, const ObIArray<const ObRawExpr *> &raw_expr_list)
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; i < raw_expr_list.count(); ++i)
+  {
+    const ObRawExpr *raw_expr = raw_expr_list.at(i);
+    if( raw_expr->get_expr_type() == T_SYSTEM_VARIABLE || raw_expr->get_expr_type() == T_TEMP_VARIABLE )
+    {
+      ObString var_name;
+      static_cast<const ObConstRawExpr*>(raw_expr)->get_value().get_varchar(var_name);
+      ret = ob_write_string(*mem_pool_, var_name, var_name); //bind to the transformation memory
+      var_set.add_tmp_var(var_name);
+    }
+    else if( raw_expr->get_expr_type() == T_ARRAY )
+    {
+      ObString array_name = static_cast<const ObArrayRawExpr*>(raw_expr)->get_array_name();
+      ret = ob_write_string(*mem_pool_, array_name, array_name);
+      var_set.add_array_var(array_name);
+    }
   }
   return ret;
 }
@@ -1221,7 +1255,8 @@ int ObTransformer::gen_physical_procedure_if(
     {
       ObArray<const ObRawExpr *> var_if_expr;
       raw_expr->get_raw_var(var_if_expr);
-      if_control->add_read_var(var_if_expr);
+      gen_physical_procedure_inst_var_set(if_control->cons_read_var_set(), var_if_expr);
+//      if_control->add_read_var(var_if_expr);
     }
     if (ret == OB_SUCCESS)
     {
@@ -1237,7 +1272,8 @@ int ObTransformer::gen_physical_procedure_if(
       SpIfCtrlInsts* elseif_control = if_control;
       if(stmt->have_elseif())
       {
-        for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_elseif_stmt_size(); i++)
+
+        for(int64_t i = 0; OB_SUCCESS ==ret && i < stmt->get_elseif_stmt_size(); i++)
         {
           uint64_t stmt_id = stmt->get_elseif_stmt(i);
 
@@ -1301,7 +1337,8 @@ int ObTransformer::gen_physical_procedure_elseif(
     {
       ObArray<const ObRawExpr* > var_elseif_expr;
       raw_expr->get_raw_var(var_elseif_expr);
-      elseif_control->add_read_var(var_elseif_expr);
+      gen_physical_procedure_inst_var_set(elseif_control->cons_read_var_set(), var_elseif_expr);
+//      elseif_control->add_read_var(var_elseif_expr);
     }
 
     if (ret == OB_SUCCESS)
@@ -1554,20 +1591,21 @@ int ObTransformer::gen_physical_procedure_select_into(
     {
       SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
       SpRwDeltaIntoVarInst* rw_delta_into_var_inst = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
-      //      rw_delta_into_var_inst->add_assign_list(stmt->get_var_list()); //add the 'into var jobs' into the delta_inst
 
       for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
       {
         const SpRawVar &raw_var = stmt->get_variable(i);
         SpVar var;
         ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
+        ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
+//        var.idx_value_ = raw_var.idx_value_; //maybe we need to copy the obobj to
 
-        if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
-        {
-          var.idx_value_ = ObSqlExpression::alloc();
-          ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
-          raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
-        }
+//        if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
+//        {
+//          var.idx_value_ = ObSqlExpression::alloc();
+//          ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
+//          raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
+//        }
         rw_delta_into_var_inst->add_assign_var(var);
       }
 
@@ -1616,26 +1654,22 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
       else
       {
-        const ObArray<ObString> &var_list = sel_stmt->get_expr_variables();
-        ObString name;
-        for(int32_t var_itr = 0; var_itr < var_list.count(); ++var_itr)
-        {
-          name = var_list.at(var_itr);
-          rw_comp_inst->add_read_var(name);
-        }
+        const ObIArray<const ObRawExpr*> &raw_var_expr = sel_stmt->get_raw_var_expr();
+        gen_physical_procedure_inst_var_set(rw_comp_inst->cons_read_var_set(), raw_var_expr);
+//        const ObIArray<ObString> &var_list = sel_stmt->get_expr_variables();
+//        ObString name;
+//        for(int32_t var_itr = 0; var_itr < var_list.count(); ++var_itr)
+//        {
+//          name = var_list.at(var_itr);
+//          rw_comp_inst->add_read_var(name);
+//        }
+
         for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
         {
           const SpRawVar &raw_var = stmt->get_variable(i);
           SpVar var;
           ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
-
-          if( raw_var.idx_expr_id_ != OB_INVALID_ID ) //for array expression
-          {
-            var.idx_value_ = ObSqlExpression::alloc();
-            ObSqlRawExpr *raw_idx_expr = logical_plan->get_expr(raw_var.idx_expr_id_);
-            raw_idx_expr->fill_sql_expression(*(var.idx_value_), this, logical_plan, physical_plan);
-            var.idx_value_->set_owner_op(proc_op);
-          }
+          ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
           rw_comp_inst->add_assign_var(var);
         }
         rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
@@ -1667,6 +1701,7 @@ int ObTransformer::gen_physical_procedure_assign(
     SpVar& left_var = expr_inst->get_var();
 
     ob_write_string(*mem_pool_, raw_var_val.var_name_, left_var.var_name_); //set var_name
+    ob_write_obj(*mem_pool_, raw_var_val.idx_value_, left_var.idx_value_); //set idx_value
 
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(raw_var_val.val_expr_id_);
 
@@ -1680,54 +1715,26 @@ int ObTransformer::gen_physical_procedure_assign(
       ObArray<const ObRawExpr *> raw_var_exprs;
       raw_expr->get_raw_var(raw_var_exprs);
       //get the variable set used in the expression
+      ret = gen_physical_procedure_inst_var_set(expr_inst->cons_read_var_set(), raw_var_exprs);
 
-      for(int64_t i = 0; i < raw_var_exprs.count(); ++i)
-      {
-        const ObRawExpr *raw_expr = raw_var_exprs.at(i);
-        if( raw_expr->get_expr_type() == T_SYSTEM_VARIABLE || raw_expr->get_expr_type() == T_TEMP_VARIABLE )
-        {
-          ObString var_name;
-          ((const ObConstRawExpr *)raw_expr)->get_value().get_varchar(var_name);
-
-          ob_write_string(*mem_pool_, var_name, var_name); //bind to the transformation memory
-
-          expr_inst->add_rs_var(var_name);
-        }
-      }
+//      for(int64_t i = 0; i < raw_var_exprs.count(); ++i)
+//      {
+//        const ObRawExpr *raw_expr = raw_var_exprs.at(i);
+//        if( raw_expr->get_expr_type() == T_SYSTEM_VARIABLE || raw_expr->get_expr_type() == T_TEMP_VARIABLE )
+//        {
+//          ObString var_name;
+//          static_cast<const ObConstRawExpr*>(raw_expr)->get_value().get_varchar(var_name);
+//          ob_write_string(*mem_pool_, var_name, var_name); //bind to the transformation memory
+//          expr_inst->add_rs_var(var_name);
+//        }
+//        else if( raw_expr->get_expr_type() == T_ARRAY )
+//        {
+//          ObString array_name = static_cast<const ObArrayRawExpr*>(raw_expr)->get_array_name();
+//          ob_write_string(*mem_pool_, array_name, array_name);
+//          expr_inst->add_rs_var(array_name, true);
+//        }
+//      }
     }
-  }
-
-  for(int64_t i = 0; i < stmt->get_arr_val_size() && OB_SUCCESS == ret; ++i)
-  {
-    SpExprInst* array_expr_inst = proc_op->create_inst<SpExprInst>(mul_inst);
-    const ObRawArrAssignVal &raw_arr_val = stmt->get_arr_val(i);
-    ObString array_name;
-
-    SpVar& left_var = array_expr_inst->get_var();
-
-    ob_write_string(*mem_pool_, raw_arr_val.var_name_, left_var.var_name_); //set var_name
-
-    ObSqlRawExpr *idx_raw_expr = logical_plan->get_expr(raw_arr_val.idx_expr_id_);
-    ObSqlRawExpr *val_raw_expr = logical_plan->get_expr(raw_arr_val.val_expr_id_);
-
-    left_var.idx_value_ = ObSqlExpression::alloc();
-
-    if( OB_SUCCESS != (ret = idx_raw_expr->fill_sql_expression(
-                         *(left_var.idx_value_), this, logical_plan, physical_plan)) )
-    {
-      TBSYS_LOG(WARN, "fill expression for the idx_expr fail");
-    }
-    else if (OB_SUCCESS != (ret = val_raw_expr->fill_sql_expression(
-                              array_expr_inst->get_val(), this, logical_plan, physical_plan)))
-    {
-      TBSYS_LOG(WARN, "fill expression for the val_expr fail");
-    }
-    else
-    {
-      array_expr_inst->get_val().set_owner_op(proc_op);
-      left_var.idx_value_->set_owner_op(proc_op);
-    }
-    TBSYS_LOG(INFO, "decalre array %.*s", array_name.length(), array_name.ptr());
   }
   return ret;
 }
@@ -1778,7 +1785,7 @@ int ObTransformer::gen_physical_procedure_insert(
       int64_t num = insert_stmt->get_value_row_size();
       for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
       {
-        const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
+        const ObIArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
         OB_ASSERT(value_row.count() == row_desc_map.count());
         for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
         {
@@ -1790,19 +1797,10 @@ int ObTransformer::gen_physical_procedure_insert(
             if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
 
             OB_ASSERT(NULL != value_expr);
-            ObArray<const ObRawExpr *> raw_exprs;
+            ObSEArray<const ObRawExpr *, 4> raw_exprs;
             value_expr->get_raw_var(raw_exprs);
-            for(int64_t k = 0; k < raw_exprs.count(); ++k)
-            {
-              ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
-              if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-              {
-                ObString var_name;
-                ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
-                if( iskey ) rd_base_inst->add_read_var(var_name); //rowkey would be used in read baseline
-                rw_delta_inst->add_read_var(var_name);  //other values are used in update delta
-              }
-            }
+            if( iskey ) gen_physical_procedure_inst_var_set(rd_base_inst->cons_read_var_set(), raw_exprs);
+            gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), raw_exprs);
           }
         }// end for
       }
@@ -1833,12 +1831,6 @@ int ObTransformer::gen_physical_procedure_insert(
 
     rd_base_inst->set_tid(insert_stmt->get_table_id());
     rw_delta_inst->set_tid(insert_stmt->get_table_id());
-
-    //set the relation between instruction and proc_op
-//    rd_base_inst->set_owner_procedure(proc_op);
-//    rw_delta_inst->set_owner_procedure(proc_op);
-//    proc_op->add_inst_b(rd_base_inst); //rd_base_inst should be added before rw_delta_inst
-//    proc_op->add_inst_d(rw_delta_inst);
   }
   return ret;
 }
@@ -1892,16 +1884,17 @@ int ObTransformer::gen_physical_procedure_replace(
             OB_ASSERT(NULL != value_expr);
             ObArray<const ObRawExpr *> raw_exprs;
             value_expr->get_raw_var(raw_exprs);
-            for(int64_t k = 0; k < raw_exprs.count(); ++k)
-            {
-              ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
-              if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-              {
-                ObString var_name;
-                ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
-                rw_delta_inst->add_read_var(var_name);  //other values are used in update delta
-              }
-            }
+            gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), raw_exprs);
+//            for(int64_t k = 0; k < raw_exprs.count(); ++k)
+//            {
+//              ObItemType raw_type = raw_exprs.at(k)->get_expr_type();
+//              if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
+//              {
+//                ObString var_name;
+//                ((const ObConstRawExpr *)raw_exprs.at(k))->get_value().get_varchar(var_name);
+//                rw_delta_inst->add_read_var(var_name);  //other values are used in update delta
+//              }
+//            }
           }
         }// end for
       }
@@ -2005,12 +1998,6 @@ int ObTransformer::gen_physical_procedure_update(
     }
     rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
     rw_delta_inst->set_ups_exec_op(ups_exec, idx);
-
-    //set the relation between instruction and proc_op
-//    rd_base_inst->set_owner_procedure(proc_op);
-//    rw_delta_inst->set_owner_procedure(proc_op);
-//    proc_op->add_inst_b(rd_base_inst); //rd_base_inst should be added before rw_delta_inst
-//    proc_op->add_inst_d(rw_delta_inst);
   }
   return ret;
 }
@@ -8180,12 +8167,12 @@ int ObTransformer::gen_phy_table_for_update(
 
           //add zt 20151105 : b
           if( NULL != rd_base_inst || NULL != rw_delta_inst)
-                                     //must be rowkey info, since base and delta must share the rowkey,
+                                     // base and delta share the rowkey column,
           {                          //then rowkey filter could be adapt to the base data
             ObArray<const ObRawExpr*> var_list;
             cnd_expr->get_raw_var(var_list);
-            if( NULL != rd_base_inst) rd_base_inst->add_read_var(var_list); //table rpc scan fiter, basescan only have row key var
-            if( NULL != rw_delta_inst) rw_delta_inst->add_read_var(var_list); //for incscan filter, incscan have all condition var
+            if( NULL != rd_base_inst) gen_physical_procedure_inst_var_set(rd_base_inst->cons_read_var_set(), var_list); //table rpc scan fiter, basescan only have row key var
+            if( NULL != rw_delta_inst) gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), var_list); //for incscan filter, incscan have all condition var
           }
           //add zt 20151105 : e
         }
@@ -8204,7 +8191,7 @@ int ObTransformer::gen_phy_table_for_update(
         {
           ObArray<const ObRawExpr *> var_list;
           cnd_expr->get_raw_var(var_list);
-          rw_delta_inst->add_read_var(var_list);
+          gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), var_list);
         }
         //add zt 20151105 : e
       }
@@ -8650,7 +8637,8 @@ int ObTransformer::gen_physical_update_new(
         {
           ObArray<const ObRawExpr*> var_list;
           raw_expr->get_raw_var(var_list);
-          rw_delta_inst->add_read_var(var_list);
+          gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), var_list);
+//          rw_delta_inst->add_read_var(var_list);
         }
         //add zt 20151105 : e
       }
@@ -9261,7 +9249,7 @@ int ObTransformer::gen_phy_select_for_update(
     {
       ObArray<const ObRawExpr *> var_list;
       expr->get_raw_var(var_list);
-      rw_delta_inst->add_read_var(var_list);
+      gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), var_list);
 //      rw_delta_inst->set_rwdelta_op()
     }
     //add zt 20151105:e

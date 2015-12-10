@@ -98,7 +98,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   int ret = OB_SUCCESS;
   const ObRow *row;
   ObPhyOperator* op_ = inst->get_rwcomp_op();
-  ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   if( OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
@@ -111,7 +111,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   {
     for(int64_t var_it = 0; OB_SUCCESS == ret && var_it < var_list.count(); ++var_it)
     {
-      SpVar &var = var_list.at(var_it);
+      const SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
       if(OB_SUCCESS !=(ret = row->raw_get_cell(var_it, cell)))
       {
@@ -133,7 +133,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
   fake_desc.reset();
-  ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   ObPhyOperator *op = inst->get_ups_exec_op();
   SpProcedure *proc = inst->get_ownner();
 
@@ -162,7 +162,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   {
     for(int64_t var_it = 0; var_it < var_list.count(); ++var_it)
     {
-      SpVar &var = var_list.at(var_it);
+      const SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
       if(OB_SUCCESS !=(ret=row->raw_get_cell(var_it, cell)))
       {
@@ -435,16 +435,16 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   case SP_E_INST:
     break;
   case SP_B_INST:
-    ret = static_cast<SpRdBaseInst*>(inst)->op_->close();
+    ret = static_cast<SpRdBaseInst*>(inst)->get_rd_op()->close();
     break;
   case SP_D_INST:
-    ret = static_cast<SpRwDeltaInst*>(inst)->ups_exec_op_->close();
+    ret = static_cast<SpRwDeltaInst*>(inst)->get_ups_exec_op()->close();
     break;
   case SP_DE_INST:
-    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->ups_exec_op_->close();
+    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->get_ups_exec_op()->close();
     break;
   case SP_A_INST:
-    ret = static_cast<SpRwCompInst*>(inst)->op_->close();
+    ret = static_cast<SpRwCompInst*>(inst)->get_rwcomp_op()->close();
     break;
   case SP_BLOCK_INST:
     break;
@@ -577,11 +577,13 @@ int ObProcedure::create_variables()
 
       if( var.is_array_ ) //save the array vairable in th procedure
       {
-        ObProcArray temp;
-        arrays_.push_back(temp);
-        ObProcArray &arr_var = arrays_.at(arrays_.count() - 1);
-        arr_var.array_name_ = var.variable_name_;
-        arr_var.val_type_ = var.variable_type_;
+        ObArray<ObObj> tmp_array;
+        session->replace_vararray(var.variable_name_, tmp_array);
+//        ObProcArray temp;
+//        arrays_.push_back(temp);
+//        ObProcArray &arr_var = arrays_.at(arrays_.count() - 1);
+//        arr_var.array_name_ = var.variable_name_;
+//        arr_var.val_type_ = var.variable_type_;
       }
       else if(var.is_default_)
       {
@@ -629,22 +631,34 @@ int ObProcedure::clear_variables()
       {
         if( OB_SUCCESS != (ret=session->remove_variable(var.variable_name_)) )
         {
-          TBSYS_LOG(WARN, "replace_variable default_value_  ERROR");
+          TBSYS_LOG(WARN, "remove variable from sql_session[%p] fail", session);
         }
         else
         {
-          TBSYS_LOG(TRACE, "declare %.*s and set default_value",
-                    var.variable_name_.length(),var.variable_name_.ptr());
+          TBSYS_LOG(TRACE, "remove %.*s from sql_session[%p]",
+                    var.variable_name_.length(),var.variable_name_.ptr(), session);
+        }
+      }
+      else
+      {
+        if( OB_SUCCESS != (ret = session->remove_vararray(var.variable_name_)))
+        {
+          TBSYS_LOG(WARN, "remove vararray from sql_session[%p] fail", session);
+        }
+        else
+        {
+          TBSYS_LOG(TRACE, "remove %.*s[] from sql_session[%p]",
+                    var.variable_name_.length(),var.variable_name_.ptr(), session);
         }
       }
     }
 
-    for(int64_t i = 0; i < arrays_.count(); ++i)
+/*    for(int64_t i = 0; i < arrays_.count(); ++i)
     {
       ObProcArray & arr_var = arrays_.at(i);
       arr_var.array_value_.clear();;
     }
-    arrays_.clear();
+    arrays_.clear();*/
   }
   return ret;
 }
@@ -659,6 +673,7 @@ int ObProcedure::clear_variables()
  */
 int ObProcedure::optimize()
 {
+  bool special_proc = true;
   if( proc_name_.compare("ups_proc_test") == 0 )
   {
     // 0 2 6 8 { 1 3 4 5 7 9 }
@@ -691,13 +706,13 @@ int ObProcedure::optimize()
     {
       if( inst_list_.at(i)->get_type() == SP_C_INST )
         static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->optimize(temp_exec_list);
-      else
-        temp_exec_list.push_back(inst_list_.at(i));
+//      else
+      temp_exec_list.push_back(inst_list_.at(i));
     }
 
     for(int64_t i = 0; i < temp_exec_list.count(); ++i)
     {
-      TBSYS_LOG(INFO, "inst[%ld]\n:%s", i, to_cstring(*temp_exec_list.at(i)));
+      TBSYS_LOG(INFO, "inst[%ld]: %s", i, to_cstring(*temp_exec_list.at(i)));
     }
 
     exec_list_.push_back(temp_exec_list.at(0));
@@ -718,7 +733,7 @@ int ObProcedure::optimize()
     exec_list_.push_back(inst_list_.at(8));
 
     static_cast<SpIfCtrlInsts*>(inst_list_.at(13))->optimize(exec_list_);
-    exec_list_.remove(exec_list_.count() - 1);
+//    exec_list_.remove(exec_list_.count() - 1);
 //    inst_list_.remove(inst_list_.count() - 1);
 
     SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
@@ -735,25 +750,103 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
 
-    char buf[4096];
-    int64_t pos = 0;
-    for(int64_t i = 0; i < exec_list_.count(); ++i) {
-      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
-    }
-    buf[pos] = '\0';
-    TBSYS_LOG(INFO, "Payment optimize:\n%s", buf);
+  }
+  else if( proc_name_.compare("for_test_1") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_2") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_3") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(1))->optimize(exec_list_);
+    exec_list_.push_back(inst_list_.at(0));
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(1));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("neworder") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+
+//    SpInstList loop_base_list;
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(9));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(10));
+  }
+  else if( proc_name_.compare("neworder_2") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(2));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(3));
+    exec_list_.push_back(inst_list_.at(5));
+
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(11));
   }
   //else do nothing
   else
   {
+    special_proc = false;
     exec_list_.reserve(inst_list_.count());
     for(int64_t i = 0; i < inst_list_.count(); ++i)
     {
       exec_list_.push_back(inst_list_.at(i));
     }
-
   }
-//  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
+  if (special_proc)
+  {
+    char buf[4096];
+    int64_t pos = 0;
+    for(int64_t i = 0; i < exec_list_.count(); ++i)
+    {
+      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
+    }
+    buf[pos] = '\0';
+    TBSYS_LOG(INFO, "%.*s optimize:\n%s", proc_name_.length(), proc_name_.ptr(), buf);
+  }
   return OB_SUCCESS;
 }
 
@@ -761,6 +854,8 @@ int ObProcedure::open()
 {
   int ret = OB_SUCCESS;
   SpMsInstExecStrategy strategy;
+
+  set_exec_strategy(&strategy);
   if( OB_SUCCESS != (ret = create_variables()))
   {
     TBSYS_LOG(WARN, "create varialbes fail");
@@ -779,7 +874,7 @@ int ObProcedure::open()
       }
     }
   }
-
+  set_exec_strategy(NULL);
   if( OB_SUCCESS != clear_variables() )
   {
     TBSYS_LOG(WARN, "clear varialbes fail");
@@ -797,77 +892,82 @@ int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)
 int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  bool find = false;
+//  bool find = false;
 
-  for(int64_t i = 0; i < arrays_.count(); ++i)
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->replace_vararray(array_name, idx_value, val)))
   {
-    ObProcArray &arr = arrays_.at(i);
-    if( arr.array_name_.compare(array_name) == 0 )
-    {
-      find = true;
-      if( idx_value < 0 )
-      {
-        ret = OB_ERR_ILLEGAL_INDEX;
-      }
-      else if( val.get_type() != arr.val_type_ )
-      {
-        TBSYS_LOG(USER_ERROR, "write the wrong type into array, %.*s", arr.array_name_.length(), arr.array_name_.ptr());
-        ret = OB_ERR_ILLEGAL_TYPE;
-      }
-      else if( idx_value >= arr.array_value_.count() )
-      {
-        while( OB_SUCCESS == ret && idx_value >= arr.array_value_.count() )
-        {
-          ObObj tmp_obj;
-          tmp_obj.set_null();
-          ret = arr.array_value_.push_back(tmp_obj);
-        }
-      }
-      if( OB_SUCCESS == ret )
-      {
-        arr.array_value_.at(idx_value) = val;
-      }
-      break;
-    }
+    TBSYS_LOG(WARN, "update %.*s[%ld] = %s in sqlsession[%p] fail",
+              array_name.length(), array_name.ptr(), idx_value,
+              to_cstring(val), my_phy_plan_->get_result_set()->get_session());
   }
-  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+//  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  {
+//    ObProcArray &arr = arrays_.at(i);
+//    if( arr.array_name_.compare(array_name) == 0 )
+//    {
+//      find = true;
+//      if( idx_value < 0 )
+//      {
+//        ret = OB_ERR_ILLEGAL_INDEX;
+//      }
+//      else if( val.get_type() != arr.val_type_ )
+//      {
+//        TBSYS_LOG(USER_ERROR, "write the wrong type into array, %.*s", arr.array_name_.length(), arr.array_name_.ptr());
+//        ret = OB_ERR_ILLEGAL_TYPE;
+//      }
+//      else if( idx_value >= arr.array_value_.count() )
+//      {
+//        while( OB_SUCCESS == ret && idx_value >= arr.array_value_.count() )
+//        {
+//          ObObj tmp_obj;
+//          tmp_obj.set_null();
+//          ret = arr.array_value_.push_back(tmp_obj);
+//        }
+//      }
+//      if( OB_SUCCESS == ret )
+//      {
+//        arr.array_value_.at(idx_value) = val;
+//      }
+//      break;
+//    }
+//  }
+//  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
   return ret;
 }
 
-int ObProcedure::write_variable(SpVar &var, const ObObj &val)
+int ObProcedure::write_variable(const SpVar &var, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  common::ObRow input_row; //fake row
+//  common::ObRow input_row; //fake row
   if( var.is_array() ) //process array variable
   {
-    const ObObj *idx_obj = NULL;
+//    const ObObj *idx_obj = NULL;
+//    int64_t idx = 0;
+//    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    {
+//      TBSYS_LOG(WARN, "idx expr calc failed, expr: %s", to_cstring(*(var.idx_value_)));
+//    }
+//    else if( idx_obj->get_type() != ObIntType )
+//    {
+//      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+//      ret = OB_ERR_ILLEGAL_INDEX;
+//    }
     int64_t idx = 0;
-    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+    if(OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)) )
     {
-      TBSYS_LOG(WARN, "idx expr calc failed, expr: %s", to_cstring(*(var.idx_value_)));
+      TBSYS_LOG(WARN, "read index value failed");
     }
-    else if( idx_obj->get_type() != ObIntType )
+    else if (OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
     {
-      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else
-    {
-      idx_obj->get_int(idx);
-      if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)) )
-      {}
+      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
+//      idx_obj->get_int(idx);
+//      if(  )
+//      {}
     }
   } //process ordinary variable
   else if( OB_SUCCESS != (ret = write_variable(var.var_name_, val)) )
   {}
   return ret;
-}
-
-int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
-{
-  ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
-
-  return session->get_variable_value(var_name, val);
 }
 
 int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
@@ -882,52 +982,64 @@ int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) cons
 int ObProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
 {
   int ret = OB_SUCCESS;
-  bool find = false;
-  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  bool find = false;
+//  for(int64_t i = 0; i < arrays_.count(); ++i)
+//  {
+//    const ObProcArray &arr = arrays_.at(i);
+//    if( arr.array_name_.compare(array_name) == 0 )
+//    {
+//      if( idx_value >= 0 && idx_value < arr.array_value_.count() )
+//      {
+//        val = & (arr.array_value_.at(idx_value));
+//      }
+//      else
+//      {
+//        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+//        ret = OB_ERR_ILLEGAL_INDEX;
+//      }
+//      find = true;
+//      break;
+//    }
+//  }
+
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->get_variable_value(array_name, idx_value, val)) )
   {
-    const ObProcArray &arr = arrays_.at(i);
-    if( arr.array_name_.compare(array_name) == 0 )
-    {
-      if( idx_value >= 0 && idx_value < arr.array_value_.count() )
-      {
-        val = & (arr.array_value_.at(idx_value));
-      }
-      else
-      {
-        TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
-        ret = OB_ERR_ILLEGAL_INDEX;
-      }
-      find = true;
-      break;
-    }
+    TBSYS_LOG(WARN, "read %.*s[%ld] from sql_session_info[%p] fail",
+              array_name.length(), array_name.ptr(), idx_value, my_phy_plan_->get_result_set()->get_session());
   }
-  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
+
+//  if ( !find ) ret = OB_ERR_VARIABLE_UNKNOWN;
   return ret;
 }
 
-int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
+int ObProcedure::read_variable(const SpVar &var, const ObObj *&val) const
 {
   int ret = OB_SUCCESS;
 
   if( var.is_array() )
   {
-    const ObObj *idx_obj = NULL;
-    common::ObRow input_row;
+//    const ObObj *idx_obj = NULL;
+//    common::ObRow input_row;
     int64_t idx = 0;
-    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    {
+//      TBSYS_LOG(WARN, "idx expr calc failed");
+//    }
+//    else if( idx_obj->get_type() != ObIntType )
+//    {
+//      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+//      ret = OB_ERR_ILLEGAL_INDEX;
+//    }
+    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
     {
-      TBSYS_LOG(WARN, "idx expr calc failed");
+      TBSYS_LOG(WARN, "read index value failed");
     }
-    else if( idx_obj->get_type() != ObIntType )
+    else if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)))
     {
-      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else
-    {
-      idx_obj->get_int(idx);
-      if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)) )
-      {}
+      TBSYS_LOG(WARN, "read %.*s[%ld] failed", var.var_name_.length(), var.var_name_.ptr(), idx);
+//      idx_obj->get_int(idx);
+//      if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)) )
+//      {}
     }
   }
   else
@@ -935,6 +1047,18 @@ int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
     ret = read_variable(var.var_name_, val);
   }
 
+  return ret;
+}
+
+int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) const
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                     get_session()->get_variable_array_size(array_name, size)))
+  {
+    TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+  }
   return ret;
 }
 
@@ -1028,7 +1152,7 @@ int ObProcedure::set_inst_op(SpInst *inst)
   case SP_BLOCK_INST:
     {
       SpBlockInsts *block_inst = static_cast<SpBlockInsts*>(inst);
-      ObArray<SpInst *> &inst_list = block_inst->get_inst_list();
+      ObIArray<SpInst *> &inst_list = block_inst->get_inst_list();
       for(int64_t i = 0; i < inst_list.count(); ++i)
       {
          set_inst_op(inst_list.at(i));

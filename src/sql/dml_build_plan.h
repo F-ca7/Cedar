@@ -76,5 +76,13 @@ extern int resolve_table_columns(
     oceanbase::sql::TableItem& table_item,
     int64_t num_columns = -1);
 
+//add zt 20151207:b
+extern int resolve_array_expr(
+    ResultPlan * result_plan,
+    ParseNode* node,
+    ObString &array_name,
+    ObObj &idx_value);
+//add zt 20151207:e
+
 #endif //DML_BUILD_PLAN_H_
 

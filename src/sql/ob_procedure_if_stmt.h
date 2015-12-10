@@ -35,26 +35,26 @@ class ObProcedureIfStmt: public ObBasicStmt {
 
 		int set_have_else(bool flag);
 
-		bool have_elseif();
+    bool have_elseif() const;
 
-		bool have_else();
+    bool have_else() const;
 
 		/*if表达的id*/
-		uint64_t get_expr_id();
+    uint64_t get_expr_id() const;
 
     const ObArray<uint64_t> &get_then_stmts() const;		/*then语句列表*/
 
-		uint64_t& get_then_stmt(int64_t index);
+    uint64_t get_then_stmt(int64_t index) const;
 
     const ObArray<uint64_t> &get_elseif_stmts() const;	/*else if语句列表*/
 
-		uint64_t& get_elseif_stmt(int64_t index);
+    uint64_t get_elseif_stmt(int64_t index) const;
 
-		uint64_t 	get_else_stmt();			/*else语句*/
+    uint64_t 	get_else_stmt() const;			/*else语句*/
 
-		int64_t	get_then_stmt_size();		/*返回 if then 下面的语句长度*/
+    int64_t	get_then_stmt_size() const;		/*返回 if then 下面的语句长度*/
 
-		int64_t	get_elseif_stmt_size();		/*返回elseif的个数*/
+    int64_t	get_elseif_stmt_size() const;		/*返回elseif的个数*/
 
 
 

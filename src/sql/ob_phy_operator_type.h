@@ -119,7 +119,9 @@ namespace oceanbase
 	  PHY_PROCEDURE_ELSEIF,
 	  PHY_PROCEDURE_WHILE,
 	  PHY_PROCEDURE_ELSE,
-	  PHY_PROCEDURE_SELECT_INTO,
+    PHY_PROCEDURE_SELECT_INTO,
+
+    PHY_VARIABLE_SET_ARRAY,
 	  //add:e
       PHY_END, /* end of phy operator type */
 

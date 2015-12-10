@@ -93,6 +93,13 @@ namespace oceanbase
 			const uint64_t& query_id,
       int32_t* index);
 
+
+        //add zt 20151207 : help function
+  int gen_physical_procedure_inst_var_set(
+                  SpVariableSet &var_set,
+                  const ObIArray<const ObRawExpr *> & raw_expr_list
+                  );
+
   int gen_physical_procedure_if(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -100,7 +107,7 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
-      );
+                  );
 
   int gen_physical_procedure_declare(
                   ObLogicalPlan *logical_plan,
@@ -186,6 +193,16 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure* proc_op,
                   SpMultiInsts* mul_inst =NULL);
+
+  int gen_physical_set_array_value(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  int32_t *index
+                  );
+
+
         int gen_physical_procedure_while(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,

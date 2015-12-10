@@ -179,6 +179,7 @@ do \
 
 //add zt 20151125:b
 %type <node> array_expr
+%type <node> array_vals_list array_val_list var_and_array_val
 //add zt 20151125:e
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
@@ -541,7 +542,11 @@ case_default:
 
 //add zt 20151125:b
 array_expr:
-    TEMP_VARIABLE '(' expr ')'
+    TEMP_VARIABLE '(' INTNUM ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
+    }
+  | TEMP_VARIABLE '(' TEMP_VARIABLE ')'
     {
       malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
     }
@@ -2821,6 +2826,12 @@ variable_set_stmt:
       merge_nodes($$, result->malloc_pool_, T_VARIABLE_SET, $2);;
       $$->value_ = 2;
     }
+    //add zt 20151202:b
+    | SET SET var_and_array_val
+    {
+      $$ = $3;
+    }
+    //add zt 20151202:e
   ;
 
 var_and_val_list:
@@ -2892,6 +2903,17 @@ var_and_val:
     //add zt 20151126:e
   ;
 
+//add zt 20151202:b
+var_and_array_val:
+    TEMP_VARIABLE to_or_eq  array_vals_list
+    {
+      (void)($2);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_ARRAY_VAL, 2, $1, $3);
+      $$->value_ = 2;
+    }
+    ;
+//add zt 20151202:e
+
 to_or_eq:
     TO      { $$ = NULL; }
   | COMP_EQ { $$ = NULL; }
@@ -2904,6 +2926,24 @@ argument:
     array_expr
     { $$ = $1; }
   ;
+
+//add zt 20151202:b
+array_vals_list:
+    '(' array_val_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_ARRAY_VAL, $2);
+    }
+    ;
+
+array_val_list:
+    expr_const { $$ = $1; }
+  | array_val_list ',' expr_const
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  ;
+//add zt 20151202:e
+
 
 
 /*****************************************************************************
@@ -3314,20 +3354,48 @@ proc_parameter_list	:	proc_parameter_list ',' proc_parameter
 				;
 proc_parameter	:	TEMP_VARIABLE data_type
 					{
-      					malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 2, $1, $2);
+                malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 3, $1, $2, NULL);
 					}
 				|	IN TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 2, $2, $3);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 3, $2, $3, NULL);
 					}
 				|	OUT TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 2, $2, $3);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 3, $2, $3, NULL);
 					}
 				|   INOUT TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 2, $2, $3);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 3, $2, $3, NULL);
+          }
+        | TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 3, $1, $2, array_flag);
+        }
+        | IN TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
+        | OUT TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
+        | INOUT TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
 				;
 proc_block	: 	BEGI proc_sect END
 				{ 

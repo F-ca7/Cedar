@@ -363,24 +363,21 @@ int resolve_expr(
     //add zt 20151125:b
   case T_ARRAY:
     {
-      ObString str;
-      if (OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), str)))
-      {
-        TBSYS_LOG(WARN, "out of memory");
-        break;
-      }
       ObArrayRawExpr *array_expr = NULL;
       if (CREATE_RAW_EXPR(array_expr, ObArrayRawExpr, result_plan) == NULL)
         break;
       array_expr->set_result_type(ObVarcharType);
-      array_expr->set_array_name(str);
-
-      ObRawExpr *idx_expr;
-      if( OB_SUCCESS != (ret = resolve_expr(result_plan, stmt, node->children_[1], sql_expr, idx_expr, expr_scope_type, true)) )
+      ObString array_name;
+      ObObj index_value;
+      if( OB_SUCCESS != (ret = resolve_array_expr(result_plan, node, array_name, index_value)))
       {
-        break;
+        TBSYS_LOG(WARN, "resolve array expr failed");
       }
-      array_expr->set_idx_expr(idx_expr);
+      else
+      {
+        array_expr->set_array_name(array_name);
+        array_expr->set_idx_value(index_value);
+      }
       expr = array_expr;
       break;
     }
@@ -3513,3 +3510,47 @@ int resolve_when_clause(
   }
   return ret;
 }
+
+//add zt 20151207:b
+int resolve_array_expr(ResultPlan *result_plan, ParseNode *node, ObString &array_name, ObObj &idx_value)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  if( node )
+  {
+    ObStringBuf *name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if( OB_SUCCESS != (ret = ob_write_string(*name_pool,
+                                             ObString::make_string(node->children_[0]->str_value_),
+                                             array_name)))
+    {
+      TBSYS_LOG(WARN, "can not malloc space for array name");
+    }
+    else
+    {
+      if(T_INT == node->children_[1]->type_)
+      {
+        idx_value.set_int(node->children_[1]->value_);
+      }
+      else if(T_TEMP_VARIABLE == node->children_[1]->type_)
+      {
+        ObString idx_var;
+        if( OB_SUCCESS != (ret =
+                           ob_write_string(*name_pool,
+                                           ObString::make_string(node->children_[1]->str_value_),
+                                           idx_var)))
+        {
+          TBSYS_LOG(WARN, "can not malloc space for index variable");
+        }
+        else
+        {
+          idx_value.set_varchar(idx_var);
+        }
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "does not index type");
+      }
+    }
+  }
+  return ret;
+}
+//add zt 20151207:e
