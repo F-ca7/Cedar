@@ -60,6 +60,10 @@ namespace oceanbase
       UPS_STAT_SCAN_TIMEU,
       UPS_STAT_TRANS_TIMEU,
       UPS_STAT_TRANS_WTIME, // packet wait
+      //add by zt 20151211
+      UPS_STAT_TRANS_W_TIME_1,
+      UPS_STAT_TRANS_W_TIME_2,
+      //add by zt 20151211
       UPS_STAT_TRANS_HTIME, // trans handle
       UPS_STAT_TRANS_CTIME, // wait commit thread
       UPS_STAT_TRANS_FTIME, // wait flush

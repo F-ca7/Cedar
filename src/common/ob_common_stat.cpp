@@ -50,6 +50,10 @@ const char *ObStatSingleton::ups_map[] = {
   "scan_time",
   "trans_time",
   "trans_wtime",
+  //add by zt 20151211:b
+  "trans_wtime_rec_thread",
+  "trans_wtime_thread_handle",
+  //add by zt 20151211:e
   "trans_htime",
   "trans_ctime",
   "trans_ftime",

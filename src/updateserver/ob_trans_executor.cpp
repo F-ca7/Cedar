@@ -419,6 +419,15 @@ namespace oceanbase
                                 UPS.get_param().packet_max_wait_time :
                                 task->pkt.get_source_timeout();
       int64_t process_timeout = packet_timewait - QUERY_TIMEOUT_RESERVE;
+
+      //add by zt 20151211:b
+      if( task->pkt.get_packet_code() == OB_PHY_PLAN_EXECUTE )
+      {
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_W_TIME_1, cur_time - task->pkt.get_receive_ts());
+      }
+      //add by zt 20151211:e
+
       if (NULL == task)
       {
         TBSYS_LOG(WARN, "null pointer task=%p", task);
@@ -759,6 +768,14 @@ namespace oceanbase
       int end_session_ret = OB_SUCCESS;
       SessionGuard session_guard(session_mgr_, lock_mgr_, end_session_ret);
       RWSessionCtx* session_ctx = NULL;
+
+      //add by zt:b
+      {
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_W_TIME_2, cur_time - task.pkt.get_receive_ts());
+      }
+      //add by zt:e
+
       int64_t packet_timewait = (0 == task.pkt.get_source_timeout()) ?
                                 UPS.get_param().packet_max_wait_time :
                                 task.pkt.get_source_timeout();
