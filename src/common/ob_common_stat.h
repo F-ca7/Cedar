@@ -135,6 +135,8 @@ namespace oceanbase
       UPS_STAT_HL_TRANS_TIMEU,
 
       UPS_STAT_LOCK_WAIT_TIME,
+      UPS_STAT_LOCK_SUCC_COUNT,
+      UPS_STAT_LOCK_FAIL_COUNT,
 
       UPS_STAT_DML_REPLACE_COUNT,
       UPS_STAT_DML_INSERT_COUNT,
@@ -223,6 +225,10 @@ namespace oceanbase
       // ms_sql_scan
       SQL_SCAN_EVENT_COUNT,
       SQL_SCAN_EVENT_TIME,
+
+      //procedure ups execute
+      SQL_PROC_UPS_EXECUTE_COUNT,
+      SQL_PROC_UPS_EXECUTE_TIME,
 
      /* memory usage statistics*/
       MS_MEMORY_LIMIT,
@@ -318,6 +324,10 @@ namespace oceanbase
       SQL_ROLLBACK_COUNT,
       SQL_AUTOCOMMIT_ON_COUNT,
       SQL_AUTOCOMMIT_OFF_COUNT,
+
+      SQL_CMD_RECEIVER_COUNT,
+      SQL_CMD_PROCESS_COUNT,
+      SQL_CMD_WAIT_TIME_MS,
 
       OBMYSQL_STAT_MAX
     };

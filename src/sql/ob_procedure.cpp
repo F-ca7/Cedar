@@ -2,7 +2,7 @@
 #include "ob_result_set.h"
 #include "ob_physical_plan.h"
 #include "ob_ups_executor.h"
-#include "parse_malloc.h"
+#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -390,6 +390,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
     int64_t remain_us = 0;
     if (OB_LIKELY(OB_SUCCESS == ret))
     {
+      int64_t begin_time_us = tbsys::CTimeUtil::getTime();
       if (out_plan->is_timeout(&remain_us))
       {
         ret = OB_PROCESS_TIMEOUT;
@@ -401,6 +402,9 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       }
       else if (OB_SUCCESS != (ret = static_cast<ObProcedure *>(inst->proc_)->get_rpc_stub()->ups_plan_execute(remain_us, exec_plan, result)))
       {
+        int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_TIME, elapsed_us);
         TBSYS_LOG(WARN, "failed to execute plan on updateserver, err=%d", ret);
         if (OB_TRANS_ROLLBACKED == ret)
         {
@@ -412,10 +416,9 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       }
       else
       {
-//        if( start_new_trans && result.get_trans_id().is_valid() )
-//        {
-
-//        }
+        int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_TIME, elapsed_us);
       }
     }
     //adjust the serialize methods for ObExprValues / ObPostfixExpression
