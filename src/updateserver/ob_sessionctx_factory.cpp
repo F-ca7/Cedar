@@ -38,6 +38,7 @@ namespace oceanbase
                                                                stmt_page_arena_wrapper_(stmt_page_arena_),
                                                                stat_(ST_ALIVE),
                                                                alive_flag_(true),
+                                                               last_conflict_session_id_(0),
                                                                commit_done_(false),
                                                                need_gen_mutator_(need_gen_mutator),
                                                                ups_mutator_(page_arena_),
@@ -107,6 +108,7 @@ namespace oceanbase
       ups_mutator_.clear();
       stat_ = ST_ALIVE;
       alive_flag_ = true;
+      last_conflict_session_id_ = 0;
       commit_done_ = false;
       stmt_page_arena_.free();
       page_arena_.free();
