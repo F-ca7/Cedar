@@ -263,23 +263,49 @@ int ObArrayRawExpr::fill_sql_expression(
     ObPhysicalPlan *physical_plan) const
 {
   int ret = OB_SUCCESS;
-  ExprItem item;
-  if( OB_SUCCESS != (ret = idx_expr_->fill_sql_expression(
-                             inter_expr,
-                             transformer,
-                             logical_plan,
-                             physical_plan)))
-  {
-    TBSYS_LOG(WARN, "fill expression for the array idx fail");
-  }
+  ExprItem item, idx_item;
+  UNUSED(transformer);
+  UNUSED(logical_plan);
+  UNUSED(physical_plan);
+//  if( OB_SUCCESS != (ret = idx_expr_->fill_sql_expression(
+//                             inter_expr,
+//                             transformer,
+//                             logical_plan,
+//                             physical_plan)))
+//  {
+//    TBSYS_LOG(WARN, "fill expression for the array idx fail");
+//  }
 
   item.type_ = get_expr_type();
   item.data_type_ = get_result_type();
   item.string_ = array_name_;
 
+  idx_item.data_type_ = ObIntType; //idx must be int value
+  if( ObIntType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_INT;
+    idx_value_.get_int(idx_item.value_.int_);
+  }
+  else if ( ObVarcharType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_TEMP_VARIABLE;
+    idx_value_.get_varchar(idx_item.string_);
+  }
+
   if( OB_SUCCESS == ret )
   {
-    ret = inter_expr.add_expr_item(item);
+    //comment: it is more reasonable to push idx_item first, then item
+    //Thus, idx value would be calculated first, then the array value
+    //However, I want to control the serialization of array var,
+    //Maybe the array val could computed before serialization
+    if( OB_SUCCESS != (ret = inter_expr.add_expr_item(item)) )
+    {
+      TBSYS_LOG(WARN, "add idx item fail");
+    }
+    else
+    {
+      ret = inter_expr.add_expr_item(idx_item);
+    }
   }
   return ret;
 }
@@ -288,8 +314,8 @@ void ObArrayRawExpr::print(FILE *fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s : ", get_type_name(get_expr_type()));
-  fprintf(fp, "%.*s\n", array_name_.length(), array_name_.ptr());
-  idx_expr_->print(fp, level+1);
+  fprintf(fp, "%.*s[%s]\n", array_name_.length(), array_name_.ptr(), to_cstring(idx_value_));
+//  idx_expr_->print(fp, level+1);
 }
 //add zt 20151125:e
 

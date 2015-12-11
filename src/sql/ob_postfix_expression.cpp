@@ -725,15 +725,30 @@ namespace oceanbase
             //add zt 20151126:b
             case ARRAY_VAR:
             {
-              if( idx_i < 1 || stack_[idx_i-1].get_type() != ObIntType )
+              //array read, (ARRAY_VAR, ARRAY_NAME, INDEX_TYPE, INDEX_VALUE)
+              int64_t idx_type = -1;
+              if( OB_SUCCESS != (ret = expr_[idx + 1].get_int(idx_type)) )
               {
-                TBSYS_LOG(WARN, "array is not indexed by right value");
-                ret =  OB_ERR_ILLEGAL_INDEX;
+                TBSYS_LOG(WARN, "get index type failed");
               }
-              else if( OB_SUCCESS == (ret = get_array_var(expr_[idx++], stack_[--idx_i].get_int(), var)))
+              else if( idx_type != CONST_OBJ && idx_type != TEMP_VAR )
+              {
+                TBSYS_LOG(WARN, "index type is not correct");
+              }
+              else if( OB_SUCCESS == (ret = get_array_var(expr_[idx], idx_type, expr_[idx + 2], var)) )
               {
                 stack_[idx_i++].assign(*var);
+                idx += 3;
               }
+//              if( idx_i < 1 || stack_[idx_i-1].get_type() != ObIntType )
+//              {
+//                TBSYS_LOG(WARN, "array is not indexed by right value");
+//                ret =  OB_ERR_ILLEGAL_INDEX;
+//              }
+//              else if( OB_SUCCESS == (ret = get_array_var(expr_[idx++], stack_[--idx_i].get_int(), var)))
+//              {
+//                stack_[idx_i++].assign(*var);
+//              }
               break;
             }
             //add zt 20151126:e
@@ -943,38 +958,67 @@ namespace oceanbase
     }
 
     //add zt 20151126:b
-    int ObPostfixExpression::get_array_var(const ObObj &expr_node, int64_t array_idx_value, const ObObj *&val) const
+    int ObPostfixExpression::get_array_var(const ObObj &expr_node, int64_t idx_type, const ObObj &idx_val, const ObObj *&val) const
     {
       int ret = OB_SUCCESS;
+      ObResultSet *result_set = owner_op_->get_phy_plan()->get_result_set();
       ObString array_name;
-      int64_t idx_value = array_idx_value;
+      int64_t idx_value = -1;
+
       if( OB_SUCCESS != (ret = expr_node.get_varchar(array_name)) )
       {
         TBSYS_LOG(USER_ERROR, "Variable %.*s does not exists", array_name.length(), array_name.ptr());
         ret = OB_ERR_VARIABLE_UNKNOWN;
       }
-      //now we only support use array in the procedure
-      else if( owner_op_->get_phy_plan()->get_result_set() == NULL)
-      {
-        TBSYS_LOG(WARN, "cannot use array value outside the ms"); //perhaps it is a ups execution
-        ret = OB_NOT_SUPPORTED;
+      else if( result_set == NULL)
+      { //read array value on the ups
+        if( PHY_PROCEDURE != owner_op_->get_phy_plan()->get_main_query()->get_type() )
+        {
+          TBSYS_LOG(WARN, "can not use array variable on ups outside the procedure");
+        }
+        else
+        {
+          const SpProcedure *proc = static_cast<SpProcedure *>(owner_op_->get_phy_plan()->get_main_query());
+          const ObObj *tmp_obj;
+          //read idx value
+          if( CONST_OBJ == idx_type ) idx_val.get_int(idx_value);
+          else if( OB_SUCCESS != (ret = get_var_obj(TEMP_VAR, idx_val, tmp_obj)) )
+          {
+            TBSYS_LOG(WARN, "can not read from index variable [%s]", to_cstring(idx_val));
+          }
+          else if( OB_SUCCESS != (ret = tmp_obj->get_int(idx_value)) )
+          {
+            TBSYS_LOG(WARN, "index variables does not contain int type value, %s", to_cstring(idx_val));
+          }
+
+          if( OB_SUCCESS != ret || OB_SUCCESS != (ret = proc->read_variable(array_name, idx_value, val)) )
+          {
+            TBSYS_LOG(WARN, "read %.*s[%ld] from procedure %p failed", array_name.length(), array_name.ptr(), idx_value, proc);
+          }
+          else
+          {
+            TBSYS_LOG(TRACE, "read %.*s[%ld] = %s", array_name.length(), array_name.ptr(), idx_value, to_cstring(*val));
+          }
+        }
       }
       else
-      {
-//        const SpProcedure *proc_op = owner_op_->get_phy_plan()->get_result_set()->get_running_procedure();
-
-//        if( proc_op == NULL )
-//        {
-        if( OB_SUCCESS != (ret =  owner_op_->get_phy_plan()->get_result_set()->get_session()->get_variable_value(array_name, idx_value, val)) )
+      { //read array value on the ms
+        const ObObj *tmp_obj;
+        //read idx value
+        if( CONST_OBJ == idx_type ) idx_val.get_int(idx_value);
+        else if( OB_SUCCESS != (ret = get_var_obj(TEMP_VAR, idx_val, tmp_obj)) )
         {
-          TBSYS_LOG(WARN, "read %.*s[%ld] from session_info fail, ret=%d", array_name.length(), array_name.ptr(), array_idx_value, ret);
+          TBSYS_LOG(WARN, "can not read from index variable [%s]", to_cstring(idx_val));
         }
-        //        }
-        //        else if( OB_SUCCESS != (ret = proc_op->read_variable(array_name, idx_value, val)))
-        //        {
-        //          TBSYS_LOG(WARN, "cannot read array %.*s[%ld] from the procedure", array_name.length(), array_name.ptr(), idx_value);
-        //          ret = OB_ERR_VARIABLE_UNKNOWN;
-        //        }
+        else if( OB_SUCCESS != (ret = tmp_obj->get_int(idx_value)) )
+        {
+          TBSYS_LOG(WARN, "index variables does not contain int type value, %s", to_cstring(idx_val));
+        }
+
+        if( OB_SUCCESS != ret || OB_SUCCESS != (ret = result_set->get_session()->get_variable_value(array_name, idx_value, val)) )
+        {
+          TBSYS_LOG(WARN, "read %.*s[%ld] from session_info fail, ret=%d", array_name.length(), array_name.ptr(), idx_value, ret);
+        }
         else
         {
           TBSYS_LOG(TRACE, "read %.*s[%ld] = %s", array_name.length(), array_name.ptr(), idx_value, to_cstring(*val));
@@ -3171,6 +3215,12 @@ namespace oceanbase
             databuff_printf(buf, buf_len, pos, "@");
             pos += expr_[idx++].to_string(buf+pos, buf_len-pos);
             break;
+            //add zt 20151208:b
+          case ARRAY_VAR:
+            databuff_printf(buf, buf_len, pos, "@");
+            pos += expr_[idx++].to_string(buf+pos, buf_len-pos);
+            databuff_printf(buf, buf_len, pos, "[]");
+            //add zt 20151208:e
           case OP:
             // 根据OP的类型，从堆栈中弹出1个或多个操作数，进行计算
             if (OB_SUCCESS != (err = expr_[idx++].get_int(value)))

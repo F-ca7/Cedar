@@ -38,22 +38,32 @@ namespace oceanbase
      * be careful of the usage of SpVar,
      * remember call clear to totally desconstruct the object,
      * the ~SpVar doesnot free the memory used by idx_value_
+     *
+     * @remind
+     * later I will refactor the SpVar structure. Here we use ObSqlExpression to
+     * represent the index value of an array variable. Each time, we need to caculate
+     * the expr to get the index value. Later, I will force the index value to a constant
+     * such as: int (a raw index) or string (a temp variable name).
+     *
+     * @remind
+     * refactor SpVar finished
      */
     struct SpVar
     {
       ObString var_name_;
-      ObSqlExpression *idx_value_; //NULL for ordinary variable
+//      ObSqlExpression *idx_value_; //NULL for ordinary variable
+      ObObj idx_value_;
 
-      SpVar() : idx_value_(NULL) {}
+      SpVar() { idx_value_.set_null();}
       ~SpVar();
 
-      bool is_array() const { return idx_value_ != NULL; }
-      int deserialize(const char *buf, int64_t data_len, int64_t &pos, SpProcedure *proc);
+      bool is_array() const { return !idx_value_.is_null(); }
+      int deserialize(const char *buf, int64_t data_len, int64_t &pos);
       int serialize(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
 
-      void clear();
+//      void clear();
       //comment, donot forget the set the ownner op of the idx_value_
       int assign(const SpVar &other);
     };
@@ -128,8 +138,6 @@ namespace oceanbase
     };
 
     /**
-      spInst could use the decorator model to describe
-
       SpInst should be a simple wrapper, do not own big memory area which
       should belongs to the physical plan or the result set
      * @brief The SpInst class
@@ -163,15 +171,25 @@ namespace oceanbase
     const static int SP_INST_LIST_SIZE = 5;
     typedef ObSEArray<SpInst *, SP_INST_LIST_SIZE> SpInstList;
 
+    /**
+     * @brief The SpMultiInsts class
+     * consists of multi-instructions, used when define instructions block,
+     * such as if-then block, if-else block, loop-body-block
+     */
     class SpMultiInsts
     {
     public:
+      SpMultiInsts() : ownner_(NULL) {}
       SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
       virtual ~SpMultiInsts();
       int add_inst(SpInst *inst) { return inst_list_.push_back(inst); }
       int get_inst(int64_t idx, SpInst *&inst);
       SpInst* get_inst(int64_t idx);
       int64_t inst_count() const { return inst_list_.count(); }
+
+      void get_read_variable_set(SpVariableSet &read_set) const;
+      void get_write_variable_set(SpVariableSet &write_set) const;
+
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
@@ -185,6 +203,10 @@ namespace oceanbase
       SpInst *ownner_;
     };
 
+    /**
+     * @brief The SpExprInst class
+     * Represent assign instructions, left_variable = right_values
+     */
     class SpExprInst : public SpInst
     {
     public:
@@ -196,7 +218,8 @@ namespace oceanbase
       ObSqlExpression& get_val() { return right_val_; }
       SpVar & get_var() { return left_var_; }
 
-      int add_rs_var(const ObString &name) { return rs_.add_tmp_var(name); }
+      SpVariableSet & cons_read_var_set() { return rs_; }
+//      int add_rs_var(const ObString &name, bool is_array = false);
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -220,8 +243,9 @@ namespace oceanbase
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
-      void add_read_var(const ObString &var_name) { rs_.add_tmp_var(var_name); }
-      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
+      SpVariableSet & cons_read_var_set() { return rs_; }
+//      void add_read_var(const ObString &var_name, bool is_array) { rs_.add_tmp_var(var_name); }
+//      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
 
       int set_rdbase_op(ObPhyOperator *op, int32_t query_id);
       ObPhyOperator* get_rd_op() { return op_;}
@@ -249,9 +273,10 @@ namespace oceanbase
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
-      void add_read_var(const ObString &var_name) { rs_.add_tmp_var(var_name); }
-      void add_write_var(const ObString &var_name) { ws_.add_tmp_var(var_name); }
-      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
+      SpVariableSet & cons_read_var_set() { return rs_; }
+//      void add_read_var(const ObString &var_name) { rs_.add_tmp_var(var_name); }
+//      void add_write_var(const ObString &var_name) { ws_.add_tmp_var(var_name); }
+//      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
 
       int set_rwdelta_op(ObPhyOperator *op);
       int set_ups_exec_op(ObPhyOperator *op, int32_t query_id);
@@ -273,7 +298,7 @@ namespace oceanbase
       ObPhyOperator *ups_exec_op_; //the ObUpsExecutor wrapper operator
       int32_t query_id_;
       SpVariableSet rs_;
-      SpVariableSet ws_;
+//      SpVariableSet ws_;
       uint64_t table_id_;
     };
 
@@ -288,7 +313,9 @@ namespace oceanbase
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 
-      ObArray<SpVar> & get_var_list() { return var_list_;}
+      virtual void get_write_variable_set(SpVariableSet &write_set) const;
+
+      const ObIArray<SpVar> & get_var_list() const { return var_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -313,15 +340,17 @@ namespace oceanbase
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
-      void add_read_var(ObString &var_name) { rs_.add_tmp_var(var_name); }
+//      void add_read_var(ObString &var_name) { rs_.add_tmp_var(var_name); }
 //      void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
+
+      SpVariableSet & cons_read_var_set() { return rs_; }
 
       int set_rwcomp_op(ObPhyOperator *op, int32_t query_id) { op_ = op; query_id_ = query_id; return OB_SUCCESS; }
       ObPhyOperator * get_rwcomp_op() { return op_; }
 
       int32_t get_query_id() const { return query_id_; }
 
-      ObArray<SpVar> & get_var_list() { return var_list_;}
+      const ObIArray<SpVar> & get_var_list() const { return var_list_;}
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
 
@@ -356,12 +385,14 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       int add_inst(SpInst *inst);
-      ObArray<SpInst *> & get_inst_list() { return inst_list_;}
+      ObIArray<SpInst *> & get_inst_list() { return inst_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                           common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store,
+                           ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int assign(const SpInst *inst);
@@ -390,14 +421,18 @@ namespace oceanbase
       int add_then_inst(SpInst *inst);
       int add_else_inst(SpInst *inst);
       ObSqlExpression & get_if_expr() { return if_expr_; }
-      void add_read_var(const ObArray<const ObRawExpr *> &var_list);
+//      void add_read_var(const ObIArray<const ObRawExpr *> &var_list);
+      SpVariableSet & cons_read_var_set() { return expr_rs_set_; }
+
       SpMultiInsts* get_then_block() { return &then_branch_; }
       SpMultiInsts* get_else_block() { return &else_branch_; }
 
       int optimize(SpInstList &exec_list);
 
-      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
-                           ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                           common::ModuleArena &allocator,
+                           ObPhysicalPlan::OperatorStore &operators_store,
+                           ObPhyOperatorFactory *op_factory);
       int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
@@ -429,15 +464,26 @@ namespace oceanbase
       void set_reverse(bool rev) { reverse_ = rev; }
       SpMultiInsts* get_body_block() { return &loop_body_; }
 
-      SpVar & get_loop_var() { return loop_counter_var_; }
+      /**
+       * @brief add_itr_local_inst
+       * instruction used to set the temporary status of each iteration
+       * exectuted at the start of each iteration, just like increase the loop_counter_var_
+       * @param inst
+       */
+      void add_itr_local_inst(int64_t idx) { loop_local_inst_.push_back(idx); }
+
+      const SpVar & get_loop_var() const { return loop_counter_var_; }
 
       int optimize(SpInstList &exec_list);
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
-      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) ;
+      virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
+                                   ModuleArena &allocator,
+                                   ObPhysicalPlan::OperatorStore &operators_store,
+                                   ObPhyOperatorFactory *op_factory);
+      virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -447,11 +493,12 @@ namespace oceanbase
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
-      int64_t lowest_number_;
-      int64_t highest_number_;
 
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body
+
+      //executed at each iteration started
+      ObSEArray<int64_t, 8> loop_local_inst_;
       bool reverse_;   //this variable could be elimated
     };
 
@@ -547,13 +594,15 @@ namespace oceanbase
       virtual int write_variable(const ObString &var_name, const ObObj & val);
       virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
 
-      virtual int write_variable(SpVar &var, const ObObj &val);
+      virtual int write_variable(const SpVar &var, const ObObj &val);
 
-      virtual int read_variable(const ObString &var_name, ObObj &val) const ;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const ;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
-      virtual int read_variable(SpVar &var, const ObObj *&val) const;
+      virtual int read_variable(const SpVar &var, const ObObj *&val) const;
+
+      virtual int read_array_size(const ObString &array_name, int64_t &size) const;
+      virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object
@@ -609,6 +658,7 @@ namespace oceanbase
       ProgramCounter pc_;
       ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
     };
-#endif // SPPROCEDURE_H
   }
 }
+
+#endif // SPPROCEDURE_H

@@ -30,31 +30,28 @@ namespace oceanbase
     class SpUpsLoopInst : public sql::SpInst
     {
     public:
-      SpUpsLoopInst() : SpInst(SP_L_INST) {}
+      SpUpsLoopInst() : SpInst(SP_L_INST), expanded_loop_body_() {}
       virtual ~SpUpsLoopInst();
-      virtual const VariableSet &get_read_variable_set() const { return rs_set_; }
-      virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
+
+      virtual void get_read_variable_set(SpVariableSet &read_set) const { UNUSED(read_set); }
+      virtual void get_write_variable_set(SpVariableSet &write_set) const { UNUSED(write_set); }
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
 
       int64_t get_iteration_count() const { return expanded_loop_body_.count(); }
+      int64_t get_lowest_number() const { return lowest_number_; }
+      const SpVar & get_loop_counter_var() const { return loop_counter_var_; }
       SpMultiInsts & get_loop_body(int64_t itr) { return expanded_loop_body_.at(itr); }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
       virtual int assign(const SpInst *inst);
 
     private:
+      SpVar loop_counter_var_;
+      int64_t lowest_number_;
+      int64_t highest_number_;
       ObArray<SpMultiInsts> expanded_loop_body_;
-
-      VariableSet rs_set_;
-      VariableSet ws_set_;
-    };
-
-    template<>
-    struct sp_inst_traits<SpUpsLoopInst>
-    {
-      static const bool is_sp_inst = true;
     };
 
    class ObUpsProcedure : public sql::SpProcedure
@@ -69,11 +66,11 @@ namespace oceanbase
 
       int create_variable_table();
       virtual int write_variable(const ObString &var_name, const ObObj &val);
-      virtual int write_variable(SpVar &var, const ObObj &val);
+      virtual int write_variable(const SpVar &var, const ObObj &val);
+      virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
 
-      virtual int read_variable(const ObString &var_name, ObObj &val) const;
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
-
+      virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
       //specially handle the loop inst creataion
       virtual SpInst * create_inst(SpInstType type, SpMultiInsts *mul_inst);
 
@@ -102,6 +99,14 @@ namespace oceanbase
       VarNameValMapAllocer var_name_val_map_allocer_;
       VarNameValMap var_name_val_map_;
       common::ObStringBuf name_pool_;
+
+      struct ObUpsArray
+      {
+        ObString array_name_;
+        ObSEArray<ObObj, 8> array_values_;
+      };
+
+      ObSEArray<ObUpsArray, 4> array_table_;
     };
 
   }

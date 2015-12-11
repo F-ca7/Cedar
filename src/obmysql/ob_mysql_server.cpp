@@ -996,6 +996,10 @@ namespace oceanbase
             ret = OB_ERROR;
           }
         }
+        if( OB_SUCCESS == ret )
+        {
+          OB_STAT_INC(OBMYSQL, SQL_CMD_RECEIVER_COUNT);
+        }
       }
       return ret;
     }
@@ -1017,6 +1021,18 @@ namespace oceanbase
       else
       {
         uint8_t code = packet->get_type();
+
+        if( OB_LIKELY(COM_DELETE_SESSION != code))
+        {
+          OB_STAT_INC(OBMYSQL, SQL_CMD_PROCESS_COUNT);
+          int64_t wait_us = tbsys::CTimeUtil::getTime() - packet->get_receive_ts();
+          FILL_TRACE_LOG("queue_wait_us=%ld", wait_us);
+          if( OB_LIKELY (0 < wait_us) )
+          {
+            OB_STAT_ICN(OBMYSQL, SQL_CMD_WAIT_TIME_MS, wait_us/1000);
+          }
+        }
+
         switch(code)
         {
           case COM_QUIT:

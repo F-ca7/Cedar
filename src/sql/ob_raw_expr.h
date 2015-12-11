@@ -46,7 +46,7 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const = 0;
       virtual void print(FILE* fp, int32_t level) const = 0;
 
-      virtual void get_raw_var(ObArray<const ObRawExpr*> &exprs) const  {UNUSED(exprs);} //add zt for find variables
+      virtual void get_raw_var(ObIArray<const ObRawExpr*> &exprs) const  {UNUSED(exprs);} //add zt for find variables
     private:
       ObItemType  type_;
       common::ObObjType result_type_;
@@ -73,7 +73,7 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         exprs.push_back(this);
       }
@@ -85,12 +85,15 @@ namespace oceanbase
     class ObArrayRawExpr : public ObRawExpr
     {
     public:
-      ObArrayRawExpr():ObRawExpr(T_ARRAY), idx_expr_(NULL)
+      ObArrayRawExpr() : ObRawExpr(T_ARRAY)
       {
       }
 
-      void set_array_name(const oceanbase::common::ObString &array_name) { array_name_ = array_name; }
-      void set_idx_expr(ObRawExpr *idx_expr) { idx_expr_ = idx_expr; }
+      void set_array_name(const ObString &array_name) { array_name_ = array_name; }
+      void set_idx_value(const ObObj &obj) { idx_value_ = obj; }
+
+      const ObString& get_array_name() const { return array_name_; }
+      const ObObj & get_idx_value() const { return idx_value_; }
       virtual int fill_sql_expression(
           ObSqlExpression& inter_expr,
           ObTransformer *transformer = NULL,
@@ -99,14 +102,15 @@ namespace oceanbase
 
       void print(FILE* fp, int32_t level) const;
 
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         //remains problem, how to answer this questions
         exprs.push_back(this);
       }
     private:
       oceanbase::common::ObString array_name_;
-      ObRawExpr *idx_expr_;
+      ObObj idx_value_;
+//      ObRawExpr *idx_expr_;
     };
     //add zt 20151125:e
 
@@ -200,7 +204,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level) const;
 
       //add zt: 20151104
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         expr_->get_raw_var(exprs);
       }
@@ -232,7 +236,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level) const;
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         first_expr_->get_raw_var(exprs);
         second_expr_->get_raw_var(exprs);
@@ -273,7 +277,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level) const;
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         first_expr_->get_raw_var(exprs);
         second_expr_->get_raw_var(exprs);
@@ -310,7 +314,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level) const;
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         for(int32_t i = 0; i < exprs_.size(); ++i)
         {
@@ -362,7 +366,7 @@ namespace oceanbase
 
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         arg_expr_->get_raw_var(exprs);
         for(int32_t i = 0; i < when_exprs_.size(); ++i)
@@ -410,7 +414,7 @@ namespace oceanbase
 
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         param_expr_->get_raw_var(exprs);
       }
@@ -445,7 +449,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level) const;
 
       //add zt: 20151104 b
-      virtual void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
         for(int32_t i = 0; i < exprs_.size(); ++i)
         {
@@ -496,7 +500,7 @@ namespace oceanbase
       void print(FILE* fp, int32_t level, int32_t index = 0) const;
 
       //add zt: 20151104 b
-      void get_raw_var(ObArray<const ObRawExpr *> &exprs) const
+      void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
       {
           expr_->get_raw_var(exprs);
       }

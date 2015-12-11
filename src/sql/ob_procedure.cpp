@@ -2,7 +2,7 @@
 #include "ob_result_set.h"
 #include "ob_physical_plan.h"
 #include "ob_ups_executor.h"
-#include "parse_malloc.h"
+#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -98,7 +98,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   int ret = OB_SUCCESS;
   const ObRow *row;
   ObPhyOperator* op_ = inst->get_rwcomp_op();
-  ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   if( OB_SUCCESS != (ret = op_->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
@@ -111,7 +111,7 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
   {
     for(int64_t var_it = 0; OB_SUCCESS == ret && var_it < var_list.count(); ++var_it)
     {
-      SpVar &var = var_list.at(var_it);
+      const SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
       if(OB_SUCCESS !=(ret = row->raw_get_cell(var_it, cell)))
       {
@@ -133,7 +133,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
   fake_desc.reset();
-  ObArray<SpVar> &var_list = inst->get_var_list();
+  const ObIArray<SpVar> &var_list = inst->get_var_list();
   ObPhyOperator *op = inst->get_ups_exec_op();
   SpProcedure *proc = inst->get_ownner();
 
@@ -162,7 +162,7 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   {
     for(int64_t var_it = 0; var_it < var_list.count(); ++var_it)
     {
-      SpVar &var = var_list.at(var_it);
+      const SpVar &var = var_list.at(var_it);
       const ObObj *cell = NULL;
       if(OB_SUCCESS !=(ret=row->raw_get_cell(var_it, cell)))
       {
@@ -390,6 +390,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
     int64_t remain_us = 0;
     if (OB_LIKELY(OB_SUCCESS == ret))
     {
+      int64_t begin_time_us = tbsys::CTimeUtil::getTime();
       if (out_plan->is_timeout(&remain_us))
       {
         ret = OB_PROCESS_TIMEOUT;
@@ -401,6 +402,9 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       }
       else if (OB_SUCCESS != (ret = static_cast<ObProcedure *>(inst->proc_)->get_rpc_stub()->ups_plan_execute(remain_us, exec_plan, result)))
       {
+        int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_TIME, elapsed_us);
         TBSYS_LOG(WARN, "failed to execute plan on updateserver, err=%d", ret);
         if (OB_TRANS_ROLLBACKED == ret)
         {
@@ -412,10 +416,9 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       }
       else
       {
-//        if( start_new_trans && result.get_trans_id().is_valid() )
-//        {
-
-//        }
+        int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
+        OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_TIME, elapsed_us);
       }
     }
     //adjust the serialize methods for ObExprValues / ObPostfixExpression
@@ -673,6 +676,7 @@ int ObProcedure::clear_variables()
  */
 int ObProcedure::optimize()
 {
+  bool special_proc = true;
   if( proc_name_.compare("ups_proc_test") == 0 )
   {
     // 0 2 6 8 { 1 3 4 5 7 9 }
@@ -705,13 +709,13 @@ int ObProcedure::optimize()
     {
       if( inst_list_.at(i)->get_type() == SP_C_INST )
         static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->optimize(temp_exec_list);
-      else
-        temp_exec_list.push_back(inst_list_.at(i));
+//      else
+      temp_exec_list.push_back(inst_list_.at(i));
     }
 
     for(int64_t i = 0; i < temp_exec_list.count(); ++i)
     {
-      TBSYS_LOG(INFO, "inst[%ld]\n:%s", i, to_cstring(*temp_exec_list.at(i)));
+      TBSYS_LOG(INFO, "inst[%ld]: %s", i, to_cstring(*temp_exec_list.at(i)));
     }
 
     exec_list_.push_back(temp_exec_list.at(0));
@@ -732,7 +736,7 @@ int ObProcedure::optimize()
     exec_list_.push_back(inst_list_.at(8));
 
     static_cast<SpIfCtrlInsts*>(inst_list_.at(13))->optimize(exec_list_);
-    exec_list_.remove(exec_list_.count() - 1);
+//    exec_list_.remove(exec_list_.count() - 1);
 //    inst_list_.remove(inst_list_.count() - 1);
 
     SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
@@ -749,25 +753,103 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
 
-    char buf[4096];
-    int64_t pos = 0;
-    for(int64_t i = 0; i < exec_list_.count(); ++i) {
-      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
-    }
-    buf[pos] = '\0';
-    TBSYS_LOG(INFO, "Payment optimize:\n%s", buf);
+  }
+  else if( proc_name_.compare("for_test_1") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_2") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(0))->optimize(exec_list_);
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(0));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("for_test_3") == 0 )
+  {
+    static_cast<SpLoopInst*>(inst_list_.at(1))->optimize(exec_list_);
+    exec_list_.push_back(inst_list_.at(0));
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(1));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("neworder") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+
+//    SpInstList loop_base_list;
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(9));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(10));
+  }
+  else if( proc_name_.compare("neworder_2") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(2));
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(3));
+    exec_list_.push_back(inst_list_.at(5));
+
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(11));
   }
   //else do nothing
   else
   {
+    special_proc = false;
     exec_list_.reserve(inst_list_.count());
     for(int64_t i = 0; i < inst_list_.count(); ++i)
     {
       exec_list_.push_back(inst_list_.at(i));
     }
-
   }
-//  TBSYS_LOG(INFO, "Procedure optimized\n: %s", to_cstring(*this));
+  if (special_proc)
+  {
+    char buf[4096];
+    int64_t pos = 0;
+    for(int64_t i = 0; i < exec_list_.count(); ++i)
+    {
+      pos += exec_list_.at(i)->to_string(buf + pos, 4096 - pos);
+    }
+    buf[pos] = '\0';
+    TBSYS_LOG(INFO, "%.*s optimize:\n%s", proc_name_.length(), proc_name_.ptr(), buf);
+  }
   return OB_SUCCESS;
 }
 
@@ -856,40 +938,39 @@ int ObProcedure::write_variable(const ObString &array_name, int64_t idx_value, c
   return ret;
 }
 
-int ObProcedure::write_variable(SpVar &var, const ObObj &val)
+int ObProcedure::write_variable(const SpVar &var, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  common::ObRow input_row; //fake row
+//  common::ObRow input_row; //fake row
   if( var.is_array() ) //process array variable
   {
-    const ObObj *idx_obj = NULL;
+//    const ObObj *idx_obj = NULL;
+//    int64_t idx = 0;
+//    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    {
+//      TBSYS_LOG(WARN, "idx expr calc failed, expr: %s", to_cstring(*(var.idx_value_)));
+//    }
+//    else if( idx_obj->get_type() != ObIntType )
+//    {
+//      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+//      ret = OB_ERR_ILLEGAL_INDEX;
+//    }
     int64_t idx = 0;
-    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+    if(OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)) )
     {
-      TBSYS_LOG(WARN, "idx expr calc failed, expr: %s", to_cstring(*(var.idx_value_)));
+      TBSYS_LOG(WARN, "read index value failed");
     }
-    else if( idx_obj->get_type() != ObIntType )
+    else if (OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
     {
-      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else
-    {
-      idx_obj->get_int(idx);
-      if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)) )
-      {}
+      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
+//      idx_obj->get_int(idx);
+//      if(  )
+//      {}
     }
   } //process ordinary variable
   else if( OB_SUCCESS != (ret = write_variable(var.var_name_, val)) )
   {}
   return ret;
-}
-
-int ObProcedure::read_variable(const ObString &var_name, ObObj &val) const
-{
-  ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
-
-  return session->get_variable_value(var_name, val);
 }
 
 int ObProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
@@ -934,29 +1015,34 @@ int ObProcedure::read_variable(const ObString &array_name, int64_t idx_value, co
   return ret;
 }
 
-int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
+int ObProcedure::read_variable(const SpVar &var, const ObObj *&val) const
 {
   int ret = OB_SUCCESS;
 
   if( var.is_array() )
   {
-    const ObObj *idx_obj = NULL;
-    common::ObRow input_row;
+//    const ObObj *idx_obj = NULL;
+//    common::ObRow input_row;
     int64_t idx = 0;
-    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    if( OB_SUCCESS != (ret = var.idx_value_->calc(input_row, idx_obj)) )
+//    {
+//      TBSYS_LOG(WARN, "idx expr calc failed");
+//    }
+//    else if( idx_obj->get_type() != ObIntType )
+//    {
+//      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
+//      ret = OB_ERR_ILLEGAL_INDEX;
+//    }
+    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
     {
-      TBSYS_LOG(WARN, "idx expr calc failed");
+      TBSYS_LOG(WARN, "read index value failed");
     }
-    else if( idx_obj->get_type() != ObIntType )
+    else if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)))
     {
-      TBSYS_LOG(WARN, "idx value type is not int, value= %s", to_cstring(*idx_obj));
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else
-    {
-      idx_obj->get_int(idx);
-      if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)) )
-      {}
+      TBSYS_LOG(WARN, "read %.*s[%ld] failed", var.var_name_.length(), var.var_name_.ptr(), idx);
+//      idx_obj->get_int(idx);
+//      if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)) )
+//      {}
     }
   }
   else
@@ -964,6 +1050,18 @@ int ObProcedure::read_variable(SpVar &var, const ObObj *&val) const
     ret = read_variable(var.var_name_, val);
   }
 
+  return ret;
+}
+
+int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) const
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                     get_session()->get_variable_array_size(array_name, size)))
+  {
+    TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+  }
   return ret;
 }
 
@@ -1057,7 +1155,7 @@ int ObProcedure::set_inst_op(SpInst *inst)
   case SP_BLOCK_INST:
     {
       SpBlockInsts *block_inst = static_cast<SpBlockInsts*>(inst);
-      ObArray<SpInst *> &inst_list = block_inst->get_inst_list();
+      ObIArray<SpInst *> &inst_list = block_inst->get_inst_list();
       for(int64_t i = 0; i < inst_list.count(); ++i)
       {
          set_inst_op(inst_list.at(i));

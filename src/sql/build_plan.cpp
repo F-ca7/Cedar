@@ -1408,6 +1408,15 @@ int resolve_variable_set_stmt(
       OB_ASSERT(var);
       var_node.is_system_variable_ = (var->type_ == T_SYSTEM_VARIABLE) ? true : false;
 
+      //add zt 20151208:b
+      //TODO
+      if( T_ARRAY == var->type_ )
+      {
+        TBSYS_LOG(WARN, "does not support array item as left value now");
+        ret = OB_NOT_SUPPORTED;
+      }
+      else
+      //add zt 20151208:e
       if ((ret = ob_write_string(*name_pool, ObString::make_string(var->str_value_),
                                   var_node.variable_name_)) != OB_SUCCESS)
       {
@@ -2591,7 +2600,7 @@ int resolve_procedure_select_into_stmt(
     if (ret == OB_SUCCESS)
     {
       ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-      /*解析select into语句中的参数列表*/
+      /*resolve the left vaule list*/
       if(node->children_[0]!=NULL)
       {
         ParseNode* arguments=node->children_[0];
@@ -2611,33 +2620,21 @@ int resolve_procedure_select_into_stmt(
           }
           else if( arguments->children_[i]->type_ == T_ARRAY )
           {
-            if( OB_SUCCESS != (ret = ob_write_string(
-                                       *name_pool,
-                                       ObString::make_string(arguments->children_[i]->children_[0]->str_value_),
-                                       raw_var.var_name_)))
+            if( OB_SUCCESS != (ret = resolve_array_expr(result_plan, arguments->children_[i], raw_var.var_name_, raw_var.idx_value_)))
             {
-              PARSER_LOG("copy variable name %s error", arguments->children_[i]->children_[0]->str_value_);
+              TBSYS_LOG(WARN, "resolve array expr failed");
             }
-            else if( OB_SUCCESS != (ret = resolve_independ_expr(result_plan,
-                                                                NULL,
-                                                                arguments->children_[i]->children_[1],
-                                                                raw_var.idx_expr_id_,
-                                                                T_NONE_LIMIT)))
+            else
             {
-
-              PARSER_LOG("resolve idx_expr id fail");
+              stmt->add_variable(raw_var);
             }
-            else if( OB_SUCCESS != (ret = stmt->add_variable(raw_var)))
-            {
-              TBSYS_LOG(WARN, "add variables into stmt fail");
-            }
-
           }
           else
           {
             TBSYS_LOG(WARN, "unsupported variables type here");
           }
         }
+        //TODO we need to check is these variables defined.
       }
       //resolve select clause
       if(node->children_[1]!=NULL)
@@ -2661,13 +2658,8 @@ int resolve_procedure_select_into_stmt(
           for(; expr_itr < expr_new_itr; ++expr_itr)
           {
             ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
-            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE  == raw_type)
-            {
-              ObString var_name;
-              ((const ObConstRawExpr *)logic_plan->get_raw_expr(expr_itr))->get_value().get_varchar(var_name);
-              sel_stmt->add_expr_variable(var_name);
-              TBSYS_LOG(DEBUG, "Find Variable: %.*s", var_name.length(), var_name.ptr());
-            }
+            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type || T_ARRAY == raw_type)
+            sel_stmt->add_raw_var_expr(logic_plan->get_raw_expr(expr_itr));
           }
         }
       }
@@ -2849,7 +2841,7 @@ int resolve_procedure_assign_stmt(
       uint64_t expr_id = 0;
       //analyze the right expr
       if (OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL,var_val_node->children_[1],
-                                       expr_id,T_NONE_LIMIT)))
+                                                     expr_id,T_NONE_LIMIT)))
       {
         TBSYS_LOG(WARN, "resolve assignment expression error");
       }
@@ -2871,24 +2863,15 @@ int resolve_procedure_assign_stmt(
       }
       else if ( var_val_node->children_[0]->type_ == T_ARRAY )
       {
-        ObRawArrAssignVal arr_val;
+        ObRawVarAssignVal arr_val;
         arr_val.val_expr_id_ = expr_id;
-        ParseNode *arr_node = var_val_node->children_[0];
-
-        if( OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(
-                                                 arr_node->children_[0]->str_value_),
-                                                 arr_val.var_name_)))
+        if( OB_SUCCESS != (ret = resolve_array_expr(result_plan, var_val_node->children_[0], arr_val.var_name_, arr_val.idx_value_)) )
         {
-          PARSER_LOG("Can not malloc space for array name");
-        }
-        else if( OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, arr_node->children_[1],
-                                                            arr_val.idx_expr_id_, T_NONE_LIMIT)))
-        {
-          TBSYS_LOG(WARN, "resolve array index expression fail");
+          TBSYS_LOG(WARN, "resolve array expr failed");
         }
         else
         {
-          stmt->add_arr_val(arr_val);
+          stmt->add_var_val(arr_val);
           var_name = arr_val.var_name_;
         }
       }
