@@ -1790,7 +1790,7 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(ERROR,"test::longfei,,,source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());
+//    TBSYS_LOG(ERROR,"test::longfei,,,source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());
     if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
       is_ailias_table = true;
@@ -1881,7 +1881,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
       }
       if (ret == OB_SUCCESS)
       {
-        TBSYS_LOG(ERROR, "test::longfei,,,table_scan_op = table_rpc_scan_op");
         table_scan_op = table_rpc_scan_op;
       }
       break;

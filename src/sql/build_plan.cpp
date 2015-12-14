@@ -1083,7 +1083,7 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
                     //mod longfei 151201
 //					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
 //							"failed to add_index_colums!");
-                    TBSYS_LOG(ERROR, "failed to set_storing_columns!");
+                    TBSYS_LOG(WARN, "failed to set_storing_columns!");
                     //mod e
 					break;
 				}

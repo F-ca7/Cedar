@@ -572,7 +572,7 @@ bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
       }
     }
   }
-  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,,index_tid=%ld",ret,index_tid);
+//  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,,index_tid=%ld",ret,index_tid);
   return ret;
 }
 
