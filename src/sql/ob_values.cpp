@@ -209,6 +209,7 @@ int ObValues::load_data()
       row_desc_ = *row_desc;
     }
   }
+
   while (OB_SUCCESS == ret)
   {
     ret = child_op_->get_next_row(row);
