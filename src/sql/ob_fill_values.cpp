@@ -86,9 +86,10 @@ int ObFillValues::open()
   }
   else
   {
-
     int64_t cell_num = row_desc->get_column_num();
+    bool is_empty = false;
 
+    //fill data
     while(OB_SUCCESS == ret)
     {
       ret = op_from_->get_next_row(cur_row);
@@ -101,9 +102,12 @@ int ObFillValues::open()
       {
         TBSYS_LOG(WARN, "fail to get next row from rpc scan");
       } 
-      else
+      else if (OB_SUCCESS != cur_row->get_is_row_empty(is_empty))
       {
-        //TBSYS_LOG(INFO, "test_wjh fill row %s", to_cstring(*cur_row));
+        TBSYS_LOG(WARN, "fail to check row empty.");
+      }
+      else if (!is_empty)
+      {
         has_data = true;
         for (int64_t i = 0; i < cell_num; ++i)
         {
@@ -148,10 +152,11 @@ int ObFillValues::open()
             break;
           }
         } // end for
-      }
+      }      
+      //TBSYS_LOG(INFO, "test_wjh fill row %s", to_cstring(*cur_row));
     }
     //TBSYS_LOG(INFO, "wjh_test %s", to_cstring(*op_to_));
-    if (!has_data)
+    if (!has_data) //if no data to update, return OB_NO_RESULT to terminate the plan, do not send to ups.
     {
       ret = OB_NO_RESULT;
     }

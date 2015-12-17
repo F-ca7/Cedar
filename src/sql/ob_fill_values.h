@@ -31,17 +31,49 @@ namespace oceanbase
     class ObFillValues : public ObNoChildrenPhyOperator
     {
       public:
+        /**
+         * @brief ObFillValues is designed for the purpose of
+         * supporting new update operation which can update
+         * not even given full rowkey condition but also
+         * other conditions. We need to fill the values from
+         * ObValues contained the conditions to ObExprValues.
+         */
         ObFillValues();
         virtual ~ObFillValues();
         virtual void reset();
         virtual void reuse();
+
+        /**
+         * @brief open Read data from ObValues operator and
+         * Convert the data to expration and fill them into
+         * operator ObExprValues.
+         * @return OB_SUCCESS on success, OB_NO_RESULT means
+         * no data need to update, otherwise on failed.
+         */
         virtual int open();
         virtual int close();
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+
+        /**
+         * @brief set_op set local operators.
+         * @param op_from need a ObValues typed operator.
+         * @param op_to need ObExprValues typed operator.
+         * @return OB_SUCCESS.
+         */
         int set_op(ObPhyOperator *op_from, ObPhyOperator *op_to);
+
+        /**
+         * @brief set_row_desc set row description
+         * @param row_desc
+         * @return OB_SUCCESS.
+         */
         int set_row_desc(const common::ObRowDesc &row_desc);
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+        /**
+         * @brief set_rowkey_info set rowkey info for get row key.
+         * @param rowkey_info
+         */
         void set_rowkey_info(const common::ObRowkeyInfo &rowkey_info);
 
         //DECLARE_PHY_OPERATOR_ASSIGN;
@@ -54,6 +86,7 @@ namespace oceanbase
         bool has_data_;
 
     };
+
     inline void ObFillValues::set_rowkey_info(const common::ObRowkeyInfo &rowkey_info)
     {
       rowkey_info_ = rowkey_info;

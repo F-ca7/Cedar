@@ -307,6 +307,22 @@ namespace oceanbase
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
 //add wangjiahao [update_more] 20151204 :b
+        /**
+         * @brief gen_phy_table_for_update_more is a new method
+         * to generate pysical plan for update which support update
+         * not even given full rowkey condition but also
+         * other conditions.
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param rowkey_info
+         * @param row_desc
+         * @param row_desc_ext
+         * @param table_op
+         * @return OB_SUCCESS
+         */
         int gen_phy_table_for_update_more(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,

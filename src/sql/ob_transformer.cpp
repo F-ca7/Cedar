@@ -6067,6 +6067,8 @@ int ObTransformer::gen_phy_table_for_update_more(
   ObFillValues *fill_data = NULL;
   ObExprValues* get_param_values = NULL;
   const ObTableSchema *table_schema = NULL;
+  ObRowDesc rowkey_col_map;
+  bool full_rowkey_col = true;
 
   bool has_other_cond = false;
   ObRpcScanHint hint;
@@ -6181,6 +6183,8 @@ int ObTransformer::gen_phy_table_for_update_more(
     int64_t cond_op = T_INVALID;
     ObObj cond_val;
     ObPostfixExpression::ObPostExprNodeType val_type = ObPostfixExpression::BEGIN_TYPE;
+    int64_t rowkey_idx = OB_INVALID_INDEX;
+    ObRowkeyColumn rowkey_col;
 
     for (int32_t i = 0; i < num; i++)
     {
@@ -6210,7 +6214,20 @@ int ObTransformer::gen_phy_table_for_update_more(
       if (filter->is_simple_condition(false, cid, cond_op, cond_val, &val_type)
                && (T_OP_EQ == cond_op || T_OP_IS == cond_op)
                && rowkey_info.is_rowkey_column(cid))
-      {}
+      {
+        if (OB_SUCCESS != (ret = rowkey_col_map.add_column_desc(OB_INVALID_ID, cid)))
+        {
+          TRANS_LOG("Failed to add column desc, err=%d", ret);
+          break;
+        }
+        else if (OB_SUCCESS != (ret = rowkey_info.get_index(cid, rowkey_idx, rowkey_col)))
+        {
+          TRANS_LOG("Unexpected branch");
+          ret = OB_ERR_UNEXPECTED;
+          break;
+        }
+
+      }
       else
       {
         // other condition
@@ -6231,6 +6248,27 @@ int ObTransformer::gen_phy_table_for_update_more(
       }
 
     } // end for
+
+    //set full_rowkey_col true if all rowkey is appear
+    if (OB_LIKELY(OB_SUCCESS == ret))
+    {
+      int64_t rowkey_col_num = rowkey_info.get_size();
+      uint64_t cid = OB_INVALID_ID;
+      for (int64_t i = 0; i < rowkey_col_num; ++i)
+      {
+        if (OB_SUCCESS != (ret = rowkey_info.get_column_id(i, cid)))
+        {
+          TRANS_LOG("Failed to get column id, err=%d", ret);
+          break;
+        }
+        else if (OB_INVALID_INDEX == rowkey_col_map.get_idx(OB_INVALID_ID, cid))
+        {
+          full_rowkey_col = false;
+          break;
+        }
+      } // end for
+    }
+
 
     ObString name = ObString::make_string(OB_READ_CONSISTENCY);
     ObObj value;
@@ -6257,6 +6295,7 @@ int ObTransformer::gen_phy_table_for_update_more(
       TBSYS_LOG(DEBUG, "use [%s] method", read_method == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET");
     }
     hint.read_method_ = read_method;
+
 
   }
 
@@ -6285,8 +6324,7 @@ int ObTransformer::gen_phy_table_for_update_more(
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
 
-      const ColumnItem *col_item = stmt->get_column_item(i);
-      //TBSYS_LOG(INFO, "test::wjh this is %d col of %d cols. col name is %s", i, num, to_cstring(col_item->column_name_));
+      const ColumnItem *col_item = stmt->get_column_item(i);    
       if (col_item && col_item->table_id_ == table_item->table_id_)
       {
         ObBinaryRefRawExpr col_expr(col_item->table_id_, col_item->column_id_, T_REF_COLUMN);
@@ -6309,9 +6347,9 @@ int ObTransformer::gen_phy_table_for_update_more(
       }
     } // end for
   }
+
   // add action flag column
-/*
-  if (OB_LIKELY(OB_SUCCESS == ret))
+  if (full_rowkey_col && OB_SUCCESS == ret)
   {
     ObSqlExpression column_ref;
     column_ref.set_tid_cid(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
@@ -6324,7 +6362,7 @@ int ObTransformer::gen_phy_table_for_update_more(
       TBSYS_LOG(WARN, "failed to add output column, err=%d", ret);
     }
   }
-*/
+
   if (ret == OB_SUCCESS)
   {
     if (has_other_cond)
