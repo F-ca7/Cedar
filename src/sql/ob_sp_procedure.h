@@ -21,7 +21,7 @@ namespace oceanbase
 
     enum SpInstType
     {
-      SP_E_INST, //expr instruction
+      SP_E_INST = 0, //expr instruction
       SP_C_INST, //if control instruction
       SP_L_INST, //loop instruction
       SP_B_INST, //read baseline data
@@ -416,7 +416,7 @@ namespace oceanbase
     class SpIfCtrlInsts : public SpInst
     {
     public:
-      SpIfCtrlInsts() : SpInst(SP_C_INST), then_branch_(this), else_branch_(this) {}
+      SpIfCtrlInsts() : SpInst(SP_C_INST), branch_opened_(-1), then_branch_(this), else_branch_(this) {}
       virtual ~SpIfCtrlInsts();
       int add_then_inst(SpInst *inst);
       int add_else_inst(SpInst *inst);
@@ -428,6 +428,8 @@ namespace oceanbase
       SpMultiInsts* get_else_block() { return &else_branch_; }
 
       int optimize(SpInstList &exec_list);
+      void set_open_flag(int flag) { branch_opened_ = flag; }
+      int get_open_flag() const { return branch_opened_; }
 
       int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,
                            common::ModuleArena &allocator,
@@ -443,6 +445,7 @@ namespace oceanbase
     private:
       ObSqlExpression if_expr_;
       SpVariableSet expr_rs_set_;
+      int branch_opened_; //-1 for not open, 1 for then branch open, 0 for else branch open
 //      VariableSet rs_set_;
 //      VariableSet ws_set_; //fake design
       SpIfBlock then_branch_;
@@ -484,7 +487,7 @@ namespace oceanbase
                                    ObPhysicalPlan::OperatorStore &operators_store,
                                    ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
+      int serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end);
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
       virtual int assign(const SpInst *inst);

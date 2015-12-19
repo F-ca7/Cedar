@@ -420,14 +420,6 @@ namespace oceanbase
                                 task->pkt.get_source_timeout();
       int64_t process_timeout = packet_timewait - QUERY_TIMEOUT_RESERVE;
 
-      //add by zt 20151211:b
-      if( task->pkt.get_packet_code() == OB_PHY_PLAN_EXECUTE )
-      {
-        int64_t cur_time = tbsys::CTimeUtil::getTime();
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_W_TIME_1, cur_time - task->pkt.get_receive_ts());
-      }
-      //add by zt 20151211:e
-
       if (NULL == task)
       {
         TBSYS_LOG(WARN, "null pointer task=%p", task);
@@ -769,13 +761,6 @@ namespace oceanbase
       SessionGuard session_guard(session_mgr_, lock_mgr_, end_session_ret);
       RWSessionCtx* session_ctx = NULL;
 
-      //add by zt:b
-      {
-        int64_t cur_time = tbsys::CTimeUtil::getTime();
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_W_TIME_2, cur_time - task.pkt.get_receive_ts());
-      }
-      //add by zt:e
-
       int64_t packet_timewait = (0 == task.pkt.get_source_timeout()) ?
                                 UPS.get_param().packet_max_wait_time :
                                 task.pkt.get_source_timeout();
@@ -802,7 +787,7 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "Session has been killed, error %d, \'%s\'", ret, to_cstring(phy_plan.get_trans_id()));
         }
-        else if (session_ctx->get_stmt_start_time() >= task.pkt.get_receive_ts())
+        else if (session_ctx->get_stmt_start_time() > task.pkt.get_receive_ts()) //avoid the restart trans failed
         {
           TBSYS_LOG(ERROR, "maybe an expired request, will skip it, last_stmt_start_time=%ld receive_ts=%ld",
                     session_ctx->get_stmt_start_time(), task.pkt.get_receive_ts());
@@ -883,6 +868,11 @@ namespace oceanbase
           FILL_TRACE_BUF(session_ctx->get_tlog_buffer(), "phyplan allocator used=%ld total=%ld",
                         allocator.used(), allocator.total());
         }
+
+        //add by zt 20151214:b
+        OB_STAT_INC(UPDATESERVER, UPS_PLAN_TIME, tbsys::CTimeUtil::getTime() - cur_time);
+        //add by zt 20151214:e
+
         if (OB_SUCCESS != ret)
         {}
         else if (NULL == (main_op = phy_plan.get_main_query()))

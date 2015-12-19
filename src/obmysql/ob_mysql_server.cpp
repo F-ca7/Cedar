@@ -998,7 +998,7 @@ namespace oceanbase
         }
         if( OB_SUCCESS == ret )
         {
-          OB_STAT_INC(OBMYSQL, SQL_CMD_RECEIVER_COUNT);
+          OB_STAT_INC(OBMYSQL, SQL_CMD_RECEIVE_COUNT);
         }
       }
       return ret;
@@ -1934,28 +1934,28 @@ namespace oceanbase
         else
         {
 			//add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
-			ObObj val;
-			int64_t value=0;
-			ObString affect=ObString::make_string("affect_row_num");
-			if(session->variable_exists(affect))
-			{
-				if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)//取出值
-				{
-					 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
-				}
-				else if((ret=val.get_int(value))!=OB_SUCCESS)
-				{
-					TBSYS_LOG(WARN, "val get_int ERROR");
-				}
-				else
-				{
-					result->set_affected_rows(value);
-					TBSYS_LOG(INFO, "set_affected_rows num=%ld",value);
-				}
-				session->remove_variable(affect);
-			}
+//			ObObj val;
+//			int64_t value=0;
+//			ObString affect=ObString::make_string("affect_row_num");
+//			if(session->variable_exists(affect))
+//			{
+//				if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)//取出值
+//				{
+//					 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
+//				}
+//				else if((ret=val.get_int(value))!=OB_SUCCESS)
+//				{
+//					TBSYS_LOG(WARN, "val get_int ERROR");
+//				}
+//				else
+//				{
+//					result->set_affected_rows(value);
+//					TBSYS_LOG(INFO, "set_affected_rows num=%ld",value);
+//				}
+//				session->remove_variable(affect);
+//			}
 
-		  TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
+//		  TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
 		  //add:e
           // the server status must be got after the plan opened
           uint16_t server_status = 0;

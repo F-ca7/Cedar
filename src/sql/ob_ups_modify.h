@@ -28,6 +28,14 @@ namespace oceanbase
     {
     }
 
+    /**
+     * add by zt
+     * @brief The ObUpsModify class
+     * I feel the ObUpsModify almost the same as the ObUpsModifyWithDmlType
+     * the mainly different is serialization. The former does not serialize anything,
+     * the later serialize the dmltype, it just save the dmltype flag when serialize
+     * replace plan. Is it necessary to desgin two classes just for such savings ?
+     */
     class ObUpsModify : public ObHuskFilter<PHY_UPS_MODIFY>
     {
       public:
