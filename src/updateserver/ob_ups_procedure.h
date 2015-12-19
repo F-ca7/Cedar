@@ -52,7 +52,7 @@ namespace oceanbase
     class SpUpsLoopInst : public sql::SpInst
     {
     public:
-      SpUpsLoopInst() : SpInst(SP_L_INST), expanded_loop_body_() {}
+      SpUpsLoopInst() : SpInst(SP_L_INST), expanded_loop_body_(this) {}
       virtual ~SpUpsLoopInst();
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const { UNUSED(read_set); }

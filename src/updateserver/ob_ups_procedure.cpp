@@ -275,10 +275,11 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
       {
         TBSYS_LOG(WARN, "execute loop inst failed at itr[%ld] idx[%ld]", i, j);
       }
-      else if( exec_inst->get_type() == SP_D_INST && !inst->get_flag(j) )
-      {
-        static_cast<SpRwDeltaInst*>(exec_inst)->get_rwdelta_op()->close();
-      }
+      //need not to explicitly close, open will reset temp var
+//      else if( exec_inst->get_type() == SP_D_INST && !inst->get_flag(j) )
+//      {
+//        static_cast<SpRwDeltaInst*>(exec_inst)->get_rwdelta_op()->close();
+//      }
     }
   }
   return ret;
@@ -356,7 +357,7 @@ int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &
 int SpUpsLoopInst::deserialize_loop_body(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
-
+  int64_t end_flag = 0;
   int64_t body_inst_count = 0;
   if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &body_inst_count)))
   {
@@ -378,6 +379,8 @@ int SpUpsLoopInst::deserialize_loop_body(const char *buf, int64_t data_len, int6
   {
     TBSYS_LOG(WARN,	"deserialize expanded loop_body_ failed");
   }
+  serialization::decode_i64(buf, data_len, pos, &end_flag);
+  OB_ASSERT(end_flag == 1723);
   return ret;
 }
 

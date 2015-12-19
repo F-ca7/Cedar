@@ -493,6 +493,9 @@ namespace oceanbase
       virtual int assign(const SpInst *inst);
 
     private:
+      static bool need_expand(SpInst *inst);
+
+    private:
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
