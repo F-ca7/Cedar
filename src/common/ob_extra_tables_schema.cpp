@@ -768,6 +768,7 @@ int ObExtraTablesSchema::all_user_schema(TableSchema &table_schema)
   return ret;
 }
 
+//modified by wangdonghui 20151223 add ob,type,comment
 //add by zhujun 2015-3-11:b
 int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
 {
@@ -782,6 +783,13 @@ int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
 
 	 int column_id = OB_APP_MIN_COLUMN_ID;
 
+     ADD_COLUMN_SCHEMA("db", //column_name
+         column_id ++, //column_id
+         0, //rowkey_id
+         ObVarcharType,  //column_type
+         128, //column length
+         true); //is nullable
+
 	  ADD_COLUMN_SCHEMA("proc_name", //column_name
 	      column_id ++, //column_id
 	      1, //rowkey_id
@@ -794,7 +802,18 @@ int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
 		  ObVarcharType,  //column_type
 		  10240, //column length
 		  false); //is nullable
-
+      ADD_COLUMN_SCHEMA("type", //column_name
+          column_id ++, //column_id
+          0, //rowkey_id
+          ObVarcharType,  //column_type
+          128, //column length
+          false); //is nullable
+      ADD_COLUMN_SCHEMA("comment", //column_name
+          column_id ++, //column_id
+          0, //rowkey_id
+          ObVarcharType,  //column_type
+          128, //column length
+          true); //is nullable
 	  return ret;
 }
 //add:e

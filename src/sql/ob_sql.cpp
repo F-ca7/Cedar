@@ -1821,9 +1821,10 @@ int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour,
   int ret = OB_SUCCESS;
   char bufstr[128];
   int str_len = 0;
-  if( 123 <= (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
+  //modified by wangdonghui 20151223
+  if( 123 <= (str_len = snprintf(bufstr, 128, "select source from proc where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
   {
-    TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from __all_procedure where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
+    TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from proc where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
     ret = OB_ERROR;
   }
   else

@@ -539,8 +539,9 @@ namespace oceanbase
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
 
+    //modified by wangdonghui 20151223
     //add zhujun [2015-6-1]
-    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
+    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "proc";
     //add:e
 
     // internal params
