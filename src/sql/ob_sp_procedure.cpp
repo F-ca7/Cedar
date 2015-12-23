@@ -17,6 +17,7 @@ int64_t SpVar::to_string(char *buf, const int64_t buf_len) const
   {
     databuff_printf(buf, buf_len, pos, ", idx[%s]: ", to_cstring(idx_value_));
   }
+
   return pos;
 }
 
