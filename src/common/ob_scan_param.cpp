@@ -404,6 +404,39 @@ namespace oceanbase
       return err;
     }
 
+    //add longfei [cons static index] 151204:b
+    int ObScanParam::set_fake_range(const ObNewRange &fake_range)
+    {
+      int err = OB_SUCCESS;
+      fake_range_ = fake_range;
+      //table_id_ = fake_range_.table_id_;
+      if (deep_copy_args_)
+      {
+        if ((OB_SUCCESS == err)
+            && (OB_SUCCESS
+                != (err = buffer_pool_.write_string(fake_range.start_key_,
+                    &(fake_range_.start_key_)))))
+        {
+          TBSYS_LOG(WARN,
+              "fail to copy range.start_key_ to local buffer [err:%d]", err);
+        }
+        if ((OB_SUCCESS == err)
+            && (OB_SUCCESS
+                != (err = buffer_pool_.write_string(fake_range.end_key_,
+                    &(fake_range_.end_key_)))))
+        {
+          TBSYS_LOG(WARN,
+              "fail to copy range.end_key_ to local buffer [err:%d]", err);
+        }
+      }
+      return err;
+    }
+    void ObScanParam::set_copy_args(bool arg)
+    {
+      deep_copy_args_ = arg;
+    }
+    //add e
+
     int ObScanParam::set(const uint64_t& table_id, const ObString& table_name, const ObNewRange& range, bool deep_copy_args)
     {
       int err = OB_SUCCESS;

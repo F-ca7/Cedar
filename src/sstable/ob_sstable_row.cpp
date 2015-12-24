@@ -56,6 +56,13 @@ namespace oceanbase
       string_buf_.clear();
     }
 
+    //add longfei [cons static index] 151207:b
+    void ObSSTableRow::set_rowkey_obj_count(const int64_t count)
+    {
+      rowkey_obj_count_ = count;
+    }
+    //add e
+
     int ObSSTableRow::set_obj_count(const int64_t obj_count,
                                     const bool sparse_format)
     {
@@ -141,6 +148,37 @@ namespace oceanbase
 
       return obj;
     }
+
+    //add maoxx
+    ObObj* ObSSTableRow::get_obj_without_const(const int32_t index)
+    {
+      ObObj* obj = NULL;
+      if (index >= 0 && index < obj_count_)
+      {
+        obj = &objs_[index];
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "invalid param, index=%d", index);
+      }
+      return obj;
+    }
+
+    const ObObj ObSSTableRow::get_row_obj(const int64_t index) const
+    {
+        ObObj obj;
+        if (index >= 0 && index < obj_count_)
+        {
+          obj = objs_[index];
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "invalid param, index=%ld", index);
+        }
+        return obj;
+    }
+    //add e
+
 
     const ObObj* ObSSTableRow::get_row_objs(int64_t& obj_count)
     {

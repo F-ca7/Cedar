@@ -50,7 +50,10 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
       }
     }
   }
-  if (OB_SUCCESS == ret)
+  //modify wenghaixing [secondary index.static_index]20151223
+  if (OB_SUCCESS == ret && OB_INVALID_ID == table_schema.original_table_id_)
+  //if (OB_SUCCESS == ret)
+  //modify e
   {
     // step 3. select cs for create empty tablet
     ret = create_empty_tablet(table_schema);

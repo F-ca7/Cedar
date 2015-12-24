@@ -545,7 +545,10 @@ namespace oceanbase
                            easy_request_t* req, const uint32_t channel_id);
         int ups_get_config(const int32_t version, easy_request_t* req,
                            const uint32_t channel_id, common::ObDataBuffer& out_buff);
-
+        //add wenghaixing [secondary index.static_index]20151118
+        int ups_get_init_index(const int32_t version, common::ObDataBuffer& in_buff,
+                               easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add e
 
         int ups_handle_fake_write_for_keep_alive();
 

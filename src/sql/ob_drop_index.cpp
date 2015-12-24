@@ -43,7 +43,7 @@ int ObDropIndex::open()
     //TRANS_LOG("This table don't have index");
     ret = OB_INDEX_NOT_EXIST;
     //mod e
-    TBSYS_LOG(WARN,"not index to drop");
+    TBSYS_LOG(WARN,"no index to drop");
   }
   //modify e
   else if(OB_SUCCESS != (ret = rpc_->drop_index(get_if_exists(), indexs_)))

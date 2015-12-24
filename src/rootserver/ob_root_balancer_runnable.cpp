@@ -57,7 +57,17 @@ void ObRootBalancerRunnable::run(tbsys::CThread *thread, void *arg)
   {
     if (is_master() || role_mgr_.get_role() == ObRoleMgr::STANDALONE)
     {
-      balancer_.do_balance_or_load();
+      //modify by wenghaixing [secondary index static_index] 20151216
+      //balancer_.do_balance_or_load();
+      if(balancer_.check_create_index_over())
+      {
+        balancer_.do_balance_or_load();
+      }
+      else
+      {
+         TBSYS_LOG(INFO, "is building index, do not balance");
+      }
+      //modify e
     }
     else
     {

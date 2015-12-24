@@ -64,6 +64,7 @@ namespace oceanbase
         DEF_INT(port, "0", "(1024,65536)", "listen port");
         DEF_STR(devname, "bond0", "listen device");
         DEF_INT(retry_times, "3", "[1,]", "retry times if failed");
+        DEF_INT(cluster_id, "0", "cluster id");//add longfei [cons static index] e
     };
   }
 }

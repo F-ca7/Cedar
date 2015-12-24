@@ -322,6 +322,7 @@ static struct ObStrErrorInit
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");
+    ADD_ERROR_STR(OB_ERR_NULL_POINTER, "some null pointer err occured!");//add wenghaixing [secondary index.static index]20151118
     // Fatal errors and the client should close the connection, -8000 ~ -8999
     ADD_ERROR_STR(OB_ERR_SERVER_IN_INIT, "Server is initializing");
   }

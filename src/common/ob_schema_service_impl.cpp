@@ -1856,3 +1856,407 @@ int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSc
   return ret;
 }
 
+//add maoxx
+int ObSchemaServiceImpl::check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag)
+{
+    int ret = OB_SUCCESS;
+    QueryRes* res = NULL;
+    TableRow* table_row = NULL;
+    ObNewRange range;
+    int64_t cell_index = 0;//因为只取出column checksum列的数据，所以为0
+    int64_t rowkey_column_num = 4;
+    ObObj start_rowkey[rowkey_column_num];
+    ObObj end_rowkey[rowkey_column_num];
+    ObColumnChecksum original_table_column_checksum;
+    ObColumnChecksum index_table_column_checksum;
+    ObColumnChecksum row_column_checksum;
+
+    ObString tmp_string;
+    char tmp_char[OB_MAX_COL_CHECKSUM_STR_LEN];
+    tmp_string.assign_ptr(tmp_char, OB_MAX_COL_CHECKSUM_STR_LEN);
+
+    original_table_column_checksum.reset();
+    index_table_column_checksum.reset();
+
+    start_rowkey[0].set_int(orginal_table_id);
+    end_rowkey[0].set_int(orginal_table_id);
+    start_rowkey[1].set_int(cluster_id);
+    end_rowkey[1].set_int(cluster_id);
+    start_rowkey[2].set_int(current_version);
+    end_rowkey[2].set_int(current_version);
+    start_rowkey[3].set_min_value();
+    end_rowkey[3].set_max_value();
+
+    range.start_key_.assign(start_rowkey, rowkey_column_num);
+    range.end_key_.assign(end_rowkey, rowkey_column_num);
+    range.border_flag_.inclusive_end();
+    range.border_flag_.inclusive_start();
+
+    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+    {
+      TBSYS_LOG(WARN, "fail to nb scan column checksum info of orginal table %d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "start calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+      while(OB_SUCCESS == (ret = res->next_row()))
+      {
+        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+        {
+          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+          break;
+        }
+        else if(NULL != table_row)
+        {
+          if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+          {
+            TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+            break;
+          }
+          else
+          {
+            row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+            ret = original_table_column_checksum.add(row_column_checksum);
+            row_column_checksum.reset();
+            tmp_string.reset();
+          }
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+          break;
+        }
+      }
+      if (OB_ITER_END != ret)
+      {
+        TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", orginal_table_id);
+      }
+      else
+      {
+          ret = OB_SUCCESS;
+      }
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      start_rowkey[0].set_int(index_table_id);
+      end_rowkey[0].set_int(index_table_id);
+      start_rowkey[1].set_int(cluster_id);
+      end_rowkey[1].set_int(cluster_id);
+      start_rowkey[2].set_int(current_version);
+      end_rowkey[2].set_int(current_version);
+      start_rowkey[3].set_min_value();
+      end_rowkey[3].set_max_value();
+
+      range.start_key_.assign(start_rowkey, rowkey_column_num);
+      range.end_key_.assign(end_rowkey, rowkey_column_num);
+      range.border_flag_.inclusive_end();
+      range.border_flag_.inclusive_start();
+
+      nb_accessor_.release_query_res(res);
+      res = NULL;
+
+      if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+      {
+        TBSYS_LOG(WARN, "fail to nb scan column checksum info of index table %d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "start calculate column checksum of index_table_id:%ld", index_table_id);
+        while(OB_SUCCESS == (ret = res->next_row()))
+        {
+          if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+          {
+            TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+            break;
+          }
+          else if(NULL != table_row)
+          {
+            if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+            {
+              TBSYS_LOG(ERROR, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+              break;
+            }
+            else
+            {
+              row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+              ret = index_table_column_checksum.add(row_column_checksum);
+              row_column_checksum.reset();
+              tmp_string.reset();
+            }
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+            break;
+          }
+        }
+        if (OB_ITER_END != ret)
+        {
+          TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", index_table_id);
+        }
+        else
+        {
+          ret = OB_SUCCESS;
+        }
+      }
+    }
+
+    if (OB_SUCCESS == ret)
+    {
+      bool is_equal = false;
+      if(OB_SUCCESS == (ret = original_table_column_checksum.equal(index_table_column_checksum, is_equal)) && is_equal)
+      {
+        column_checksum_flag = true;
+        TBSYS_LOG(INFO, "this index table column checksum is correct table_id:%ld", index_table_id);
+      }
+      else
+      {
+        column_checksum_flag = false;
+        TBSYS_LOG(WARN, "this index table column checksum is incorrect table_id:%ld", index_table_id);
+      }
+    }
+
+    return ret;
+}
+
+int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version)
+{
+    int ret = OB_SUCCESS;
+    QueryRes* res = NULL;
+    TableRow* table_row = NULL;
+    ObNewRange range;
+    int64_t cell_index = 0;
+
+    range.set_whole_range();
+
+    TBSYS_LOG(INFO, "clean version less than %ld", current_version - max_draution_of_version);
+
+    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("version"), ScanConds("version", LT, current_version - max_draution_of_version))))
+    {
+      TBSYS_LOG(WARN, "failed to scan data to delete from column_checksum ret[%d]" , ret);
+    }
+    else
+    {
+      while(OB_SUCCESS == res->next_row())
+      {
+        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+        {
+          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+          break;
+        }
+        else if(NULL != table_row)
+        {
+          if(OB_SUCCESS != (ret = nb_accessor_.delete_row(OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, table_row->get_cell_info(cell_index)->row_key_)))
+          {
+            TBSYS_LOG(WARN, "failed to delete one row from column cheksum ret[%d]", ret);
+            break;
+          }
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "delete column checksum row is NULL");
+          break;
+        }
+      }
+      if (OB_ITER_END != ret)
+      {
+        TBSYS_LOG(WARN, "failed to get table column checksum");
+      }
+      else
+      {
+        ret = OB_SUCCESS;
+      }
+    }
+    return ret;
+}
+
+int ObSchemaServiceImpl::get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum)
+{
+  int ret = OB_SUCCESS;
+  QueryRes* res = NULL;
+  TableRow* table_row = NULL;
+  ObRowkey rowkey;
+  ObObj rowkey_list[4];
+
+  char range_buf[OB_RANGE_STR_BUFSIZ];
+  range.to_string(range_buf, sizeof(range_buf));
+  int32_t len = static_cast<int32_t>(strlen(range_buf));
+  ObString str_range(0, len, range_buf);
+
+  rowkey_list[0].set_int(range.table_id_);
+  rowkey_list[1].set_int(cluster_id);
+  rowkey_list[2].set_int(required_version);
+  rowkey_list[3].set_varchar(str_range);
+  rowkey.assign(rowkey_list,4);
+
+  char varchar_column_checksum[common::OB_MAX_COL_CHECKSUM_STR_LEN];
+  if(OB_SUCCESS != ( ret = nb_accessor_.get(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, rowkey, SC("column_checksum"))))
+  {
+    TBSYS_LOG(ERROR, "faild to get nb column checksum ret = %d", ret);
+  }
+  else
+  {
+    table_row = res->get_only_one_row();
+    if(NULL != table_row)
+    {
+      ASSIGN_VARCHAR("column_checksum", varchar_column_checksum, common::OB_MAX_COL_CHECKSUM_STR_LEN);
+      len = static_cast<int32_t>(strlen(varchar_column_checksum));
+      column_checksum.write(varchar_column_checksum, len);
+    }
+    else
+    {
+      ret = OB_ENTRY_NOT_EXIST;
+      TBSYS_LOG(WARN, "get table row fail ret = %d", ret);
+    }
+  }
+  memset(range_buf, 0, OB_RANGE_STR_BUFSIZ*sizeof(char));
+  return ret;
+}
+//add e
+
+//add wenghaixing [secondary index.static_index]20151217
+int ObSchemaServiceImpl::get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat)
+{
+  int ret = OB_SUCCESS;
+  stat = INDEX_INIT;
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  else
+  {
+    QueryRes* res = NULL;
+    ObNewRange range;
+    int32_t rowkey_column = 2;
+    ObObj start_rowkey[rowkey_column];
+    ObObj end_rowkey[rowkey_column];
+    start_rowkey[0].set_int(table_id);
+    start_rowkey[1].set_min_value();
+    end_rowkey[0].set_int(table_id);
+    end_rowkey[1].set_max_value();
+    if (OB_SUCCESS == ret)
+    {
+      range.start_key_.assign(start_rowkey, rowkey_column);
+      range.end_key_.assign(end_rowkey, rowkey_column);
+    }
+    if(OB_SUCCESS == ret)
+    {
+      ret = nb_accessor_.scan(res, OB_INDEX_SERVICE_INFO_TABLE_NAME, range, SC("status"));
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "scan __index_process_info fail:ret[%d]", ret);
+      }
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      int64_t count = 0;
+      int32_t st = -1;
+      IndexStatus tmp_stat = INDEX_INIT;
+      TableRow* table_row = NULL;
+      int err = OB_SUCCESS;
+      while(OB_SUCCESS == (err = res->next_row()) && OB_SUCCESS == ret)
+      {
+        res->get_row(&table_row);
+        if (NULL == table_row)
+        {
+          TBSYS_LOG(WARN, "failed to get row from query results");
+          ret = OB_ERROR;
+        }
+        else
+        {
+          count++;
+          ASSIGN_INT("status", st, int32_t);
+          switch (st) {
+            case 0:
+              tmp_stat = NOT_AVALIBALE;
+              break;
+            case 1:
+              tmp_stat = AVALIBALE;
+              break;
+            case 2:
+              tmp_stat = ERROR;
+              break;
+            case 3:
+              tmp_stat = WRITE_ONLY;
+              break;
+            case 4:
+              tmp_stat = INDEX_INIT;
+              break;
+            default:
+              break;
+          }
+          if (ERROR == tmp_stat)
+          {
+            break;
+          }
+        }
+      }//end while
+
+      if (OB_SUCCESS == ret)
+      {
+        if (ERROR == tmp_stat ||
+            (NOT_AVALIBALE == tmp_stat && count == cluster_count))
+        {
+          stat = tmp_stat;
+        }
+        /*else
+        {
+          ret = OB_EAGAIN;//记录数不等于cluster数
+        }*/
+      }
+    }
+
+    nb_accessor_.release_query_res(res);
+    res = NULL;
+  }
+  return ret;
+}
+
+int ObSchemaServiceImpl::get_cluster_count(int64_t &cc)
+{
+  int ret = OB_SUCCESS;
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  else
+  {
+    QueryRes* res = NULL;
+    ObNewRange range;
+    ObObj start_obj, end_obj;
+    start_obj.set_min_value();
+    end_obj.set_max_value();
+    range.start_key_.assign(&start_obj, 1);
+    range.end_key_.assign(&end_obj, 1);
+    if(OB_SUCCESS == ret)
+    {
+      ret = nb_accessor_.scan(res, OB_ALL_CLUSTER, range, SC("cluster_id"));
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "scan __all_cluster fail:ret[%d]", ret);
+      }
+      else
+      {
+        int64_t cluster_count = 0;
+        while(OB_SUCCESS == res->next_row())
+        {
+          cluster_count++;
+        }
+        cc = cluster_count;
+      }
+    }
+
+    nb_accessor_.release_query_res(res);
+    res = NULL;
+  }
+  return ret;
+}
+//add e
+

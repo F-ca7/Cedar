@@ -22,6 +22,7 @@
 #include "ob_rpc_proxy.h"
 #include "ob_get_cell_stream.h"
 #include "ob_scan_cell_stream.h"
+#include "ob_cs_interactive_cell_stream.h" //longfei [cons static index] 151216
 
 namespace oceanbase
 {
@@ -42,9 +43,15 @@ namespace oceanbase
       ObGetCellStream *get_ups_get_cell_stream();
       // get cell stream used for merge
       ObScanCellStream *get_ups_scan_cell_stream();
+      //add longfei [cons static index] 151205:b
+      ObCsInteractiveCellStream *get_cs_interactive_cell_stream();
+      //add e
     private:
       ObGetCellStream get_cell_stream_;
       ObScanCellStream scan_cell_stream_;
+      //add longfei [cons static index] 151205:b
+      ObCsInteractiveCellStream cs_interactive_cell_stream_;
+      //add e
     };
   }
 }   

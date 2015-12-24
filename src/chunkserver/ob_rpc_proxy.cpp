@@ -25,6 +25,9 @@
 #include "common/ob_schema_manager.h"
 #include "common/ob_statistics.h"
 #include "common/ob_common_stat.h"
+//add longfei
+#include "ob_chunk_server_stat.h"
+//add e
 
 namespace oceanbase
 {
@@ -1134,6 +1137,81 @@ namespace oceanbase
     {
       return ups_scan_(sql_rpc_stub_, scan_param, scanner, common::MERGE_SERVER, timeout);
     }
+
+    //add longfei [cons static index] 151204:b
+    int ObMergerRpcProxy::cs_cs_scan(const ObScanParam &scan_param, ObServer chunkserver, ObScanner &scanner, const ObServerType server_type, const int64_t time_out)
+    {
+      return cs_scan_(rpc_stub_, scan_param, chunkserver, scanner, server_type, time_out);
+    }
+
+    template<class T, class RpcT>
+    int ObMergerRpcProxy::cs_scan_(RpcT *rpc_stub, const ObScanParam & scan_param, const ObServer chunkserver,
+      T & scanner, const ObServerType server_type, const int64_t time_out )
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(server_type);
+      int64_t start_time = tbsys::CTimeUtil::getTime();
+      if (!check_inner_stat())
+      {
+        TBSYS_LOG(ERROR, "%s", "check inner stat failed");
+        ret = OB_INNER_STAT_ERROR;
+      }
+      else if (!check_scan_param(scan_param))
+      {
+        TBSYS_LOG(ERROR, "%s", "check scan param failed");
+        ret = OB_INPUT_PARAM_ERROR;
+      }
+      else
+      {
+        ret = cs_cs_scan_(rpc_stub, scan_param, chunkserver, scanner, time_out);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "scan from master ups failed:ret[%d]", ret);
+        }
+      }
+      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_COUNT);
+      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_TIME, tbsys::CTimeUtil::getTime() - start_time);
+
+      return ret;
+    }
+
+    template<class T, class RpcT>
+    int ObMergerRpcProxy::cs_cs_scan_(RpcT *rpc_stub, const ObScanParam & scan_param, const ObServer chunkserver, T & scanner,
+        const int64_t time_out)
+    {
+      int ret = OB_SUCCESS;
+      int64_t end_time = rpc_timeout_ + tbsys::CTimeUtil::getTime();
+      for (int64_t i = 0; tbsys::CTimeUtil::getTime() < end_time; ++i)
+      {
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "get master update server failed:ret[%d]", ret);
+          break;
+        }
+        ret = rpc_stub->scan((time_out > 0) ? time_out : rpc_timeout_, chunkserver, scan_param, scanner);
+        if(scan_param.if_need_fake())
+        {
+          //TBSYS_LOG(INFO, "test::whx scan_param----fake_range[%s]", to_cstring(*scan_param.get_fake_range()));
+        }
+        if (false == check_need_retry_cs(ret))
+        {
+          break;
+        }
+        else
+        {
+          TBSYS_LOG(WARN,
+              "cs to cs scan fail. retry. ret=%d, i=%ld, rpc_timeout_=%ld ups[%s]",
+              ret, i, rpc_timeout_, to_cstring(chunkserver));
+          usleep(static_cast <useconds_t>(RETRY_INTERVAL_TIME * (i + 1)));
+        }
+      }
+      if (OB_INVALID_START_VERSION == ret)
+      {
+        OB_STAT_INC(CHUNKSERVER, FAIL_CS_VERSION_COUNT);
+      }
+      return ret;
+    }
+    //add e
 
   } // end namespace chunkserver
 } // end namespace oceanbase

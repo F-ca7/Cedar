@@ -50,6 +50,9 @@ namespace oceanbase
         DEF_TIME(monitor_row_checksum_interval, "1800s", "compare row checksum between master cluster and slave master");
         DEF_TIME(monitor_row_checksum_timeout, "3s", "get master checksum timeout");
         DEF_TIME(monitor_drop_table_interval, "600s", "[1s,]", "delete droped table in daily merge check interval");
+        //add wenghaixing, [secondary index.static_index] 20151216:b
+        DEF_TIME(monitor_create_index_timeout, "1800s", "[1s,]", "create single static index timeout");
+        //add:e
         DEF_INT(tablet_replicas_num, "3", "[1,3]", "tablet replicas num");
         DEF_INT(io_thread_count, "4", "[1,100]", "io thread count");
         DEF_INT(read_thread_count, "20", "[10,100]", "read thread count");

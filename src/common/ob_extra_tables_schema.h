@@ -53,6 +53,11 @@ namespace oceanbase
       static int all_server_stat_schema(TableSchema &table_schema);
       static int all_server_session_schema(TableSchema &table_schema);
       static int all_statement_schema(TableSchema &table_schema);
+      //add maoxx
+      static int all_index_service_schema(TableSchema &table_schema);
+      static int all_column_checksum_info(TableSchema & table_schema);
+      static int all_column_checksum_stat(TableSchema &table_schema);
+      //add e
     private:
       ObExtraTablesSchema();
     };

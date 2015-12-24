@@ -1507,3 +1507,95 @@ int ObExtraTablesSchema::all_statement_schema(TableSchema & table_schema)
       false); //is nullable
   return ret;
 }
+
+int ObExtraTablesSchema::all_index_service_schema(TableSchema &table_schema)
+{
+  int ret = OB_SUCCESS;
+  table_schema.init_as_inner_table();
+  strcpy(table_schema.table_name_, OB_INDEX_SERVICE_INFO_TABLE_NAME);
+  table_schema.table_id_ = OB_INDEX_SERVICE_INFO_TID;
+  table_schema.rowkey_column_num_ = 2;
+  table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 2;
+  table_schema.max_rowkey_length_ = TEMP_ROWKEY_LENGTH;
+
+  int column_id = OB_APP_MIN_COLUMN_ID;
+  ADD_COLUMN_SCHEMA("index_tid",
+      column_id ++,
+      1,
+      ObIntType,
+      sizeof(int64_t),
+      false);
+  ADD_COLUMN_SCHEMA("cluster",
+      column_id ++,
+      2,
+      ObIntType,
+      sizeof(int64_t),
+      false);
+  ADD_COLUMN_SCHEMA("status",
+      column_id ++,
+      0,
+      ObIntType,
+      sizeof(int64_t),
+      false);
+  ADD_COLUMN_SCHEMA("gm_create", //column_name
+      OB_CREATE_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObCreateTimeType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("gm_modify", //column_name
+      OB_MODIFY_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObModifyTimeType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+
+  return ret;
+}
+
+int ObExtraTablesSchema::all_column_checksum_stat(TableSchema &table_schema)
+{
+    int ret = OB_SUCCESS;
+    table_schema.init_as_inner_table();
+    strcpy(table_schema.table_name_, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME);
+    table_schema.table_id_ = OB_ALL_COLUMN_CHECKSUM_INFO_TID;
+    table_schema.rowkey_column_num_ = 4;
+    table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 4;
+    table_schema.max_rowkey_length_ = TEMP_ROWKEY_LENGTH;
+    int column_id = OB_APP_MIN_COLUMN_ID;
+
+    ADD_COLUMN_SCHEMA("table_id", //column_name
+        column_id ++, //column_id
+        1, //rowkey_id
+        ObIntType,  //column_type
+        sizeof(int64_t), //column length
+        false); //is nullable
+    ADD_COLUMN_SCHEMA("culster_id", //column_name
+        column_id ++, //column_id
+        2, //rowkey_id
+        ObIntType,  //column_type
+        sizeof(int64_t), //column length
+        false); //is nullable
+    ADD_COLUMN_SCHEMA("version", //column_name
+        column_id ++, //column_id
+        3, //rowkey_id
+        ObIntType,  //column_type
+        sizeof(int64_t), //column length
+        false); //is nullable
+    ADD_COLUMN_SCHEMA("range", //column_name
+        column_id ++, //column_id
+        4, //rowkey_id
+        ObVarcharType,  //column_type
+        1024, //column length
+        false); //is nullable
+
+    ADD_COLUMN_SCHEMA("column_checksum", //column_name
+        column_id ++, //column_id
+        0, //rowkey_id
+        ObVarcharType,  //column_type
+        1024, //column length
+        false); //is nullable
+
+    return ret;
+}
+//add e

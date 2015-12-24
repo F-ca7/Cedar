@@ -22,6 +22,7 @@
 #include "common/ob_cur_time.h"
 #include "common/ob_ms_list.h"
 #include "sql/ob_sql_read_param.h"
+#include "common/ob_schema_service.h" //longfei [cons static index] 151216
 
 namespace oceanbase
 {
@@ -323,7 +324,7 @@ namespace oceanbase
          * add longfei [cons static index] 151120:b
          * construct static data of secondary index
          */
-        int cs_recieve_wok(
+        int cs_recieve_work(
             const int32_t version,
             const int32_t channel_id,
             easy_request_t* req,
@@ -398,6 +399,8 @@ namespace oceanbase
             // add longfei [cons static index] :b
             inline int get_which_stage() const {return which_stage_;}
             void set_which_stage(common::ConIdxStage stage);
+            void reset();
+            inline ObChunkService* get_chunk_service(){return service_;}
             // add e
 
           private:
@@ -461,7 +464,7 @@ namespace oceanbase
         LeaseChecker lease_checker_;
         StatUpdater  stat_updater_;
         MergeTask    merge_task_;
-        // add longfei [cons static index] 111520:b
+        // add longfei [cons static index] 151120:b
         SeIndexTask se_index_task_; // se_index_task_ is aimed to construct static data for secondary index
         // add e
         FetchUpsTask fetch_ups_task_;

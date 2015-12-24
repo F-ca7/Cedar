@@ -17,11 +17,17 @@
 
 #include "ob_server.h"
 #include "ob_rpc_stub.h"
-#include "common/location/ob_tablet_location_list.h"
+#include "location/ob_tablet_location_list.h"
 #include "sql/ob_physical_plan.h"
 #include "sql/ob_ups_result.h"
-#include "common/ob_transaction.h"
-#include "common/ob_data_source_desc.h"
+#include "ob_transaction.h"
+#include "ob_data_source_desc.h"
+//add maoxx
+#include "ob_column_checksum.h"
+#include "ob_tablet_histogram_report_info.h"
+//add e
+#include "ob_index_black_list.h" //add longfei
+
 namespace oceanbase
 {
   namespace sql
@@ -345,6 +351,15 @@ namespace oceanbase
         //longfei [drop index]
         int drop_index(const int64_t timeout, const common::ObServer & root_server,
                    bool if_exists, const common::ObStrings & tables) const;
+        //add longfei [cons static index] 151218:b
+        int retry_failed_work(const int64_t timeout, const ObServer &chunk_server, const BlackList list);
+        //add e
+        //add maoxx
+        int get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum);
+        int report_tablets_histogram(const int64_t timeout, const ObServer & root_server,
+            const ObServer &client_server,  const ObTabletHistogramReportInfoList& tablets,
+            const int64_t time_stamp, bool has_more);
+        //add e
 
       protected:
         // default cmd version

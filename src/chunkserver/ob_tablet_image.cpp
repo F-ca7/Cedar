@@ -2544,6 +2544,54 @@ namespace oceanbase
       return ret;
     }
 
+    //add longfei [cons static index] 151207:b
+    int ObMultiVersionTabletImage::upgrade_index_tablet(ObTablet* tablet,
+        const bool load_sstable)
+    {
+      int ret = OB_SUCCESS;
+      int64_t new_version = tablet->get_data_version();
+      char range_buf[OB_RANGE_STR_BUFSIZ];
+      tbsys::CWLockGuard guard(lock_);
+      if (OB_SUCCESS != (ret = get_image(new_version).add_tablet(tablet)))
+      {
+        TBSYS_LOG(ERROR, "add tablet error with new version = %ld.",
+            new_version);
+      }
+      else
+      {
+        tablet->get_range().to_string(range_buf, OB_RANGE_STR_BUFSIZ);
+        TBSYS_LOG(DEBUG, "upgrade with new index range:(%s), new version=%ld",
+            range_buf, new_version);
+      }
+      if (OB_SUCCESS == ret && load_sstable)
+      {
+        //TBSYS_LOG(WARN, "test::zhuyanchao load sstable");
+        ret = tablet->load_sstable();
+      }
+      return ret;
+    }
+    //add e
+
+    //add longfei [cons static index] 151220:b
+    /*
+     *删除局部索引的sstable，遍历所有的tablet，逐个检查并删除
+     */
+    const int ObTabletImage::delete_local_index_sstable() const
+    {
+      int ret = OB_SUCCESS;
+      ObSortedVector <ObTablet*>::iterator it = tablet_list_.begin();
+      for (; it != tablet_list_.end(); ++it)
+      {
+        if (OB_SUCCESS != (ret = (*it)->delete_local_index_sstableid()))
+        {
+          TBSYS_LOG(WARN, "failed to delete local index sstable file_id:%ld",
+              (*it)->get_sstable_id_list().at(1).sstable_file_id_);
+        }
+      }
+      return ret;
+    }
+    //add e
+
     int ObMultiVersionTabletImage::upgrade_service()
     {
       int ret = OB_SUCCESS;

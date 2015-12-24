@@ -150,6 +150,44 @@ namespace oceanbase
       return ret;
     }
     
+    ////add longfei [cons static index] 151204:b
+    int ObCellStream::rpc_scan_row_data(const ObScanParam &param,
+        const ObServer &chunkserver)
+    {
+      int ret = OB_SUCCESS;
+      int64_t timeout =
+          timeout_time_ > 0 ?
+              (timeout_time_ - tbsys::CTimeUtil::getTime()) : time_out_;
+      ret = rpc_proxy_->cs_cs_scan(param, chunkserver, cur_result_,
+          server_type_, timeout);
+      //TBSYS_LOG(INFO,"test:whx cs_cs_scan = %s,server = %s", to_cstring(*param.get_fake_range()),to_cstring(chunkserver));
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "scan server data failed:ret[%d]", ret);
+      }
+      else
+      {
+        if (first_rpc_)
+        {
+          FILL_TRACE_LOG(
+              "rpc ups scan, timeout=%ld, size=%ld, " "cell_num=%ld, row_num=%ld, ret=%d",
+              timeout, cur_result_.get_size(), cur_result_.get_cell_num(),
+              cur_result_.get_row_num(), ret);
+        }
+        ret = check_scanner_result(cur_result_);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "check scanner result failed:ret[%d]", ret);
+        }
+        else
+        {
+          first_rpc_ = false;
+        }
+      }
+      return ret;
+    }
+    /// add e
+
     int ObCellStream::rpc_get_cell_data(const common::ObGetParam & param)
     {
       int ret = OB_SUCCESS;

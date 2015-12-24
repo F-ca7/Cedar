@@ -149,6 +149,12 @@ namespace oceanbase
         inline int64_t decr_merged_tablet_count() { return __sync_sub_and_fetch(&merged_tablet_count_, 1); }
         inline int64_t get_merged_tablet_count() const { return merged_tablet_count_; }
 
+
+      public:
+        //add longfei [cons static index] 151220:b
+        const int delete_local_index_sstable() const;
+        //add e
+
       public:
         /**
          * all read methods are not support mutithread
@@ -346,6 +352,10 @@ namespace oceanbase
         int upgrade_tablet(ObTablet *old_tablet, 
             ObTablet *new_tablets[], const int32_t split_size, 
             const bool load_sstable = false);
+
+        //add longfei [cons static index] 151207:b
+        int upgrade_index_tablet(ObTablet* obtablet,const bool load_sstable = false);
+        //add e
 
         int upgrade_service();
 

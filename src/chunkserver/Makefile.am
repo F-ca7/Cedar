@@ -80,7 +80,17 @@ libchunkserver_a_SOURCES =                                               \
  ob_tablet_service.h              ob_tablet_service.cpp                  \
  ob_tablet_writer.h               ob_tablet_writer.cpp                   \
  ob_tablet_reader.h               ob_tablet_reader.cpp                   \
- ob_chunk_reload_config.h         ob_chunk_reload_config.cpp
+ ob_chunk_reload_config.h         ob_chunk_reload_config.cpp             \
+ ob_cs_interactive_cell_stream.h  ob_cs_interactive_cell_stream.cpp      \
+ ob_cs_interactive_scan.h         ob_cs_interactive_scan.cpp             \
+ ob_global_index_handler.h        ob_global_index_handler.cpp            \
+ ob_local_index_handler.h         ob_local_index_handler.cpp             \
+ ob_index_handle_pool.h           ob_index_handle_pool.cpp               \
+ ob_index_interactive_agent.h     ob_index_interactive_agent.cpp         \
+ ob_index_local_agent.h           ob_index_local_agent.cpp               \
+ ob_index_handler.h               ob_index_handler.cpp                   \
+ ob_index_reporter.h              ob_index_reporter.cpp
+
 
 bin_PROGRAMS = chunkserver
 chunkserver_SOURCES = ob_disk_path.cpp main.cpp ${libchunkserver_a_SOURCES}

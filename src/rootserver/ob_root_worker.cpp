@@ -64,6 +64,9 @@ namespace oceanbase
       root_server_(config_), sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_))
     {
       schema_version_ = 0;
+      //add wenghaixing [secondary index.static index]20151216
+      icu_.init(this);
+      //add e
     }
 
     ObRootWorker::~ObRootWorker()
@@ -730,7 +733,19 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add wenghaixing [secondary index.static_index]20151118
+    int ObRootWorker::submit_job(ObPacket pc)
+    {
+      int ret = OB_SUCCESS;
+      ObDataBuffer in_buffer;
+      int64_t data_len = 2*1024*1024;
+      char* data = (char *)ob_malloc(data_len, ObModIds::OB_CS_COMMON);
+      in_buffer.set_data(data, data_len);
+      ret = submit_async_task_((common::PacketCode)pc.get_packet_code(), read_thread_queue_, (int32_t)config_.read_queue_size, &in_buffer);
+      ob_free(data);
+      return ret;
+    }
+    //add e
     int ObRootWorker::submit_delete_tablets_task(const common::ObTabletReportInfoList& delete_list)
     {
       int ret = OB_SUCCESS;
@@ -811,6 +826,10 @@ namespace oceanbase
           ps = read_thread_queue_.push(packet, (int32_t)config_.read_queue_size, false);
           break;
         case OB_REPORT_TABLETS:
+        //add wenghaixing [secondary index.static_index]20151211
+        //case OB_REPORT_INDEX:
+        case OB_REPORT_TABLETS_HISTOGRAMS:
+        //add e
         case OB_SERVER_REGISTER:
         case OB_MERGE_SERVER_REGISTER:
         case OB_MIGRATE_OVER:
@@ -821,6 +840,9 @@ namespace oceanbase
         case OB_DROP_TABLE:
         //add wenghaixing [secondary index drop index]20141223
         case OB_DROP_INDEX:
+        //add e
+        //add maoxx
+        case OB_GET_COLUMN_CHECKSUM:
         //add e
         case OB_REPORT_CAPACITY_INFO:
         case OB_SLAVE_REG:
@@ -998,6 +1020,12 @@ namespace oceanbase
                     case OB_REPORT_TABLETS:
                       return_code = rt_report_tablets(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                    //add wenghaixing [secondary index.static_index]20151211
+                    //case OB_REPORT_INDEX:
+                    case OB_REPORT_TABLETS_HISTOGRAMS:
+                      return_code = rt_report_index_info(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    //add e
                     case OB_SERVER_REGISTER:
                       return_code = rt_register(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1030,6 +1058,11 @@ namespace oceanbase
                     case OB_DROP_INDEX:
                       return_code = rt_drop_index(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                    //add maoxx
+                    case OB_GET_COLUMN_CHECKSUM:
+                      return_code = rt_get_column_checksum(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    //add e
                     case OB_REPORT_CAPACITY_INFO:
                       return_code = rt_report_capacity_info(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1130,6 +1163,11 @@ namespace oceanbase
                     case OB_RS_CHECK_TABLET_MERGED:
                       return_code = rt_check_tablet_merged(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                     //add wenghaixing [secondary index.static_index]20151118
+                    case OB_INDEX_JOB:
+                      return_code = rt_handle_index_job(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                     //add e
                     case OB_FETCH_STATS:
                       return_code = rt_fetch_stats(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -2502,7 +2540,97 @@ namespace oceanbase
       }
       return err;
     }
+    //add wenghaixing [secondary index.static_index]20151118
+    int ObRootWorker::rt_handle_index_job(const int32_t version, ObDataBuffer &in_buff, easy_request_t *req, const uint32_t channel_id, ObDataBuffer &out_buff)
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(in_buff);
+      UNUSED(req);
+      UNUSED(version);
+      UNUSED(channel_id);
+      UNUSED(out_buff);
+      ret = icu_.schedule();
+      return ret;
+    }
 
+    int ObRootWorker::rt_report_index_info(const int32_t version, ObDataBuffer &in_buff, easy_request_t *req, const uint32_t channel_id, ObDataBuffer &out_buff)
+    {
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 2;
+      common::ObResultCode result_msg;
+      result_msg.result_code_ = OB_SUCCESS;
+      if(version != MY_VERSION)
+      {
+        result_msg.result_code_ = OB_ERR_FUNCTION_UNKNOWN;
+      }
+
+      ObServer server;
+      ObTabletHistogramReportInfoList *tablet_list = NULL;
+      int64_t time_stamp = 0;
+      if(OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
+      {
+        ret = server.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(ERROR, "server.deserialize error,ret = %d", ret);
+        }
+      }
+      if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
+      {
+        tablet_list = OB_NEW(ObTabletHistogramReportInfoList,  ObModIds::OB_STATIC_INDEX);
+        ret = tablet_list->deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "tablet_list deserialize error");
+        }
+        else
+        {
+          TBSYS_LOG(ERROR, "test::whx tablet report info = %s", to_cstring(tablet_list->tablets[0].tablet_info.range_));
+        }
+      }
+      if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
+      {
+        ret = serialization::decode_vi64(in_buff.get_data(), in_buff.get_capacity(),
+            in_buff.get_position(), &time_stamp);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "time_stamp.deserialize error");
+        }
+      }
+      if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
+      {
+        if(ObBootState::OB_BOOT_OK != root_server_.get_boot_state())
+        {
+           TBSYS_LOG(INFO, "rs has not boot strap, refuse accept index info");
+        }
+        else
+        {
+          int server_index = root_server_.get_server_index(server);
+          result_msg.result_code_ = icu_.handle_histograms(*tablet_list, server_index);
+          if (OB_SUCCESS != result_msg.result_code_)
+            TBSYS_LOG(ERROR, "report_histograms() error.");
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = result_msg.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position());
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "result_msg.serialize error");
+        }
+      }
+
+      if (OB_SUCCESS == ret)
+      {
+        //send_response(OB_REPORT_INDEX_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+        send_response(OB_REPORT_TABLETS_HISTOGRAMS_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      }
+
+      OB_DELETE(ObTabletHistogramReportInfoList, ObModIds::OB_STATIC_INDEX, tablet_list);
+
+      return ret;
+    }
+    //add e
     int ObRootWorker::rt_dump_cs_info(const int32_t version, common::ObDataBuffer& in_buff,
         easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
@@ -5869,6 +5997,87 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
         }
       }
       return ret;
+    }
+    //add e
+
+    //add maoxx
+    int ObRootWorker::rt_get_column_checksum(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+        int ret = OB_SUCCESS;
+        common::ObResultCode result_msg;
+        result_msg.result_code_ = OB_SUCCESS;
+        static const int MY_VERSION = 2;
+        int64_t chekcsum_version = 0;
+
+        ObString column_checksum;
+        char tmp[OB_MAX_COL_CHECKSUM_STR_LEN];
+        column_checksum.assign_buffer(tmp, OB_MAX_COL_CHECKSUM_STR_LEN);
+
+        ObNewRange new_range;
+        ObObj obj_array[OB_MAX_ROWKEY_COLUMN_NUMBER * 2];
+        new_range.start_key_.assign(obj_array, OB_MAX_ROWKEY_COLUMN_NUMBER);
+        new_range.end_key_.assign(obj_array + OB_MAX_ROWKEY_COLUMN_NUMBER, OB_MAX_ROWKEY_COLUMN_NUMBER);
+
+        if (MY_VERSION != version)
+        {
+          TBSYS_LOG(WARN, "invalid request version, version=%d", version);
+          result_msg.result_code_ = OB_ERROR_FUNC_VERSION;
+        }
+
+        if(2 == version && OB_SUCCESS == ret)
+        {
+          if(OB_SUCCESS != (ret = new_range.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "failed to get new range");
+          }
+        }
+
+        if(2 == version && OB_SUCCESS == ret)
+        {
+          if(OB_SUCCESS != (ret = serialization::decode_vi64(in_buff.get_data(), in_buff.get_capacity(),in_buff.get_position(), &chekcsum_version)))
+          {
+            TBSYS_LOG(WARN, "failed to get version");
+          }
+        }
+
+        if(OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
+        {
+          if(OB_SUCCESS != ( ret = root_server_.get_column_checksum(new_range, chekcsum_version, column_checksum)))
+          {
+            TBSYS_LOG(WARN, "failed to get schema_service_ cchecksum");
+            result_msg.result_code_ = ret;
+            ret = OB_SUCCESS;
+          }
+          else
+          {
+            //保留填写日志信息
+          }
+        }
+
+        if(OB_SUCCESS == result_msg.result_code_)
+        {
+          if(OB_SUCCESS != (ret = result_msg.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "failed to serialize column checksum msg");
+          }
+        }
+
+        if(2 == version && OB_SUCCESS == ret)
+        {
+          if(OB_SUCCESS != (ret = column_checksum.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "failed to serialize column checksum");
+          }
+        }
+
+        if(OB_SUCCESS == ret)
+        {
+          if(OB_SUCCESS != (ret = send_response(OB_GET_COLUMN_CHECKSUM_RESPONSE, MY_VERSION, out_buff, req, channel_id)))
+          {
+            TBSYS_LOG(WARN, "failed to send response cchecksum");
+          }
+        }
+        return ret;
     }
     //add e
 

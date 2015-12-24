@@ -59,6 +59,10 @@
 #include "ob_schema_service_ups_provider.h"
 #include "rootserver/ob_root_operation_helper.h"
 #include "rootserver/ob_root_timer_task.h"
+//add wenghaixing [secondary index.static_index]20151211
+#include "common/ob_tablet_histogram_report_info.h"
+//add e
+
 
 class ObBalanceTest;
 class ObBalanceTest_test_n_to_2_Test;
@@ -234,6 +238,12 @@ namespace oceanbase
         int find_statement_table_key(const common::ObGetParam& get_param, common::ObScanner& scanner);
         int find_root_table_range(const common::ObScanParam& scan_param, common::ObScanner& scanner);
         virtual int report_tablets(const common::ObServer& server, const common::ObTabletReportInfoList& tablets, const int64_t time_stamp);
+        //add wenghaixing [secondary index.static_index]20151118
+        int get_init_index(const int64_t version, ObArray<uint64_t> *list);
+        int get_table_from_index(int64_t index_id, uint64_t &table_id);
+        int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);
+        bool check_static_index_over();
+        //add e
         int receive_hb(const common::ObServer& server, const int32_t sql_port, const bool is_listen_ms, const common::ObRole role);
         common::ObServer get_update_server_info(bool use_inner_port) const;
         int add_range_for_load_data(const common::ObList<common::ObNewRange*> &range);
@@ -261,6 +271,25 @@ namespace oceanbase
         bool is_master() const;
         common::ObFirstTabletEntryMeta* get_first_meta();
         void dump_root_table() const;
+        //add wenghaixing [secondary index.static index]20151207
+        void dump_root_table(const int32_t index) const;
+       // int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+       // int get_meta_index(const common::ObTabletInfo &tablet_info, int32_t &meta_index);
+        tbsys::CRWLock& get_root_table_lock(){return root_table_rwlock_;}
+        ObRootTable2* get_root_table(){return root_table_;}
+        tbsys::CThreadMutex& get_root_table_build_lock(){return root_table_build_mutex_;}
+        tbsys::CThreadMutex& get_ddl_lock(){return ddl_tool_.get_ddl_lock();}
+        int modify_index_stat(const uint64_t index_tid, const IndexStatus stat);
+        int modify_index_stat(const ObArray<uint64_t> &index_tid_list, const IndexStatus stat);
+        int modify_index_stat_amd();//after merge done
+        int modify_init_index();
+        int modify_staging_index();
+        int check_tablet_version_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const;
+        int clean_old_checksum(int64_t current_version);
+        int check_column_checksum(const int64_t index_table_id);
+        int modify_index_process_info(const uint64_t index_tid, const IndexStatus stat);
+        int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+        //add e
         bool check_root_table(const common::ObServer &expect_cs) const;
         int dump_cs_tablet_info(const common::ObServer & cs, int64_t &tablet_num) const;
         void dump_unusual_tablets() const;
@@ -322,6 +351,19 @@ namespace oceanbase
         int create_index(const bool if_not_exists, const common::TableSchema &tschema);
         int drop_indexs(const bool if_exists, const common::ObStrings &indexs);
         int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
+
+        //add maoxx
+        int check_column_checksum(const int64_t index_table_id, bool &column_checksum_flag);
+        int clean_column_checksum(int64_t current_version);
+        int get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum);
+        //add e
+
+        //add longfei [cons static index] 151216:b
+        inline ObSchemaManagerV2* get_local_schema() const
+        {
+          return schema_manager_for_cache_;;
+        }
+        //add e
 
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();

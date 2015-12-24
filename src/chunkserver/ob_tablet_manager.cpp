@@ -34,6 +34,10 @@
 #include "ob_file_recycle.h"
 #include "ob_chunk_server_stat.h"
 
+//add  wenghaixing
+#include "common/ob_mutator.h"
+//add e
+
 #define LOG_CACHE_MEMORY_USAGE(header)                                  \
   do  {                                                                 \
     TBSYS_LOG(INFO, "%s cur_serving_idx_ =%ld, mgr_status_ =%ld,"       \
@@ -61,6 +65,8 @@
               manager->get_unserving_block_index_cache().get_cache_mem_size(), \
               manager->get_unserving_block_cache().size());             \
   } while(0);
+
+using namespace oceanbase::common;
 
 namespace oceanbase
 {
@@ -1461,7 +1467,7 @@ namespace oceanbase
     }
 
     int ObTabletManager::init_sstable_scanner(const ObScanParam& scan_param,
-        const ObTablet* tablet, ObSSTableScanner& sstable_scanner)
+        const ObTablet* tablet, sstable::ObSSTableScanner& sstable_scanner) //mod longfei 增加ObSSTableScanner的命名空间
     {
       int err = OB_SUCCESS;
       ObSSTableReader* sstable_reader = NULL;
@@ -1472,12 +1478,38 @@ namespace oceanbase
         TBSYS_LOG(WARN, "invalid param, tablet=%p", tablet);
         err = OB_INVALID_ARGUMENT;
       }
-      else if (OB_SUCCESS != (err = tablet->find_sstable(
+      //modify longfei [cons static index] 151219:b
+      /*else if (OB_SUCCESS != (err = tablet->find_sstable(
               *scan_param.get_range(), &sstable_reader, size)) )
       {
         TBSYS_LOG(WARN, "find_sstable err=%d, size=%d", err, size);
       }
+      else*/
       else
+      {
+        if(!scan_param.if_need_fake())
+        {
+          if (OB_SUCCESS != (err = tablet->find_sstable(
+                        *scan_param.get_range(), &sstable_reader, size)) )
+                {
+                  TBSYS_LOG(WARN, "find_sstable err=%d, size=%d", err, size);
+                }
+        }
+        else
+        {
+          if (OB_SUCCESS != (err = tablet->find_loc_idx_sstable(
+                        *scan_param.get_range(), &sstable_reader, size)) )
+                {
+                  TBSYS_LOG(WARN, "find_loc_idx_sstable err=%d, size=%d", err, size);
+                }
+          else
+          {
+            //TBSYS_LOG(ERROR,"test::longfei load local index,scan_param = %s,fake_range = %s",to_cstring(*scan_param.get_range()),to_cstring(*scan_param.get_fake_range()));
+          }
+        }
+      }
+      if(OB_SUCCESS == err)
+      //modify e
       {
         err = sstable_scanner.set_scan_param(scan_param, sstable_reader,
           get_serving_block_cache(), get_serving_block_index_cache());
@@ -1508,12 +1540,20 @@ namespace oceanbase
       int err = OB_SUCCESS;
       ObTablet* tablet = NULL;
       ObTablet*& scan_tablet = get_cur_thread_scan_tablet();
-      ObSSTableScanner *sstable_scanner = GET_TSI_MULT(ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
+      //longfei 这儿加上特别加上sstable命名空间是因为编译的时候遇到了这么一个错误
+      //cc1plus: error: candidates are: #‘tree_list’ not supported by dump_decl#<declaration error>
+      //google了之后发现是因为命名空间的污染的原因，sstable和sql里面都分别有一个类ObSSTableScanner
+      //但是，疑惑的是交行版本的为什么没有这个问题，再者也没有加上using namespace oceanbase::sql;之类的声明
+      sstable::ObSSTableScanner *sstable_scanner = GET_TSI_MULT(sstable::ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
 
       int64_t query_version = 0;
       ObMultiVersionTabletImage::ScanDirection scan_direction =
         scan_param.get_scan_direction() == ScanFlag::FORWARD ?
         ObMultiVersionTabletImage::SCAN_FORWARD : ObMultiVersionTabletImage::SCAN_BACKWARD;
+
+      //add longfei [cons static index] 151219:b
+      bool has_fake_range = scan_param.if_need_fake();
+      //add e
 
       if (NULL == sstable_scanner)
       {
@@ -1527,14 +1567,43 @@ namespace oceanbase
           to_cstring(scan_param.get_version_range()));
         err = OB_ERROR;
       }
-      else if (OB_SUCCESS != (err =
-            tablet_image_.acquire_tablet(*scan_param.get_range(),
-              scan_direction, query_version, tablet)))
+      /*
+       * 根据has_fake_range改变取tablet的策略
+       */
+      //mod longfei [cons static index] 151219:b
+//      else if (OB_SUCCESS != (err =
+//            tablet_image_.acquire_tablet(*scan_param.get_range(),
+//              scan_direction, query_version, tablet)))
+//      {
+//        TBSYS_LOG(WARN, "failed to acquire range(%s), tablet=%p, version=%ld, err=%d",
+//            to_cstring(*scan_param.get_range()), tablet, query_version, err);
+//      }
+//      else if (NULL != tablet && tablet->is_removed())
+      else
       {
-        TBSYS_LOG(WARN, "failed to acquire range(%s), tablet=%p, version=%ld, err=%d",
-            to_cstring(*scan_param.get_range()), tablet, query_version, err);
+        if(!has_fake_range)
+        {
+          if (OB_SUCCESS != (err =
+                      tablet_image_.acquire_tablet(*scan_param.get_range(),
+                        scan_direction, query_version, tablet)))
+                {
+                  TBSYS_LOG(WARN, "failed to acquire range(%s), tablet=%p, version=%ld, err=%d",
+                      to_cstring(*scan_param.get_range()), tablet, query_version, err);
+                }
+        }
+        else
+        {
+          if (OB_SUCCESS != (err =
+                      tablet_image_.acquire_tablet(*scan_param.get_fake_range(),
+                        scan_direction, query_version, tablet)))
+                {
+                  TBSYS_LOG(WARN, "failed to acquire fake range(%s), tablet=%p, version=%ld, err=%d",
+                      to_cstring(*scan_param.get_fake_range()), tablet, query_version, err);
+                }
+        }
       }
-      else if (NULL != tablet && tablet->is_removed())
+      if(OB_SUCCESS == err && NULL != tablet && tablet->is_removed())
+      //mod e
       {
         TBSYS_LOG(INFO, "tablet is removed, can't scan, tablet_range=%s",
             to_cstring(tablet->get_range()));
@@ -1555,8 +1624,20 @@ namespace oceanbase
       {
         scanner.set_data_version(tablet->get_data_version());
         ObNewRange copy_range;
-        deep_copy_range(*GET_TSI_MULT(ModuleArena, TSI_SSTABLE_MODULE_ARENA_1),
-          tablet->get_range(), copy_range);
+        //modify longfei [cons static index] 151219:b
+        //deep_copy_range(*GET_TSI_MULT(ModuleArena, TSI_SSTABLE_MODULE_ARENA_1),
+          //tablet->get_range(), copy_range);
+        if(has_fake_range)
+        {
+          deep_copy_range(*GET_TSI_MULT(ModuleArena, TSI_SSTABLE_MODULE_ARENA_1),
+            *(scan_param.get_range()), copy_range);
+        }
+        else
+        {
+          deep_copy_range(*GET_TSI_MULT(ModuleArena, TSI_SSTABLE_MODULE_ARENA_1),
+            tablet->get_range(), copy_range);
+        }
+        //modify e
         scanner.set_range_shallow_copy(copy_range);
 
         /**
@@ -1599,7 +1680,10 @@ namespace oceanbase
     int ObTabletManager::end_scan(bool release_tablet /*=true*/)
     {
       int err = OB_SUCCESS;
-      ObSSTableScanner *sstable_scanner = GET_TSI_MULT(ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
+      //mod longfei 151217:b
+      //ObSSTableScanner *sstable_scanner = GET_TSI_MULT(ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
+      sstable::ObSSTableScanner *sstable_scanner = GET_TSI_MULT(sstable::ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
+      //mod e
       ObTablet*& scan_tablet = get_cur_thread_scan_tablet();
 
       if (NULL == sstable_scanner)
@@ -2240,7 +2324,7 @@ namespace oceanbase
     int ObTabletManager::get_ready_for_con_index(common::ConIdxStage which_stage)
     {
       int ret = OB_SUCCESS;
-      TBSYS_LOG(INFO, "start to build index");
+      TBSYS_LOG(INFO, "start to get tablet/range information for rootserver!");
       if (OB_SUCCESS == ret)
       {
         //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
@@ -2254,7 +2338,7 @@ namespace oceanbase
         }
         else
         {
-          if (common::ConIdxStage::STAGE_INIT == which_stage)
+          if (STAGE_INIT == which_stage)
           {
             ret = OB_ERROR;
             //@todo(longfei):add an err code
@@ -2263,7 +2347,7 @@ namespace oceanbase
           else
           {
             index_handle_pool_.set_which_stage(which_stage);
-            ret = index_handle_pool_.schedule(which_stage);
+            ret = index_handle_pool_.schedule();
           }
         }
         //modify e
@@ -2278,6 +2362,501 @@ namespace oceanbase
         index_beat_tid_ = tid;
       }
     }
+
+//    int ObTabletManager::get_old_tablet_column_checksum(
+//        const ObNewRange new_range, col_checksum& column_checksum)
+//    {
+//      int ret = OB_SUCCESS;
+//      int64_t serving_version = tablet_image_.get_serving_version();
+//      ret = THE_CHUNK_SERVER.get_rpc_stub().get_column_checksum(MAX_GET_OLD_COLUMN_CHECKSUM_TIMEOUT,THE_CHUNK_SERVER.get_root_server(),new_range,serving_version,column_checksum);
+//      return ret;
+//    }
+
+//    int ObTabletManager::send_tablet_column_checksum(
+//        const col_checksum column_checksum, const ObNewRange new_range,
+//        const int64_t version)
+//    {
+//      int ret = OB_SUCCESS;
+//      ObMutator* mutator = NULL;
+//      ObRowkey rowkey;
+//      ObServer master_master_ups;
+//      int64_t retry_times = THE_CHUNK_SERVER.get_config().retry_times;
+//      ObScanner* scan = NULL;
+//      const uint64_t column_id = 20;
+//      const uint64_t cchecksum_inner_table_id = OB_ALL_COLUMN_CHECKSUM_INFO_TID;
+//      ObObj cchecksum;
+//      int32_t len = 0;
+//      ObObj rowkey_list[4];
+//      char range_buf[OB_RANGE_STR_BUFSIZ];
+//      new_range.to_string(range_buf, sizeof(range_buf));
+//      len = static_cast <int32_t>(strlen(range_buf));
+//      ObString str_range(0, len, range_buf);
+//      rowkey_list[0].set_int(new_range.table_id_);
+//      rowkey_list[1].set_int(THE_CHUNK_SERVER.get_config().cluster_id);
+//      rowkey_list[2].set_int(version);
+//      rowkey_list[3].set_varchar(str_range);
+//      rowkey.assign(rowkey_list, 4);
+//      len = static_cast <int32_t>(strlen(column_checksum.get_str_const()));
+//      ObString str_column_checksum(0, len, column_checksum.get_str_const());
+//      cchecksum.set_varchar(str_column_checksum);
+
+//      if (OB_SUCCESS == ret)
+//      {
+//        mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
+//        if (NULL == mutator)
+//        {
+//          ret = OB_ALLOCATE_MEMORY_FAILED;
+//          TBSYS_LOG(WARN, "get thread specific ObMutator fail");
+//        }
+//      }
+
+//      if (OB_SUCCESS == ret)
+//      {
+//        ret = mutator->reset();
+//        if (OB_SUCCESS != ret)
+//        {
+//          TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+//        }
+//        else if (OB_SUCCESS
+//            != (ret = mutator->insert(cchecksum_inner_table_id, rowkey,
+//                column_id, cchecksum)))
+//        {
+//          TBSYS_LOG(WARN, "faild to add column check sum to mutator:ret[%d]",
+//              ret);
+//        }
+//        else
+//        {
+//          for (int i = 0; i < retry_times; i++)
+//          {
+//            if (OB_SUCCESS
+//                != (ret =
+//                    ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()->get_master_master_update_server(
+//                        true, master_master_ups)))
+//            {
+//              TBSYS_LOG(WARN, "failed to get master master ups:ret[%d]", ret);
+//            }
+//            else if (OB_SUCCESS != (ret = THE_CHUNK_SERVER.get_rpc_stub().mutate(MAX_SEND_COLUMN_CHECKSUM_TIMEOUT,master_master_ups,*mutator,false,*scan)))
+//            {
+//              TBSYS_LOG(WARN, "insert column_checksum_failed");
+//              usleep(8000000);
+//            }
+//            else
+//            {
+//              break;
+//            }
+//          }
+//        }
+//      }
+
+//      if (OB_SUCCESS != ret)
+//      {
+//        TBSYS_LOG(ERROR, "update column checksum failed");
+//      }
+//      memset(range_buf, 0, OB_RANGE_STR_BUFSIZ * sizeof(char));
+//      return ret;
+//    }
+
+//    //add longfei [cons static index] 151220:b
+//    int ObTabletManager::report_index_tablets(uint64_t index_tid)
+//    {
+//      //TBSYS_LOG(WARN, "test::zhuyanchao begin to report global index tablet info ");
+//      int err = OB_SUCCESS;
+//      ObTablet* tablet = NULL;
+//      ObTabletReportInfo tablet_info;
+//      // since report_tablets process never use block_uncompressed_buffer_
+//      // so borrow it to store ObTabletReportInfoList
+//      int64_t num = OB_MAX_TABLET_LIST_NUMBER;
+//      /**
+//       * FIXME: in order to avoid call report_info_list->get_serialize_size()
+//       * too many times, we caculate the serialize size incremently here. the
+//       * report info list will serialize the tablet count and it occupy 8 bytes
+//       * at most, so we reserve 8 bytes for it.
+//       */
+//      const int64_t REPORT_INFO_LIST_RESERVED_SERIALIZE_SIZE = 8;
+//      int64_t max_serialize_size = OB_MAX_PACKET_LENGTH - 1024;
+//      int64_t serialize_size = REPORT_INFO_LIST_RESERVED_SERIALIZE_SIZE;
+//      int64_t cur_tablet_brother_cnt = 0;
+//      //add zhuyanchao[secondary index static index build.report]20150413
+//      ObMergerSchemaManager *merger_schema_manager = THE_CHUNK_SERVER.get_schema_manager();
+//      int64_t frozen_version = merger_schema_manager->get_latest_version();
+//      const ObSchemaManagerV2 *schema_manager =
+//          merger_schema_manager->get_user_schema(frozen_version);
+//      //add e
+//      ObTabletReportInfoList *report_info_list_first = GET_TSI_MULT(
+//          ObTabletReportInfoList, TSI_CS_TABLET_REPORT_INFO_LIST_1);
+//      ObTabletReportInfoList *report_info_list_second = GET_TSI_MULT(
+//          ObTabletReportInfoList, TSI_CS_TABLET_REPORT_INFO_LIST_2);
+//      ObTabletReportInfoList *report_info_list = report_info_list_first;
+//      ObTabletReportInfoList *report_info_list_rollback = NULL;
+//      if (NULL == report_info_list_first || NULL == report_info_list_second)
+//      {
+//        err = OB_ALLOCATE_MEMORY_FAILED;
+//      }
+//      else
+//      {
+//        report_info_list_first->reset();
+//        report_info_list_second->reset();
+//      }
+
+//      bool is_version_changed = false;
+//      ObMultiVersionTabletImage& image = get_serving_tablet_image();
+//      if (OB_SUCCESS == err)
+//        err = image.begin_scan_tablets();
+//      if (OB_ITER_END == err)
+//      {
+//        image.end_scan_tablets();
+//        // iter ends
+//      }
+//      else if (OB_SUCCESS != err)
+//      {
+//        TBSYS_LOG(WARN, "failed to scan tablets, tablet=%p, err=%d", tablet,
+//            err);
+//        err = OB_ERROR;
+//      }
+//      else
+//      {
+//        while (OB_SUCCESS == err)
+//        {
+//          while (OB_SUCCESS == err && num > 0)
+//          {
+//            err = image.get_next_tablet(tablet);
+//            if (OB_ITER_END == err)
+//            {
+//              // iter ends
+//            }
+//            else if (OB_SUCCESS != err || NULL == tablet)
+//            {
+//              TBSYS_LOG(WARN, "failed to get next tablet, err=%d, tablet=%p",
+//                  err, tablet);
+//              err = OB_ERROR;
+//            }
+//            else if (tablet->get_data_version() != image.get_serving_version())
+//            {
+//              image.release_tablet(tablet);
+//              is_version_changed = true;
+//              continue;
+//            }
+//            else if (tablet->is_removed())
+//            {
+//              TBSYS_LOG(WARN, "report: ignore removed range = <%s>",
+//                  to_cstring(tablet->get_range()));
+//              image.release_tablet(tablet);
+//              continue;
+//            }
+//            else
+//            {
+
+//              if (!tablet->get_range().is_left_open_right_closed())
+//              {
+//                TBSYS_LOG(WARN, "report illegal tablet range = <%s>",
+//                    to_cstring(tablet->get_range()));
+//              }
+//              //add zhuyanchao judge if the table is data table
+//              if (OB_SUCCESS == err)
+//              {
+//                const ObTableSchema *table_schema =
+//                    schema_manager->get_table_schema(
+//                        tablet->get_range().table_id_);
+//                if ((OB_INVALID_ID == table_schema->get_original_table_id())
+//                    || (tablet->get_range().table_id_ != index_tid))
+//                {
+//                  err = OB_SUCCESS;
+//                  image.release_tablet(tablet);
+//                  continue;
+//                }
+//              }
+//              //add e
+//              fill_tablet_info(*tablet, tablet_info);
+//              TBSYS_LOG(INFO,
+//                  "add tablet <%s>, row count:[%ld], size:[%ld], "
+//                      "crc:[%ld] row_checksum:[%lu] version:[%ld] sequence_num:[%ld] to report list",
+//                  to_cstring(tablet_info.tablet_info_.range_),
+//                  tablet_info.tablet_info_.row_count_,
+//                  tablet_info.tablet_info_.occupy_size_,
+//                  tablet_info.tablet_info_.crc_sum_,
+//                  tablet_info.tablet_info_.row_checksum_,
+//                  tablet_info.tablet_location_.tablet_version_,
+//                  tablet_info.tablet_location_.tablet_seq_);
+//              //add liuxiao [secondary index col checksum]20150330
+//              //��column_checksum���ӵ�tablet_info
+//              //if(tablet_info.column_checksum_!=NULL)
+//              //    TBSYS_LOG(INFO,"add tablet<%s>,column checksum[%s] to report list",to_cstring(tablet_info.tablet_info_.range_),
+//              //          tablet_info.column_checksum_->get_str());
+//              //add e
+//              err = report_info_list->add_tablet(tablet_info);
+//              if (OB_SUCCESS != err)
+//              {
+//                TBSYS_LOG(WARN, "failed to add tablet info, num=%ld, err=%d",
+//                    num, err);
+//              }
+//              else
+//              {
+//                serialize_size += tablet_info.get_serialize_size();
+//                if (!tablet->is_with_next_brother()
+//                    && serialize_size <= max_serialize_size)
+//                {
+//                  cur_tablet_brother_cnt = 0;
+//                }
+//                else
+//                {
+//                  cur_tablet_brother_cnt++;
+//                }
+//                --num;
+//              }
+
+//              if (OB_SUCCESS != image.release_tablet(tablet))
+//              {
+//                TBSYS_LOG(WARN, "failed to release tablet, tablet=%p", tablet);
+//                err = OB_ERROR;
+//              }
+
+//              if (serialize_size > max_serialize_size)
+//              {
+//                break;
+//              }
+//            }
+//          }
+
+//          if (OB_SUCCESS == err && cur_tablet_brother_cnt > 0)
+//          {
+//            if (serialize_size > max_serialize_size)
+//            {
+//              /**
+//               * FIXME: it's better to ensure the tablets splited from one
+//               * tablet are reported in one packet, in this case, one tablet
+//               * splits more than 1024 tablets, after add the last tablet, the
+//               * serialize size is greater than packet size, we need rollback
+//               * the last tablet, and report the tablets more than one packet,
+//               * rootserver is also handle this case.
+//               */
+//              TBSYS_LOG(WARN, "one tablet splited more than %ld tablets, "
+//                  "and the serialize size is greater than packet size, "
+//                  "rollback the last tablet, and can't report in one packet "
+//                  "atomicly, serialize_size=%ld, max_serialize_size=%ld",
+//                  OB_MAX_TABLET_LIST_NUMBER, serialize_size,
+//                  max_serialize_size);
+//              cur_tablet_brother_cnt = 1;
+//            }
+//            if (cur_tablet_brother_cnt < OB_MAX_TABLET_LIST_NUMBER)
+//            {
+//              if (report_info_list == report_info_list_first)
+//              {
+//                report_info_list_rollback = report_info_list_second;
+//              }
+//              else
+//              {
+//                report_info_list_rollback = report_info_list_first;
+//              }
+//              report_info_list_rollback->reset();
+//              err = report_info_list->rollback(*report_info_list_rollback,
+//                  cur_tablet_brother_cnt);
+//              if (OB_SUCCESS != err)
+//              {
+//                TBSYS_LOG(WARN,
+//                    "failed to rollback tablet info report list, err=%d", err);
+//              }
+//              else if (report_info_list->get_serialize_size()
+//                  > max_serialize_size)
+//              {
+//                TBSYS_LOG(ERROR,
+//                    "report_info_list serialize_size: %ld still greater than %ld",
+//                    report_info_list->get_serialize_size(), max_serialize_size);
+//                err = OB_ERROR;
+//              }
+//            }
+//            else
+//            {
+//              /**
+//               * FIXME: it's better to ensure the tablets splited from one
+//               * tablet are reported in one packet, in this case, rootserver
+//               * can ensure the atomicity. we only report 1024 tablets to
+//               * rootserver each time, if one tablet splits more than 1024
+//               * tablets, we can't report all the tablets in one packet, we
+//               * report the tablets more than one packet, rootserver is also
+//               * handle this case.
+//               */
+//              TBSYS_LOG(WARN, "one tablet splited more than %ld tablets, "
+//                  "can't report in one packet atomicly",
+//                  OB_MAX_TABLET_LIST_NUMBER);
+//              cur_tablet_brother_cnt = 0;
+//            }
+//          }
+
+//          if (OB_SUCCESS == err)
+//          {
+//            err = send_tablet_report(*report_info_list, true);
+//            if (OB_SUCCESS != err)
+//            {
+//              TBSYS_LOG(WARN, "failed to send tablet info report, err=%d", err);
+//            }
+//          }
+
+//          if (OB_SUCCESS == err)
+//          {
+//            serialize_size = REPORT_INFO_LIST_RESERVED_SERIALIZE_SIZE;
+//            num = OB_MAX_TABLET_LIST_NUMBER;
+//            report_info_list->reset();
+//          }
+
+//          if (OB_SUCCESS == err && cur_tablet_brother_cnt > 0)
+//          {
+//            num = OB_MAX_TABLET_LIST_NUMBER - cur_tablet_brother_cnt;
+//            report_info_list = report_info_list_rollback;
+//            serialize_size = report_info_list->get_serialize_size();
+//          }
+//        }
+//        image.end_scan_tablets();
+//      }
+
+//      if (OB_ITER_END == err)
+//      {
+//        err = send_tablet_report(*report_info_list, false);
+//        if (OB_SUCCESS != err)
+//        {
+//          TBSYS_LOG(WARN, "failed to send tablet report in last round, ret=%d",
+//              err);
+//        }
+//      }
+
+//      if (is_version_changed)
+//      {
+//        err = OB_CS_EAGAIN;
+//      }
+
+//      //add wenghaixing [secondary index static_index_build.bug_fix.schema_error]20150509
+//      if (OB_SUCCESS == err)
+//      {
+//        if (OB_SUCCESS
+//            != (err = merger_schema_manager->release_schema(schema_manager)))
+//        {
+//          TBSYS_LOG(WARN, "failed to releas schema_managerV2, err = %d", err);
+//        }
+//        else
+//        {
+
+//        }
+//      }
+//      //add e
+
+//      return err;
+//    }
+
+    int ObTabletManager::retry_failed_work(const BlackList &list, const ObServer chunk_server)
+    {
+      int err = OB_SUCCESS;
+      int64_t retry_times = THE_CHUNK_SERVER.get_config().retry_times;
+
+      RPC_RETRY_WAIT(is_init_, retry_times, err,
+                    CS_RPC_CALL(retry_failed_work, chunk_server, list));
+      return err;
+    }
+//  //add e
+
+    //add maoxx
+    int ObTabletManager::get_column_checksum(const ObNewRange new_range, ObColumnChecksum &column_checksum)
+    {
+      int ret = OB_SUCCESS;
+      int64_t serving_version = tablet_image_.get_serving_version();
+      ret = THE_CHUNK_SERVER.get_rpc_stub().get_column_checksum(MAX_GET_COLUMN_CHECKSUM_TIMEOUT, THE_CHUNK_SERVER.get_root_server(), new_range, serving_version, column_checksum);
+      return ret;
+    }
+
+    int ObTabletManager::send_tablet_column_checksum(const ObColumnChecksum column_checksum, const ObNewRange range, const int64_t current_version)
+    {
+      int ret = OB_SUCCESS;
+      ObMutator* mutator = NULL;
+      ObRowkey rowkey;
+      ObServer master_master_ups;
+      int64_t retry_times = THE_CHUNK_SERVER.get_config().retry_times;
+      ObScanner* scan = NULL;
+      const uint64_t column_id = 20;
+      const uint64_t column_checksum_info_tid = OB_ALL_COLUMN_CHECKSUM_INFO_TID;
+      ObObj obj_column_checksum;
+      int32_t len = 0;
+
+      char range_buf[OB_RANGE_STR_BUFSIZ];
+      range.to_string(range_buf, sizeof(range_buf));
+      len = static_cast<int32_t>(strlen(range_buf));
+      ObString str_range(0, len, range_buf);
+      ObObj rowkey_list[4];
+      rowkey_list[0].set_int(range.table_id_);
+      rowkey_list[1].set_int(THE_CHUNK_SERVER.get_config().cluster_id);
+      rowkey_list[2].set_int(current_version);
+      rowkey_list[3].set_varchar(str_range);
+      rowkey.assign(rowkey_list, 4);
+
+      len = static_cast<int32_t>(strlen(column_checksum.get_str_const()));
+      ObString str_column_checksum(0, len, column_checksum.get_str_const());
+      obj_column_checksum.set_varchar(str_column_checksum);
+
+      if(OB_SUCCESS == ret)
+      {
+        mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
+        if(NULL == mutator)
+        {
+          ret = OB_ALLOCATE_MEMORY_FAILED;
+          TBSYS_LOG(WARN, "get thread specific ObMutator fail");
+        }
+      }
+
+      if(OB_SUCCESS == ret)
+      {
+        ret = mutator->reset();
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = mutator->insert(column_checksum_info_tid, rowkey, column_id, obj_column_checksum)))
+        {
+          TBSYS_LOG(WARN, "faild to add column check sum to mutator:ret[%d]",ret);
+        }
+        else
+        {
+          for(int i = 0;i < retry_times; i++)
+          {
+            if(OB_SUCCESS != (ret = ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()->get_master_master_update_server(true, master_master_ups)))
+            {
+              TBSYS_LOG(WARN, "failed to get master master ups:ret[%d]", ret);
+            }
+            else if(OB_SUCCESS != (ret = THE_CHUNK_SERVER.get_rpc_stub().mutate(MAX_SEND_COLUMN_CHECKSUM_TIMEOUT, master_master_ups, *mutator, false, *scan)))
+            {
+              TBSYS_LOG(WARN, "insert column_checksum_failed");
+              usleep(8000000);
+            }
+            else
+            {
+              break;
+            }
+          }
+        }
+      }
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "update column checksum failed");
+      }
+      memset(range_buf, 0 ,OB_RANGE_STR_BUFSIZ*sizeof(char));
+      return ret;
+    }
+
+    int ObTabletManager::fill_tablet_histogram_info(
+        const ObTablet& tablet,
+        ObTabletHistogramReportInfo& tablet_histogram_info)
+    {
+      int ret = OB_SUCCESS;
+      tablet_histogram_info.tablet_info.range_ = tablet.get_range();
+      tablet_histogram_info.tablet_info.occupy_size_ = tablet.get_occupy_size();
+      tablet_histogram_info.tablet_info.row_count_ = tablet.get_row_count();
+      tablet_histogram_info.tablet_info.crc_sum_ = tablet.get_checksum();
+      tablet_histogram_info.tablet_info.row_checksum_ = tablet.get_row_checksum();
+      const ObServer& self = THE_CHUNK_SERVER.get_self();
+      tablet_histogram_info.tablet_location.chunkserver_ = self;
+      tablet_histogram_info.tablet_location.tablet_version_ = tablet.get_data_version();
+      tablet_histogram_info.tablet_location.tablet_seq_ = tablet.get_sequence_num();
+      return ret;
+    }
+
+    //add e
+
   //add e
 
   }

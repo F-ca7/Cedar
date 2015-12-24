@@ -38,6 +38,10 @@ namespace oceanbase
       inline bool is_binary_rowkey_format() const { return is_binary_rowkey_format_; }
 
       int set_range(const ObNewRange& range);
+      //add longfei [cons static index] 151204:b
+      int set_fake_range(const ObNewRange &fake_range);
+      void set_copy_args(bool arg);
+      //add e
 
       int add_column(const ObString& column_name, bool is_return = true);
       int add_column(const uint64_t& column_id, bool is_return = true);
@@ -78,6 +82,20 @@ namespace oceanbase
       {
         return &range_;
       }
+      //add longfei [cons static index] 151204:b
+      inline const ObNewRange* const get_fake_range() const
+      {
+        return &fake_range_;
+      }
+      inline void set_fake(const bool fake)
+      {
+        need_fake_range_ = fake;
+      }
+      inline bool if_need_fake() const
+      {
+        return need_fake_range_;
+      }
+      //add e
       inline ScanFlag get_scan_flag()const
       {
         return scan_flag_;
@@ -267,6 +285,10 @@ namespace oceanbase
       uint64_t table_id_;
       ObString table_name_;
       ObNewRange range_;
+      //add longfei [cons static index]:b
+      ObNewRange fake_range_;
+      bool need_fake_range_;
+      //add e
       int64_t scan_size_;
       ScanFlag scan_flag_;
       ObString basic_column_names_[OB_MAX_COLUMN_NUMBER];
@@ -301,11 +323,15 @@ namespace oceanbase
       ObArrayHelper<uint8_t> orderby_order_list_;
       ObSimpleFilter condition_filter_;
       ObGroupByParam group_by_param_;
-        // for range_ store object array.
-        ObObj start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
-        ObObj end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
-        const ObSchemaManagerV2* schema_manager_; // rowkey compatible information get from schema
-        bool  is_binary_rowkey_format_;
+      // for range_ store object array.
+      ObObj start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
+      ObObj end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
+      //add longfei [cons static index] 151204:b
+      ObObj fake_start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
+      ObObj fake_end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
+      //add e
+      const ObSchemaManagerV2* schema_manager_; // rowkey compatible information get from schema
+      bool is_binary_rowkey_format_;
     };
 
   } /* common */

@@ -464,6 +464,21 @@ namespace oceanbase
       OB_SESSION_NEXT_RESPONSE = 10000,
       OB_SESSION_END = 10001,
 
+      //add maoxx
+      OB_INDEX_JOB = 12000,
+      OB_GET_COLUMN_CHECKSUM = 12005,
+      OB_GET_COLUMN_CHECKSUM_RESPONSE = 12006,
+      OB_REPORT_TABLETS_HISTOGRAMS = 12003,
+      OB_REPORT_TABLETS_HISTOGRAMS_RESPONSE = 12004,
+      //add e
+
+      //add longfei [cons static index] 151218:b
+      OB_RE_IDX_CONS_F = 12007,//retry index consturct which failed
+      OB_RE_IDX_CONS_F_RESPONSE = 12008,//response
+      OB_GET_INIT_INDEX = 12009,
+      OB_GET_INIT_INDEX_RESPONSE = 12010,
+      //add e
+
       OB_PACKET_NUM, // do not fill value
     };
 

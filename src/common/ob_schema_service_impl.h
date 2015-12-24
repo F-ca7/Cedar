@@ -20,6 +20,9 @@
 #include "common/ob_table_id_name.h"
 #include "common/ob_schema_service.h"
 #include "common/hash/ob_hashmap.h"
+//add maoxx
+#include "common/ob_column_checksum.h"
+//add e
 
 class TestSchemaService_assemble_table_Test;
 class TestSchemaTable_generate_new_table_name_Test;
@@ -92,6 +95,16 @@ namespace oceanbase
       int create_index_mutator(const TableSchema& table_schema, ObMutator* mutator);
       bool is_index_table_or_not(const ObString& table_name);
       int assemble_index_table(const nb_accessor::TableRow* table_row, TableSchema& table_schema);
+      //add maoxx
+      virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag);
+      virtual int clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version);
+      virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum);
+      //add e
+	  //add wenghaixing [secondary index.static_index]20151217
+      virtual int get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat);
+      //virtual int fetch_index_stat(const uint64_t table_id, const int64_t cluster_id, int64_t &stat);
+      virtual int get_cluster_count(int64_t &cc);
+      //add e
 
 
 

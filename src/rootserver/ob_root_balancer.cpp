@@ -1833,6 +1833,20 @@ namespace oceanbase
   } // end namespace rootserver
 } // end namespace oceanbase
 
+//add wenghaixing [secondary index.static_index]20151216
+bool ObRootBalancer::check_create_index_over()
+{
+  if(NULL == root_server_)
+  {
+    return false;
+  }
+  else
+  {
+    return root_server_->check_static_index_over();
+  }
+}
+//add e
+
 void ObRootBalancer::nb_print_shutting_down_progress(char *buf, const int64_t buf_len, int64_t& pos)
 {
   int ret = OB_SUCCESS;

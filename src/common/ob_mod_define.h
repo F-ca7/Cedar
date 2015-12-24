@@ -153,6 +153,10 @@ namespace oceanbase
         OB_MS_UPDATE_BLOOM_FILTER,
         OB_MS_SQL_SCAN_REQ_POOL,
         OB_MS_SQL_GET_REQ_POOL,
+        //add maoxx
+        OB_STATIC_INDEX_HISTOGRAM,
+        OB_TABLET_HISTOGRAM_REPORT,
+        //add e
 
         // updateserver modules
         OB_UPS_ENGINE,
@@ -180,6 +184,7 @@ namespace oceanbase
         OB_CS_COMMON,
         OB_CS_FILE_RECYCLE,
         OB_CS_BLOOM_FILTER,
+        OB_INDEX_HANDLER,        //add longfei [cons static index] 151205:e
 
         // sstable modules
         OB_SSTABLE_AIO,
@@ -242,7 +247,7 @@ namespace oceanbase
         OB_SQL_PS_STORE_PHYSICALPLAN,
         OB_SQL_PS_STORE_OPERATORS,
         OB_SQL_PS_STORE_ITEM,
-
+        OB_STATIC_INDEX,//add wenghaixing [secondary index.static_index]20151118
         // liboblog
         OB_LOG_BINLOG_RECORD,
         OB_LOG_STMT,
@@ -340,6 +345,9 @@ namespace oceanbase
       ADD_MOD(OB_MS_UPDATE_BLOOM_FILTER);
       ADD_MOD(OB_MS_SQL_SCAN_REQ_POOL);
       ADD_MOD(OB_MS_SQL_GET_REQ_POOL);
+      //add maoxx
+      ADD_MOD(OB_TABLET_HISTOGRAM_REPORT);
+      //add e
 
       ADD_MOD(OB_UPS_ENGINE);
       ADD_MOD(OB_UPS_MEMTABLE);
@@ -423,7 +431,7 @@ namespace oceanbase
       ADD_MOD(OB_SQL_PS_STORE_PHYSICALPLAN);
       ADD_MOD(OB_SQL_PS_STORE_OPERATORS);
       ADD_MOD(OB_SQL_PS_STORE_ITEM);
-
+      ADD_MOD(OB_STATIC_INDEX);//add wenghaixing [secondary index.static_index]20151118
       ADD_MOD(OB_MOD_END);
     }
     class ObModSet : public oceanbase::common::ObMemPoolModSet

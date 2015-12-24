@@ -79,6 +79,10 @@ namespace oceanbase
         void set_max();
 
         void reset_ipv4_10(int ip = 10);
+        //add wenghaixing [secondary index.static_index]20151217
+        int64_t hash() const;   // for ob_hashtable.h
+        uint32_t murmurhash2(const uint32_t hash) const;
+        //add e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
 
@@ -90,6 +94,12 @@ namespace oceanbase
           uint32_t v6_[4];
         } ip;
     };
+    //add wenghaixing [secondary index.static_index]20151217
+    inline int64_t ObServer::hash() const
+    {
+      return this->murmurhash2(0);
+    }
+    //add e
   } // end namespace common
 } // end namespace oceanbase
 

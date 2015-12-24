@@ -47,6 +47,9 @@ namespace oceanbase
       int modify_table_id(common::TableSchema &table_schema, const int64_t new_table_id);
       // update max used table id
       int update_max_table_id(const uint64_t table_id);
+      //add wenghaixing [secondary index.static_index]20151217
+      tbsys::CThreadMutex &get_ddl_lock(){return mutex_lock_;}
+      //add e
     private:
       bool check_inner_stat(void) const;
       // read max table id and modify table schema

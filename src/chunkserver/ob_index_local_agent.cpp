@@ -7,17 +7,21 @@
  */
 #include "ob_index_local_agent.h"
 #include "common/ob_scan_param.h"
+#include "sql/ob_tablet_scan.h"
 
 namespace oceanbase
 {
   namespace chunkserver
   {
+    using namespace oceanbase::sql;
+
     ObIndexLocalAgent::ObIndexLocalAgent()
     {
-      local_idx_scan_finishi_ = false;
+      local_idx_scan_finish_ = false;
       local_idx_block_end_ = false;
       first_scan_ = false;
       hash_index_ = 0;
+      scan_param_ = NULL;
     }
 
     ObIndexLocalAgent::~ObIndexLocalAgent()
@@ -34,7 +38,7 @@ namespace oceanbase
       cur_row_.set_row_desc(row_desc_);
       if (OB_ITER_END == ret)
       {
-        local_idx_scan_finishi_ = true;
+        local_idx_scan_finish_ = true;
         ret = OB_SUCCESS;
       }
       return ret;
@@ -63,7 +67,17 @@ namespace oceanbase
       ObNewRange fake_range;
       sst_scan_.close();
       sst_scan_.reset();
-      ret = get_next_local_range(fake_range);
+      if(OB_SUCCESS != (ret = get_next_local_range(fake_range)))
+      {
+        if (ret != OB_ITER_END)
+        {
+          TBSYS_LOG(WARN,"get_next_local_range failed.ret[%d]",ret);
+        }
+      }
+      else
+      {
+        TBSYS_LOG(INFO,"fake_range[%s]",to_cstring(fake_range));
+      }
       if (OB_SUCCESS == ret)
       {
         ret = sst_scan_.open_scan_context_local_idx(sst_scan_param_, sc_,
@@ -73,7 +87,7 @@ namespace oceanbase
       if (OB_SUCCESS == ret)
       {
         ret = sst_scan_.init_sstable_scanner_for_local_idx(fake_range);
-        //@todo(longfei):ignore the failed fake range
+        //@todo(longfei):ignore the failed fake range at present
 //        if (OB_SUCCESS != ret)
 //        {
 //          if (!query_agent_)
@@ -102,7 +116,7 @@ namespace oceanbase
       const ObRowkey *row_key = NULL;
       {
         ret = sst_scan_.get_next_row(row_key, row);
-        //TBSYS_LOG(ERROR,"test::whx ObIndexLocalAgent row[%s]",to_cstring(*row));
+        //TBSYS_LOG(ERROR,"test::longfei>>> ObIndexLocalAgent row[%s]",to_cstring(*row));
         if (OB_ITER_END == ret)
         {
           do
@@ -129,7 +143,7 @@ namespace oceanbase
       }
       if (OB_ITER_END == ret && local_idx_block_end_)
       {
-        local_idx_scan_finishi_ = true;
+        local_idx_scan_finish_ = true;
         //TBSYS_LOG(ERROR,"test::whx row_count = %ld",row_count_);
         sst_scan_.close();
       }
@@ -173,11 +187,6 @@ namespace oceanbase
               find = true;
               break;
             }
-            if (find)
-            {
-              //TBSYS_LOG(INFO,"test:whx I find local range,range[%s]",to_cstring(range));
-              break;
-            }
           }
         }
       }
@@ -188,18 +197,26 @@ namespace oceanbase
       return ret;
     }
 
+    int64_t ObIndexLocalAgent::to_string(char* buf, const int64_t buf_len) const
+    {
+        int ret = OB_SUCCESS;
+        UNUSED(buf);
+        UNUSED(buf_len);
+        return ret;
+    }
+
     int ObIndexLocalAgent::get_next_row(const ObRow *&row)
     {
       int ret = OB_SUCCESS;
       const ObRow* tmp_row = &cur_row_;
-      if (!local_idx_scan_finishi_)
+      if (!local_idx_scan_finish_)
       {
         if (OB_SUCCESS == (ret = get_next_local_row(tmp_row)))
         {
           row = tmp_row;
         }
       }
-      if (local_idx_scan_finishi_)
+      if (local_idx_scan_finish_)
       {
         //@todo(longfei):local agent don't care this function
       }
@@ -218,6 +235,30 @@ namespace oceanbase
       row_desc_ = desc;
     }
 
+    int ObIndexLocalAgent::set_scan_param(ObScanParam *scan_param)
+    {
+      int ret = OB_SUCCESS;
+      if (scan_param == NULL)
+      {
+        TBSYS_LOG(ERROR,"scan_param is null");
+        ret = OB_ERR_NULL_POINTER;
+      }
+      scan_param_ = scan_param;
+      return ret;
+    }
+
+    int ObIndexLocalAgent::set_range_server_hash(const chunkserver::RangeServerHash *range_server_hash)
+    {
+      int ret = OB_SUCCESS;
+      if (range_server_hash == NULL)
+      {
+        TBSYS_LOG(ERROR,"range_server_hash is null");
+        ret = OB_ERR_NULL_POINTER;
+      }
+      range_server_hash_ = range_server_hash;
+      return ret;
+    }
+
     int ObIndexLocalAgent::build_sst_scan_param()
     {
       int ret = OB_SUCCESS;
@@ -233,7 +274,7 @@ namespace oceanbase
       if (OB_SUCCESS == ret)
       {
         if (OB_SUCCESS
-            != (ret = ob_sql_scan_param.set_range(*(scan_param_.get_range()))))
+            != (ret = ob_sql_scan_param.set_range(*(scan_param_->get_range()))))
         {
           TBSYS_LOG(WARN, "set range failed!,ret[%d]", ret);
         }
@@ -252,9 +293,14 @@ namespace oceanbase
             {
               break;
             }
+            else
+            {
+              TBSYS_LOG(ERROR,"test::longfei>>>cid[%ld]",cid);
+            }
           }
         }
       }
+
       if (OB_SUCCESS == ret)
       {
         ret = tmp_table_scan.build_sstable_scan_param_pub(basic_columns,

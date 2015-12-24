@@ -1504,7 +1504,14 @@ namespace oceanbase
 
         for (col_index = 0; col_index < size && OB_SUCCESS == ret; ++col_index)
         {
-          if (rowkey_info.is_rowkey_column(col[col_index].get_id()))
+          //modify longfei [cons static index] 151205:b
+          //因为如果这张表是索引的话，表的列id是不连续的，索引要多加一个判定条件?
+          if (rowkey_info.is_rowkey_column(col[col_index].get_id())
+              || NULL
+                  == (schema.get_column_schema(new_table_id,
+                      col[col_index].get_id())))
+          //if (rowkey_info.is_rowkey_column(col[col_index].get_id()))
+          //mod e
           {
             // ignore rowkey columns;
             continue;

@@ -427,6 +427,31 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create table for __all_statement, err=%d", ret);
     }
   }
+  //add wenghaixing [secondary index.static_index]20151117
+  if (OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = ObExtraTablesSchema::all_index_service_schema(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of __all_index_service,err=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for __all_index_service,err=%d",ret);
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = ObExtraTablesSchema::all_column_checksum_stat(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of all_column_checksum_stat,err=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for all_column_checksum_stat,err=%d",ret);
+    }
+  }
+  //add e
   return ret;
 }
 

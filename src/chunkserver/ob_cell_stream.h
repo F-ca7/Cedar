@@ -116,6 +116,10 @@ namespace oceanbase
       // one rpc call for scan the row data from server
       int rpc_scan_row_data(const common::ObScanParam & param);
 
+      //add longfei [cons static index] 151204:b
+      int rpc_scan_row_data(const ObScanParam &param, const ObServer &chunkserver);
+      //add e
+
       // one rpc call for get cell data from server
       int rpc_get_cell_data(const common::ObGetParam & param);
       

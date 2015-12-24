@@ -25,6 +25,9 @@
 #include "ob_get_cell_stream_wrapper.h"
 #include "ob_query_agent.h"
 #include "ob_tablet_merge_filter.h"
+//add maoxx
+#include "common/ob_column_checksum.h"
+//add e
 
 namespace oceanbase
 {
@@ -120,6 +123,13 @@ namespace oceanbase
         int check_row_count_in_column_group();
         void reset_for_next_column_group();
 
+        //add maoxx
+        int is_index_or_with_index(const uint64_t table_id);
+        int cons_column_checksum_row_desc_for_data(ObRowDesc &row_desc, uint64_t tid);
+        int cons_column_checksum_row_desc_for_index(ObRowDesc &row_desc, uint64_t tid, uint64_t &max_data_table_cid);
+        int calc_tablet_col_checksum_for_data(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum);
+        int calc_tablet_col_checksum_for_index(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum, const uint64_t max_data_table_cid);
+        //add e
 
       private:
         common::ObRowkey split_rowkey_;
@@ -147,6 +157,15 @@ namespace oceanbase
         ObGetCellStreamWrapper    ms_wrapper_;
         ObQueryAgent          merge_join_agent_;
         ObTabletMergerFilter tablet_merge_filter_;
+
+        //add maoxx
+        ObColumnChecksum column_checksum_;
+        bool is_index_;
+        bool is_have_index_;
+        bool is_have_init_index_;
+        ObRowDesc column_checksum_row_desc_;
+        uint64_t max_data_table_cid_;
+        //add e
     };
   } /* chunkserver */
 } /* oceanbase */

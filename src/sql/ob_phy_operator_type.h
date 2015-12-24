@@ -93,6 +93,7 @@ namespace oceanbase
       PHY_DROP_INDEX,
       //add e
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
+      PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
 
       PHY_END /* end of phy operator type */
     };

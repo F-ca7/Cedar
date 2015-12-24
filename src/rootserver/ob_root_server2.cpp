@@ -396,6 +396,12 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
     {
       TBSYS_LOG(WARN, "failed to init schema service, err=%d", err);
     }
+    //add wenghaixing [secondary index.static_index]20151216
+    else if (OB_SUCCESS != (err  = worker_->get_icu().get_service().set_env(schema_service_scan_helper_)))
+    {
+      TBSYS_LOG(WARN, "failed to set schema service helper, ret = %d", err);
+    }
+    //add e
     else if (NULL == (rt_service_ = new(std::nothrow) ObRootTableService(*first_meta_, *schema_service_)))
     {
       TBSYS_LOG(ERROR, "no memory");
@@ -1441,6 +1447,575 @@ void ObRootServer2::dump_root_table() const
     root_table_->dump();
   }
 }
+
+//add wenghaixing [secondary index.static_index]20151207
+void ObRootServer2::dump_root_table(const int32_t index) const
+{
+  tbsys::CRLockGuard guard(root_table_rwlock_);
+  if (root_table_ != NULL)
+  {
+    root_table_->dump(index);
+  }
+}
+
+int ObRootServer2::modify_index_stat(const uint64_t index_tid, const IndexStatus stat)
+{
+  int ret = OB_SUCCESS;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  ObTableSchema* table_schema = NULL;
+  ObString index_name;
+  bool need_update_schema = false;
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if(NULL == worker_)
+  {
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    {
+      tbsys::CThreadGuard guard(&mutex_lock_);
+      if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+      {
+        TBSYS_LOG(WARN, "get schema manager failed.");
+      }
+      else
+      {
+        table_schema = schema_mgr->get_table_schema(index_tid);
+        if (NULL == table_schema)
+        {
+          ret = OB_SCHEMA_ERROR;
+          TBSYS_LOG(WARN, "get table schema failed. tid=%ld", index_tid);
+        }
+        else if (table_schema->get_index_status() == stat ||
+                 ((AVALIBALE == table_schema->get_index_status() ||
+                  WRITE_ONLY == table_schema->get_index_status()) &&
+                  NOT_AVALIBALE == stat))
+        {
+          //available->not_available | write_only->not_available not allowed!
+          ret = OB_STATE_NOT_MATCH;
+          TBSYS_LOG(WARN, "try modify index stat, index name[%lu], stat: %d->%d",
+                    index_tid, table_schema->get_index_status(), stat);
+        }
+        else
+        {
+          index_name = ObString::make_string(table_schema->get_table_name());
+          if(OB_SUCCESS == ret)
+          {
+            //tbsys::CThreadGuard guard(&mutex_lock_);
+            ret = worker_->get_icu().get_service().modify_index_stat_ddl(index_name, index_tid, stat);
+            if (OB_SUCCESS != ret)
+            {
+              TBSYS_LOG(WARN, "modify index stat failed, index name[%.*s], stat: %d->%d, ret[%d]",
+                    index_name.length(), index_name.ptr(), table_schema->get_index_status(), stat, ret);
+            }
+            else
+            {
+              need_update_schema = true;//add liumz, [obsolete trigger event, use ddl_operation]20150701
+              TBSYS_LOG(INFO, "modify index stat succ, index name[%.*s], stat: %d->%d",
+                    index_name.length(), index_name.ptr(), table_schema->get_index_status(), stat);
+            }
+          }
+          if (need_update_schema)
+          {
+            int64_t count = 0;
+            // if refresh failed output error log because maybe do succ if reboot
+            int err = refresh_new_schema(count);
+            if (err != OB_SUCCESS)
+            {
+              TBSYS_LOG(ERROR, "refresh new schema manager after modify index stat failed:"
+                  "err[%d], ret[%d]", err, ret);
+              ret = err;
+            }
+          }
+        }
+      }
+    }
+
+    // notify schema update to all servers
+    if (OB_SUCCESS == ret && need_update_schema)
+    {
+      if (OB_SUCCESS != (ret = notify_switch_schema(false, need_update_schema)))
+      {
+        TBSYS_LOG(WARN, "fail to notify switch schema:ret[%d]", ret);
+      }
+    }
+    {
+      int err = ObRootTriggerUtil::notify_slave_refresh_schema(root_trigger_);
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "trigger event for drop table failed:err[%d], ret[%d]", err, ret);
+        ret = err;
+      }
+    }
+    if (OB_STATE_NOT_MATCH == ret)
+    {
+      ret = OB_SUCCESS;
+    }
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+}
+
+int ObRootServer2::modify_index_stat(const ObArray<uint64_t> &index_tid_list, const IndexStatus stat)
+{
+  int ret = OB_SUCCESS;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  ObTableSchema* table_schema = NULL;
+  ObString index_name;
+  bool need_update_schema = false;
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if(NULL == worker_)
+  {
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    {
+      tbsys::CThreadGuard guard(&mutex_lock_);
+      if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+      {
+        TBSYS_LOG(WARN, "get schema manager failed.");
+      }
+      else
+      {
+        for (int64_t i = 0; i < index_tid_list.count() && OB_LIKELY(OB_SUCCESS == ret); i++)
+        {
+          uint64_t index_tid = index_tid_list.at(i);
+          table_schema = schema_mgr->get_table_schema(index_tid);
+          if (NULL == table_schema)
+          {
+            ret = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN, "get table schema failed. tid=%ld", index_tid);
+          }
+          else if (table_schema->get_index_status() == stat ||
+                   ((AVALIBALE == table_schema->get_index_status() ||
+                     WRITE_ONLY == table_schema->get_index_status()) &&
+                    NOT_AVALIBALE == stat))
+          {
+            //available->not_available | write_only->not_available not allowed!
+            TBSYS_LOG(WARN, "try modify index stat, index name[%lu], stat: %d->%d",
+                      index_tid, table_schema->get_index_status(), stat);
+            continue;
+          }
+          else
+          {
+            index_name = ObString::make_string(table_schema->get_table_name());
+            if(OB_SUCCESS == ret)
+            {
+              ret = worker_->get_icu().get_service().modify_index_stat_ddl(index_name, index_tid, stat);
+              if (OB_SUCCESS != ret)
+              {
+                TBSYS_LOG(WARN, "modify index stat failed, index name[%.*s], stat: %d->%d, ret[%d]",
+                          index_name.length(), index_name.ptr(), table_schema->get_index_status(), stat, ret);
+              }
+              else
+              {
+                need_update_schema = true;
+                TBSYS_LOG(INFO, "modify index stat succ, index name[%.*s], stat: %d->%d",
+                          index_name.length(), index_name.ptr(), table_schema->get_index_status(), stat);
+              }
+            }
+          }
+        }//end for
+        //add liumz, [obsolete trigger event, use ddl_operation]20150701:b
+        if (need_update_schema)
+        {
+          int64_t count = 0;
+          // if refresh failed output error log because maybe do succ if reboot
+          int err = refresh_new_schema(count);
+          if (err != OB_SUCCESS)
+          {
+            TBSYS_LOG(ERROR, "refresh new schema manager after modify index stat failed:"
+                      "err[%d], ret[%d]", err, ret);
+            ret = err;
+          }
+        }//end if
+      }
+    }
+
+    // notify schema update to all servers
+    if (OB_SUCCESS == ret && need_update_schema)
+    {
+      if (OB_SUCCESS != (ret = notify_switch_schema(false, need_update_schema)))
+      {
+        TBSYS_LOG(WARN, "fail to notify switch schema:ret[%d]", ret);
+      }
+    }
+    //add:e
+    {
+      int err = ObRootTriggerUtil::notify_slave_refresh_schema(root_trigger_);
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "trigger event for drop table failed:err[%d], ret[%d]", err, ret);
+        ret = err;
+      }
+    }
+    //del:e
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+}
+
+int ObRootServer2::modify_index_stat_amd()
+{
+  int ret = OB_SUCCESS;
+  uint64_t tid = OB_INVALID_ID;
+  int64_t cluster_count = 0;
+  common::ObArray<uint64_t> init_index;
+  common::ObArray<uint64_t> error_index;
+  common::ObArray<uint64_t> not_available_index;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+  {
+    TBSYS_LOG(WARN, "get schema manager failed, ret=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = schema_mgr->get_all_index_tid(init_index)))
+  {
+    TBSYS_LOG(WARN, "get all index tid failed, ret=%d", ret);
+  }
+  else
+  {
+    if (NULL == schema_service_)
+    {
+      ret = OB_NOT_INIT;
+      TBSYS_LOG(WARN, "schema_service_ not init");
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, true)))
+    {
+      TBSYS_LOG(WARN, "failed to init schema service, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->get_cluster_count(cluster_count)))
+    {
+      TBSYS_LOG(WARN, "get cluster count failed, ret=%d", ret);
+    }
+  }
+  for(int64_t i = 0; i < init_index.count() && OB_LIKELY(OB_SUCCESS == ret); i++)
+  {
+    IndexStatus stat;
+    tid = init_index.at(i);
+    if(OB_SUCCESS == (ret = worker_->get_icu().get_service().get_index_stat(tid, cluster_count, stat)))
+    {
+      if (ERROR == stat)
+      {
+        ret = error_index.push_back(tid);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "add index tid to index list failed, tid[%lu], ret=%d", tid, ret);
+        }
+       }
+       else if (NOT_AVALIBALE == stat)
+       {
+        ret = not_available_index.push_back(tid);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "add index tid to index list failed, tid[%lu], ret=%d", tid, ret);
+        }
+      }
+    }
+  }//end for
+  if (OB_SUCCESS == ret && error_index.count() > 0)
+  {
+    if (OB_SUCCESS != (ret = modify_index_stat(error_index, ERROR)))
+    {
+      TBSYS_LOG(WARN, "modify index stat to ERROR failed, ret=%d", ret);
+    }
+  }
+  if (OB_SUCCESS == ret && not_available_index.count() > 0)
+  {
+    if (OB_SUCCESS != (ret = modify_index_stat(not_available_index, NOT_AVALIBALE)))
+    {
+      TBSYS_LOG(WARN, "modify index stat to NOT_AVALIBALE failed, ret=%d", ret);
+    }
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+}
+
+int ObRootServer2::modify_init_index()
+{
+  int ret = OB_SUCCESS;
+  uint64_t tid = OB_INVALID_ID;
+  int64_t cluster_count = 0;
+  common::ObArray<uint64_t> init_index;
+  common::ObArray<uint64_t> error_index;
+  common::ObArray<uint64_t> not_available_index;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+  {
+    TBSYS_LOG(WARN, "get schema manager failed, ret=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = schema_mgr->get_init_index(init_index)))
+  {
+    TBSYS_LOG(WARN, "get all index tid failed, ret=%d", ret);
+  }
+  else
+  {
+    if (NULL == schema_service_)
+    {
+      ret = OB_NOT_INIT;
+      TBSYS_LOG(WARN, "schema_service_ not init");
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, true)))
+    {
+      TBSYS_LOG(WARN, "failed to init schema service, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->get_cluster_count(cluster_count)))
+    {
+      TBSYS_LOG(WARN, "get cluster count failed, ret=%d", ret);
+    }
+  }
+  for(int64_t i = 0; i < init_index.count() && OB_LIKELY(OB_SUCCESS == ret); i++)
+  {
+    IndexStatus stat;
+    tid = init_index.at(i);
+    if(OB_SUCCESS == (ret = worker_->get_icu().get_service().get_index_stat(tid, cluster_count, stat)))
+    {
+      if (ERROR == stat)
+      {
+        ret = error_index.push_back(tid);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "add index tid to index list failed, tid[%lu], ret=%d", tid, ret);
+        }
+       }
+       else if (NOT_AVALIBALE == stat)
+       {
+        ret = not_available_index.push_back(tid);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "add index tid to index list failed, tid[%lu], ret=%d", tid, ret);
+        }
+      }
+    }
+  }//end for
+  if (OB_SUCCESS == ret && error_index.count() > 0)
+  {
+    if (OB_SUCCESS != (ret = modify_index_stat(error_index, ERROR)))
+    {
+      TBSYS_LOG(WARN, "modify index stat to ERROR failed, ret=%d", ret);
+    }
+  }
+  if (OB_SUCCESS == ret && not_available_index.count() > 0)
+  {
+    if (OB_SUCCESS != (ret = modify_index_stat(not_available_index, NOT_AVALIBALE)))
+    {
+      TBSYS_LOG(WARN, "modify index stat to NOT_AVALIBALE failed, ret=%d", ret);
+    }
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+}
+
+int ObRootServer2::modify_staging_index()
+{
+  int ret = OB_SUCCESS;
+  uint64_t tid = OB_INVALID_ID;
+  int64_t last_frozen_mem_version = last_frozen_mem_version_;
+  common::ObArray<uint64_t> staging_index;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+  {
+    TBSYS_LOG(WARN, "get schema manager failed, ret=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = schema_mgr->get_all_notav_index_tid(staging_index)))
+  {
+    TBSYS_LOG(WARN, "get all [NOT_AVALIBALE] index list failed, ret=%d", ret);
+  }
+  else
+  {
+    ObArray<uint64_t> index_list;
+    for (int64_t i = 0; i < staging_index.count() && OB_LIKELY(OB_SUCCESS == ret); i++)
+    {
+      bool is_merged = false;
+      tid = staging_index.at(i);
+      if (OB_SUCCESS != (ret = check_tablet_version_v2(tid, last_frozen_mem_version, 0, is_merged)))
+      {
+        TBSYS_LOG(WARN, "check_tablet_version_v3 failed:version[%ld], tid[%lu], ret[%d]", last_frozen_mem_version, tid, ret);
+      }
+      else if (true == is_merged)
+      {
+        ret = index_list.push_back(tid);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "add index tid to index list failed, tid[%lu], ret=%d", tid, ret);
+        }
+      }
+    }//end for
+    if (OB_SUCCESS == ret && index_list.count() > 0)
+    {
+      ret = modify_index_stat(index_list, AVALIBALE);
+    }
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+
+  return ret;
+}
+
+int ObRootServer2::check_tablet_version_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const
+{
+  int err = OB_SUCCESS;
+  int32_t chunk_server_count = server_manager_.get_alive_server_count(true);
+  TBSYS_LOG(TRACE, "check tablet version[required_version=%ld]", tablet_version);
+  tbsys::CRLockGuard guard(root_table_rwlock_);
+  if (NULL != root_table_)
+  {
+    int64_t min_replica_count = safe_count;
+    if (0 == safe_count)
+    {
+      min_replica_count = config_.tablet_replicas_num;
+      if ((chunk_server_count > 0) && (chunk_server_count < min_replica_count))
+      {
+        TBSYS_LOG(TRACE, "check chunkserver count less than replica num:server[%d], replica[%ld]",
+              chunk_server_count, safe_count);
+        min_replica_count = chunk_server_count;
+      }
+    }
+    if (root_table_->is_empty())
+    {
+      TBSYS_LOG(WARN, "root table is empty, try it later");
+      is_merged = false;
+    }
+    else
+    {
+      err = root_table_->check_tablet_version_merged_v2(table_id, tablet_version, min_replica_count, is_merged);
+    }
+  }
+  else
+  {
+    err = OB_ERROR;
+    TBSYS_LOG(WARN, "check_tablet_version_v2 failed. root_table_ = null");
+  }
+  return err;
+}
+
+int ObRootServer2::clean_old_checksum(int64_t current_version)
+{
+  int ret = OB_SUCCESS;
+  if(NULL == schema_service_)
+  {
+    TBSYS_LOG(ERROR, "can not clean column checksum, schema is null");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, false)))
+  {
+    TBSYS_LOG(WARN, "failed to init schema_service_, ret[%d]", ret);
+  }
+  else if(OB_SUCCESS != (ret = schema_service_->clean_column_checksum(3, current_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to clean column checksum, ret[%d]", ret);
+  }
+  return ret;
+}
+
+int ObRootServer2::check_column_checksum(const int64_t index_table_id)
+{
+  int ret = OB_SUCCESS;
+  uint64_t original_table_id = OB_INVALID_ID;
+  int64_t current_version = get_last_frozen_version();
+  ObSchemaManagerV2* schema_manager = get_local_schema();
+  ObTableSchema* index_table_schema = NULL;
+  bool column_checksum_flag = true;
+  if(OB_SUCCESS != (ret = get_schema(false, false, *schema_manager)))
+  {
+    TBSYS_LOG(WARN, "get schema manager failed.");
+  }
+  else
+  {
+    index_table_schema = schema_manager->get_table_schema(index_table_id);
+    if(NULL != index_table_schema)
+    {
+      original_table_id = index_table_schema->get_original_table_id();
+      if(OB_INVALID == original_table_id)
+      {
+        TBSYS_LOG(ERROR, "ERROR table_id, id=%ld", original_table_id);
+        ret = OB_ERROR;
+      }
+      else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, false)))
+      {
+        TBSYS_LOG(WARN, "failed to init schema_service_,ret[%d]", ret);
+      }
+      else if(OB_SUCCESS != ( ret = schema_service_->check_column_checksum(original_table_id, index_table_id, config_.cluster_id, current_version, column_checksum_flag)))
+      {
+        TBSYS_LOG(ERROR, "failed to check col check sum, ret=%d", ret);
+        ret = OB_ERROR;
+      }
+      else if(!column_checksum_flag)
+      {
+        ret = OB_ERROR;
+      }
+    }
+    else
+    {
+      ret = OB_SCHEMA_ERROR;
+      TBSYS_LOG(WARN, "table_schema is null");
+    }
+  }
+  return ret;
+}
+
+int ObRootServer2::modify_index_process_info(const uint64_t index_tid, const IndexStatus stat)
+{
+  return worker_->get_icu().get_service().modify_index_process_info(index_tid, stat);
+}
+
+int ObRootServer2::get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const
+{
+  int ret = OB_SUCCESS;
+  tablet_info = NULL;
+  //tbsys::CRLockGuard guard(root_table_rwlock_);
+  if (NULL == root_table_)
+  {
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(WARN, "root_table_ is null.");
+  }
+  else if (NULL == (tablet_info = root_table_->get_tablet_info(meta_index)))
+  {
+    ret = OB_INVALID_DATA;
+  }
+  return ret;
+}
+
+//add:e
+
 
 bool ObRootServer2::check_root_table(const common::ObServer &expect_cs) const
 {
@@ -2922,6 +3497,112 @@ int ObRootServer2::report_tablets(const ObServer& server, const ObTabletReportIn
   }
   return return_code;
 }
+
+//add wenghaixing [secondary index.static_index]20151118
+int ObRootServer2::get_init_index(const int64_t version, ObArray<uint64_t> *list)
+{
+  int ret = OB_SUCCESS;
+  ObServer ups;
+  int64_t timeout = 3000000;
+  if(NULL == worker_ || NULL == list)
+  {
+    TBSYS_LOG(WARN, "root worker cannot be null");
+    ret = OB_ERR_NULL_POINTER;
+  }
+  if(OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = worker_->get_rpc_stub().get_master_ups_info(my_addr_, ups, timeout)))
+    {
+      TBSYS_LOG(WARN, "get obi ups failed, ret = %d", ret);
+    }
+    else if(OB_SUCCESS != (ret = worker_->get_rpc_stub().get_init_index_from_ups(ups, config_.monitor_row_checksum_timeout, version, list)))
+    {
+      TBSYS_LOG(WARN, "fetch init index from ups[%s] failed, version[%ld], ret[%d]", to_cstring(ups),version, ret);
+    }
+  }
+  return ret;
+}
+
+int ObRootServer2::get_table_from_index(int64_t index_id, uint64_t &table_id)
+{
+  int ret = OB_SUCCESS;
+  common::ObSchemaManagerV2* schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+  ObTableSchema* table_schema = NULL;
+  if (NULL == schema_mgr)
+  {
+    TBSYS_LOG(WARN, "fail to new schema_manager.");
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = get_schema(false, false, *schema_mgr)))
+  {
+    TBSYS_LOG(WARN, "get schema manager failed.");
+  }
+  else
+  {
+    table_schema = schema_mgr->get_table_schema(index_id);
+    if (NULL != table_schema)
+    {
+      table_id = table_schema->get_original_table_id();//get main table_id
+    }
+    else
+    {
+      ret = OB_ERROR;
+    }
+  }
+  if (schema_mgr != NULL)
+  {
+    OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+  }
+  return ret;
+}
+
+int ObRootServer2::write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size)
+{
+  int ret = OB_SUCCESS;
+  ObTabletReportInfoList add_tablet_list;
+  ObTabletReportInfo report_info;
+  if (NULL == tablet_info_list)
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "ObTabletInfoList* tablet_info_list[] is null.");
+  }
+  for (int32_t server_idx = 0; server_idx < list_size && OB_SUCCESS == ret; server_idx++)
+  {
+    add_tablet_list.reset();//reset list
+    if (NULL != tablet_info_list[server_idx])
+    {
+      ObServer cs = server_manager_.get_cs(server_idx);
+      for (int64_t tablet_idx = 0; tablet_idx < tablet_info_list[server_idx]->get_tablet_size() && OB_SUCCESS == ret; tablet_idx++)
+      {
+        ObTabletInfo &tablet_info = tablet_info_list[server_idx]->tablets[tablet_idx];
+        //set tablet_version_ = OB_INVALID_VERSION, used to check if it is a valid copy in rt.
+        //see @check_create_global_index_done()
+        ObTabletLocation tablet_location(OB_INVALID_VERSION, cs);
+        report_info.tablet_location_ = tablet_location;
+        report_info.tablet_info_ = tablet_info;
+        if (OB_SUCCESS != (ret = add_tablet_list.add_tablet(report_info)))
+        {
+          TBSYS_LOG(WARN, "fail add tablet report info. ret=%d", ret);
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // write add_tablet_list into rt.
+        if (OB_SUCCESS != (ret = got_reported(add_tablet_list, server_idx, get_last_frozen_version())))
+        {
+          TBSYS_LOG(WARN, "fail add global index range into root table. ret=%d", ret);
+        }
+      }
+    }
+  }//end for
+  return ret;
+}
+
+bool ObRootServer2::check_static_index_over()
+{
+  return !(worker_->get_icu().is_start());
+}
+//add e
 
 /*
  * 收到汇报消息后调用
@@ -4714,6 +5395,24 @@ bool ObRootServer2::check_all_tablet_safe_merged(void) const
         TBSYS_LOG(INFO, "check tablet merged succ:version[%ld], result[%d]", last_frozen_mem_version, ret);
       }
     }
+    //add wenghaixing [secondary index.static_index]20151216:b
+    if (true == ret)
+    {
+      if(NULL == worker_)
+      {
+        TBSYS_LOG(ERROR, "root_worker pointer is NULL");
+      }
+      else if(last_frozen_mem_version == get_last_frozen_version())
+      {
+        TBSYS_LOG(INFO, "common merged complete, last frozen version[%ld]",last_frozen_mem_version);
+        worker_->get_icu().set_start_version(last_frozen_mem_version);
+        if(worker_->get_icu().is_start() && OB_SUCCESS == (err = worker_->get_icu().start_mission()))
+        {
+          ret = false;
+        }
+      }
+    }
+    //add:e
   }
   return ret;
 }
@@ -4721,6 +5420,13 @@ bool ObRootServer2::check_all_tablet_safe_merged(void) const
 int ObRootServer2::report_frozen_memtable(const int64_t frozen_version, const int64_t last_frozen_time, bool did_replay)
 {
   int ret = OB_SUCCESS;
+  //add wenghaixing [secondary index.static_index]20151117
+  bool start_icu = false;
+  if(frozen_version >= last_frozen_mem_version_ && OB_INVALID_VERSION != last_frozen_mem_version_)
+  {
+    start_icu = true;
+  }
+  //add e
   tbsys::CThreadGuard mutex_guard(&frozen_version_mutex_);
   if ( frozen_version < 0 || frozen_version < last_frozen_mem_version_)
   {
@@ -4759,6 +5465,19 @@ int ObRootServer2::report_frozen_memtable(const int64_t frozen_version, const in
         frozen_version, last_frozen_mem_version_);
     ret = OB_SUCCESS;
   }
+  //add wenghaixing [secondary index.static_index]20151117
+  if(OB_SUCCESS == ret && start_icu)
+  {
+    if(OB_UNLIKELY(NULL == worker_))
+    {
+      TBSYS_LOG(WARN,"should not be here, null pointer of worker_ or icu");
+    }
+    else
+    {
+      worker_->get_icu().start();
+    }
+  }
+  //add e
   return ret;
 }
 
@@ -7423,5 +8142,87 @@ int ObRootServer2::drop_one_index(const bool if_exists, const ObString &table_na
     }
   }
   return ret;
+}
+//add e
+
+//add maoxx
+int ObRootServer2::check_column_checksum(const int64_t index_table_id, bool &column_checksum_flag)
+{
+    int ret = OB_SUCCESS;
+    uint64_t original_table_id = OB_INVALID_ID;
+    int64_t current_version = get_last_frozen_version();
+    ObSchemaManagerV2* schema_manager = get_local_schema();
+    ObTableSchema* index_table_schema = NULL;
+
+    if(OB_SUCCESS != (ret = get_schema(false, false, *schema_manager)))
+    {
+      TBSYS_LOG(WARN, "get schema manager failed.");
+    }
+    else
+    {
+      index_table_schema = schema_manager->get_table_schema(index_table_id);
+      if(NULL != index_table_schema)
+      {
+        original_table_id = index_table_schema->get_original_table_id();
+        if(OB_INVALID == original_table_id)
+        {
+          TBSYS_LOG(ERROR, "ERROR table_id, id=%ld", original_table_id);
+          ret = OB_ERROR;
+        }
+        else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, false)))
+        {
+          TBSYS_LOG(WARN, "failed to init schema_service_,ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != ( ret = schema_service_->check_column_checksum(original_table_id, index_table_id, config_.cluster_id, current_version, column_checksum_flag)))
+        {
+          TBSYS_LOG(ERROR, "failed to check col check sum, ret=%d", ret);
+          ret = OB_ERROR;
+        }
+      }
+      else
+      {
+        ret = OB_SCHEMA_ERROR;
+        TBSYS_LOG(WARN, "table_schema is null");
+      }
+    }
+    return ret;
+}
+
+int ObRootServer2::clean_column_checksum(int64_t current_version)
+{
+    int ret = OB_SUCCESS;
+    if(NULL == schema_service_)
+    {
+      TBSYS_LOG(ERROR, "can not clean column checksum, schema is null");
+      ret = OB_ERROR;
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, false)))
+    {
+      TBSYS_LOG(WARN, "failed to init schema_service_, ret[%d]", ret);
+    }
+    else if(OB_SUCCESS != (ret = schema_service_->clean_column_checksum(3, current_version)))
+    {
+      TBSYS_LOG(ERROR, "failed to clean column checksum, ret[%d]", ret);
+    }
+    return ret;
+}
+
+int ObRootServer2::get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum)
+{
+    int ret = OB_SUCCESS;
+    if(NULL == schema_service_)
+    {
+      TBSYS_LOG(ERROR, "can not get column checksum, schema is null");
+      ret = OB_ERROR;
+    }
+    else if (OB_SUCCESS != (ret = schema_service_->init(schema_service_scan_helper_, false)))
+    {
+      TBSYS_LOG(WARN, "failed to init schema_service_,ret[%d]", ret);
+    }
+    else if(OB_SUCCESS != ( ret = schema_service_->get_column_checksum(range, config_.cluster_id, required_version, column_checksum)))
+    {
+        TBSYS_LOG(ERROR, "failed to get old column checksum for cs merge, ret[%d]", ret);
+    }
+    return ret;
 }
 //add e

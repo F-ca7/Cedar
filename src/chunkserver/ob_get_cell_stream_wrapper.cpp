@@ -27,6 +27,9 @@ namespace oceanbase
         ObMergerRpcProxy& rpc_proxy, const int64_t time_out)
     : get_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out), 
       scan_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out)
+    //add longfei [cons static index] 151205:b
+    ,cs_interactive_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out)
+    //add e
     {
     }
     
@@ -44,5 +47,12 @@ namespace oceanbase
     {
       return &scan_cell_stream_;
     }
+
+    //add longfei [cons static index] 151205:b
+    ObCsInteractiveCellStream *ObGetCellStreamWrapper::get_cs_interactive_cell_stream()
+    {
+      return &cs_interactive_cell_stream_;
+    }
+    //add e
   } // end namespace chunkserver
 } // end namespace oceanbase

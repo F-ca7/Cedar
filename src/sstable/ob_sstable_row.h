@@ -53,6 +53,10 @@ namespace oceanbase
 
       inline bool is_binary_rowkey() const { return NULL != binary_rowkey_info_; }
 
+      //add longfei [cons static index] 151207:b
+      void set_rowkey_obj_count(const int64_t count);
+      //add e
+
       /**
        * return how many objects(columns) in the row, maximum count is 
        * common::MAX_COLUMN_NUMBER, if no object, return 0
@@ -161,6 +165,11 @@ namespace oceanbase
        *         NULL.
        */
       const common::ObObj* get_obj(const int32_t index) const;
+
+      //add maoxx
+      common::ObObj* get_obj_without_const(const int32_t index);
+      const common::ObObj get_row_obj(const int64_t index) const;
+      //add e
 
       /**
        * get objs array of row 

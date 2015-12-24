@@ -595,6 +595,7 @@ namespace oceanbase
         const int get_index_list(uint64_t table_id,IndexList& out) const;
         bool is_modify_expire_condition(uint64_t table_id,uint64_t cid)const;
         int get_init_index(uint64_t* table_id, int64_t& size) const;
+		int get_init_index(ObArray<uint64_t>& index_list) const;
         bool is_index_has_storing(uint64_t table_id) const;
 
         volatile bool isIsIdIndexHashMapInit() const {
@@ -607,7 +608,11 @@ namespace oceanbase
         int get_all_avalibale_index_tid(uint64_t main_tid,uint64_t *tid_array,uint64_t &count) const;
         bool is_this_table_avalibale(uint64_t tid) const;
         bool is_cid_in_index(uint64_t cid,uint64_t tid,uint64_t *index_tid_array) const;
-
+     //add wenghaixing [secondary index.static_index]20151217
+        int get_all_index_tid(ObArray<uint64_t> &index_id_list) const;
+        int get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const;
+        int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
+     //add e
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);
         bool parse_one_table(const char* section_name, tbsys::CConfig& config, ObTableSchema& schema);
@@ -685,6 +690,7 @@ namespace oceanbase
         //add maoxx
         int get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const;
         bool is_have_modifiable_index(uint64_t table_id) const;
+        bool is_have_init_index(uint64_t table_id) const;
         int column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const;
         int column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const;
         int column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const;

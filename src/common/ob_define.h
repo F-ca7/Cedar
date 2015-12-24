@@ -372,6 +372,12 @@ namespace oceanbase
 
     const int OB_ERR_PS_TOO_MANY_PARAM = -5080;
     const int OB_ERR_READ_ONLY = -5081;
+    const int OB_ERR_NULL_POINTER = -5082;//add wenghaixing[secondary index.static_index]20151118
+    //add longfei [cons static index] 151220:b
+    const int OB_GET_TABLETS = -5602;
+    const int OB_GET_RANGES = -5603;
+    const int OB_GET_NOTHING = -5604;
+    //add e
 
     const int OB_ERR_SQL_END = -5999;
 #define IS_SQL_ERR(e) ((OB_ERR_SQL_END <= e && OB_ERR_SQL_START >= e) \
@@ -557,6 +563,10 @@ namespace oceanbase
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
     const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei [create index]
+    //add maoxx
+    const char* const OB_INDEX_SERVICE_INFO_TABLE_NAME = "__index_service_info";
+    const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_hecksum_info";
+    //add e
 
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
@@ -602,6 +612,12 @@ namespace oceanbase
     static const uint64_t OB_ALL_SERVER_STAT_TID = 510;
     static const uint64_t OB_ALL_SERVER_SESSION_TID = 511;
     static const uint64_t OB_ALL_STATEMENT_TID = 512;
+
+    //add maoxx
+    static const uint64_t OB_ALL_COLUMN_CHECKSUM_INFO_TID = 801;
+	static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;
+    //add e
+
 #define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //

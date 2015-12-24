@@ -16,6 +16,7 @@
 #include "ob_rpc_proxy.h"
 #include "common/ob_scan_param.h"
 #include "sql/ob_no_children_phy_operator.h"
+#include "sql/ob_sstable_scan.h"
 
 namespace oceanbase
 {
@@ -43,10 +44,13 @@ namespace oceanbase
         }
         virtual int get_next_row(const ObRow *&row);
         virtual int get_row_desc(const ObRowDesc *&row_desc) const;
+        virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
 
       public:
         void set_row_desc(const ObRowDesc &desc);
+        int set_scan_param(ObScanParam *scan_param);
+        int set_range_server_hash(const chunkserver::RangeServerHash *range_server_hash);
 //        void set_query_agent(chunkserver::ObIndexLocalAgent *agent);
 //        void set_failed_fake_range(const ObNewRange &range);
         int build_sst_scan_param();
@@ -67,12 +71,12 @@ namespace oceanbase
         ObRowDesc row_desc_;
         ObRow cur_row_;
         ObSSTableScan sst_scan_;
-        ObScanParam scan_param_;
+        ObScanParam *scan_param_;
         sstable::ObSSTableScanParam sst_scan_param_;
         const chunkserver::RangeServerHash *range_server_hash_;
         ObNewRange fake_rage_;
         int64_t hash_index_;
-        bool local_idx_scan_finishi_;
+        bool local_idx_scan_finish_;
         bool local_idx_block_end_;
         bool first_scan_;
         ObServer self_;

@@ -145,6 +145,16 @@ const ObSchemaManagerV2 * ObMergerSchemaManager::get_schema(const uint64_t table
     // get local newest user table schema
     schema = get_user_schema(0);
   }
+  //test longfei
+  if (NULL == schema)
+  {
+    TBSYS_LOG(WARN,"schema is null , table_id[%ld]",table_id);
+  }
+  else
+  {
+    TBSYS_LOG(INFO,"get schema succ , table_id[%ld]",table_id);
+  }
+  //test e
   return schema;
 }
 

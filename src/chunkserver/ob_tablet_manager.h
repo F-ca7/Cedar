@@ -58,6 +58,7 @@ namespace oceanbase
     class ObTabletReportInfoList;
     class ObScanner;
     class ObServer;
+    enum ConIdxStage;
   }
   namespace chunkserver
   {
@@ -67,6 +68,10 @@ namespace oceanbase
     {
       public:
         static const int32_t MAX_COMMAND_LENGTH = 1024*2;
+        //add longfei [cons static index] 151207:b
+        static const int32_t MAX_GET_COLUMN_CHECKSUM_TIMEOUT = 5000000;
+        static const int32_t MAX_SEND_COLUMN_CHECKSUM_TIMEOUT = 3000000;
+        //add e
       private:
         DISALLOW_COPY_AND_ASSIGN(ObTabletManager);
 
@@ -87,15 +92,21 @@ namespace oceanbase
         void destroy();
         // add longfei [cons static index] 151120:b
       public:
-        ObIndexHandlePool &get_index_handle_pool();
+        ObIndexHandlePool& get_index_handle_pool();
         int init_index_handle_pool();
         // mod longfei [cons static index]151121:b
         //int get_ready_for_con_index();
         int get_ready_for_con_index(common::ConIdxStage which_stage =
-            common::ConIdxStage::STAGE_INIT);
+            STAGE_INIT);
         // mod e
         void set_beat_tid(const uint64_t tid);
-        // add e
+        //int get_old_tablet_column_checksum(const ObNewRange new_range, col_checksum& column_checksum);
+        //int send_tablet_column_checksum(const col_checksum column_checksum, const ObNewRange new_range, const int64_t version);
+        //add e
+        //add longfei [cons static index] 151210:b
+        //int report_index_tablets(uint64_t index_tid);
+        //add e
+        int retry_failed_work(const BlackList&,const ObServer);
 
       public:
         /**
@@ -249,6 +260,14 @@ namespace oceanbase
 
         int fill_tablet_info(const ObTablet& tablet, common::ObTabletReportInfo& tablet_info);
         int send_tablet_report(const common::ObTabletReportInfoList& tablets, bool has_more);
+        //add maoxx
+        int get_column_checksum(const ObNewRange new_range, ObColumnChecksum &column_checksum);
+        int send_tablet_column_checksum(const ObColumnChecksum column_checksum, const ObNewRange new_range, const int64_t version);
+        int fill_tablet_histogram_info(const ObTablet& tablet, common::ObTabletHistogramReportInfo& tablet_histogram_info);
+        //int send_local_index_info(const common::ObTabletHistogramReportInfoList& tablets, bool has_more);
+        //int send_index_info(uint64_t index_tid);
+        //add e
+
 
       public:
         // allocate new sstable file sequence, call after load_tablets();

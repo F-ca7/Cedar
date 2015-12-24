@@ -5244,6 +5244,36 @@ namespace oceanbase
       }
       return ret;
     }
+	
+	 int ObSchemaManagerV2::get_init_index(ObArray<uint64_t>& index_list) const
+    {
+      int ret = OB_SUCCESS;
+
+      //uint64_t ref_tid = OB_INVALID_ID;
+      IndexList list;
+      uint64_t idx_tid = OB_INVALID_ID;
+      const ObTableSchema* schema = NULL;
+      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+      for( ; iter != id_index_hash_map_.end(); iter++)
+      {
+        list = iter->second;
+        for(int64_t loop = 0; loop < list.get_count(); loop ++)
+        {
+          list.get_idx_id(loop, idx_tid);
+          if(NULL == (schema = get_table_schema(idx_tid)))
+          {
+            TBSYS_LOG(ERROR, "get index table id failed, ret[%d]", ret);
+            ret = OB_SCHEMA_ERROR;
+
+          }
+          else if(INDEX_INIT == schema->get_index_status())
+          {
+            index_list.push_back(idx_tid);
+          }
+        }
+      }
+      return ret;
+    }
     //add e
 	  /*add wenghaixing [secondary index]20141105
 	     *将二级索引的信息放入hashmap当中
@@ -5455,6 +5485,38 @@ namespace oceanbase
           return ret;
         }
 
+        bool ObSchemaManagerV2::is_have_init_index(uint64_t table_id) const
+        {
+          bool ret = false;
+          IndexList index_list;
+          uint64_t index_tid = OB_INVALID_ID;
+          if(is_id_index_hash_map_init_)
+          {
+            if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+            {
+              for(int64_t i = 0; i < index_list.get_count(); i++)
+              {
+                const ObTableSchema *index_table_schema = NULL;
+                index_list.get_idx_id(i, index_tid);
+                if (NULL == (index_table_schema = get_table_schema(index_tid)))
+                {
+                  TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
+                }
+                else
+                {
+                  IndexStatus status = index_table_schema->get_index_status();
+                  if(INDEX_INIT == status)
+                  {
+                    ret = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          return ret;
+        }
+
         int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const
         {
             int ret = OB_SUCCESS;
@@ -5565,6 +5627,7 @@ namespace oceanbase
         {
             int ret = OB_SUCCESS;
             IndexList index_list;
+            column_hit_index_flag = false;
             if(is_id_index_hash_map_init_)
             {
                 if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
@@ -5635,5 +5698,85 @@ namespace oceanbase
           return ret;
         }
         // add e
+        //add wenghaixing [secondary index.static_index]20151217
+        int ObSchemaManagerV2::get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const
+        {
+          int ret = OB_SUCCESS;
+          uint64_t idx_id = OB_INVALID_ID;
+          const ObTableSchema *index_table_schema = NULL;
+          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+          for (;iter != id_index_hash_map_.end(); ++iter)
+          {
+            IndexList tmp_list=iter->second;
+            for(int64_t i = 0; i< tmp_list.get_count(); i++)
+            {
+              tmp_list.get_idx_id(i,idx_id);
+              if (NULL == (index_table_schema = get_table_schema(idx_id)))
+              {
+                ret = OB_SCHEMA_ERROR;
+                TBSYS_LOG(WARN,"fail to get table schema for index table[%lu]", idx_id);
+              }
+              else
+              {
+                if(index_table_schema->get_index_status() == NOT_AVALIBALE)
+                {
+                  if (OB_SUCCESS != (index_id_list.push_back(idx_id)))
+                  {
+                    TBSYS_LOG(WARN, "push index table[%lu] into index_id_list failed", idx_id);
+                  }
+                }
+              }
+            }
+          }
+          return ret;
+        }
+        int ObSchemaManagerV2::get_all_index_tid(ObArray<uint64_t> &index_id_list) const
+        {
+          int ret = OB_SUCCESS;
+          uint64_t idx_id = OB_INVALID_ID;
+          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+          for (;iter != id_index_hash_map_.end(); ++iter)
+          {
+            IndexList tmp_list=iter->second;
+            for(int64_t i = 0; i< tmp_list.get_count(); i++)
+            {
+              tmp_list.get_idx_id(i,idx_id);
+              if (OB_SUCCESS != (index_id_list.push_back(idx_id)))
+              {
+                TBSYS_LOG(WARN, "push index table[%lu] into index_id_list failed", idx_id);
+              }
+            }
+          }
+          return ret;
+        }
+        int ObSchemaManagerV2::get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const
+        {
+          int ret = OB_SUCCESS;
+          uint64_t idx_id = OB_INVALID_ID;
+          const ObTableSchema *main_table_schema = NULL;
+          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+          for (;iter != id_index_hash_map_.end(); ++iter)
+          {
+            IndexList tmp_list=iter->second;
+            for(int64_t i = 0; i< tmp_list.get_count(); i++)
+            {
+              tmp_list.get_idx_id(i,idx_id);
+              if (NULL == (main_table_schema = get_table_schema(idx_id)))
+              {
+                ret = OB_ERR_ILLEGAL_ID;
+                TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", idx_id);
+              }
+              else
+              {
+                if(main_table_schema->get_index_status() == AVALIBALE)
+                {
+                  index_id_list.push_back(idx_id);
+                }
+              }
+            }
+          }
+          return ret;
+        }
+        //add e
   } // end namespace common
 }   // end namespace oceanbase

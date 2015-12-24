@@ -402,6 +402,21 @@ void ObRootTable2::dump() const
   return;
 }
 
+//add wenghaixing [secondary index.static index]20151207
+void ObRootTable2::dump(const int32_t index) const
+{
+  if (tablet_info_manager_ != NULL)
+  {
+    if (index < meta_table_.get_array_index() && index >=0)
+    {
+      tablet_info_manager_->hex_dump(data_holder_[index].tablet_info_index_, TBSYS_LOG_LEVEL_INFO);
+      data_holder_[index].dump();
+    }
+  }
+  return;
+}
+//add e
+
 void ObRootTable2::dump_cs_tablet_info(const int server_index, int64_t &tablet_num)const
 {
   if (NULL != tablet_info_manager_)
@@ -564,6 +579,177 @@ ObTabletInfo* ObRootTable2::get_tablet_info(const const_iterator& it)
   return tablet_info;
 }
 
+//add wenghaixing [secondary index.static_index]20151207
+const ObTabletInfo* ObRootTable2::get_tablet_info(const int32_t meta_index) const
+{
+  int index = 0;
+  const common::ObTabletInfo *info = NULL;
+  if(meta_index >= meta_table_.get_array_index() || meta_index <0 || NULL == tablet_info_manager_)
+  {
+    //ret = OB_INNER_STAT_ERROR;
+    TBSYS_LOG(WARN, "root tablet inner error!");
+  }
+  else
+  {
+    index = data_holder_[meta_index].tablet_info_index_;
+    info = tablet_info_manager_->get_tablet_info(index);
+    if (NULL == info)
+    {
+      TBSYS_LOG(WARN, "no tablet info found in tablet_info_manager_ with tablet_index=%d", index);
+    }
+  }
+  return info;
+}
+
+ ObTabletInfo* ObRootTable2::get_tablet_info(const int32_t meta_index)
+{
+  int index = 0;
+  common::ObTabletInfo *info = NULL;
+  if(meta_index >= meta_table_.get_array_index() || meta_index <0 || NULL == tablet_info_manager_)
+  {
+    //ret = OB_INNER_STAT_ERROR;
+    TBSYS_LOG(WARN, "root tablet inner error!");
+  }
+  else
+  {
+    index = data_holder_[meta_index].tablet_info_index_;
+    info = tablet_info_manager_->get_tablet_info(index);
+    if (NULL == info)
+    {
+      TBSYS_LOG(WARN, "no tablet info found in tablet_info_manager_ with tablet_index=%d", index);
+    }
+  }
+  return info;
+}
+
+ int ObRootTable2::get_root_meta_index(const ObTabletInfo &tablet, int32_t &meta_index)
+ {
+   int ret = OB_SUCCESS;
+   const common::ObTabletInfo* p_tablet_info = NULL;
+   common::ObNewRange find_range;
+   find_range.table_id_ = tablet.range_.table_id_;
+   find_range.end_key_ = tablet.range_.end_key_;
+   const_iterator find_pos = find_pos_by_range(find_range);
+   if (find_pos == NULL || find_pos == end())
+   {
+     TBSYS_LOG(WARN, "not find. find_range=%s, find_pos=%p, begin()=%p, end()=%p",
+         common::to_cstring(find_range), find_pos, begin(), end());
+     ret = OB_ERROR_OUT_OF_RANGE;
+   }
+   else if (NULL == (p_tablet_info = get_tablet_info(find_pos)))
+   {
+     ret = OB_ERROR_OUT_OF_RANGE;
+     TBSYS_LOG(WARN, "get tablet_info fail. err =%d", ret);
+   }
+   else if (!p_tablet_info->equal(tablet))
+   {
+     ret = OB_ERROR_OUT_OF_RANGE;
+     TBSYS_LOG(WARN, "tablet info is not equal. err =%d , ptabletinfo = %s, tablet_info = %s",
+                 ret, to_cstring(p_tablet_info->range_), to_cstring(tablet.range_));
+   }
+   else
+   {
+     meta_index = static_cast<int32_t>(find_pos - begin());
+   }
+   return ret;
+ }
+
+ int ObRootTable2::get_root_meta(const int32_t meta_index, const_iterator &root_meta)
+ {
+   int ret = OB_SUCCESS;
+   if (meta_index < meta_table_.get_array_index() && meta_index >=0)
+   {
+     root_meta = &data_holder_[meta_index];
+   }
+   else
+   {
+     ret = OB_ARRAY_OUT_OF_RANGE;
+   }
+   return ret;
+ }
+
+ ObRootTable2::const_iterator ObRootTable2::find_pos_by_range(const common::ObNewRange &range)
+ {
+   const_iterator find_pos = NULL;
+   if (internal_check())
+   {
+     ObRootMeta2RangeLessThan meta_comp(tablet_info_manager_); // compare_with_endkey
+     find_pos = std::lower_bound(begin(), end(), range, meta_comp);
+   }
+   return find_pos;
+ }
+
+ int ObRootTable2::check_tablet_version_merged_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged)
+ {
+   int ret = OB_SUCCESS;
+   is_merged = true;
+   int32_t fail_count = 0;
+   int32_t merging_count = 0;
+   int32_t succ_count = 0;
+   common::ObRowkey min_rowkey;
+   min_rowkey.set_min_row();
+   common::ObRowkey max_rowkey;
+   max_rowkey.set_max_row();
+   common::ObNewRange start_range;
+   start_range.table_id_ = table_id;
+   start_range.end_key_ = min_rowkey;
+   common::ObNewRange end_range;
+   end_range.table_id_ = table_id;
+   end_range.end_key_ = max_rowkey;
+
+   const_iterator begin_pos = find_pos_by_range(start_range);
+   const_iterator end_pos = find_pos_by_range(end_range);
+
+   if (NULL == begin_pos || NULL == end_pos)
+   {
+     ret = OB_NOT_INIT;
+     TBSYS_LOG(WARN, "find_pos_by_range failed, begin_pos or end_pos is NULL. ret=%d", ret);
+   }
+   else if (end() == begin_pos || end() == end_pos || begin_pos > end_pos)
+   {
+     ret = OB_ARRAY_OUT_OF_RANGE;
+     TBSYS_LOG(WARN, "find_pos_by_range failed, out of range. begin():[%p], end():[%p], begin:[%p], end:[%p], ret=%d",
+                 begin(), end(), begin_pos, end_pos, ret);
+   }
+   for (const_iterator it = begin_pos; it <= end_pos && OB_LIKELY(OB_SUCCESS == ret); it++)
+   {
+     succ_count = 0;
+     for (int32_t j = 0; j < OB_SAFE_COPY_COUNT; j++)
+     {
+         //all online cs should be merged
+       if (it->server_info_indexes_[j] != OB_INVALID_INDEX)
+       {
+         if (it->tablet_version_[j] < tablet_version)
+         {
+           TBSYS_LOG(TRACE, "root_table[%p] server[%d]'s tablet version[%ld] less than required[%ld]",
+                 this, it->server_info_indexes_[j], it->tablet_version_[j],
+                 tablet_version);
+             // tablet_info_manager_->hex_dump(data_holder_[i].tablet_info_index_, TBSYS_LOG_LEVEL_INFO);
+           is_merged = false;
+           ++merging_count;
+         }
+         else
+         {
+           ++succ_count;
+         }
+       }
+     }//end inner for
+     if (succ_count < safe_count)
+     {
+       is_merged = false;
+       ++fail_count;
+       TBSYS_LOG(TRACE, "check tablet not all safe copy merged to this version:succ[%d], safe[%ld], tid[%lu]",
+           succ_count, safe_count, table_id);
+     }
+   }//end outer for
+   if (!is_merged)
+   {
+     TBSYS_LOG(INFO, "table[%lu] has %d tablet not safity the version[%ld] and safe_copy_count[%ld], the merging tablet count=%d",
+           table_id, fail_count, tablet_version, safe_count, merging_count);
+   }
+   return ret;
+ }
+//add e
 
 bool ObRootTable2::move_back(const int32_t from_index_inclusive, const int32_t move_step)
 {

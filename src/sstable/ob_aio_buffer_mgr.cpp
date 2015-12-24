@@ -2403,6 +2403,20 @@ namespace oceanbase
       return buffer;
     }
 
+    //add wenghaixing [secondary index static_index_build]20150804
+    //longfei
+    void ObThreadAIOBufferMgrArray::reset()
+    {
+      for(int64_t i = 0; i < item_count_; i++)
+      {
+        item_array_[i].reset();
+      }
+      item_count_ = 0;
+      alloc_.reuse();
+      thread_aio_stat_.reset();
+    }
+    //add e
+
     int wait_aio_buffer()
     {
       int ret = OB_SUCCESS;

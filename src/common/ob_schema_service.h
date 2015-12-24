@@ -18,7 +18,7 @@
 #ifndef _OB_SCHEMA_SERVICE_H
 #define _OB_SCHEMA_SERVICE_H
 
-#include "common/ob_define.h"
+#include "ob_define.h"
 #include "ob_object.h"
 #include "ob_string.h"
 #include "ob_array.h"
@@ -32,28 +32,28 @@ namespace oceanbase
 
     //add longfei [cons static index] 151120:b
     // index beat is a type of heart beat, can carry some information between rs and cs
-    typedef struct IndexHeartBeat
+    struct IndexBeat
     {
       uint64_t idx_tid_;
       IndexStatus status_;
       int64_t hist_width_;
       ConIdxStage stage_;
-      IndexHeartBeat()
+      IndexBeat()
       {
         idx_tid_ = OB_INVALID_ID;
-        status_ = IndexStatus::ERROR;
+        status_ = ERROR;
         hist_width_ = 0;
-        stage_ = ConIdxStage::STAGE_INIT;
+        stage_ = STAGE_INIT;
       }
       void reset()
       {
         idx_tid_ = OB_INVALID_ID;
-        status_ = IndexStatus::ERROR;
+        status_ = ERROR;
         hist_width_ = 0;
-        stage_ = ConIdxStage::STAGE_INIT;
+        stage_ = STAGE_INIT;
       }
       NEED_SERIALIZE_AND_DESERIALIZE;
-    }IndexBeat;
+    };
     //add e
 
     /* 表单join关系描述，对应于__all_join_info内部表 */
@@ -388,6 +388,15 @@ namespace oceanbase
         virtual int get_max_used_table_id(uint64_t &max_used_tid) = 0;
         virtual int modify_table_id(TableSchema& table_schema, const int64_t new_table_id) = 0;
         virtual int set_max_used_table_id(const uint64_t max_used_tid) = 0;
+      //add maoxx
+      virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag) = 0;
+      virtual int clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version) = 0;
+      virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum) = 0;
+      //add e    
+      //add wenghaixing [secondary index.static_index]20151217
+      virtual int get_cluster_count(int64_t &cc) = 0;
+      virtual int get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat) = 0;
+      //add e
     };
 
   }

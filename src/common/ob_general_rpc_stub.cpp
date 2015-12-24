@@ -132,6 +132,10 @@ namespace oceanbase
         const uint64_t root_table_id, const uint64_t table_id,
         const ObRowkey & row_key, ObScanner & scanner) const
     {
+      TBSYS_LOG(ERROR,"test::longfei>>>timeout[%ld],table_id[%ld],rs[%s],rowkey[%s]",timeout,
+                table_id,
+                to_cstring(root_server),
+                to_cstring(row_key));
       ObCellInfo cell;
       // cell info not root table id
       UNUSED(root_table_id);
@@ -156,8 +160,10 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(DEBUG, "scan root server for get chunk server location succ:"
-              "table_id[%lu]", table_id);
+//          TBSYS_LOG(DEBUG, "scan root server for get chunk server location succ:"
+//              "table_id[%lu]", table_id);
+          TBSYS_LOG(ERROR, "test::longfei>>>scan root server for get chunk server location succ:"
+                           "table_id[%lu]", table_id);
         }
       }
       return ret;
@@ -1064,6 +1070,56 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add longfei [cons static index] 151218:b
+    int ObGeneralRpcStub::retry_failed_work(const int64_t timeout, const ObServer &chunk_server, const BlackList list)
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ret = send_1_return_0(chunk_server, timeout, OB_RE_IDX_CONS_F, DEFAULT_VERSION,
+                            result_code, list);
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_1_return_0 failed: ret[%d]", ret);
+        TBSYS_LOG(USER_ERROR, "%.*s", result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+    //add e
+
+    //add maoxx
+    int ObGeneralRpcStub::get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum)
+    {
+      int ret = OB_SUCCESS;
+      ObString col_checksum;
+      char col_checksum_tmp[OB_MAX_COL_CHECKSUM_STR_LEN];
+      col_checksum.assign_ptr(col_checksum_tmp, OB_MAX_COL_CHECKSUM_STR_LEN);
+      if (OB_SUCCESS != (ret = send_2_return_1(root_server, timeout, OB_GET_COLUMN_CHECKSUM, NEW_VERSION, new_range, version, col_checksum)))
+      {
+        TBSYS_LOG(ERROR, " get old tablet column checksumfailed, ret=%d", ret);
+      }
+      else
+      {
+        column_checksum.deepcopy(col_checksum.ptr());
+      }
+      return ret;
+    }
+
+    int ObGeneralRpcStub::report_tablets_histogram(
+        const int64_t timeout, const ObServer & root_server,
+        const ObServer &client_server, const ObTabletHistogramReportInfoList& tablets,
+        int64_t time_stamp, bool has_more)
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(has_more);
+      if (OB_SUCCESS != (ret = send_3_return_0(root_server, timeout, OB_REPORT_TABLETS_HISTOGRAMS, DEFAULT_VERSION + 1,
+              client_server, tablets, time_stamp)))
+      {
+        TBSYS_LOG(WARN, "send report tablets histogram message failed, ret=%d", ret);
+      }
+      return ret;
+    }
+    //add e
 
   } // end namespace chunkserver
 } // end namespace oceanbase

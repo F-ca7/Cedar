@@ -324,6 +324,16 @@ namespace oceanbase
 
       return ret;
     }
+    //add wenghaixing [secondary index.static_index]20151217
+    uint32_t ObServer::murmurhash2(const uint32_t hash) const
+    {
+      uint32_t result = hash;
+      result = common::murmurhash2(&version_,sizeof(version_),result);
+      result = common::murmurhash2(&port_,sizeof(version_),result);
+      result = common::murmurhash2(&ip,sizeof(version_),result);
+      return result;
+    }
+    //add e
 
     DEFINE_DESERIALIZE(ObServer)
     {

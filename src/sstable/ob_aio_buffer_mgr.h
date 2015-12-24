@@ -517,6 +517,11 @@ namespace oceanbase
       void add_stat(const ObIOStat& stat);
       const char* get_thread_aio_stat_str();
 
+      //add wenghaixing [secondary index static_index_build]20150804
+      //longfei
+      void reset();
+      //add e
+
     private:
       struct ObThreadAIOBufferMgrItem
       {
@@ -526,6 +531,16 @@ namespace oceanbase
         {
 
         }
+
+        //add longfei [cons static index] 151216:b
+        void reset()
+        {
+          sstable_id_ = common::OB_INVALID_ID;
+          table_id_ = common::OB_INVALID_ID;
+          column_group_id_ = common::OB_INVALID_ID;
+          aio_buf_mgr_ = NULL;
+        }
+        //add e
 
         uint64_t sstable_id_;
         uint64_t table_id_;

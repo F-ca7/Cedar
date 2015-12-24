@@ -24,6 +24,8 @@
 #include "sstable/ob_sstable_reader.h"
 #include "compactsstable/ob_compactsstable_mem.h"
 
+using namespace oceanbase::sstable;
+
 namespace oceanbase
 {
   namespace chunkserver
@@ -86,7 +88,7 @@ namespace oceanbase
         //add longfei [cons static index] 151202:b
         template <typename Reader>
           int find_loc_idx_sstable(const common::ObNewRange& range,
-            Reader* sstable[], int32_t &size) const;
+              Reader* sstable[], int32_t &size) const ;
         int add_local_index_sstable_by_id(const sstable::ObSSTableId &sstable_id);
         int delete_local_index_sstableid();
         int load_local_sstable(const int64_t tablet_version = 0);
@@ -281,7 +283,6 @@ namespace oceanbase
         return ret;
       }
 
-    //add longfei [cons static index] 151202:b
     template <typename Reader>
       int ObTablet::find_loc_idx_sstable(const common::ObNewRange& range,
                                          Reader* sstable[], int32_t &size) const
@@ -293,22 +294,22 @@ namespace oceanbase
         if(OB_SUCCESS != sstable_loaded_)
           ret = (sstable_loaded_ = const_cast<ObTablet*>(this)->load_sstable());
         /*
-        if(OB_SUCCESS ==  ret && sstable_reader_list_.count() > 1)
-        {
-          sstable_reader_list_.at(1)->reset();
-          sstable_reader_list_.remove(1);
-          TBSYS_LOG(ERROR,"test::whx sstable_reader_list_.count() = [%ld]",sstable_reader_list_.count());
-        }
-        */
+          if(OB_SUCCESS ==  ret && sstable_reader_list_.count() > 1)
+          {
+            sstable_reader_list_.at(1)->reset();
+            sstable_reader_list_.remove(1);
+            TBSYS_LOG(ERROR,"test::whx sstable_reader_list_.count() = [%ld]",sstable_reader_list_.count());
+          }
+          */
         if(OB_SUCCESS != (ret  = const_cast<ObTablet*>(this)->load_local_sstable()))
         {
           TBSYS_LOG(WARN, "get local sstable load failed[%d]", ret);
         }
         else
         {
-          sstable::SSTableReader* reader = sstable_reader_list_.at(1);\
+          sstable::SSTableReader* reader = sstable_reader_list_.at(1);
           sstable[index] = dynamic_cast<Reader*> (reader);
-          //TBSYS_LOG(ERROR,"test::whx load_local_sstable> 1");
+          TBSYS_LOG(ERROR,"test::whx load_local_sstable> 1");
         }
         if(1 == sstable_id_list_.count())
         {
@@ -317,117 +318,10 @@ namespace oceanbase
         }
         if(OB_SUCCESS == ret)
         {
-          //TBSYS_LOG(ERROR,"test::whx reader range = %s",to_cstring(sstable[index]->get_range()));
+          TBSYS_LOG(ERROR,"test::whx reader range = %s",to_cstring(sstable[index]->get_range()));
         }
         return ret;
       }
-
-    int ObTablet::add_local_index_sstable_by_id(const ObSSTableId &sstable_id)
-    {
-      int ret = OB_SUCCESS;
-      if (0 != disk_no_ && disk_no_ != static_cast<int32_t>(get_sstable_disk_no(sstable_id.sstable_file_id_)))
-      {
-        TBSYS_LOG(ERROR, "add file :%ld not in same disk:%d",
-            sstable_id.sstable_file_id_, disk_no_);
-        ret = OB_ERROR;
-      }
-      else if(MAX_SSTABLE_PER_TABLET <= sstable_id_list_.count())
-      {
-        TBSYS_LOG(ERROR,"there is already [%ld] sstable in tablet!",sstable_id_list_.count());
-      }
-      else if (OB_SUCCESS != (ret = sstable_id_list_.push_back(sstable_id)))
-      {
-        TBSYS_LOG(ERROR, "add sstable id :%ld in list error ret=%d",
-            sstable_id.sstable_file_id_, ret);
-      }
-      return ret;
-    }
-
-    int ObTablet::delete_local_index_sstableid()
-    {
-      int ret = OB_SUCCESS;
-      if(this->sstable_id_list_.count() < 2)
-      {
-        TBSYS_LOG(DEBUG, "no local index sstable file need to delete");
-      }
-      else if(OB_SUCCESS != (ret = sstable_id_list_.remove(1)))
-      {
-        TBSYS_LOG(WARN, "delete local index sstable failed");
-      }
-
-      if(this->sstable_reader_list_.count() < 2)
-      {
-        TBSYS_LOG(DEBUG, "no local index reader need to delete");
-      }
-      else
-      {
-        sstable_reader_list_.at(1)->reset();
-        ret = (sstable_reader_list_.remove(1));
-      }
-
-      return ret;
-    }
-
-    int ObTablet::load_local_sstable(const int64_t tablet_version)
-    {
-      int ret = OB_SUCCESS;
-      sstable::SSTableReader* reader = NULL;
-
-      load_sstable_mutex_.lock();
-
-      if (NULL == image_)
-      {
-        ret = OB_ERROR;
-      }
-      else
-      {
-        int64_t size = sstable_id_list_.count();
-        int64_t reader_size = sstable_reader_list_.count();
-        for (int64_t i = reader_size; i < size; ++i)
-        {
-          if (get_sstable_version() < SSTableReader::COMPACT_SSTABLE_VERSION)
-          {
-            reader = image_->alloc_sstable_object();
-          }
-          else
-          {
-            reader = image_->alloc_compact_sstable_object();
-          }
-
-          if (NULL == reader)
-          {
-            ret = OB_ALLOCATE_MEMORY_FAILED;
-            break;
-          }
-          else if (OB_SUCCESS
-              != (ret = reader->open(sstable_id_list_.at(i).sstable_file_id_,
-                  tablet_version)))
-          {
-            TBSYS_LOG(ERROR, "read sstable failed, sstable id=%ld, ret =%d",
-                sstable_id_list_.at(i).sstable_file_id_, ret);
-            break;
-          }
-          else if (OB_SUCCESS != (ret = sstable_reader_list_.push_back(reader)))
-          {
-            TBSYS_LOG(ERROR, "add sstable reader in list error ret=%d", ret);
-            break;
-          }
-          else if (0 == i && OB_INVALID_ID == range_.table_id_)
-          {
-            //if the range of tablet is not set, use the first sstable's range
-            range_ = reader->get_range();
-
-          }
-        }
-      }
-      sstable_loaded_ = ret;
-
-      load_sstable_mutex_.unlock();
-
-      return ret;
-    }
-    //add e
-
   }
 }
 

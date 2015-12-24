@@ -34,6 +34,9 @@
 #include "rootserver/ob_root_fetch_thread.h"
 #include "rootserver/ob_root_server_config.h"
 #include "rootserver/ob_root_inner_table_task.h"
+//add wenghaixing [secondary index.static index]20151117
+#include "rootserver/ob_index_control_unit.h"
+//add e
 
 namespace oceanbase
 {
@@ -83,6 +86,9 @@ namespace oceanbase
         int submit_delete_tablets_task(const common::ObTabletReportInfoList& delete_list);
         int schedule_after_restart_task(const int64_t delay,bool repeate = false);
         int submit_restart_task();
+        //add wenghaixing [secondary index.static_index]20151118
+        int submit_job(ObPacket pc);
+        //add e
         int set_io_thread_count(int io_thread_num);
         ObRootLogManager* get_log_manager();
         common::ObRoleMgr* get_role_manager();
@@ -99,6 +105,9 @@ namespace oceanbase
         int64_t get_network_timeout();
         common::ObServer get_rs_master();
         common::ThreadSpecificBuffer* get_thread_buffer();
+        //add wenghaixing [secondary index.static_index]20151130
+        ObIndexControlUnit& get_icu();
+        //add e
       private:
         int start_as_master();
         int start_as_slave();
@@ -135,6 +144,11 @@ namespace oceanbase
         int rt_dump_cs_info(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_fetch_stats(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_check_tablet_merged(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add wenghaixing [secondary index.static_index]20151118
+        int rt_handle_index_job(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        int rt_report_index_info(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        inline ObIndexControlUnit* get_index_control_unit(){return &icu_;}
+        //add e
         int rt_split_tablet(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rs_check_root_table(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_ping(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -174,6 +188,10 @@ namespace oceanbase
         // longfei [create index]
         int rt_create_index(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_drop_index(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+
+        //add maoxx
+        int rt_get_column_checksum(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add e
 
         int rt_force_create_table(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_force_drop_table(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -249,6 +267,9 @@ namespace oceanbase
         ObRootInnerTableTask inner_table_task_;
         ObRsAfterRestartTask after_restart_task_;
         ObTimer timer_;
+        //add wenghaixing[secondary index.static index]20151117
+        ObIndexControlUnit icu_;
+        //add e
     };
 
     inline ObRootServer2& ObRootWorker::get_root_server()
@@ -273,6 +294,11 @@ namespace oceanbase
     inline ObGeneralRpcStub& ObRootWorker::get_general_rpc_stub()
     {
       return general_rpc_stub_;
+    }
+    //add wenghaixing [secondary index.static_index]20151130
+    inline ObIndexControlUnit& ObRootWorker::get_icu()
+    {
+      return icu_;
     }
 
   }
