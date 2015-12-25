@@ -142,6 +142,10 @@ namespace oceanbase
           }
         }
       }
+      if(OB_SUCCESS == ret && schema_manager_->is_index_has_storing(index_tid))
+      {
+        ret = index_data_row_desc.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID);
+      }
       return ret;
     }
 
@@ -183,7 +187,7 @@ namespace oceanbase
       uint64_t cid = OB_INVALID_ID;
       uint64_t data_tid = OB_INVALID_ID;
       const ObObj *obj = NULL;
-      TBSYS_LOG(ERROR,"test::longfei>>>row[%s],row desc[%s]",to_cstring(row),to_cstring(row_desc));
+//      TBSYS_LOG(ERROR,"test::longfei>>>row[%s],row desc[%s]",to_cstring(row),to_cstring(row_desc));
       if(NULL == new_table_schema_)
       {
         TBSYS_LOG(WARN, "null pointer of table schema");
@@ -492,6 +496,7 @@ namespace oceanbase
                       temp_tablet_row_count++;
                     }
                   }
+                  /*
                   if(OB_SUCCESS == ret)
                   {
                     if(OB_SUCCESS != (ret = calc_column_checksum_for_data(*row, column_checksum_row_desc, row_column_checksum.get_str(), data_tid)))
@@ -505,7 +510,7 @@ namespace oceanbase
                       break;
                     }
                     row_column_checksum.reset();
-                  }
+                  }*/
                   if(OB_SUCCESS == ret)
                   {
                     if(OB_SUCCESS != (ret = save_current_row()))
@@ -525,11 +530,11 @@ namespace oceanbase
 
               ObMultiVersionTabletImage& tablet_image = tablet_manager_->get_serving_tablet_image();
               frozen_version_ = tablet_image.get_serving_version();
-              if(OB_SUCCESS != (ret = tablet_manager_->send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
+              /*if(OB_SUCCESS != (ret = tablet_manager_->send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
               {
                 TBSYS_LOG(ERROR,"send tablet column checksum failed =%d", ret);
               }
-              column_checksum_.reset();
+              column_checksum_.reset();*/
             }
           }
         }
@@ -610,7 +615,7 @@ namespace oceanbase
 
       if (OB_SUCCESS != (ret = cons_local_index(tablet_, sample_rate_)))
       {
-        TBSYS_LOG(ERROR, "global index construction failed");
+        TBSYS_LOG(ERROR, "local index construction failed");
       }
 
       return ret;

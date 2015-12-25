@@ -41,13 +41,13 @@ namespace oceanbase
      *-----------------------------------------------------------------------------*/
 
     ObIndexHandlePool::ObIndexHandlePool() :
-      inited_(false), thread_num_(0), process_idx_tid_(OB_INVALID_ID), schedule_idx_tid_(
-                                                                         OB_INVALID_ID), tablet_index_(0), range_index_(0), hist_width_(0), tablets_have_got_(
-                                                                                                                                              0), active_thread_num_(0), min_work_thread_num_(0), round_start_(
-                                                                                                                                                                                                    ROUND_TRUE), round_end_(TABLET_RELEASE), which_stage_(
-                                                                                                                                                                                                                                               STAGE_INIT), tablet_manager_(NULL), total_work_last_end_time_(
-                                                                                                                                                                                                                                                                                     0)
+      inited_(false), thread_num_(0), process_idx_tid_(OB_INVALID_ID),
+      schedule_idx_tid_(OB_INVALID_ID), tablet_index_(0), range_index_(0),
+      hist_width_(0), tablets_have_got_(0), active_thread_num_(0),
+      min_work_thread_num_(0), round_start_(ROUND_TRUE), round_end_(TABLET_RELEASE),
+      which_stage_(STAGE_INIT)
     {
+      total_work_start_time_ = 0;
       static_index_report_infolist = OB_NEW(ObTabletHistogramReportInfoList,
                                             ObModIds::OB_TABLET_HISTOGRAM_REPORT);
     }
@@ -191,7 +191,7 @@ namespace oceanbase
       }
       else
       {
-        TBSYS_LOG(ERROR,"test::longfei>>>size[%ld]",size);
+//        TBSYS_LOG(ERROR,"test::longfei>>>size[%ld]",size);
         for (int64_t i = 0; i < size; i++)
         {
           ObLocalIndexHandler* local_handlers =
@@ -227,8 +227,8 @@ namespace oceanbase
           else
           {
             global_handler[i] = global_handlers;
-            TBSYS_LOG(ERROR, "test::whx get golbal handler = %s, i = %ld, table_id = %ld",
-                         to_cstring(global_handler[i]->get_new_range()),i, global_handler[i]->get_table_id_test());
+//            TBSYS_LOG(ERROR, "test::whx get golbal handler = %s, i = %ld, table_id_for_test = %ld",
+//                         to_cstring(global_handler[i]->get_new_range()),i, global_handler[i]->get_table_id_test());
           }
         }
         TBSYS_LOG(INFO,"allocate memory for index handler finish");
@@ -340,8 +340,7 @@ namespace oceanbase
           TBSYS_LOG(ERROR, "failed in take schema!");
           ret = OB_SCHEMA_ERROR;
         }
-        else if (NULL
-                 == (index_schema = schema_mgr->get_table_schema(process_idx_tid_)))
+        else if (NULL == (index_schema = schema_mgr->get_table_schema(process_idx_tid_)))
         {
           TBSYS_LOG(ERROR, "failed in find schema[%ld]", process_idx_tid_);
           ret = OB_SCHEMA_ERROR;
@@ -349,10 +348,7 @@ namespace oceanbase
         ori_tid = index_schema->get_original_table_id();
         //找到本机上存储ori_tid对应的table的tablet的数据放到vector中
         TBSYS_LOG(INFO,"local stage:index_tid[%ld],original_tid[%ld].",process_idx_tid_,ori_tid);
-        if (OB_SUCCESS
-            != (ret =
-                tablet_manager_->get_serving_tablet_image().get_serving_image().acquire_tablets_by_table_id(
-                  ori_tid, tablet_list)))
+        if (OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().acquire_tablets_by_table_id(ori_tid, tablet_list)))
         {
           TBSYS_LOG(WARN, "get tablets error!");
         }
@@ -390,15 +386,14 @@ namespace oceanbase
 //                  TBSYS_LOG(ERROR,
 //                            "error in is_need_static_index_tablet,ret[%d]", ret);
 //                }
-                if ((*it)->get_sstable_id_list().count()
-                    == ObTablet::MAX_SSTABLE_PER_TABLET)
+                if ((*it)->get_sstable_id_list().count() == ObTablet::MAX_SSTABLE_PER_TABLET)
                 {
                   TBSYS_LOG(WARN,
                             "This tablet's can't add sstable,sstable'num = %ld",
                             ObTablet::MAX_SSTABLE_PER_TABLET);
                   need_index = false;
                 }
-                else if (need_index)
+                if (need_index)
                 {
                   //TBSYS_LOG(INFO,"test::whx add tablet in array");
                   TabletRecord record;
@@ -407,10 +402,8 @@ namespace oceanbase
                   //也就是说还没有进行排序
                   tablet_array_.push_back(record);
                 }
-                else if (OB_SUCCESS
-                         != (ret =
-                             tablet_manager_->get_serving_tablet_image().release_tablet(
-                               *it)))
+                else if (OB_SUCCESS !=
+                         (ret = tablet_manager_->get_serving_tablet_image().release_tablet(*it)))
                 {
                   TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]",
                             ret);
@@ -856,8 +849,8 @@ namespace oceanbase
       pthread_mutex_lock(&phase_mutex_);
       if (ROUND_FALSE >= round_end_)
       {
-        if (OB_RESPONSE_TIME_OUT == (ret =
-                                     ObIndexReporter::send_index_info(tablet_manager_, process_idx_tid_)))
+        if (OB_RESPONSE_TIME_OUT ==
+            (ret =ObIndexReporter::send_index_info(tablet_manager_, process_idx_tid_)))
         {
           TBSYS_LOG(WARN, "send index tablets info failed = %d", ret);
         }
@@ -938,41 +931,25 @@ namespace oceanbase
       range = NULL;
       if (tablet_array_.count() > 0 && tablet_index_ < tablet_array_.count())
       {
-        TBSYS_LOG(INFO,
-                  "get tablet from local list,tablet_index_:%ld,tablets_num_:%ld",
-                  tablet_index_, tablet_array_.count());
+        TBSYS_LOG(INFO,"get tablet from local list,tablet_index_:%ld,tablets_num_:%ld",tablet_index_, tablet_array_.count());
         tablet = &(tablet_array_.at(tablet_index_++));
         err = OB_GET_TABLETS;
       }
       //liumz, 多线程已经处理完tablet_array_.count()个tablet
-      else if (tablets_have_got_ == tablet_array_.count()
-               && tablets_have_got_ != 0)
+      else if (tablets_have_got_ == tablet_array_.count() && tablets_have_got_ != 0)
       {
         if (check_if_tablet_range_failed(true, tablet, range)) //检查是否有失败的任务，有的话，赋值，继续完成
         {
           err = OB_GET_TABLETS;
         }
-        else if (is_phase_one_need_end()
-                 && OB_SUCCESS == (ret = finish_phase1(reported)))//@todo(maoxx):在finish_phase1()中完成局部直方图的汇报。
+        else if (is_phase_one_need_end() && OB_SUCCESS == (ret = finish_phase1(reported)))
         {
           if (reported)
           {
             TBSYS_LOG(INFO, "report local index tablet success!");
           }
         }
-        //todo
-        ///继续尝试向rs获取构建局部索引的range，如果没有，则返回ret = OB_GET_NOTHING;
       }
-      ///todo if(range_num == 0 && prepare_range_to_build)
-      /// {
-      ///  |-- >首先尝试去rootserver取全局索引的range，如果没有得到，则说明还处于局部索引的构建阶段
-      ///
-      /// }
-      /// else
-      /// {
-      ///  |-- >如果得到了一个range，则对range进行赋值，并返回ret = OB_GET_RANGES;
-      ///  |-- >如果range取完，则先汇报，之后再尝试去取一个range
-      /// }
       if (OB_GET_NOTHING == err)
       {     
         if (0 < range_array_.count() && range_index_ < range_array_.count())
@@ -980,22 +957,22 @@ namespace oceanbase
           range = &range_array_.at(range_index_++);
           err = OB_GET_RANGES;
         }
-        else if (range_have_got_ == range_array_.count()
-                 && range_have_got_ != 0)
+        else if (range_have_got_ == range_array_.count() && range_have_got_ != 0)
         {
           if (check_if_tablet_range_failed(false, tablet, range)) //检查是否有失败的任务，有的话，赋值，继续完成
           {
             err = OB_GET_RANGES;
           }
-          else if (is_phase_two_need_end() && OB_SUCCESS == (ret =
-                                                             finish_phase2(total_reported)))
+          else if (is_phase_two_need_end() && OB_SUCCESS ==
+                   (ret = finish_phase2(total_reported)))
           {
             if (total_reported)
             {
-              TBSYS_LOG(INFO, "report total index tablet success!");
+              TBSYS_LOG(INFO, "report total index tablet success!");  
             }
           }
         }
+        //
       }
       TBSYS_LOG(ERROR,"test::longfei>>>ret[%d],err[%d]",ret,err);
       return ret;
@@ -1010,8 +987,7 @@ namespace oceanbase
         tablet = tablet_array_.at(i).tablet_;
         if (OB_SUCCESS
             != (ret =
-                tablet_manager_->get_serving_tablet_image().release_tablet(
-                  tablet)))
+                tablet_manager_->get_serving_tablet_image().release_tablet(tablet)))
         {
           TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]", ret);
           break;
@@ -1211,16 +1187,12 @@ namespace oceanbase
             pthread_mutex_lock(&mutex_);
           }
           else if (OB_GET_NOTHING == err)
-            //因为处于测试版本，所以当得不到任何东西时就该阻塞线程
-            //else if(OB_GET_NOTHING == err && is_current_index_complete())
-            //而实际情况里，直到确定索引表构建成功，才会阻塞线程
           {
             --active_thread_num_;
             TBSYS_LOG(INFO,
                       "there is no tablet need build static index,sleep wait for new index process.");
             pthread_cond_wait(&cond_, &mutex_);//在这儿阻塞handler，等待start_round(...)准备好信息之后发送广播。
-            TBSYS_LOG(INFO, "awake by signal,active_thread_num_=:%ld",
-                      active_thread_num_);
+            TBSYS_LOG(INFO, "awake by signal,active_thread_num_=:%ld",active_thread_num_);
             ++active_thread_num_;
           }
           else
@@ -1663,6 +1635,7 @@ namespace oceanbase
       //schedule_idx_tid_ = OB_INVALID_ID;
       process_idx_tid_ = OB_INVALID_ID;
       total_work_last_end_time_ = 0;
+      total_work_start_time_ = 0;
       allocator_.reuse();
     }
 
@@ -1696,12 +1669,12 @@ namespace oceanbase
       return ret;
     }
 
-    //add wenghaixing[secondary index static_index_build.fix]20150728
-    void ObIndexHandlePool::try_stop_mission(uint64_t index_tid)
+    int ObIndexHandlePool::try_stop_mission(uint64_t index_tid)
     {
       //modify by liuxiao [secondary index static_index_build.fix] 20150812
       //bool need_set_time = false;
       //if(0 == total_work_last_end_time_ && index_tid != process_idx_tid_ && index_tid != OB_INVALID_ID)
+      int ret = OB_SUCCESS;
       if (0 == total_work_last_end_time_ && index_tid != process_idx_tid_)
         //modify e
       {
@@ -1745,11 +1718,35 @@ namespace oceanbase
             int64_t time = tbsys::CTimeUtil::getTime();
             total_work_last_end_time_ = time;
           }
+
+          //等待所有线程都停下来
+          while(true)
+          {
+            TBSYS_LOG(ERROR,"test::longfei>>>wait here...active_thread_num[%ld]",active_thread_num_);
+            if(active_thread_num_ == 0)
+              break;
+          }
+          //线程都做完
+          if (OB_SUCCESS == (ret = release_tablet_array()))
+          {
+            TBSYS_LOG(ERROR,"test::longfei>>>round_end[%d]",round_end_);
+          }
+          reset();
         }
-        pthread_mutex_unlock(&mutex_);
+        pthread_mutex_unlock(&mutex_);      
       }
+      return ret;
     }
-    //add e
+
+    bool ObIndexHandlePool::check_if_in_processing(uint64_t index_tid)
+    {
+      bool res = false;
+      if (OB_INVALID_ID != index_tid && index_tid == process_idx_tid_)
+      {
+        res = true;
+      }
+      return res;
+    }
 
   }//end chunkserver
 

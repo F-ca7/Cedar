@@ -134,9 +134,9 @@ namespace oceanbase
       int push_work(BlackList &list);
       void reset();
       int is_tablet_handle(ObTablet* tablet, bool &is_handle);
-      //add wenghaixing[secondary index static_index_build.fix]20150728
-      void try_stop_mission(uint64_t index_tid);
-      //add e
+      int try_stop_mission(uint64_t index_tid);
+      bool check_if_in_processing(uint64_t index_tid);
+
       inline bool is_work_stoped() const
       {
         return 0 == active_thread_num_ || OB_INVALID_ID == process_idx_tid_;
@@ -195,6 +195,12 @@ namespace oceanbase
         }
       }
 
+      inline bool check_new_global()
+      {
+        TBSYS_LOG(ERROR,"test::longfei>>>total_work_start_time_[%ld]",total_work_start_time_);
+        return (total_work_start_time_ == 0);
+      }
+
       //add e
     public:
       inline hash::ObHashMap <ObNewRange, ObTabletLocationList,
@@ -212,6 +218,10 @@ namespace oceanbase
       inline void set_which_stage(common::ConIdxStage which_stage)
       {
         which_stage_ = which_stage;
+        if (which_stage_ == GLOBAL_INDEX_STAGE)
+        {
+          total_work_start_time_ = tbsys::CTimeUtil::getTime();
+        }
       }
       // add e
 

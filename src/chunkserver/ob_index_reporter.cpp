@@ -40,7 +40,10 @@ namespace oceanbase
 
               if(OB_SUCCESS != ret)
               {
-                TBSYS_LOG(WARN, "failed to get tablet histogram info, err=%d", ret);
+                if (OB_ITER_END != ret)
+                {
+                  TBSYS_LOG(WARN, "failed to get tablet histogram info, err=%d", ret);
+                }
               }
               else
               {
@@ -134,7 +137,10 @@ namespace oceanbase
 
           bool is_version_changed = false;
           ObMultiVersionTabletImage& image = tablet_manager->get_serving_tablet_image();
-          if (OB_SUCCESS == err) err = image.begin_scan_tablets();
+          if (OB_SUCCESS == err)
+          {
+            err = image.begin_scan_tablets();
+          }
           if (OB_ITER_END == err)
           {
             image.end_scan_tablets();
@@ -150,8 +156,10 @@ namespace oceanbase
           {
             while (OB_SUCCESS == err)
             {
+              TBSYS_LOG(ERROR, "test::longfei in while num = %ld", num);
               while (OB_SUCCESS == err && num > 0)
               {
+
                 err = image.get_next_tablet(tablet);
                 if (OB_ITER_END == err)
                 {

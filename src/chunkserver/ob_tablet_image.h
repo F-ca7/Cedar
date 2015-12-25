@@ -205,8 +205,8 @@ namespace oceanbase
         sstable::ObSSTableReader* alloc_sstable_object();
         compactsstablev2::ObCompactSSTableReader* alloc_compact_sstable_object();
         int reset();
-        inline int64_t acquire() const { return __sync_add_and_fetch((volatile int64_t*)&ref_count_, 1); }
-        inline int64_t release() const { return __sync_sub_and_fetch((volatile int64_t*)&ref_count_, 1); }
+        inline int64_t acquire() const { TBSYS_LOG(ERROR, "test::longfei acquire ref_count = %ld,", ref_count_);return __sync_add_and_fetch((volatile int64_t*)&ref_count_, 1); }
+        inline int64_t release() const { TBSYS_LOG(ERROR, "test::longfei release ref_count = %ld,", ref_count_);return __sync_sub_and_fetch((volatile int64_t*)&ref_count_, 1); }
 
       private:
         static const int64_t DEFAULT_TABLET_NUM = 128 * 1024L;

@@ -1499,9 +1499,9 @@ namespace oceanbase
         {
           if (OB_SUCCESS != (err = tablet->find_loc_idx_sstable(
                         *scan_param.get_range(), &sstable_reader, size)) )
-                {
-                  TBSYS_LOG(WARN, "find_loc_idx_sstable err=%d, size=%d", err, size);
-                }
+          {
+            TBSYS_LOG(WARN, "find_loc_idx_sstable err=%d, size=%d", err, size);
+          }
           else
           {
             //TBSYS_LOG(ERROR,"test::longfei load local index,scan_param = %s,fake_range = %s",to_cstring(*scan_param.get_range()),to_cstring(*scan_param.get_fake_range()));

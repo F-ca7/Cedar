@@ -959,7 +959,7 @@ namespace oceanbase
     // add longfei [cons static index] 151121:b
     const int ObTabletImage::acquire_tablets_by_table_id(
         const uint64_t table_id,
-        common::ObVector<ObTablet *> &table_tablets) const
+        common::ObVector<ObTablet*> &table_tablets) const
     {
       int ret = OB_SUCCESS;
       if (OB_INVALID_ID == table_id)

@@ -393,7 +393,14 @@ namespace oceanbase
             void set_hist_width(int64_t hist_width);
             bool get_round_end();
             uint64_t get_schedule_idx_tid();
-            void try_stop_mission(uint64_t index_tid);
+            int try_stop_mission(uint64_t index_tid);
+            bool check_new_global();
+            /**
+             * @brief check_if_in_processing
+             * @param [in] index_tid
+             * @return
+             */
+            bool check_if_in_processing(uint64_t index_tid);
             virtual void runTimerTask();
           public:
             // add longfei [cons static index] :b

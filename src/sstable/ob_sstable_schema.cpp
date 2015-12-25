@@ -1528,6 +1528,10 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"add column_def(%u,%u,%u,%u) failed col_index : %ld",column_def.table_id_,
                 column_def.column_group_id_,column_def.column_name_id_,column_def.rowkey_seq_, col_index);
           }
+          else
+          {
+            TBSYS_LOG(ERROR, "test::longfei add non-rowkey table_id = %d clomun = %d",column_def.table_id_, (int)(column_def.column_name_id_));
+          }
         }
       }
 

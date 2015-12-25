@@ -146,6 +146,7 @@ int ObSSTableScan::close()
   if (NULL != scan_context_.tablet_)
   {
     ret = scan_context_.tablet_image_->release_tablet(scan_context_.tablet_);
+    scan_context_.tablet_ = NULL;
   }
   return ret;
 }

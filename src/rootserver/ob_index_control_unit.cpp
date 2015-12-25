@@ -396,7 +396,7 @@ namespace oceanbase
                 }
                 else if (!finished2)
                 {
-                  TBSYS_LOG(INFO, "building local static index [%lu], sleep %ldus and check again.", idx_id, sleep_interval);
+                  TBSYS_LOG(INFO, "building global static index [%lu], sleep %ldus and check again.", idx_id, sleep_interval);
                   usleep(sleep_interval);
                 }
               }//end while 2

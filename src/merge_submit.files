@@ -1253,7 +1253,6 @@ sql/ob_in_memory_sort.cpp
 sql/ob_in_memory_sort.h
 sql/ob_inc_scan.cpp
 sql/ob_inc_scan.h
-sql/ob_index_handle_pool.cpp
 sql/ob_index_trigger.cpp
 sql/ob_index_trigger.h
 sql/ob_insert.cpp

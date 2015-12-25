@@ -182,8 +182,9 @@ namespace oceanbase
         inline bool is_with_next_brother() const { return with_next_brother_ > 0; }
         inline int32_t get_merge_count() const { return merge_count_; }
         inline void inc_merge_count() { ++merge_count_; }
-        inline int64_t inc_ref() { return __sync_add_and_fetch(&ref_count_, 1); }
-        inline int64_t dec_ref() { return __sync_sub_and_fetch(&ref_count_, 1); }
+        //@(longfei):__sync_add_and_fetch相当于(++i),自动加上线程锁,保证原子性
+        inline int64_t inc_ref() { if(range_.table_id_ == 3001)TBSYS_LOG(ERROR,"test::longfei>>>tablet [%ld] inc ref_count[%ld]",range_.table_id_, ref_count_);return __sync_add_and_fetch(&ref_count_, 1); }
+        inline int64_t dec_ref() { if(range_.table_id_ == 3001)TBSYS_LOG(ERROR,"test::longfei>>>tablet [%ld] dec ref_count[%ld]",range_.table_id_, ref_count_);return __sync_sub_and_fetch(&ref_count_, 1); }
         inline int32_t get_compactsstable_num() {return compactsstable_num_;}
         int add_compactsstable(compactsstable::ObCompactSSTableMemNode* cache);
         compactsstable::ObCompactSSTableMemNode* get_compactsstable_list();

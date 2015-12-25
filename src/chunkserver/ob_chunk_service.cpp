@@ -4736,8 +4736,8 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int64_t wait_time = 5000000;
-      if (OB_INVALID_ID == beat.idx_tid_ && ERROR == beat.status_
-          && 0 == beat.hist_width_ && STAGE_INIT == beat.stage_)
+      bool is_processing = false;//判断beat.idx_tid_是不是正在处理
+      if (OB_INVALID_ID == beat.idx_tid_ && ERROR == beat.status_ && 0 == beat.hist_width_ && STAGE_INIT == beat.stage_)
       {
         //NORMAL STATUS, DO NOTHING AT THIS TIME
       }
@@ -4745,17 +4745,20 @@ namespace oceanbase
           && LOCAL_INDEX_STAGE == beat.stage_)
       {
         //con local static index
-        se_index_task_.set_which_stage(LOCAL_INDEX_STAGE);
         TBSYS_LOG(DEBUG,
             "index se_index_task_ schedule tid[%ld],is_schedules = [%d],get_round_end = [%d]",
             se_index_task_.get_schedule_idx_tid(),
             se_index_task_.is_scheduled(),
             se_index_task_.get_round_end());
+        //check if this idx_tid_ is processing?
+        is_processing = se_index_task_.check_if_in_processing(beat.idx_tid_);
+        TBSYS_LOG(ERROR,"test::longfei>>>is processing?[%s]",is_processing?"yes":"no");
         if (!se_index_task_.is_scheduled() && se_index_task_.get_round_end())
         {
           if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
           {
             se_index_task_.set_hist_width(beat.hist_width_);
+            se_index_task_.set_which_stage(LOCAL_INDEX_STAGE);
             TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]",
                 beat.idx_tid_, beat.hist_width_);
             if (OB_SUCCESS
@@ -4777,7 +4780,7 @@ namespace oceanbase
             ret = OB_ERROR;
           }
         }
-        else if (!se_index_task_.get_round_end())
+        else if (!se_index_task_.get_round_end() && !is_processing )
         {
           TBSYS_LOG(INFO, "try stop mission");
           se_index_task_.try_stop_mission(beat.idx_tid_);
@@ -4787,12 +4790,17 @@ namespace oceanbase
           && GLOBAL_INDEX_STAGE == beat.stage_)
       {
         //con global static index
-        se_index_task_.reset();
-        se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
-        ObTabletManager& tablet_manager = se_index_task_.get_chunk_service()->chunk_server_->get_tablet_manager();
-        if(OB_SUCCESS != (ret = tablet_manager.get_ready_for_con_index(GLOBAL_INDEX_STAGE)))
+        bool new_flag = se_index_task_.check_new_global();
+        TBSYS_LOG(ERROR,"test::longfei>>>new_flag[%d]",new_flag);
+        if(new_flag)
         {
-          TBSYS_LOG(WARN,"get range for global stage failed.ret[%d]",ret);
+          se_index_task_.reset();
+          se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
+          ObTabletManager& tablet_manager = se_index_task_.get_chunk_service()->chunk_server_->get_tablet_manager();
+          if(OB_SUCCESS != (ret = tablet_manager.get_ready_for_con_index(GLOBAL_INDEX_STAGE)))
+          {
+            TBSYS_LOG(WARN,"get range for global stage failed.ret[%d]",ret);
+          }
         }
       }
       else
@@ -4857,7 +4865,7 @@ namespace oceanbase
        return tablet_manager.get_index_handle_pool().get_schedule_idx_tid();
      }
 
-     void ObChunkService::SeIndexTask::try_stop_mission(uint64_t index_tid)
+     int ObChunkService::SeIndexTask::try_stop_mission(uint64_t index_tid)
      {
        ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
        return tablet_manager.get_index_handle_pool().try_stop_mission(index_tid);
@@ -4867,6 +4875,18 @@ namespace oceanbase
      {
        which_stage_ = stage;
        TBSYS_LOG(INFO,"set secondary index task stage[%d] succ.",which_stage_);
+     }
+
+     bool ObChunkService::SeIndexTask::check_if_in_processing(uint64_t index_tid)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().check_if_in_processing(index_tid);
+     }
+
+     bool ObChunkService::SeIndexTask::check_new_global()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().check_new_global();
      }
 
      void ObChunkService::SeIndexTask::reset()

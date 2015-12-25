@@ -26,7 +26,7 @@ namespace oceanbase
     {
       // TODO Auto-generated constructor stub
       table_id_ = 1024;//@fixme(longfei):for test
-      TBSYS_LOG(ERROR,"test::longfei>>>handle_pool_ is null?[%s]",((get_handle_pool() == NULL)?"yes":"no"));
+      //TBSYS_LOG(ERROR,"test::longfei>>>handle_pool_ is null?[%s]",((get_handle_pool() == NULL)?"yes":"no"));
 
     }
 
@@ -288,6 +288,7 @@ namespace oceanbase
             else
             {
               //ret = OB_SUCCESS;
+              TBSYS_LOG(ERROR, "test::longfei send tablet cc success");
             }
             //add liuxiao [secondary index col checksum] 20150525
             column_checksum_.reset();
@@ -301,8 +302,7 @@ namespace oceanbase
       if (OB_SUCCESS == ret)
       {
         ObTablet* index_image_tablet;
-        ObMultiVersionTabletImage& tablet_image =
-            get_tablet_mgr()->get_serving_tablet_image();
+        ObMultiVersionTabletImage& tablet_image = get_tablet_mgr()->get_serving_tablet_image();
         bool sync_meta = THE_CHUNK_SERVER.get_config().each_tablet_sync_meta;
         if ((ret = tablet_image.alloc_tablet_object(get_new_range(), get_frozen_version(),
             index_image_tablet)) != OB_SUCCESS)
@@ -384,31 +384,20 @@ namespace oceanbase
     int ObGlobalIndexHandler::cons_row_desc_without_virtual(ObRowDesc &desc)
     {
       int ret = OB_SUCCESS;
-      int64_t key_count = 0;
-      int64_t column_count = 0;
+      //int64_t key_count = 0;
+      //int64_t column_count = 0;
       const ObTableSchema* index_schema;
-      const ObTableSchema* schema;
+      const ObTableSchema* table_schema;
       const ObSSTableSchemaColumnDef* col_def = NULL;
       //const ObSchemaManagerV2 *schemav2 = get_merge_schema_mgr()->get_user_schema(get_frozen_version());
       uint64_t max_data_table_cid = OB_INVALID_ID;
       index_schema = get_schema_mgr()->get_table_schema(table_id_);
       uint64_t data_tid = index_schema->get_original_table_id();
-      schema = get_schema_mgr()->get_table_schema(data_tid);
+      table_schema = get_schema_mgr()->get_table_schema(data_tid);
       max_data_table_cid =
           get_schema_mgr()->get_table_schema(data_tid)->get_max_column_id();
-      if (OB_SUCCESS
-          != (ret = get_sstable_schema().get_rowkey_column_count(table_id_,
-              key_count)))
-      {
-        TBSYS_LOG(WARN, "get rowkey count failed,tid[%ld],ret[%d]", table_id_,
-            ret);
-      }
-      else
-      {
-        column_count = get_sstable_schema().get_column_count();
-      }
-      desc.set_rowkey_cell_count(schema->get_rowkey_info().get_size());
-      for (int64_t i = 0; i < column_count; i++)
+      desc.set_rowkey_cell_count(index_schema->get_rowkey_info().get_size());
+      for (int64_t i = 0; i < get_sstable_schema().get_column_count(); i++)
       {
         if (NULL == (col_def = get_sstable_schema().get_column_def((int) i)))
         {
@@ -417,30 +406,7 @@ namespace oceanbase
               table_id_, i, ret);
           break;
         }
-        else if (schema->get_rowkey_info().is_rowkey_column(
-            col_def->column_name_id_))
-        {
-          if (OB_SUCCESS
-              != (desc.add_column_desc(table_id_, col_def->column_name_id_)))
-          {
-            TBSYS_LOG(WARN, "failed to set column desc table_id[%ld], ret[%d]",
-                table_id_, ret);
-            break;
-          }
-        }
-      }
-      for (int64_t i = 0; i < column_count; i++)
-      {
-        if (NULL == (col_def = get_sstable_schema().get_column_def((int) i)))
-        {
-          TBSYS_LOG(WARN,
-              "failed to get column def of table[%ld], i[%ld],ret[%d]",
-              table_id_, i, ret);
-          break;
-        }
-        else if (!schema->get_rowkey_info().is_rowkey_column(
-            col_def->column_name_id_)
-            && col_def->column_name_id_ <= max_data_table_cid)
+        else if (col_def->column_name_id_ <= max_data_table_cid)
         {
           if (OB_SUCCESS
               != (desc.add_column_desc(table_id_, col_def->column_name_id_)))
@@ -578,94 +544,49 @@ namespace oceanbase
     {
 
       int ret = OB_SUCCESS;
-      int64_t count = 0;
-      const ObRowDesc::Desc *desc_index = desc.get_cells_desc_array(count);
-      if (OB_SUCCESS == ret)
+      int64_t row_desc_count = 0;
+      const ObRowDesc::Desc *row_desc_idx = desc.get_cells_desc_array(row_desc_count);
+      int pos = 0, len = 0;
+      const ObObj* obj = NULL;
+      ObBatchChecksum bc;
+      for (int64_t i = 0; i < row_desc_count; i++)
       {
-        int pos = 0, len = 0;
-        const ObObj* obj = NULL;
-        uint64_t column_id = OB_INVALID_ID;
-        ObBatchChecksum bc;
-        uint64_t rowkey_checksum = 0;
-        int64_t rowkey_count = 0;
-        for (int64_t i = 0; i < count; i++)
+        row.get_cell(tid, row_desc_idx[i].column_id_, obj);
+        if (obj == NULL)
         {
-          row.get_cell(tid, desc_index[i].column_id_, obj);
+          ret = OB_ERROR;
+          TBSYS_LOG(ERROR, "get sstable row obj error,ret=%d", ret);
+          break;
+        }
+        else
+        {
           bc.reset();
-          if (obj == NULL)
+          obj->checksum(bc);
+          len = snprintf(column_checksum + pos,
+                         OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%ld", row_desc_idx[i].column_id_);
+          if (len < 0)
           {
+            TBSYS_LOG(ERROR, "write column checksum error");
             ret = OB_ERROR;
-            TBSYS_LOG(ERROR, "get sstable row obj error,ret=%d", ret);
             break;
           }
           else
           {
-            obj->checksum(bc);
-            if (rowkey_count < desc.get_rowkey_cell_count())
+            pos += len;
+            column_checksum[pos++] = ':';
+            if (pos < OB_MAX_COL_CHECKSUM_STR_LEN - 1)
             {
-              rowkey_count++;
-              rowkey_checksum += bc.calc();
-              if (rowkey_count == desc.get_rowkey_cell_count())
-              {
-                //0 for rowkey column checksum
-                len = snprintf(column_checksum + pos,
-                    OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%ld", (uint64_t) 0);
-                if (len < 0)
-                {
-                  TBSYS_LOG(ERROR, "write column checksum error");
-                  ret = OB_ERROR;
-                }
-                else
-                {
-                  pos += len;
-                  column_checksum[pos++] = ':';
-                  if (pos < OB_MAX_COL_CHECKSUM_STR_LEN - 1)
-                  {
-                    len = snprintf(column_checksum + pos,
-                        OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%lu",
-                        rowkey_checksum);
-                    pos += len;
-                  }
-                  if (i != count - 1)
-                  {
-                    column_checksum[pos++] = ',';
-                  }
-                  else
-                  {
-                    column_checksum[pos++] = '\0';
-                  }
-                }
-              }
+              len = snprintf(column_checksum + pos,
+                             OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%lu", bc.calc());
+              pos += len;
+            }
+            if (i != row_desc_count - 1)
+            {
+              column_checksum[pos++] = ',';
             }
             else
             {
-              column_id = desc_index[i].column_id_;
-              len = snprintf(column_checksum + pos,
-                  OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%ld", column_id);
-              if (len < 0)
-              {
-                TBSYS_LOG(ERROR, "write column checksum error");
-                ret = OB_ERROR;
-              }
-              else
-              {
-                pos += len;
-                column_checksum[pos++] = ':';
-                if (pos < OB_MAX_COL_CHECKSUM_STR_LEN - 1)
-                {
-                  len = snprintf(column_checksum + pos,
-                      OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%lu", bc.calc());
-                  pos += len;
-                }
-                if (i != count - 1)
-                {
-                  column_checksum[pos++] = ',';
-                }
-                else
-                {
-                  column_checksum[pos++] = '\0';
-                }
-              }
+              column_checksum[pos++] = '\0';
             }
           }
         }
