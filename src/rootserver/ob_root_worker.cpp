@@ -2606,6 +2606,7 @@ namespace oceanbase
         else
         {
           int server_index = root_server_.get_server_index(server);
+          TBSYS_LOG(ERROR,"test::longfei>>>Server[%s],server_index[%d]",to_cstring(server),server_index);
           result_msg.result_code_ = icu_.handle_histograms(*tablet_list, server_index);
           if (OB_SUCCESS != result_msg.result_code_)
             TBSYS_LOG(ERROR, "report_histograms() error.");

@@ -939,8 +939,53 @@ int ObRootBalancer::do_rereplication_by_table(const uint64_t table_id, bool &sca
       }
       else
       {
-        TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
-            root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+        //mod longfei [cons static index] 151227:b
+//        TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
+//            root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+
+        //double check schema
+        //if table is invalid index table, do not print error log, just warn
+        bool b_invalid_tid = true;
+        int err = OB_SUCCESS;
+        common::ObSchemaManagerV2 *schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+        if (NULL == schema_mgr)
+        {
+          TBSYS_LOG(WARN, "fail to new schema_manager.");
+          err = OB_ALLOCATE_MEMORY_FAILED;
+        }
+        else if (OB_SUCCESS != (err = root_server_->get_schema(false, false, *schema_mgr)))
+        {
+          TBSYS_LOG(WARN, "fail to get schema manager. err=%d", err);
+        }
+        else
+        {
+          const ObTableSchema *table_schema = NULL;
+          table_schema = schema_mgr->get_table_schema(table_id);
+          if (NULL == table_schema)
+          {
+            err = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN, "get table schema failed, table_id = [%lu]", table_id);
+          }
+          else if (OB_INVALID_ID != table_schema->get_original_table_id()
+                   && (ERROR == table_schema->get_index_status()
+                       || INDEX_INIT == table_schema->get_index_status()))
+          {
+            b_invalid_tid = false;
+            TBSYS_LOG(WARN, "find unavailiable index table not in root table, ignore it. role[%d], master[%d], table_id[%lu]",
+                root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+          }
+        }
+        //忽略由于schema err导致的invalid_tid: 进入函数之前schema中有table schema信息，进入之后schema中找不到
+        if (OB_SUCCESS != err && b_invalid_tid)
+        {
+          TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
+              root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+        }
+        if (schema_mgr != NULL)
+        {
+          OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+        }
+        //mod e
       }
     }
     else

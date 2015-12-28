@@ -86,7 +86,7 @@ namespace oceanbase
             {
               TBSYS_LOG(WARN, "failed to add tablet histogram info, err=%d", ret);
             }
-            TBSYS_LOG(ERROR, "test longfei tablet info to report = %s", to_cstring(report_info->tablet_info.range_));
+            TBSYS_LOG(ERROR, "test longfei tablet info to report 1 = %s,add in info 2 = %s", to_cstring(report_list->tablets[0].tablet_info.range_), to_cstring(report_list->tablets[1].tablet_info.range_));
 
             int64_t retry_times = THE_CHUNK_SERVER.get_config().retry_times;
             RPC_RETRY_WAIT(!(tablet_manager->is_stoped()),  retry_times, ret, CS_RPC_CALL_RS(report_tablets_histogram, THE_CHUNK_SERVER.get_self(), *report_list, tablet_manager->get_serving_data_version(), false));

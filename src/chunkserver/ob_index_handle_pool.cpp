@@ -494,6 +494,7 @@ namespace oceanbase
 
         start_key.set_min_row();
         need_other_cs = true;
+        scanner.reset();
         if (OB_SUCCESS != (ret = data_multcs_range_hash_.clear()))
         {
           TBSYS_LOG(WARN,"data multcs range hash clear error!ret[%d]",ret);

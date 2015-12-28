@@ -234,7 +234,7 @@ namespace oceanbase
           }
         }
       }
-
+      TBSYS_LOG(ERROR, "test::longfei obj_ptr = %p", obj_ptr_);
       return pos;
     }
 

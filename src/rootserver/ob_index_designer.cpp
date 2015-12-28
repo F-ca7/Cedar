@@ -107,6 +107,7 @@ namespace oceanbase
       }
       else if(pos == end())
       {
+        TBSYS_LOG(ERROR,"test::longfei>>>pos[%p],end[%p]",pos,end());
         //new tablet info,should add in meta index
         hist_meta.report_cs_info[0].server_info_index = server_index;
         hist_meta.report_cs_info[0].report_timestamp = tbsys::CTimeUtil::getTime();
@@ -234,7 +235,7 @@ namespace oceanbase
         {
           const ObTabletInfo *compare = NULL;
           if(val)inner_pos++;
-          if(OB_SUCCESS != (get_rt_tablet_info(pos->root_meta_index, compare)))
+          if(OB_SUCCESS != (get_rt_tablet_info(pos->root_meta_index, compare)))//root_meta_index:在root table中的索引
           {
             TBSYS_LOG(WARN, "failed to get tablet info for compare");
           }

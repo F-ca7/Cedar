@@ -24,7 +24,7 @@ namespace oceanbase
 
     struct ObTabletHistogramMeta
     {
-      int32_t root_meta_index;
+      int32_t root_meta_index; //root table的索引
       ReportCSInfo report_cs_info[common::OB_SAFE_COPY_COUNT];
       int64_t hist_index;
       ObTabletHistogramMeta(): root_meta_index(OB_INVALID_INDEX), hist_index(OB_INVALID_INDEX)
@@ -87,7 +87,7 @@ namespace oceanbase
       }
       ~ ObTabletHistogram()
       {
-        if(NULL != allocator_)
+        if(NULL != allocator_ && allocator_flag_)
         allocator_->free();
         allocator_ = NULL;
       }
@@ -104,12 +104,15 @@ namespace oceanbase
       void init()
       {
         sample_helper_.init(MAX_SAMPLE_BUCKET, samples_);
+        allocator_flag_ = true;
       }
 
       int64_t get_sample_count() const
       {
         return sample_helper_.get_array_index();
       }
+
+      void do_not_free(){allocator_flag_ = false;}
 
       void dump() const;
 
@@ -134,6 +137,7 @@ namespace oceanbase
       common::ModuleArena *allocator_;
       ObTabletSample samples_[MAX_SAMPLE_BUCKET];
       common::ObArrayHelper<ObTabletSample> sample_helper_;
+      bool allocator_flag_;
     };
 
     template <typename Allocator>

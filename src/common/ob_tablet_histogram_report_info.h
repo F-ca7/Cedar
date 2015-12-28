@@ -19,6 +19,7 @@ namespace oceanbase
       ObTabletInfo tablet_info;
       ObTabletLocation tablet_location;
       ObTabletHistogram static_index_histogram;
+      //ObObj ptr[OB_MAX_ROWKEY_COLUMN_NUMBER * 2];
       bool operator== (const ObTabletReportInfo &other) const;
       NEED_SERIALIZE_AND_DESERIALIZE;
     };

@@ -4794,12 +4794,34 @@ namespace oceanbase
         TBSYS_LOG(ERROR,"test::longfei>>>new_flag[%d]",new_flag);
         if(new_flag)
         {
-          se_index_task_.reset();
+          /*se_index_task_.reset();
           se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
           ObTabletManager& tablet_manager = se_index_task_.get_chunk_service()->chunk_server_->get_tablet_manager();
           if(OB_SUCCESS != (ret = tablet_manager.get_ready_for_con_index(GLOBAL_INDEX_STAGE)))
           {
             TBSYS_LOG(WARN,"get range for global stage failed.ret[%d]",ret);
+          }*/
+          if (!se_index_task_.is_scheduled())
+          {
+            //if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
+            {
+              //se_index_task_.set_hist_width(beat.hist_width_);
+              se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
+              TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]",
+                  beat.idx_tid_, beat.hist_width_);
+              if (OB_SUCCESS
+                  != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
+              {
+                TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us",
+                    wait_time);
+              }
+              else
+              {
+                TBSYS_LOG(INFO, "launch a new index process after wait %ld us",
+                    wait_time);
+                se_index_task_.set_scheduled();
+              }
+            }
           }
         }
       }

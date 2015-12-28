@@ -71,15 +71,14 @@ namespace oceanbase
       ObObj* ptr = NULL;
 
       int64_t size = 0;
-
+      ObTabletHistogramReportInfo tablet;
       ret = serialization::decode_vi64(buf, data_len, pos, &size);
       TBSYS_LOG(DEBUG, "test::liumz, deserialize size=%ld", size);
 
       if (ret == OB_SUCCESS && size > 0)
       {
-        for (int64_t i=0; i<size; ++i)
+        for (int64_t i = 0; i < size; ++i)
         {
-          ObTabletHistogramReportInfo tablet;
           ptr = reinterpret_cast<ObObj*>(allocator.alloc(sizeof(ObObj) * OB_MAX_ROWKEY_COLUMN_NUMBER * 2));
           if (NULL == ptr)
           {
@@ -87,17 +86,24 @@ namespace oceanbase
           }
           else
           {
+            //memset();
             tablet.static_index_histogram.set_allocator(&allocator);
+            tablet.static_index_histogram.do_not_free();
             tablet.tablet_info.range_.start_key_.assign(ptr, OB_MAX_ROWKEY_COLUMN_NUMBER);
             tablet.tablet_info.range_.end_key_.assign(ptr + OB_MAX_ROWKEY_COLUMN_NUMBER, OB_MAX_ROWKEY_COLUMN_NUMBER);
             ret = tablet.deserialize(buf, data_len, pos);
-            //tablet.static_index_histogram_.deep_copy(allocator_, tablet.static_index_histogram_);
+            TBSYS_LOG(ERROR, "test::longfei in des tablet  = %s, ptr = %p", to_cstring(tablet.tablet_info.range_), ptr);
           }
           if (ret != OB_SUCCESS)
             break;
 
           tablet_list.push_back(tablet);
         }
+      }
+
+      if(OB_SUCCESS == ret)
+      {
+        TBSYS_LOG(ERROR, "test::longfei in des tablet 1  = %s, tablet 2 = %s", to_cstring(tablets[0].tablet_info.range_), to_cstring(tablets[1].tablet_info.range_));
       }
 
       return ret;

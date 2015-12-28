@@ -2448,7 +2448,7 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
 
   if (OB_SUCCESS == ret)
   {
-    TBSYS_LOG(INFO,",begin judge use index table or not.");
+    TBSYS_LOG(INFO,"begin judge use index table or not.");
     ObSecondaryIndexServiceImpl sec_idx_ser_impl;
     ObSecondaryIndexService* sec_idx_ser = &sec_idx_ser_impl;
     if (NULL == sec_idx_ser)

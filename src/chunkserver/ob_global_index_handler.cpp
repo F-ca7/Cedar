@@ -325,7 +325,7 @@ namespace oceanbase
       //add e
 
       //if(OB_SUCCESS == ret)
-      TBSYS_LOG(INFO, "write total index go to end!");
+      TBSYS_LOG(INFO, "write total index will end!");
       sort_.reset();
       set_sstable_size(0);
       //add wenghaixing [secondary index static_index_build]20150804
@@ -532,7 +532,7 @@ namespace oceanbase
         }
         else
         {
-          set_schema_mgr(NULL);//@todo(longfei):实现一个reset函数，而不是这么生硬
+          set_schema_mgr(NULL);
           //TBSYS_LOG(ERROR,"test whx:: release global index schema success!");
         }
       }
