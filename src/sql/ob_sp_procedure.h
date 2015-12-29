@@ -102,7 +102,7 @@ namespace oceanbase
      *
      * @brief The SpVariableSet struct
      */
-    class SpVariableSet
+    class SpVariableSet //???
     {
     public:
       const static int VAR_PER_INST = 5;
@@ -530,23 +530,27 @@ namespace oceanbase
 //      VariableSet rs_set_;
 //      VariableSet ws_set_;
 //    };
-
+ 
+    class SpCaseInst;
     class SpWhenBlock : public SpMultiInsts
     {
+     friend class SpCaseInst;
     public:
       SpWhenBlock() : SpMultiInsts() {}
       SpWhenBlock(SpInst *ownner) : SpMultiInsts(ownner) {}
+      virtual ~SpWhenBlock();
 
-      SpVariableSet & cons_read_var_set() { return when_expr_var_set; }
+      SpVariableSet & cons_read_var_set() { return when_expr_var_set_; }
 
       ObSqlExpression& get_when_expr(){return when_expr_;}
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+      int assign(const SpWhenBlock &block);
 
     private:
       ObSqlExpression when_expr_;
-      SpVariableSet when_expr_var_set;
+      SpVariableSet when_expr_var_set_;
 //      ObObj when_value_;
     };
 
@@ -559,7 +563,11 @@ namespace oceanbase
 
       ObSqlExpression& get_case_expr(){return case_expr_;}
       SpMultiInsts* get_else_block(){return &else_branch_;}
-      ObIArray<SpWhenBlock>& get_when_list() {return when_list_;}
+      ObIArray<SpWhenBlock>& cons_when_list() {return when_list_;}
+
+      SpWhenBlock * get_when_block(int64_t idx) { return & (when_list_.at(idx)); }
+      int64_t get_when_count() const { return when_list_.count(); }
+
 
       int optimize(SpInstList& exec_list);
       SpVariableSet & cons_read_var_set() { return case_expr_var_set_; }
@@ -576,7 +584,6 @@ namespace oceanbase
     private:
       ObSqlExpression case_expr_;
       SpVariableSet case_expr_var_set_;
-
       ObSEArray<SpWhenBlock, 5> when_list_;
       SpMultiInsts else_branch_;
     };

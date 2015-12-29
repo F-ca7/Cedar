@@ -124,6 +124,8 @@ const char *ObStatSingleton::ups_map[] = {
   "hl_trans_time",
 
   "lock_wait_time",
+  "lock_succ_count",
+  "lock_fail_count",
 
   "dml_replace_count",
   "dml_insert_count",
@@ -192,6 +194,11 @@ const char *ObStatSingleton::ms_map[] = {
   // sql scan
   "scan_event_count",
   "scan_event_time",
+
+  //procedure ups execute
+  "procedure_ups_execute_count",
+  "procedure_ups_execute_time",
+
   // memory
   "ms_memory_limit",
   "ms_memory_total",
@@ -272,6 +279,10 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_rollback_count",
   "sql_autocommit_on_count",
   "sql_autocommit_off_count",
+
+  "sql_cmd_receiver_count",
+  "sql_cmd_process_count",
+  "sql_cmd_wait_time_ms"
 };
 
 

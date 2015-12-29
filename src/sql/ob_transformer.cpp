@@ -464,9 +464,9 @@ int ObTransformer::generate_physical_plan(
         case ObBasicStmt::T_PROCEDURE_WHILE:
           ret=gen_physical_procedure_while(logical_plan, physical_plan, err_stat, query_id, index);
           break;
-        case ObBasicStmt::T_PROCEDURE_CASE:
-          ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
-          break;
+//        case ObBasicStmt::T_PROCEDURE_CASE:
+//          ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
+//          break;
 //        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
 //        	ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, query_id, index);
 //        	break;
@@ -705,7 +705,7 @@ int ObTransformer::gen_physical_procedure(
     }
     else
     {
-      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);
+      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);// ???
       for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
       {
         ObParamDef def = stmt->get_param(i);
@@ -1082,66 +1082,66 @@ int ObTransformer::gen_physical_procedure_execute(
 
 //add by wwd
 int ObTransformer::gen_physical_procedure_case(
-		  ObLogicalPlan *logical_plan,
-		  ObPhysicalPlan *physical_plan,
-		  ErrStat& err_stat,
-		  const uint64_t& query_id,
-      ObProcedure* proc_op, SpMultiInsts* mul_inst)
- {
-	int &ret = err_stat.err_code_ = OB_SUCCESS;
-	ObProcedureCaseStmt *stmt = NULL;
-	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    ObProcedure* proc_op, SpMultiInsts* mul_inst)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  ObProcedureCaseStmt *stmt = NULL;
+  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
 
-	if (ret == OB_SUCCESS)
-	{
-		/*获取表达式的值*/
-		uint64_t expr_id = stmt->get_expr_id();
-		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+  if (ret == OB_SUCCESS)
+  {
+    /*获取表达式的值*/
+    uint64_t expr_id = stmt->get_expr_id();
+    ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
     SpCaseInst* case_inst = proc_op->create_inst<SpCaseInst>(mul_inst);
     ObSqlExpression& expr = case_inst->get_case_expr();
 
 
-		if (OB_UNLIKELY(raw_expr == NULL))
-		{
-			ret = OB_ERR_ILLEGAL_ID;
-			TBSYS_LOG(WARN,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
-		}
-		else if ((ret = raw_expr->fill_sql_expression(
-                       expr,
-											 this,
-											 logical_plan,
-											 physical_plan)
-											 ) != OB_SUCCESS)
-		{
-			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
-		}
+    if (OB_UNLIKELY(raw_expr == NULL))
+    {
+      ret = OB_ERR_ILLEGAL_ID;
+      TBSYS_LOG(WARN,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+    }
+    else if ((ret = raw_expr->fill_sql_expression(
+                expr,
+                this,
+                logical_plan,
+                physical_plan)
+              ) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
+    }
 
-		else
+    else
     {
       expr.set_owner_op(proc_op);
 
       ObSEArray<const ObRawExpr*, 4> var_case_expr;
       raw_expr->get_raw_var(var_case_expr);
       gen_physical_procedure_inst_var_set(case_inst->cons_read_var_set(), var_case_expr);
-		}
+    }
 
     if (ret == OB_SUCCESS)
-		{
+    {
       TBSYS_LOG(TRACE, "case when stmt size= %ld",stmt->get_case_when_stmt_size());
 
-      ObIArray<SpWhenBlock> &when_list = case_inst->get_when_list();
+      ObIArray<SpWhenBlock> &when_list = case_inst->cons_when_list();
       SpWhenBlock tmp_block(case_inst);
-			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_case_when_stmt_size(); i++)
-			{
-				uint64_t stmt_id=stmt->get_case_when_stmt(i);
+      for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_case_when_stmt_size(); i++)
+      {
+        uint64_t stmt_id=stmt->get_case_when_stmt(i);
         when_list.push_back(tmp_block);
         SpWhenBlock &when_block = when_list.at(when_list.count() - 1);
-        if (OB_SUCCESS != (ret = gen_physical_procedure_casewhen(logical_plan, physical_plan, err_stat, stmt_id, proc_op, when_block)))
+        if (OB_SUCCESS != (ret = gen_physical_procedure_casewhen(logical_plan, physical_plan, err_stat, stmt_id, proc_op, &when_block)))
 				{}
       }
 
       if(stmt->have_else())
-			{
+      {
         ObProcedureElseStmt* else_stmt;
         get_stmt(logical_plan, err_stat, stmt->get_else_stmt(), else_stmt);
         for(int64_t i = 0; i < else_stmt->get_else_stmt_size(); ++i)
@@ -1149,13 +1149,16 @@ int ObTransformer::gen_physical_procedure_case(
           uint64_t stmt_id = else_stmt->get_else_stmt(i);
 
           if (OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id,proc_op, case_inst->get_else_block())))
-        {}
+          {
+            TBSYS_LOG(WARN,"generate procedure instruction failed at %ld", i);
+          }
         }
       }
-	}
-}
+    }
+    TBSYS_LOG(INFO, "case instruction: %s", to_cstring(*case_inst));
+  }
 
-return ret;
+  return ret;
 }
 
 
@@ -1179,7 +1182,7 @@ int ObTransformer::gen_physical_procedure_casewhen(
 		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
 //    SpWhenInst* when_inst = proc_op->create_inst<SpWhenInst>(mul_inst);
     SpWhenBlock *when_block = static_cast<SpWhenBlock *>(mul_inst);
-    ObSqlExpression& expr = when_inst->get_when_expr();
+    ObSqlExpression& expr = when_block->get_when_expr();
 
     if (OB_UNLIKELY(raw_expr == NULL))
 		{
@@ -1212,12 +1215,13 @@ int ObTransformer::gen_physical_procedure_casewhen(
 			{
 				uint64_t stmt_id=stmt->get_then_stmt(i);
 
-        if (OB_SUCCESS != (ret = generate_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, when_block)))
+        if (OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, static_cast<SpMultiInsts*>(when_block))))
 				{
           TBSYS_LOG(WARN, "generate procedure instruction failed at %ld", i);
 				}				
 			}
 		}
+     TBSYS_LOG(INFO, "when_block_size: %ld", when_block->inst_count());
 	}
 	return ret;
 }
