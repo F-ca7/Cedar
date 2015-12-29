@@ -21,31 +21,26 @@ class ObProcedureCaseWhenStmt: public ObBasicStmt {
 		}
 		virtual void print(FILE* fp, int32_t level, int32_t index);
 
-		int set_compare_expr_id(uint64_t& expr_id);
-
 		int set_expr_id(uint64_t& expr_id);
 
 		int set_case_value_expr(uint64_t& expr_id);
 
-		int add_then_stmt(uint64_t& stmt_id);
-
-		uint64_t get_compare_expr_id();
-
-		uint64_t get_expr_id();
+    uint64_t get_expr_id();
 
 		uint64_t get_case_value_expr();
 
-		ObArray<uint64_t> get_then_stmts();
+    int add_then_stmt(uint64_t& stmt_id);
+
+    const ObArray<uint64_t>& get_then_stmts() const;
 
 		uint64_t& get_then_stmt(int64_t index);
 
 		int64_t get_then_stmt_size();
 
-	private:
-		uint64_t compare_expr_id_;		/*compare expr*/
-		uint64_t expr_id_;
-		uint64_t case_value_expr_;
-		ObArray<uint64_t> when_then_stmts_;
+  private:
+    uint64_t expr_id_;
+    uint64_t case_value_expr_;
+    ObArray<uint64_t> when_then_stmts_;
 
 
 	};

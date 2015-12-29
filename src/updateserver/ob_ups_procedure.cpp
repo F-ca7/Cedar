@@ -25,6 +25,9 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_L_INST:
     ret = execute_ups_loop(static_cast<SpUpsLoopInst*>(inst));
     break;
+  case SP_CW_INST:
+    ret = execute_casewhen(static_cast<SpCaseInst*>(inst));
+    break;
   default:
     ret = OB_NOT_SUPPORTED;
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on updateserver", type);
@@ -188,6 +191,51 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
 }
 
 /*============================================================================
+ *                     SpUpsCaseInst  Definition
+ * ==========================================================================*/
+int SpUpsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
+{
+  int ret = OB_SUCCESS;
+  common::ObRow fake_row;
+  const ObObj *flag = NULL;
+  const ObObj *when_value = NULL;
+  bool else_flag = true;
+  if(OB_SUCCESS != (ret = inst->get_case_expr().calc(fake_row, flag)) )
+  {
+    TBSYS_LOG(WARN, "fail to execute case expr");
+  }
+  else
+  {
+    for( int64_t i = 0; i < inst->get_when_count(); i++ )
+    {
+      SpWhenBlock *when_block = inst->get_when_block(i);
+      if(OB_SUCCESS != (ret = when_block->get_when_expr().calc(fake_row, when_value)))
+      {
+        TBSYS_LOG(WARN, "fail to compute when expr at %ld", i);
+      }
+      else if( when_value->compare(*flag) == 0 )
+      {
+        TBSYS_LOG(TRACE, "get into when block %ld", i);
+        if( OB_SUCCESS != (ret = execute_multi_inst(when_block)) )
+        {
+          TBSYS_LOG(WARN, "fail to execute when block[%ld]", i);
+        }
+        else_flag = false;
+        break;
+      }
+    }
+    if( else_flag )
+    {
+      if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+      {
+        TBSYS_LOG(WARN, "fail to execute else block");
+      }
+    }
+  }
+  return ret;
+}
+
+/*============================================================================
  *                     SpUpsLoopInst  Definition
  * ==========================================================================*/
 SpUpsLoopInst::~SpUpsLoopInst()
@@ -251,6 +299,11 @@ int SpUpsLoopInst::assign(const SpInst *inst)
   UNUSED(inst);
   return OB_NOT_SUPPORTED;
 }
+
+/*============================================================================
+ *                    ObCaseInst  Definition
+ * ==========================================================================*/
+
 
 /*============================================================================
  *                    ObUpsProcedure  Definition

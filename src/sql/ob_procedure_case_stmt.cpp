@@ -56,7 +56,7 @@ uint64_t ObProcedureCaseStmt::get_expr_id()
 }
 
 
-ObArray<uint64_t> ObProcedureCaseStmt::get_case_when_stmts()
+const ObArray<uint64_t>& ObProcedureCaseStmt::get_case_when_stmts() const
 {
 	return casewhen_stmts_;
 }

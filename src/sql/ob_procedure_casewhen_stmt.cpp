@@ -12,11 +12,6 @@ void ObProcedureCaseWhenStmt::print(FILE* fp, int32_t level, int32_t index) {
 		fprintf(fp, "<ObProcedureCaseWhenStmt %d End>\n", index);
 }
 
-int ObProcedureCaseWhenStmt::set_compare_expr_id(uint64_t& expr_id)
-{
-	compare_expr_id_=expr_id;
-	return OB_SUCCESS;
-}
 int ObProcedureCaseWhenStmt::set_expr_id(uint64_t& expr_id)
 {
 	expr_id_=expr_id;
@@ -30,12 +25,7 @@ int ObProcedureCaseWhenStmt::set_case_value_expr(uint64_t& expr_id)
 
 int ObProcedureCaseWhenStmt::add_then_stmt(uint64_t& stmt_id)
 {
-	return when_then_stmts_.push_back(stmt_id);
-}
-
-uint64_t ObProcedureCaseWhenStmt::get_compare_expr_id()
-{
-	return compare_expr_id_;
+  return when_then_stmts_.push_back(stmt_id);
 }
 
 uint64_t ObProcedureCaseWhenStmt::get_expr_id()
@@ -48,7 +38,7 @@ uint64_t ObProcedureCaseWhenStmt::get_case_value_expr()
 	return case_value_expr_;
 }
 
-ObArray<uint64_t> ObProcedureCaseWhenStmt::get_then_stmts()
+const ObArray<uint64_t>& ObProcedureCaseWhenStmt::get_then_stmts() const
 {
 	return when_then_stmts_;
 }

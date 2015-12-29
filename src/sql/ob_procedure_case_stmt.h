@@ -1,15 +1,13 @@
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_CASE_STMT_H_
 #define OCEANBASE_SQL_OB_PROCEDURE_CASE_STMT_H_
 #include "common/ob_string.h"
-#include "common/ob_string_buf.h"
 #include "common/ob_array.h"
 #include "ob_basic_stmt.h"
-#include "parse_node.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {
 namespace sql {
+//TODO
 class ObProcedureCaseStmt: public ObBasicStmt {
 	public:
 	ObProcedureCaseStmt() :
@@ -35,7 +33,7 @@ class ObProcedureCaseStmt: public ObBasicStmt {
 		/*case 表达的expr id*/
 		uint64_t get_expr_id();
 
-		ObArray<uint64_t> get_case_when_stmts();	/*case when语句列表*/
+    const ObArray<uint64_t>& get_case_when_stmts() const;	/*case when语句列表*/
 
 		uint64_t& get_case_when_stmt(int64_t index);
 

@@ -178,8 +178,22 @@ namespace oceanbase
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-                  SpMultiInsts *mul_inst = NULL
-                 );
+                  SpMultiInsts *mul_inst = NULL);
+  int gen_physical_procedure_case(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure* proc_op,
+                  SpMultiInsts* mul_inst =NULL);
+  int gen_physical_procedure_casewhen(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure* proc_op,
+                  SpMultiInsts* mul_inst =NULL);
+
   int gen_physical_set_array_value(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -188,24 +202,14 @@ namespace oceanbase
                   int32_t *index
                   );
 
+
         int gen_physical_procedure_while(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
 			int32_t* index);
-        int gen_physical_procedure_case(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_casewhen(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
+
         //code_coverage_zhujun
 		//add:e
         int generate_physical_plan(

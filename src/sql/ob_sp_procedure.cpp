@@ -1327,6 +1327,167 @@ int SpLoopInst::optimize(SpInstList &exec_list)
 }
 
 /*=================================================
+             SpWhenBlock Defintion
+ * ===============================================*/
+SpWhenBlock::~SpWhenBlock()
+{}
+
+int SpWhenBlock::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  if(OB_SUCCESS != (ret = when_expr_.serialize(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "failed to serilize when expr!");
+  }
+  else if( OB_SUCCESS != (ret = SpMultiInsts::serialize_inst(buf, buf_len, pos)))
+  {
+
+  }
+  return ret;
+}
+
+int SpWhenBlock::deserialize_inst(const char *buf, int64_t buf_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  if(OB_SUCCESS != (ret = when_expr_.deserialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN,"failed to deserilize when expr!");
+  }
+  else if( OB_SUCCESS != (ret = SpMultiInsts::deserialize_inst(buf, buf_len, pos, allocator, operators_store, op_factory)))
+  {
+  }
+  else
+  {
+    when_expr_.set_owner_op(ownner_->get_ownner());
+  }
+  return ret;
+}
+
+int SpWhenBlock::assign(const SpWhenBlock &block)
+{
+  int ret = OB_SUCCESS;
+
+  when_expr_ = block.when_expr_;
+  when_expr_.set_owner_op(ownner_->get_ownner());
+
+  ret = SpMultiInsts::assign(block);
+  return ret;
+}
+
+/*=================================================
+             SpCaseInst Defintion
+ * ===============================================*/
+SpCaseInst::~SpCaseInst()
+{}
+
+void SpCaseInst::get_read_variable_set(SpVariableSet &read_set) const
+{
+  read_set.add_var_info_set(case_expr_var_set_);
+
+  for(int64_t i = 0; i < when_list_.count(); ++i )
+  {
+    //correct compile error
+    read_set.add_var_info_set(when_list_.at(i).when_expr_var_set_);
+    when_list_.at(i).get_read_variable_set(read_set);
+  }
+  else_branch_.get_read_variable_set(read_set);
+}
+
+void SpCaseInst::get_write_variable_set(SpVariableSet &write_set) const
+{
+  for(int64_t i = 0; i < when_list_.count(); ++i)
+  {
+    when_list_.at(i).get_write_variable_set(write_set);
+  }
+  else_branch_.get_write_variable_set(write_set);
+}
+
+int SpCaseInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = case_expr_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "failed to serilize case_expr!");
+  }
+  else if(OB_SUCCESS != (ret = else_branch_.serialize_inst(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "failed to serilize else_branch!");
+  }
+  else
+  {
+    serialization::encode_i64(buf, buf_len, pos, when_list_.count());
+    for(int64_t i = 0; i < when_list_.count(); i++ )
+    {
+     if(OB_SUCCESS != when_list_.at(i).serialize_inst(buf, buf_len, pos))
+     {
+       TBSYS_LOG(WARN, "failed to serilize the when %ld", i+1);
+     }
+    }
+  }
+  return ret;
+}
+
+int SpCaseInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = case_expr_.deserialize(buf, data_len, pos )))
+  {
+    TBSYS_LOG(WARN, "failed to serilize case_expr!");
+  }
+  else if(OB_SUCCESS != else_branch_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory))
+  {
+    TBSYS_LOG(WARN, "failed to serilize else_branch!");
+  }
+  else
+  {
+    int64_t count = 0;
+    //correct compile error 
+//    serialization::decode_i64(buf, data_len, pos, count);
+    serialization::decode_i64(buf, data_len, pos, &count);
+
+    SpWhenBlock block;
+    when_list_.reserve(count);
+    for(int64_t i = 0; i < count; i++ )
+    {
+      when_list_.push_back(block);
+     if(OB_SUCCESS != when_list_.at(i).deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory))
+     {
+       TBSYS_LOG(WARN, "failed to serilize the statement when %ld", i+1);
+     }
+    }
+    case_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+int SpCaseInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+  const SpCaseInst *old_inst = static_cast<const SpCaseInst*>(inst);
+  case_expr_ = old_inst->case_expr_;
+  SpWhenBlock block(this);
+  for(int64_t i = 0; i < old_inst->when_list_.count(); i ++ )
+  {
+    when_list_.push_back(block);
+    when_list_.at(i).assign(old_inst->when_list_.at(i));
+  }
+  else_branch_.assign(old_inst->else_branch_);
+  return ret;
+}
+
+int SpCaseInst::optimize(SpInstList &exec_list)
+{
+  int ret = OB_SUCCESS;
+  UNUSED(exec_list);
+//  if(OB_SUCCESS != (ret = else_branch_.optimize(exec_list)))
+//  {
+//    TBSYS_LOG(WARN,"failed to optimize else branch!");
+//  }
+  return ret;
+}
+
+
+/*=================================================
              SpProcedure Defintion
  * ===============================================*/
 
@@ -1468,6 +1629,9 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
     break;
   case SP_L_INST:
     new_inst = create_inst<SpLoopInst>(mul_inst);
+    break;
+  case SP_CW_INST:
+    new_inst = create_inst<SpCaseInst>(mul_inst);
     break;
   case SP_UNKOWN:
     new_inst = NULL;
@@ -1842,5 +2006,21 @@ int64_t SpLoopInst::to_string(char *buf, const int64_t buf_len) const
 
   pos += loop_body_.to_string(buf + pos, buf_len - pos);
   databuff_printf(buf, buf_len, pos, "\tEnd loop\n");
+  return pos;
+}
+
+int64_t SpCaseInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [case], rs: %s\n", to_cstring(case_expr_));
+  for(int64_t i = 0; i < when_list_.count(); ++i)
+  {
+   //compile error corrected
+    databuff_printf(buf, buf_len, pos, "\twhen %ld, expr: %s, then\n", i, to_cstring(when_list_.at(i).when_expr_));
+    pos += when_list_.at(i).to_string(buf + pos, buf_len - pos);
+  }
+  databuff_printf(buf, buf_len, pos, "\telse\n");
+  pos += else_branch_.to_string(buf + pos, buf_len - pos);
+  databuff_printf(buf, buf_len, pos, "End Case\n");
   return pos;
 }

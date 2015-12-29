@@ -39,6 +39,9 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_L_INST:
     ret = execute_loop(static_cast<SpLoopInst*>(inst));
     break;
+  case SP_CW_INST:
+    ret = execute_casewhen(static_cast<SpCaseInst*>(inst));
+    break;
   default:
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
     ret = OB_NOT_SUPPORTED;
@@ -322,6 +325,50 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   return ret;
 }
 
+int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
+{
+  int ret = OB_SUCCESS;
+  common::ObRow fake_row;
+  const ObObj *flag = NULL;
+  const ObObj *when_value = NULL;
+  bool else_flag = true;
+  TBSYS_LOG(INFO, "execute casewhen instruction");
+  if(OB_SUCCESS != (ret = inst->get_case_expr().calc(fake_row, flag)) )
+  {
+    TBSYS_LOG(WARN, "fail to execute case expr");
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "case expr value: %s", to_cstring(*flag));
+    for( int64_t i=0; i < inst->get_when_count(); i++ )
+    {
+      SpWhenBlock *when_block = inst->get_when_block(i);
+      if(OB_SUCCESS != (ret = when_block->get_when_expr().calc(fake_row, when_value)))
+      {
+        TBSYS_LOG(WARN, "fail to compute when expr at %ld", i);
+      }
+      else if( when_value->compare(*flag) == 0 )
+      {
+        TBSYS_LOG(TRACE, "get into when block %ld", i);
+        if( OB_SUCCESS != (ret = execute_multi_inst(when_block)) )
+        {
+          TBSYS_LOG(WARN, "fail to execute when block[%ld]", i);
+        }
+        else_flag = false;
+        break;
+      }
+    }
+    if( else_flag )
+    {
+      if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+      {
+        TBSYS_LOG(WARN, "fail to execute else block");
+      }
+    }
+  }
+  return ret;
+}
+
 int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 {
   int ret = OB_SUCCESS;
@@ -466,8 +513,6 @@ int SpMsInstExecStrategy::close(SpInst *inst)
     }
     break;
   case SP_L_INST:
-//    TBSYS_LOG(ERROR, "remains unimplemented");
-//    ret = OB_ERROR;
     mul_inst = static_cast<SpLoopInst*>(inst)->get_body_block();
     for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
       SpInst *inner_inst = NULL;
@@ -475,6 +520,26 @@ int SpMsInstExecStrategy::close(SpInst *inst)
       if( NULL != inner_inst) ret = close(inner_inst);
     }
     break;
+  case SP_CW_INST:
+    {
+      SpCaseInst *case_inst = static_cast<SpCaseInst*>(inst);
+      for(int64_t i = 0; OB_SUCCESS == ret && i < case_inst->get_when_count(); ++i)
+      {
+        mul_inst = case_inst->get_when_block(i);
+        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+          SpInst *inner_inst = NULL;
+          mul_inst->get_inst(i, inner_inst);
+          if( NULL != inner_inst) ret = close(inner_inst);
+        }
+      }
+      mul_inst = case_inst->get_else_block();
+      for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+        SpInst *inner_inst = NULL;
+        mul_inst->get_inst(i, inner_inst);
+        if( NULL != inner_inst) ret = close(inner_inst);
+      }
+      break;
+    }
   case SP_UNKOWN:
   default:
     TBSYS_LOG(WARN, "close unsupport inst[%d] on mergeserver", inst->get_type());
@@ -1171,6 +1236,24 @@ int ObProcedure::set_inst_op(SpInst *inst)
       }
       break;
     }
+  case SP_CW_INST:
+  {
+    SpCaseInst *case_inst = static_cast<SpCaseInst *>(inst);
+    for(int64_t i = 0; i < case_inst->get_when_count(); ++i)
+    {
+      SpMultiInsts *when_block = case_inst->get_when_block(i);
+      for(int64_t i = 0 ;i < when_block->inst_count(); ++i)
+      {
+        set_inst_op(when_block->get_inst(i));
+      }
+    }
+    SpMultiInsts *else_block = case_inst->get_else_block();
+    for(int64_t i = 0; i < else_block->inst_count(); ++i)
+    {
+      set_inst_op(else_block->get_inst(i));
+    }
+    break;
+  }
   default:
     break;
   }
