@@ -73,6 +73,9 @@ namespace oceanbase
 
         // check expression type
         inline int is_const_expr(bool &is_const_type) const;
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        inline void set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
+        //add:e
         inline int is_column_index_expr(bool &is_idx_type) const;
         inline int is_simple_condition(bool &is_simple_cond_type) const;
         inline int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const;
@@ -182,6 +185,14 @@ namespace oceanbase
     {
       return post_expr_.is_const_expr(is_const_type);
     }
+
+    //add fanqiushi [semi_join] [0.1] 20150910:b
+    inline void ObSqlExpression::set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid)
+    {
+      post_expr_.set_for_semi_join(tmp_set,tid,cid);
+    }
+
+    //add:e
 
     inline int ObSqlExpression::get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const
     {

@@ -116,7 +116,12 @@ ObSqlRawExpr* create_middle_sql_raw_expr(
     ResultPlan& result_plan,
     ParseNode& node,
     uint64_t& expr_id);
-
+//add by yusj 20150819
+int resolve_semi_join(
+		ResultPlan * result_plan,
+		ObStmt* stmt,
+		ParseNode* hint_node);
+//add end
 static int add_all_rowkey_columns_to_stmt(ResultPlan* result_plan, uint64_t table_id, ObStmt *stmt)
 {
   int ret = OB_SUCCESS;
@@ -2989,6 +2994,11 @@ int resolve_hints(
             TBSYS_LOG(ERROR, "unknown hint value, ret=%d", ret);
           }
           break;
+          //add by yusj 20150819
+          case T_SEMI_JOIN:
+          ret = resolve_semi_join(result_plan, stmt, hint_node);
+          break;
+          //add end
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -2999,6 +3009,104 @@ int resolve_hints(
   }
   return ret;
 }
+
+//add by yusj 20150819
+int resolve_semi_join(
+		ResultPlan * result_plan,
+		ObStmt* stmt,
+		ParseNode* hint_node
+		)
+{
+	int ret = OB_SUCCESS;
+
+	ObSemiTableList tablelist;
+	ObQueryHint& query_hint = stmt->get_query_hint();
+
+	if(query_hint.use_join_array_.size() >= 1)
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG,"too much joined_table hint");
+		TBSYS_LOG(ERROR,"too much joined_table hint, ret=[%d]",ret);
+		return ret;
+	}
+
+	OB_ASSERT(6 == hint_node->num_child_);
+
+	ObSchemaChecker* schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+	if(schema_checker == NULL)
+	{
+		ret = OB_ERR_SCHEMA_UNSET;
+		snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "Schema(s) are not set");
+		return ret;
+	}
+	const ObTableSchema *left_table_schema = NULL;
+	const ObTableSchema *right_table_schema = NULL;
+        uint64_t store_left_tableid = OB_INVALID_ID;
+        uint64_t store_right_tableid = OB_INVALID_ID;
+	const ObColumnSchemaV2 *left_column_schema = NULL;
+	const ObColumnSchemaV2 *right_column_schema = NULL;
+
+	if(NULL != (left_table_schema = schema_checker->get_table_schema(hint_node->children_[0]->str_value_)))
+	{
+		tablelist.join_left_table_name_.write(hint_node->children_[0]->str_value_,
+				                              (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
+		tablelist.left_table_id_ = left_table_schema->get_table_id();
+		store_left_tableid = left_table_schema->get_table_id();
+	}
+	else
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[0]->str_value_);
+		TBSYS_LOG(ERROR, "unknown semi_join left table name '%s', ret=[%d]", hint_node->children_[0]->str_value_, ret);
+		return ret;
+	}
+
+	if(NULL != (right_table_schema = schema_checker->get_table_schema(hint_node->children_[1]->str_value_)))
+		{
+			tablelist.join_right_table_name_.write(hint_node->children_[1]->str_value_,
+					                              (ObString::obstr_size_t)strlen(hint_node->children_[1]->str_value_));
+			tablelist.right_table_id_ = right_table_schema->get_table_id();
+			store_right_tableid = right_table_schema->get_table_id();
+		}
+		else
+		{
+			ret = OB_ERR_UNEXPECTED;
+			snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[1]->str_value_);
+			TBSYS_LOG(ERROR, "unknown semi_join right table name '%s', ret=[%d]", hint_node->children_[1]->str_value_, ret);
+			return ret;
+		}
+
+	if(NULL != (left_column_schema = schema_checker->get_column_schema(tablelist.join_left_table_name_, ObString::make_string(hint_node->children_[3]->str_value_))))
+	{
+		tablelist.join_left_column_name.write(hint_node->children_[3]->str_value_,
+												(ObString::obstr_size_t)strlen(hint_node->children_[3]->str_value_));
+		tablelist.left_column_id_ = left_column_schema->get_id();
+
+	}else
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[3]->str_value_);
+		TBSYS_LOG(ERROR, "unknown semi_join left column name '%s', ret=[%d]", hint_node->children_[3]->str_value_, ret);
+		return ret;
+	}
+
+	if(NULL != (right_column_schema = schema_checker->get_column_schema(tablelist.join_right_table_name_, ObString::make_string(hint_node->children_[5]->str_value_))))
+		{
+			tablelist.join_right_column_name.write(hint_node->children_[5]->str_value_,
+													(ObString::obstr_size_t)strlen(hint_node->children_[5]->str_value_));
+			tablelist.right_column_id_ = right_column_schema->get_id();
+
+		}else
+		{
+			ret = OB_ERR_UNEXPECTED;
+			snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[5]->str_value_);
+			TBSYS_LOG(ERROR, "unknown semi_join right column name '%s', ret=[%d]", hint_node->children_[5]->str_value_, ret);
+			return ret;
+		}
+	query_hint.use_join_array_.push_back(tablelist);
+	return ret;
+}
+//add end
 
 int resolve_delete_stmt(
     ResultPlan* result_plan,

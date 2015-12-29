@@ -126,14 +126,14 @@ namespace oceanbase
     int ObSqlReadParam::add_filter(ObSqlExpression *cond)
     {
       int ret = OB_SUCCESS;
-      if (OB_SUCCESS != (ret = filter_.add_filter(cond)))
-      {
-        TBSYS_LOG(WARN, "fail to add filter. ret=%d", ret);
-      }
-      else
-      {
-        has_filter_ = true;
-      }
+          if (OB_SUCCESS != (ret = filter_.add_filter(cond)))
+          {
+            TBSYS_LOG(WARN, "fail to add filter. ret=%d", ret);
+          }
+          else
+          {
+            has_filter_ = true;
+          }
       return ret;
     }
 

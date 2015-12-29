@@ -99,6 +99,7 @@
 #include "ob_change_obi.h"
 #include "mergeserver/ob_merge_server_main.h"
 #include <vector>
+#include "ob_semi_left_join.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
@@ -1369,6 +1370,410 @@ int ObTransformer::gen_phy_scalar_aggregate(
   return ret;
 }
 
+//add fanqiushi [semi_join] [0.1] 20150826:b
+int ObTransformer::gen_phy_semi_join(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    ObSelectStmt *select_stmt,
+    oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
+    oceanbase::common::ObList<ObBitSet<> >& bitset_list,
+    oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
+    oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias)
+{
+  //add fanqiushi [semi_join] [0.1] 20150829:b
+  //TBSYS_LOG(ERROR,"test::fanqs,,enter gen_phy_semi_join");
+  //add:e
+  int& ret = err_stat.err_code_ = OB_SUCCESS;
+  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1
+  {
+    ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
+    ObMergeJoin *join_op = NULL;
+    CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
+    if (ret != OB_SUCCESS)
+      break;
+    join_op->set_join_type(ObJoin::INNER_JOIN);
+
+    ObBitSet<> join_table_bitset;
+    ObBitSet<> left_table_bitset;
+    ObBitSet<> right_table_bitset;
+    ObSort *left_sort = NULL;
+    ObSort *right_sort = NULL;
+    //add fanqiushi [semi_join] [0.1] 20150826:b
+    ObSemiLeftJoin *semi_left_join = NULL;
+    CREATE_PHY_OPERRATOR(semi_left_join, ObSemiLeftJoin, physical_plan, err_stat);
+    //add:e
+    oceanbase::common::ObList<ObSqlRawExpr*>::iterator cnd_it;
+    oceanbase::common::ObList<ObSqlRawExpr*>::iterator del_it;
+    for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end(); )
+    {
+      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
+      {
+        ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
+        ObBinaryRefRawExpr *lexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
+        ObBinaryRefRawExpr *rexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_second_op_expr());
+        int32_t left_bit_idx = select_stmt->get_table_bit_index(lexpr->get_first_ref_id());
+        int32_t right_bit_idx = select_stmt->get_table_bit_index(rexpr->get_first_ref_id());
+        CREATE_PHY_OPERRATOR(left_sort, ObSort, physical_plan, err_stat);
+        if (ret != OB_SUCCESS)
+          break;
+        ret = left_sort->add_sort_column(lexpr->get_first_ref_id(), lexpr->get_second_ref_id(), true);
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        ret = semi_left_join->set_sort_columns(lexpr->get_first_ref_id(), lexpr->get_second_ref_id());
+        //add:e
+        if (ret != OB_SUCCESS)
+        {
+          TRANS_LOG("Add sort column faild table_id=%lu, column_id =%lu",
+              lexpr->get_first_ref_id(), lexpr->get_second_ref_id());
+          break;
+        }
+        CREATE_PHY_OPERRATOR(right_sort, ObSort, physical_plan, err_stat);
+        if (ret != OB_SUCCESS)
+          break;
+        ret = right_sort->add_sort_column(rexpr->get_first_ref_id(), rexpr->get_second_ref_id(), true);
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        join_op->set_is_semi_join(true,rexpr->get_first_ref_id(),rexpr->get_second_ref_id());
+        //add:e
+        if (ret != OB_SUCCESS)
+        {
+          TRANS_LOG("Add sort column faild table_id=%lu, column_id =%lu",
+              lexpr->get_first_ref_id(), lexpr->get_second_ref_id());
+          break;
+        }
+
+        oceanbase::common::ObList<ObPhyOperator*>::iterator table_it = phy_table_list.begin();
+        oceanbase::common::ObList<ObPhyOperator*>::iterator del_table_it;
+        oceanbase::common::ObList<ObBitSet<> >::iterator bitset_it = bitset_list.begin();
+        oceanbase::common::ObList<ObBitSet<> >::iterator del_bitset_it;
+        ObPhyOperator *left_table_op = NULL;
+        ObPhyOperator *right_table_op = NULL;
+        while (ret == OB_SUCCESS
+            && (!left_table_op || !right_table_op)
+            && table_it != phy_table_list.end()
+            && bitset_it != bitset_list.end())
+        {
+          if (bitset_it->has_member(left_bit_idx))
+          {
+            left_table_op = *table_it;
+            left_table_bitset = *bitset_it;
+            del_table_it = table_it;
+            del_bitset_it = bitset_it;
+            table_it++;
+            bitset_it++;
+            if ((ret = phy_table_list.erase(del_table_it)) != OB_SUCCESS)
+              break;
+            if ((ret = bitset_list.erase(del_bitset_it)) != OB_SUCCESS)
+              break;
+          }
+          else if (bitset_it->has_member(right_bit_idx))
+          {
+            right_table_op = *table_it;
+            right_table_bitset = *bitset_it;
+            del_table_it = table_it;
+            del_bitset_it = bitset_it;
+            table_it++;
+            bitset_it++;
+            if ((ret = phy_table_list.erase(del_table_it)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate join plan faild");
+              break;
+            }
+            if ((ret = bitset_list.erase(del_bitset_it)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate join plan faild");
+              break;
+            }
+          }
+          else
+          {
+            table_it++;
+            bitset_it++;
+          }
+        }
+        if (ret != OB_SUCCESS)
+          break;
+
+        // Two columns must from different table, that expression from one table has been erased in gen_phy_table()
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        OB_ASSERT(left_table_op && right_table_op);
+        if ((ret = semi_left_join->set_child(0, *left_table_op)) != OB_SUCCESS )
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+        OB_ASSERT(semi_left_join);
+        if ((ret = left_sort->set_child(0, *semi_left_join)) != OB_SUCCESS )
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+        if ((ret = right_sort->set_child(0, *right_table_op)) != OB_SUCCESS )
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+        //add:e
+        ObSqlExpression join_op_cnd;
+        if ((ret = (*cnd_it)->fill_sql_expression(
+                                  join_op_cnd,
+                                  this,
+                                  logical_plan,
+                                  physical_plan)) != OB_SUCCESS)
+          break;
+        if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add condition of join plan faild");
+          break;
+        }
+        join_table_bitset.add_members(left_table_bitset);
+        join_table_bitset.add_members(right_table_bitset);
+
+        del_it = cnd_it;
+        cnd_it++;
+        if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else if ((*cnd_it)->get_expr()->is_join_cond()
+        && (*cnd_it)->get_tables_set().is_subset(join_table_bitset))   //这个if分支里面不知道它干什么
+      {
+        ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
+        ObBinaryRefRawExpr *expr1 = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
+        ObBinaryRefRawExpr *expr2 = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_second_op_expr());
+        int32_t bit_idx1 = select_stmt->get_table_bit_index(expr1->get_first_ref_id());
+        int32_t bit_idx2 = select_stmt->get_table_bit_index(expr2->get_first_ref_id());
+        if (left_table_bitset.has_member(bit_idx1))
+          ret = left_sort->add_sort_column(expr1->get_first_ref_id(), expr1->get_second_ref_id(), true);
+        else
+          ret = right_sort->add_sort_column(expr1->get_first_ref_id(), expr1->get_second_ref_id(), true);
+        if (ret != OB_SUCCESS)
+        {
+          TRANS_LOG("Add sort column faild table_id=%lu, column_id =%lu",
+              expr1->get_first_ref_id(), expr1->get_second_ref_id());
+          break;
+        }
+        if (right_table_bitset.has_member(bit_idx2))
+          ret = right_sort->add_sort_column(expr2->get_first_ref_id(), expr2->get_second_ref_id(), true);
+        else
+          ret = left_sort->add_sort_column(expr2->get_first_ref_id(), expr2->get_second_ref_id(), true);
+        if (ret != OB_SUCCESS)
+        {
+          TRANS_LOG("Add sort column faild table_id=%lu, column_id =%lu",
+              expr2->get_first_ref_id(), expr2->get_second_ref_id());
+          break;
+        }
+        ObSqlExpression join_op_cnd;
+        if ((ret = ((*cnd_it)->fill_sql_expression(
+                                  join_op_cnd,
+                                  this,
+                                  logical_plan,
+                                  physical_plan))) != OB_SUCCESS
+          || (ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add condition of join plan faild");
+          break;
+        }
+        del_it = cnd_it;
+        cnd_it++;
+        if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else if ((*cnd_it)->get_tables_set().is_subset(join_table_bitset)
+        && !((*cnd_it)->is_contain_alias()
+        && (*cnd_it)->get_tables_set().overlap(left_table_bitset)
+        && (*cnd_it)->get_tables_set().overlap(right_table_bitset)))
+      {
+        ObSqlExpression join_other_cnd;
+        if ((ret = ((*cnd_it)->fill_sql_expression(
+                                  join_other_cnd,
+                                  this,
+                                  logical_plan,
+                                  physical_plan))) != OB_SUCCESS
+          || (ret = join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add condition of join plan faild");
+          break;
+        }
+        del_it = cnd_it;
+        cnd_it++;
+        if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else
+      {
+        cnd_it++;
+      }
+    }
+
+    if (ret == OB_SUCCESS)
+    {
+      if (join_table_bitset.is_empty() == false)
+      {
+        // find a join condition, a merge join will be used here
+        OB_ASSERT(left_sort != NULL);
+        OB_ASSERT(right_sort != NULL);
+        if ((ret = join_op->set_child(0, *left_sort)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+        if ((ret = join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+      }
+      else
+      {
+        // Can not find a join condition, a product join will be used here
+        // FIX me, should be ObJoin, it will be fixed when Join is supported
+        ObPhyOperator *op = NULL;
+        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+        if ((ret = join_op->set_child(0, *op)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+        if ((ret = join_op->set_child(1, *op)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add child of join plan faild");
+          break;
+        }
+
+        bitset_list.pop_front(left_table_bitset);
+        join_table_bitset.add_members(left_table_bitset);
+        bitset_list.pop_front(right_table_bitset);
+        join_table_bitset.add_members(right_table_bitset);
+      }
+    }
+
+    // add other join conditions
+    for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end(); )
+    {
+      if ((*cnd_it)->is_contain_alias()
+        && (*cnd_it)->get_tables_set().overlap(left_table_bitset)
+        && (*cnd_it)->get_tables_set().overlap(right_table_bitset))
+      {
+        cnd_it++;
+      }
+      else if ((*cnd_it)->get_tables_set().is_subset(join_table_bitset))
+      {
+        ObSqlExpression other_cnd;
+        if ((ret = (*cnd_it)->fill_sql_expression(
+                                  other_cnd,
+                                  this,
+                                  logical_plan,
+                                  physical_plan)) != OB_SUCCESS
+          || (ret = join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add condition of join plan faild");
+          break;
+        }
+        del_it = cnd_it;
+        cnd_it++;
+        if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else
+      {
+        cnd_it++;
+      }
+    }
+
+    // columnlize the alias expression
+    oceanbase::common::ObList<ObSqlRawExpr*>::iterator alias_it;
+    for (alias_it = none_columnlize_alias.begin(); ret == OB_SUCCESS && alias_it != none_columnlize_alias.end(); )
+    {
+      if ((*alias_it)->is_columnlized())
+      {
+        common::ObList<ObSqlRawExpr*>::iterator del_alias = alias_it;
+        alias_it++;
+        if ((ret = none_columnlize_alias.erase(del_alias)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else if ((*alias_it)->get_tables_set().is_subset(join_table_bitset))
+      {
+        (*alias_it)->set_columnlized(true);
+        if (project_op == NULL)
+        {
+          CREATE_PHY_OPERRATOR(project_op, ObAddProject, physical_plan, err_stat);
+          if (ret != OB_SUCCESS)
+            break;
+          if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate project operator on join plan faild");
+            break;
+          }
+        }
+        ObSqlExpression alias_expr;
+        if ((ret = (*alias_it)->fill_sql_expression(
+                                  alias_expr,
+                                  this,
+                                  logical_plan,
+                                  physical_plan)) != OB_SUCCESS
+          || (ret = project_op->add_output_column(alias_expr)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add project column on join plan faild");
+          break;
+        }
+        common::ObList<ObSqlRawExpr*>::iterator del_alias = alias_it;
+        alias_it++;
+        if ((ret = none_columnlize_alias.erase(del_alias)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Generate join plan faild");
+          break;
+        }
+      }
+      else
+      {
+        alias_it++;
+      }
+    }
+
+    if (ret == OB_SUCCESS)
+    {
+      ObPhyOperator *result_op = NULL;
+      if (project_op == NULL)
+        result_op = join_op;
+      else
+        result_op = project_op;
+      if ((ret = phy_table_list.push_back(result_op)) != OB_SUCCESS
+        || (ret = bitset_list.push_back(join_table_bitset)) != OB_SUCCESS)
+      {
+        TRANS_LOG("Generate join plan failed");
+        break;
+      }
+      join_table_bitset.clear();
+    }
+  }
+
+  return ret;
+}
+//add:e
+
 int ObTransformer::gen_phy_joins(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
@@ -1380,9 +1785,9 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  while (ret == OB_SUCCESS && phy_table_list.size() > 1)
+  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1
   {
-    ObAddProject *project_op = NULL;
+    ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
     ObMergeJoin *join_op = NULL;
     CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
     if (ret != OB_SUCCESS)
@@ -1398,7 +1803,7 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator del_it;
     for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end(); )
     {
-      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())
+      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
       {
         ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
         ObBinaryRefRawExpr *lexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
@@ -1899,18 +2304,61 @@ int ObTransformer::gen_phy_tables(
         }
         // Now we don't optimize outer join
         // outer_join_cnds is empty, we will do something when optimizing.
-        if ((ret = gen_phy_joins(
-                        logical_plan,
-                        physical_plan,
-                        err_stat,
-                        select_stmt,
-                        outer_join_tabs,
-                        outer_join_bitsets,
-                        outer_join_cnds,
-                        none_columnlize_alias)) != OB_SUCCESS)
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        bool is_do_semi_join = 0;
+        //add fanqiushi [semi_join] [0.1] 20150829:b
+       // TBSYS_LOG(ERROR,"test::fanqs,,enter gen_phy_tables");
+        //add:e
+        if(j == 1)
         {
-          break;
+          uint64_t left_tid = joined_table->table_ids_.at(0);
+          uint64_t right_tid = joined_table->table_ids_.at(1);
+          //add fanqiushi [semi_join] [0.1] 20150829:b
+          //TBSYS_LOG(ERROR,"test::fanqs,,select_stmt->get_query_hint().has_semi_join_hint()=%d",select_stmt->get_query_hint().has_semi_join_hint());
+          //add:e
+          if(select_stmt->get_query_hint().has_semi_join_hint())
+          {
+            ObSemiTableList tmp= select_stmt->get_query_hint().use_join_array_.at(0);
+            //add fanqiushi [semi_join] [0.1] 20150829:b
+            //TBSYS_LOG(ERROR,"test::fanqs,, tmp.left_table_id_ =%ld,tmp.right_table_id_ =%ld,left_tid=%ld,right_tid=%ld,joined_table->join_types_.at(0)=%ld", tmp.left_table_id_,tmp.right_table_id_ ,left_tid, right_tid,joined_table->join_types_.at(0));
+            //add:e
+            if(left_tid == tmp.left_table_id_ && right_tid == tmp.right_table_id_ && joined_table->join_types_.at(0) == JoinedTable::T_INNER)
+            {
+              is_do_semi_join = 1;
+            }
+          }
         }
+        if(is_do_semi_join)
+        {
+            if ((ret = gen_phy_semi_join(
+                            logical_plan,
+                            physical_plan,
+                            err_stat,
+                            select_stmt,
+                            outer_join_tabs,
+                            outer_join_bitsets,
+                            outer_join_cnds,
+                            none_columnlize_alias)) != OB_SUCCESS)
+            {
+              break;
+            }
+        }
+        else
+        {
+            if ((ret = gen_phy_joins(
+                            logical_plan,
+                            physical_plan,
+                            err_stat,
+                            select_stmt,
+                            outer_join_tabs,
+                            outer_join_bitsets,
+                            outer_join_cnds,
+                            none_columnlize_alias)) != OB_SUCCESS)
+            {
+              break;
+            }
+        }
+        //add:e
         if ((ret = outer_join_tabs.pop_front(table_op)) != OB_SUCCESS
           || (join_op = dynamic_cast<ObJoin*>(table_op)) == NULL)
         {
@@ -2197,6 +2645,12 @@ int ObTransformer::gen_phy_table(
         TRANS_LOG("Add table filter condition faild");
         break;
       }
+      //add fanqiushi [semi_join] [0.1] 20151109:b
+      /*else
+      {
+          TBSYS_LOG(ERROR,"test::fanqs,,filter=%s",to_cstring(*filter));
+      }*/
+      //add:e
     }
   }
 

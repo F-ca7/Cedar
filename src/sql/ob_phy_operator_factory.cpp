@@ -34,7 +34,9 @@
 #include "ob_row_count.h"
 #include "ob_when_filter.h"
 #include "ob_dual_table_scan.h"
-
+//add fanqiushi [semi_join] [0.1] 20150829:b
+#include "ob_semi_left_join.h"
+//add:e
 using namespace oceanbase;
 using namespace sql;
 
@@ -71,6 +73,11 @@ ObPhyOperator *ObPhyOperatorFactory::get_one(ObPhyOperatorType phy_operator_type
       //ret = pool_insert_db_sem_filter_.alloc();
       ret = tc_rp_alloc(ObInsertDBSemFilter);
       break;
+    //add fanqiushi [semi_join] [0.1] 20150829:b
+    case PHY_SEMI_LEFT_JOIN:
+      ret = tc_rp_alloc(ObSemiLeftJoin);
+      break;
+    //add:e
     case PHY_MEM_SSTABLE_SCAN:
       //ret = pool_mem_sstable_scan_.alloc();
       ret = tc_rp_alloc(ObMemSSTableScan);
@@ -143,6 +150,12 @@ void ObPhyOperatorFactory::release_one(ObPhyOperator *opt)
         //pool_insert_db_sem_filter_.free(dynamic_cast<ObInsertDBSemFilter*>(opt));
         tc_rp_free(dynamic_cast<ObInsertDBSemFilter*>(opt));
         break;
+        //add fanqiushi [semi_join] [0.1] 20150829:b
+      case PHY_SEMI_LEFT_JOIN:
+        //pool_insert_db_sem_filter_.free(dynamic_cast<ObInsertDBSemFilter*>(opt));
+        tc_rp_free(dynamic_cast<ObSemiLeftJoin*>(opt));
+        break;
+        //add:e
       case PHY_MEM_SSTABLE_SCAN:
         //pool_mem_sstable_scan_.free(dynamic_cast<ObMemSSTableScan*>(opt));
         tc_rp_free(dynamic_cast<ObMemSSTableScan*>(opt));

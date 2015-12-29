@@ -86,6 +86,9 @@ namespace oceanbase
       PHY_OB_CHANGE_OBI,
       PHY_ADD_PROJECT,
       PHY_UPS_MODIFY_WITH_DML_TYPE,
+      //add fanqiushi [semi_join] [0.1] 20150829:b
+      PHY_SEMI_LEFT_JOIN,
+      //add:e
 
       PHY_END /* end of phy operator type */
     };

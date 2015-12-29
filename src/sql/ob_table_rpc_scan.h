@@ -76,6 +76,9 @@ namespace oceanbase
          * @return OB_SUCCESS或错误码
          */
         int add_filter(ObSqlExpression *expr);
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        int add_filter_set_for_semijoin(ObSqlExpression *expr);
+        //add:e
         int add_group_column(const uint64_t tid, const uint64_t cid);
         int add_aggr_column(const ObSqlExpression& expr);
 

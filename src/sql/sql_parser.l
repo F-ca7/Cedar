@@ -672,6 +672,11 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>READ_CONSISTENCY  {
   return READ_CONSISTENCY;
 }
+<hint>SEMI_JOIN  {
+    //  add by yusj 20150819  :b
+    return SEMI_JOIN;
+    //  add  :e
+}
 <hint>WEAK  {
   return WEAK;
 }
@@ -684,13 +689,33 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>FROZEN  {
   return FROZEN;
 }
-<hint>[(),]  {
+<hint>[(),.]  {
   return yytext[0];
 }
 <hint>HOTSPOT  {
   return HOTSPOT;
 }
-<hint>{identifer} {}
+<hint>{identifer} {
+    int ret = NAME;
+    const NonReservedKeyword *word = NULL;
+    if((word = non_reserved_keyword_lookup(yytext)) == NULL)
+    {
+      ParseNode* node = NULL;
+      malloc_new_node(node,((ParseResult*)yyextra)->malloc_pool_, T_IDENT, 0);
+      yylval->node = node;
+      char *dup_value = parse_strdup(yytext, ((ParseResult*)yyextra)->malloc_pool_);
+      check_value(dup_value);
+      node->str_value_ = str_tolower(dup_value);
+      node->value_ = strlen(node->str_value_);
+      ret = NAME;
+    }
+    else
+    {
+     yylval->non_reserved_keyword = word;
+     ret = word->keyword_type;
+    }
+     return ret;
+}
 <hint>. {}
 
 {comment} { /* ignore */ }

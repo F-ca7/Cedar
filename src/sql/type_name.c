@@ -195,6 +195,7 @@ const char* get_type_name(int type)
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
+	case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
 	case T_KILL : return "T_KILL";
 	case T_MAX : return "T_MAX";
 	default:return "Unknown";

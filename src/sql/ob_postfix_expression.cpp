@@ -29,7 +29,9 @@
 #include "sql/ob_item_type_str.h"
 #include "ob_result_set.h"
 #include "ob_sql_session_info.h"
-
+//add fanqiushi [semi_join] [0.1] 20150910:b
+#include "common/ob_array.h"
+//add:e
 using namespace oceanbase::sql;
 
 namespace oceanbase
@@ -553,6 +555,139 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add fanqiushi [semi_join] [0.1] 20150910:b
+    int ObPostfixExpression::set_for_semi_join(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid)
+    {
+      int ret=OB_SUCCESS;
+      //add fanqiushi [semi_join] [0.1] 20151109:b
+      if(tmp_set->count()<=10)
+      {
+          ObObj tmp1,tmp2,tmp3;
+          tmp1.set_int(1);
+          expr_.push_back(tmp1);
+          tmp2.set_int(tid);
+          expr_.push_back(tmp2);
+          tmp3.set_int(cid);
+          expr_.push_back(tmp3);
+
+          ObObj tmp4,tmp5,tmp6,tmp7,tmp8,tmp9,tmp10;
+          tmp4.set_int(6);
+          tmp5.set_int(129);
+          tmp6.set_int(133);
+          tmp7.set_int(2);
+          tmp8.set_int(tmp_set->count());
+          tmp9.set_int(125);
+          tmp10.set_int(9);
+          expr_.push_back(tmp4);
+          expr_.push_back(tmp5);
+          expr_.push_back(tmp1);
+          expr_.push_back(tmp4);
+          expr_.push_back(tmp6);
+          expr_.push_back(tmp7);
+
+          for(int i=0;i<tmp_set->count();i++)
+          {
+             expr_.push_back(tmp7);
+             ObObj in_value=tmp_set->at(i);
+             if(in_value.get_type()==ObVarcharType)
+             {
+                ObObj obj_var;
+                if(OB_SUCCESS != (ret = str_buf_.write_obj(in_value, &obj_var)))
+                {
+                  TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
+                }
+                else
+                {
+                    expr_.push_back(obj_var);
+                }
+             }
+             else
+             {
+                expr_.push_back(tmp_set->at(i));
+             }
+             expr_.push_back(tmp4);
+             expr_.push_back(tmp5);
+             expr_.push_back(tmp1);
+          }
+
+          expr_.push_back(tmp4);
+          expr_.push_back(tmp5);
+          expr_.push_back(tmp8);
+
+          expr_.push_back(tmp4);
+          expr_.push_back(tmp9);
+          expr_.push_back(tmp7);
+
+          expr_.push_back(tmp10);
+      }
+      else
+      {
+            //todo between
+          ObObj tmp1,tmp2,tmp3;
+          tmp1.set_int(1);
+          expr_.push_back(tmp1);
+          tmp2.set_int(tid);
+          expr_.push_back(tmp2);
+          tmp3.set_int(cid);
+          expr_.push_back(tmp3);
+
+          ObObj tmp4;
+          tmp4.set_int(2);
+
+          expr_.push_back(tmp4);
+          ObObj in_value=tmp_set->at(0);
+         // TBSYS_LOG(ERROR,"test::fanqs,,in_value=%s",to_cstring(in_value));
+          if(in_value.get_type()==ObVarcharType)
+          {
+             ObObj obj_var;
+             if(OB_SUCCESS != (ret = str_buf_.write_obj(in_value, &obj_var)))
+             {
+               TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
+             }
+             else
+             {
+                 expr_.push_back(obj_var);
+             }
+          }
+          else
+          {
+             expr_.push_back(tmp_set->at(0));
+          }
+
+          expr_.push_back(tmp4);
+          ObObj in_value2=tmp_set->at(tmp_set->count()-1);
+           //TBSYS_LOG(ERROR,"test::fanqs,,in_value2=%s",to_cstring(in_value2));
+          if(in_value2.get_type()==ObVarcharType)
+          {
+             ObObj obj_var2;
+             if(OB_SUCCESS != (ret = str_buf_.write_obj(in_value2, &obj_var2)))
+             {
+               TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
+             }
+             else
+             {
+                 expr_.push_back(obj_var2);
+             }
+          }
+          else
+          {
+             expr_.push_back(tmp_set->at(tmp_set->count()-1));
+          }
+
+          ObObj tmp11,tmp12,tmp13,tmp14;
+          tmp11.set_int(6);
+          expr_.push_back(tmp11);
+          tmp12.set_int(118);
+          expr_.push_back(tmp12);
+          tmp13.set_int(3);
+          expr_.push_back(tmp13);
+          tmp14.set_int(9);
+          expr_.push_back(tmp14);
+      }
+      return ret;
+    }
+    //add:e
 
     int ObPostfixExpression::merge_expr(const ObPostfixExpression &expr1, const ObPostfixExpression &expr2, const ExprItem &op)
     {
@@ -2891,6 +3026,12 @@ namespace oceanbase
       int64_t value = 0;
       int64_t value2 = 0;
       int64_t sys_func = 0;
+      //add fanqiushi [semi_join] [0.1] 20150910:b
+      /*for(int i=0;i<expr_.count();i++)
+      {
+        TBSYS_LOG(ERROR,"expr_[idx]=%s,idx=%d", to_cstring(expr_[i]),i);
+      }*/
+      //add:e
       while(idx < expr_.count() && OB_SUCCESS == err)
       {
         expr_[idx++].get_int(type);

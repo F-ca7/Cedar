@@ -10,6 +10,55 @@
 
 namespace oceanbase
 {
+//add by yusj 20150819
+ namespace sql
+ {
+     using namespace common;
+     struct ObSemiTableList
+     {
+     	common::ObString join_left_table_name_;
+     	common::ObString join_left_column_name;
+     	common::ObString join_right_table_name_;
+     	common::ObString join_right_column_name;
+     	uint64_t left_table_id_;
+     	uint64_t right_table_id_;
+     	uint64_t left_column_id_;
+     	uint64_t right_column_id_;
+     	ObSemiTableList()
+     	{
+     		left_table_id_ = common::OB_INVALID_ID;
+     		right_table_id_ = common::OB_INVALID_ID;
+     		left_column_id_ = common::OB_INVALID_ID;
+     		right_column_id_ = common::OB_INVALID_ID;
+     		join_left_table_name_.assign_buffer(left_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_right_table_name_.assign_buffer(right_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_left_column_name.assign_buffer(left_col_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_right_column_name.assign_buffer(right_col_buf, OB_MAX_TABLE_NAME_LENGTH);
+     	}
+     private:
+     	char left_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+     	char right_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+ 		char left_col_buf[OB_MAX_TABLE_NAME_LENGTH];
+ 		char right_col_buf[OB_MAX_TABLE_NAME_LENGTH];
+
+     };
+ }
+
+ namespace common
+   {
+     template <>
+     struct ob_vector_traits<oceanbase::sql::ObSemiTableList>
+     {
+       typedef oceanbase::sql::ObSemiTableList* pointee_type;
+       typedef oceanbase::sql::ObSemiTableList value_type;
+       typedef const oceanbase::sql::ObSemiTableList const_value_type;
+       typedef value_type* iterator;
+       typedef const value_type* const_iterator;
+       typedef int32_t difference_type;
+     };
+   }
+
+ //add:end
   namespace sql
   {
     struct ObQueryHint
@@ -19,9 +68,15 @@ namespace oceanbase
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
       }
-
+      //add by yusj 20150819
+      bool has_semi_join_hint() const
+      {
+        return use_join_array_.size() > 0 ? true:false;
+      }
+      //add end
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
+      common::ObVector<ObSemiTableList> use_join_array_; //add by yusj 20150819
     };
     
     struct TableItem

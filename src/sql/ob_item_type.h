@@ -231,7 +231,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
-
+  T_SEMI_JOIN,//add by yusj [SEMI_JOIN] 20150819
   T_KILL,
 
   T_MAX,

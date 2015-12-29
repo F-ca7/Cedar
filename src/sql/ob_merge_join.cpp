@@ -16,6 +16,10 @@
 #include "ob_merge_join.h"
 #include "common/utility.h"
 #include "common/ob_row_util.h"
+//add fanqiushi [semi_join] [0.1] 20150826:b
+#include "ob_sort.h"
+#include "ob_table_rpc_scan.h"
+//add:e
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -24,7 +28,12 @@ ObMergeJoin::ObMergeJoin()
    last_left_row_(NULL),
    last_right_row_(NULL),
    right_cache_is_valid_(false),
-   is_right_iter_end_(false)
+   is_right_iter_end_(false),
+   //add fanqiushi [semi_join] [0.1] 20150826:b
+   is_semi_join_(false),
+   right_table_id_(OB_INVALID_ID),
+   right_cid_(OB_INVALID_ID)
+   //add:e
 {
 }
 
@@ -66,6 +75,12 @@ void ObMergeJoin::reset()
   other_join_conds_.clear();
   left_op_ = NULL;
   right_op_ = NULL;
+  //add fanqiushi [semi_join] [0.1] 20150826:b
+  is_semi_join_ = false;
+  right_table_id_ = OB_INVALID_ID;
+  right_cid_ = OB_INVALID_ID;
+  filter_set_.clear();
+  //add:e
 }
 
 void ObMergeJoin::reuse()
@@ -90,6 +105,12 @@ void ObMergeJoin::reuse()
   other_join_conds_.clear();
   left_op_ = NULL;
   right_op_ = NULL;
+  //add fanqiushi [semi_join] [0.1] 20150826:b
+  is_semi_join_ = false;
+  right_table_id_ = OB_INVALID_ID;
+  right_cid_ = OB_INVALID_ID;
+  filter_set_.clear();
+  //add:e
 }
 
 int ObMergeJoin::set_join_type(const ObJoin::JoinType join_type)
@@ -135,6 +156,79 @@ int ObMergeJoin::get_next_row(const ObRow *&row)
   return (this->*(this->ObMergeJoin::get_next_row_func_))(row);
 }
 
+//add fanqiushi [semi_join] [0.1] 20150826:b
+int ObMergeJoin::change_right_semi_join_op()
+{
+    int ret=OB_SUCCESS;
+    ObSort *left_child = (ObSort*)left_op_;
+    //uint64_t tid=OB_INVALID_ID;
+    //uint64_t cid=OB_INVALID_ID;
+    filter_set_ = left_child->get_filer_set();
+    //add yushengjuan [semi_join] [0.1] 20150908:b
+    //TBSYS_LOG(ERROR,"test::yusj right_semi_join_op count  is %ld", filter_set_.count());
+    /*for(int64_t i = 0;i < filter_set_.count();i++)
+    {
+    	TBSYS_LOG(ERROR,"test::yusj filter_set_ at %ld element is %s", filter_set_.count(), to_cstring(filter_set_.at(i)));
+    }*/
+
+   // TBSYS_LOG(ERROR,"test::fanqs,,type=%d",right_op_->get_type());
+    ObPhyOperator * right_child=NULL;
+    if(right_op_->get_type()==sql::PHY_SORT)
+    {
+        ObSort * sort_op=NULL;
+        sort_op=static_cast<ObSort*>(right_op_);
+        right_child=sort_op->get_child(0);
+        //TBSYS_LOG(ERROR,"test::fanqs,,type2=%d",right_child->get_type());
+        if(right_child->get_type()==sql::PHY_TABLE_RPC_SCAN)
+        {
+            ObTableRpcScan * right_op = NULL;
+            right_op = static_cast<ObTableRpcScan*>(right_child);
+            ObSqlExpression* expr_clone = ObSqlExpression::alloc();
+            if (NULL == expr_clone)
+            {
+              ret = OB_ALLOCATE_MEMORY_FAILED;
+              TBSYS_LOG(WARN, "no memory");
+            }
+            else
+            {
+              expr_clone->set_tid_cid(OB_INVALID_ID,65514);
+              expr_clone->set_post_expr(&filter_set_,right_table_id_,right_cid_);
+              right_op->add_filter_set_for_semijoin(expr_clone);
+            }
+        }
+    }
+    return ret;
+}
+
+int ObMergeJoin::do_semi_open()
+{
+    int ret = OB_SUCCESS;
+    if (NULL == left_op_ || NULL == right_op_)
+    {
+      ret = OB_NOT_INIT;
+      TBSYS_LOG(ERROR, "child(ren) operator(s) is/are NULL");
+    }
+    else
+    {
+      if (OB_SUCCESS != (ret = left_op_->open()) )
+          //|| OB_SUCCESS != (ret = right_op_->open()))
+      {
+        TBSYS_LOG(WARN, "failed to open child(ren) operator(s), err=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = change_right_semi_join_op()) )
+      {
+        TBSYS_LOG(WARN, "failed to do change_right_semi_join_op, err=%d", ret);
+      }
+      else if(OB_SUCCESS != (ret = right_op_->open()))
+      {
+        TBSYS_LOG(WARN, "failed to open child(ren) operator(s), err=%d", ret);
+      }
+    }
+    return ret;
+}
+
+//add:e
+
 int ObMergeJoin::open()
 {
   int ret = OB_SUCCESS;
@@ -146,10 +240,33 @@ int ObMergeJoin::open()
     TBSYS_LOG(WARN, "merge join can not work without equijoin conditions");
     ret = OB_NOT_SUPPORTED;
   }
-  else if (OB_SUCCESS != (ret = ObJoin::open()))
+  //modify fanqiushi [semi_join] [0.1] 20150826:b
+  /*else if (OB_SUCCESS != (ret = ObJoin::open()))
+  {
+    TBSYS_LOG(WARN, "failed to open child ops, err=%d", ret);
+  }*/
+  else
+  {
+      if(is_semi_join_)
+      {
+          if (OB_SUCCESS != (ret = do_semi_open()))
+          {
+            TBSYS_LOG(WARN, "failed to do_semi_open, err=%d", ret);
+          }
+      }
+      else
+      {
+          if (OB_SUCCESS != (ret = ObJoin::open()))
+          {
+            TBSYS_LOG(WARN, "failed to open child ops, err=%d", ret);
+          }
+      }
+  }
+  if(OB_SUCCESS != ret)
   {
     TBSYS_LOG(WARN, "failed to open child ops, err=%d", ret);
   }
+  //modify:e
   else if (OB_SUCCESS != (ret = left_op_->get_row_desc(left_row_desc)))
   {
     TBSYS_LOG(WARN, "failed to get child row desc, err=%d", ret);

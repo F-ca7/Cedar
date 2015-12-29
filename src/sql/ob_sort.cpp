@@ -16,6 +16,9 @@
 #include "ob_sort.h"
 #include "common/utility.h"
 #include "ob_physical_plan.h"
+//add fanqiushi [semi_join] [0.1] 20150829:b
+#include "ob_semi_left_join.h"
+//add:e
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -62,6 +65,14 @@ int ObSort::set_run_filename(const common::ObString &filename)
   TBSYS_LOG(INFO, "sort run file=%.*s", filename.length(), filename.ptr());
   return merge_sort_.set_run_filename(filename);
 }
+
+//add fanqiushi [semi_join] [0.1] 20150826:b
+ObArray<ObObj>& ObSort::get_filer_set()
+{
+    ObSemiLeftJoin *semi_left_join = (ObSemiLeftJoin*)child_op_;
+    return semi_left_join->get_left_table_element();
+}
+//add:e
 
 int ObSort::add_sort_column(const uint64_t tid, const uint64_t cid, bool is_ascending)
 {

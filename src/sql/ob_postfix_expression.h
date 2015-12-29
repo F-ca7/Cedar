@@ -322,6 +322,9 @@ namespace oceanbase
         int add_expr_obj(const common::ObObj &obj);
         int add_expr_item(const ExprItem &item);
         int add_expr_item_end();
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        int set_for_semi_join(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
+        //add:e
         void reset(void);
 
         /* 将row中的值代入到expr计算结果 */

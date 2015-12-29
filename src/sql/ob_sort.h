@@ -35,6 +35,9 @@ namespace oceanbase
         int64_t get_sort_column_size() const;
         void set_mem_size_limit(const int64_t limit);
         int set_run_filename(const common::ObString &filename);
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        common::ObArray<common::ObObj>& get_filer_set();
+        //add:e
 
         virtual int open();
         virtual int close();

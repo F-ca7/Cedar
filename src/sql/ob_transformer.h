@@ -160,6 +160,17 @@ namespace oceanbase
             oceanbase::common::ObList<ObBitSet<> >& bitset_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias);
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        int gen_phy_semi_join(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            ObSelectStmt *select_stmt,
+            oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
+            oceanbase::common::ObList<ObBitSet<> >& bitset_list,
+            oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
+            oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias);
+        //add:e
         int gen_phy_group_by(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

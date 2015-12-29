@@ -447,9 +447,24 @@ namespace oceanbase
       return ret;
     }
 
+    //add fanqiushi [semi_join] [0.1] 20150910:b
+        int ObTableRpcScan::add_filter_set_for_semijoin(ObSqlExpression *expr)
+        {
+            int ret = OB_SUCCESS;
+            if (OB_SUCCESS != (ret = rpc_scan_.add_filter(expr)))
+            {
+              TBSYS_LOG(WARN, "fail to add filter to rpc scan operator. ret=%d", ret);
+            }
+            return ret;
+        }
+    //add:e
+
     int ObTableRpcScan::add_filter(ObSqlExpression *expr)
     {
       int ret = OB_SUCCESS;
+      //add fanqiushi [semi_join] [0.1] 20150910:b
+      //TBSYS_LOG(ERROR, "test::fanqs,,expr=%s",to_cstring(*expr));
+      //add:e
       ObSqlExpression* expr_clone = ObSqlExpression::alloc(); // @todo temporary work around
       if (NULL == expr_clone)
       {

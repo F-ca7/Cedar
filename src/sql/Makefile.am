@@ -149,6 +149,7 @@ operators_sources=                                                       \
   ob_multiple_merge.h                ob_multiple_merge.cpp               \
   ob_inc_scan.h                      ob_inc_scan.cpp                     \
   ob_insert_dbsem_filter.h ob_insert_dbsem_filter.cpp                    \
+  ob_semi_left_join.h                ob_semi_left_join.cpp               \
   ob_cs_create_plan.h                ob_cs_create_plan.cpp               \
   ob_phy_operator_factory.h          ob_phy_operator_factory.cpp         \
   ob_husk_filter.h	              \

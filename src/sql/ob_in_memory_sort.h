@@ -55,6 +55,9 @@ namespace oceanbase
         int get_next_compact_row(common::ObString &compact_row);
         int get_next_row(common::ObRow &row);
         const common::ObRowDesc* get_row_desc() const;
+        //add yushengjuan [semi_join] [0.1] 20150829:b
+        common::ObArray<const common::ObRowStore::StoredRow*>& get_sorted_element();
+        //add:end
 
         int64_t get_row_count() const;
         int64_t get_used_mem_size() const;
@@ -79,6 +82,13 @@ namespace oceanbase
     {
       return row_desc_;
     }
+
+    //add yushengjuan [semi_join] [0.1] 20150829:b
+    inline common::ObArray<const common::ObRowStore::StoredRow*>& ObInMemorySort::get_sorted_element()
+	{
+    	return sort_array_;
+	}
+    //add:end
   } // end namespace sql
 } // end namespace oceanbase
 

@@ -138,7 +138,7 @@ do \
 %token GLOBAL GLOBAL_ALIAS GRANT GROUP
 %token HAVING HINT_BEGIN HINT_END HOTSPOT
 %token IDENTIFIED IF IN INNER INTEGER INTERSECT INSERT INTO IS
-%token JOIN
+%token JOIN SEMI_JOIN
 %token KEY
 %token LEADING LEFT LIMIT LIKE LOCAL LOCKED
 %token MEDIUMINT MEMORY MOD MODIFYTIME MASTER
@@ -1484,6 +1484,10 @@ hint_option:
   | HOTSPOT
     {
       malloc_terminal_node($$, result->malloc_pool_, T_HOTSPOT);
+    }
+  | SEMI_JOIN '(' relation_factor ',' relation_factor ',' relation_factor '.' relation_factor ',' relation_factor '.' relation_factor ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_SEMI_JOIN, 6, $3, $5, $7, $9, $11, $13);
     }
   | READ_CONSISTENCY '(' consistency_level ')'
     {
