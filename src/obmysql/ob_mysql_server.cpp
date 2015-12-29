@@ -1029,7 +1029,7 @@ namespace oceanbase
           FILL_TRACE_LOG("queue_wait_us=%ld", wait_us);
           if( OB_LIKELY (0 < wait_us) )
           {
-            OB_STAT_ICN(OBMYSQL, SQL_CMD_WAIT_TIME_MS, wait_us/1000);
+            OB_STAT_INC(OBMYSQL, SQL_CMD_WAIT_TIME_MS, wait_us/1000);
           }
         }
 
