@@ -272,11 +272,19 @@ DEFINE_DESERIALIZE(ObProject)
         TBSYS_LOG(DEBUG, "fail to add expr to project ret=%d. buf=%p, data_len=%ld, pos=%ld", ret, buf, data_len, pos);
         break;
       }
-      if (OB_SUCCESS != (ret = columns_.at(columns_.count() - 1).deserialize(buf, data_len, pos)))
+      else if (OB_SUCCESS != (ret = columns_.at(columns_.count() - 1).deserialize(buf, data_len, pos)))
       {
         TBSYS_LOG(WARN, "fail to deserialize expression. ret=%d", ret);
         break;
       }
+      //add zt 20151113:b
+      else
+      {
+        //even though add_output_column will set the owner op of expr,
+        //but when deserialize, the postexpr would call reset function, which make the own_op_ = nil
+        columns_.at(columns_.count() - 1).set_owner_op(this);
+      }
+      //add zt 20151113:e
     }
   }
   return ret;

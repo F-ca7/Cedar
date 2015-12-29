@@ -363,7 +363,7 @@ namespace oceanbase
       if (NULL == buf || buf_len <= 0 || pos > buf_len)
       {
         TBSYS_LOG(WARN, "invalid param, buf=%p, buf_len=%ld, pos=%ld",
-          buf, buf_len, pos);
+                  buf, buf_len, pos);
         ret = OB_INVALID_ARGUMENT;
       }
       if (OB_SUCCESS == ret)

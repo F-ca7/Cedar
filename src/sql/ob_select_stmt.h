@@ -256,6 +256,9 @@ namespace oceanbase
       int copy_select_items(ObSelectStmt* select_stmt);
       void print(FILE* fp, int32_t level, int32_t index = 0);
 
+      int add_raw_var_expr(const ObRawExpr *raw_expr) { return var_expr_list_.push_back(raw_expr); }
+      const ObIArray<const ObRawExpr *> & get_raw_var_expr() const { return var_expr_list_; }
+
     private:
       /* These fields are only used by normal select */
       bool    is_distinct_;
@@ -283,6 +286,10 @@ namespace oceanbase
       bool      for_update_;
 
       uint64_t    gen_joined_tid_;
+
+      //add zt 20151105:b
+      common::ObArray<const ObRawExpr *> var_expr_list_;
+      //add zt 20151105:e
     };
   }
 }

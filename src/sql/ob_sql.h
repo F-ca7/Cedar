@@ -26,10 +26,13 @@ namespace oceanbase
   namespace sql
   {
     struct ObStmtPrepareResult;
+
+    class ObTransformer;  //add zt 20151119
     // this class is the main interface for sql module
     class ObSql
     {
       public:
+      friend class ObTransformer; //add zt 20151119 bad design, in order to visit the copy_plan function
         /**
          * execute the SQL statement directly
          *
@@ -106,6 +109,11 @@ namespace oceanbase
         static bool process_special_stmt_hook(const common::ObString &stmt, ObResultSet &result, ObSqlContext &context);
         static int do_privilege_check(const common::ObString & username, const ObPrivilege **pp_privilege, ObLogicalPlan *plan);
         static bool no_enough_memory();
+
+        //add zt 20151117:b
+        static int make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context);
+        static int read_procedure_source(const ObString &proc_name, ObString &proc_sour, ObSqlContext &context, ObStringBuf* name_pool);
+        //add zt 20151117:e
       private:
         // data members
     };

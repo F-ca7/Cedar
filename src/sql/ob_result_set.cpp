@@ -244,6 +244,13 @@ int ObResultSet::pre_assign_params_room(const int64_t& size, common::ObIAllocato
   return ret;
 }
 
+//add zt 201151121:b
+//int ObResultSet::pre_assign_cur_time_room(common::ObObj *place_holder)
+//{
+//  cur_time_ = place_holder;
+//}
+//add zt 20151121:e
+
 int ObResultSet::pre_assign_cur_time_room(common::ObIAllocator &alloc)
 {
   int ret = OB_SUCCESS;

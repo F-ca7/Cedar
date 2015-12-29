@@ -49,6 +49,7 @@
 #include "ob_table_rpc_scan.h"
 #include "ob_get_cur_time_phy_operator.h"
 
+#include "ob_procedure_execute_stmt.h" //add zt 20151117
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 
@@ -157,6 +158,16 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
           ObBasicStmt::StmtType stmt_type = logic_plan->get_main_stmt()->get_stmt_type();
           result.set_stmt_type(stmt_type);
           result.set_inner_stmt_type(stmt_type);
+
+          //add zt 20151117:b bad degin
+          //perhaps we can do it in the fill_result_set
+          if( stmt_type == ObBasicStmt::T_PROCEDURE_EXEC )
+          {
+            //check the whether the procedure exist in the session, if not, try to build the plan from source code
+            make_procedure_cache_check(logic_plan->get_main_stmt(), context);
+          }
+          //add zt 20151117:e
+
           if (NULL == context.transformer_allocator_)
           {
             OB_ASSERT(!context.is_prepare_protocol_);
@@ -251,6 +262,21 @@ int ObSql::generate_logical_plan(const common::ObString &stmt, ObSqlContext & co
         schema_checker->set_schema(*context.schema_manager_);
         result_plan.schema_checker_ = schema_checker;
         result_plan.plan_tree_ = NULL;
+        //add by zhujun[2015-6-1]:b construct input_sql_ and sour_sql_ wtf!!
+		std::string input=std::string(stmt.ptr());
+		std::string sub_input=input.substr(0,stmt.length());
+    result_plan.input_sql_=sub_input.c_str(); //seems try to do some post-process, insert the source code into the catalog
+//        std::string sub_proc_input= "";
+//        if(result.proc_sql_.length()>0)
+//        {
+//			std::string proc_input=std::string(result.proc_sql_.ptr());
+//			sub_proc_input=proc_input.substr(0,proc_input.length()-1);
+//			result_plan.source_sql_=sub_proc_input.c_str();
+
+			//TBSYS_LOG(INFO, "zz:result_plan.input_sql_ is %s",result_plan.input_sql_);
+			//TBSYS_LOG(INFO, "zz:result_plan.source_sql_ is %s",result_plan.source_sql_);
+//        }
+        //add:e
         // generate logical plan
         ret = resolve(&result_plan, parse_result.result_tree_);
         PFILL_ITEM_END(sql_to_logicalplan);
@@ -659,6 +685,10 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
   // SET NAMES latin1/gb2312/utf8/etc...
   const char *set_names = (const char *)"SET NAMES ";
   int64_t set_names_len = strlen(set_names);
+  //add by zz 2014-12-16 prepare call procedure:b
+//  const char *call_procedure = (const char *)"CALL";
+//  int64_t call_procedure_len = strlen(call_procedure);
+  //add:e
   const char *set_session_transaction_isolation = (const char *)"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
   int64_t set_session_transaction_isolation_len = strlen(set_session_transaction_isolation);
 
@@ -844,6 +874,124 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
       op->set_row_desc(row_desc);
     }
   }
+  //delete by zt 20151117 :b
+  //add by zhujun[2015-6-1]:b
+//  else if (stmt.length() >= call_procedure_len && 0 == strncasecmp(stmt.ptr(), call_procedure, call_procedure_len))
+//  {
+//    TBSYS_LOG(TRACE, "zz:process special procedure stmt");
+//    if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+//    {}
+//    else
+//    {
+//      TBSYS_LOG(TRACE, "zz:CALL PROCEDURE");
+//      // CALL PROCEDURE
+//      /*在这里把存储过程的名字对应的源码加载到内存*/
+//      //------------------去掉空格------------------------
+//      std::string proc_stmt=std::string(stmt.ptr());
+//      size_t begin = 0,erro=-1;
+//      begin=proc_stmt.find("",begin);
+//      while(begin!=erro)
+//      {
+//        begin = proc_stmt.find(" ",begin);
+//        if(begin!=erro)
+//        {
+//          proc_stmt.replace(begin, 1, "");
+//        }
+//      }
+//      begin=0;
+//      while(begin!=erro)
+//      {
+//        begin = proc_stmt.find("\r",begin);
+//        if(begin!=erro)
+//        {
+//          proc_stmt.replace(begin, 1, "");
+//        }
+//      }
+//      begin=0;
+//      while(begin!=erro)
+//      {
+//        begin = proc_stmt.find("\n",begin);
+//        if(begin!=erro)
+//        {
+//          proc_stmt.replace(begin, 1, "");
+//        }
+//      }
+
+//      size_t pos_end=0;
+//      pos_end=proc_stmt.find("(",pos_end);
+//      if(pos_end<=4)
+//      {
+//        TBSYS_LOG(TRACE, "zz:get procedure name failed");
+//      }
+//      //截取出调用的存储过程名称
+//      std::string proc_name=proc_stmt.substr(4,pos_end-4);
+
+//      //替换sql语句中的变量 __all_procedure
+//      std::string proc_sql="select source from __all_procedure where proc_name='{1}';";
+//      size_t pos = proc_sql.find("{1}");
+//      proc_sql.replace(pos,3,proc_name.c_str());
+
+//      TBSYS_LOG(INFO, "select sql:%s",proc_sql.c_str());
+
+//      //构造查询表的sql语句
+//      ObString get_proc_sql=ObString::make_string(proc_sql.c_str());
+//      ObResultSet proc_result;
+//      do
+//      {
+//        if (OB_UNLIKELY(no_enough_memory()))
+//        {
+//          TBSYS_LOG(WARN, "no memory to get procedure source");
+//          ret = OB_ALLOCATE_MEMORY_FAILED;
+//        }
+//        else if((ret=proc_result.init())!=OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "ObResultSet init failed");
+//        }
+//        else if((ret=direct_execute(get_proc_sql,proc_result,context))!=OB_SUCCESS)//执行查询存储过程源码的
+//        {
+//          TBSYS_LOG(WARN, "direct_execute failed");
+//        }
+//        else if((ret=proc_result.open())!=OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "result open failed");
+//        }
+//        else
+//        {
+//          uint64_t table_id = OB_INVALID_ID;
+//          uint64_t column_id = OB_INVALID_ID;
+//          const common::ObObj *proc_cell = NULL;
+//          const common::ObRow *row;
+//          ObString source_str;
+//          if(!proc_result.is_with_rows())
+//          {
+//            TBSYS_LOG(WARN, "result without row");
+//          }
+//          else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
+//          {
+//            TBSYS_LOG(WARN, "get_next_row failed");
+//            TBSYS_LOG(USER_ERROR, "Procedure %s does not exist", proc_name.c_str());
+//          }
+//          else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))
+//          {
+//            TBSYS_LOG(WARN, "raw_get_cell 0 failed");
+//          }
+//          else if(OB_SUCCESS !=(ret=proc_cell->get_varchar(source_str)))
+//          {
+//            TBSYS_LOG(WARN, "get_varchar failed");
+//          }
+//          else
+//          {
+//            result.proc_sql_=ObString::make_string(source_str.ptr());
+//            TBSYS_LOG(INFO, "zz:source is %s",source_str.ptr());
+//            proc_result.close();
+//          }
+//        }
+//      }while(ret!=OB_SUCCESS&&ret!=OB_ALLOCATE_MEMORY_FAILED&&ret!=OB_ITER_END);
+//      ret = OB_NOT_SUPPORTED;
+//    }
+//  }
+  //add:e
+  //delete by zt : 20151117 :e
   else
   {
     ret = OB_NOT_SUPPORTED;
@@ -1274,7 +1422,7 @@ int ObSql::copy_plan_from_store(ObResultSet *result, ObPsStoreItem *item, ObSqlC
           {
             TBSYS_LOG(WARN, "Get ps session info failed sql_id=%lu, ret=%d", sql_id, ret);
           }
-          else if (OB_SUCCESS != (ret = result->from_store(value, info)))
+          else if (OB_SUCCESS != (ret = result->from_store(value, info))) //set the paramters info
           {
             TBSYS_LOG(WARN, "Assemble Result from ObPsStoreItem(%p) and ObPsSessionInfo(%p) failed, ret=%d",
                       value, info, ret);
@@ -1528,6 +1676,14 @@ int ObSql::set_execute_context(ObPhysicalPlan& plan, ObSqlContext& context)
         get_cur_time_op->set_rpc_stub(context.merger_rpc_proxy_);
         break;
       }
+      //add zt 20151119 :b
+      case PHY_PROCEDURE:
+      {
+        ObProcedure *procedure_op = dynamic_cast<ObProcedure*>(op);
+        procedure_op->set_rpc_stub(context.merger_rpc_proxy_);
+        break;
+      }
+      //add zt 20151119 :e
       default:
         break;
     }
@@ -1572,3 +1728,157 @@ bool ObSql::need_rebuild_plan(const common::ObSchemaManagerV2 *schema_manager, O
   }
   return ret;
 }
+
+
+//add zt 20151117:b
+/**
+ * @brief ObSql::make_procedure_cache_check
+ * 	check whether the procedure is compiled and cached in local session
+ * @param stmt the procedure stmt
+ * @param context
+ * @return
+ */
+int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
+{
+  int ret = OB_SUCCESS;
+  ObProcedureExecuteStmt *proc_exec_stmt = static_cast<ObProcedureExecuteStmt*>(stmt);
+  const ObString & proc_name = proc_exec_stmt->get_proc_name();
+
+  uint64_t stmt_id = OB_INVALID_ID;
+  if (context.session_info_->plan_exists(proc_name, &stmt_id) == false)
+  {
+//    ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+    //try to rebuild plan here
+    ObStringBuf name_pool;
+    ObResultSet proc_result_plan;
+    ObString proc_sour;
+
+    if( OB_SUCCESS != (ret = read_procedure_source(proc_name, proc_sour, context, &name_pool) ))
+    {
+      TBSYS_LOG(WARN, "read procedure source fail");
+    }
+
+    //release the buffer used by a read to the catalog
+    context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
+
+    //realloc the buffer now
+    context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+
+    //compile the procedure source the plan has following query ops:
+    //ObProcedureCreate	the wrapper op,
+    //ObProcedure, the main execution plan,
+    //ObInsert, a op used to insert the proc_source into the catalog
+    //we only need the ObProcedure op
+    context.is_prepare_protocol_ = true;
+    if( OB_SUCCESS != ret )
+    {}
+    else if( OB_SUCCESS != (ret = direct_execute(proc_sour, proc_result_plan, context)) )
+    {
+      TBSYS_LOG(WARN, "prepare the procedure plan fail");
+      context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
+    }
+    else
+    {
+      TBSYS_LOG(TRACE, "successful generate proc phyplan:\n%s", to_cstring(*(proc_result_plan.get_physical_plan())));
+      //proc_result_plan.get_physical_plan()->set_main_query(proc_result_plan.get_physical_plan()->get_main_query()->get_child(0));
+      if ((ret = context.session_info_->store_plan(proc_name, proc_result_plan)) != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "Store current result failed.");
+      }
+      else if( context.session_info_->plan_exists(proc_name, &stmt_id) == false)
+      {
+        TBSYS_LOG(WARN, "Cache plan failed, unexpected error");
+        ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+      }
+      else
+      {
+        proc_exec_stmt->set_proc_stmt_id(stmt_id);
+      }
+      context.session_info_->get_transformer_mem_pool().end_batch_alloc(false);
+      //keep the buffer here
+    }
+    context.is_prepare_protocol_ = false;
+    context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+  }
+  else
+  {
+    proc_exec_stmt->set_proc_stmt_id(stmt_id);
+  }
+  return ret;
+}
+
+/**
+ * @brief ObSql::read_procedure_source
+ * 	a hack read, bad design
+ * @param proc_name the procedure name  in
+ * @param proc_sour the procedure source  out
+ * @param context  the execution context in
+ * @param name_pool the buffer of proc_sour in
+ * @return
+ */
+int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour, ObSqlContext &context, ObStringBuf* name_pool)
+{
+  int ret = OB_SUCCESS;
+  char bufstr[128];
+  int str_len = 0;
+  if( 123 <= (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
+  {
+    TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from __all_procedure where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
+    ret = OB_ERROR;
+  }
+  else
+  {
+    ObResultSet proc_result;
+    ObString get_proc_sql = ObString::make_string(bufstr);
+    TBSYS_LOG(INFO, "read catalog: %.*s", get_proc_sql.length(), get_proc_sql.ptr());
+    if (OB_UNLIKELY(no_enough_memory()))
+    {
+      TBSYS_LOG(WARN, "no memory to get procedure source");
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+    }
+    else if((ret = proc_result.init()) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "ObResultSet init failed");
+    }
+    else if((ret = direct_execute(get_proc_sql,proc_result,context)) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "direct_execute failed");
+    }
+    else if((ret = proc_result.open()) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "result open failed");
+    }
+    else
+    {
+      uint64_t table_id = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      const common::ObObj *proc_cell = NULL;
+      const common::ObRow *row;
+      ObString source_str;
+      if(!proc_result.is_with_rows())
+      {
+        TBSYS_LOG(WARN, "result without row");
+      }
+      else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
+      {
+        TBSYS_LOG(USER_ERROR, "Procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
+      }
+      else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))
+      {
+        TBSYS_LOG(WARN, "raw_get_cell 0 failed");
+      }
+      else if(OB_SUCCESS !=(ret=proc_cell->get_varchar(source_str)))
+      {
+        TBSYS_LOG(WARN, "get_varchar failed");
+      }
+      else
+      {
+        ob_write_string(*name_pool, source_str, proc_sour);
+      }
+      proc_result.close();
+    }
+    TBSYS_LOG(INFO, "proc_source:\n%.*s", proc_sour.length(), proc_sour.ptr());
+  }
+  return ret;
+}
+//add zt 20151117:e

@@ -37,6 +37,11 @@ namespace oceanbase
         int64_t get_column_num() const;
         
         int add_column_desc(const uint64_t table_id, const uint64_t column_id, const ObObj &data_type);
+
+        //add zt 20151113:b
+        const ObRowDesc & get_row_desc() const { return row_desc_; }
+        NEED_SERIALIZE_AND_DESERIALIZE;
+        //add zt 20151113:e
       private:
         // data members
         ObRowDesc row_desc_;

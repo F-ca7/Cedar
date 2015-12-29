@@ -305,6 +305,7 @@ namespace oceanbase
           PARAM_IDX,
           SYSTEM_VAR,
           TEMP_VAR,
+          ARRAY_VAR,   //add zt 20151126
           OP,
           CUR_TIME_OP,
           UPS_TIME_OP,
@@ -352,6 +353,11 @@ namespace oceanbase
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add zt 20151109 :b
+        int serialize_variables(char *buf, const int64_t buf_len, int64_t &pos, int64_t type, const ObObj &expr_node) const;
+//        int deserialize_variables(int64_t type, const ObObj &expr_node);
+        //add zt 20151109 :e
       private:
         class ExprUtil
         {
@@ -433,6 +439,7 @@ namespace oceanbase
         int check_expr_type(const int64_t type_val, bool &is_type, const int64_t stack_len) const;
         int get_sys_func(const common::ObString &sys_func, ObSqlSysFunc &func_type) const;
         int get_var_obj(ObPostExprNodeType type, const ObObj& expr_node, const ObObj*& val) const;
+        int get_array_var(const ObObj& expr_node, int64_t idx_type, const ObObj &idx_val, const ObObj*& val) const; //add zt 20151126
       private:
         static const int64_t DEF_STRING_BUF_SIZE = 64 * 1024L;
         static const int64_t BASIC_SYMBOL_COUNT = 64;

@@ -24,6 +24,17 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObExprValues class
+     * ObExprValues is used by ObIncScan and ObInsertDBSemFilter and ObUpsMOdify(Replace semantics)
+     * > ObIncScan, uses ObExprValues to get the rowkey info and store into the get_param.
+     *	When serialization, get_param (instead of the ObExprValues) would be serialize. Serialize get_param
+     *  is safe, since the rowkey info would not change over execution.
+     * > ObUpsModify, uses ObExprValues as a child, when serialization, ObExprValues would be direct serialized,
+     *   we should serialize the raw ObSqlExpression.
+     * > ObInsertDBSemFilter, uses ObExprValues as a subquery, when serialization, ObExprValues would be direct serialize,
+     *   we should serialize the raw ObSqlExpression
+     */
     class ObExprValues: public ObNoChildrenPhyOperator
     {
       public:

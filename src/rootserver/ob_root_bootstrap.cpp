@@ -413,6 +413,21 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create table for __all_statement, err=%d", ret);
     }
   }
+
+   //add by zhujun 2015-3-11:b
+   // create table __all_procedure
+    if (OB_SUCCESS == ret)
+    {
+      if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_procedure_schema(table_schema)))
+      {
+        TBSYS_LOG(WARN, "failed to get schema for __all_procedure, err=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+      {
+        TBSYS_LOG(WARN, "failed to create empty tablet for __all_procedure, err=%d", ret);
+      }
+    }
+	//add:e
   return ret;
 }
 

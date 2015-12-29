@@ -52,6 +52,9 @@ namespace oceanbase
       static int all_server_stat_schema(TableSchema &table_schema);
       static int all_server_session_schema(TableSchema &table_schema);
       static int all_statement_schema(TableSchema &table_schema);
+      //add zhujun[2015-3-11]:b
+      static int all_procedure_schema(TableSchema &table_schema);
+      //add:e
     private:
       ObExtraTablesSchema();
     };

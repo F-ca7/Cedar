@@ -29,6 +29,7 @@
 #include "common/ob_list.h"
 #include "common/ob_row_desc_ext.h"
 #include "common/ob_se_array.h"
+#include "sql/ob_procedure.h"
 namespace oceanbase
 {
   namespace sql
@@ -59,6 +60,154 @@ namespace oceanbase
         void *trans_malloc(const size_t nbyte);
         void trans_free(void* p);
 
+        //add by zhujun 2014-12-05:b
+        //code_coverage_zhujun
+        int gen_physical_procedure(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_create(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_drop(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_execute(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+      int32_t* index);
+        int gen_physical_procedure_else(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+      int32_t* index);
+
+
+        //add zt 20151207 : help function
+  int gen_physical_procedure_inst_var_set(
+                  SpVariableSet &var_set,
+                  const ObIArray<const ObRawExpr *> & raw_expr_list
+                  );
+
+  int gen_physical_procedure_if(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+
+  int gen_physical_procedure_declare(
+                  ObLogicalPlan *logical_plan,
+                  //			ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op);
+  //			int32_t* index);
+  int gen_physical_procedure_assign(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_insert(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_replace(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_update(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_select_into(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_loop(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_inst(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_elseif(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                 );
+  int gen_physical_set_array_value(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  int32_t *index
+                  );
+
+        int gen_physical_procedure_while(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_case(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_casewhen(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        //code_coverage_zhujun
+		//add:e
         int generate_physical_plan(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
@@ -245,6 +394,113 @@ namespace oceanbase
             ErrStat& err_stat,
             ObShowStmt *show_stmt,
             ObPhyOperator *&out_op);
+	   //zhounan unmark:b
+       int gen_physical_cursor_declare(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+       int gen_physical_cursor_fetch(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+       int gen_physical_cursor_fetch_into(
+			   ObLogicalPlan *logical_plan,
+			   ObPhysicalPlan *physical_plan,
+			   ErrStat& err_stat,
+			   const uint64_t& query_id,
+			   int32_t* index);
+       int gen_physical_cursor_fetch_prior(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+	       ErrStat& err_stat,
+	       const uint64_t& query_id,
+	       int32_t* index);
+       int gen_physical_cursor_fetch_prior_into(
+       	       ObLogicalPlan *logical_plan,
+       	       ObPhysicalPlan *physical_plan,
+       	       ErrStat& err_stat,
+       	       const uint64_t& query_id,
+       	       int32_t* index);
+       int gen_physical_cursor_fetch_first(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+       int gen_physical_cursor_fetch_first_into(
+      			   ObLogicalPlan *logical_plan,
+      			   ObPhysicalPlan *physical_plan,
+      			   ErrStat& err_stat,
+      			   const uint64_t& query_id,
+      			   int32_t* index);
+       int gen_physical_cursor_fetch_last(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+
+       int gen_physical_cursor_fetch_last_into(
+             			   ObLogicalPlan *logical_plan,
+             			   ObPhysicalPlan *physical_plan,
+             			   ErrStat& err_stat,
+             			   const uint64_t& query_id,
+             			   int32_t* index);
+
+       int gen_physical_cursor_fetch_relative(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+		 int32_t* index);
+
+       int gen_physical_cursor_fetch_relative_into(
+       	    ObLogicalPlan *logical_plan,
+       	    ObPhysicalPlan *physical_plan,
+       	    ErrStat& err_stat,
+       	    const uint64_t& query_id,
+			int32_t* index);
+
+       int gen_physical_cursor_fetch_absolute(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+
+       int gen_physical_cursor_fetch_absolute_into(
+                    			   ObLogicalPlan *logical_plan,
+                    			   ObPhysicalPlan *physical_plan,
+                    			   ErrStat& err_stat,
+                    			   const uint64_t& query_id,
+                    			   int32_t* index);
+
+       int gen_physical_cursor_fetch_fromto(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+	       ErrStat& err_stat,
+	       const uint64_t& query_id,
+	       int32_t* index);
+       int gen_physical_cursor_open(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+			
+       int gen_physical_cursor_close(
+	    ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+
+//e:add by zhounan
+
         int gen_phy_show_processlist(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -305,13 +561,23 @@ namespace oceanbase
             const ObRowkeyInfo &rowkey_info,
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
-            ObPhyOperator*& table_op);
+            ObPhyOperator*& table_op,
+            //add zt 20151105 :b
+            SpRdBaseInst *rd_base_inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt 20151105 :e
+            );
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
-            int32_t* index);
+            int32_t* index,
+            //add zt : 20151105 b
+            SpRdBaseInst *inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt : 20151105 e
+            );
         int cons_row_desc(const uint64_t table_id,
             const ObStmt *stmt,
             ObRowDescExt &row_desc_ext,
@@ -348,7 +614,12 @@ namespace oceanbase
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
-            int32_t* index);
+            int32_t* index,
+            //add zt 20151105:b
+            SpRdBaseInst *rd_base_inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL
+            //add zt 20151105:e
+            );
         int try_push_down_group_agg(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

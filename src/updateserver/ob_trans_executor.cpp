@@ -1355,6 +1355,13 @@ namespace oceanbase
             session_ctx->get_checksum();
           }
         }
+        //add zt 20151121:b, precommit
+        if( OB_SUCCESS == ret && task.sid.is_valid()
+            && OB_SUCCESS != (ret = session_mgr_.precommit(task.sid.descriptor_)) )
+        {
+          TBSYS_LOG(ERROR, "precommit(%s)=>%d", to_cstring(task.sid), ret);
+        }
+        //add zt 20151121:e
         if (OB_SUCCESS != ret)
         {
           task.sid.reset();
