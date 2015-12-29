@@ -778,7 +778,7 @@ int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
 	  strcpy(table_schema.table_name_, OB_ALL_PROCEDURE_TABLE_NAME);
 	  table_schema.table_id_ = OB_ALL_PROCEDURE_TID;
 	  table_schema.rowkey_column_num_ = 1;
-	  table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 3;
+      table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 6;
 	  table_schema.max_rowkey_length_ = 128;
 
 	 int column_id = OB_APP_MIN_COLUMN_ID;
@@ -808,7 +808,7 @@ int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
           ObVarcharType,  //column_type
           128, //column length
           false); //is nullable
-      ADD_COLUMN_SCHEMA("comment", //column_name
+      ADD_COLUMN_SCHEMA("note", //column_name
           column_id ++, //column_id
           0, //rowkey_id
           ObVarcharType,  //column_type

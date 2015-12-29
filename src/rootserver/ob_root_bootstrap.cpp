@@ -416,6 +416,7 @@ int ObBootstrap::bootstrap_sys_tables(void)
 
    //add by zhujun 2015-3-11:b
    // create table __all_procedure
+  //modified by wangdonghui create table proc
     if (OB_SUCCESS == ret)
     {
       if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_procedure_schema(table_schema)))
