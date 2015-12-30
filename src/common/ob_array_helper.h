@@ -37,7 +37,7 @@ namespace oceanbase
             else
             {
               add_ok = false;
-              TBSYS_LOG(ERROR, "test::longfei index_ = %ld, size = %ld, p_ = %p", index_, size_, p_);
+//              TBSYS_LOG(ERROR, "test::longfei index_ = %ld, size = %ld, p_ = %p", index_, size_, p_);
             }
             return add_ok;
           }
