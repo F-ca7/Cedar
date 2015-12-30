@@ -131,7 +131,15 @@ int ObSort::do_sort()
     while(OB_SUCCESS == ret
         && OB_SUCCESS == (ret = child_op_->get_next_row(input_row)))
     {
-      if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      //mod longfei 151229:b
+      if (NULL == input_row)
+      {
+        ret = OB_ERR_NULL_POINTER;
+        TBSYS_LOG(ERROR, "null pointer, err=%d", ret);
+      }
+      //if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      else if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      //mod e
       {
         TBSYS_LOG(WARN, "failed to add row, err=%d", ret);
       }

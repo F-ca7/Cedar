@@ -46,7 +46,7 @@ namespace oceanbase
           }
         }
       }
-      else
+      if(local_idx_scan_finish_)
       {
         if (OB_SUCCESS != (ret = (right_op_->get_next_row(row))))
         {

@@ -825,8 +825,7 @@ namespace oceanbase
           local_handler_[i]->get_allocator()->reuse();   //发送失败,释放内存
           local_handler_[i]->get_index_reporter()->reset_report_info();
         }
-        TBSYS_LOG(WARN,
-                  "partional tablet histogram info report failed, memory reuse");
+        TBSYS_LOG(WARN,"partional tablet histogram info report failed, memory reuse");
       }
       else
       {
@@ -837,8 +836,7 @@ namespace oceanbase
           local_handler_[i]->get_allocator()->reuse();   //发送成功,释放内存d
           local_handler_[i]->get_index_reporter()->reset_report_info();
         }
-        TBSYS_LOG(INFO,
-                  "partional tablet histogram info report success, memory reuse");
+        TBSYS_LOG(INFO,"partional tablet histogram info report success, memory reuse");
       }
 
       return ret;
@@ -1190,8 +1188,7 @@ namespace oceanbase
           else if (OB_GET_NOTHING == err)
           {
             --active_thread_num_;
-            TBSYS_LOG(INFO,
-                      "there is no tablet need build static index,sleep wait for new index process.");
+            TBSYS_LOG(INFO,"there is no tablet need build static index,sleep wait for new index process.");
             pthread_cond_wait(&cond_, &mutex_);//在这儿阻塞handler，等待start_round(...)准备好信息之后发送广播。
             TBSYS_LOG(INFO, "awake by signal,active_thread_num_=:%ld",active_thread_num_);
             ++active_thread_num_;

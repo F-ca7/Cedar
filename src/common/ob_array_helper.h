@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "ob_define.h"
+#include <tblog.h>
 
 namespace oceanbase
 {
@@ -36,6 +37,7 @@ namespace oceanbase
             else
             {
               add_ok = false;
+              TBSYS_LOG(ERROR, "test::longfei index_ = %ld, size = %ld, p_ = %p", index_, size_, p_);
             }
             return add_ok;
           }

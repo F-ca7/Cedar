@@ -96,6 +96,7 @@ namespace oceanbase
         int         get_next_global_tablet(const int64_t sample_num, ObTabletInfo &tablet_info, int32_t *server_index, const int32_t copy_count);
         int         allocate_chunkserver(int32_t *server_index, const int32_t copy_count, const int32_t begin_index, const int32_t end_index);
         int         set_meta_index(int64_t meta_index, int64_t hist_index);
+
       public:
         inline meta_itr begin()
         {

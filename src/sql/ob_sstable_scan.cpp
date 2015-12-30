@@ -158,8 +158,8 @@ int ObSSTableScan::open_scan_context(const sstable::ObSSTableScanParam& param, c
   scan_context_ = context;
   // acquire tablet object.
   int64_t query_version = 0;
-  TBSYS_LOG(ERROR, "test::longfei>>>tablet with scan range: %s, version: %ld",
-      to_cstring(scan_param_.get_range()),scan_param_.get_version_range().get_query_version());
+//  TBSYS_LOG(ERROR, "test::longfei>>>tablet with scan range: %s, version: %ld",
+//      to_cstring(scan_param_.get_range()),scan_param_.get_version_range().get_query_version());
   if ((query_version = scan_param_.get_version_range().get_query_version()) < 0)
   {
     TBSYS_LOG(ERROR, "empty version range to scan, version_range=%s",

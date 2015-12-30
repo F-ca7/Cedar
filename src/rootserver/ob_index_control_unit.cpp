@@ -363,9 +363,12 @@ namespace oceanbase
             }
           }
 
+
           if(OB_SUCCESS == ret)
           {
             //step2, if local index build success, write golbal index range  into rt
+            //TBSYS_LOG(ERROR,"test::longfei>>>width[%ld]",ch_.get_width());
+            //print_num(ch_.get_width());
             if(OB_SUCCESS != (ret = fill_all_samples()))
             {
               TBSYS_LOG(WARN, "failed to fill samples, ret = %d", ret);

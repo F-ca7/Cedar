@@ -107,7 +107,6 @@ namespace oceanbase
       }
       else if(pos == end())
       {
-        TBSYS_LOG(ERROR,"test::longfei>>>pos[%p],end[%p]",pos,end());
         //new tablet info,should add in meta index
         hist_meta.report_cs_info[0].server_info_index = server_index;
         hist_meta.report_cs_info[0].report_timestamp = tbsys::CTimeUtil::getTime();
@@ -335,6 +334,7 @@ namespace oceanbase
     int ObIndexDesigner::get_next_global_tablet(const int64_t sample_num, ObTabletInfo &tablet_info, int32_t *server_index, const int32_t copy_count)
     {
       int ret = OB_SUCCESS;
+      //TBSYS_LOG(ERROR,"test::longfei>>>sample_num[%ld]",sample_num);
       ObHistgramSampleIterator *sample = NULL;
       int start = cur_sri_index_;
       if(sample_num <=0 || sample_num > ObTabletHistogram::MAX_SAMPLE_BUCKET || NULL == server_index || sorted_hsi_list_.size() <= cur_sri_index_ || 0 > cur_sri_index_)
@@ -761,6 +761,8 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int32_t server_count = 0;
+      //int64_t local_sample_num = -1;
+      //TBSYS_LOG(ERROR,"test::longfei>>>sample_num pre[%ld],addr[%p]",sample_num,&sample_num);
       ObTabletInfoList* p_info_list[server_count];
       if(NULL == root_server_)
       {
@@ -778,17 +780,25 @@ namespace oceanbase
       if(OB_SUCCESS == ret)
       {
         tbsys::CThreadGuard hist_mutex_gard(&mutex);
+        //UNUSED(mutex);
         {
+          //TBSYS_LOG(ERROR,"test::longfei>>>sample_num[%ld],addr[%p]",sample_num,&sample_num);
+          int64_t local_sample_num = sample_num;
           while(has_next() && OB_SUCCESS == ret)
           {
+            //TBSYS_LOG(ERROR,"test::longfei>>>sample_num[%ld]",sample_num);
             ObTabletInfo tablet_info;
             int32_t copy_count = OB_SAFE_COPY_COUNT;
             int32_t server_index[copy_count];
+            //TBSYS_LOG(ERROR,"test::longfei>>>sample_num[%ld]",sample_num);
             for (int32_t i = 0; i < copy_count; i++)
             {
               server_index[i] = OB_INVALID_INDEX;
             }
-            if (OB_SUCCESS == (ret = get_next_global_tablet(sample_num, tablet_info, server_index, copy_count)))
+            //TBSYS_LOG(ERROR,"test::longfei>>>sample_num[%ld]",sample_num);
+            //local_sample_num = sample_num;
+            //TBSYS_LOG(ERROR,"test::longfei>>>sample_num ,addr[%p]",&sample_num);
+            if (OB_SUCCESS == (ret = get_next_global_tablet(local_sample_num, tablet_info, server_index, copy_count)))
             {
               if (OB_SUCCESS != (ret = fill_tablet_info_list_by_server_index(p_info_list, server_count, tablet_info, server_index, copy_count)))
               {

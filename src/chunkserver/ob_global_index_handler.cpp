@@ -298,7 +298,7 @@ namespace oceanbase
           }
         }
       }
-      //add zhuyanchao[secondary index static_data_build.report]20150401
+
       if (OB_SUCCESS == ret)
       {
         ObTablet* index_image_tablet;
@@ -322,11 +322,12 @@ namespace oceanbase
           }
         }
       }
-      //add e
 
       //if(OB_SUCCESS == ret)
       TBSYS_LOG(INFO, "write total index will end!");
       sort_.reset();
+      local_agent_.reset();
+      interactive_agent_.reset();
       set_sstable_size(0);
       //add wenghaixing [secondary index static_index_build]20150804
       /*when we stop to read sstable,we should reset tmi*/

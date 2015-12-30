@@ -21,8 +21,8 @@ namespace oceanbase
       range_server_hash_ = NULL;
       hash_index_ = -1;
       column_count_ = -1;
-      //failed_fake_range_;
-      //curr_row_;
+      failed_fake_range_.reset();
+//      curr_row_.reset();
     }
 
     void ObIndexInteractiveAgent::reuse()

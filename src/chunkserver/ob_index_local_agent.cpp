@@ -54,6 +54,14 @@ namespace oceanbase
     void ObIndexLocalAgent::reset()
     {
       row_desc_.reset();
+      sst_scan_.reset();
+      sst_scan_param_.reset();
+      range_server_hash_ = NULL;
+      local_idx_scan_finish_ = false;
+      local_idx_block_end_ = false;
+      first_scan_ = false;
+      hash_index_ = 0;
+      scan_param_ = NULL;
     }
 
     void ObIndexLocalAgent::reuse()
@@ -63,7 +71,7 @@ namespace oceanbase
 
     int ObIndexLocalAgent::scan()
     {
-      int ret = OB_ERROR;
+      int ret = OB_SUCCESS;
       ObNewRange fake_range;
       sst_scan_.close();
       sst_scan_.reset();
@@ -116,7 +124,7 @@ namespace oceanbase
       const ObRowkey *row_key = NULL;
       {
         ret = sst_scan_.get_next_row(row_key, row);
-        //TBSYS_LOG(ERROR,"test::longfei>>> ObIndexLocalAgent row[%s]",to_cstring(*row));
+        //TBSYS_LOG(ERROR,"test::longfei>>> ObIndexLocalAgent row[%s],row_key[%s],ret[%d]",to_cstring(*row),to_cstring(*row_key),ret);
         if (OB_ITER_END == ret)
         {
           do
@@ -209,11 +217,13 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       const ObRow* tmp_row = &cur_row_;
+      //TBSYS_LOG(ERROR,"test::longfei>>>local agent: cur_row[%s],local_idx_scan_finish_[%s]",to_cstring(cur_row_),local_idx_scan_finish_?"true":"false");
       if (!local_idx_scan_finish_)
       {
         if (OB_SUCCESS == (ret = get_next_local_row(tmp_row)))
         {
           row = tmp_row;
+          //TBSYS_LOG(ERROR,"test::longfei>>>local agent.get next row = [%s]",to_cstring(*row));
         }
       }
       if (local_idx_scan_finish_)
