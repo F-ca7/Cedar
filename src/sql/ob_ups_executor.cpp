@@ -1,4 +1,17 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_executor.cpp
+ * @brief send physical plan to ups
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -98,7 +111,7 @@ int ObUpsExecutor::open()
         TBSYS_LOG(DEBUG, "execute sub query %d", i);
         if (OB_SUCCESS != (ret = aux_query->open()))
         {
-//add wangjiahao [ob_update_more] 20151204 :b
+//add wangjiahao [dev_update_more] 20151204 :b
           //No data to update, About!
           if (ret != OB_NO_RESULT)
 //add :e
@@ -201,7 +214,7 @@ int ObUpsExecutor::open()
       }
     }
   }
-//add wangjiahao [ob_update_more] 20151204 :b
+//add wangjiahao [dev_update_more] 20151204 :b
   if (ret == OB_NO_RESULT) ret = OB_SUCCESS;
 //add :e
   return ret;

@@ -1,4 +1,17 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transformer.cpp
+ * @brief generate physical plans
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -6043,7 +6056,6 @@ int ObTransformer::gen_phy_table_for_update(
   }
   return ret;
 }
-
 //add wangjiahao [dev_update_more] 20151204 :b
 int ObTransformer::gen_phy_table_for_update_more(
     ObLogicalPlan *logical_plan,
@@ -6076,7 +6088,13 @@ int ObTransformer::gen_phy_table_for_update_more(
 
   ObSEArray<ObSqlExpression*, OB_MAX_COLUMN_NUMBER> filter_list;
 
-  //hint.read_consistency_ = FROZEN;
+  ObObj rowkey_objs[OB_MAX_ROWKEY_COLUMN_NUMBER]; // used for constructing GetParam
+  ObPostfixExpression::ObPostExprNodeType type_objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
+  ModuleArena rowkey_alloc(OB_MAX_VARCHAR_LENGTH, ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
+  ObCellInfo cell_info;
+  cell_info.table_id_ = table_id;
+  cell_info.row_key_.assign(rowkey_objs, rowkey_info.get_size());
+
   hint.is_get_skip_empty_row_ = false;
 
 
@@ -6128,17 +6146,9 @@ int ObTransformer::gen_phy_table_for_update_more(
   else if (NULL == CREATE_PHY_OPERRATOR(fill_data, ObFillValues, physical_plan, err_stat))
   {
   }
-  else if (OB_SUCCESS != (ret = physical_plan->add_phy_query(fill_data)))
-  {
-    TBSYS_LOG(WARN, "failed to add sub query, err=%d", ret);
-  }
   else if (NULL == CREATE_PHY_OPERRATOR(get_param_values, ObExprValues, physical_plan, err_stat))
   {
     ret = OB_ALLOCATE_MEMORY_FAILED;
-  }
-  else if (OB_SUCCESS != (ret = physical_plan->add_phy_query(get_param_values)))
-  {
-    TBSYS_LOG(WARN, "failed to add sub query, err=%d", ret);
   }
   //add the two operator and fill values into ObExprValues from ObValues
   else if (OB_SUCCESS != (ret = fill_data->set_op(tmp_table, get_param_values)))
@@ -6227,6 +6237,15 @@ int ObTransformer::gen_phy_table_for_update_more(
           break;
         }
 
+        else if (OB_SUCCESS != (ret = ob_write_obj(rowkey_alloc, cond_val, rowkey_objs[rowkey_idx]))) // deep copy
+        {
+          TRANS_LOG("failed to copy cell, err=%d", ret);
+        }
+        else
+        {
+          type_objs[rowkey_idx] = val_type;
+          TBSYS_LOG(DEBUG, "rowkey obj, i=%ld val=%s", rowkey_idx, to_cstring(cond_val));
+        }
       }
       else
       {
@@ -6269,38 +6288,54 @@ int ObTransformer::gen_phy_table_for_update_more(
       } // end for
     }
 
-
-    ObString name = ObString::make_string(OB_READ_CONSISTENCY);
-    ObObj value;
-    int64_t read_consistency_level_val = 0;
-    hint.read_consistency_ = common::STRONG;
-    sql_context_->session_info_->get_sys_variable_value(name, value);
-    value.get_int(read_consistency_level_val);
-    hint.read_consistency_ = static_cast<ObConsistencyLevel>(read_consistency_level_val);
-
-    int32_t read_method = ObSqlReadStrategy::USE_SCAN;
-    // Determine Scan or Get?
-    ObArray<ObRowkey> rowkey_array;
-    // TODO: rowkey obj storage needed. varchar use orginal buffer, will be copied later
-    PageArena<ObObj,ModulePageAllocator> rowkey_objs_allocator(
-        PageArena<ObObj, ModulePageAllocator>::DEFAULT_PAGE_SIZE,ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
-    // ObObj rowkey_objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
-
-    if (OB_SUCCESS != (ret = sql_read_strategy.get_read_method(rowkey_array, rowkey_objs_allocator, read_method)))
+    //set hint
+    if (full_rowkey_col)
     {
-      TBSYS_LOG(WARN, "fail to get read method:ret[%d]", ret);
+      hint.read_method_ = ObSqlReadStrategy::USE_GET;
+      hint.read_consistency_ = FROZEN;
     }
     else
     {
-      TBSYS_LOG(DEBUG, "use [%s] method", read_method == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET");
+      //if you do not have full rowkey columns, need to fetch and fill them.
+      if (OB_SUCCESS != (ret = physical_plan->add_phy_query(fill_data)))
+      {
+        TBSYS_LOG(WARN, "failed to add sub query, err=%d", ret);
+      }
+      ObString name = ObString::make_string(OB_READ_CONSISTENCY);
+      ObObj value;
+      int64_t read_consistency_level_val = 0;
+      hint.read_consistency_ = common::STRONG;
+      sql_context_->session_info_->get_sys_variable_value(name, value);
+      value.get_int(read_consistency_level_val);
+      hint.read_consistency_ = static_cast<ObConsistencyLevel>(read_consistency_level_val);
+
+      int32_t read_method = ObSqlReadStrategy::USE_SCAN;
+      // Determine Scan or Get?
+      ObArray<ObRowkey> rowkey_array;
+      // TODO: rowkey obj storage needed. varchar use orginal buffer, will be copied later
+      PageArena<ObObj,ModulePageAllocator> rowkey_objs_allocator(
+          PageArena<ObObj, ModulePageAllocator>::DEFAULT_PAGE_SIZE,ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
+      // ObObj rowkey_objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
+
+      if (OB_SUCCESS != (ret = sql_read_strategy.get_read_method(rowkey_array, rowkey_objs_allocator, read_method)))
+      {
+        TBSYS_LOG(WARN, "fail to get read method:ret[%d]", ret);
+      }
+      else
+      {
+        TBSYS_LOG(DEBUG, "use [%s] method", read_method == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET");
+      }
+      hint.read_method_ = read_method;
     }
-    hint.read_method_ = read_method;
-
-
   }
 
-
-  if (OB_SUCCESS != (ret = table_rpc_scan_op->init(sql_context_, &hint)))
+  if (OB_UNLIKELY(OB_SUCCESS != ret))
+  {}
+  else if (OB_SUCCESS != (ret = physical_plan->add_phy_query(get_param_values))) //after the decision whether fill_data add to the plan
+  {
+    TBSYS_LOG(WARN, "failed to add sub query, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = table_rpc_scan_op->init(sql_context_, &hint))) //init after hint was set
   {
     TRANS_LOG("ObTableRpcScan init failed");
   }
@@ -6344,10 +6379,67 @@ int ObTransformer::gen_phy_table_for_update_more(
           TRANS_LOG("Add table output columns faild");
           break;
         }
+        // for IncScan
+        if (full_rowkey_col)
+        {
+          ObConstRawExpr col_expr2;
+          if (i < rowkey_info.get_size()) // rowkey column
+          {
+            if (OB_SUCCESS != (ret = col_expr2.set_value_and_type(rowkey_objs[i])))
+            {
+              TBSYS_LOG(WARN, "failed to set value, err=%d", ret);
+              break;
+            }
+            else
+            {
+              switch (type_objs[i])
+              {
+                case ObPostfixExpression::PARAM_IDX:
+                  col_expr2.set_expr_type(T_QUESTIONMARK);
+                  col_expr2.set_result_type(ObVarcharType);
+                  break;
+                case ObPostfixExpression::SYSTEM_VAR:
+                  col_expr2.set_expr_type(T_SYSTEM_VARIABLE);
+                  col_expr2.set_result_type(ObVarcharType);
+                  break;
+                case ObPostfixExpression::TEMP_VAR:
+                  col_expr2.set_expr_type(T_TEMP_VARIABLE);
+                  col_expr2.set_result_type(ObVarcharType);
+                  break;
+                default:
+                  break;
+              }
+            }
+          }
+          else
+          {
+            ObObj null_obj;
+            col_expr2.set_value_and_type(null_obj);
+          }
+          ObSqlRawExpr col_raw_expr2(
+            common::OB_INVALID_ID,
+            col_item->table_id_,
+            col_item->column_id_,
+            &col_expr2);
+          ObSqlExpression output_expr2;
+          if ((ret = col_raw_expr2.fill_sql_expression(
+                 output_expr2,
+                 this,
+                 logical_plan,
+                 physical_plan)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add table output columns failed");
+            break;
+          }
+          else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
+          {
+            TRANS_LOG("Failed to add cell into get param, err=%d", ret);
+            break;
+          }
+        }
       }
     } // end for
   }
-
   // add action flag column
   if (full_rowkey_col && OB_SUCCESS == ret)
   {

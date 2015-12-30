@@ -1,18 +1,17 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * Version: $Id$
- *
- * ob_fill_values.cpp
- *
- * Authors:
- *   wjhh2008
- *
+ * @file ob_fill_values.h
+ * @brief ObFillValues is designed for update_more
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
  */
+//add wangjiahao [dev_update_more] 20151204:b
 #ifndef OBFILLVALUES_H
 #define OBFILLVALUES_H
 
@@ -28,16 +27,17 @@ namespace oceanbase
   {
     using namespace common;
 
+    /**
+     * @brief ObFillValues is designed for the purpose of
+     * supporting new update operation which can update
+     * not even given full rowkey condition but also
+     * other conditions. We need to fill the values from
+     * ObValues contained the conditions to ObExprValues.
+     */
     class ObFillValues : public ObNoChildrenPhyOperator
     {
       public:
-        /**
-         * @brief ObFillValues is designed for the purpose of
-         * supporting new update operation which can update
-         * not even given full rowkey condition but also
-         * other conditions. We need to fill the values from
-         * ObValues contained the conditions to ObExprValues.
-         */
+
         ObFillValues();
         virtual ~ObFillValues();
         virtual void reset();
@@ -107,3 +107,4 @@ namespace oceanbase
 
 
 #endif // OBFILLVALUES_H
+//add :e

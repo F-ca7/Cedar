@@ -182,7 +182,8 @@ operators_sources=                                                       \
   ob_ps_store_item.h    ob_ps_store_item.cpp \
   ob_ps_store.h         ob_ps_store.cpp      \
   ob_ps_store_item_callback.h \
-	ob_sql_character_set.h             ob_sql_character_set.cpp
+	ob_sql_character_set.h             ob_sql_character_set.cpp\
+	ob_fill_values.h	ob_fill_values.cpp
 
 
 

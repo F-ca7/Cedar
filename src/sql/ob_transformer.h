@@ -1,4 +1,17 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transformer.h
+ * @brief generate physical plans
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -306,12 +319,14 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
-//add wangjiahao [update_more] 20151204 :b
+//add wangjiahao [dev_update_more] 20151204 :b
         /**
          * @brief gen_phy_table_for_update_more is a new method
-         * to generate pysical plan for update which support update
+         * to generate physical plan for update which support update
          * not even given full rowkey condition but also
-         * other conditions.
+         * other conditions. In the full rowkey condition
+         * physical plan generated will be as the same as
+         * the old gen_phy_table_for_update method.
          * @param logical_plan
          * @param physical_plan
          * @param err_stat

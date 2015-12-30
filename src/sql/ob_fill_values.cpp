@@ -1,20 +1,18 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * Version: $Id$
- *
- * ob_fill_values.cpp
- *
- * Authors:
- *   wjhh2008
- *
+ * @file ob_fill_values.cpp
+ * @brief ObFillValues is designed for update_more
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
  */
+//add wangjiahao [dev_update_more] 20151204:b
 #include "ob_fill_values.h"
-
 #include "common/serialization.h"
 #include "common/ob_tsi_factory.h"
 #include "ob_raw_expr.h"
@@ -177,4 +175,4 @@ int64_t ObFillValues::to_string(char* buf, const int64_t buf_len) const
 }
 
 
-
+//add :e
