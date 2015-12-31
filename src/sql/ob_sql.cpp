@@ -128,6 +128,8 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
         }
         else
         {
+            TBSYS_LOG(TRACE, "execute sql statement [%.*s]", stmt.length(), stmt.ptr());
+
             ret = generate_logical_plan(stmt, context, result_plan, result);
             if (OB_SUCCESS != ret)
             {
@@ -221,6 +223,7 @@ int ObSql::generate_logical_plan(const common::ObString &stmt, ObSqlContext & co
         // generate syntax tree
         PFILL_ITEM_START(sql_to_logicalplan);
         FILL_TRACE_LOG("before_parse");
+        TBSYS_LOG(TRACE, "before parse [%.*s]", stmt.length(), stmt.ptr());
         if (parse_sql(&parse_result, stmt.ptr(), static_cast<size_t>(stmt.length())) != 0
                 || NULL == parse_result.result_tree_)
         {
@@ -691,10 +694,14 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
     //add:e
     const char *set_session_transaction_isolation = (const char *)"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
     int64_t set_session_transaction_isolation_len = strlen(set_session_transaction_isolation);
+
     //add by wangdonghui 20151224 :b
     const char *show_procedure = (const char *)"SHOW CREATE PROCEDURE ";
     int64_t show_procedure_len = strlen(show_procedure);
+    const char *select_procedure = (const char *)"SELECT name, type, comment FROM mysql.proc";
+    int64_t select_procedure_len = strlen(select_procedure);
     //add :e
+
     ObRow row;
     ObRowDesc row_desc;
     ObValues *op = NULL;
@@ -877,27 +884,23 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
             op->set_row_desc(row_desc);
         }
     }
-    //add by wangdonghui 20151224 :b it's a sad thing
-    //comment by zt 20151226, ObString use the length() function to determine the end of string.
-    //instead of '\0' character. So we get wrong end position here.
+    //add by wangdonghui 20151224 :b it's a sad thing to process show create procedure
     else if(stmt.length() >= show_procedure_len && 0 == strncasecmp(stmt.ptr(), show_procedure, show_procedure_len))
     {
+        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
         if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
         {
         }
         else
         {
             TBSYS_LOG(TRACE, "special stmt: %.*s", stmt.length(), stmt.ptr());
-            //ObIAllocator *alloc =  context.transformer_allocator_;
-            char name[128];
-            memset(name,0,sizeof(name));
             int index=0;
             bool flag=false;
             for(size_t i = 0; i<(size_t)stmt.length()-1; i++)
             {
                 if(flag)
                 {
-                    name[index++] = stmt.ptr()[i];
+                    bufstr[index++] = stmt.ptr()[i];
                 }
                 if(stmt.ptr()[i] == '.')
                 {
@@ -905,13 +908,12 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
                     flag=true;
                 }
             }
-            TBSYS_LOG(TRACE, "name: %s", name);
-            ObString proc_name = ObString::make_string((const char *)name);
+            bufstr[index]='\0';
+            ObString proc_name = ObString::make_string(bufstr);
             TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
             ObString proc_sour;
             ObStringBuf name_pool;
             read_procedure_source(proc_name, proc_sour, context, &name_pool);
-            //ob_write_string(alloc, proc_sour, proc_sour);
 
             ObResultSet::Field field;
             ObString tname = ObString::make_string("tmp_table");
@@ -982,52 +984,46 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
             OB_ASSERT(OB_SUCCESS == ret);
         }
 
-
-
-
     }
-    //      if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
-    //      {
-    //      }
-    //      else
-    //      {
-    //         TBSYS_LOG(TRACE, "special stmt: SHOW CREATE PROCEDURE %s", stmt.ptr());
-    //         char *showsql = (char*)malloc(128*sizeof(char));
-    //         strcpy(showsql, stmt.ptr());
-    //         char *name = (char*)malloc(128*sizeof(char));
-    //         int index=0;
-    //         bool flag=false;
-    //         for(int i = 0; showsql[i]; i ++)
-    //         {
-    //             if(flag)
-    //             {
-    //                 name[index++] = showsql[i];
-    //             }
-    //             if(showsql[i] == '.')
-    //             {
-    //                 i++;
-    //                 flag=true;
-    //             }
-    //         }
-    //         index--;
-    //         name[index]='\0';
-    //         ObString proc_name = ObString::make_string((const char *)name);
-    //         free(name);
-    //         free(showsql);
-    //         ObString proc_sour;
-    //         ObStringBuf name_pool;
-    //         if( OB_SUCCESS != (ret = read_procedure_source(proc_name, proc_sour, context, &name_pool) ))
-    //         {
-    //           TBSYS_LOG(WARN, "read procedure source fail");
-    //         }
-    //         if( OB_SUCCESS != (ret = direct_execute(proc_sour, result, context)) )
-    //         {
-    //             TBSYS_LOG(WARN, "prepare the procedure plan fail");
-    //             context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
-    //         }
-    //      }
-    //  }
-    //  //add :e
+    //add :e
+
+    //add by wangdonghui 20151230 process select operation of JDBC call :b
+    else if(stmt.length() >= select_procedure_len && 0 == strncasecmp(stmt.ptr(), select_procedure, select_procedure_len))
+    {
+        TBSYS_LOG(TRACE, "special stmt: %.*s", stmt.length(), stmt.ptr());
+        const char *proc_template="SELECT proc_name, type, note FROM __all_procedure WHERE proc_name = ";
+        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+        strcpy(bufstr, proc_template);
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+        {
+        }
+        else
+        {
+            TBSYS_LOG(INFO,"process select operation of JDBC call");
+            bool flag=false;int64_t len = strlen(bufstr);
+            for(size_t i = 0; i < (size_t)stmt.length(); i++)
+            {
+                if(stmt.ptr()[i] == '\'' && flag == true) break;
+                if(stmt.ptr()[i] == '\'' && flag == false)
+                {
+                    flag = true;
+                }
+                if(flag)
+                {
+                    bufstr[len++] = stmt.ptr()[i];
+                }
+            }
+            bufstr[len] = '\'';
+            bufstr[len+1] = '\0';
+            TBSYS_LOG(INFO, "processed select procedure stmt is %s", bufstr);
+        }
+        ObString &mod_stmt = const_cast<ObString&>(stmt);
+        mod_stmt.reset();
+        mod_stmt = ObString::make_string(bufstr);
+        ret = -1;
+    }
+    //add :e
+
 
     //delete by zt 20151117 :b
     //add by zhujun[2015-6-1]:b
@@ -1978,7 +1974,7 @@ int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour,
     int str_len = 0;
     //modified by wangdonghui 20151223
     TBSYS_LOG(TRACE, "read proc_name: %.*s", proc_name.length(), proc_name.ptr());
-    if( 123 <= (str_len = snprintf(bufstr, 128, "select source from proc where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
+    if( 123 <= (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
     {
         TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from proc where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
         ret = OB_ERROR;

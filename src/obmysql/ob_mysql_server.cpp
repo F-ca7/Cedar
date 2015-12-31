@@ -1176,41 +1176,6 @@ namespace oceanbase
         easy_addr_t addr = get_easy_addr(packet->get_request());
         common::ObString& q = packet->get_command();
 
-        //add by wangdonghui 20151223 QAQ :b
-        TBSYS_LOG(INFO,"before stmt is %.*s", packet->get_command().length(), packet->get_command().ptr());
-        const char* const OB_JDBC_SPECIAL_STMT = "SELECT proc_name, type, note FROM proc WHERE proc_name = ";
-        if(q.length()<128)
-        {
-            char t[128];
-            strncpy(t, q.ptr(), q.length());
-            if(strstr(t ,"SELECT name, type, comment FROM mysql.proc") != NULL)
-            {
-                char tmp1[128];
-                strcpy(tmp1,OB_JDBC_SPECIAL_STMT);
-                size_t len = strlen(tmp1);
-                bool flag = false;
-                for(int i = 0; t[i]; i++)
-                {
-                    if(t[i] == '\'' && flag == true) break;
-                    if(t[i] == '\'' && flag == false)
-                    {
-                        flag = true;
-                    }
-                    if(flag)
-                    {
-                        tmp1[len++] = t[i];
-                    }
-                }
-                tmp1[len] = '\'';
-                tmp1[len+1] = '\0';
-                q.reset();
-                q = ObString::make_string((const char *)tmp1);
-            }
-        }
-
-        TBSYS_LOG(INFO,"after stmt is %.*s", q.length(), q.ptr());
-        //add :e
-
         int32_t truncated_length = std::min(q.length(), 384);
         FILL_TRACE_LOG("stmt=\"%.*s\"", q.length(), q.ptr());
         TBSYS_LOG(TRACE, "start query: \"%.*s\" real_query_len=%d, peer=%s",

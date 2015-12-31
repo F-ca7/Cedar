@@ -541,7 +541,7 @@ namespace oceanbase
 
     //modified by wangdonghui 20151223
     //add zhujun [2015-6-1]
-    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "proc";
+    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
     //add:e
 
     // internal params
