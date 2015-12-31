@@ -3903,20 +3903,17 @@ int resolve_procedure_create_stmt(
       if(ret==OB_SUCCESS)
       {
         /*为存储过程创建一个把存储过程源码插入到表的语句*/
-        //modified by wangdonghui 20151223 因为修改了proc表的字段，重写insert
+        //modified by wangdonghui 20151223 因为修改了__all_procedure表的字段，重写insert
         ParseResult parse_result;
         uint64_t insert_query_id = OB_INVALID_ID;
-        std::string proc_insert_sql="insert into proc values('{1}','{2}','{3}','{4}','{5}')";
+        std::string proc_insert_sql="insert into __all_procedure values('{1}','{2}','{3}','{4}')";
 
         size_t pos_1 = proc_insert_sql.find("{1}");
-        proc_insert_sql.replace(pos_1,3,"");
+        //proc_insert_sql.replace(pos_1,3,proc_name.ptr());
+        proc_insert_sql.replace(pos_1,3,node->children_[0]->children_[0]->str_value_); //proc name
+
 
         size_t pos_2 = proc_insert_sql.find("{2}");
-        //proc_insert_sql.replace(pos_1,3,proc_name.ptr());
-        proc_insert_sql.replace(pos_2,3,node->children_[0]->children_[0]->str_value_); //proc name
-
-
-        size_t pos_3 = proc_insert_sql.find("{3}");
         //把'替换为\'
         TBSYS_LOG(INFO, "input sql:%s length:%lu",result_plan->input_sql_, strlen(result_plan->input_sql_));
         char *p=new char[strlen(result_plan->input_sql_)+1000];
@@ -3945,12 +3942,14 @@ int resolve_procedure_create_stmt(
 
         TBSYS_LOG(TRACE, "p:%s j:%d length:%lu",p,j,strlen(p));
 
-        proc_insert_sql.replace(pos_3,3,p);
-        size_t pos_4 = proc_insert_sql.find("{4}");
-        proc_insert_sql.replace(pos_4,3,"procedure");
+        proc_insert_sql.replace(pos_2,3,p);
 
-        size_t pos_5 = proc_insert_sql.find("{5}");
-        proc_insert_sql.replace(pos_5,3,"");
+        size_t pos_3 = proc_insert_sql.find("{3}");
+        proc_insert_sql.replace(pos_3,3,"procedure");
+
+        size_t pos_4 = proc_insert_sql.find("{4}");
+        proc_insert_sql.replace(pos_4,3,"");
+
         ObString insertstmt=ObString::make_string(proc_insert_sql.c_str());
         parse_result.malloc_pool_=result_plan->name_pool_;
 
@@ -4022,7 +4021,7 @@ int resolve_procedure_drop_stmt(
           //modified by wangdonghui
 		  ParseResult parse_result;
 		  uint64_t delete_query_id = OB_INVALID_ID;
-          std::string proc_delete_sql="delete from proc where proc_name='{1}'";
+          std::string proc_delete_sql="delete from __all_procedure where proc_name='{1}'";
 		  size_t pos_1 = proc_delete_sql.find("{1}");
 
 		  proc_delete_sql.replace(pos_1,3,node->children_[0]->str_value_);
