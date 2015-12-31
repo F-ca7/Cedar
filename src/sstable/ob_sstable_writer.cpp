@@ -70,8 +70,8 @@ namespace oceanbase
                                         const int64_t block_size,
                                         const int64_t element_count)
     {
-      int ret           = OB_SUCCESS;
-      int64_t path_len  = path.length();
+      int ret = OB_SUCCESS;
+      int64_t path_len = path.length();
       
       trailer_.reset();
       if (inited_)

@@ -79,7 +79,7 @@ namespace oceanbase
       const common::ObScanParam * scan_param_;  // orignal scan param
       common::ObScanParam cur_scan_param_;      // current scan param
       ObTabletLocationList chunkserver_;                    // 选择需要发送的CS
-      int64_t cur_rep_index_;
+      int64_t cur_rep_index_; //当前副本的索引
       ObServer self_;
     };
 
@@ -97,6 +97,7 @@ namespace oceanbase
       finish_ = false;
       scan_param_ = NULL;
       cur_scan_param_.reset();
+      cur_rep_index_ = 0;
     }
 
     inline void ObCsInteractiveCellStream::set_chunkserver(

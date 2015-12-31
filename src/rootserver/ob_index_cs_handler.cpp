@@ -159,7 +159,8 @@ namespace oceanbase
                   TBSYS_LOG(WARN, "check port failed:ip[%ld], port[%ld]", ip, port);
                 }
                 server.set_ipv4_addr(static_cast<int32_t>(ip), static_cast<int32_t>(port));
-                cm_.set(server, true);
+                //TBSYS_LOG(ERROR, "test::longfei will add server in core. [%s]", to_cstring(server));
+                cm_.set(server, true, 1);
                 ip = port = 0;
               }
             }
@@ -262,6 +263,7 @@ namespace oceanbase
           }while(true);
         }
       }
+      dump_core();
       return ret;
     }
 
@@ -296,7 +298,16 @@ namespace oceanbase
       return ret;
     }
 
-
+    void ObCSHandler::dump_core()
+    {
+      hash::ObHashMap<ObServer,bool,hash::NoPthreadDefendMode>::const_iterator itr = cm_.begin();
+      int i = 0;
+      for(; itr != cm_.end(); itr++)
+      {
+        TBSYS_LOG(INFO, "dump core server [%s], i = %d", to_cstring(itr->first), i++);
+      }
+      TBSYS_LOG(INFO, "dump core server count = %d", i);
+    }
 
 
   }

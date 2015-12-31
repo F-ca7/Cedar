@@ -661,8 +661,8 @@ namespace oceanbase
           {
             construct_tablet_item(table_id, start_key, end_key, range, list);
             list.print_info(); //test::lmz
-            TBSYS_LOG(ERROR, "test::lmz, list[0]'s ip [%d], self ip[%d]",
-                      list[0].server_.chunkserver_.get_ipv4(), THE_CHUNK_SERVER.get_self().get_ipv4());
+            TBSYS_LOG(ERROR, "test::lmz, list[0]'s ip [%s], self ip[%s]",
+                      to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
             if (need_other_cs)
             {
               //把所有table_id对应的所有的tablet的，包括所有副本的信息都放到data_multcs_range_hash里面去
@@ -1167,6 +1167,7 @@ namespace oceanbase
       ObGlobalIndexHandler * global_handler = NULL; // add longfei [cons static index] 151205:e
       ObLocalIndexHandler * local_handler = NULL; // add longfei [cons static index] 151220:e
 
+      //死循环
       while (true)
       {
         if (!inited_)
@@ -1723,6 +1724,8 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"test::longfei>>>wait here...active_thread_num[%ld]",active_thread_num_);
             if(active_thread_num_ == 0)
               break;
+            //睡1s
+            usleep(1000000);
           }
           //线程都做完
           if (OB_SUCCESS == (ret = release_tablet_array()))
@@ -1730,6 +1733,14 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"test::longfei>>>round_end[%d]",round_end_);
           }
           reset();
+
+          //add longfei 151231 
+		  //[bugfix:修复一个没有释放sstable导致局部索引失败的bug]
+          if(OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().delete_local_index_sstable()))
+          {
+              TBSYS_LOG(WARN,"delete local index sstable failed.ret[%d]",ret);
+          }
+		  //add e
         }
         pthread_mutex_unlock(&mutex_);      
       }

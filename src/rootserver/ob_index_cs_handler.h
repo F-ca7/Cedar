@@ -43,6 +43,7 @@ namespace oceanbase
         int fetch_tablet_info(const uint64_t table_id,
                               const ObRowkey & row_key, ObScanner & scanner);
         int fill_cm_and_calc(ObScanner &scanner, ObRowkey &row_key, uint64_t table_id, bool refresh_width = false);
+        void dump_core();
       private:
         hash::ObHashMap<ObServer,bool,hash::NoPthreadDefendMode> cm_;//key chunkserver, value is_alive
         ObRootWorker *root_worker_;

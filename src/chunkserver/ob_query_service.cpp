@@ -277,7 +277,23 @@ namespace oceanbase
            * version, chunkserver will not read dynamic data from
            * udpateserver.
            */
-          if (table_schema->get_consistency_level() == STATIC)
+          //add wenghaixing [secondary index static_index_build.cs_scan] 20151231
+          TBSYS_LOG(ERROR,"test::longfei>>>need ups data[%s]",scan_param.if_need_fake()?"false":"true");
+          if(scan_param.if_need_fake())
+          {
+            version_range.start_version_ = 0;
+            version_range.end_version_ = 0;
+            version_range.border_flag_.inclusive_start();
+            version_range.border_flag_.inclusive_end();
+            const_cast<ObScanParam&>(scan_param).set_version_range(version_range);
+          }
+          //add e
+          //modify wenghaixing [secondary index static_index_build.cs_scan]20150326
+          //if (table_schema->get_consistency_level() == STATIC) //old code
+          //这里添加了如果scan_param包含了局部索引的range的情况，这个时候是不需要ups的数据的
+          else if (table_schema->get_consistency_level() == STATIC)
+          //if (table_schema->get_consistency_level() == STATIC)
+          //modify e
           {
             org_version_range = scan_param.get_version_range();
             is_full_dump =

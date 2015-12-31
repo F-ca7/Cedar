@@ -25,7 +25,7 @@ namespace oceanbase
     class ObIndexInteractiveAgent: public ObNoChildrenPhyOperator
     {
     public:
-      ObIndexInteractiveAgent(){}
+      ObIndexInteractiveAgent();
       virtual ~ObIndexInteractiveAgent(){}
       virtual void reset();
       virtual void reuse();
@@ -41,7 +41,7 @@ namespace oceanbase
 
     public:
       int get_next_row(ObRow &row);
-      void set_row_desc(const ObRowDesc &desc){UNUSED(desc);}//@todo(longfei)
+      void set_row_desc(const ObRowDesc &desc);
       /*add this function so that index builder can return failed fake range*/
       void set_failed_fake_range(const ObNewRange &range);
       int start_agent(ObScanParam &scan_param,
@@ -63,6 +63,7 @@ namespace oceanbase
       int64_t column_count_;
       ObNewRange failed_fake_range_;
       ObRow curr_row_;
+      ObRowDesc row_desc_;
 
     };
 

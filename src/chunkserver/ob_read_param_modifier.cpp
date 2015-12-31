@@ -286,6 +286,22 @@ namespace oceanbase
           scan_param->set_scan_flag(org_scan_param.get_scan_flag());
         }
       }
+
+      //add wenghaixing [secondary index static_index_build.cs_scan]20150330
+      scan_param->set_fake(org_scan_param.if_need_fake());
+      ObNewRange fake_range;
+      if(scan_param->if_need_fake())
+      {
+        fake_range = *org_scan_param.get_fake_range();
+        scan_param->set_copy_args(false);
+        {
+          err = scan_param->set_fake_range(fake_range);
+        }
+        //modify e
+        //TBSYS_LOG(INFO,"test::whx set fake range [%s]", to_cstring(*scan_param->get_fake_range()));
+      }
+      //TBSYS_LOG(INFO,"test::whx set fake range [%s],range[%s]", to_cstring(*scan_param->get_fake_range()),to_cstring(*(scan_param->get_range())));
+      //add e
       return err;
     }
 

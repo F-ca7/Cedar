@@ -327,6 +327,7 @@ namespace oceanbase
       ObObj start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
       ObObj end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
       //add longfei [cons static index] 151204:b
+      // 反序列化使用
       ObObj fake_start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
       ObObj fake_end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
       //add e

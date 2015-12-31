@@ -32,8 +32,7 @@ namespace oceanbase
         int32_t disk)
     {
       int ret = OB_SUCCESS;
-      sstable_id_.sstable_file_id_ =
-          tablet_manager_->allocate_sstable_file_seq();
+      sstable_id_.sstable_file_id_ = tablet_manager_->allocate_sstable_file_seq();
       sstable_id_.sstable_file_offset_ = 0;
       int32_t disk_no = disk;
       int64_t sstable_block_size = OB_DEFAULT_SSTABLE_BLOCK_SIZE;
@@ -52,16 +51,12 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "faild to get schema manager!");
         ret = OB_SCHEMA_ERROR;
       }
-      else if (NULL
-          == (new_table_schema_ = current_schema_manager_->get_table_schema(
-              table_id)))
+      else if (NULL == (new_table_schema_ = current_schema_manager_->get_table_schema(table_id)))
       {
         TBSYS_LOG(ERROR, "failed to get table[%ld] schema", table_id);
         ret = OB_SCHEMA_ERROR;
       }
-      else if (OB_SUCCESS
-          != (ret = fill_sstable_schema(table_id, *current_schema_manager_,
-              sstable_schema_)))
+      else if (OB_SUCCESS != (ret = fill_sstable_schema(table_id, *current_schema_manager_, sstable_schema_)))
       {
         TBSYS_LOG(ERROR, "fill sstable schema error");
       }
@@ -77,15 +72,10 @@ namespace oceanbase
       {
         do
         {
-          sstable_id_.sstable_file_id_ = (sstable_id_.sstable_file_id_ << 8)
-              | (disk_no & 0xff);
-
-          if ((OB_SUCCESS == ret)
-              && (ret = get_sstable_path(sstable_id_, path_, sizeof(path_)))
-                  != OB_SUCCESS)
+          sstable_id_.sstable_file_id_ = (sstable_id_.sstable_file_id_ << 8) | (disk_no & 0xff);
+          if ((OB_SUCCESS == ret) && (ret = get_sstable_path(sstable_id_, path_, sizeof(path_))) != OB_SUCCESS)
           {
-            TBSYS_LOG(ERROR,
-                "Create Index : can't get the path of new sstable");
+            TBSYS_LOG(ERROR, "Create Index : can't get the path of new sstable");
             ret = OB_ERROR;
           }
 
@@ -94,8 +84,7 @@ namespace oceanbase
             is_sstable_exist = FileDirectoryUtils::exists(path_);
             if (is_sstable_exist)
             {
-              sstable_id_.sstable_file_id_ =
-                  tablet_manager_->allocate_sstable_file_seq();
+              sstable_id_.sstable_file_id_ = tablet_manager_->allocate_sstable_file_seq();
             }
           }
         } while (OB_SUCCESS == ret && is_sstable_exist);
@@ -106,12 +95,9 @@ namespace oceanbase
           // "version=%ld, block_size=%ld,sstable_id=%ld\n",
           //path_,
           // frozen_version_, sstable_block_size,sstable_id_.sstable_file_id_);
-          path_string_.assign_ptr(path_,
-              static_cast <int32_t>(strlen(path_) + 1));
-          compressor_string_.assign_ptr(
-              const_cast <char*>(new_table_schema_->get_compress_func_name()),
-              static_cast <int32_t>(sizeof(new_table_schema_->get_compress_func_name())
-                  + 1));
+          path_string_.assign_ptr(path_, static_cast <int32_t>(strlen(path_) + 1));
+          compressor_string_.assign_ptr(const_cast <char*>(new_table_schema_->get_compress_func_name()),
+                                        static_cast <int32_t>(sizeof(new_table_schema_->get_compress_func_name()) + 1));
           int64_t element_count = DEFAULT_ESTIMATE_ROW_COUNT;
           if ((ret = sstable_writer_.create_sstable(sstable_schema_,
               path_string_, compressor_string_, frozen_version_,

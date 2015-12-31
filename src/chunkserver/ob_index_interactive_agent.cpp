@@ -12,6 +12,11 @@ namespace oceanbase
 {
   namespace chunkserver
   {
+    ObIndexInteractiveAgent::ObIndexInteractiveAgent()
+    {
+      reset();
+    }
+
     void ObIndexInteractiveAgent::reset()
     {
       interactive_cell_ = NULL;
@@ -28,6 +33,11 @@ namespace oceanbase
     void ObIndexInteractiveAgent::reuse()
     {
       //@todo
+    }
+
+    void ObIndexInteractiveAgent::set_row_desc(const ObRowDesc &desc)
+    {
+      row_desc_ = desc;
     }
 
     int ObIndexInteractiveAgent::start_agent(ObScanParam &scan_param,
@@ -51,17 +61,18 @@ namespace oceanbase
         bool iter_end = true;
         ObTabletLocationList list;
         int loop = 0;
-        /*
-         * 遍历此table的所有tablet，如果说存在tablet的第一副本不在本cs上的话，
-         * 就将当前位置用hash_index_记录下来,然后设置interactive_cell的cs(组)为此tablet所在所有cs。
-         * 跳出遍历
-         */
+
+//          遍历此table的所有tablet，如果说存在tablet的第一副本不在本cs上的话，
+//          就将当前位置用hash_index_记录下来,然后设置interactive_cell的cs(组)为此tablet所在所有cs。
+//          跳出遍历
+
         for (; iter != range_server_hash_->end(); ++iter)
         {
           TBSYS_LOG(ERROR,"test::longfei>>>iter->first[%s],iter->second.range[%s]",to_cstring(iter->first),to_cstring(iter->second.get_tablet_range()));
           list = iter->second;
           if (list[0].server_.chunkserver_ == interactive_cell_->get_self())
           {
+            //直接跳过本cs上的tablet
             loop++;
             continue;
           }
@@ -86,7 +97,8 @@ namespace oceanbase
           if (OB_SUCCESS != (ret = interactive_cell_->scan(*scan_param_))
               && OB_ITER_END != ret)
           {
-            set_failed_fake_range(*(scan_param_->get_fake_range()));
+            //TODO:failed range
+//            set_failed_fake_range(*(scan_param_->get_fake_range()));
             TBSYS_LOG(WARN, "failed to scan firstly batch data,[%d]", ret);
           }
           else if (OB_SUCCESS == ret || OB_ITER_END == ret)
@@ -114,6 +126,7 @@ namespace oceanbase
        * @todo(longfei)现在的代码这儿的操作在write_total_index_v1之前就已经做了。
        * 请将代码转移的这儿来做
        */
+      curr_row_.set_row_desc(row_desc_);
       return ret;
 
     }
@@ -265,7 +278,12 @@ namespace oceanbase
       ObCellInfo* cell = NULL;
       //bool is_row_changed = false;
       int64_t column_count = 0;
-      if (!not_used_)
+	  
+	  //mod longfei [bugfix] 1512312:b
+	  //not_used_不再使用,暂时这么处理，如果您能看到这段话，请提醒我(longfei1lantern@gmail.com)
+      //if (!not_used_)
+	  if (true)
+	  //mod e
       {
         do
         {

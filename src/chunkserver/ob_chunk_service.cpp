@@ -1550,7 +1550,10 @@ namespace oceanbase
           packet_cnt++;
         }
 
-        if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet)
+        //modify wenghaixing [secondary index static_index_build ]20151230
+        //if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet)old code
+        if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet && !scan_param_ptr->if_need_fake())
+        //modify e
         {
           scanner->reset();
           rc.result_code_ = queue_thread.wait_for_next_request(

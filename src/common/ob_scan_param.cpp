@@ -45,7 +45,8 @@ namespace oceanbase
 
     // ObScanParam
     ObScanParam::ObScanParam() : table_id_(OB_INVALID_ID),
-    table_name_(), range_(), scan_size_(0), scan_flag_(), schema_manager_(NULL), is_binary_rowkey_format_(false)
+    table_name_(), range_(),/*add longfei*/ fake_range_(), need_fake_range_(false),/*add e*/ scan_size_(0),
+      scan_flag_(), schema_manager_(NULL), is_binary_rowkey_format_(false)
     {
       limit_offset_ = 0;
       limit_count_ = 0;
@@ -884,6 +885,34 @@ namespace oceanbase
         }
       }
 
+      //add longfei 151230 
+	  //序列化need_fake_range_和fake_range_
+      if (OB_SUCCESS == ret)
+      {
+        int32_t tmp = need_fake_range_ ? 1 : 0;
+        ret = serialization::encode_i32(buf, buf_len, pos, tmp);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::encode_i64(buf, buf_len, pos, (int64_t)fake_range_.table_id_);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        obj.set_int(fake_range_.border_flag_.get_data());
+        ret = obj.serialize(buf, buf_len, pos);
+        if (OB_SUCCESS == ret)
+        {
+          ret = set_rowkey_obj_array(buf, buf_len, pos,
+              fake_range_.start_key_.get_obj_ptr(), fake_range_.start_key_.get_obj_cnt());
+        }
+        if (OB_SUCCESS == ret)
+        {
+          ret = set_rowkey_obj_array(buf, buf_len, pos,
+              fake_range_.end_key_.get_obj_ptr(), fake_range_.end_key_.get_obj_cnt());
+        }
+      }
+      //add e
+
       // scan range
       if (OB_SUCCESS == ret)
       {
@@ -955,6 +984,83 @@ namespace oceanbase
       {
         get_rowkey_info_from_sm(schema_manager_, range_.table_id_, table_name_, rowkey_info);
       }
+
+      //add longfei 反序列化
+      //首先反串行化need_fake_range_
+      int32_t bl = 0;
+      int64_t tid = OB_INVALID_ID;
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::decode_i32(buf, data_len, pos, &bl);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        need_fake_range_ = bl == 1 ? true : false;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::decode_i64(buf, data_len, pos, &tid);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        fake_range_.table_id_ = (uint64_t)tid;
+      }
+      //其次反串行化fake_range
+      if (OB_SUCCESS == ret)
+      {
+        // border flag
+        if (OB_SUCCESS == ret)
+        {
+          ret = obj.deserialize(buf, data_len, pos);
+          if (OB_SUCCESS == ret)
+          {
+            ret = obj.get_int(int_value);
+            if (OB_SUCCESS == ret)
+            {
+              border_flag = static_cast<int8_t>(int_value);
+              fake_range_.border_flag_.set_data(static_cast<int8_t>(int_value));
+            }
+          }
+        }
+
+        // start key
+        if (OB_SUCCESS == ret)
+        {
+          int_value = OB_MAX_COLUMN_NUMBER;
+          ret = get_rowkey_compatible(buf, data_len, pos,
+              rowkey_info, fake_start_rowkey_obj_array_, int_value, is_binary_rowkey_format_);
+          if (OB_SUCCESS == ret)
+          {
+            fake_range_.start_key_.assign(fake_start_rowkey_obj_array_, int_value);
+          }
+        }
+
+        // end key
+        if (OB_SUCCESS == ret)
+        {
+          int_value = OB_MAX_COLUMN_NUMBER;
+          ret = get_rowkey_compatible(buf, data_len, pos,
+              rowkey_info, fake_end_rowkey_obj_array_, int_value, is_binary_rowkey_format_);
+          if (OB_SUCCESS == ret)
+          {
+            fake_range_.end_key_.assign(fake_end_rowkey_obj_array_, int_value);
+          }
+        }
+
+        // compatible: old client may send request with min/max borderflag info.
+        if (OB_SUCCESS == ret)
+        {
+          if (ObBorderFlag::MIN_VALUE & border_flag)
+          {
+            fake_range_.start_key_.set_min_row();
+          }
+          if (ObBorderFlag::MAX_VALUE& border_flag)
+          {
+            fake_range_.end_key_.set_max_row();
+          }
+        }
+      }
+      //add e
 
       // scan range
       if (OB_SUCCESS == ret)
@@ -1057,6 +1163,23 @@ namespace oceanbase
         obj.set_int(table_id_);
       }
       total_size += obj.get_serialize_size();
+
+      //add longfei 计算序列化大小
+      //添加了两个int32，和一个range的序列化大小
+      total_size += sizeof(int32_t);
+      total_size += sizeof(int64_t);
+      // scan range
+      obj.set_int(range_.border_flag_.get_data());
+      total_size += obj.get_serialize_size();
+
+      // start_key_
+      total_size += get_rowkey_obj_array_size(
+          fake_range_.start_key_.get_obj_ptr(), fake_range_.start_key_.get_obj_cnt());
+
+      // end_key_
+      total_size += get_rowkey_obj_array_size(
+          fake_range_.end_key_.get_obj_ptr(), fake_range_.end_key_.get_obj_cnt());
+      //add e
 
       // scan range
       obj.set_int(range_.border_flag_.get_data());

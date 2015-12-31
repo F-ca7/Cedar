@@ -137,7 +137,6 @@ namespace oceanbase
       {
         TBSYS_LOG(INFO,"set sort's children succ.");
       }
-      int64_t trailer_offset;
       //add zhuyanchao[secondary index static_index_build.columnchecksum]20150407
       ObRowDesc index_desc;
       cc.reset();
@@ -170,8 +169,6 @@ namespace oceanbase
         //row.set_row_desc(desc);
       }
 
-      //TBSYS_LOG(ERROR,"test::liuxiao total cons_row_desc desc:%s",to_cstring(desc));
-
       /*construct operator local_scan*/
       if (OB_SUCCESS == ret)
       {
@@ -194,7 +191,7 @@ namespace oceanbase
       /*construct operator ia_scan*/
       if (OB_SUCCESS == ret)
       {
-
+        interactive_agent_.set_row_desc(desc);
       }
 
       if (OB_SUCCESS == ret)
@@ -338,8 +335,6 @@ namespace oceanbase
         aio_buf_mgr_array->reset();
       }
       //add e
-      int64_t cur_sstab_sz = get_cur_sstable_size();
-      get_sstable_writer().close_sstable(trailer_offset, cur_sstab_sz);
       return ret;
     }
 
@@ -435,6 +430,8 @@ namespace oceanbase
       //int64_t trailer_offset = 0;
       ObMergerSchemaManager *merge_schema_mgr = get_merge_schema_mgr();
       const ObSchemaManagerV2 *current_schema_manager = NULL;
+      int64_t trailer_offset = 0;
+      int64_t cur_sstab_sz = 0;
       TBSYS_LOG(ERROR, "test ::whx i am in cons global index");
       if (NULL == get_handle_pool() || NULL == range || NULL == merge_schema_mgr)
       {
@@ -449,7 +446,7 @@ namespace oceanbase
       else
       {
         set_schema_mgr(current_schema_manager);
-        set_new_range(*range);//@todo(longfei):mem overflow?
+        set_new_range(*range);
         table_id_ = range->table_id_;
       }
       //test longfei
@@ -461,11 +458,9 @@ namespace oceanbase
       {
         //首先创建空的sstable
         int32_t disk_no = get_tablet_mgr()->get_disk_manager().get_dest_disk();
-        if (OB_SUCCESS
-            != (ret = create_new_sstable(get_new_range().table_id_, disk_no)))
+        if (OB_SUCCESS != (ret = create_new_sstable(get_new_range().table_id_, disk_no)))
         {
-          TBSYS_LOG(WARN, "create new sstable for table[%ld] failed",
-              get_new_range().table_id_);
+          TBSYS_LOG(WARN, "create new sstable for table[%ld] failed", get_new_range().table_id_);
         }
         else if (NULL == (range_server = get_handle_pool()->get_range_info()))
         {
@@ -474,8 +469,7 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(INFO, "create global index sstable success,table[%ld]",
-              get_new_range().table_id_);
+          TBSYS_LOG(INFO, "create global index sstable success,table[%ld]",get_new_range().table_id_);
           set_disk_no(disk_no);
         }
       }
@@ -488,9 +482,7 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "fill scan param for index failed,ret[%d]", ret);
         }
-        else if (OB_SUCCESS
-        != (ret = interactive_agent_.start_agent(param,
-                *ms_wrapper_.get_cs_interactive_cell_stream(), range_server)))
+        else if (OB_SUCCESS != (ret = interactive_agent_.start_agent(param, *ms_wrapper_.get_cs_interactive_cell_stream(), range_server)))
         {
           if(OB_ITER_END == ret)
           {
@@ -537,6 +529,10 @@ namespace oceanbase
           //TBSYS_LOG(ERROR,"test whx:: release global index schema success!");
         }
       }
+
+      cur_sstab_sz = get_cur_sstable_size();
+      get_sstable_writer().close_sstable(trailer_offset, cur_sstab_sz);
+      //TBSYS_LOG(ERROR,"test::longfei>>>cur_sstab_sz[%ld]",cur_sstab_sz);
       return ret;
     }
 
