@@ -419,6 +419,7 @@ namespace oceanbase
                                 UPS.get_param().packet_max_wait_time :
                                 task->pkt.get_source_timeout();
       int64_t process_timeout = packet_timewait - QUERY_TIMEOUT_RESERVE;
+
       if (NULL == task)
       {
         TBSYS_LOG(WARN, "null pointer task=%p", task);
@@ -440,9 +441,9 @@ namespace oceanbase
               && (process_timeout < 0 || process_timeout < (tbsys::CTimeUtil::getTime() - task->pkt.get_receive_ts())))
       {
         OB_STAT_INC(UPDATESERVER, UPS_STAT_PACKET_LONG_WAIT_COUNT, 1);
+        ret = (OB_SUCCESS == task->last_process_retcode) ? OB_RESPONSE_TIME_OUT : task->last_process_retcode;
         TBSYS_LOG(WARN, "process timeout=%ld not enough cur_time=%ld receive_time=%ld packet_code=%d src=%s",
                   process_timeout, tbsys::CTimeUtil::getTime(), task->pkt.get_receive_ts(), task->pkt.get_packet_code(), inet_ntoa_r(task->src_addr));
-        ret = OB_PROCESS_TIMEOUT;
       }
       else
       {
@@ -464,7 +465,7 @@ namespace oceanbase
         }
         if (OB_SUCCESS != ret)
         {
-          UPS.response_result(ret, task->pkt);
+          UPS.response_result(ret, task->last_process_err_msg_ptr, task->pkt);
         }
         if (release_task)
         {
@@ -551,6 +552,7 @@ namespace oceanbase
       else
       {
         LOG_SESSION("mutator start", session_ctx, task);
+        session_ctx->set_conflict_session_id(task.last_conflict_session_id);
         session_ctx->set_start_handle_time(tbsys::CTimeUtil::getTime());
         session_ctx->set_stmt_start_time(task.pkt.get_receive_ts());
         session_ctx->set_stmt_timeout(process_timeout);
@@ -574,6 +576,7 @@ namespace oceanbase
               && !session_ctx->is_stmt_expired())
           {
             int tmp_ret = OB_SUCCESS;
+            task.last_conflict_session_id = session_ctx->get_conflict_session_id();
             if (OB_SUCCESS != (tmp_ret = TransHandlePool::push(&task)))
             {
               TBSYS_LOG(WARN, "push back task fail, ret=%d conflict_processor_index=%ld task=%p",
@@ -757,6 +760,7 @@ namespace oceanbase
       int end_session_ret = OB_SUCCESS;
       SessionGuard session_guard(session_mgr_, lock_mgr_, end_session_ret);
       RWSessionCtx* session_ctx = NULL;
+
       int64_t packet_timewait = (0 == task.pkt.get_source_timeout()) ?
                                 UPS.get_param().packet_max_wait_time :
                                 task.pkt.get_source_timeout();
@@ -783,18 +787,18 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "Session has been killed, error %d, \'%s\'", ret, to_cstring(phy_plan.get_trans_id()));
         }
-        else if (session_ctx->get_stmt_start_time() >= task.pkt.get_receive_ts())
+        else if (session_ctx->get_stmt_start_time() > task.pkt.get_receive_ts()) //avoid the restart trans failed
         {
           TBSYS_LOG(ERROR, "maybe an expired request, will skip it, last_stmt_start_time=%ld receive_ts=%ld",
                     session_ctx->get_stmt_start_time(), task.pkt.get_receive_ts());
-          ret = OB_STMT_EXPIRED;
+          ret = (OB_SUCCESS == task.last_process_retcode) ? OB_STMT_EXPIRED : task.last_process_retcode;
         }
         else
         {
           CLEAR_TRACE_BUF(session_ctx->get_tlog_buffer());
           session_ctx->reset_stmt();
           task.sid = phy_plan.get_trans_id();
-          LOG_SESSION("session stmt", session_ctx, task);
+         // LOG_SESSION("session stmt", session_ctx, task);
         }
       }
       else
@@ -805,6 +809,7 @@ namespace oceanbase
           if (OB_BEGIN_TRANS_LOCKED == ret)
           {
             int tmp_ret = OB_SUCCESS;
+            task.last_process_retcode = ret;
             if (OB_SUCCESS != (tmp_ret = TransHandlePool::push(&task)))
             {
               ret = tmp_ret;
@@ -825,7 +830,7 @@ namespace oceanbase
           {
             session_ctx->get_ups_result().set_trans_id(task.sid);
           }
-          LOG_SESSION("start_trans", session_ctx, task);
+          //LOG_SESSION("start_trans", session_ctx, task);
         }
       }
       if (OB_SUCCESS != ret)
@@ -834,6 +839,7 @@ namespace oceanbase
       {
         int64_t cur_time = tbsys::CTimeUtil::getTime();
         OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_WTIME, cur_time - task.pkt.get_receive_ts());
+        session_ctx->set_conflict_session_id(task.last_conflict_session_id);
         session_ctx->set_last_proc_time(cur_time);
 
         session_ctx->set_start_handle_time(tbsys::CTimeUtil::getTime());
@@ -862,6 +868,11 @@ namespace oceanbase
           FILL_TRACE_BUF(session_ctx->get_tlog_buffer(), "phyplan allocator used=%ld total=%ld",
                         allocator.used(), allocator.total());
         }
+
+        //add by zt 20151214:b
+        OB_STAT_INC(UPDATESERVER, UPS_PLAN_TIME, tbsys::CTimeUtil::getTime() - cur_time);
+        //add by zt 20151214:e
+
         if (OB_SUCCESS != ret)
         {}
         else if (NULL == (main_op = phy_plan.get_main_query()))
@@ -880,14 +891,16 @@ namespace oceanbase
           {
             int tmp_ret = OB_SUCCESS;
             uint32_t session_descriptor = session_ctx->get_session_descriptor();
-            int64_t conflict_processor_index = session_ctx->get_conflict_processor_index();
-            session_ctx->set_stmt_start_time(0);
+            int64_t conflict_processor_index = 0;
             if (!with_sid)
             {
               end_session_ret = ret;
             }
+            task.last_conflict_session_id = session_ctx->get_conflict_session_id();
             session_ctx = NULL;
             session_guard.revert();
+            task.last_process_retcode = ret;
+            task.set_last_err_msg(ob_get_err_msg().ptr());
             if (OB_SUCCESS != (tmp_ret = TransHandlePool::push(&task)))
             {
               TBSYS_LOG(WARN, "push back task fail, ret=%d conflict_processor_index=%ld task=%p",

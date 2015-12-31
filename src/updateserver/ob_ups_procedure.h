@@ -10,28 +10,49 @@ namespace oceanbase
   {
 
     class SpUpsLoopInst;
-    class SpUpsInstExecStrategy : public sql::SpInstExecStrategy
+
+    class SpUpsInstExecStrategy;
+    typedef int (*UpsInstHandler)(SpUpsInstExecStrategy *host, SpInst *inst);
+
+    class SpUpsInstExecStrategy
     {
     public:
-      virtual int execute_inst(SpInst *inst); //provide the simple routine
-      virtual int execute_block(SpBlockInsts *inst) ;
+
+      SpUpsInstExecStrategy();
+
+      int execute_inst(SpInst *inst)
+      {
+        return inst_handler[inst->get_type()](this, inst);
+      }
+
+      int execute_block(SpBlockInsts *inst) ;
+
     private:
-      virtual int execute_expr(SpExprInst *inst) ;
-      virtual int execute_rd_base(SpRdBaseInst *inst)  { UNUSED(inst); return OB_ERROR; }
-      virtual int execute_rw_delta(SpRwDeltaInst *inst) ;
-      virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) ;
-      virtual int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
-      virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
-      virtual int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
-      virtual int execute_multi_inst(SpMultiInsts *mul_inst);
-      virtual int execute_casewhen(SpCaseInst *inst);
+      int execute_expr(SpExprInst *inst) ;
+      int execute_rd_base(SpRdBaseInst *inst)  { UNUSED(inst); return OB_ERROR; }
+      int execute_rw_delta(SpRwDeltaInst *inst) ;
+      int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) ;
+      int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
+      int execute_if_ctrl(SpIfCtrlInsts *inst);
+      int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
+      int execute_multi_inst(SpMultiInsts *mul_inst);
       int execute_ups_loop(SpUpsLoopInst *inst);
+    private:
+      static int pexecute_expr(SpUpsInstExecStrategy *host, SpInst *inst);
+      static int pexecute_rw_delta(SpUpsInstExecStrategy *host, SpInst *inst);
+      static int pexecute_rw_delta_into_var(SpUpsInstExecStrategy *host, SpInst *inst);
+      static int pexecute_if_ctrl(SpUpsInstExecStrategy *host, SpInst *inst);
+      static int pexecute_loop(SpUpsInstExecStrategy *host, SpInst *inst);
+      static int pexecute_block(SpUpsInstExecStrategy *host, SpInst *inst);
+
+    private:
+      UpsInstHandler inst_handler[SP_UNKOWN];
     };
 
     class SpUpsLoopInst : public sql::SpInst
     {
     public:
-      SpUpsLoopInst() : SpInst(SP_L_INST), expanded_loop_body_() {}
+      SpUpsLoopInst() : SpInst(SP_L_INST), expanded_loop_body_(this) {}
       virtual ~SpUpsLoopInst();
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const { UNUSED(read_set); }
@@ -39,11 +60,18 @@ namespace oceanbase
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+      virtual int deserialize_loop_body(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
 
-      int64_t get_iteration_count() const { return expanded_loop_body_.count(); }
+//      int64_t get_iteration_count() const { return expanded_loop_body_.count(); }
+      int64_t get_inst_count() const { return expanded_loop_body_.inst_count(); }
       int64_t get_lowest_number() const { return lowest_number_; }
+      int64_t get_highest_number() const { return highest_number_; }
       const SpVar & get_loop_counter_var() const { return loop_counter_var_; }
-      SpMultiInsts & get_loop_body(int64_t itr) { return expanded_loop_body_.at(itr); }
+//      SpMultiInsts & get_loop_body(int64_t itr) { return expanded_loop_body_.at(itr); }
+
+      SpInst *get_inst(int64_t idx) { return expanded_loop_body_.get_inst(idx); }
+      bool get_flag(int64_t idx) const { return flags.at(idx); }
+      int64_t get_body_size() const { return flags.count(); }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
       virtual int assign(const SpInst *inst);
@@ -52,7 +80,9 @@ namespace oceanbase
       SpVar loop_counter_var_;
       int64_t lowest_number_;
       int64_t highest_number_;
-      ObArray<SpMultiInsts> expanded_loop_body_;
+//      ObArray<SpMultiInsts> expanded_loop_body_;
+      ObSEArray<bool, 16> flags;
+      SpMultiInsts expanded_loop_body_;
     };
 
    class ObUpsProcedure : public sql::SpProcedure

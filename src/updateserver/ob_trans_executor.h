@@ -172,9 +172,21 @@ namespace oceanbase
         common::ObPacket pkt;
         ObTransID sid;
         easy_addr_t src_addr;
+        uint32_t last_conflict_session_id;
+        int last_process_retcode;
+        char *last_process_err_msg_ptr;
+        char last_process_err_msg[common::MAX_SQL_ERR_MSG_LENGTH];
         void reset()
         {
           sid.reset();
+          last_conflict_session_id = 0;
+          last_process_retcode = OB_SUCCESS;
+          last_process_err_msg_ptr = NULL;
+        };
+        void set_last_err_msg(const char *msg)
+        {
+          snprintf(last_process_err_msg, sizeof(last_process_err_msg), "%s", msg);
+          last_process_err_msg_ptr = last_process_err_msg;
         };
       };
       static const int64_t TASK_QUEUE_LIMIT = 100000;

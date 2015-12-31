@@ -112,7 +112,7 @@ int ObProcedureExecute::get_next_row(const common::ObRow *&row)
 
 int ObProcedureExecute::open()
 {
-  TBSYS_LOG(INFO, "zz:ObProcedureExecute::open");
+//  TBSYS_LOG(INFO, "zz:ObProcedureExecute::open");
   int ret = OB_SUCCESS;
   int clear_ret = OB_SUCCESS;
   ObProcedure *proc = NULL;
@@ -171,7 +171,7 @@ int ObProcedureExecute::open()
         common::ObRow tmp_row;
         const ObObj *result = NULL;
 
-        TBSYS_LOG(INFO, "param %ld: %s", i, to_cstring(expr));
+//        TBSYS_LOG(INFO, "param %ld: %s", i, to_cstring(expr));
         // 如果是输出参数则
         if( param_def.out_type_ == OUT_TYPE )
         {
@@ -242,12 +242,12 @@ int ObProcedureExecute::open()
             }
             else
             {
-              TBSYS_LOG(INFO,"zz:remove %.*s  assign %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
+//              TBSYS_LOG(INFO,"zz:remove %.*s  assign %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
             }
           }
           else
           {
-            TBSYS_LOG(INFO,"zz:param1 %.*s  param2 %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
+//            TBSYS_LOG(INFO,"zz:param1 %.*s  param2 %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
           }
 
         }

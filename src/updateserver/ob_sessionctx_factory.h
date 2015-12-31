@@ -208,6 +208,13 @@ namespace oceanbase
         void set_frozen();
         bool is_frozen() const;
         void reset_stmt();
+        uint32_t get_conflict_session_id() const { return last_conflict_session_id_; }
+        bool set_conflict_session_id(uint32_t session_id)
+        { 
+          bool is_conflict_sid_changed = (last_conflict_session_id_ != session_id);
+          last_conflict_session_id_ = session_id;
+          return is_conflict_sid_changed;
+        }
       private:
         common::ModulePageAllocator mod_;
         common::ModuleArena page_arena_;
@@ -215,6 +222,7 @@ namespace oceanbase
         PageArenaWrapper stmt_page_arena_wrapper_;
         volatile Stat stat_;
         volatile bool alive_flag_;
+        uint32_t last_conflict_session_id_;
         bool commit_done_;
         const bool need_gen_mutator_;
         ObUpsMutator ups_mutator_;

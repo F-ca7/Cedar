@@ -60,6 +60,10 @@ namespace oceanbase
       UPS_STAT_SCAN_TIMEU,
       UPS_STAT_TRANS_TIMEU,
       UPS_STAT_TRANS_WTIME, // packet wait
+      //add by zt 20151211
+//      UPS_STAT_TRANS_W_TIME_1,
+//      UPS_STAT_TRANS_W_TIME_2,
+      //add by zt 20151211
       UPS_STAT_TRANS_HTIME, // trans handle
       UPS_STAT_TRANS_CTIME, // wait commit thread
       UPS_STAT_TRANS_FTIME, // wait flush
@@ -142,6 +146,17 @@ namespace oceanbase
       UPS_STAT_DML_INSERT_COUNT,
       UPS_STAT_DML_UPDATE_COUNT,
       UPS_STAT_DML_DELETE_COUNT,
+
+      //add by zt 20151214:b
+      UPS_PROC_EXEC_COUNT,
+      UPS_PROC_EXEC_TIME,
+      UPS_PROC_E,
+      UPS_PROC_D,
+      UPS_PROC_DW,
+      UPS_PROC_IF,
+      UPS_PROC_LOOP,
+      UPS_PLAN_TIME,
+      //add by zt 20151214:e
 
       UPDATESERVER_STAT_MAX,
     };
@@ -325,7 +340,7 @@ namespace oceanbase
       SQL_AUTOCOMMIT_ON_COUNT,
       SQL_AUTOCOMMIT_OFF_COUNT,
 
-      SQL_CMD_RECEIVER_COUNT,
+      SQL_CMD_RECEIVE_COUNT,
       SQL_CMD_PROCESS_COUNT,
       SQL_CMD_WAIT_TIME_MS,
 

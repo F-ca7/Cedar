@@ -25,7 +25,6 @@ namespace oceanbase
       int close(SpInst *inst);
     private:
       virtual int execute_expr(SpExprInst *inst);
-//      virtual int execute_array_expr(SpArrayExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
       virtual int execute_rw_delta(SpRwDeltaInst *inst);
       virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst);
@@ -118,7 +117,6 @@ namespace oceanbase
 
       SpInstList exec_list_;
 
-//      ObArray<ObProcArray> arrays_;
       mergeserver::ObMergerRpcProxy *rpc_;
     }; 
   }

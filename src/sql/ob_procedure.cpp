@@ -88,6 +88,7 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
 int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
+  inst->get_ownner()->get_phy_plan()->get_result_set()->get_session()->set_autocommit(true);
   ObPhyOperator *op = inst->get_ups_exec_op();
   if( OB_SUCCESS != (ret = op->open()) )
   {
@@ -254,6 +255,7 @@ int SpMsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   }
   else if( flag->is_true() )
   { //execute the then branch
+    inst->set_open_flag(1);
     if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_then_block())) )
     {
       TBSYS_LOG(WARN, "execute then block fail");
@@ -261,6 +263,7 @@ int SpMsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   }
   else
   { //execute the fail branch
+    inst->set_open_flag(0);
     if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
     {
       TBSYS_LOG(WARN, "execute else block fail");
@@ -499,19 +502,29 @@ int SpMsInstExecStrategy::close(SpInst *inst)
   case SP_BLOCK_INST:
     break;
   case SP_C_INST:
-    mul_inst = static_cast<SpIfCtrlInsts*>(inst)->get_then_block();
-    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-      SpInst *inner_inst = NULL;
-      mul_inst->get_inst(i, inner_inst);
-      if( NULL != inner_inst) ret = close(inner_inst);
+    {
+      //only one branch is opened and closed
+      SpIfCtrlInsts *if_inst = static_cast<SpIfCtrlInsts*>(inst);
+      if( 1 == if_inst->get_open_flag() ) //then branch is opened, close it
+      {
+        mul_inst = if_inst->get_then_block();
+        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+          SpInst *inner_inst = NULL;
+          mul_inst->get_inst(i, inner_inst);
+          if( NULL != inner_inst) ret = close(inner_inst);
+        }
+      }
+      else if( 0 == if_inst->get_open_flag() ) //else branch is opened, close it
+      {
+        mul_inst = if_inst->get_else_block();
+        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+          SpInst *inner_inst = NULL;
+          mul_inst->get_inst(i, inner_inst);
+          if( NULL != inner_inst) ret = close(inner_inst);
+        }
+      }
+      break;
     }
-    mul_inst = static_cast<SpIfCtrlInsts*>(inst)->get_else_block();
-    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-      SpInst *inner_inst = NULL;
-      mul_inst->get_inst(i, inner_inst);
-      if( NULL != inner_inst) ret = close(inner_inst);
-    }
-    break;
   case SP_L_INST:
     mul_inst = static_cast<SpLoopInst*>(inst)->get_body_block();
     for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
@@ -792,6 +805,30 @@ int ObProcedure::optimize()
     block_inst->add_inst(temp_exec_list.at(4));
     exec_list_.push_back(block_inst);
   }
+  else if( proc_name_.compare("payment2") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+//    exec_list_.push_back(inst_list_.at(8));
+
+    static_cast<SpIfCtrlInsts*>(inst_list_.at(12))->optimize(exec_list_);
+    exec_list_.push_back(inst_list_.at(8));
+    exec_list_.push_back(inst_list_.at(9));
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(11));
+    exec_list_.push_back(inst_list_.at(12));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(1));
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(14));
+    exec_list_.push_back(block_inst);
+  }
   else if( proc_name_.compare("payment") == 0 )
   {
     exec_list_.push_back(inst_list_.at(0));
@@ -817,7 +854,6 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(14));
     block_inst->add_inst(inst_list_.at(15));
     exec_list_.push_back(block_inst);
-
   }
   else if( proc_name_.compare("for_test_1") == 0 )
   {
@@ -893,6 +929,36 @@ int ObProcedure::optimize()
 
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(11));
+  }
+  else if( proc_name_.compare("neworder3") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(3));
+
+    item_loop->optimize(exec_list_);
+    item_loop->add_itr_local_inst(0LL);
+    item_loop->add_itr_local_inst(1LL);
+    item_loop->add_itr_local_inst(2LL);
+    item_loop->add_itr_local_inst(3LL);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+    block_inst->add_inst(inst_list_.at(11));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(12));
   }
   //else do nothing
   else

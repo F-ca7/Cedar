@@ -414,7 +414,8 @@ namespace oceanbase
     {
       if (NULL != physical_plan_)
       {
-        TBSYS_LOG(WARN, "physical_plan_ is not NULL, %p", physical_plan_);
+//        TBSYS_LOG(WARN, "physical_plan_ is not NULL, %p", physical_plan_); //delete by zt 20151216
+        TBSYS_LOG(TRACE ,"physical plan is no NULL, %p", physical_plan_); //add by zt 20151216
       }
       physical_plan_ = physical_plan;
       own_physical_plan_ = did_own;

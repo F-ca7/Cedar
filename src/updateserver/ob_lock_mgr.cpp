@@ -177,16 +177,12 @@ namespace oceanbase
       uint32_t sd = session_ctx_.get_session_descriptor();
       if (!value.row_lock.is_exclusive_locked_by(sd))
       {
-        int64_t session_end_time = session_ctx_.get_session_start_time() + session_ctx_.get_session_timeout();
-        session_end_time = (0 <= session_end_time) ? session_end_time : INT64_MAX;
-        int64_t stmt_end_time = session_ctx_.get_stmt_start_time() + session_ctx_.get_stmt_timeout();
-        stmt_end_time = (0 <= stmt_end_time) ? stmt_end_time : INT64_MAX;
-        int64_t end_time = std::min(session_end_time, stmt_end_time);
-        int64_t cur_time = tbsys::CTimeUtil::getTime();
-        end_time = std::min(end_time, cur_time + LOCK_WAIT_TIME);
-        if (OB_SUCCESS == (ret = value.row_lock.exclusive_lock(sd, end_time, session_ctx_.is_alive())))
+        int64_t lock_start_time = tbsys::CTimeUtil::getTime();
+        int64_t lock_end_time = 0;
+        if (OB_SUCCESS == (ret = value.row_lock.try_exclusive_lock(sd)))
         {
-          cur_time = tbsys::CTimeUtil::getTime() - cur_time;
+          session_ctx_.set_conflict_session_id(0);
+          lock_end_time = tbsys::CTimeUtil::getTime();
           if (OB_SUCCESS != (ret = callback_mgr_.add_callback_info(session_ctx_, &row_exclusive_unlocker_, &value)))
           {
             row_exclusive_unlocker_.unlock(&value, session_ctx_);
@@ -196,21 +192,26 @@ namespace oceanbase
             TBSYS_LOG(DEBUG, "exclusive lock row succ sd=%u %s %s value=%p",
                             session_ctx_.get_session_descriptor(), key.log_str(), value.log_str(), &value);
           }
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_LOCK_SUCC_COUNT, 1);
         }
         else
         {
-          cur_time = tbsys::CTimeUtil::getTime() - cur_time;
+          lock_end_time = tbsys::CTimeUtil::getTime();
           session_ctx_.set_conflict_processor_index(session_ctx_.get_host().get_processor_index(value.row_lock.get_uid()));
           ret = OB_ERR_EXCLUSIVE_LOCK_CONFLICT;
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_LOCK_FAIL_COUNT, 1);
         }
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_LOCK_WAIT_TIME, cur_time);
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_LOCK_WAIT_TIME, lock_end_time - lock_start_time);
       }
       if (OB_SUCCESS != ret)
       {
-        TBSYS_LOG(USER_ERROR, "Exclusive lock conflict \'%s\' for key \'PRIMARY\'",
+        ob_set_err_msg("Exclusive lock conflict \'%s\' for key \'PRIMARY\'",
                   to_cstring(key.row_key));
-        TBSYS_LOG(INFO, "Exclusive lock conflict \'%s\' for key \'PRIMARY\' table_id=%lu request=%u owner=%u",
-                  to_cstring(key.row_key), key.table_id, sd, (uint32_t)(value.row_lock.uid_ & QLock::UID_MASK));
+        if (session_ctx_.set_conflict_session_id((uint32_t)(value.row_lock.uid_ & QLock::UID_MASK)))
+        {
+          TBSYS_LOG(INFO, "Exclusive lock conflict \'%s\' for key \'PRIMARY\' table_id=%lu request=%u owner=%u",
+                    to_cstring(key.row_key), key.table_id, sd, (uint32_t)(value.row_lock.uid_ & QLock::UID_MASK));
+        }
       }
       return ret;
     }

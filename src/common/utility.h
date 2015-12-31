@@ -460,6 +460,23 @@ namespace oceanbase
       return sysconf(_SC_PAGE_SIZE) * sysconf(_SC_PHYS_PAGES);
     }
 
+    //add zt 20151211:b
+    inline void ob_set_err_msg(const char* format, ...)
+    {
+      va_list ap;
+      const int64_t buf_size = 1024;
+      char buf[buf_size];
+      va_start(ap, format);
+      vsnprintf(buf, buf_size, format, ap);
+      va_end(ap);
+      tbsys::WarningBuffer *wb = tbsys::get_tsi_warning_buffer();
+      if ( OB_LIKELY( NULL != wb))
+      {
+        wb->set_err_msg(buf);
+      }
+    }
+    //add zt 20151211:e
+
     inline void ob_reset_err_msg()
     {
       tbsys::WarningBuffer *wb = tbsys::get_tsi_warning_buffer();

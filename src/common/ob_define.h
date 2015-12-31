@@ -646,6 +646,8 @@ namespace oceanbase
     static const int64_t OB_MAX_THREAD_NUM = 1024;
     static const int64_t OB_CHAR_SET_NAME_LENGTH = 16;
 
+    static const int64_t MAX_SQL_ERR_MSG_LENGTH = 256;
+
     enum ObDmlType
     {
       OB_DML_UNKNOW   = 0,
