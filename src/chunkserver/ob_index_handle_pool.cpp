@@ -1050,13 +1050,18 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "thread_no=%ld handlers is NULL", thread_no);
         ret = OB_INVALID_ARGUMENT;
       }
+      else
+      {
+        TBSYS_LOG(ERROR,"GLOBAL_HANDLER[%p]",global_handler);
+      }
+
       TBSYS_LOG(ERROR,
                 "test::longfei>>>thread_no[%ld],"
-                "global_handler.table_id_[%ld],"
-                "global_handler.handle_range_[%s]",
+                "global_handler.table_id_[%ld]",
+                //"global_handler.handle_range_[%s]",
                 thread_no,
-                global_handler->get_table_id_test(),
-                to_cstring(global_handler->get_new_range()));
+                global_handler->get_table_id_test()
+                /*to_cstring(global_handler->get_new_range())*/);
       return ret;
 
     }
@@ -1733,6 +1738,8 @@ namespace oceanbase
           }
           reset();
           TBSYS_LOG(ERROR, "test::longfei to delete local sstable");
+          //add longfei 151231 
+		  //[bugfix:修复一个没有释放sstable导致局部索引失败的bug]
           if(OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().delete_local_index_sstable()))
           {
               TBSYS_LOG(WARN,"delete local index sstable failed.ret[%d]",ret);

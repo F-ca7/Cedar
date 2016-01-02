@@ -465,7 +465,7 @@ namespace oceanbase
                                         break;
                                     }
                                 }
-                                else if(OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
+                                else if(OB_INDEX_VIRTUAL_COLUMN_ID != index_cid && OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
                                 {
                                     TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
                                     break;

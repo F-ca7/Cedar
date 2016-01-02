@@ -39,8 +39,8 @@ namespace oceanbase
       inline ObIndexReporter* get_index_reporter();
       inline common::ModuleArena* get_allocator();
       int create_new_sstable(const uint64_t table_id, const int32_t disk_no);
-      int cons_index_data_row_desc(ObRowDesc &index_data_row_desc, uint64_t index_tid);
-      int push_cid_in_desc_and_ophy(uint64_t data_tid, const ObRowDesc index_data_row_desc, ObArray<uint64_t> &basic_columns);
+      int cons_index_data_row_desc(ObRowDesc &index_data_row_desc, uint64_t data_tid, uint64_t index_tid);
+      int push_cid_in_desc_and_ophy(uint64_t data_tid, uint64_t index_tid, const ObRowDesc index_data_row_desc, ObArray<uint64_t> &basic_columns, ObRowDesc &desc);
       int trans_row_to_sstrow(ObRowDesc &row_desc, const ObRow &row);
       int cons_column_checksum_row_desc_for_data(ObRowDesc &column_checksum_row_desc, uint64_t tid);
       int calc_column_checksum_for_data(const ObRow& row, ObRowDesc &column_checksum_row_desc, char *column_checksum, uint64_t tid);

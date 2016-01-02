@@ -280,7 +280,11 @@ namespace oceanbase
       //bool is_row_changed = false;
       int64_t column_count = 0;
       //TBSYS_LOG(ERROR, "test::longfei I am in ObIndexInteractiveAgent");
-      if (true)
+	  //mod longfei [bugfix] 1512312:b
+	  //not_used_不再使用,暂时这么处理，如果您能看到这段话，请提醒我(longfei1lantern@gmail.com)
+      //if (!not_used_)
+	  if (true)
+	  //mod e
       {
         do
         {

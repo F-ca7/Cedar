@@ -565,7 +565,7 @@ namespace oceanbase
     const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei [create index]
     //add maoxx
     const char* const OB_INDEX_SERVICE_INFO_TABLE_NAME = "__index_service_info";
-    const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_hecksum_info";
+    const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
 
     // internal params

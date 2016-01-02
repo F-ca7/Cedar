@@ -101,11 +101,12 @@ namespace oceanbase
       return ret;
     }
 
-    int ObLocalIndexHandler::cons_index_data_row_desc(ObRowDesc &index_data_row_desc, uint64_t index_tid)
+    int ObLocalIndexHandler::cons_index_data_row_desc(ObRowDesc &index_data_row_desc, uint64_t data_tid, uint64_t index_tid)
     {
       int ret = OB_SUCCESS;
 
       uint64_t index_cid = OB_INVALID_ID;
+      const ObTableSchema *table_schema = schema_manager_->get_table_schema(data_tid);
       const ObTableSchema* index_table_schema = schema_manager_->get_table_schema(index_tid);
       const ObRowkeyInfo idx_ori = index_table_schema->get_rowkey_info();
       index_data_row_desc.set_rowkey_cell_count(idx_ori.get_size());
@@ -125,8 +126,10 @@ namespace oceanbase
           }
         }
       }
-      for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)(index_table_schema->get_max_column_id()); j++)
+      bool column_hit_index_flag = false;
+      for(int j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)(table_schema->get_max_column_id()); j++)
       {
+	    /*mod maoxx
         const ObColumnSchemaV2* idx_ocs = schema_manager_->get_column_schema(index_tid, j);
         if(idx_ori.is_rowkey_column(j) || NULL == idx_ocs)
         {
@@ -140,7 +143,24 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"error in add_column_desc");
             break;
           }
-        }
+		}
+		  */
+		if(!idx_ori.is_rowkey_column(j))
+        {
+            if(OB_SUCCESS != (ret = schema_manager_->column_hit_index(data_tid, j, column_hit_index_flag)))
+            {
+              TBSYS_LOG(ERROR,"failed to check if hint index,ret=%d",ret);
+              break;
+            }
+            else if(column_hit_index_flag)
+            {
+              if(OB_SUCCESS != (ret = index_data_row_desc.add_column_desc(index_tid, j)))
+              {
+                TBSYS_LOG(ERROR,"error in add_column_desc");
+                break;
+              }
+            }
+		}
       }
       if(OB_SUCCESS == ret && schema_manager_->is_index_has_storing(index_tid))
       {
@@ -149,23 +169,27 @@ namespace oceanbase
       return ret;
     }
 
-    int ObLocalIndexHandler::push_cid_in_desc_and_ophy(uint64_t data_tid, const ObRowDesc index_data_row_desc, ObArray<uint64_t> &basic_columns)
+    int ObLocalIndexHandler::push_cid_in_desc_and_ophy(uint64_t data_tid, uint64_t index_tid, const ObRowDesc index_data_row_desc, ObArray<uint64_t> &basic_columns, ObRowDesc &desc)
     {
       int ret = OB_SUCCESS;
       uint64_t tid = OB_INVALID_ID;
       uint64_t cid = OB_INVALID_ID;
-      for(int64_t i = 0; i < index_data_row_desc.get_column_num(); i++)
+      desc.set_rowkey_cell_count(index_data_row_desc.get_rowkey_cell_count());
+      for(int64_t i = 0; i < index_data_row_desc.get_rowkey_cell_count(); i++)
       {
         if(OB_SUCCESS != (ret = index_data_row_desc.get_tid_cid(i, tid, cid)))
         {
           TBSYS_LOG(WARN,"get column schema failed,idx[%ld] ret[%d]", i, ret);
           break;
         }
+		/*del maoxx
         else
         {
           TBSYS_LOG(DEBUG,"test::longfei>>>tid[%ld],cid[%ld]",tid,cid);
         }
         if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
+		*/
+		else if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
         {
           TBSYS_LOG(WARN, "push back basic columns failed, ret = %d", ret);
           break;
@@ -176,6 +200,37 @@ namespace oceanbase
           TBSYS_LOG(WARN, "add sort column failed ,data_tid[%ld],cid[%ld], ret = %d", data_tid, cid, ret);
           break;
         }
+        else if(OB_SUCCESS != (ret = desc.add_column_desc(data_tid, cid)))
+        {
+          TBSYS_LOG(WARN, "add desc column failed ,data_tid[%ld],cid[%ld], ret = %d", data_tid, cid, ret);
+          break;
+        }
+      }
+      for(int64_t j = index_data_row_desc.get_rowkey_cell_count(); j < index_data_row_desc.get_column_num(); j++)
+      {
+        if(OB_SUCCESS != (ret = index_data_row_desc.get_tid_cid(j, tid, cid)))
+        {
+          TBSYS_LOG(WARN,"get column schema failed,cid[%ld]", cid);
+          break;
+        }
+        else if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
+        {
+          TBSYS_LOG(WARN, "push back basic columns failed, ret = %d", ret);
+          break;
+        }
+        else if(OB_SUCCESS != (ret = sort_.add_sort_column(data_tid, cid, true)))
+        {
+          TBSYS_LOG(WARN, "add sort column failed ,data_tid[%ld],cid[%ld], ret = %d", data_tid, cid, ret);
+          break;
+        }
+        else if(NULL != (schema_manager_->get_column_schema(index_tid, cid)))
+        {
+          if(OB_SUCCESS != (ret = desc.add_column_desc(data_tid, cid)))
+          {
+            TBSYS_LOG(WARN, "add desc column failed ,data_tid[%ld],cid[%ld], ret = %d", data_tid, cid, ret);
+            break;
+          }
+        }
       }
       return ret;
     }
@@ -185,9 +240,8 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       uint64_t tid = OB_INVALID_ID;
       uint64_t cid = OB_INVALID_ID;
-      uint64_t data_tid = OB_INVALID_ID;
       const ObObj *obj = NULL;
-//      TBSYS_LOG(ERROR,"test::longfei>>>row[%s],row desc[%s]",to_cstring(row),to_cstring(row_desc));
+      TBSYS_LOG(ERROR,"test::longfei>>>row[%s],row desc[%s]",to_cstring(row),to_cstring(row_desc));
       if(NULL == new_table_schema_)
       {
         TBSYS_LOG(WARN, "null pointer of table schema");
@@ -211,11 +265,13 @@ namespace oceanbase
           vi_obj.set_null();
           ret = sst_row_.add_obj(vi_obj);
         }
+        /*
         else if(NULL == schema_manager_ || OB_INVALID_ID == (data_tid =  schema_manager_->get_table_schema(tid)->get_original_table_id()))
         {
           TBSYS_LOG(WARN,"get original table id failed.data_tid[%ld].",data_tid);
         }
-        else if(OB_SUCCESS != (ret = row.get_cell(data_tid, cid, obj)))
+        */
+        else if(OB_SUCCESS != (ret = row.get_cell(tid, cid, obj)))
         {
           TBSYS_LOG(WARN, "get cell from obrow failed!tid[%ld],cid[%ld],ret[%d]", tid, cid, ret);
           break;
@@ -344,6 +400,7 @@ namespace oceanbase
       int64_t temp_tablet_row_count = 1;
       ObObj objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
       ObRowDesc index_data_row_desc;
+      ObRowDesc desc;
       ObNewRange sample_range;
       ObTabletSample index_sample;
       ObArray<uint64_t> basic_columns;
@@ -398,13 +455,13 @@ namespace oceanbase
           sample_range.border_flag_.set_inclusive_start();
           sample_range.border_flag_.set_inclusive_end();
 
-          if(OB_SUCCESS != (ret = cons_index_data_row_desc(index_data_row_desc, index_tid)))
+          if(OB_SUCCESS != (ret = cons_index_data_row_desc(index_data_row_desc, data_tid, index_tid)))
           {
             TBSYS_LOG(WARN, "construct row desc failed,ret = [%d]", ret);
           }
-          else if(OB_SUCCESS != (ret = push_cid_in_desc_and_ophy(data_tid, index_data_row_desc, basic_columns)))
+          else if(OB_SUCCESS != (ret = push_cid_in_desc_and_ophy(data_tid, index_tid, index_data_row_desc, basic_columns, desc)))
           {
-            TBSYS_LOG(WARN, "push cid indesc failed,data_tid[%ld], index_data_desc = %s, ret = %d", data_tid, to_cstring(index_data_row_desc), ret );
+            TBSYS_LOG(WARN, "push cid indesc failed,data_tid[%ld], index_data_row_desc = %s, desc = %s, ret = %d", data_tid, to_cstring(index_data_row_desc), to_cstring(desc), ret);
           }
           else if(OB_SUCCESS != (ret = tablet_scan.build_sstable_scan_param_pub(basic_columns, sql_scan_param, sstable_scan_param)))
           {
@@ -442,7 +499,7 @@ namespace oceanbase
               {
                 if(NULL != row)
                 {
-                  if(OB_SUCCESS != (ret = trans_row_to_sstrow(index_data_row_desc, *row)))
+                  if(OB_SUCCESS != (ret = trans_row_to_sstrow(desc, *row)))
                   {
                     TBSYS_LOG(WARN,"failed to trans row to sstable row, ret = %d", ret);
                     break;
@@ -496,7 +553,6 @@ namespace oceanbase
                       temp_tablet_row_count++;
                     }
                   }
-                  /*
                   if(OB_SUCCESS == ret)
                   {
                     if(OB_SUCCESS != (ret = calc_column_checksum_for_data(*row, column_checksum_row_desc, row_column_checksum.get_str(), data_tid)))
@@ -510,7 +566,7 @@ namespace oceanbase
                       break;
                     }
                     row_column_checksum.reset();
-                  }*/
+                  }
                   if(OB_SUCCESS == ret)
                   {
                     if(OB_SUCCESS != (ret = save_current_row()))
@@ -530,11 +586,11 @@ namespace oceanbase
 
               ObMultiVersionTabletImage& tablet_image = tablet_manager_->get_serving_tablet_image();
               frozen_version_ = tablet_image.get_serving_version();
-              /*if(OB_SUCCESS != (ret = tablet_manager_->send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
+              if(OB_SUCCESS != (ret = tablet_manager_->send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
               {
                 TBSYS_LOG(ERROR,"send tablet column checksum failed =%d", ret);
               }
-              column_checksum_.reset();*/
+              column_checksum_.reset();
             }
           }
         }
