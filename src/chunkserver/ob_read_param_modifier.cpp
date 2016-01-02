@@ -287,7 +287,7 @@ namespace oceanbase
         }
       }
 
-      //add wenghaixing [secondary index static_index_build.cs_scan]20150330
+      //add wenghaixing [secondary index static_index_build.cs_scan]20151230
       scan_param->set_fake(org_scan_param.if_need_fake());
       ObNewRange fake_range;
       if(scan_param->if_need_fake())

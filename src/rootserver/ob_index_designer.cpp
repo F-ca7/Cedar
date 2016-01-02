@@ -493,6 +493,7 @@ namespace oceanbase
       //int index = static_cast<int>(meta_index);
       if(meta_index < 0 || meta_index >= data_meta_.get_array_index())
       {
+        TBSYS_LOG(WARN,"can't push into array.input_index[%ld],array index[%ld]",meta_index,data_meta_.get_array_index());
         ret = OB_ERROR;
       }
       else

@@ -39,6 +39,7 @@ namespace oceanbase
           if(OB_ITER_END == ret)
           {
             local_idx_scan_finish_ = true;
+            TBSYS_LOG(INFO, "local_idx_scan_finish_ is true");
           }
           else
           {
@@ -48,15 +49,21 @@ namespace oceanbase
       }
       if(local_idx_scan_finish_)
       {
+        //TBSYS_LOG(ERROR, "test::longfei I am in ObCsInteractiveScan");
         if (OB_SUCCESS != (ret = (right_op_->get_next_row(row))))
         {
           if(OB_ITER_END == ret)
            {
+              TBSYS_LOG(ERROR, "test::longfei OB_ITER_END ObCsInteractiveScan");
            }
           else
           {
             TBSYS_LOG(ERROR, "get interactive next row failed");
           }
+        }
+        else
+        {
+          //if(row)TBSYS_LOG(ERROR, "test::longfei$$$$$$$$$$$$$$$$$$$ row = %s",to_cstring(*row));
         }
       }
       return ret;

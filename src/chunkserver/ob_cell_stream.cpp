@@ -179,7 +179,7 @@ namespace oceanbase
         {
           first_rpc_ = false;
         }
-        //TBSYS_LOG(ERROR, "test::longfei cur_result_count = %ld, row_num = %ld", cur_result_.get_cell_num(), cur_result_.get_row_num());
+        TBSYS_LOG(ERROR, "test::longfei cur_result_count = %ld, row_num = %ld", cur_result_.get_cell_num(), cur_result_.get_row_num());
       }
       return ret;
     }

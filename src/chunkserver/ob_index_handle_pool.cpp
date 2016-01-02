@@ -1020,8 +1020,7 @@ namespace oceanbase
       }
       else
       {
-        TBSYS_LOG(INFO,
-                  "all range has been consume , check if has failed record");
+        TBSYS_LOG(INFO,"all range has been consume , check if has failed record");
       }
     }
 
@@ -1733,9 +1732,7 @@ namespace oceanbase
             TBSYS_LOG(ERROR,"test::longfei>>>round_end[%d]",round_end_);
           }
           reset();
-
-          //add longfei 151231 
-		  //[bugfix:修复一个没有释放sstable导致局部索引失败的bug]
+          TBSYS_LOG(ERROR, "test::longfei to delete local sstable");
           if(OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().delete_local_index_sstable()))
           {
               TBSYS_LOG(WARN,"delete local index sstable failed.ret[%d]",ret);

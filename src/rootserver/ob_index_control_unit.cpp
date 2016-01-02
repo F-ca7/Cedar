@@ -208,6 +208,7 @@ namespace oceanbase
             TBSYS_LOG(INFO, "add hist meta into designer succ.");
           }
         }
+
         if(OB_SUCCESS == ret)
         {
           if(OB_SUCCESS != (ret = designer_->get_hist_manager()->add_histogram(report_info.static_index_histogram, hist_index)))

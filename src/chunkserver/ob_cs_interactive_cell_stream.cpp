@@ -99,7 +99,7 @@ namespace oceanbase
              else if (finish_)
              {
                ret = OB_ITER_END;
-               //TBSYS_LOG(ERROR,"test::whx here ret = [%d]",ret);
+               TBSYS_LOG(ERROR,"test::whx scan finish ret = [%d]",ret);
              }
            }
          }

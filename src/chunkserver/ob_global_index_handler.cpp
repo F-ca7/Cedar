@@ -84,6 +84,8 @@ namespace oceanbase
         TBSYS_LOG(INFO,"construct global index succ.");
       }
 
+      //sstable_writer_.close_sstable();
+
       //3.打印错误信息，返回错误码
       return ret;
     }
@@ -137,10 +139,9 @@ namespace oceanbase
       {
         TBSYS_LOG(INFO,"set sort's children succ.");
       }
-      //add zhuyanchao[secondary index static_index_build.columnchecksum]20150407
+
       ObRowDesc index_desc;
       cc.reset();
-      //add e
 
       if (OB_SUCCESS != ret || NULL == get_handle_pool()
           || NULL == get_handle_pool()->get_tablet_manager())

@@ -805,6 +805,7 @@ namespace oceanbase
       {
         sstable_reader_list_.at(1)->reset();
         ret = (sstable_reader_list_.remove(1));
+        TBSYS_LOG(ERROR, "test::whx delete sstable");
       }
 
       return ret;

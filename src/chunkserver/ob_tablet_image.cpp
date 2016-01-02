@@ -2579,6 +2579,7 @@ namespace oceanbase
     const int ObTabletImage::delete_local_index_sstable() const
     {
       int ret = OB_SUCCESS;
+      TBSYS_LOG(ERROR,"test ::longfei delete_local_index_sstable in for loop");
       ObSortedVector <ObTablet*>::iterator it = tablet_list_.begin();
       for (; it != tablet_list_.end(); ++it)
       {

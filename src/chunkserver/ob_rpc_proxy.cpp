@@ -1166,7 +1166,7 @@ namespace oceanbase
         ret = cs_cs_scan_(rpc_stub, scan_param, chunkserver, scanner, time_out);
         if (ret != OB_SUCCESS)
         {
-          TBSYS_LOG(ERROR, "scan from master ups failed:ret[%d]", ret);
+          TBSYS_LOG(ERROR, "scan from another cs failed:ret[%d]", ret);
         }
       }
       OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_COUNT);
@@ -1185,7 +1185,7 @@ namespace oceanbase
       {
         if (ret != OB_SUCCESS)
         {
-          TBSYS_LOG(WARN, "get master update server failed:ret[%d]", ret);
+          TBSYS_LOG(WARN, "get another chunk server failed:ret[%d]", ret);
           break;
         }
         ret = rpc_stub->scan((time_out > 0) ? time_out : rpc_timeout_, chunkserver, scan_param, scanner);
@@ -1199,9 +1199,8 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(WARN,
-              "cs to cs scan fail. retry. ret=%d, i=%ld, rpc_timeout_=%ld ups[%s]",
-              ret, i, rpc_timeout_, to_cstring(chunkserver));
+          TBSYS_LOG(WARN, "cs to cs scan fail. retry. ret=%d, i=%ld, rpc_timeout_=%ld cs[%s]",
+                    ret, i, rpc_timeout_, to_cstring(chunkserver));
           usleep(static_cast <useconds_t>(RETRY_INTERVAL_TIME * (i + 1)));
         }
       }
