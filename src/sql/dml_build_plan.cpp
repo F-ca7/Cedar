@@ -2957,7 +2957,6 @@ int resolve_hints(
     ObStmt* stmt,
     ParseNode* node)
 {
-//  TBSYS_LOG(ERROR, "test::longfei>>>in resolve_hints func.");
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   if (node)
   {
@@ -2968,10 +2967,8 @@ int resolve_hints(
       ParseNode* hint_node = node->children_[i];
       if (!hint_node)
       {
-//        TBSYS_LOG(ERROR, "test::longfei>>>hint_node is null");
         continue;
       }
-//      TBSYS_LOG(ERROR, "test::longfei>>>hint_node->type_ = %d", hint_node->type_);
       switch (hint_node->type_)
       {
         case T_READ_STATIC:
@@ -3003,16 +3000,13 @@ int resolve_hints(
             TBSYS_LOG(ERROR, "unknown hint value, ret=%d", ret);
           }
           break;
-          // add by zcd 20141216:b
+          // add by longfei
         case T_USE_INDEX:
-//          TBSYS_LOG(ERROR, "test::longfei>>>This select has set hint to use index table.");
           ret = generate_index_hint(result_plan, stmt, hint_node);
           break;
-          // add 20141216:e
-          // add by zcd 20150601:b
         case T_UNKOWN_HINT:
           break;
-          // add by zcd 20150601:e
+          // add e
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -3609,7 +3603,7 @@ int generate_index_hint(
   ObQueryHint& query_hint = stmt->get_query_hint();
 
   // 单表查询的情况下不应该有多个index的hint
-  //remove zhuyanchao multi hint
+
   /*if(query_hint.use_index_array_.size() >= 1)
   {
     ret = OB_ERR_UNEXPECTED;
@@ -3692,9 +3686,6 @@ int generate_index_hint(
   {
     query_hint.use_index_array_.push_back(pair);
   }
-//  IndexTableNamePair& pair_test = query_hint.use_index_array_.at(0);
-//  TBSYS_LOG(ERROR, "test::longfei>>>show use_index_array_[0].origin table name = %s, index table name = %s", pair_test.src_table_name_.ptr(),
-//      pair_test.index_table_name_.ptr());
   return ret;
 }
 // add:e

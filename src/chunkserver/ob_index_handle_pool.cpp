@@ -191,7 +191,6 @@ namespace oceanbase
       }
       else
       {
-//        TBSYS_LOG(ERROR,"test::longfei>>>size[%ld]",size);
         for (int64_t i = 0; i < size; i++)
         {
           ObLocalIndexHandler* local_handlers =
@@ -227,8 +226,7 @@ namespace oceanbase
           else
           {
             global_handler[i] = global_handlers;
-//            TBSYS_LOG(ERROR, "test::whx get golbal handler = %s, i = %ld, table_id_for_test = %ld",
-//                         to_cstring(global_handler[i]->get_new_range()),i, global_handler[i]->get_table_id_test());
+
           }
         }
         TBSYS_LOG(INFO,"allocate memory for index handler finish");
@@ -277,13 +275,9 @@ namespace oceanbase
         //既然已经唤醒了一个新的索引构建任务，那么上一次的任务必然是完成的，可能这个CS掉线导致没有同步上任务，那么这些
         //遗留下的局部索引sstable是应该删除的
       }
-      TBSYS_LOG(ERROR, "test::longfei>>> process_idx_tid_[%ld],schedule_idx_tid[%ld]",
-                process_idx_tid_,
-                schedule_idx_tid_);
       if (process_idx_tid_ != schedule_idx_tid_)
       {
         process_idx_tid_ = schedule_idx_tid_;
-        TBSYS_LOG(ERROR, "test::longfei>>> process_idx_tid_[%ld]",process_idx_tid_);
       }
 
       // add longfei [cons static index] 151110:
@@ -354,18 +348,6 @@ namespace oceanbase
         }
         else
         {
-          //test longfei
-          //如果3002是索引表，就把它的tablet的range信息打印到日志。
-          if(process_idx_tid_ == 3002)
-          {
-            ObVector <ObTablet*>::iterator it = tablet_list.begin();
-            for(;it != tablet_list.end();it++)
-            {
-              TBSYS_LOG(ERROR,"test::longfei>>>table[%ld]'s tablet range=%s",
-                        process_idx_tid_,to_cstring((*it)->get_range()));
-            }
-          }
-          //test e
         }
         if (OB_SUCCESS == ret)
         {
@@ -395,7 +377,6 @@ namespace oceanbase
                 }
                 if (need_index)
                 {
-                  //TBSYS_LOG(INFO,"test::whx add tablet in array");
                   TabletRecord record;
                   record.tablet_ = *it;
                   //tablet_array_中存放本机上那些还没有挂第二块sstable的tablet
@@ -418,11 +399,6 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]", ret);
                 //break;//del liumz
               }
-              /*
-               else
-               {
-               //TBSYS_LOG(ERROR,"test::whx release tablet");
-               }*/
             }
           }
         }
@@ -446,7 +422,7 @@ namespace oceanbase
         // multcs_range_hash,and put the the info of the tablet in this cs into range_hash
         // and then we construct range_arry_
         // 做两遍fetch_tablet_info,分别传原表的id,和索引表的id
-        TBSYS_LOG(ERROR,"test::longfei>>>begin global index construction stage.");
+        TBSYS_LOG(INFO,">>>begin global index construction stage.");
         const int64_t timeout = 2000000;
         ObGeneralRpcStub rpc_stub = THE_CHUNK_SERVER.get_rpc_stub();
         ObScanner scanner;
@@ -471,7 +447,6 @@ namespace oceanbase
           }
           else
           {
-            //TBSYS_LOG(ERROR,"test::longfei>>>fetch location succ.");
             ret = parse_location_from_scanner(scanner, start_key, process_idx_tid_, need_other_cs);
           }
           if (ret != OB_SUCCESS)
@@ -530,7 +505,6 @@ namespace oceanbase
           }
           else
           {
-            //TBSYS_LOG(ERROR,"test::longfei>>>fetch location succ.");
             ret = parse_location_from_scanner(scanner, start_key, ori_tid, need_other_cs);
           }
           if (ret != OB_SUCCESS)
@@ -550,7 +524,6 @@ namespace oceanbase
             scanner.reset();
           }
         }while(true);
-        TBSYS_LOG(ERROR,"test::longfei>>>range_hash ready,range_hash's size[%ld]",range_hash_.size());
 
         hash::ObHashMap<ObNewRange, ObTabletLocationList,hash::NoPthreadDefendMode>::const_iterator iter = range_hash_.begin();
         RangeRecord record; 
@@ -559,7 +532,6 @@ namespace oceanbase
           if(0 == range_array_.count())
           {
             record.range_ = iter->first;
-            TBSYS_LOG(ERROR,"test::longfei>>>range_array[0].range[%s]",to_cstring(record.range_));
             range_array_.push_back(record);
           }
           else
@@ -580,13 +552,6 @@ namespace oceanbase
             }
           }
         }
-        //test::longfei>>>
-        TBSYS_LOG(ERROR,"test::longfei>>>array size[%ld],dis range_array_:",range_array_.count());
-        for(int i = 0; i < range_array_.count(); i++)
-        {
-          TBSYS_LOG(WARN,"test::longfei>>>count[%d],record[%s]",i,to_cstring(range_array_.at(i).range_));
-        }
-        //test e
       }
       return ret;
     }
@@ -661,14 +626,12 @@ namespace oceanbase
           {
             construct_tablet_item(table_id, start_key, end_key, range, list);
             list.print_info(); //test::lmz
-            TBSYS_LOG(ERROR, "test::lmz, list[0]'s ip [%s], self ip[%s]",
-                      to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
+            //TBSYS_LOG(INFO, "list[0]'s ip [%s], self ip[%s]",
+            //          to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
             if (need_other_cs)
             {
               //把所有table_id对应的所有的tablet的，包括所有副本的信息都放到data_multcs_range_hash里面去
-              if (-1
-                  == data_multcs_range_hash_.set(list.get_tablet_range(), list,
-                                                 1))
+              if (-1 == data_multcs_range_hash_.set(list.get_tablet_range(), list,1))
               {
                 TBSYS_LOG(ERROR, "insert data_multcs_range_hash_ error!");
               }
@@ -681,7 +644,6 @@ namespace oceanbase
               {
                 TBSYS_LOG(ERROR,"insert range_hash_ error!");
               }
-              TBSYS_LOG(ERROR,"test::longfei>>>range_hash.range[%s]",to_cstring(list.get_tablet_range()));
             }
             list.clear();
             start_key = end_key;
@@ -740,7 +702,7 @@ namespace oceanbase
         {
           construct_tablet_item(table_id, start_key, end_key, range, list);
           list.print_info(); //test::lmz
-          TBSYS_LOG(ERROR, "test::lmz, list[0]'s ip [%s], self ip[%s]",
+          TBSYS_LOG(INFO, "list[0]'s ip [%s], self ip[%s]",
                     to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
           if (need_other_cs)
           {
@@ -757,7 +719,6 @@ namespace oceanbase
               TBSYS_LOG(ERROR,"insert range hash error!");
               ret = OB_ERROR;
             }
-            TBSYS_LOG(ERROR,"test::longfei>>>range_hash.range[%s]",to_cstring(list.get_tablet_range()));
           }
         }
       }
@@ -973,7 +934,7 @@ namespace oceanbase
         }
         //
       }
-      TBSYS_LOG(ERROR,"test::longfei>>>ret[%d],err[%d]",ret,err);
+      TBSYS_LOG(INFO,">>>ret[%d],err[%d]",ret,err);
       return ret;
     }
 
@@ -1055,13 +1016,6 @@ namespace oceanbase
         TBSYS_LOG(ERROR,"GLOBAL_HANDLER[%p]",global_handler);
       }
 
-      TBSYS_LOG(ERROR,
-                "test::longfei>>>thread_no[%ld],"
-                "global_handler.table_id_[%ld]",
-                //"global_handler.handle_range_[%s]",
-                thread_no,
-                global_handler->get_table_id_test()
-                /*to_cstring(global_handler->get_new_range())*/);
       return ret;
 
     }
@@ -1179,7 +1133,7 @@ namespace oceanbase
           break;
         }
         pthread_mutex_lock(&mutex_);
-        TBSYS_LOG(INFO,"test::longfei>>>try to get a tablet/range to build index");
+        TBSYS_LOG(INFO,">>>try to get a tablet/range to build index");
         ret = get_tablets_ranges(tablet, range, err);
         while (true)
         {
@@ -1725,26 +1679,25 @@ namespace oceanbase
           //等待所有线程都停下来
           while(true)
           {
-            TBSYS_LOG(ERROR,"test::longfei>>>wait here...active_thread_num[%ld]",active_thread_num_);
+            TBSYS_LOG(INFO,">>>wait here...active_thread_num[%ld]",active_thread_num_);
             if(active_thread_num_ == 0)
               break;
             //睡1s
             usleep(1000000);
           }
           //线程都做完
-          if (OB_SUCCESS == (ret = release_tablet_array()))
+          if (OB_SUCCESS != (ret = release_tablet_array()))
           {
-            TBSYS_LOG(ERROR,"test::longfei>>>round_end[%d]",round_end_);
+            TBSYS_LOG(WARN,">>>release failed.round_end[%d]",round_end_);
           }
           reset();
-          TBSYS_LOG(ERROR, "test::longfei to delete local sstable");
-          //add longfei 151231 
-		  //[bugfix:修复一个没有释放sstable导致局部索引失败的bug]
+          //add longfei 151231
+          //[bugfix:修复一个没有释放sstable导致局部索引失败的bug]
           if(OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().delete_local_index_sstable()))
           {
-              TBSYS_LOG(WARN,"delete local index sstable failed.ret[%d]",ret);
+            TBSYS_LOG(WARN,"delete local index sstable failed.ret[%d]",ret);
           }
-		  //add e
+          //add e
         }
         pthread_mutex_unlock(&mutex_);      
       }

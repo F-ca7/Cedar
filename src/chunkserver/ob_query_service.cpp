@@ -278,7 +278,6 @@ namespace oceanbase
            * udpateserver.
            */
           //add wenghaixing [secondary index static_index_build.cs_scan] 20151231
-          //TBSYS_LOG(ERROR,"test::longfei>>>need ups data[%s]",scan_param.if_need_fake()?"false":"true");
           if(scan_param.if_need_fake())
           {
             version_range.start_version_ = 0;

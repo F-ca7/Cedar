@@ -780,7 +780,6 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       bool ps = true;
       int packet_code = packet->get_packet_code();
-      //TBSYS_LOG(ERROR, "test::longfei,,,packet_code=%d",packet_code);
       switch(packet_code)
       {
         case OB_SEND_LOG:
@@ -1014,7 +1013,6 @@ namespace oceanbase
                 if ((void*)WRITE_THREAD_FLAG == args)
                 {
                   TBSYS_LOG(DEBUG, "handle packet, packe code is %d", packet_code);
-                  //TBSYS_LOG(ERROR, "test::longfei,,,handle packet, packe code is %d", packet_code);
                   switch(packet_code)
                   {
                     case OB_REPORT_TABLETS:
@@ -2606,7 +2604,6 @@ namespace oceanbase
         else
         {
           int server_index = root_server_.get_server_index(server);
-          //TBSYS_LOG(ERROR,"test::longfei>>>Server[%s],server_index[%d]",to_cstring(server),server_index);
           result_msg.result_code_ = icu_.handle_histograms(*tablet_list, server_index);
           if (OB_SUCCESS != result_msg.result_code_)
             TBSYS_LOG(ERROR, "report_histograms() error.");
@@ -5974,7 +5971,6 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
           TBSYS_LOG(WARN, "failed to drop index, err=%d", ret);
         }
         res.result_code_ = ret;
-        //TBSYS_LOG(ERROR,"test::longfei>>>res.result_code_ = %d",ret);//[drop table with index timeout] 151202
         ret = OB_SUCCESS;
       }
       if (OB_SUCCESS == ret)

@@ -475,7 +475,6 @@ int ObRpcScan::open()
       if(is_use_index_for_storing_)
       {
         cur_row_for_storing_.set_row_desc(cur_row_desc_for_storing);
-//        TBSYS_LOG(ERROR,"test::fanqs,,11,cur_row_desc_for_storing=%s",to_cstring(cur_row_desc_for_storing));
       }
       //add:e
       FILL_TRACE_LOG("open %s", to_cstring(cur_row_desc_));
@@ -838,7 +837,6 @@ int ObRpcScan::get_row_desc(const common::ObRowDesc *&row_desc) const
   else if(is_use_index_for_storing_)
   {
       row_desc = &cur_row_desc_for_storing;
-      //TBSYS_LOG(ERROR,"test::fanqs,,row_desc=%s",to_cstring(*row_desc));
   }
   else
   {
@@ -934,7 +932,6 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
   //modify by fanqiushi_index
-//  TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d",is_use_index_);
   if(!is_use_index_)   //如果不使用回表的索引，则按照原来的实现走
   {
       bool can_break = false;
@@ -992,7 +989,6 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
   }
   else
   {
-//      TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_=%d,,get_next_row_count_=%ld",is_use_index_,get_next_row_count_);
       if(get_next_row_count_==0)   //只有在第一次get_next_row的时候
       {
           if (NULL != get_param_)   //重置下get_param_
@@ -1043,9 +1039,6 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
                 ret = sql_get_request_->get_next_row(cur_row_);
                 if(OB_SUCCESS == ret)
                     get_next_row_count_++;
-                //add fanqiushi_index
-//                TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
-                //add:e
             }
           }
 
@@ -1053,7 +1046,6 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
       }
       else if(get_next_row_count_% 5375 == 0)
       {
-//          TBSYS_LOG(ERROR,"test::fanqs,,,get_next_row_count_=%ld",get_next_row_count_);
           if (NULL != get_param_)   //重置下get_param_
           {
             get_param_->~ObSqlGetParam();
@@ -1106,9 +1098,7 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
                 ret = sql_get_request_->get_next_row(cur_row_);
                 if(OB_SUCCESS == ret)
                     get_next_row_count_++;
-                //add fanqiushi_index
-                //TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
-                //add:e
+
             }
           }
       }
@@ -1117,25 +1107,19 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
           ret = sql_get_request_->get_next_row(cur_row_);
           if(OB_SUCCESS == ret)
               get_next_row_count_++;
-          //add fanqiushi_index
-//          TBSYS_LOG(ERROR,"test::fanqs cur_row_=%s",to_cstring(cur_row_));
-          //add:e
       }
   }
 
   if (OB_SUCCESS == ret)
   {
-//    TBSYS_LOG(ERROR,"test::fanqs,1110,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
     if(is_use_index_for_storing_)
     {
         uint64_t tid=OB_INVALID_ID;
         uint64_t cid=OB_INVALID_ID;
         const ObObj *obj_tmp=NULL;
-//        TBSYS_LOG(ERROR,"test::fanqs,,cur_row_=%s,cur_row_desc_=%s",to_cstring(cur_row_),to_cstring(cur_row_desc_));
         for(int64_t i=0;i<cur_row_.get_column_num();i++)   //根据索引表的一行构造原表的一行
         {
             cur_row_desc_.get_tid_cid(i,tid,cid);
-//            TBSYS_LOG(ERROR,"test::fanqs,,tid=%ld,,main_table_id_=%ld,base_table_id_=%ld",tid,main_table_id_,base_table_id_);
             if(tid == base_table_id_)
             {
                 cur_row_.raw_get_cell(i,obj_tmp);
@@ -1150,13 +1134,9 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
         row = &cur_row_for_storing_;
 
       // const  ObRowDesc *desc=cur_row_for_storing_.get_row_desc();
-        //TBSYS_LOG(ERROR, "test::fanqs,,cur_row_for_storing_=%s,,desc=%s,,cur_row_desc_for_storing=%s",to_cstring(cur_row_for_storing_),to_cstring(*desc),to_cstring(cur_row_desc_for_storing) );
     }
     else
         row = &cur_row_;
-    //add fanqiushi_index
-//    TBSYS_LOG(ERROR, "test::fanqs,,row=%s",to_cstring(*row) );
-    //add:e
   }
   //modify:e
   return ret;
@@ -1240,7 +1220,6 @@ int ObRpcScan::cons_get_rows_for_index(ObSqlGetParam &get_param)  //根据第一
 {
   int ret = OB_SUCCESS;
   int64_t idx = 0;
-  //TBSYS_LOG(ERROR,"test::fanqs,,");
   get_rowkey_array_.clear();
   // TODO lide.wd: rowkey obj storage needed. varchar use orginal buffer, will be copied later
   PageArena<ObObj,ModulePageAllocator> rowkey_objs_allocator(
@@ -1250,12 +1229,10 @@ int ObRpcScan::cons_get_rows_for_index(ObSqlGetParam &get_param)  //根据第一
   int32_t key_count = 0;
   while(OB_SUCCESS==(ret=get_next_compact_row_for_index(index_row_)))  //不停的获得第一次scan索引表的数据
   {
-      //TBSYS_LOG(ERROR,"test::fanqs,,enter while,,index_row_=%s,,key_count=%d",to_cstring(*index_row_),key_count);
     const ObRowDesc * index_row_desc=index_row_->get_row_desc();
     ObRowkey rowkey;
     if (NULL != (rowkey_objs = rowkey_objs_allocator.alloc(main_rowkey_info_.get_size() * sizeof(ObObj))))
     {
-        //TBSYS_LOG(ERROR,"test::fanqs,,enter if");
         int64_t array_index=0;
         for(int64_t i=0;i<main_rowkey_info_.get_size();i++)
         {
@@ -1283,13 +1260,10 @@ int ObRpcScan::cons_get_rows_for_index(ObSqlGetParam &get_param)  //根据第一
   if(key_count == 5375)
     {
         ret = OB_ITER_END;
-        //TBSYS_LOG(ERROR,"test::fanqs,,key_count=%d",key_count);
         break;
     }
     //index_row_desc->
-    //TBSYS_LOG(ERROR, "test::fanqs,,index_row_=%s,,index_row_desc=%s,,main_rowkey_info=%s,main_rowkey_info_.get_size()=%ld,ret=%d",to_cstring(*index_row_),to_cstring(*index_row_desc),to_cstring(main_rowkey_info_),main_rowkey_info_.get_size(),ret);
   }
-  //TBSYS_LOG(ERROR,"test::fanqs,,ret=%d",ret);
   if(ret!=OB_ITER_END)
   {
       TBSYS_LOG(WARN,"faild to get index row to construct roweky,ret=%d",ret);
@@ -1298,11 +1272,9 @@ int ObRpcScan::cons_get_rows_for_index(ObSqlGetParam &get_param)  //根据第一
   {
       if (get_rowkey_array_.count() > 0)
       {
-     // TBSYS_LOG(ERROR,"test::fanqs,,get_rowkey_array_.count()=%ld",get_rowkey_array_.count());
         for (idx = 0; idx < get_rowkey_array_.count(); idx++)
         {
           //深拷贝，从rowkey_objs_allocator 拷贝到了allocator_中
-            //TBSYS_LOG(ERROR,"test::fanqs,,get_rowkey_array_.at(idx)=%s,,idx=%ld",to_cstring(get_rowkey_array_.at(idx)),idx);
           if (OB_SUCCESS != (ret = get_param.add_rowkey(get_rowkey_array_.at(idx), true)))   //把原表的主键数组存到get_param里面
           {
             TBSYS_LOG(WARN, "fail to add rowkey to get param. ret=%d", ret);
@@ -1339,9 +1311,7 @@ int ObRpcScan::reset_read_param_for_index()  //重新设置一下read_param。
     int ret = OB_SUCCESS;
     read_param_->reset_project_and_filter();
     read_param_->set_project(main_project);
-    //TBSYS_LOG(ERROR, "test::fanqs,,main_project4444=%s", to_cstring(main_project));
     read_param_->set_filter(main_filter_);
-   // TBSYS_LOG(ERROR, "test::fanqs,,read_param_15662=%s", to_cstring(main_filter_));
     return ret;
 }
 
@@ -1357,9 +1327,6 @@ int ObRpcScan::fill_read_param_for_index(ObSqlReadParam &dest_param)
     {
       TBSYS_LOG(WARN, "fail to set table id and scan range. ret=%d", ret);
     }
-    //add fanqiushi_index
-    //TBSYS_LOG(ERROR, "test::fanqs,,table_id_=%ld,,base_table_id_=%ld,main_table_id_=%ld", table_id_,base_table_id_,main_table_id_);
-    //add:e
   }
 
   return ret;
@@ -1412,7 +1379,6 @@ int ObRpcScan::get_next_compact_row_for_index(const common::ObRow *&row)  //第�
     //const common::ObRowDesc *tmp_desc =cur_row_.get_row_desc();
    // char buf[1000];
     //tmp_desc->to_string(buf,1000);
-    //TBSYS_LOG(ERROR, "test::fanqs,,enter this,,tmp_desc=%s,,cur_row_desc=%s",buf,to_cstring(cur_row_desc_));
     cur_row_.set_row_desc(cur_row_desc_);
     //add:e
     int ret = OB_SUCCESS;
@@ -1435,9 +1401,6 @@ int ObRpcScan::get_next_compact_row_for_index(const common::ObRow *&row)  //第�
       {
         // got a row without block,
         // no need to check timeout, leave this work to upper layer
-        //add fanqiushi_index
-          //TBSYS_LOG(ERROR, "test::fanqs,,cur_row_= %s,,", to_cstring(cur_row_));
-          //add:e
         can_break = true;
       }
       else if (OB_ITER_END == ret && sql_scan_request_->is_finish())
@@ -1449,9 +1412,6 @@ int ObRpcScan::get_next_compact_row_for_index(const common::ObRow *&row)  //第�
       else if (OB_ITER_END == ret)
       {
         // need to wait for incomming data
-          //add fanqiushi_index
-          //TBSYS_LOG(ERROR, "test::fanqs,,hello,,,timeout_us_=%ld,,remain_us=%ld",timeout_us_,remain_us);
-          //add:e
         can_break = false;
         timeout_us_ = std::min(timeout_us_, remain_us);
         if( OB_SUCCESS != (ret = sql_scan_request_->wait_single_event(timeout_us_)))
@@ -1477,13 +1437,7 @@ int ObRpcScan::get_next_compact_row_for_index(const common::ObRow *&row)  //第�
     if (OB_SUCCESS == ret)
     {
       row = &cur_row_;
-      //add fanqiushi_index
-      //TBSYS_LOG(ERROR, "test::fanqs,,row=%s",to_cstring(cur_row_) );
-      //add:e
     }
-    //add fanqiushi_index
-    //TBSYS_LOG(ERROR, "test::fanqs,sql_scan_request_=%s,ret=%d",to_cstring(*sql_scan_request_),ret );
-    //add:e
     return ret;
 }
 
@@ -1493,14 +1447,12 @@ int ObRpcScan::get_next_compact_row_for_index(const common::ObRow *&row)  //第�
 int ObRpcScan::create_get_param_for_index(ObSqlGetParam &get_param) //生成第二次get原表时的get_param
 {
     int ret = OB_SUCCESS;
-   // TBSYS_LOG(ERROR, "test::fanqs,,enter create_get_param_for_index,,read_param_->has_filter()=%d,,read_param_=%s",read_param_->has_filter(),to_cstring(*read_param_));
     if (OB_SUCCESS != (ret = cons_get_rows_for_index(get_param)))  //构造主键的范围
     {
       TBSYS_LOG(WARN, "fail to construct scan range. ret=%d", ret);
     }
     if (OB_SUCCESS == ret)
     {
-        //TBSYS_LOG(ERROR, "test::fanqs,,,scan_param=%s", to_cstring(*scan_param_));
 
         read_param_->reset();
         get_param.set_phy_plan(get_phy_plan());
@@ -1516,9 +1468,6 @@ int ObRpcScan::create_get_param_for_index(ObSqlGetParam &get_param) //生成第�
         }
     }
     reset_read_param_for_index();
-    //TBSYS_LOG(ERROR, "test::fanqs,,read_param_112=%s,", to_cstring(*read_param_));
-    //TBSYS_LOG(ERROR, "test::fanqs,,,scan_param=%s",to_cstring(*scan_param_));
-    //TBSYS_LOG(ERROR, "test::fanqs,,get_param=%s", to_cstring(get_param));
     return ret;
 }
 
@@ -1534,9 +1483,6 @@ int ObRpcScan::fill_read_param_for_first_scan(ObSqlReadParam &dest_param)
     {
       TBSYS_LOG(WARN, "fail to set table id and scan range. ret=%d", ret);
     }
-    //add fanqiushi_index
-    //TBSYS_LOG(ERROR, "test::fanqs,,table_id_=%ld,,base_table_id_=%ld", table_id_,base_table_id_);
-    //add:e
   }
 
   return ret;

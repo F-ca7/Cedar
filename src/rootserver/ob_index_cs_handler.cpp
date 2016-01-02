@@ -34,7 +34,6 @@ namespace oceanbase
     void ObCSHandler::reset()
     {
       cm_.clear();
-      //TBSYS_LOG(ERROR, "test::longfei width_ before reset = %ld, idx_id = %ld", width_, index_tid_);
       width_ = 0;
       beat_.reset();
       index_tid_ = OB_INVALID_ID;
@@ -86,7 +85,6 @@ namespace oceanbase
 
     int ObCSHandler::fill_cm_and_calc(ObScanner &scanner, ObRowkey &row_key, uint64_t table_id, bool refresh_width)
     {
-      //TBSYS_LOG(ERROR,"test::longfei>>>SCanner.cellnum[%ld],table_id[%ld],row_key[%s],refresh[%d]",scanner.get_cell_num(),table_id,to_cstring(row_key),refresh_width);
       int ret = OB_SUCCESS;
       UNUSED(table_id);
       ObRowkey start_key;
@@ -131,7 +129,6 @@ namespace oceanbase
             if(refresh_width)
             {
               width_++;
-              //TBSYS_LOG(ERROR,"test::longfei>>>width[%ld]",width_);
             }
             //list.clear();
             start_key = end_key;
@@ -159,7 +156,6 @@ namespace oceanbase
                   TBSYS_LOG(WARN, "check port failed:ip[%ld], port[%ld]", ip, port);
                 }
                 server.set_ipv4_addr(static_cast<int32_t>(ip), static_cast<int32_t>(port));
-                //TBSYS_LOG(ERROR, "test::longfei will add server in core. [%s]", to_cstring(server));
                 cm_.set(server, true, 1);
                 ip = port = 0;
               }
@@ -179,7 +175,6 @@ namespace oceanbase
           if(refresh_width)
           {
             width_++;
-            //TBSYS_LOG(ERROR,"test::longfei>>>width[%ld]",width_);
           }
         }
       }

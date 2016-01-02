@@ -99,7 +99,6 @@ namespace oceanbase
              else if (finish_)
              {
                ret = OB_ITER_END;
-               TBSYS_LOG(ERROR,"test::whx scan finish ret = [%d]",ret);
              }
            }
          }
@@ -204,7 +203,6 @@ namespace oceanbase
          }
        }
        //if(cur_scan_param_.if_need_fake())
-       //TBSYS_LOG(INFO, "test::whx cur_scan_param_.real =%s", to_cstring(*cur_scan_param_.get_range()));
 
        return ret;
      }

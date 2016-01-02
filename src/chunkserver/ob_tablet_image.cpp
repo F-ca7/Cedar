@@ -2565,7 +2565,6 @@ namespace oceanbase
       }
       if (OB_SUCCESS == ret && load_sstable)
       {
-        //TBSYS_LOG(WARN, "test::zhuyanchao load sstable");
         ret = tablet->load_sstable();
       }
       return ret;

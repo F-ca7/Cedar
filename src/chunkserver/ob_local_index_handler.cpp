@@ -182,19 +182,11 @@ namespace oceanbase
           TBSYS_LOG(WARN,"get column schema failed,idx[%ld] ret[%d]", i, ret);
           break;
         }
-		/*del maoxx
-        else
-        {
-          TBSYS_LOG(DEBUG,"test::longfei>>>tid[%ld],cid[%ld]",tid,cid);
-        }
-        if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
-		*/
-		else if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
+        else if(OB_SUCCESS != (ret = basic_columns.push_back(cid)))
         {
           TBSYS_LOG(WARN, "push back basic columns failed, ret = %d", ret);
           break;
         }
-        //这儿为什么是索引表的cid，原表的tid？？
         else if(OB_SUCCESS != (ret = sort_.add_sort_column(data_tid, cid, true)))
         {
           TBSYS_LOG(WARN, "add sort column failed ,data_tid[%ld],cid[%ld], ret = %d", data_tid, cid, ret);
@@ -241,7 +233,6 @@ namespace oceanbase
       uint64_t tid = OB_INVALID_ID;
       uint64_t cid = OB_INVALID_ID;
       const ObObj *obj = NULL;
-      TBSYS_LOG(ERROR,"test::longfei>>>row[%s],row desc[%s]",to_cstring(row),to_cstring(row_desc));
       if(NULL == new_table_schema_)
       {
         TBSYS_LOG(WARN, "null pointer of table schema");

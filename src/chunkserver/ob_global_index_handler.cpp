@@ -25,8 +25,7 @@ namespace oceanbase
                     ObChunkServerMain::get_instance()->get_chunk_server().get_config().merge_timeout)
     {
       // TODO Auto-generated constructor stub
-      table_id_ = 1024;//@fixme(longfei):for test
-      //TBSYS_LOG(ERROR,"test::longfei>>>handle_pool_ is null?[%s]",((get_handle_pool() == NULL)?"yes":"no"));
+      table_id_ = 1024;
 
     }
 
@@ -68,7 +67,6 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       //1.构建处理的range --> 应该交给上层去完成，这儿假定成员变量handle_range_是已经构建好的
-      TBSYS_LOG(ERROR,"test::longfei>>>you are in global index handler start");
       if (NULL == handle_range_)
       {
         TBSYS_LOG(ERROR,"handle_range_ is null.");
@@ -111,7 +109,6 @@ namespace oceanbase
           else
           {
             param.add_column(def->column_name_id_);
-            //TBSYS_LOG(INFO, "test::whx add column %d",(int)def->column_name_id_);
           }
         }
       }
@@ -124,7 +121,6 @@ namespace oceanbase
 
     int ObGlobalIndexHandler::write_global_index_v1()
     {
-      TBSYS_LOG(ERROR,"test::longfei>>>hello ,you are in wirte_global_index_v1().");
       int ret = OB_SUCCESS;
       const ObRow *row = NULL;
       // ObRow* row_ptr = &row;
@@ -286,11 +282,10 @@ namespace oceanbase
             else
             {
               //ret = OB_SUCCESS;
-              TBSYS_LOG(ERROR, "test::longfei send tablet cc success");
             }
-            //add liuxiao [secondary index col checksum] 20150525
+
             column_checksum_.reset();
-            //add e
+
             get_tablet_extend_info().row_checksum_ =
                 get_sstable_writer().get_row_checksum();
           }
@@ -433,7 +428,6 @@ namespace oceanbase
       const ObSchemaManagerV2 *current_schema_manager = NULL;
       int64_t trailer_offset = 0;
       int64_t cur_sstab_sz = 0;
-      TBSYS_LOG(ERROR, "test ::whx i am in cons global index");
       if (NULL == get_handle_pool() || NULL == range || NULL == merge_schema_mgr)
       {
         TBSYS_LOG(ERROR, "some pointer is null,invalid argument");
@@ -450,10 +444,6 @@ namespace oceanbase
         set_new_range(*range);
         table_id_ = range->table_id_;
       }
-      //test longfei
-      const char *name = current_schema_manager->get_table_schema(table_id_)->get_table_name();
-      TBSYS_LOG(ERROR,"test::longfei>>>current table name[%s]",name);
-      //test e
 
       if (OB_SUCCESS == ret)
       {
@@ -496,9 +486,7 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(ERROR, "test::longfei>>>scan_param = %s", to_cstring(param));
         }
-        TBSYS_LOG(ERROR,"test::longfei>>>param = [%s] get_new_range()[%s],fake_range[%s]", to_cstring(*(param.get_range())),to_cstring(get_new_range()),to_cstring(*(param.get_fake_range())));
       }
 
       if (OB_SUCCESS == ret || OB_ITER_END == ret)
@@ -527,13 +515,11 @@ namespace oceanbase
         else
         {
           set_schema_mgr(NULL);
-          //TBSYS_LOG(ERROR,"test whx:: release global index schema success!");
         }
       }
 
       cur_sstab_sz = get_cur_sstable_size();
       get_sstable_writer().close_sstable(trailer_offset, cur_sstab_sz);
-      //TBSYS_LOG(ERROR,"test::longfei>>>cur_sstab_sz[%ld]",cur_sstab_sz);
       return ret;
     }
 
@@ -594,11 +580,9 @@ namespace oceanbase
 
     int ObGlobalIndexHandler::construct_index_tablet_info(ObTablet* tablet)
     {
-      // TBSYS_LOG(WARN,"test::zhuyanchao test get into construct index tablet info");
       int ret = OB_SUCCESS;
       if (NULL != tablet && get_tablet_mgr() != NULL)
       {
-        // TBSYS_LOG(WARN,"test::zhuyanchao test get into construct index tablet info");
         const ObSSTableTrailer* trailer = NULL;
         trailer = &get_sstable_writer().get_trailer();
         tablet->set_disk_no(get_disk_no());
@@ -615,7 +599,6 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(ERROR, "test::whx get_sstable_id = %ld", get_sstable_id().sstable_file_id_);
           get_tablet_extend_info().occupy_size_ = get_cur_sstable_size();
           get_tablet_extend_info().row_count_ = trailer->get_row_count();
           //get_tablet_extend_info().row_checksum_=get_sstable_writer().get_row_checksum();
@@ -624,9 +607,6 @@ namespace oceanbase
           get_tablet_extend_info().last_do_expire_version_ =
               get_tablet_mgr()->get_serving_data_version(); //todo @haixing same as data table
           get_tablet_extend_info().sequence_num_ = 0;            //todo checksum
-          //delete liuxiao [secondary_index] 20150522
-          //memcpy(get_tablet_extend_info().column_checksum_, &cc, sizeof(col_checksum));//todo column_checksum
-          //delete end
         }
         if (OB_SUCCESS == ret)
         {
@@ -718,7 +698,7 @@ namespace oceanbase
             get_tablet_mgr()->get_serving_tablet_image();
         if (OB_SUCCESS == ret)
         {
-          ret = check_tablet(tablet);          //todo zhuyanchao check tablet
+          ret = check_tablet(tablet);
         }
 
         if (OB_SUCCESS == ret)

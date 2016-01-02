@@ -1530,7 +1530,6 @@ namespace oceanbase
           }
           else
           {
-            TBSYS_LOG(ERROR, "test::longfei add non_rowkey table_id = %d clomun = %d",column_def.table_id_, (int)(column_def.column_name_id_));
           }
         }
       }

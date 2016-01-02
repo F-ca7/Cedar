@@ -207,12 +207,10 @@ namespace oceanbase
         int reset();
         inline int64_t acquire() const
         {
-          /*TBSYS_LOG(ERROR, "test::longfei acquire ref_count = %ld,", ref_count_);*/
           return __sync_add_and_fetch((volatile int64_t*)&ref_count_, 1);
         }
         inline int64_t release() const
         {
-          /*TBSYS_LOG(ERROR, "test::longfei release ref_count = %ld,", ref_count_);*/
           return __sync_sub_and_fetch((volatile int64_t*)&ref_count_, 1);
         }
 

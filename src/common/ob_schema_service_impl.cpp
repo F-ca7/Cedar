@@ -917,7 +917,6 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
 
 int ObSchemaServiceImpl::get_table_id(const ObString& table_name, uint64_t& table_id)
 {
-//  TBSYS_LOG(ERROR,"test::longfei>>>table_name is %.*s",table_name.length(),table_name.ptr());
   int ret = OB_SUCCESS;
   if(!check_inner_stat())
   {
@@ -1144,7 +1143,6 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 	  if(is_index_table_or_not(table_name))
 	 // if(0)
 	  {
-//          TBSYS_LOG(ERROR,"test::longfei>>>%.*s is a secondary index tab!",(int)table_name.length(),table_name.ptr());
 		  ret = nb_accessor_.get(res, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey, SC("table_name")("table_id")
 		          ("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
 		          ("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
@@ -1156,7 +1154,6 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 	  // mod e
 	  else
 	  {
-//        TBSYS_LOG(ERROR,"test::longfei>>>%.*s is a normal table!",(int)table_name.length(),table_name.ptr());
 		ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
 			("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
 			("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
@@ -1781,7 +1778,6 @@ bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 	bool flag = true;
   char temp[table_name.length()];
 	len = table_name.to_string(temp,table_name.length());
-//     TBSYS_LOG(ERROR,"test::longfei>>>in is_index_table_or_not() && table_name is %.*s && table_length is %ld",table_name.length(), table_name.ptr(),len);
 	if(len <= 0)
 	{
 		TBSYS_LOG(WARN,"table name can not be empty.");

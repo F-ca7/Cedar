@@ -91,18 +91,12 @@ namespace oceanbase
             tablet.tablet_info.range_.start_key_.assign(ptr, OB_MAX_ROWKEY_COLUMN_NUMBER);
             tablet.tablet_info.range_.end_key_.assign(ptr + OB_MAX_ROWKEY_COLUMN_NUMBER, OB_MAX_ROWKEY_COLUMN_NUMBER);
             ret = tablet.deserialize(buf, data_len, pos);
-            //TBSYS_LOG(ERROR, "test::longfei in des tablet  = %s, ptr = %p", to_cstring(tablet.tablet_info.range_), ptr);
           }
           if (ret != OB_SUCCESS)
             break;
 
           tablet_list.push_back(tablet);
         }
-      }
-
-      if(OB_SUCCESS == ret)
-      {
-        //TBSYS_LOG(ERROR, "test::longfei in des tablet 1  = %s, tablet 2 = %s", to_cstring(tablets[0].tablet_info.range_), to_cstring(tablets[1].tablet_info.range_));
       }
 
       return ret;

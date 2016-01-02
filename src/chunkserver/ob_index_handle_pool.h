@@ -197,7 +197,6 @@ namespace oceanbase
 
       inline bool check_new_global()
       {
-        TBSYS_LOG(ERROR,"test::longfei>>>total_work_start_time_[%ld]",total_work_start_time_);
         return (total_work_start_time_ == 0);
       }
 
@@ -231,10 +230,10 @@ namespace oceanbase
       const static uint32_t MAX_WORK_PER_DISK = 2;
       const static int64_t SLEEP_INTERVAL = 5000000;
       const static int8_t MAX_FAILE_COUNT = 5;
-      //add zhuyanchao test
+
       const static int64_t tablets_num = 200;
       const static int sample_rate = 200;
-      //add e
+
       const static int8_t ROUND_TRUE = 1;
       const static int8_t ROUND_FALSE = 0;
       const static int8_t TABLET_RELEASE = 2;

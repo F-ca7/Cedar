@@ -466,7 +466,6 @@ namespace oceanbase
       {
         int64_t size = sstable_id_list_.count();
         int64_t reader_size = sstable_reader_list_.count();
-        TBSYS_LOG(ERROR,"test::longfei>>>load sstable:size[%ld],reader_size[%ld]",size,reader_size);
         for (int64_t i = 0; i < size && reader_size < size; ++i)
         {
           /*
@@ -826,7 +825,6 @@ namespace oceanbase
       {
         int64_t size = sstable_id_list_.count();
         int64_t reader_size = sstable_reader_list_.count();
-        TBSYS_LOG(ERROR,"test::longfei>>>load local sstabel:size[%ld],reader_size[%ld]",size,reader_size);
         for (int64_t i = reader_size; i < size; ++i)
         {
           if (get_sstable_version() < SSTableReader::COMPACT_SSTABLE_VERSION)

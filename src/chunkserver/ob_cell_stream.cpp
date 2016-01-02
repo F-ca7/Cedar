@@ -156,7 +156,6 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       int64_t timeout = timeout_time_ > 0 ? (timeout_time_ - tbsys::CTimeUtil::getTime()) : time_out_;
       ret = rpc_proxy_->cs_cs_scan(param, chunkserver, cur_result_, server_type_, timeout);
-      //TBSYS_LOG(INFO,"test:whx cs_cs_scan = %s,server = %s", to_cstring(*param.get_fake_range()),to_cstring(chunkserver));
       if (ret != OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "scan server data failed:ret[%d]", ret);
@@ -179,7 +178,6 @@ namespace oceanbase
         {
           first_rpc_ = false;
         }
-        TBSYS_LOG(ERROR, "test::longfei cur_result_count = %ld, row_num = %ld", cur_result_.get_cell_num(), cur_result_.get_row_num());
       }
       return ret;
     }

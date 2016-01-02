@@ -70,7 +70,6 @@ namespace oceanbase
         TBSYS_LOG(ERROR,"failed to assign handle_range_!");
         ret = OB_ERROR;
       }
-      TBSYS_LOG(ERROR,"test::longfei>>>set_handle_range[%s], ret = %d",to_cstring(*handle_range_), ret);
       return ret;
     }
 

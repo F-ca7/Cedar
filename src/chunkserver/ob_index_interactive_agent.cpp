@@ -69,7 +69,6 @@ namespace oceanbase
 
         for (; iter != range_server_hash_->end(); ++iter)
         {
-          TBSYS_LOG(ERROR,"test::longfei>>>iter->first[%s],iter->second.range[%s]",to_cstring(iter->first),to_cstring(iter->second.get_tablet_range()));
           list = iter->second;
           if (list[0].server_.chunkserver_ == interactive_cell_->get_self())
           {
@@ -104,7 +103,7 @@ namespace oceanbase
           }
           else if (OB_SUCCESS == ret || OB_ITER_END == ret)
           {
-            TBSYS_LOG(ERROR,"test::whx ret start_agent first scan,hash_index_ [%d],fake_range(%s),range(%s) ret= [%d]", hash_index_,to_cstring(*(scan_param_->get_fake_range())),to_cstring(*(scan_param_->get_range())), ret);
+            //TBSYS_LOG(ERROR,"test::whx ret start_agent first scan,hash_index_ [%d],fake_range(%s),range(%s) ret= [%d]", hash_index_,to_cstring(*(scan_param_->get_fake_range())),to_cstring(*(scan_param_->get_range())), ret);
             ret = OB_SUCCESS;
           }
         }
@@ -279,23 +278,18 @@ namespace oceanbase
       ObCellInfo* cell = NULL;
       //bool is_row_changed = false;
       int64_t column_count = 0;
-      //TBSYS_LOG(ERROR, "test::longfei I am in ObIndexInteractiveAgent");
-	  //mod longfei [bugfix] 1512312:b
-	  //not_used_不再使用,暂时这么处理，如果您能看到这段话，请提醒我(longfei1lantern@gmail.com)
-      //if (!not_used_)
-	  if (true)
-	  //mod e
+
+      if (true)
       {
         do
         {
           if (OB_SUCCESS == (ret = next_cell()))
           {
             ret = get_cell(&cell);
-            //TBSYS_LOG(ERROR, "test::longfei ObIndexInteractiveAgent BEFORE %p, ret = %d", cell, ret);
           }
           else if (OB_ITER_END == ret)
           {
-            TBSYS_LOG(ERROR, "test::longfei ObIndexInteractiveAgent OB_ITER_END");
+            TBSYS_LOG(INFO, "interactiveAgent return OB_ITER_END");
             break;
           }
           else
@@ -307,15 +301,14 @@ namespace oceanbase
           {
             if (OB_SUCCESS
                 == (ret = row.set_cell((cell)->table_id_,
-                                        (cell)->column_id_,
-                                        (cell)->value_)))
+                                       (cell)->column_id_,
+                                       (cell)->value_)))
             {
-              //TBSYS_LOG(INFO,"test::whx::row set cell ok, tid[%ld], cid[%ld],value[%s], column_count = %ld", (cell)->table_id_, (cell)->column_id_,to_cstring((cell)->value_),column_count_);
             }
             else
             {
               TBSYS_LOG(WARN, "row set cell failed, tid[%ld], cid[%ld]",
-                  (cell)->table_id_, (cell)->column_id_);
+                        (cell)->table_id_, (cell)->column_id_);
               break;
             }
           }

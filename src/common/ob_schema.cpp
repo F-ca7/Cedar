@@ -5570,7 +5570,6 @@ namespace oceanbase
       bool ObSchemaManagerV2::is_cid_in_index(uint64_t cid, uint64_t tid,
           uint64_t *index_tid_array) const //找到tid为参数的表的��?有可用的索引表中，第��?主键为cid的索引表，存到数组index_tid_array��?
       {
-//        TBSYS_LOG(ERROR,"test::longfei>>>in is_cid_in_index() func and cid = %d , tid = %d", (int)cid, (int)tid);
         bool ret = false;
         IndexList il;
         uint64_t tmp_tid = OB_INVALID_ID;
@@ -5583,7 +5582,6 @@ namespace oceanbase
             {
               const ObTableSchema *table_schema = NULL;
               il.get_idx_id(i, tmp_tid);
-//              TBSYS_LOG(ERROR,"test::fanqs4,,tmp_tid=%ld",tmp_tid);
               if (NULL == (table_schema = get_table_schema(tmp_tid)))
               {
                 ret = false;
@@ -5595,13 +5593,11 @@ namespace oceanbase
                     &table_schema->get_rowkey_info();
                 uint64_t index_first_cid = OB_INVALID_ID;
                 rowkey_info->get_column_id(0, index_first_cid);
-//                TBSYS_LOG(ERROR,"test::fanqs4,,enter this,index_first_cid=%ld,cid=%ld",index_first_cid,cid);
                 //查询条件的列id如果和索引表的第一件主键id相等，并且索引表可用，就把这张索引表选出来
                 if (index_first_cid == cid
                     && table_schema->get_index_status() == INDEX_INIT)
                 {
                   index_tid_array[array_index] = tmp_tid;
-                  //TBSYS_LOG(ERROR,"test::fanqs4,,enter this,tmp_tid=%ld,tid=%ld,,,array_index=%d",tmp_tid,tid,array_index);
                   array_index++;
                   ret = true;
                   // break;
@@ -5613,7 +5609,6 @@ namespace oceanbase
                 //}
               }
             }
-            //TBSYS_LOG(ERROR,"test::fanqs4,,index_tid_array[0]=%ld,,array_index=%d",index_tid_array[0],array_index);
           }
         }
         else

@@ -34,8 +34,6 @@ namespace oceanbase
 
         IndexBeat& get_beat(){return ch_.get_beat();}
         ObCSHandler& get_cs_handler(){return ch_;}
-        //inline  void print_num(const int64_t num){TBSYS_LOG(ERROR, "test::longfei num = %ld",num);}
-
       public:
         int     fill_all_samples();
         int     clean_mess(const uint64_t idx_id, const bool need_delete_rt);

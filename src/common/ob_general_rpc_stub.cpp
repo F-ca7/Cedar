@@ -132,7 +132,7 @@ namespace oceanbase
         const uint64_t root_table_id, const uint64_t table_id,
         const ObRowkey & row_key, ObScanner & scanner) const
     {
-      TBSYS_LOG(ERROR,"test::longfei>>>timeout[%ld],table_id[%ld],rs[%s],rowkey[%s]",timeout,
+      TBSYS_LOG(DEBUG,">>>timeout[%ld],table_id[%ld],rs[%s],rowkey[%s]",timeout,
                 table_id,
                 to_cstring(root_server),
                 to_cstring(row_key));
@@ -160,10 +160,8 @@ namespace oceanbase
         }
         else
         {
-//          TBSYS_LOG(DEBUG, "scan root server for get chunk server location succ:"
-//              "table_id[%lu]", table_id);
-          TBSYS_LOG(ERROR, "test::longfei>>>scan root server for get chunk server location succ:"
-                           "table_id[%lu]", table_id);
+          TBSYS_LOG(DEBUG, "scan root server for get chunk server location succ:"
+              "table_id[%lu]", table_id);
         }
       }
       return ret;
@@ -1050,16 +1048,13 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       ObResultCode result_code;
-//      TBSYS_LOG(ERROR,"test::longfei,,,if_exists = %d",if_exists);
       ObString temp;
       ret = indexs.get_string(0,temp);
       if (OB_SUCCESS != ret)
       {
-//        TBSYS_LOG(ERROR,"test::longfei,,,end.");
       }
       else
       {
-//        TBSYS_LOG(INFO, "test::longfei,,,index[0] is %.*s.",temp.length(), temp.ptr());
       }
       ret = send_2_return_0(root_server, timeout, OB_DROP_INDEX, DEFAULT_VERSION,
           result_code, if_exists, indexs);

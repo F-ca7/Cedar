@@ -1304,7 +1304,6 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
        drp_idx_stmt->setDrpAll(true);
      }
    }
-//   TBSYS_LOG(ERROR, "test::longfei,,,drp_all = %d, drop index logical plan succ!",drp_idx_stmt->isDrpAll());
    return ret;
 }
 //add e

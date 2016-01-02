@@ -1962,16 +1962,16 @@ namespace oceanbase
         }
 
         // test longfei
-//        IndexList temp_list;
-//        int64_t temp_counter = 0;
-//        ret = schema->get_index_list(3001,temp_list);
+        //IndexList temp_list;
+        //int64_t temp_counter = 0;
+        //ret = schema->get_index_list(3001,temp_list);
 
-//        TBSYS_LOG(INFO,"LONGFEI:CS SWITCH SCHEMA!temp_list.get_count() = %d",static_cast<int>(temp_list.get_count()));
+        //TBSYS_LOG(INFO,"LONGFEI:CS SWITCH SCHEMA!temp_list.get_count() = %d",static_cast<int>(temp_list.get_count()));
 
-//          for (;temp_counter < temp_list.get_count(); temp_counter++)
-//          {
-//            TBSYS_LOG(INFO,"LONGFEI:student de secondary index table id = %d",static_cast<int>(temp_list.index_tid[temp_counter]));
-//          }
+        //for (;temp_counter < temp_list.get_count(); temp_counter++)
+        //{
+        //  TBSYS_LOG(INFO,"LONGFEI:student de secondary index table id = %d",static_cast<int>(temp_list.index_tid[temp_counter]));
+        //}
 
       }
 
@@ -4755,7 +4755,6 @@ namespace oceanbase
             se_index_task_.get_round_end());
         //check if this idx_tid_ is processing?
         is_processing = se_index_task_.check_if_in_processing(beat.idx_tid_);
-        TBSYS_LOG(ERROR,"test::longfei>>>is processing?[%s]",is_processing?"yes":"no");
         if (!se_index_task_.is_scheduled() && se_index_task_.get_round_end())
         {
           if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
@@ -4794,7 +4793,6 @@ namespace oceanbase
       {
         //con global static index
         bool new_flag = se_index_task_.check_new_global();
-        TBSYS_LOG(ERROR,"test::longfei>>>new_flag[%d]",new_flag);
         if(new_flag)
         {
           /*se_index_task_.reset();
@@ -4831,7 +4829,7 @@ namespace oceanbase
       else
       {
         //其他所有不予处理的情况
-        TBSYS_LOG(ERROR,"test::longfei>>>ignore this index beat which tid is [%ld]",beat.idx_tid_);
+        TBSYS_LOG(INFO,"ignore this index beat which tid is [%ld]",beat.idx_tid_);
       }
 
       if (OB_UNLIKELY(NULL == chunk_server_))

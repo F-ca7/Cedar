@@ -1756,7 +1756,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, bool is_use_storing_column, uint64_t index_tid, Expr_Array *filter_array,
     Expr_Array *project_array)
 {
-//  TBSYS_LOG(ERROR,"test::longfei,,,in gen_phy_table_for_storing() func.");
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   TableItem* table_item = NULL;
   ObSqlReadStrategy sql_read_strategy;
@@ -1790,7 +1789,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(ERROR,"test::longfei,,,source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());
     if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
       is_ailias_table = true;
@@ -1825,7 +1823,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
           TRANS_LOG("ObTableRpcScan set table faild");
         }
       }
-//      TBSYS_LOG(ERROR,"test::fanqs,,table_item->table_id_=%ld,table_item->ref_id_=%ld",table_item->table_id_,table_item->ref_id_);
       table_rpc_scan_op->set_is_index_for_storing(true, index_tid);
 
       num = project_array->count();
@@ -1881,7 +1878,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
       }
       if (ret == OB_SUCCESS)
       {
-        TBSYS_LOG(ERROR, "test::longfei,,,table_scan_op = table_rpc_scan_op");
         table_scan_op = table_rpc_scan_op;
       }
       break;
@@ -1920,12 +1916,10 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
             TBSYS_LOG(ERROR, "faild to change tid,filter=%s", to_cstring(*filter));
 
           }
-//          TBSYS_LOG(ERROR, "test::longfei,,index_of_expr_array = %d, filter = %s", (int)index_of_expr_array, to_cstring(*filter));
           ObObj& obj = ops.get_expr_by_index(index_of_expr_array);
           if (obj.get_type() == ObIntType)
             obj.set_int(index_tid);
         }
-//        TBSYS_LOG(ERROR,"test::fanqs,,cid=%ld,tid=%ld,filter=%s",filter->get_column_id(),filter->get_table_id(),to_cstring(*filter));
         if ((ret = table_scan_op->add_filter(filter)) != OB_SUCCESS)
         {
           TRANS_LOG("Add table filter condition faild");
@@ -1956,7 +1950,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
           }
         }
         //output_expr.set_tid_cid();
-        //TBSYS_LOG(ERROR,"test::fanqs,,output_expr.get_tid=%ld,,output_expr=%s",output_expr.get_table_id(),to_cstring(output_expr));
         if (output_expr.get_table_id() == source_tid)    //���ñ���ʽ��tid��
         {
           output_expr.set_table_id(index_tid);
@@ -1972,7 +1965,6 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   }
   if (ret == OB_SUCCESS)
   {
-//    TBSYS_LOG(ERROR, "test::longfei,,,table_op = table_scan_op");
     table_op = table_scan_op;
   }
   *group_agg_pushed_down = false;
@@ -2044,7 +2036,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, uint64_t index_tid_without_storing, Expr_Array * filter_array,
     Expr_Array * project_array)
 {
-//  TBSYS_LOG(ERROR,"test::longfei,,,in gen_phy_table_without_storing() func.");
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   TableItem* table_item = NULL;
   ObSecondaryIndexServiceImpl sec_idx_ser_impl;
@@ -2068,7 +2059,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
 
   if (ret == OB_SUCCESS)
   {
-//    TBSYS_LOG(ERROR,"test::fanqs,,,table_item->type_=%d",table_item->type_);
     switch (table_item->type_)
     {
     case TableItem::BASE_TABLE:
@@ -2152,19 +2142,16 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
     {
       ObSqlExpression *filter = ObSqlExpression::alloc();
       *filter = filter_array->at(i);
-//      TBSYS_LOG(ERROR, "test::fanqs,,filter=%s,", to_cstring(*filter));
       //因为要回表，第一次scan索引表，第二次get原表。这里我把filter先存起来，在第二次get的时候生成get_param的时候会用到
       if ((ret = table_scan_op->add_main_filter(filter)) != OB_SUCCESS)
       {
         TRANS_LOG("Add table filter condition faild");
         break;
       }
-//      TBSYS_LOG(ERROR,"test::fanqs,,cid=%ld,tid=%ld,filter=%s",filter->get_column_id(),filter->get_table_id(),to_cstring(*filter));
       uint64_t f_cid = OB_INVALID_ID;
       if (OB_SUCCESS == (ret = sec_idx_ser->get_cid(filter, f_cid)))
       {
         int64_t bool_result = sec_idx_ser->is_cid_in_index_table(f_cid, index_tid_without_storing);//0 表示索引表没有这一列 1 表示索引表主键有这一列  2表示索引表非主键有这一列
-//        TBSYS_LOG(ERROR,"test::fanqs,,bool_result=%ld",bool_result);
         if (bool_result != 0)  //如果该filter可以作为索引表的filter
         {
           ObPostfixExpression& ops = filter->get_decoded_expression_v2();
@@ -2190,7 +2177,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       ObSqlExpression output_expr = project_array->at(i);
-      // TBSYS_LOG(ERROR,"test::fanqs,,output_expr=%s",to_cstring(output_expr));
       if ((ret = table_scan_op->add_main_output_column(output_expr)) != OB_SUCCESS)
       {
         TRANS_LOG("Add table output columns faild");
@@ -2262,7 +2248,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
       if (OB_SUCCESS == (ret = sec_idx_ser->get_cid(filter, cid)))
       {
         int64_t bool_result = sec_idx_ser->is_cid_in_index_table(cid, index_tid_without_storing);
-//        TBSYS_LOG(ERROR,"test::fanqs,,bool_result=%ld",bool_result);
         if (bool_result == 2)
         {
           ObBinaryRefRawExpr col_expr(index_tid_without_storing, cid, T_REF_COLUMN);
@@ -2282,7 +2267,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
         }
         else if (bool_result == 0)
         {
-//          TBSYS_LOG(ERROR,"test::fanqs,,filter=%s",to_cstring(*filter));
           if ((ret = table_scan_op->add_index_filter(filter)) != OB_SUCCESS)
           {
             TBSYS_LOG(WARN, "faild to add index_filter,ret=%d", ret);
@@ -2301,7 +2285,6 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
 bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down)
 {
-//  TBSYS_LOG(ERROR,"test::longfei,,,in handle_index_for_one_table() func.");
   Expr_Array filter_array;
   Expr_Array project_array;
   ObArray<uint64_t> alias_exprs;
@@ -2326,7 +2309,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
   }
   if (table_item != NULL)
   {
-//    TBSYS_LOG(ERROR,"test::longfei,,,table name = %.*s, table type = %d", (int)table_item->table_name_.length(), table_item->table_name_.ptr(), (int)table_item->type_);
     if (table_item->type_ != TableItem::BASE_TABLE && table_item->type_ != TableItem::ALIAS_TABLE)
     {
       ret = OB_NOT_SUPPORTED;
@@ -2346,12 +2328,10 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
   if (OB_SUCCESS == ret)    //很据table_bitset，把sql语句中与该表有关的filter和输出列都存到相应的数组里面
   {
     int32_t bit_index = stmt->get_table_bit_index(table_item->table_id_);
-//    TBSYS_LOG(ERROR,"test::longfei,,,bit_index = %d",(int)bit_index);
     table_bitset.add_member(bit_index);
 
     //add filter
     num = stmt->get_condition_size();
-//    TBSYS_LOG(ERROR,"test::longfei>>>condition size = %d",(int)num);
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       ObSqlRawExpr *cnd_expr = logical_plan->get_expr(stmt->get_condition_id(i));
@@ -2376,13 +2356,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
         }
       }
     }
-//    int64_t fil_counter = filter_array.count();
-//    TBSYS_LOG(ERROR,"test::longfei>>>filter array size = %d",(int)fil_counter);
-//    for (int64_t i = 0; i < fil_counter; i++)
-//    {
-//      ObSqlExpression& fil_expr = filter_array.at(i);
-//      TBSYS_LOG(ERROR,"test::longfei,,,fil_expr = %s", to_cstring(fil_expr));
-//    }
 
     // add output columns
     num = stmt->get_column_size();
@@ -2403,20 +2376,15 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
         {
           project_array.push_back(output_expr);
         }
-        //add fanqiushi_index
-//        TBSYS_LOG(ERROR,"test::fanqs,,,output_expr1=%s",to_cstring(output_expr));
-        //add:e
       }
     }
     ObSelectStmt *select_stmt = dynamic_cast<ObSelectStmt*>(stmt);
     if(NULL == select_stmt)
     {
-//      TBSYS_LOG(ERROR,"test::longfei,,,select_stmt is NULL");
     }
     if (ret == OB_SUCCESS && select_stmt)
     {
       num = select_stmt->get_select_item_size();
-//      TBSYS_LOG(ERROR,"test::longfei>>>select_stmt is not NULL && select item size = %d",(int)num);
       for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
       {
         const SelectItem& select_item = select_stmt->get_select_item(i);
@@ -2435,9 +2403,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
             {
               project_array.push_back(output_expr);
             }
-            //add fanqiushi_index
-//            TBSYS_LOG(ERROR,"test::fanqs,,,output_expr2=%s",to_cstring(output_expr));
-            //add:e
             alias_exprs.push_back(select_item.expr_id_);
             alias_expr->set_columnlized(true);
           }
@@ -2456,9 +2421,7 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
       TBSYS_LOG(ERROR, "alloc mem failed");
       ret = OB_ERROR;
     }
-//    TBSYS_LOG(ERROR,"test::longfei>>>before init secondary index service.");
     sec_idx_ser->init(sql_context_->schema_manager_); ///bug1106 ms挂了
-//    TBSYS_LOG(ERROR,"test::longfei>>>init secondary index service succ.");
     //sec_idx_ser->setSchemaManager(sql_context_->schema_manager_);
     bool is_use_hint = false;    //判断是否使用用户输入的hint
     uint64_t hint_tid = OB_INVALID_ID;     //用户输入的hint中的索引表的tid
@@ -2473,20 +2436,16 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
     TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
     if (stmt->get_query_hint().has_index_hint())
     {
-//      TBSYS_LOG(ERROR,"test::longfei>>>if the query has set hint, you will see this");
       IndexTableNamePair tmp = stmt->get_query_hint().use_index_array_.at(0);
 
       hint_tid = tmp.index_table_id_;
-      //TBSYS_LOG(ERROR,"test::fanqs,,tmp.src_table_id_=%ld,,from_item.table_id_=%ld",tmp.src_table_id_,from_item.table_id_);
       if (tmp.src_table_id_ == table_item->ref_id_)
       {
         is_use_hint = true;
         use_hint_for_storing = sec_idx_ser->is_can_use_hint_for_storing_V2(&filter_array, &project_array, tmp.index_table_id_); //判断hint中的索引表能否使用不回表的索引的函数
-//        TBSYS_LOG(ERROR,"test::fanqs,,use_hint_for_storing=%d",use_hint_for_storing);
         if (!use_hint_for_storing)
         {
           use_hint_without_storing = sec_idx_ser->is_can_use_hint_index_V2(&filter_array, tmp.index_table_id_);   //判断hint中的索引表能否使用回表的索引的函��?
-//          TBSYS_LOG(ERROR,"test::fanqs,,use_hint_without_storing=%d",use_hint_without_storing);
         }
       }
       if (use_hint_for_storing == false && use_hint_without_storing == false)
@@ -2496,17 +2455,13 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
     }
     if (!is_use_hint)      //如果没有hint
     {
-//      TBSYS_LOG(ERROR,"test::longfei>>>if the query has not set hint or cannot use hint, you will see this.");
       //如果用户没有输入hint，根据简单的规则判断是否能够使用不回表的索引
       is_use_storing_column = sec_idx_ser->decide_is_use_storing_or_not_V2(&filter_array, &project_array, index_id, table_item->ref_id_);
       if(is_use_storing_column == true)
       {
-//        TBSYS_LOG(ERROR,"test::longfei,,,select can use %d(index table id) index table.", (int)index_id);
       }
       if (is_use_storing_column == false)  //如果不能使用不回表的索引，再判断是否能使用回表的索引
       {
-//        TBSYS_LOG(ERROR,"test::longfei>>>is_use_storing_column = %d. This means index table doesn't have the storing info", is_use_storing_column);
-        //TBSYS_LOG(ERROR,"test::fanqs,,enter this 991,from_item.table_id_=%lu",from_item.table_id_);
         const ObTableSchema *mian_table_schema = NULL;
         if (NULL == (mian_table_schema = sql_context_->schema_manager_->get_table_schema(table_item->ref_id_)))
         {
@@ -2535,7 +2490,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
             }
           }
         }
-//        TBSYS_LOG(ERROR,"test::fanqs,,is_use_index_without_storing=%d",is_use_index_without_storing);
       }
     }
     else   //如果用户使用了hint，根据传进来的参数判断是使用回表的还是不回表的索��?
@@ -2554,7 +2508,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
     }
     if (is_use_storing_column == true || is_use_index_without_storing == true)
       return_ret = true;
-//    TBSYS_LOG(ERROR,"test::fanqs,,is_use_storing_column=%d,is_use_index_without_storing=%d,,hint_tid=%ld",is_use_storing_column,is_use_index_without_storing,hint_tid);
     bool group_down = false;
     bool limit_down = false;
     if (is_use_storing_column)
@@ -2596,9 +2549,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
         ObSqlRawExpr *alias_expr = logical_plan->get_expr(alias_exprs.at(i));
         if (alias_expr)
         {
-          //add fanqiushi_index
-//          TBSYS_LOG(ERROR,"test::fanqs,,,alias_expr->set_columnlized(false)");
-          //add:e
           alias_expr->set_columnlized(false);
         }
       }
@@ -2912,7 +2862,6 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
   else   //add fanqiushi_index
   {
     table_op = tmp_table_op;
-    // TBSYS_LOG(ERROR,"test::fanqs,,enter this");
   }
 
   return ret;
@@ -4393,7 +4342,6 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
       {
         TableSchema& table_schema = crt_tab_op->get_table_schema();
         //table_schema.is_index=true;
-//        TBSYS_LOG(ERROR,"test::longfei>>>the table id of index is %d,and index table'name is %s",(int)table_schema.table_id_, table_schema.table_name_);
 
 
         table_schema.max_used_column_id_ = max_col_id;
@@ -4414,7 +4362,6 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
             TRANS_LOG("All index's column num cannot be greater than 100");
             ret = OB_ERR_INVALID_COLUMN_NUM;
           }
-//          TBSYS_LOG(ERROR, "test::longfei>>>column_num = %ld,this_index_col_num = %ld", column_num, this_index_col_num);
         }
       }
 
@@ -4511,7 +4458,6 @@ int ObTransformer::gen_physical_drop_index(ObLogicalPlan *logical_plan, ObPhysic
        }
        idx_name.assign_ptr(str,static_cast<int32_t>(str_len));
        */
-//      TBSYS_LOG(ERROR, "test::longfei,,,inner_idx_name = %.*s", idx_name.length(), idx_name.ptr());
       if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(idx_name)))
       {
         TRANS_LOG("Add drop index %.*s failed", idx_name.length(), idx_name.ptr());
@@ -4525,7 +4471,6 @@ int ObTransformer::gen_physical_drop_index(ObLogicalPlan *logical_plan, ObPhysic
     for (int64_t i = 0; OB_SUCCESS == ret && i < drp_idx_stmt->get_table_size(); i++)
     {
       const ObString& table_name = drp_idx_stmt->get_table_name(i);
-//      TBSYS_LOG(ERROR, "test::longfei,,,table_name = %.*s", table_name.length(), table_name.ptr());
       if (OB_SUCCESS != (ret = drp_idx_op->add_index_name(table_name)))
       {
         TRANS_LOG("Add drop index %.*s failed", table_name.length(), table_name.ptr());
@@ -4979,7 +4924,6 @@ int ObTransformer::gen_physical_drop_table(ObLogicalPlan *logical_plan, ObPhysic
           const ObTableSchema *idx_tschema = sql_context_->schema_manager_->get_table_schema(idx_tid);
           int32_t len = static_cast<int32_t>(strlen(idx_tschema->get_table_name()));
           const ObString idx_name(len, len, idx_tschema->get_table_name());
-//          TBSYS_LOG(ERROR, "test::longfei,,,inner_idx_name = %.*s", idx_name.length(), idx_name.ptr());
           if (OB_SUCCESS != (ret = drp_tab_op->add_all_indexs(idx_name)))
           {
             TRANS_LOG("Add drop index %.*s failed", idx_name.length(), idx_name.ptr());
@@ -4994,7 +4938,6 @@ int ObTransformer::gen_physical_drop_table(ObLogicalPlan *logical_plan, ObPhysic
       {
         drp_tab_op->setHasIndexs(true);
       }
-//      TBSYS_LOG(ERROR, "test::longfei,,,has_indexs_ = %d", drp_tab_op->isHasIndexs());
     }
     //add e
   }
@@ -5172,7 +5115,6 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
         TRANS_LOG("get index table rowkey column id failed");
         break;
       }
-//      TBSYS_LOG(ERROR, "test::longfei>>>rowkey column id is %ld", col_id);
       tmp_col_schema = sql_context_->schema_manager_->get_column_schema(table_id, col_id);
       if (tmp_col_schema != NULL)
       {
@@ -5185,8 +5127,6 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
         break;
       }
     }  //end for
-//    TBSYS_LOG(ERROR, "test::longfei>>>IndexCol_str is %.*s",
-//        IndexCol_str.length(), IndexCol_str.ptr());
     IndexCol_obj.set_varchar(IndexCol_str);
 
     uint64_t column_id = OB_APP_MIN_COLUMN_ID;

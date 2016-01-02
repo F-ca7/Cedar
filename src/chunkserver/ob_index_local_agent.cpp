@@ -124,7 +124,6 @@ namespace oceanbase
       const ObRowkey *row_key = NULL;
       {
         ret = sst_scan_.get_next_row(row_key, row);
-        //TBSYS_LOG(ERROR,"test::longfei>>> ObIndexLocalAgent row[%s],row_key[%s],ret[%d]",to_cstring(*row),to_cstring(*row_key),ret);
         if (OB_ITER_END == ret)
         {
           do
@@ -217,18 +216,16 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       const ObRow* tmp_row = &cur_row_;
-      //TBSYS_LOG(ERROR,"test::longfei>>>local agent: cur_row[%s],local_idx_scan_finish_[%s]",to_cstring(cur_row_),local_idx_scan_finish_?"true":"false");
       if (!local_idx_scan_finish_)
       {
         if (OB_SUCCESS == (ret = get_next_local_row(tmp_row)))
         {
           row = tmp_row;
-          //TBSYS_LOG(ERROR,"test::longfei>>>local agent.get next row = [%s]",to_cstring(*row));
         }
       }
       if (local_idx_scan_finish_)
       {
-        //@todo(longfei):local agent don't care this function
+        //local agent don't care this function
       }
       return ret;
     }
@@ -302,10 +299,6 @@ namespace oceanbase
             else if (OB_SUCCESS != (ret = basic_columns.push_back(cid)))
             {
               break;
-            }
-            else
-            {
-              TBSYS_LOG(ERROR,"test::longfei>>>cid[%ld]",cid);
             }
           }
         }
