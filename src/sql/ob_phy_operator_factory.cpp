@@ -1,4 +1,16 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_phy_operator_factory.cpp
+ * @brief    insert a new operator : ObSemiLeftJoin.
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or

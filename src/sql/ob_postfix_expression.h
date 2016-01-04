@@ -1,3 +1,15 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_postfix_expression.h
+ * @brief    add some functions to craete a new expression
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
 /*
  * (C) 2007-2011 Taobao Inc.
  *
@@ -323,6 +335,12 @@ namespace oceanbase
         int add_expr_item(const ExprItem &item);
         int add_expr_item_end();
         //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief create a new expression for right table scan.
+        * @param an array of distinct values of left table,tid and cid of join column.
+        * @param void.
+        * @return Error code.
+        */
         int set_for_semi_join(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
         //add:e
         void reset(void);

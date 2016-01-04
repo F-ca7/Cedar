@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_stmt.h
+ * @brief    reslove syntax tree to logical plan
+ *  
+ * @version  __DaSE_VERSION
+ * @author   yu shengjuan <51141500090@ecnu.cn>
+ * @date     2015_08_19
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -116,12 +130,12 @@ ObSqlRawExpr* create_middle_sql_raw_expr(
     ResultPlan& result_plan,
     ParseNode& node,
     uint64_t& expr_id);
-//add by yusj 20150819
+///add by yusj [SEMI_JOIN] 20150819
 int resolve_semi_join(
 		ResultPlan * result_plan,
 		ObStmt* stmt,
 		ParseNode* hint_node);
-//add end
+///add end
 static int add_all_rowkey_columns_to_stmt(ResultPlan* result_plan, uint64_t table_id, ObStmt *stmt)
 {
   int ret = OB_SUCCESS;
@@ -2994,11 +3008,11 @@ int resolve_hints(
             TBSYS_LOG(ERROR, "unknown hint value, ret=%d", ret);
           }
           break;
-          //add by yusj 20150819
+          ///add by yusj [SEMI_JOIN] 20150819
           case T_SEMI_JOIN:
           ret = resolve_semi_join(result_plan, stmt, hint_node);
           break;
-          //add end
+          ///add end
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -3010,7 +3024,7 @@ int resolve_hints(
   return ret;
 }
 
-//add by yusj 20150819
+///add by yusj [SEMI_JOIN] 20150819
 int resolve_semi_join(
 		ResultPlan * result_plan,
 		ObStmt* stmt,
@@ -3106,7 +3120,7 @@ int resolve_semi_join(
 	query_hint.use_join_array_.push_back(tablelist);
 	return ret;
 }
-//add end
+///add end
 
 int resolve_delete_stmt(
     ResultPlan* result_plan,

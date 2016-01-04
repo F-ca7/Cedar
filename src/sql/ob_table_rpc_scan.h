@@ -1,4 +1,16 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_table_rpc_can.h
+ * @brief    add some functions to insert a new expression to scan operator.
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -77,6 +89,12 @@ namespace oceanbase
          */
         int add_filter(ObSqlExpression *expr);
         //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief insert a expression to a scan operator.
+        * @param an expression.
+        * @param void.
+        * @return Error code.
+        */
         int add_filter_set_for_semijoin(ObSqlExpression *expr);
         //add:e
         int add_group_column(const uint64_t tid, const uint64_t cid);

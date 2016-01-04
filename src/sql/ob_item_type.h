@@ -1,3 +1,17 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_item_type.h
+ * @brief    define ObItemType
+ * ObItemType is an enum used to describe the type of item at oceanbase 
+ * @version  __DaSE_VERSION
+ * @author   yu shengjuan <51141500090@ecnu.cn>
+ * @date     2015_08_19
+ */
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
 
@@ -231,7 +245,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
-  T_SEMI_JOIN,//add by yusj [SEMI_JOIN] 20150819
+  T_SEMI_JOIN,///< add by yusj [SEMI_JOIN] 20150819
   T_KILL,
 
   T_MAX,

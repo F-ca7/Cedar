@@ -1,4 +1,16 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_transformer.h
+ * @brief    add some functions to create an phsical plan for semijoin.
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -161,6 +173,12 @@ namespace oceanbase
             oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias);
         //add fanqiushi [semi_join] [0.1] 20150826:b
+        /**
+        * @brief create a physical plan of semijoin.
+        * @param logical plan,statement,array of operator,array of bitset,array of expression.
+        * @param physical plan,error state.
+        * @return Error code.
+        */
         int gen_phy_semi_join(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

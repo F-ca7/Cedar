@@ -1,4 +1,16 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_sql_expression.h
+ * @brief    add some functions to create a new expression
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -74,6 +86,12 @@ namespace oceanbase
         // check expression type
         inline int is_const_expr(bool &is_const_type) const;
         //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief create a new expression to filter the data of right table.
+        * @param an array of distinct values of left table,tid and cid of join column.
+        * @param void.
+        * @return void.
+        */
         inline void set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
         //add:e
         inline int is_column_index_expr(bool &is_idx_type) const;

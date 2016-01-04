@@ -1,4 +1,17 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_merge_join.h
+ * @brief    insert some function and member variable of class ObMergeJoin,
+ *           in order to complete the semijoin feature.
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -43,6 +56,12 @@ namespace oceanbase
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
         //add fanqiushi [semi_join] [0.1] 20150826:b
+        /**
+        * @brief set is this operator doing semijoin.
+        * @param is_semijoin,tid and cid of join column.
+        * @param void.
+        * @return void.
+        */
         void set_is_semi_join(bool is_semi_join,uint64_t tid,uint64_t cid);
         //add:e
         
@@ -65,7 +84,19 @@ namespace oceanbase
         int left_join_rows(const ObRow& r1);
         int right_join_rows(const ObRow& r2);
         //add fanqiushi [semi_join] [0.1] 20150826:b
+        /**
+        * @brief change this operator's right child.
+        * @param void.
+        * @param void.
+        * @return Error code.
+        */
         int change_right_semi_join_op();
+        /**
+        * @brief a new open function to do semijoin.
+        * @param void.
+        * @param void.
+        * @return Error code.
+        */
         int do_semi_open();
         //add:e
         // disallow copy
@@ -87,11 +118,10 @@ namespace oceanbase
         bool right_cache_is_valid_;
         bool is_right_iter_end_;
         //add fanqiushi [semi_join] [0.1] 20150826:b
-        //add yushengjuan [semi_join] [0.1] 20150826:b
-        bool is_semi_join_;
-        uint64_t right_table_id_;
-        uint64_t right_cid_;
-        common::ObArray<common::ObObj> filter_set_;
+        bool is_semi_join_;   ///< identifier
+        uint64_t right_table_id_;  ///< tid of join column
+        uint64_t right_cid_;  ///< cid of join column
+        common::ObArray<common::ObObj> filter_set_;  ///< an array of distinct values of left table
         //add:e
     };
     //add fanqiushi [semi_join] [0.1] 20150826:b

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_sort.h
+ * @brief    storing some information from sql session
+ * storing such as table_id column_id table_name and other information from sql
+ * it will use at logical plan transform to physical plan 
+ * @version  __DaSE_VERSION
+ * @author   yu shengjuan <51141500090@ecnu.cn>
+ * @date     2015_08_19
+ */
 #ifndef OCEANBASE_SQL_STMT_H_
 #define OCEANBASE_SQL_STMT_H_
 #include "common/ob_row_desc.h"
@@ -10,7 +25,7 @@
 
 namespace oceanbase
 {
-//add by yusj 20150819
+/// add by yusj[SEMI_JOIN] 20150819
  namespace sql
  {
      using namespace common;
@@ -68,7 +83,7 @@ namespace oceanbase
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
       }
-      //add by yusj 20150819
+      /// add by yusj [SEMI_JOIN] 20150819
       bool has_semi_join_hint() const
       {
         return use_join_array_.size() > 0 ? true:false;
@@ -76,7 +91,7 @@ namespace oceanbase
       //add end
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
-      common::ObVector<ObSemiTableList> use_join_array_; //add by yusj 20150819
+      common::ObVector<ObSemiTableList> use_join_array_; ///< add by yusj [SEMI_JOIN] 20150819
     };
     
     struct TableItem

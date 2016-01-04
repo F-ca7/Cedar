@@ -1,4 +1,16 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_transformer.cpp
+ * @brief    add some functions to create an phsical plan for semijoin.
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -1381,9 +1393,6 @@ int ObTransformer::gen_phy_semi_join(
     oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
     oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias)
 {
-  //add fanqiushi [semi_join] [0.1] 20150829:b
-  //TBSYS_LOG(ERROR,"test::fanqs,,enter gen_phy_semi_join");
-  //add:e
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1
   {
