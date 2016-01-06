@@ -10,7 +10,7 @@
  * sort row from child_op get_next_row(),use std::sort
  * it will use at logical plan transform to physical plan 
  * @version  __DaSE_VERSION
- * @author   yu shengjuan <51141500090@ecnu.cn>, Qiushi FAN <qsfan@ecnu.cn>
+ * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_29
  */
 //add yushengjuan [semi_join] [0.1] 20150829:b
@@ -30,30 +30,64 @@ namespace oceanbase
       class ObSemiLeftJoin: public ObSingleChildPhyOperator
       {
         public:
+		/**
+		 * This is a physical operator for semi_join,it is a optimizing for join at distributed system
+		 * The brief idea of it is get all element from left table and then construct the filter to right table,
+		 * if we do that, we can filter the element which does not meet the equal join conditions,so that,we can
+		 * reduce the press of network and reduce compare time at join operator.
+		 * the most import function are open(), get_next_row(), close()
+		 **/
         ObSemiLeftJoin();
         virtual ~ObSemiLeftJoin();
+		/**
+		 * @brief
+		 * at open function,call do_sort() and do_distinct to get element from left table,
+		 * stored at an ObArray named left_table_element_stored_
+		 * @return ret 
+		 */
         virtual int open();
+		/**
+		 * @brief
+		 * at get_next_row function call in_mem_sort_ get_next_row()
+		 * @return ret
+		 */
         virtual int get_next_row(const common::ObRow *&row);
+		/**
+		 * @brief at close function,close child operator,and release resource
+		 */
         virtual int colse();
         virtual void reset();
         virtual void reuse();
+		/**
+		 * @return ObRowDesc of left_table
+		 */
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
-
-        int do_sort(); ///< it used to sort join condition column before do distinct
-        int do_distinct(); ///< it used to construct distinct element from left table
+		/**
+		 * @brief it used to sort join condition column before do distinct
+		 * @return ret
+	 	 */
+        int do_sort();
+		/**
+		 * @brief it used to construct distinct element from left table
+		 * @return ret 
+		 */
+        int do_distinct();
 
         int64_t to_string(char *buf, const int64_t buf_len) const;
+		/**
+		 * @brief it used to set sort_columns_ for do_sort(),usually the sort column is equal join condition column
+		 * @return ret
+		 */
         int set_sort_columns(uint64_t tab_id_, uint64_t col_id_);
+		/**
+		 * @brief
+		 * it used at do_distinct(),compare this ObObj and last ObObj,if it is difference,we must add this ObObj to left_table_element_stored_
+		 * @return ret
+		 */
         int compare_equal(const common::ObRowStore::StoredRow* this_row, const common::ObRowStore::StoredRow* last_row, bool &result) const;
         friend class ObInMemorySort;
         common::ObArray<common::ObObj>& get_left_table_element();
         //add fanqiushi [semi_join] [0.1] 20150829:b
-		/**
-        * @brief get the type of this operator.
-        * @param void.
-        * @param void.
-        * @return the type of this operator.
-        */
         enum ObPhyOperatorType get_type() const{return PHY_SEMI_LEFT_JOIN;}
         //add:e
         private:

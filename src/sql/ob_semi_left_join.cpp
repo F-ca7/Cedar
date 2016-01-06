@@ -10,7 +10,7 @@
  * sort row from child_op get_next_row(),use std::sort
  * it will use at logical plan transform to physical plan 
  * @version  __DaSE_VERSION
- * @author   yu shengjuan <51141500090@ecnu.cn>, Qiushi FAN <qsfan@ecnu.cn>
+ * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_29
  */
 //add yushengjuan [semi_join] [0.1] 20150829:b
