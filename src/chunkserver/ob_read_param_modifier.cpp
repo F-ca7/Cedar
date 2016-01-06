@@ -170,9 +170,10 @@ namespace oceanbase
       return ret;
     }
 
-    int get_next_param(
-        const ObScanParam &org_scan_param, const ObScanner &prev_scan_result, 
-        ObScanParam *scan_param, ObMemBuf &range_buffer)
+    int get_next_param(const ObScanParam &org_scan_param,
+                       const ObScanner &prev_scan_result,
+                       ObScanParam *scan_param,
+                       ObMemBuf &range_buffer)
     {
       int err = OB_SUCCESS;
       const ObReadParam &org_read_param = org_scan_param;

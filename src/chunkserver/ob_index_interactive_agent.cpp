@@ -279,7 +279,7 @@ namespace oceanbase
       //bool is_row_changed = false;
       int64_t column_count = 0;
 
-      if (true)
+      if (true) //if (used_) ==> if (true)
       {
         do
         {

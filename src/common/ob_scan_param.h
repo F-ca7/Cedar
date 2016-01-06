@@ -286,8 +286,8 @@ namespace oceanbase
       ObString table_name_;
       ObNewRange range_;
       //add longfei [cons static index]:b
-      ObNewRange fake_range_;
-      bool need_fake_range_;
+      ObNewRange fake_range_; //静态数据构建阶段，cs需要构建的range
+      bool need_fake_range_; //标志是否需要构建fake_range_
       //add e
       int64_t scan_size_;
       ScanFlag scan_flag_;

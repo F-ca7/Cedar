@@ -62,7 +62,7 @@ namespace oceanbase{
 			bool is_expire_col_in_storing(ObString& col);
 			bool is_has_option_list() const {
 				return has_option_list_;
-			};
+      }
 			int generate_inner_index_table_name(ObString& index_name, ObString& raw_table_name, char *out_buff, int64_t& str_len);
 			int generate_expire_col_list(ObString& input, ObStrings& out);
 			int set_storing_columns_simple(const common::ObString storing_name);

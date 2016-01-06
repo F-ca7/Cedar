@@ -690,7 +690,7 @@ bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
   return return_ret;
 }
 
-//add wenghaixing [secondary index for paper]20150505
+//add wenghaixing [secondary index for paper]
 bool ObSecondaryIndexServiceImpl::if_rowkey_in_expr(Expr_Array *filter_array,
     uint64_t main_tid)
 {
