@@ -1789,7 +1789,7 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   else
   {
     source_tid = table_item->ref_id_;
-    if (table_item->type_ == TableItem::ALIAS_TABLE)
+    TBSYS_LOG(ERROR,"test::longfei,,,source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());    if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
       is_ailias_table = true;
     }
@@ -4818,7 +4818,21 @@ int ObTransformer::gen_physical_alter_table(ObLogicalPlan *logical_plan, ObPhysi
         alt_col.column_.join_column_id_ = OB_INVALID_ID;
         break;
       case DROP_ACTION:
+      {
         alt_col.type_ = AlterTableSchema::DEL_COLUMN;
+        //add maoxx
+        bool column_hit_index_flag = false;
+        if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(alter_schema.table_id_, alt_col.column_.column_id_, column_hit_index_flag)))
+        {
+          TBSYS_LOG(WARN,"failed to get alt_col_hit_index[%d] ", ret);
+        }
+        else if(column_hit_index_flag)
+        {
+          TRANS_LOG("column [%ld] cannot be deleted,there is a index use it!", alt_col.column_.column_id_);
+          ret = OB_ERROR;
+        }
+        //add e
+      }
         break;
       case ALTER_ACTION:
       {
@@ -4858,6 +4872,19 @@ int ObTransformer::gen_physical_alter_table(ObLogicalPlan *logical_plan, ObPhysi
       }
     }
   }
+  //add maoxx
+  const ObTableSchema* table_schema = NULL;
+  if(NULL == (table_schema = (sql_context_->schema_manager_->get_table_schema(alt_tab_stmt->get_table_id()))))
+  {
+    TBSYS_LOG(WARN,"failed to get table[%ld] schema", alt_tab_stmt->get_table_id());
+    ret = OB_SCHEMA_ERROR;
+  }
+  else if(OB_INVALID_ID != table_schema->get_original_table_id())
+  {
+    TRANS_LOG("can not alter an index table[%ld]", alt_tab_stmt->get_table_id());
+    ret = OB_ERROR;
+  }
+  //add e
   return ret;
 }
 

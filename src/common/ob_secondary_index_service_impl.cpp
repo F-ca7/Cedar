@@ -566,7 +566,7 @@ bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
       }
     }
   }
-  return ret;
+  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,,index_tid=%ld",ret,index_tid);  return ret;
 }
 
 int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(uint64_t cid,

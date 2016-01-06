@@ -1,7 +1,6 @@
 #ifndef OB_INDEX_TRIGGER_H
 #define OB_INDEX_TRIGGER_H
 
-#endif // OB_INDEX_TRIGGER_H
 
 #include "ob_single_child_phy_operator.h"
 #include "ob_sql_expression.h"
@@ -90,3 +89,5 @@ namespace oceanbase
         };
     }
 }
+#endif // OB_INDEX_TRIGGER_H
+
