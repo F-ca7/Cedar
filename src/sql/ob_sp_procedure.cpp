@@ -1163,6 +1163,92 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
   return ret;
 }
 
+//add hjw 20151231:b
+
+/*=================================================
+ *                SpWhileInst Defintion
+ * ================================================*/
+SpWhileInst::~SpWhileInst()
+{}
+
+void SpWhileInst::get_read_variable_set(SpVariableSet &read_set) const
+{
+    read_set.add_var_info_set(while_expr_var_set_);
+    do_body_.get_read_variable_set(read_set);
+
+}
+
+void SpWhileInst::get_write_variable_set(SpVariableSet &write_set) const
+{
+ do_body_.get_write_variable_set(write_set);
+}
+
+int SpWhileInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+    int ret = OB_SUCCESS;
+    if(OB_SUCCESS !=(ret = while_expr_.serialize(buf, buf_len,pos)))
+    {
+        TBSYS_LOG(WARN, "serialize while_expr fail");
+    }
+    else if(OB_SUCCESS !=(ret = do_body_.serialize_inst(buf, buf_len, pos)))
+    {
+        TBSYS_LOG(WARN,"serialize do_body fail");
+    }
+    return ret;
+}
+
+int SpWhileInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                                    ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = while_expr_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize while_expr fail");
+  }
+  else if( OB_SUCCESS != (ret = do_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "deserialize do_body fail");
+  }
+  else
+  {
+    while_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+int SpWhileInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+
+  const SpWhileInst*old_inst = static_cast<const SpWhileInst*>(inst);
+  while_expr_ = old_inst->while_expr_;
+  while_expr_.set_owner_op(proc_);
+  while_expr_var_set_ = old_inst->while_expr_var_set_;
+//  rs_set_ = old_inst->rs_set_;
+//  ws_set_ = old_inst->ws_set_;
+  if( OB_SUCCESS != (ret = do_body_.assign(old_inst->do_body_)) )
+  {
+    TBSYS_LOG(WARN, "assign do body fail");
+  }
+  return ret;
+}
+
+int SpWhileInst::optimize(SpInstList &exec_list)
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = do_body_.optimize(exec_list)) )
+  {
+    TBSYS_LOG(WARN, "optimize do body fail");
+  }
+  else
+  {
+  }
+  return ret;
+}
+//add hjw 20151231:e
+
+
 /*=================================================
  * 					SpLoopInst Defintion
  * ===============================================*/
@@ -1633,6 +1719,9 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
   case SP_CW_INST:
     new_inst = create_inst<SpCaseInst>(mul_inst);
     break;
+  case SP_W_INST:
+    new_inst = create_inst<SpWhileInst>(mul_inst);
+    break;
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");
@@ -2023,4 +2112,16 @@ int64_t SpCaseInst::to_string(char *buf, const int64_t buf_len) const
   pos += else_branch_.to_string(buf + pos, buf_len - pos);
   databuff_printf(buf, buf_len, pos, "End Case\n");
   return pos;
+}
+
+int64_t SpWhileInst::to_string(char *buf, const int64_t buf_len) const
+{
+    int64_t pos = 0;
+    databuff_printf(buf, buf_len, pos, "type [While], rs: %s\n", to_cstring(while_expr_));
+    databuff_printf(buf, buf_len, pos, "\tDo\n");
+
+    pos += do_body_.to_string(buf +pos, buf_len - pos);
+
+    databuff_printf(buf, buf_len, pos, "End While\n");
+    return pos;
 }

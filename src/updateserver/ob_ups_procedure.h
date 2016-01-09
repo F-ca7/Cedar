@@ -25,6 +25,7 @@ namespace oceanbase
       virtual int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       virtual int execute_casewhen(SpCaseInst *inst);
+      virtual int execute_while(SpWhileInst *inst);
       int execute_ups_loop(SpUpsLoopInst *inst);
     };
 

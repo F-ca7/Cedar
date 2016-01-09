@@ -203,12 +203,16 @@ namespace oceanbase
                   );
 
 
-        int gen_physical_procedure_while(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
+  //add hjw 20151229:b
+  int gen_physical_procedure_while(
+         ObLogicalPlan *logical_plan,
+         ObPhysicalPlan *physical_plan,
+         ErrStat& err_stat,
+         const uint64_t& query_id,
+         ObProcedure *proc_op,
+         SpMultiInsts* mul_inst = NULL);
+  //add hjw 20151229:e
+
 
         //code_coverage_zhujun
 		//add:e

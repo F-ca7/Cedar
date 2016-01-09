@@ -28,6 +28,9 @@ int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_CW_INST:
     ret = execute_casewhen(static_cast<SpCaseInst*>(inst));
     break;
+  case SP_W_INST:
+    ret = execute_while(static_cast<SpWhileInst*>(inst));
+    break;
   default:
     ret = OB_NOT_SUPPORTED;
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on updateserver", type);
@@ -145,6 +148,30 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   }
   return ret;
 }
+//add hjw 20151231:b
+/*============================================================================
+ *                     SpUpsWhileInst  Definition
+ * ==========================================================================*/
+int SpUpsInstExecStrategy::execute_while(SpWhileInst *inst)
+{
+    int ret =OB_SUCCESS;
+    common::ObRow fake_row;
+    const ObObj *flag = NULL;
+    TBSYS_LOG(INFO,"while inst:\n%s", to_cstring(inst->get_while_expr()));
+    while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+      {
+         TBSYS_LOG(INFO,"while expr value: %s", to_cstring(*flag));
+         if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
+         {
+           TBSYS_LOG(WARN,"execute do body block failed");
+           break;
+         }
+      }
+   return ret;
+
+}
+//add hjw 20151231:e
+
 
 int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 {

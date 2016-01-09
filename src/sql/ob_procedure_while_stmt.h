@@ -21,20 +21,20 @@ class ObProcedureWhileStmt: public ObBasicStmt {
 
 		int set_expr_id(uint64_t& expr_id);
 
-		int add_then_stmt(uint64_t& stmt_id);
+        int add_do_stmt(uint64_t& stmt_id);
 
 		uint64_t get_expr_id();
 
-        ObArray<uint64_t> get_then_stmts();
+        ObArray<uint64_t> get_do_stmts();
 
-		uint64_t& get_then_stmt(int64_t index);
+        uint64_t& get_do_stmt(int64_t index);
 
-		int64_t get_then_stmt_size();
+        int64_t get_do_stmt_size();
 
 	private:
 		uint64_t expr_id_;							/*while循环的的表达式的*/
 
-		ObArray<uint64_t> while_then_stmts_;		/*while then的列表 */
+        ObArray<uint64_t> while_do_stmts_;		/*while then的列表 */
 
 
 	};

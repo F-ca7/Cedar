@@ -30,6 +30,7 @@ namespace oceanbase
       SP_DE_INST, //maintain delta data, read into variables
       SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
       SP_BLOCK_INST, //for a block of instructions
+      SP_W_INST, //while instruction
       SP_UNKOWN
     };
 
@@ -531,6 +532,39 @@ namespace oceanbase
 //      VariableSet ws_set_;
 //    };
  
+
+    //add hjw 20151229:b
+    class SpWhileInst : public SpInst
+    {
+     public:
+        SpWhileInst():SpInst(SP_W_INST), do_body_(this){}
+        virtual ~SpWhileInst();
+
+        ObSqlExpression& get_while_expr(){return while_expr_;}
+        SpMultiInsts* get_body_block() {return &do_body_;}
+        SpVariableSet & cons_read_var_set() { return while_expr_var_set_; }
+
+        int optimize(SpInstList &exec_list);
+
+        virtual void get_read_variable_set(SpVariableSet &read_set) const;
+        virtual void get_write_variable_set(SpVariableSet &write_set) const;
+
+
+        virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,ModuleArena &allocator,ObPhysicalPlan::OperatorStore &operators_store,ObPhyOperatorFactory *op_factory);
+        virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+
+        virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+        virtual int assign(const SpInst *inst);
+
+     private:
+        ObSqlExpression while_expr_;  //while value
+        SpVariableSet while_expr_var_set_;
+        SpMultiInsts do_body_;
+    };
+//add hjw 20151229:e
+
+
     class SpCaseInst;
     class SpWhenBlock : public SpMultiInsts
     {
@@ -644,6 +678,12 @@ namespace oceanbase
 
     template<>
     struct sp_inst_traits<SpCaseInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpWhileInst>
     {
       static const bool is_sp_inst = true;
     };

@@ -90,20 +90,20 @@ int ObProcedureWhile::get_next_row(const common::ObRow *&row)
 
 int ObProcedureWhile::open()
 {
-	TBSYS_LOG(INFO, "zz:ObProcedureWhile::open()");
-	int ret = OB_SUCCESS;
-	if (OB_UNLIKELY(ObMultiChildrenPhyOperator::get_child_num() <= 0))
-	{
-	    ret = OB_NOT_INIT;
-	    TBSYS_LOG(ERROR, "zz:ObProcedureElseIf has no child operator, ret=%d", ret);
-	}
-	else
-	{
+    TBSYS_LOG(INFO, "zz:ObProcedureWhile::open()");
+    int ret = OB_SUCCESS;
+    if (OB_UNLIKELY(ObMultiChildrenPhyOperator::get_child_num() <= 0))
+    {
+        ret = OB_NOT_INIT;
+        TBSYS_LOG(ERROR, "zz:ObProcedureElseIf has no child operator, ret=%d", ret);
+    }
+    else
+    {
 
-		while(true)
-		{
-			common::ObRow tmp_row;
-			const ObObj *result = NULL;
+        while(true)
+        {
+            common::ObRow tmp_row;
+            const ObObj *result = NULL;
 			bool is_error=false;
 			if((ret=expr_.calc(tmp_row, result))!=OB_SUCCESS)
 			{
