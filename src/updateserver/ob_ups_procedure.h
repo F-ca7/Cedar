@@ -35,6 +35,7 @@ namespace oceanbase
       int execute_rw_comp(SpRwCompInst *inst) { UNUSED(inst); return OB_ERROR; }
       int execute_if_ctrl(SpIfCtrlInsts *inst);
       int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
+      int execute_casewhen(SpCaseInst *inst);
       int execute_multi_inst(SpMultiInsts *mul_inst);
       int execute_ups_loop(SpUpsLoopInst *inst);
     private:
@@ -44,7 +45,7 @@ namespace oceanbase
       static int pexecute_if_ctrl(SpUpsInstExecStrategy *host, SpInst *inst);
       static int pexecute_loop(SpUpsInstExecStrategy *host, SpInst *inst);
       static int pexecute_block(SpUpsInstExecStrategy *host, SpInst *inst);
-
+      static int pexecute_casewhen(SpUpsInstExecStrategy *host, SpInst *inst);
     private:
       UpsInstHandler inst_handler[SP_UNKOWN];
     };

@@ -960,6 +960,27 @@ int ObProcedure::optimize()
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(12));
   }
+  else if( proc_name_.compare("ins_loop") == 0 )
+  {
+    SpBlockInsts * block_inst =create_inst<SpBlockInsts>(NULL);
+
+    SpLoopInst *ins_loop = static_cast<SpLoopInst*>(inst_list_.at(0));
+
+    ins_loop->optimize(exec_list_);
+
+    block_inst->add_inst(ins_loop);
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("rep_loop") == 0 )
+  {
+    SpBlockInsts * block_inst = create_inst<SpBlockInsts>(NULL);
+
+    SpLoopInst *rep_loop = static_cast<SpLoopInst*>(inst_list_.at(0));
+
+    block_inst->add_inst(rep_loop);
+
+    exec_list_.push_back(block_inst);
+  }
   //else do nothing
   else
   {

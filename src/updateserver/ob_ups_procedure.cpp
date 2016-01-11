@@ -14,6 +14,7 @@ SpUpsInstExecStrategy::SpUpsInstExecStrategy()
   inst_handler[SP_DE_INST] = pexecute_rw_delta_into_var;
   inst_handler[SP_A_INST] = NULL;
   inst_handler[SP_BLOCK_INST] = pexecute_block;
+  inst_handler[SP_CW_INST] = pexecute_casewhen;
 }
 
 int SpUpsInstExecStrategy::pexecute_expr(SpUpsInstExecStrategy *host, SpInst *inst)
@@ -39,6 +40,11 @@ int SpUpsInstExecStrategy::pexecute_if_ctrl(SpUpsInstExecStrategy *host, SpInst 
 int SpUpsInstExecStrategy::pexecute_loop(SpUpsInstExecStrategy *host, SpInst *inst)
 {
   return host->execute_ups_loop(static_cast<SpUpsLoopInst*>(inst));
+}
+
+int SpUpsInstExecStrategy::pexecute_casewhen(SpUpsInstExecStrategy *host, SpInst *inst)
+{
+  return host->execute_casewhen(static_cast<SpCaseInst*>(inst));
 }
 
 int SpUpsInstExecStrategy::pexecute_block(SpUpsInstExecStrategy *host, SpInst *inst)
@@ -80,7 +86,7 @@ int SpUpsInstExecStrategy::pexecute_block(SpUpsInstExecStrategy *host, SpInst *i
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
-  int64_t start_ts = tbsys::CTimeUtil::getTime();
+//  int64_t start_ts = tbsys::CTimeUtil::getTime();
 //  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(inst->get_val()));
   common::ObRow input_row;
   const ObObj *val = NULL;
@@ -91,7 +97,7 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   //update the varialbe here
   else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_var(), *val)) )
   {}
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
+//  OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
