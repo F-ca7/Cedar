@@ -14,7 +14,7 @@
 #ifndef __OB_COMMON_OB_CLIENT_WAIT_OBJ_H__
 #define __OB_COMMON_OB_CLIENT_WAIT_OBJ_H__
 #include "ob_define.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "data_buffer.h"
 #include "ob_packet.h"
 #include "semaphore.h"
@@ -31,7 +31,7 @@ namespace oceanbase
       void after_post(const int post_err);
       virtual void handle_response(ObPacket* packet){ UNUSED(packet); }
       int receive_packet(ObPacket* packet);
-      static int on_receive_response(easy_request_t* r);
+      static int on_receive_response(onev_request_e* r);
       int wait(ObDataBuffer& response, const int64_t timeout_us);
       int err_;
       int64_t done_count_;

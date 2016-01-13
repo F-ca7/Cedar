@@ -58,7 +58,7 @@ namespace oceanbase
         DEF_INT(task_thread_count, "32", "[1,]", "task thread number");
         DEF_INT(max_migrate_task_count, "2", "[1,]", "max migrate task number");
 
-        DEF_INT(io_thread_count, "8", "[1,]", "io thread number for libeasy");
+        DEF_INT(io_thread_count, "8", "[1,]", "io thread number for libonev");
         DEF_TIME(network_timeout, "3s", "timeout when communication with other server");
         DEF_TIME(lease_check_interval, "5s", "[5s,5s]", "lease check interval, shouldn\\'t change");
 

@@ -16,7 +16,7 @@
  */
 #ifndef OB_ROOT_CALLBACK_H_
 #define OB_ROOT_CALLBACK_H_
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 
 namespace oceanbase
 {
@@ -25,7 +25,7 @@ namespace oceanbase
     class ObRootCallback
     {
       public:
-        static int process(easy_request_t* r);
+        static int process(onev_request_e* r);
     };
   }
 }

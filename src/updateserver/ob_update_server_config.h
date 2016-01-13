@@ -77,7 +77,7 @@ namespace oceanbase
         DEF_IP(lsync_ip, "0.0.0.0", "lsync ip address");
         DEF_INT(lsync_port, "3000", "(1024,65536)", "lsync listen port");
 
-        DEF_INT(io_thread_count, "4", "io thread number for libeasy");
+        DEF_INT(io_thread_count, "4", "io thread number for libonev");
         DEF_INT(read_thread_count, "4", "read thread number");
         DEF_INT(store_thread_count, "3", "store thread number");
         DEF_INT(read_queue_size, "1000", "read queue size");

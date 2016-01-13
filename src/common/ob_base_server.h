@@ -2,8 +2,8 @@
 #define OCEANBASE_COMMON_BASE_SERVER_H_
 
 #include <tbsys.h>
-#include "easy_io_struct.h"
-#include "easy_io.h"
+#include "onev_struct.h"
+#include "onev_io.h"
 #include <string.h>
 #include "ob_define.h"
 #include "ob_packet.h"
@@ -20,7 +20,7 @@ namespace oceanbase
       public:
         static const int MAX_TASK_QUEUE_SIZE = 1000;
         static const int DEV_NAME_LENGTH = 16;
-        static const int OB_LIBEASY_STATISTICS_TIMER = 60; // 60s
+        static const int OB_LIBONEV_STATISTICS_TIMER = 60; // 60s
         static const int FD_BUFFER_SIZE = 1024;
 
         ObBaseServer();
@@ -65,13 +65,13 @@ namespace oceanbase
 
         uint64_t get_server_id() const;
 
-        int send_response(const int32_t pcode, const int32_t version, const ObDataBuffer& buffer, easy_request_t* req, const uint32_t channel_id, const int64_t session_id = 0);
-        static void easy_timer_cb(EV_P_ ev_timer *w, int revents);
+        int send_response(const int32_t pcode, const int32_t version, const ObDataBuffer& buffer, onev_request_e* req, const uint32_t channel_id, const int64_t session_id = 0);
+        static void onev_timer_cb(EV_P_ ev_timer *w, int revents);
 
         virtual void on_ioth_start() {};
 
       private:
-        static void easy_on_ioth_start(void *arg)
+        static void onev_on_ioth_start(void *arg)
         {
           ObBaseServer *server = (ObBaseServer*)arg;
           if (NULL != server)
@@ -90,8 +90,8 @@ namespace oceanbase
         uint64_t server_id_;
 
         ObPacketFactory packet_factory_;
-        easy_io_t *eio_;
-        easy_io_handler_pt server_handler_;
+        onev_io_e *eio_;
+        onev_io_handler_pe server_handler_;
         uint32_t local_ip_;
 
     };

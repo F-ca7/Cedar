@@ -30,7 +30,7 @@ ObBaseClient::~ObBaseClient()
 int ObBaseClient::initialize(const ObServer& server)
 {
   int ret = OB_ERROR;
-  int rc = EASY_OK;
+  int rc = ONEV_OK;
   if (init_)
   {
     TBSYS_LOG(WARN, "already init");
@@ -40,16 +40,16 @@ int ObBaseClient::initialize(const ObServer& server)
   {
     server_ = server;
     //create io thread
-    eio_ = easy_eio_create(eio_, 1);
+    eio_ = onev_create_io(eio_, 1);
     eio_->do_signal = 0;
     eio_->force_destroy_second = OB_CONNECTION_FREE_TIME_S;
     eio_->checkdrc = 1;
     if (NULL == eio_)
     {
       ret = OB_ERROR;
-      TBSYS_LOG(ERROR, "easy_io_create error");
+      TBSYS_LOG(ERROR, "onev_io_create error");
     }
-    memset(&client_handler_, 0, sizeof(easy_io_handler_pt));
+    memset(&client_handler_, 0, sizeof(onev_io_handler_pe));
     client_handler_.encode = ObTbnetCallback::encode;
     client_handler_.decode = ObTbnetCallback::decode;
     client_handler_.get_packet_id = ObTbnetCallback::get_packet_id;
@@ -63,15 +63,15 @@ int ObBaseClient::initialize(const ObServer& server)
       //start io thread
       if (ret == OB_SUCCESS)
       {
-        rc = easy_eio_start(eio_);
-        if (EASY_OK == rc)
+        rc = onev_start_io(eio_);
+        if (ONEV_OK == rc)
         {
           ret = OB_SUCCESS;
           TBSYS_LOG(INFO, "start io thread");
         }
         else
         {
-          TBSYS_LOG(ERROR, "easy_eio_start failed");
+          TBSYS_LOG(ERROR, "onev_start_io failed");
           ret = OB_ERROR;
         }
       }
@@ -88,9 +88,9 @@ void ObBaseClient::destroy()
 {
   if (init_)
   {
-    easy_eio_stop(eio_);
-    easy_eio_wait(eio_);
-    easy_eio_destroy(eio_);
+    onev_stop_io(eio_);
+    onev_wait_io(eio_);
+    onev_destroy_io(eio_);
     init_ = false;
   }
   TBSYS_LOG(INFO, "client stoped");

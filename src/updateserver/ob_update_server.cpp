@@ -133,7 +133,7 @@ namespace oceanbase
 
       if (OB_SUCCESS == err)
       {
-        memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
         server_handler_.encode = ObTbnetCallback::encode;
         server_handler_.decode = ObTbnetCallback::decode;
         server_handler_.process = ObUpdateCallback::process;
@@ -1722,7 +1722,7 @@ namespace oceanbase
         else
         {
           packet_timewait -= DEFAULT_REQUEST_TIMEOUT_RESERVE;
-          easy_request_t* req = ob_packet->get_request();
+          onev_request_e* req = ob_packet->get_request();
           if (OB_SELF_FLAG != ob_packet->get_target_id() &&
             (NULL == req || NULL == req->ms || NULL == req->ms->c))
           {
@@ -1986,7 +1986,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_preprocess(const int32_t version, const int32_t packet_code, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
         const int64_t start_time, const int64_t timeout)
     {
       UNUSED(out_buff);
@@ -2000,7 +2000,7 @@ namespace oceanbase
       ObMutator *mutator_ptr = GET_TSI_MULT(ObMutator, TSI_UPS_MUTATOR_1);
       ObToken token;
       ObToken *token_ptr = NULL;
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       if (NULL == mutator_ptr)
       {
         TBSYS_LOG(WARN, "GET_TSI ObMutator or ObScanner fail");
@@ -2155,7 +2155,7 @@ namespace oceanbase
           }
           else
           {
-            easy_request_t* req = ob_packet->get_request();
+            onev_request_e* req = ob_packet->get_request();
             if (OB_SELF_FLAG != ob_packet->get_target_id() &&
                 (NULL == req || NULL == req->ms || NULL == req->ms->c))
             {
@@ -2475,7 +2475,7 @@ namespace oceanbase
       return err;
     }
 
-    int ObUpdateServer::return_not_master(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::return_not_master(const int32_t version, onev_request_e* req,
                                           const uint32_t channel_id, const int32_t packet_code)
     {
       int return_code = OB_SUCCESS;
@@ -2535,7 +2535,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::set_obi_role(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(out_buff);
 
@@ -2642,7 +2642,7 @@ namespace oceanbase
     }
 
     /*int ObUpdateServer::slave_set_fetch_param(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
       ObResultCode result_msg;
@@ -2689,14 +2689,14 @@ namespace oceanbase
     }
 */
     int ObUpdateServer::ups_fetch_log_for_slave(const int32_t version, common::ObDataBuffer& in_buff,
-                                                easy_request_t* request, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+                                                onev_request_e* request, const uint32_t channel_id, common::ObDataBuffer& out_buff,
                                                 ObPacket* packet)
     {
       int err = OB_SUCCESS;
       int ret_err = OB_SUCCESS;
       ObFetchLogReq req;
       ObFetchedLog result;
-      const char* src_addr = inet_ntoa_r(get_easy_addr(request));
+      const char* src_addr = inet_ntoa_r(get_onev_addr(request));
       if (version != MY_VERSION)
       {
         err = OB_ERROR_FUNC_VERSION;
@@ -2736,7 +2736,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_fill_log_cursor_for_slave(const int32_t version, common::ObDataBuffer& in_buff,
-                                                      easy_request_t* req, const uint32_t channel_id,
+                                                      onev_request_e* req, const uint32_t channel_id,
                                                       common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -2763,7 +2763,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get_clog_status(const int32_t version, common::ObDataBuffer& in_buff,
-                                                      easy_request_t* req, const uint32_t channel_id,
+                                                      onev_request_e* req, const uint32_t channel_id,
                                                       common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -2823,7 +2823,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_slave_write_log(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(out_buff);
 
@@ -2855,7 +2855,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_change_log_level(const int32_t version, common::ObDataBuffer& in_buff,
-                                         easy_request_t* req, const uint32_t channel_id)
+                                         onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       UNUSED(version);
@@ -2887,7 +2887,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_stop_server(const int32_t version, common::ObDataBuffer& in_buff,
-                                         easy_request_t* req, const uint32_t channel_id)
+                                         onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       UNUSED(version);
@@ -2923,7 +2923,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ob_malloc_stress(const int32_t version, common::ObDataBuffer& in_buff,
-                                         easy_request_t* req, const uint32_t channel_id)
+                                         onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       int64_t malloc_limit = 0;
@@ -2962,7 +2962,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ob_login(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       int proc_ret = OB_SUCCESS;
@@ -2973,7 +2973,7 @@ namespace oceanbase
       }
 
       ObLoginInfo login_info;
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       ret = login_info.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
       if (OB_SUCCESS != ret)
       {
@@ -2999,7 +2999,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_set_sync_limit(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(out_buff);
       int ret = OB_SUCCESS;
@@ -3022,7 +3022,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_ping(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_ping(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
 
@@ -3036,7 +3036,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_get_clog_master(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::ups_get_clog_master(const int32_t version, onev_request_e* req,
                                             const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -3115,7 +3115,7 @@ namespace oceanbase
       return err;
     }
 
-    int ObUpdateServer::ups_get_clog_cursor(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::ups_get_clog_cursor(const int32_t version, onev_request_e* req,
                                             const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -3138,7 +3138,7 @@ namespace oceanbase
       return err;
     }
 
-    int ObUpdateServer::ups_get_log_sync_delay_stat(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::ups_get_log_sync_delay_stat(const int32_t version, onev_request_e* req,
                                             const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -3158,7 +3158,7 @@ namespace oceanbase
       return err;
     }
 
-    int ObUpdateServer::ups_get_clog_stat(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::ups_get_clog_stat(const int32_t version, onev_request_e* req,
                                             const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
@@ -3182,7 +3182,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_sql_scan(const int32_t version, common::ObDataBuffer& in_buff,
-                                     easy_request_t* req, const uint32_t channel_id,
+                                     onev_request_e* req, const uint32_t channel_id,
                                      common::ObDataBuffer& out_buff)
     {
       static const int32_t UPS_SCAN_VERSION = 1;
@@ -3269,7 +3269,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_new_get(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
         const int64_t start_time, const int64_t timeout, const int32_t priority)
     {
       int ret = OB_SUCCESS;
@@ -3356,7 +3356,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
         const int64_t start_time, const int64_t timeout, const int32_t priority)
     {
       int ret = OB_SUCCESS;
@@ -3439,7 +3439,7 @@ namespace oceanbase
     template <class T>
     int ObUpdateServer::response_data_(int32_t ret_code, const T &data,
                                           int32_t cmd_type, int32_t func_version,
-                                          easy_request_t* req, const uint32_t channel_id,
+                                          onev_request_e* req, const uint32_t channel_id,
                                        common::ObDataBuffer& out_buff, const int64_t receive_ts, const int32_t* priority, const char *ret_string)
     {
       int ret = OB_SUCCESS;
@@ -3491,7 +3491,7 @@ namespace oceanbase
 
     int ObUpdateServer::response_fetch_param_(int32_t ret_code, const ObUpsFetchParam& fetch_param,
         const int64_t log_id, int32_t cmd_type, int32_t func_version,
-        easy_request_t* req, const uint32_t channel_id,
+        onev_request_e* req, const uint32_t channel_id,
         common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
@@ -3534,7 +3534,7 @@ namespace oceanbase
 
     int ObUpdateServer::response_lease_(int32_t ret_code, const ObLease& lease,
         int32_t cmd_type, int32_t func_version,
-        easy_request_t* req, const uint32_t channel_id,
+        onev_request_e* req, const uint32_t channel_id,
         common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
@@ -3568,7 +3568,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_new_scan(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
         const int64_t start_time, const int64_t timeout, const int32_t priority)
     {
       int ret = OB_SUCCESS;
@@ -3658,7 +3658,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_scan(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
         const int64_t start_time, const int64_t timeout, const int32_t priority)
     {
       int err = OB_SUCCESS;
@@ -3739,7 +3739,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get_bloomfilter(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       int64_t frozen_version = 0;
@@ -3848,7 +3848,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_store_memtable(const int32_t version, common::ObDataBuffer &in_buf,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4413,7 +4413,7 @@ namespace oceanbase
 
     template <class Queue>
     int ObUpdateServer::submit_async_task_(const PacketCode pcode, Queue& qthread, int32_t task_queue_size,
-        const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req,
+        const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req,
         const uint32_t channel_id, const int64_t timeout)
     {
       int ret = OB_SUCCESS;
@@ -4603,7 +4603,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4616,7 +4616,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_delay_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_delay_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4628,7 +4628,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_immediately_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_immediately_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4650,7 +4650,7 @@ namespace oceanbase
       return OB_SUCCESS;
     }
 
-    int ObUpdateServer::ups_load_bypass(const int32_t version, easy_request_t* req, const uint32_t channel_id,
+    int ObUpdateServer::ups_load_bypass(const int32_t version, onev_request_e* req, const uint32_t channel_id,
                                         common::ObDataBuffer& out_buff, const int packet_code)
     {
       int ret = OB_SUCCESS;
@@ -4710,7 +4710,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_erase_sstable(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_erase_sstable(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4723,7 +4723,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_load_new_store(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_load_new_store(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4735,7 +4735,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_reload_all_store(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_reload_all_store(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4747,7 +4747,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_rs_get_max_log_seq(const int32_t version, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer &out_buff)
+    int ObUpdateServer::ups_rs_get_max_log_seq(const int32_t version, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer &out_buff)
     {
       int err = OB_SUCCESS;
       if (MY_VERSION != version)
@@ -4766,7 +4766,7 @@ namespace oceanbase
       }
       return err;
     }
-    int ObUpdateServer::slave_ups_receive_keep_alive(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::slave_ups_receive_keep_alive(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       UNUSED(req);
@@ -4781,11 +4781,11 @@ namespace oceanbase
         TBSYS_LOG(WARN, "ups_receive_keep_alive(): NOT NEED anymore");
       }
 
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
-    int ObUpdateServer::ups_clear_fatal_status(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_clear_fatal_status(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (MY_VERSION != version)
@@ -4804,7 +4804,7 @@ namespace oceanbase
       }
       return ret;
     }
-    int ObUpdateServer::ups_froce_report_frozen_version(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_froce_report_frozen_version(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4817,7 +4817,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_reload_store(const int32_t version, common::ObDataBuffer& in_buf,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4839,7 +4839,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_umount_store(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -4866,7 +4866,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_slave_register(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
 
@@ -4930,7 +4930,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_slave_quit(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
 
@@ -5089,7 +5089,7 @@ namespace oceanbase
       if (NULL == my_buffer)
       {
         TBSYS_LOG(ERROR, "alloc thread buffer fail");
-        easy_request_wakeup(pkt.get_request());
+        onev_request_wakeup(pkt.get_request());
         ret = OB_MEM_OVERFLOW;
       }
       else
@@ -5102,7 +5102,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::response_result_(int32_t ret_code, int32_t cmd_type, int32_t func_version,
-                                         easy_request_t* req, const uint32_t channel_id, int64_t receive_ts, const char *ret_string/* = NULL*/)
+                                         onev_request_e* req, const uint32_t channel_id, int64_t receive_ts, const char *ret_string/* = NULL*/)
     {
       int ret = OB_SUCCESS;
       common::ObResultCode result_msg;
@@ -5119,7 +5119,7 @@ namespace oceanbase
       else if (NULL == my_buffer)
       {
         TBSYS_LOG(ERROR, "alloc thread buffer fail");
-        easy_request_wakeup(req);
+        onev_request_wakeup(req);
         ret = OB_MEM_OVERFLOW;
       }
       else
@@ -5142,7 +5142,7 @@ namespace oceanbase
         }
         else
         {
-          easy_request_wakeup(req);
+          onev_request_wakeup(req);
           TBSYS_LOG(WARN, "send response fail ret=%d conn=%p channel_id=%u result_msg=%d cmd_type=%d func_version=%d",
               ret, req, channel_id, ret_code, cmd_type, func_version);
         }
@@ -5367,7 +5367,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_reload_conf(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
 
@@ -5584,7 +5584,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_rs_revoke_lease(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
       common::ObResultCode result_msg;
@@ -5678,7 +5678,7 @@ namespace oceanbase
 
     //add :rs ups hb
     int ObUpdateServer::ups_rs_lease(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int err = OB_SUCCESS;
       UNUSED(channel_id);
@@ -5726,12 +5726,12 @@ namespace oceanbase
           }
         }
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return err;
     }
 
     /*  int ObUpdateServer::ups_change_vip(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
         {
         int ret = OB_SUCCESS;
 
@@ -5762,7 +5762,7 @@ namespace oceanbase
         }
      */
     int ObUpdateServer::ups_dump_text_memtable(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5791,7 +5791,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_dump_text_schemas(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5813,7 +5813,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_force_fetch_schema(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5829,7 +5829,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_memory_watch(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5852,7 +5852,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_memory_limit_set(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5884,7 +5884,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_priv_queue_conf_set(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -5935,7 +5935,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_clear_active_memtable(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id)
+        onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (!(ObiRole::MASTER == obi_role_.get_role()
@@ -5959,7 +5959,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_switch_commit_log(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (!(ObiRole::MASTER == obi_role_.get_role()
@@ -5986,7 +5986,7 @@ namespace oceanbase
       return ret;
     }
     int ObUpdateServer::ups_get_slave_info(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       common::ObResultCode result;
@@ -6017,7 +6017,7 @@ namespace oceanbase
     //*/
 
     int ObUpdateServer::ups_get_last_frozen_version(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6038,7 +6038,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get_table_time_stamp(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6064,7 +6064,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_enable_memtable_checksum(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_enable_memtable_checksum(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6079,7 +6079,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_disable_memtable_checksum(const int32_t version, easy_request_t* req, const uint32_t channel_id)
+    int ObUpdateServer::ups_disable_memtable_checksum(const int32_t version, onev_request_e* req, const uint32_t channel_id)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6095,7 +6095,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_fetch_stat_info(const int32_t version,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6138,7 +6138,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get_schema(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6165,7 +6165,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_get_sstable_range_list(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       if (version != MY_VERSION)
@@ -6199,7 +6199,7 @@ namespace oceanbase
     }
 
     int ObUpdateServer::ups_set_config(const int32_t version, common::ObDataBuffer& in_buff,
-                                       easy_request_t* req, const uint32_t channel_id)
+                                       onev_request_e* req, const uint32_t channel_id)
     {
       UNUSED(version);
       int ret = OB_SUCCESS;
@@ -6231,7 +6231,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObUpdateServer::ups_get_config(const int32_t version, easy_request_t* req,
+    int ObUpdateServer::ups_get_config(const int32_t version, onev_request_e* req,
                                        const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);

@@ -45,7 +45,7 @@
 //#define PRESS_TEST
 #define __rs_debug__
 #include "common/debug.h"
-#include "common/ob_libeasy_mem_pool.h"
+#include "common/ob_libonev_mem_pool.h"
 
 namespace
 {
@@ -72,8 +72,8 @@ namespace oceanbase
     int ObRootWorker::create_eio()
     {
       int ret = OB_SUCCESS;
-      easy_pool_set_allocator(ob_easy_realloc);
-      eio_ = easy_eio_create(eio_, io_thread_count_);
+      onev_pool_set_allocator(ob_onev_realloc);
+      eio_ = onev_create_io(eio_, io_thread_count_);
       eio_->do_signal = 0;
       eio_->force_destroy_second = OB_CONNECTION_FREE_TIME_S;
       eio_->checkdrc = 1;
@@ -81,7 +81,7 @@ namespace oceanbase
       if (NULL == eio_)
       {
         ret = OB_ERROR;
-        TBSYS_LOG(ERROR, "easy_io_create error");
+        TBSYS_LOG(ERROR, "onev_io_create error");
       }
       return ret;
     }
@@ -92,7 +92,7 @@ namespace oceanbase
       //set call back function
       if (OB_SUCCESS == ret)
       {
-        memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
         server_handler_.encode = ObTbnetCallback::encode;
         server_handler_.decode = ObTbnetCallback::decode;
         server_handler_.process = ObRootCallback::process;//root server process
@@ -971,7 +971,7 @@ namespace oceanbase
           }
           else
           {
-            easy_request_t* req = ob_packet->get_request();
+            onev_request_e* req = ob_packet->get_request();
             if (OB_SELF_FLAG != ob_packet->get_target_id()
                 && (NULL == req || NULL == req->ms || NULL == req->ms->c))
             {
@@ -1297,7 +1297,7 @@ namespace oceanbase
       return ret;
     }
     int ObRootWorker::rt_get_update_server_info(const int32_t version, ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, ObDataBuffer& out_buff,
+        onev_request_e* req, const uint32_t channel_id, ObDataBuffer& out_buff,
         bool use_inner_port /* = false*/)
     {
       static const int MY_VERSION = 1;
@@ -1349,7 +1349,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_scan(const int32_t version, ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -1421,7 +1421,7 @@ namespace oceanbase
 
 
     int ObRootWorker::rt_sql_scan(const int32_t version,
-        ObDataBuffer& in_buff, easy_request_t* req,
+        ObDataBuffer& in_buff, onev_request_e* req,
         const uint32_t channel_id, ObDataBuffer& out_buff)
     {
       UNUSED(channel_id);
@@ -1508,13 +1508,13 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_get(const int32_t version, ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
       result_msg.result_code_ = OB_SUCCESS;
       int ret = OB_SUCCESS;
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       char msg_buff[OB_MAX_RESULT_MESSAGE_LENGTH];
       result_msg.message_.assign_buffer(msg_buff, OB_MAX_RESULT_MESSAGE_LENGTH);
 
@@ -1606,7 +1606,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_fetch_schema(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       static const int MY_VERSION = 1;
@@ -1692,7 +1692,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_after_restart(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       UNUSED(version);
@@ -1718,7 +1718,7 @@ namespace oceanbase
       return ret;
     }
     int ObRootWorker::rt_fetch_schema_version(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       static const int MY_VERSION = 1;
@@ -1761,7 +1761,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_report_tablets(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 2;
       common::ObResultCode result_msg;
@@ -1824,7 +1824,7 @@ namespace oceanbase
       return ret;
     }
     int ObRootWorker::rt_waiting_job_done(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -1875,7 +1875,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_delete_tablets(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(version);
@@ -1924,7 +1924,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_cs_delete_tablets(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       UNUSED(version);
@@ -1974,7 +1974,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_register(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -2053,7 +2053,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_register_ms(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -2152,7 +2152,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_migrate_over(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int CS_MIGRATE_OVER_VERSION = 3;
       int ret = OB_SUCCESS;
@@ -2248,7 +2248,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_report_capacity_info(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -2311,7 +2311,7 @@ namespace oceanbase
 
     // for chunk server
     int ObRootWorker::rt_heartbeat(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 2;
       common::ObResultCode result_msg;
@@ -2343,12 +2343,12 @@ namespace oceanbase
       {
         result_msg.result_code_ = root_server_.receive_hb(server, server.get_port(), false, role);
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
     // for merge server
     int ObRootWorker::rt_heartbeat_ms(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 3;
       common::ObResultCode result_msg;
@@ -2412,12 +2412,12 @@ namespace oceanbase
       {
         result_msg.result_code_ = root_server_.receive_hb(server, sql_port, is_listen_ms, role);
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
     int ObRootWorker::rt_check_tablet_merged(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int err = OB_SUCCESS;
@@ -2492,7 +2492,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_dump_cs_info(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -2506,7 +2506,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_fetch_stats(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       static const int MY_VERSION = 1;
@@ -2557,7 +2557,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_ping(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       static const int MY_VERSION = 1;
@@ -2587,7 +2587,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_slave_quit(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -2639,7 +2639,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_update_server_report_freeze(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -2708,7 +2708,7 @@ namespace oceanbase
 
 
     int ObRootWorker::rt_slave_register(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -2842,7 +2842,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_renew_lease(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int ret = OB_SUCCESS;
@@ -2891,7 +2891,7 @@ namespace oceanbase
 
       return ret;
     }
-    int ObRootWorker::rt_set_obi_role_to_slave(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    int ObRootWorker::rt_set_obi_role_to_slave(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -2921,7 +2921,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_grant_lease(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int ret = OB_SUCCESS;
@@ -2970,7 +2970,7 @@ namespace oceanbase
     }
 
     int ObRootWorker::rt_slave_write_log(const int32_t version, common::ObDataBuffer& in_buffer,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buffer)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buffer)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -3055,7 +3055,7 @@ namespace oceanbase
     }
 
 int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
       UNUSED(in_buff);
@@ -3083,7 +3083,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_obi_role(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
       UNUSED(in_buff);
@@ -3122,7 +3122,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_force_cs_to_report(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3150,7 +3150,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_set_obi_role(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3182,7 +3182,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_last_frozen_version(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3207,7 +3207,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rs_check_root_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int err = OB_SUCCESS;
@@ -3263,7 +3263,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rs_dump_cs_tablet_info(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int err = OB_SUCCESS;
@@ -3318,7 +3318,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_admin(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3468,7 +3468,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_change_log_level(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3508,7 +3508,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_stat(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3567,7 +3567,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_get_master_ups_config(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
       UNUSED(in_buff);
@@ -3604,7 +3604,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_ups_heartbeat_resp(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(req);
@@ -3638,12 +3638,12 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
         ret = root_server_.receive_ups_heartbeat_resp(msg.addr_, ups_status, msg.obi_role_);
       }
       // no response
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
     int ObRootWorker::rt_get_ups(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -3679,7 +3679,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_ups_register(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static int MY_VERSION = 1;
       int ret = OB_SUCCESS;
@@ -3723,7 +3723,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_set_master_ups_config(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -3763,7 +3763,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_set_ups_config(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -3809,7 +3809,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_ups_slave_failure(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       ObMsgUpsSlaveFailure msg;
@@ -3843,7 +3843,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_change_ups_master(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -3886,7 +3886,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_cs_list(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -3916,7 +3916,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_row_checksum(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -3962,7 +3962,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_ms_list(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -3991,7 +3991,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
 
-    int ObRootWorker::rt_get_proxy_list(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    int ObRootWorker::rt_get_proxy_list(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       UNUSED(in_buff);
@@ -4020,7 +4020,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_cs_import_tablets(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       uint64_t table_id = OB_INVALID_ID;
@@ -4061,7 +4061,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_restart_cs(const int32_t version, ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -4157,7 +4157,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_shutdown_cs(const int32_t version, ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -4247,7 +4247,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
     template <class Queue>
       int ObRootWorker::submit_async_task_(const PacketCode pcode, Queue& qthread, int32_t task_queue_size,
-          const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req,
+          const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req,
           const uint32_t channel_id, const int64_t timeout)
       {
         int ret = OB_SUCCESS;
@@ -4342,7 +4342,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
         return ret;
       }
     int ObRootWorker::rt_split_tablet(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       int err = OB_SUCCESS;
@@ -4396,7 +4396,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_create_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -4461,7 +4461,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_alter_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -4518,7 +4518,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_drop_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -4573,7 +4573,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_execute_sql(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
       UNUSED(req);              /* NULL */
@@ -4645,7 +4645,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_handle_trigger_event(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
 
@@ -4747,7 +4747,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_master_obi_rs(const int32_t version, common::ObDataBuffer &in_buff,
-        easy_request_t *req, const uint32_t channel_id, common::ObDataBuffer &out_buff)
+        onev_request_e *req, const uint32_t channel_id, common::ObDataBuffer &out_buff)
     {
       UNUSED(version);
       UNUSED(in_buff);
@@ -4799,7 +4799,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_set_config(const int32_t version,
-        common::ObDataBuffer& in_buff, easy_request_t* req,
+        common::ObDataBuffer& in_buff, onev_request_e* req,
         const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
@@ -4841,7 +4841,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
 
     int ObRootWorker::rt_get_config(const int32_t version,
-        common::ObDataBuffer& in_buff, easy_request_t* req,
+        common::ObDataBuffer& in_buff, onev_request_e* req,
         const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(version);
@@ -4873,7 +4873,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     }
     //for bypass
     int ObRootWorker::rt_check_task_process(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id,
+        onev_request_e* req, const uint32_t channel_id,
         common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
@@ -4887,12 +4887,12 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       {
         TBSYS_LOG(DEBUG, "bypas process is already processing, wait.., ret=%d", ret);
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
     int ObRootWorker::rt_prepare_bypass_process(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -4943,7 +4943,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rs_cs_load_bypass_sstable_done(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -4956,7 +4956,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       common::ObTableImportInfoList table_list;
       bool is_load_succ = false;
       ObServer cs;
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
       {
         ret = cs.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
@@ -5009,7 +5009,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_cs_delete_table_done(const int32_t version, common::ObDataBuffer& in_buff,
-         easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -5022,7 +5022,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       uint64_t table_id =  UINT64_MAX;
       bool is_delete_succ = false;
       ObServer cs;
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
       {
         ret = cs.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
@@ -5077,7 +5077,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
     int ObRootWorker::rt_start_bypass_process(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       static const int MY_VERSION = 1;
       common::ObResultCode result_msg;
@@ -5142,7 +5142,7 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       return ret;
     }
 int ObRootWorker::rt_write_schema_to_file(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
 {
   UNUSED(in_buff);
   static const int MY_VERSION = 1;
@@ -5182,7 +5182,7 @@ int ObRootWorker::rt_write_schema_to_file(const int32_t version, common::ObDataB
   return ret;
 }
 int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5217,7 +5217,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_start_import(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5279,7 +5279,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_import(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5347,7 +5347,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_start_kill_import(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5400,7 +5400,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_kill_import(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5453,7 +5453,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_get_import_status(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5512,7 +5512,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_set_import_status(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int32_t MY_VERSION = 1;
@@ -5572,7 +5572,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_force_create_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -5629,7 +5629,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_force_drop_table(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 1;
@@ -5686,7 +5686,7 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     int ObRootWorker::rt_notify_switch_schema(const int32_t version, common::ObDataBuffer& in_buff,
-        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
       UNUSED(in_buff);
       int ret = OB_SUCCESS;

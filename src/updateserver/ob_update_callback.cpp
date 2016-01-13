@@ -9,18 +9,18 @@ namespace oceanbase
 {
   namespace updateserver
   {     
-    int ObUpdateCallback::process(easy_request_t* r)
+    int ObUpdateCallback::process(onev_request_e* r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == r)
       {
         TBSYS_LOG(ERROR, "request is empty, r = %p", r);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else if (NULL == r->ipacket)
       {
         TBSYS_LOG(ERROR, "request is empty, r->ipacket = %p", r->ipacket);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else
       {
@@ -28,25 +28,25 @@ namespace oceanbase
         ObPacket *req = reinterpret_cast<ObPacket*>(r->ipacket);
         req->set_request(r);
         r->ms->c->pool->ref ++;
-        easy_atomic_inc(&r->ms->pool->ref);
-        easy_pool_set_lock(r->ms->pool);
+        onev_atomic_inc(&r->ms->pool->ref);
+        onev_pool_set_lock(r->ms->pool);
         ret = server->handlePacket(req);
         if (OB_SUCCESS == ret)
         {
           // enqueue success
-          ret = EASY_AGAIN;
+          ret = ONEV_AGAIN;
         }
         else if (OB_ENQUEUE_FAILED == ret)
         {
           TBSYS_LOG(WARN, "can not push packet(src is %s, pcode is %u) to packet queue", 
                     inet_ntoa_r(r->ms->c->addr), req->get_packet_code());
           r->ms->c->pool->ref --;
-          easy_atomic_dec(&r->ms->pool->ref);
-          ret = EASY_OK;
+          onev_atomic_dec(&r->ms->pool->ref);
+          ret = ONEV_OK;
         }
         else /* OB_ERROR */
         {
-          ret = EASY_AGAIN;
+          ret = ONEV_AGAIN;
         }
       }
       return ret;

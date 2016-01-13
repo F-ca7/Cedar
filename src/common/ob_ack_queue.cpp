@@ -13,7 +13,7 @@
  */
 #include "ob_ack_queue.h"
 #include "ob_result.h"
-#include "easy_io.h"
+#include "onev_io.h"
 #include "ob_client_manager.h"
 
 namespace oceanbase
@@ -187,9 +187,9 @@ namespace oceanbase
 
     int ObAckQueue::callback(void* data)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       int err = OB_SUCCESS;
-      easy_request_t* r = (easy_request_t*)data;
+      onev_request_e* r = (onev_request_e*)data;
       if (NULL == r || NULL == r->ms)
       {
         TBSYS_LOG(WARN, "request is null or r->ms is null");
@@ -216,7 +216,7 @@ namespace oceanbase
         }
         else if (OB_SUCCESS != (err = result_code.deserialize(response_buffer->get_data() + response_buffer->get_position(), packet->get_data_length(), pos)))
         {
-          TBSYS_LOG(ERROR, "deserialize result_code failed:pos[%ld], err[%d], server=%s", pos, err, inet_ntoa_r(get_easy_addr(r)));
+          TBSYS_LOG(ERROR, "deserialize result_code failed:pos[%ld], err[%d], server=%s", pos, err, inet_ntoa_r(get_onev_addr(r)));
         }
         else
         {
@@ -237,7 +237,7 @@ namespace oceanbase
       }
       if (NULL != r && NULL != r->ms)
       {
-        easy_session_destroy(r->ms);
+        onev_destroy_session(r->ms);
       }
       return ret;
     }

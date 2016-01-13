@@ -73,7 +73,7 @@ void ObCommonRpcEvent::set_result_code(const int32_t code)
   result_code_ = code;
 }
 
-easy_io_process_pt* ObCommonRpcEvent::get_handler() const
+onev_io_process_pe* ObCommonRpcEvent::get_handler() const
 {
   return handler_;
 }

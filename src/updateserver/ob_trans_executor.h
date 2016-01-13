@@ -171,7 +171,7 @@ namespace oceanbase
       {
         common::ObPacket pkt;
         ObTransID sid;
-        easy_addr_t src_addr;
+        onev_addr_e src_addr;
         void reset()
         {
           sid.reset();

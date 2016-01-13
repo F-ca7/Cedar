@@ -1,5 +1,5 @@
 AM_CPPFLAGS := $(AM_CPPFLAGS) -I${TBLIB_ROOT}/include/tbsys  \
-              -I${EASY_ROOT}/include/easy    \
+              -I${ONEV_ROOT}/include/onev    \
               -I${top_srcdir}/include        \
               -I${top_srcdir}/src
 
@@ -15,7 +15,7 @@ LDADD = $(top_builddir)/src/sql/libsql.a              \
         ${top_builddir}/src/common/libcommon.a        \
         ${top_builddir}/src/common/btree/libbtree.a   \
 				$(top_builddir)/src/common/timezone/libtimezone.a    \
-        ${EASY_LIB_PATH}/libeasy.a                    \
+        ${ONEV_LIB_PATH}/libonev.a                    \
         ${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
 CXXFLAGS+=-D__VERSION_ID__="\"updateserver 1.0.0.0\""

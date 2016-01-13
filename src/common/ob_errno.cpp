@@ -134,7 +134,7 @@ static struct ObStrErrorInit
 
     ADD_ERROR_STR(OB_RPC_SEND_ERROR, "PRC send error");
     ADD_ERROR_STR(OB_RPC_POST_ERROR, "PRC post error");
-    ADD_ERROR_STR(OB_LIBEASY_ERROR, "Libeasy error");
+    ADD_ERROR_STR(OB_LIBONEV_ERROR, "Libonev error");
     ADD_ERROR_STR(OB_CONNECT_ERROR, "Connect error");
     ADD_ERROR_STR(OB_NOT_FREE, "Not free");
     ADD_ERROR_STR(OB_INIT_SQL_CONTEXT_ERROR, "Init SQL context error");

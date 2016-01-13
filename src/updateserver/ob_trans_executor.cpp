@@ -211,7 +211,7 @@ namespace oceanbase
       if (0 > pcode
           || OB_PACKET_NUM <= pcode)
       {
-        easy_request_t *req = pkt.get_request();
+        onev_request_e *req = pkt.get_request();
         TBSYS_LOG(ERROR, "invalid packet code=%d src=%s",
                   pcode, NULL == req ? NULL : get_peer_ip(req));
         ret = OB_UNKNOWN_PACKET;
@@ -228,7 +228,7 @@ namespace oceanbase
         {
           task->reset();
           task->pkt = pkt;
-          task->src_addr = get_easy_addr(pkt.get_request());
+          task->src_addr = get_onev_addr(pkt.get_request());
           char *data_buffer = (char*)task + sizeof(Task);
           memcpy(data_buffer, pkt.get_buffer()->get_data(), pkt.get_buffer()->get_capacity());
           task->pkt.get_buffer()->set_data(data_buffer, pkt.get_buffer()->get_capacity());

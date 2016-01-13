@@ -119,12 +119,12 @@ namespace oceanbase
       return _next;
     }
 
-    easy_request_t* ObPacket::get_request() const
+    onev_request_e* ObPacket::get_request() const
     {
       return req_;
     }
 
-    void ObPacket::set_request(easy_request_t* r)
+    void ObPacket::set_request(onev_request_e* r)
     {
       req_ = r;
     }

@@ -18,7 +18,7 @@
 #include "common/thread_buffer.h"
 #include "common/ob_timer.h"
 #include "ob_schema_task.h"
-#include "easy_io.h"
+#include "onev_io.h"
 #include "common/ob_cur_time.h"
 #include "common/ob_ms_list.h"
 #include "sql/ob_sql_read_param.h"
@@ -56,7 +56,7 @@ namespace oceanbase
             const int32_t packet_code,
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time = 0);
@@ -69,7 +69,7 @@ namespace oceanbase
             const int64_t start_time, 
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -77,14 +77,14 @@ namespace oceanbase
         int cs_batch_get(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_tablet_read(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -92,14 +92,14 @@ namespace oceanbase
         int cs_fetch_data(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_sql_scan(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -107,7 +107,7 @@ namespace oceanbase
         int cs_sql_get(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -115,7 +115,7 @@ namespace oceanbase
         int cs_sql_read(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time,
@@ -125,7 +125,7 @@ namespace oceanbase
             const int64_t start_time, 
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -133,174 +133,174 @@ namespace oceanbase
         int cs_drop_old_tablets(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_heart_beat(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_create_tablet(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_accept_schema(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_load_tablet(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_delete_tablets(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_get_migrate_dest_loc(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_dump_tablet_image(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_fetch_stats(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_start_gc(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_reload_conf(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_show_param(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_stop_server(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_force_to_report_tablet(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
         int cs_change_log_level(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_check_tablet(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_merge_tablets(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_send_file(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_sync_all_images(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_load_bypass_sstables(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_delete_table(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_fetch_sstable_dist(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_set_config(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_get_config(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_get_bloom_filter(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer,
             const int64_t timeout_time);
@@ -309,14 +309,14 @@ namespace oceanbase
         int cs_disk_maintain(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
         int cs_show_disk(
             const int32_t version,
             const int32_t channel_id,
-            easy_request_t* req,
+            onev_request_e* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 

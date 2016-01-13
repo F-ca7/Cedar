@@ -437,7 +437,7 @@ namespace oceanbase
         const int32_t packet_code,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -610,7 +610,7 @@ namespace oceanbase
     int ObChunkService::cs_send_file(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -621,7 +621,7 @@ namespace oceanbase
     int ObChunkService::cs_batch_get(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -662,7 +662,7 @@ namespace oceanbase
         const int64_t start_time,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -683,7 +683,7 @@ namespace oceanbase
       ObPacket* next_request = NULL;
       ObPacketQueueThread& queue_thread =
         chunk_server_->get_default_task_queue_thread();
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       FILL_TRACE_LOG("start cs_get");
 
       if (version != CS_GET_VERSION)
@@ -897,7 +897,7 @@ namespace oceanbase
     int ObChunkService::cs_show_disk(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -965,7 +965,7 @@ namespace oceanbase
     int ObChunkService::cs_disk_maintain(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1043,7 +1043,7 @@ namespace oceanbase
     int ObChunkService::cs_sql_scan(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -1056,7 +1056,7 @@ namespace oceanbase
     int ObChunkService::cs_sql_get(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -1069,7 +1069,7 @@ namespace oceanbase
     int ObChunkService::cs_sql_read(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time,
@@ -1272,7 +1272,7 @@ namespace oceanbase
             if (NULL != next_request)
             {
               req = next_request->get_request();
-              easy_request_wakeup(req);
+              onev_request_wakeup(req);
             }
             break;
           }
@@ -1364,7 +1364,7 @@ namespace oceanbase
         const int64_t start_time,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -1386,7 +1386,7 @@ namespace oceanbase
       ObPacket* next_request = NULL;
       ObPacketQueueThread& queue_thread =
         chunk_server_->get_default_task_queue_thread();
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       char sql[1024] = "";
       int64_t pos = 0;
 
@@ -1501,7 +1501,7 @@ namespace oceanbase
             //merge server end this session
             req = next_request->get_request();
             rc.result_code_ = OB_SUCCESS;
-            easy_request_wakeup(req);
+            onev_request_wakeup(req);
             break;
           }
           else if (OB_SUCCESS != rc.result_code_)
@@ -1592,7 +1592,7 @@ namespace oceanbase
     int ObChunkService::cs_drop_old_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1650,7 +1650,7 @@ namespace oceanbase
     int ObChunkService::cs_heart_beat(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1830,7 +1830,7 @@ namespace oceanbase
     int ObChunkService::cs_accept_schema(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1917,7 +1917,7 @@ namespace oceanbase
     int ObChunkService::cs_create_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2006,7 +2006,7 @@ namespace oceanbase
     int ObChunkService::cs_load_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2200,7 +2200,7 @@ namespace oceanbase
     int ObChunkService::cs_delete_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2339,7 +2339,7 @@ namespace oceanbase
     int ObChunkService::cs_merge_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2425,7 +2425,7 @@ namespace oceanbase
     int ObChunkService::cs_get_migrate_dest_loc(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2522,7 +2522,7 @@ namespace oceanbase
     int ObChunkService::cs_dump_tablet_image(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2618,7 +2618,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_stats(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2660,7 +2660,7 @@ namespace oceanbase
     int ObChunkService::cs_start_gc(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2702,7 +2702,7 @@ namespace oceanbase
     int ObChunkService::cs_check_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2759,7 +2759,7 @@ namespace oceanbase
     int ObChunkService::cs_reload_conf(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2800,7 +2800,7 @@ namespace oceanbase
     int ObChunkService::cs_show_param(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2837,7 +2837,7 @@ namespace oceanbase
     int ObChunkService::cs_stop_server(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -2901,7 +2901,7 @@ namespace oceanbase
     int ObChunkService::cs_force_to_report_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2940,14 +2940,14 @@ namespace oceanbase
           atomic_exchange(&scan_tablet_image_count_, 0);
         }
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
     int ObChunkService::cs_change_log_level(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -2994,7 +2994,7 @@ namespace oceanbase
     int ObChunkService::cs_sync_all_images(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3044,7 +3044,7 @@ namespace oceanbase
     int ObChunkService::cs_tablet_read(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -3199,7 +3199,7 @@ namespace oceanbase
             if (NULL != next_request)
             {
               req = next_request->get_request();
-              easy_request_wakeup(req);
+              onev_request_wakeup(req);
             }
             break;
           }
@@ -3272,7 +3272,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_data(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3562,7 +3562,7 @@ namespace oceanbase
     int ObChunkService::cs_load_bypass_sstables(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3663,7 +3663,7 @@ namespace oceanbase
     int ObChunkService::cs_delete_table(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3744,7 +3744,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_sstable_dist(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -4007,7 +4007,7 @@ namespace oceanbase
     int ObChunkService::cs_set_config(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -4055,7 +4055,7 @@ namespace oceanbase
     int ObChunkService::cs_get_config(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -4097,7 +4097,7 @@ namespace oceanbase
     int ObChunkService::cs_get_bloom_filter(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_time)
@@ -4305,7 +4305,7 @@ namespace oceanbase
           if (OB_NET_SESSION_END == ret)
           {
             ret = OB_SUCCESS;
-            easy_request_wakeup(req);
+            onev_request_wakeup(req);
             break;
           }
           else if (OB_SUCCESS == ret)

@@ -17,7 +17,7 @@
 #ifndef __OCEANBASE_CHUNKSERVER_OB_UPDATE_SERVER_H__
 #define __OCEANBASE_CHUNKSERVER_OB_UPDATE_SERVER_H__
 
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_single_server.h"
 #include "common/ob_packet_factory.h"
 #include "common/thread_buffer.h"
@@ -400,15 +400,15 @@ namespace oceanbase
       private:
         //add:
         int start_timer_schedule();
-        int return_not_master(const int32_t version, easy_request_t* req,
+        int return_not_master(const int32_t version, onev_request_e* req,
             const uint32_t channel_id, const int32_t packet_code);
 
         int ups_rs_lease(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_rs_revoke_lease(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ob_login(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_switch_skey();
         int check_keep_alive_();
         int grant_keep_alive_();
@@ -417,94 +417,94 @@ namespace oceanbase
         int register_to_rootserver(const uint64_t log_seq_id);
         void set_register_msg(const uint64_t log_id, ObMsgUpsRegister &msg_register);
         int set_obi_role(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         ///slave_master ups send fetch param to slave_slave
         int slave_set_fetch_param(const int32_t version, common::ObDataBuffer& in_buff,
-                    easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+                    onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_slave_write_log(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_fetch_log_for_slave(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff, common::ObPacket* packet);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff, common::ObPacket* packet);
 
         int ups_fill_log_cursor_for_slave(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_clog_status(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_set_sync_limit(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_clog_cursor(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int ups_get_clog_master(const int32_t version, easy_request_t* req,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        int ups_get_clog_master(const int32_t version, onev_request_e* req,
                                 const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int ups_get_log_sync_delay_stat(const int32_t version, easy_request_t* req,
+        int ups_get_log_sync_delay_stat(const int32_t version, onev_request_e* req,
                                         const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int ups_get_clog_stat(const int32_t version, easy_request_t* req,
+        int ups_get_clog_stat(const int32_t version, onev_request_e* req,
                               const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_sql_scan(const int32_t version, common::ObDataBuffer& in_buff,
-                         easy_request_t* req, const uint32_t channel_id,
+                         onev_request_e* req, const uint32_t channel_id,
                          common::ObDataBuffer& out_buff);
-        int ups_ping(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+        int ups_ping(const int32_t version, onev_request_e* req, const uint32_t channel_id);
         int ups_new_get(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
             const int64_t start_time, const int64_t packet_timewait, const int32_t priority);
         int ups_new_scan(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
             const int64_t start_time, const int64_t packet_timewait, const int32_t priority);
 
         int ups_get(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
             const int64_t start_time, const int64_t packet_timewait, const int32_t priority);
         int ups_scan(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
             const int64_t start_time, const int64_t packet_timewait, const int32_t priority);
         int ups_preprocess(const int32_t version, const int32_t packet_code, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
             const int64_t start_time, const int64_t packet_timewait);
         int ups_slave_register(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_slave_quit(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
 
         int ups_dump_text_memtable(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_dump_text_schemas(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_force_fetch_schema(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_reload_conf(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_renew_lease(const int32_t version, common::ObDataBuffer& in_buf,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_grant_lease(const int32_t version, common::ObDataBuffer& in_buf,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_change_vip(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_memory_watch(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_memory_limit_set(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_priv_queue_conf_set(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_clear_active_memtable(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_switch_commit_log(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_last_frozen_version(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_slave_info(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_rs_get_max_log_seq(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_table_time_stamp(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int ups_enable_memtable_checksum(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_disable_memtable_checksum(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        int ups_enable_memtable_checksum(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_disable_memtable_checksum(const int32_t version, onev_request_e* req, const uint32_t channel_id);
         int ups_fetch_stat_info(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_schema(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_sstable_range_list(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
 
         int ups_start_transaction(const MemTableTransType type, UpsTableMgrTransHandle& handle);
         int ups_apply(const bool using_id, UpsTableMgrTransHandle& handle, common::ObDataBuffer& in_buff, common::ObScanner *scanner);
@@ -514,36 +514,36 @@ namespace oceanbase
         int ups_freeze_memtable(const int32_t version, common::ObPacket *packet_orig, common::ObDataBuffer& in_buff, const int pcode);
         int ups_switch_schema(const int32_t version, common::ObPacket *packet_orig, common::ObDataBuffer &in_buf);
         int ups_create_memtable_index();
-        int ups_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_delay_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_immediately_drop_memtable(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+        int ups_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_delay_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_immediately_drop_memtable(const int32_t version, onev_request_e* req, const uint32_t channel_id);
         int ups_drop_memtable();
         int ups_load_bypass(const int32_t version,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff, const int pcode);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff, const int pcode);
         int ups_check_cur_version();
         int ups_commit_check_sstable_checksum(ObDataBuffer &buffer);
         int ups_get_bloomfilter(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_store_memtable(const int32_t version, common::ObDataBuffer &in_buf,
-            easy_request_t* req, const uint32_t channel_id);
-        int ups_erase_sstable(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
+        int ups_erase_sstable(const int32_t version, onev_request_e* req, const uint32_t channel_id);
         int ups_handle_frozen();
-        int ups_load_new_store(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_reload_all_store(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_froce_report_frozen_version(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+        int ups_load_new_store(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_reload_all_store(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_froce_report_frozen_version(const int32_t version, onev_request_e* req, const uint32_t channel_id);
         int ups_reload_store(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_umount_store(const int32_t version, common::ObDataBuffer& in_buff,
-            easy_request_t* req, const uint32_t channel_id);
+            onev_request_e* req, const uint32_t channel_id);
         int ups_change_log_level(const int32_t version, common::ObDataBuffer& in_buff,
-                                 easy_request_t* req, const uint32_t channel_id);
+                                 onev_request_e* req, const uint32_t channel_id);
         int ups_stop_server(const int32_t version, common::ObDataBuffer& in_buff,
-                                 easy_request_t* req, const uint32_t channel_id);
+                                 onev_request_e* req, const uint32_t channel_id);
         int ob_malloc_stress(const int32_t version, common::ObDataBuffer& in_buff,
-                             easy_request_t* req, const uint32_t channel_id);
+                             onev_request_e* req, const uint32_t channel_id);
         int ups_set_config(const int32_t version, common::ObDataBuffer& in_buff,
-                           easy_request_t* req, const uint32_t channel_id);
-        int ups_get_config(const int32_t version, easy_request_t* req,
+                           onev_request_e* req, const uint32_t channel_id);
+        int ups_get_config(const int32_t version, onev_request_e* req,
                            const uint32_t channel_id, common::ObDataBuffer& out_buff);
 
 
@@ -551,23 +551,23 @@ namespace oceanbase
 
 
         int response_result_(int32_t ret_code, int32_t cmd_type, int32_t func_version,
-                             easy_request_t* req, const uint32_t channel_id, int64_t receive_ts = 0, const char *ret_string = NULL);
+                             onev_request_e* req, const uint32_t channel_id, int64_t receive_ts = 0, const char *ret_string = NULL);
         int response_scanner_(int32_t ret_code, const common::ObScanner &scanner,
             int32_t cmd_type, int32_t func_version,
-            easy_request_t* req, const uint32_t channel_id,
+            onev_request_e* req, const uint32_t channel_id,
             common::ObDataBuffer& out_buff);
         int response_fetch_param_(int32_t ret_code, const ObUpsFetchParam& fetch_param,
             const int64_t log_id, int32_t cmd_type, int32_t func_version,
-            easy_request_t* req, const uint32_t channel_id,
+            onev_request_e* req, const uint32_t channel_id,
             common::ObDataBuffer& out_buff);
         int response_lease_(int32_t ret_code, const common::ObLease& lease,
             int32_t cmd_type, int32_t func_version,
-            easy_request_t* req, const uint32_t channel_id,
+            onev_request_e* req, const uint32_t channel_id,
             common::ObDataBuffer& out_buff);
         template <class T>
         int response_data_(int32_t ret_code, const T &data,
                           int32_t cmd_type, int32_t func_version,
-                          easy_request_t* req, const uint32_t channel_id,
+                          onev_request_e* req, const uint32_t channel_id,
                            common::ObDataBuffer& out_buff, const int64_t receive_ts=0, const int32_t* priority = NULL, const char *ret_string = NULL);
         int low_priv_speed_control_(const int64_t scanner_size);
 
@@ -579,7 +579,7 @@ namespace oceanbase
                               const common::ObPacket *packet = NULL);
         template <class Queue>
         int submit_async_task_(const common::PacketCode pcode, Queue &qthread, int32_t task_queue_size,
-            const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req,
+            const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req,
             const uint32_t channel_id, const int64_t timeout);
 
         int report_frozen_version_();
@@ -589,8 +589,8 @@ namespace oceanbase
         int do_async_update_whole_schema();
 
         //add
-        int slave_ups_receive_keep_alive(const int32_t version, easy_request_t* req, const uint32_t channel_id);
-        int ups_clear_fatal_status(const int32_t version, easy_request_t* req, const uint32_t channel_id);
+        int slave_ups_receive_keep_alive(const int32_t version, onev_request_e* req, const uint32_t channel_id);
+        int ups_clear_fatal_status(const int32_t version, onev_request_e* req, const uint32_t channel_id);
       public:
         int ui_deserialize_mutator(ObDataBuffer& buffer, ObMutator &mutator);
       private:

@@ -1,8 +1,8 @@
 #include "ob_base_server.h"
 #include "ob_tbnet_callback.h"
 #include "ob_tsi_factory.h"
-#include "ob_libeasy_mem_pool.h"
-#include "easy_pool.h"
+#include "ob_libonev_mem_pool.h"
+#include "onev_palloc.h"
 
 namespace oceanbase
 {
@@ -16,7 +16,7 @@ namespace oceanbase
     {
       if (NULL != eio_)
       {
-        easy_eio_destroy(eio_);
+        onev_destroy_io(eio_);
         eio_ = NULL;
       }
     }
@@ -34,7 +34,7 @@ namespace oceanbase
     {
       if (NULL != eio_)
       {
-        easy_eio_wait(eio_);
+        onev_wait_io(eio_);
       }
     }
 
@@ -47,23 +47,23 @@ namespace oceanbase
     int ObBaseServer::start(bool need_wait)
     {
       int rc = OB_SUCCESS;
-      int ret = EASY_OK;
-      easy_pool_set_allocator(ob_easy_realloc);
-      easy_listen_t *listen = NULL;
+      int ret = ONEV_OK;
+      onev_pool_set_allocator(ob_onev_realloc);
+      onev_listen_e *listen = NULL;
       //create io thread
-      eio_ = easy_eio_create(eio_, io_thread_count_);
+      eio_ = onev_create_io(eio_, io_thread_count_);
       eio_->do_signal = 0;
       eio_->force_destroy_second = OB_CONNECTION_FREE_TIME_S;
       eio_->checkdrc = 1;
       eio_->support_ipv6 = 0;
       eio_->no_redispatch = 1;
       eio_->no_delayack = 1;
-      easy_eio_set_uthread_start(eio_, easy_on_ioth_start, this);
+      onev_io_set_uthread_start(eio_, onev_on_ioth_start, this);
       eio_->uthread_enable = 0;
       if (NULL == eio_)
       {
         rc = OB_ERROR;
-        TBSYS_LOG(ERROR, "easy_io_create error");
+        TBSYS_LOG(ERROR, "onev_io_create error");
       }
 
       if (OB_SUCCESS == rc)
@@ -83,9 +83,9 @@ namespace oceanbase
         server_id_ = tbsys::CNetUtil::ipToAddr(local_ip, port_);
         if (OB_SUCCESS == rc)
         {
-          if (NULL == (listen = easy_connection_add_listen(eio_, NULL, port_, &server_handler_)))
+          if (NULL == (listen = onev_connection_add_listen(eio_, NULL, port_, &server_handler_)))
           {
-            TBSYS_LOG(ERROR, "easy_connection_add_listen error, port: %d, %s", port_, strerror(errno));
+            TBSYS_LOG(ERROR, "onev_connection_add_listen error, port: %d, %s", port_, strerror(errno));
             rc = OB_SERVER_LISTEN_ERROR;
           }
           else
@@ -95,10 +95,10 @@ namespace oceanbase
         }
         if (OB_SUCCESS == rc)
         {
-          easy_io_thread_t *ioth = NULL;
-          easy_thread_pool_for_each(ioth, eio_->io_thread_pool, 0)
+          onev_io_thread_e *ioth = NULL;
+          onev_thread_pool_for_each(ioth, eio_->io_thread_pool, 0)
           {
-            ev_timer_init(&ioth->user_timer, easy_timer_cb, OB_LIBEASY_STATISTICS_TIMER, OB_LIBEASY_STATISTICS_TIMER);
+            ev_timer_init(&ioth->user_timer, onev_timer_cb, OB_LIBONEV_STATISTICS_TIMER, OB_LIBONEV_STATISTICS_TIMER);
             ev_timer_start(ioth->loop, &(ioth->user_timer));
           }
         }
@@ -106,15 +106,15 @@ namespace oceanbase
         //start io thread
         if (rc == OB_SUCCESS)
         {
-          ret = easy_eio_start(eio_);
-          if (EASY_OK == ret)
+          ret = onev_start_io(eio_);
+          if (ONEV_OK == ret)
           {
             rc = OB_SUCCESS;
             TBSYS_LOG(INFO, "start io thread");
           }
           else
           {
-            TBSYS_LOG(ERROR, "easy_eio_start failed");
+            TBSYS_LOG(ERROR, "onev_start_io failed");
             rc = OB_ERROR;
           }
         }
@@ -128,7 +128,7 @@ namespace oceanbase
           //wait for io thread exit
           if (need_wait)
           {
-            easy_eio_wait(eio_);
+            onev_wait_io(eio_);
           }
         }
       }
@@ -149,7 +149,7 @@ namespace oceanbase
         destroy();
         if (eio_ != NULL && NULL != eio_->pool)
         {
-          easy_eio_stop(eio_);
+          onev_stop_io(eio_);
         }
         TBSYS_LOG(INFO, "stop eio.");
       }
@@ -165,9 +165,9 @@ namespace oceanbase
         TBSYS_LOG(WARN, "start to stop eio");
         if (eio_ != NULL && NULL != eio_->pool)
         {
-          easy_eio_stop(eio_);
-          easy_eio_wait(eio_);
-          easy_eio_destroy(eio_);
+          onev_stop_io(eio_);
+          onev_wait_io(eio_);
+          onev_destroy_io(eio_);
           eio_ = NULL;
         }
         TBSYS_LOG(WARN, "server stoped.");
@@ -227,7 +227,7 @@ namespace oceanbase
       return server_id_;
     }
 
-    int ObBaseServer::send_response(const int32_t pcode, const int32_t version, const ObDataBuffer& buffer, easy_request_t* req, const uint32_t channel_id, const int64_t session_id)
+    int ObBaseServer::send_response(const int32_t pcode, const int32_t version, const ObDataBuffer& buffer, onev_request_e* req, const uint32_t channel_id, const int64_t session_id)
     {
       int rc = OB_SUCCESS;
 
@@ -240,11 +240,11 @@ namespace oceanbase
       {
         //copy packet into req buffer
         int64_t size = buffer.get_position() + OB_RECORD_HEADER_LENGTH + sizeof(ObPacket);
-        char* ibuffer = reinterpret_cast<char*>(easy_pool_alloc(req->ms->pool, static_cast<uint32_t>(size)));
+        char* ibuffer = reinterpret_cast<char*>(onev_pool_alloc(req->ms->pool, static_cast<uint32_t>(size)));
         if (NULL == ibuffer)
         {
           TBSYS_LOG(WARN, "alloc buffer from req->ms->pool failed");
-          rc = OB_LIBEASY_ERROR;
+          rc = OB_LIBONEV_ERROR;
         }
 
         if (OB_SUCCESS == rc)
@@ -280,22 +280,22 @@ namespace oceanbase
           }
         }
         //wakeup the ioth to send response
-        req->retcode = EASY_OK;
-        easy_request_wakeup(req);
+        req->retcode = ONEV_OK;
+        onev_request_wakeup(req);
       }
       return rc;
     }
-    void ObBaseServer::easy_timer_cb(EV_P_ ev_timer *w, int revents)
+    void ObBaseServer::onev_timer_cb(EV_P_ ev_timer *w, int revents)
     {
       UNUSED(w);
       UNUSED(loop);
       UNUSED(revents);
       char buffer[FD_BUFFER_SIZE];
       int64_t pos = 0;
-      databuff_printf(buffer, FD_BUFFER_SIZE, pos, "tid=%ld fds=", EASY_IOTH_SELF->tid);
-      easy_connection_t *c = NULL;
-      easy_connection_t *c2 = NULL;
-      easy_list_for_each_entry_safe(c, c2, &(EASY_IOTH_SELF->connected_list), conn_list_node)
+      databuff_printf(buffer, FD_BUFFER_SIZE, pos, "tid=%ld fds=", ONEV_IOTH_SELF->tid);
+      onev_connection_e *c = NULL;
+      onev_connection_e *c2 = NULL;
+      onev_list_for_each_entry_safe(c, c2, &(ONEV_IOTH_SELF->connected_list), conn_list_node)
       {
         databuff_printf(buffer, FD_BUFFER_SIZE, pos, "%d,", c->fd);
       }

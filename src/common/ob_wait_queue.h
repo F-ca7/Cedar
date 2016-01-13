@@ -221,7 +221,7 @@ namespace oceanbase
     };
 
     template <typename reg>
-    int static_callback(easy_request_t* arg)
+    int static_callback(onev_request_e* arg)
     {
       return (*reg::value())->callback(arg);
     }

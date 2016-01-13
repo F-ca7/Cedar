@@ -2,8 +2,8 @@
 #include "data_buffer.h"
 #include "tblog.h"
 #include "ob_define.h"
-#include "easy_io.h"
-#include "easy_define.h"
+#include "onev_io.h"
+#include "onev_defines.h"
 #include "ob_single_server.h"
 #include <byteswap.h>
 #include "utility.h"
@@ -18,7 +18,7 @@ namespace oceanbase
 
     //decode packet from networ using m->pool memory for packet
     //m->pool will destroyed when request done
-    void* ObTbnetCallback::decode(easy_message_t *m)
+    void* ObTbnetCallback::decode(onev_message_e *m)
     {
       int flag = 0;
       int pcode = 0;
@@ -61,7 +61,7 @@ namespace oceanbase
           {
             TBSYS_LOG(ERROR, "tbnet flag:%x<>%x, datalen:%d, peer is %s", flag, OB_TBNET_PACKET_FLAG,
                       packetlen, inet_ntoa_r(m->c->addr));
-            m->status = EASY_ERROR;
+            m->status = ONEV_ERROR;
           }
           else
           {
@@ -128,13 +128,13 @@ namespace oceanbase
 #endif
               buflen = packetlen - static_cast<int>(header_size);
               //alloc mem from m->pool
-              buff = reinterpret_cast<char*>(easy_pool_alloc(m->pool,
+              buff = reinterpret_cast<char*>(onev_pool_alloc(m->pool,
                                                               static_cast<uint32_t>(sizeof(ObPacket) + buflen)));
-              //alloc mem failed just set libeasy message status to EASY_ERROR will destroy current connection
+              //alloc mem failed just set libonev message status to ONEV_ERROR will destroy current connection
               if (NULL == buff)
               {
                 TBSYS_LOG(WARN, "alloc packet buffer from m->pool failed");
-                m->status = EASY_ERROR;
+                m->status = ONEV_ERROR;
                 m->input->pos -= OB_TBNET_HEADER_LENGTH;
               }
               else
@@ -179,7 +179,7 @@ namespace oceanbase
                   //deserialize packet failed dataflow error close current connection
                   if (OB_SUCCESS != err)
                   {
-                    m->status = EASY_ERROR;
+                    m->status = ONEV_ERROR;
                     TBSYS_LOG(ERROR, "deserialize packet failed packet channel is %d packet code is %d, err=%d", packet->get_channel_id(),
                               packet->get_packet_code(), err);
                     packet = NULL;
@@ -204,10 +204,10 @@ namespace oceanbase
       return packet;
     }
 
-    int ObTbnetCallback::encode(easy_request_t *r, void *data)
+    int ObTbnetCallback::encode(onev_request_e *r, void *data)
     {
-      int ret = EASY_OK;
-      easy_buf_t* b = NULL;
+      int ret = ONEV_OK;
+      onev_buf_e* b = NULL;
       char* buff = NULL;
       ObPacket* packet = reinterpret_cast<ObPacket*>(data);
       int64_t header_size = 0;
@@ -233,52 +233,52 @@ namespace oceanbase
 #endif
       packet->set_ob_packet_header_size(ob_packet_header_size);
       int64_t size = packet->get_inner_buffer()->get_position() + OB_TBNET_HEADER_LENGTH + header_size;
-      b = reinterpret_cast<easy_buf_t *>(easy_pool_alloc(r->ms->pool,
-                                                          static_cast<uint32_t>(sizeof(easy_buf_t) + size)));
+      b = reinterpret_cast<onev_buf_e *>(onev_pool_alloc(r->ms->pool,
+                                                          static_cast<uint32_t>(sizeof(onev_buf_e) + size)));
       if (NULL == b)
       {
         TBSYS_LOG(WARN, "alloc mem for send buffer failed buf=%p size is %lu", b,
-                  sizeof(easy_buf_t) + size);
-        ret = EASY_ERROR;
+                  sizeof(onev_buf_e) + size);
+        ret = ONEV_ERROR;
       }
       else
       {
-        //skip sizeof(easy_buf_t) bytes
+        //skip sizeof(onev_buf_e) bytes
         buff = reinterpret_cast<char *>(b + 1);
         //b->pos = buff;
         //b->end = buff + size;
         //set packet length
-        init_easy_buf(b, buff, r, size);
+        init_onev_buf(b, buff, r, size);
         packet->set_packet_len(static_cast<int>(
                                  packet->get_inner_buffer()->get_position() + header_size));
 
         if (false == packet->encode(buff, size))
         {
-          ret = EASY_ERROR;
+          ret = ONEV_ERROR;
           TBSYS_LOG(WARN, "encode failed packet is %p, buff is %p, size is %ld", packet, buff, size);
         }
 
-        if (EASY_OK == ret)
+        if (ONEV_OK == ret)
         {
-          easy_buf_set_data(r->ms->pool, b, buff, static_cast<uint32_t>(size));
-          easy_request_addbuf(r, b);
+          onev_buf_set_data(r->ms->pool, b, buff, static_cast<uint32_t>(size));
+          onev_request_addbuf(r, b);
           //add rpc bytes out statistics
           OB_STAT_INC(COMMON, RPC_BYTES_OUT, size);
           TBSYS_LOG(DEBUG, "encode packet success packet code is %d, c is %s",packet->get_packet_code(),
-                    easy_connection_str(r->ms->c));
+                    onev_connection_to_str(r->ms->c));
         }
       }
 
       return ret;
     }
 
-    int ObTbnetCallback::on_disconnect(easy_connection_t* c)
+    int ObTbnetCallback::on_disconnect(onev_connection_e* c)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == c)
       {
         TBSYS_LOG(WARN, "invalid argument c is %p", c);
-        ret = EASY_ERROR;
+        ret = ONEV_ERROR;
       }
       else
       {
@@ -290,39 +290,39 @@ namespace oceanbase
       return ret;
     }
 
-    int ObTbnetCallback::batch_process(easy_message_t *m)
+    int ObTbnetCallback::batch_process(onev_message_e *m)
     {
       UNUSED(m);
-      return EASY_OK;
+      return ONEV_OK;
     }
 
-    uint64_t ObTbnetCallback::get_packet_id(easy_connection_t *c, void *packet)
+    uint64_t ObTbnetCallback::get_packet_id(onev_connection_e *c, void *packet)
     {
       UNUSED(c);
       return ((ObPacket*)packet)->get_channel_id();
     }
 
-    int ObTbnetCallback::default_callback(easy_request_t* r)
+    int ObTbnetCallback::default_callback(onev_request_e* r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == r || NULL == r->ms)
       {
         TBSYS_LOG(WARN, "request is null or r->ms is null");
       }
       else
       {
-        easy_session_destroy(r->ms);
+        onev_destroy_session(r->ms);
       }
       return ret;
     }
 
-    int ObTbnetCallback::shadow_process(easy_request_t* r)
+    int ObTbnetCallback::shadow_process(onev_request_e* r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == r || NULL == r->ipacket)
       {
         TBSYS_LOG(ERROR, "request is empty, r = %p, r->ipacket = %p", r, r->ipacket);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else
       {
@@ -333,13 +333,13 @@ namespace oceanbase
         if (OB_SUCCESS == ret)
         {
           r->ms->c->pool->ref++;
-          easy_atomic_inc(&r->ms->pool->ref);
-          easy_pool_set_lock(r->ms->pool);
-          ret = EASY_AGAIN;
+          onev_atomic_inc(&r->ms->pool->ref);
+          onev_pool_set_lock(r->ms->pool);
+          ret = ONEV_AGAIN;
         }
         else
         {
-          ret = EASY_OK;
+          ret = ONEV_OK;
           TBSYS_LOG(WARN, "can not push packet(src is %s, pcode is %u) to packet queue",
                     inet_ntoa_r(r->ms->c->addr), req->get_packet_code());
         }

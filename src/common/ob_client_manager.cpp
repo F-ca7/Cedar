@@ -16,8 +16,8 @@
 
 #include "utility.h"
 #include "ob_client_manager.h"
-#include "easy_io.h"
-#include "easy_client.h"
+#include "onev_io.h"
+#include "onev_client.h"
 #include "ob_packet.h"
 #include "ob_base_server.h"
 #include "ob_atomic.h"
@@ -48,7 +48,7 @@ namespace oceanbase
 
     }
 
-    int ObClientManager::initialize(easy_io_t* eio, easy_io_handler_pt* handler,
+    int ObClientManager::initialize(onev_io_e* eio, onev_io_handler_pe* handler,
                                     const int64_t max_request_timeout /*=5000000*/)
     {
       int rc = OB_SUCCESS;
@@ -119,7 +119,7 @@ namespace oceanbase
     }
 
     int ObClientManager::post_request(const ObServer& server, const int32_t pcode, const int32_t version,
-        const int64_t timeout, const ObDataBuffer& in_buffer, easy_io_process_pt handler, void* args) const
+        const int64_t timeout, const ObDataBuffer& in_buffer, onev_io_process_pe handler, void* args) const
     {
       if (NULL == handler)
       {
@@ -134,10 +134,10 @@ namespace oceanbase
         const int32_t pcode, const int32_t version,
         const int64_t session_id, const int64_t timeout,
         const ObDataBuffer& in_buffer,
-        easy_io_process_pt handler, void* args) const
+        onev_io_process_pe handler, void* args) const
     {
       int rc = OB_SUCCESS;
-      easy_session_t* s = NULL;
+      onev_session_e* s = NULL;
       //session will be destroyed on session call back
       //(data buffe size) + (record header size) + (packet size)
       int64_t size = in_buffer.get_position() + OB_RECORD_HEADER_LENGTH + sizeof(ObPacket);
@@ -170,7 +170,7 @@ namespace oceanbase
         {
           //session post faild destroy it
           TBSYS_LOG(WARN, "post session faild destroy session s = %p", s);
-          easy_session_destroy(s);
+          onev_destroy_session(s);
           rc = OB_PACKET_NOT_SENT;
         }
       }
@@ -180,11 +180,11 @@ namespace oceanbase
 
     int ObClientManager::post_request_using_dedicate_thread(const ObServer& server, const int32_t pcode, const int32_t version,
                                                             const int64_t timeout, const ObDataBuffer& in_buffer,
-                                                            easy_io_process_pt handler, void* args, int thread_idx) const
+                                                            onev_io_process_pe handler, void* args, int thread_idx) const
     {
       int rc = OB_SUCCESS;
       int64_t session_id = 0;
-      easy_session_t* s = NULL;
+      onev_session_e* s = NULL;
       //session will be destroyed on session call back
       //(data buffe size) + (record header size) + (packet size)
       int64_t size = in_buffer.get_position() + OB_RECORD_HEADER_LENGTH + sizeof(ObPacket);
@@ -217,7 +217,7 @@ namespace oceanbase
         {
           //session post faild destroy it
           TBSYS_LOG(WARN, "post session faild destroy session s = %p", s);
-          easy_session_destroy(s);
+          onev_destroy_session(s);
           rc = OB_PACKET_NOT_SENT;
         }
       }
@@ -234,7 +234,7 @@ namespace oceanbase
     }
 
     int ObClientManager::post_next(const ObServer& server, const int64_t session_id,
-        const int64_t timeout, ObDataBuffer& in_buffer, easy_io_process_pt handler, void* args) const
+        const int64_t timeout, ObDataBuffer& in_buffer, onev_io_process_pe handler, void* args) const
     {
       if (NULL == handler)
       {
@@ -244,7 +244,7 @@ namespace oceanbase
     }
     int ObClientManager::post_end_next(const ObServer& server, const int64_t session_id,
                                        const int64_t timeout, ObDataBuffer& in_buffer,
-                                       easy_io_process_pt handler, void* args) const
+                                       onev_io_process_pe handler, void* args) const
     {
       if (NULL == handler)
       {
@@ -259,7 +259,7 @@ namespace oceanbase
       int rc = OB_SUCCESS;
 
       ObPacket* response = NULL;
-      easy_session_t* s = NULL;
+      onev_session_e* s = NULL;
       if (OB_SUCCESS == rc)
       {
         int64_t size = in_buffer.get_position() + OB_RECORD_HEADER_LENGTH + sizeof(ObPacket);
@@ -273,7 +273,7 @@ namespace oceanbase
           response = reinterpret_cast<ObPacket*>(send_session(s));
           if (NULL == response && 1 == s->error)
           {
-            TBSYS_LOG(WARN, "send packet to %s failed, easy_session(%p)_dispatch ret:%d",
+            TBSYS_LOG(WARN, "send packet to %s failed, onev_session(%p)_dispatch ret:%d",
                       to_cstring(server), s, s->error);
             rc = OB_RPC_SEND_ERROR;
           }
@@ -308,7 +308,7 @@ namespace oceanbase
 
       if (NULL != s)
       {
-        easy_session_destroy(s);
+        onev_destroy_session(s);
         s = NULL;
       }
       return rc;
@@ -371,11 +371,11 @@ namespace oceanbase
     {
       int rc = OB_SUCCESS;
       ObPacket *response = NULL;
-      easy_session_t* s = NULL;
+      onev_session_e* s = NULL;
       uint32_t *chid = NULL;
       if (OB_SUCCESS == rc)
       {
-        //copy packet into session, session will be destroy when request done or anyother libeasy error
+        //copy packet into session, session will be destroy when request done or anyother libonev error
         int64_t size = in_buffer.get_position() + OB_RECORD_HEADER_LENGTH + sizeof(ObPacket);
         rc = create_session(server, pcode, version, timeout, in_buffer, size, s);
         if (OB_SUCCESS == rc)
@@ -399,7 +399,7 @@ namespace oceanbase
           response = reinterpret_cast<ObPacket*>(send_session(s));
           if (NULL == response && 1 == s->error)
           {
-            TBSYS_LOG(WARN, "send packet to %s failed, easy_session(%p)_dispatch ret:%d",
+            TBSYS_LOG(WARN, "send packet to %s failed, onev_session(%p)_dispatch ret:%d",
                       to_cstring(server), s, s->error);
             rc = OB_RPC_SEND_ERROR;
           }
@@ -410,8 +410,8 @@ namespace oceanbase
           }
         }
       }
-      //copy packet buffer from libeasy buffer to output buffer
-      //easy_session_destroy will free input packet buffer
+      //copy packet buffer from libonev buffer to output buffer
+      //onev_destroy_session will free input packet buffer
       if (OB_SUCCESS == rc && NULL != response)
       {
         int32_t pcode = response->get_packet_code();
@@ -443,7 +443,7 @@ namespace oceanbase
       }
       if (NULL != s)
       {
-        easy_session_destroy(s);
+        onev_destroy_session(s);
         s = NULL;
       }
       return rc;
@@ -452,15 +452,15 @@ namespace oceanbase
     int ObClientManager::create_session(const ObServer& server,
                                         const int32_t pcode, const int32_t version,
                                         const int64_t timeout, const ObDataBuffer& in_buffer,
-                                        int64_t size, easy_session_t *& session) const
+                                        int64_t size, onev_session_e *& session) const
     {
       int ret = OB_SUCCESS;
-      easy_addr_t addr = convert_addr_from_server(&server);
-      session = easy_session_create(static_cast<int>(size));
+      onev_addr_e addr = convert_addr_from_server(&server);
+      session = onev_create_session(static_cast<int>(size));
       if (NULL == session)
       {
         TBSYS_LOG(WARN, "create session failed");
-        ret = OB_LIBEASY_ERROR;
+        ret = OB_LIBONEV_ERROR;
       }
       if (OB_SUCCESS == ret)
       {
@@ -501,17 +501,17 @@ namespace oceanbase
           spacket->serialize(&buffer);
           spacket->set_packet_buffer(buffer.get_data(), buffer.get_position());
           spacket->get_inner_buffer()->get_position() = buffer.get_position();
-          session->status = EASY_CONNECT_SEND;//auto connect if there are no connection to addr
+          session->status = ONEV_CONNECT_SEND;//auto connect if there are no connection to addr
           session->r.opacket = spacket;
           session->addr = addr;
           session->thread_ptr = handler_;
-          easy_session_set_timeout(session, static_cast<ev_tstamp>(timeout)/1000);
+          onev_session_set_timeout(session, static_cast<ev_tstamp>(timeout)/1000);
         }
       }
       return ret;
     }
 
-    int ObClientManager::post_session_using_dedicate_thread(easy_session_t* s, int thread_idx /* =0 */) const
+    int ObClientManager::post_session_using_dedicate_thread(onev_session_e* s, int thread_idx /* =0 */) const
     {
       int rc = OB_SUCCESS;
       //skip timeout_mesg log
@@ -530,20 +530,20 @@ namespace oceanbase
       else
       {
         (s->addr).cidx = eio_->io_thread_pool->thread_count - dedicate_thread_num_ + thread_idx;
-        if (EASY_OK != easy_client_dispatch(eio_, s->addr, s))
+        if (ONEV_OK != onev_client_dispatch(eio_, s->addr, s))
         {
-          TBSYS_LOG(WARN, "post packet to server:%s faild", easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
+          TBSYS_LOG(WARN, "post packet to server:%s faild", onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
           rc = OB_RPC_POST_ERROR;
         }
         else
         {
-          TBSYS_LOG(DEBUG, "post packet to server:%s", easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
+          TBSYS_LOG(DEBUG, "post packet to server:%s", onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
         }
       }
       return rc;
     }
 
-    int ObClientManager::post_session(easy_session_t* s) const
+    int ObClientManager::post_session(onev_session_e* s) const
     {
       int rc = OB_SUCCESS;
       //skip timeout_mesg log
@@ -552,19 +552,19 @@ namespace oceanbase
       //使用round robin的方式从IO线程池中选择IO线程
       static uint8_t io_index = 0;
       (s->addr).cidx = (__sync_fetch_and_add(&io_index, 1)) % (eio_->io_thread_pool->thread_count - dedicate_thread_num_);
-      if (EASY_OK != easy_client_dispatch(eio_, s->addr, s))
+      if (ONEV_OK != onev_client_dispatch(eio_, s->addr, s))
       {
-        TBSYS_LOG(WARN, "post packet to server:%s faild", easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
+        TBSYS_LOG(WARN, "post packet to server:%s faild", onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
         rc = OB_RPC_POST_ERROR;
       }
       else
       {
-        TBSYS_LOG(DEBUG, "post packet to server:%s", easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
+        TBSYS_LOG(DEBUG, "post packet to server:%s", onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
       }
       return rc;
     }
 
-    void* ObClientManager::send_session(easy_session_t* s) const
+    void* ObClientManager::send_session(onev_session_e* s) const
     {
       int rc = OB_SUCCESS;
 
@@ -576,16 +576,16 @@ namespace oceanbase
         //使用round robin的方式从IO线程池中选择IO线程
         static uint8_t io_index = 0;
         (s->addr).cidx = __sync_fetch_and_add(&io_index, 1) % (eio_->io_thread_pool->thread_count - dedicate_thread_num_);
-        packet = reinterpret_cast<ObPacket*>(easy_client_send(eio_, s->addr, s));
+        packet = reinterpret_cast<ObPacket*>(onev_client_send(eio_, s->addr, s));
         char buff[OB_SERVER_ADDR_STR_LEN];
         if (NULL == packet)
         {
-          TBSYS_LOG(WARN, "send packet to server:%s faild", easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
+          TBSYS_LOG(WARN, "send packet to server:%s faild", onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN));
         }
         else
         {
           TBSYS_LOG(DEBUG, "send packet succ, server=%s response_packet_code=%d",
-                    easy_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN),
+                    onev_inet_addr_to_str(&s->addr, buff, OB_SERVER_ADDR_STR_LEN),
                     packet->get_packet_code());
         }
       }

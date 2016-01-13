@@ -18,7 +18,7 @@
 #include "common/ob_log_writer.h"
 #include "common/ob_base_server.h"
 #include "ob_ups_slave_mgr.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 
 namespace oceanbase
 {
@@ -30,13 +30,13 @@ namespace oceanbase
         ObCommitLogReceiver();
         int init(common::ObLogWriter *log_writer, common::ObBaseServer *base_server, ObUpsSlaveMgr *slave_mgr, const int64_t time_warn_us);
         int receive_log(const int32_t version, common::ObDataBuffer& in_buff,
-                        easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+                        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int write_data(const char* log_data, const int64_t data_len, uint64_t &log_id, uint64_t &log_seq);
 
       protected:
         int start_log(common::ObDataBuffer& buff);
         int start_receiving_log();
-        int end_receiving_log(const int32_t version, easy_request_t* req, const int32_t channel_id, common::ObDataBuffer& out_buff);
+        int end_receiving_log(const int32_t version, onev_request_e* req, const int32_t channel_id, common::ObDataBuffer& out_buff);
 
         inline int check_inner_stat() const
         {

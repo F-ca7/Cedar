@@ -16,8 +16,8 @@
 #include "base_main.h"
 #include "ob_define.h"
 #include "ob_trace_log.h"
-#include "easy_log.h"
-#include "common/ob_easy_log.h"
+#include "onev_log.h"
+#include "common/ob_onev_log.h"
 #include "common/ob_profile_fill_log.h"
 #include "common/ob_profile_log.h"
 #include "common/ob_preload.h"
@@ -113,13 +113,13 @@ namespace oceanbase
         case 48:
           if (47 == sig)
           {
-            easy_log_level = static_cast<easy_log_level_t>(static_cast<int>(easy_log_level) + 1);
+            onev_log_level = static_cast<onev_log_level_t>(static_cast<int>(onev_log_level) + 1);
           }
           else
           {
-            easy_log_level = static_cast<easy_log_level_t>(static_cast<int>(easy_log_level) - 1);
+            onev_log_level = static_cast<onev_log_level_t>(static_cast<int>(onev_log_level) - 1);
           }
-          TBSYS_LOG(INFO, "easy_log_level: %d", easy_log_level);
+          TBSYS_LOG(INFO, "onev_log_level: %d", onev_log_level);
           break;
         case 49:
           ob_print_mod_memory_usage();
@@ -352,7 +352,7 @@ namespace oceanbase
     int BaseMain::start(const int argc, char *argv[])
     {
       int ret = EXIT_SUCCESS;
-      easy_log_format = ob_easy_log_format;
+      onev_log_format = ob_onev_log_format;
       parse_cmd_line(argc, argv);
       server_name_ = basename(argv[0]);
       char pid_file[OB_MAX_FILE_NAME_LENGTH];
@@ -390,7 +390,7 @@ namespace oceanbase
           /* const char * sz_log_level = */
           /*   TBSYS_CONFIG.getString(section_name, LOG_LEVEL, "info"); */
           TBSYS_LOGGER.setLogLevel("info");
-          easy_log_level = EASY_LOG_INFO;
+          onev_log_level = ONEV_LOG_INFO;
           /* const char * trace_log_level = */
           /*   TBSYS_CONFIG.getString(section_name, TRACE_LOG_LEVEL, "debug"); */
           SET_TRACE_LOG_LEVEL("trace");

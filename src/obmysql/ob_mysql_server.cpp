@@ -1,4 +1,4 @@
-#include "easy_io.h"
+#include "onev_io.h"
 #include "ob_mysql_server.h"
 #include "ob_mysql_state.h"
 #include "common/ob_tbnet_callback.h"
@@ -22,8 +22,8 @@
 #include "common/ob_row.h"
 #include "common/location/ob_tablet_location_cache_proxy.h"
 #include "common/ob_obj_cast.h"
-#include "common/ob_libeasy_mem_pool.h"
-#include "easy_connection.h"
+#include "common/ob_libonev_mem_pool.h"
+#include "onev_connection.h"
 #include "common/base_main.h"
 #include "common/ob_errno.h"
 using namespace oceanbase::common;
@@ -47,7 +47,7 @@ namespace oceanbase
     {
       if (NULL != eio_)
       {
-        easy_eio_destroy(eio_);
+        onev_destroy_io(eio_);
         eio_ = NULL;
       }
     }
@@ -93,7 +93,7 @@ namespace oceanbase
       //init server handler
       if(OB_SUCCESS == ret)
       {
-        memset(&handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&handler_, 0, sizeof(onev_io_handler_pe));
         handler_.encode = ObMySQLCallback::encode;
         handler_.decode = ObMySQLCallback::decode;
         handler_.process = ObMySQLCallback::process;
@@ -519,22 +519,22 @@ namespace oceanbase
     int ObMySQLServer::start(bool need_wait)
     {
       int ret = OB_SUCCESS;
-      int rc = EASY_OK;
-      easy_listen_t* listen = NULL;
+      int rc = ONEV_OK;
+      onev_listen_e* listen = NULL;
       TBSYS_LOG(DEBUG, "obmysql server start....");
-      easy_pool_set_allocator(ob_easy_realloc);
-      eio_ = easy_eio_create(eio_, io_thread_count_);
+      onev_pool_set_allocator(ob_onev_realloc);
+      eio_ = onev_create_io(eio_, io_thread_count_);
       eio_->do_signal = 0;
       eio_->force_destroy_second = OB_CONNECTION_FREE_TIME_S;
       eio_->checkdrc = 1;
       eio_->support_ipv6 = 0;
       eio_->no_redispatch = 1;
-      easy_eio_set_uthread_start(eio_, easy_on_ioth_start, this);
+      onev_io_set_uthread_start(eio_, onev_on_ioth_start, this);
       eio_->uthread_enable = 0;
       if (NULL == eio_)
       {
         ret = OB_ERROR;
-        TBSYS_LOG(ERROR, "easy_eio_create error");
+        TBSYS_LOG(ERROR, "onev_create_io error");
       }
       else if (OB_SUCCESS != (ret = command_queue_thread_.init()))
       {
@@ -546,7 +546,7 @@ namespace oceanbase
       }
       else
       {
-        TBSYS_LOG(DEBUG, "obmysql easy_eio_create successful");
+        TBSYS_LOG(DEBUG, "obmysql onev_create_io successful");
         eio_->tcp_defer_accept = 0;
         ret = initialize();
         if (OB_SUCCESS != ret)
@@ -555,9 +555,9 @@ namespace oceanbase
         }
         else
         {
-          if (NULL == (listen = easy_connection_add_listen(eio_, NULL, port_, &handler_)))
+          if (NULL == (listen = onev_connection_add_listen(eio_, NULL, port_, &handler_)))
           {
-            TBSYS_LOG(ERROR, "easy_connection_add_listen error, port: %d, %s", port_, strerror(errno));
+            TBSYS_LOG(ERROR, "onev_connection_add_listen error, port: %d, %s", port_, strerror(errno));
             ret = OB_SERVER_LISTEN_ERROR;
           }
           else
@@ -569,8 +569,8 @@ namespace oceanbase
         //start io thread
         if (OB_SUCCESS == ret)
         {
-          rc = easy_eio_start(eio_);
-          if (EASY_OK == rc)
+          rc = onev_start_io(eio_);
+          if (ONEV_OK == rc)
           {
             ret = OB_SUCCESS;
             TBSYS_LOG(INFO, "obmysql start io thread");
@@ -578,7 +578,7 @@ namespace oceanbase
           else
           {
             ret = OB_ERROR;
-            TBSYS_LOG(ERROR, "obmysq start failed, call easy_eio_start return %d", rc);
+            TBSYS_LOG(ERROR, "obmysq start failed, call onev_start_io return %d", rc);
           }
 
           if (OB_SUCCESS == ret)
@@ -628,7 +628,7 @@ namespace oceanbase
           {
             if (need_wait)
             {
-              easy_eio_wait(eio_);
+              onev_wait_io(eio_);
             }
           }
         }
@@ -651,9 +651,9 @@ namespace oceanbase
         if (eio_ != NULL && NULL != eio_->pool)
         {
           TBSYS_LOG(WARN, "stop eio");
-          easy_eio_stop(eio_);
-          easy_eio_wait(eio_);
-          easy_eio_destroy(eio_);
+          onev_stop_io(eio_);
+          onev_wait_io(eio_);
+          onev_destroy_io(eio_);
           eio_ = NULL;
         }
         TBSYS_LOG(INFO, "mysql server stoped.");
@@ -671,7 +671,7 @@ namespace oceanbase
 
     void ObMySQLServer::wait()
     {
-      easy_eio_wait(eio_);
+      onev_wait_io(eio_);
     }
 
     void ObMySQLServer::destroy()
@@ -690,10 +690,10 @@ namespace oceanbase
       packet_recorder_.destroy();
     }
 
-    int ObMySQLServer::login_handler(easy_connection_t* c)
+    int ObMySQLServer::login_handler(onev_connection_e* c)
     {
       int ret = OB_SUCCESS;
-      easy_addr_t addr = c->addr;
+      onev_addr_e addr = c->addr;
       ObSQLSessionInfo *session = NULL;
       if (OB_SUCCESS != (ret = login_handler_.login(c, session)))
       {
@@ -1072,7 +1072,7 @@ namespace oceanbase
       ret = check_param(packet);
       if (OB_SUCCESS == ret)
       {
-        easy_addr_t addr = get_easy_addr(packet->get_request());
+        onev_addr_e addr = get_onev_addr(packet->get_request());
         ObMySQLErrorPacket epacket;
         char * msg = (char*)"cmd not support yet.";
         ObString message(ObString(static_cast<int32_t>(strlen(msg)),
@@ -1133,10 +1133,10 @@ namespace oceanbase
       ret = check_param(packet);
       if (OB_SUCCESS == ret)
       {
-        easy_request_t* req = packet->get_request();
+        onev_request_e* req = packet->get_request();
         TBSYS_LOG(INFO, "client quit, peer=%s",
                     inet_ntoa_r(req->ms->c->addr));
-        easy_request_wakeup(req);
+        onev_request_wakeup(req);
         // do nothing, the session will be destroyed in MySQLCallback::on_disconnect()
       }
       return ret;
@@ -1157,7 +1157,7 @@ namespace oceanbase
 
         ObSqlContext context;
         ObMySQLResultSet result;
-        easy_addr_t addr = get_easy_addr(packet->get_request());
+        onev_addr_e addr = get_onev_addr(packet->get_request());
         const common::ObString& q = packet->get_command();
         int32_t truncated_length = std::min(q.length(), 384);
         FILL_TRACE_LOG("stmt=\"%.*s\"", q.length(), q.ptr());
@@ -1270,14 +1270,14 @@ namespace oceanbase
         ObMySQLResultSet result;
         ObMySQLCommandPacketRecord record;
         const common::ObString& q = packet->get_command();
-        easy_addr_t addr = get_easy_addr(packet->get_request());
+        onev_addr_e addr = get_onev_addr(packet->get_request());
         int32_t truncated_length = std::min(q.length(), 384);
         FILL_TRACE_LOG("stmt=\"%.*s\"", truncated_length, q.ptr());
         TBSYS_LOG(INFO, "start prepare: \"%.*s\" real_query_len=%d peer is %s",
                   truncated_length, q.ptr(), q.length(), inet_ntoa_r(addr));
 
         //1. init session && sql_context
-        easy_request_t *req = packet->get_request();
+        onev_request_e *req = packet->get_request();
         int64_t schema_version = 0;
         number = packet->get_packet_header().seq_;
         ret = init_sql_env(*packet, context, schema_version, result);
@@ -1412,7 +1412,7 @@ namespace oceanbase
       if (OB_SUCCESS == ret)
       {
         //1. init session && sql_context
-        easy_request_t *req = packet->get_request();
+        onev_request_e *req = packet->get_request();
         number = packet->get_packet_header().seq_;
         ret = init_sql_env(*packet, context, schema_version, result);
         if (OB_SUCCESS != ret)
@@ -1709,7 +1709,7 @@ namespace oceanbase
           {
             TBSYS_LOG(ERROR, "failed to init sql env ret is %d", ret);
           }
-          easy_request_wakeup(packet->get_request());
+          onev_request_wakeup(packet->get_request());
           // No response is sent back to the client.
         }
         else
@@ -1742,7 +1742,7 @@ namespace oceanbase
             // No response is sent back to the client.
             OB_STAT_INC(SQL, SQL_PS_COUNT, -1);
           }
-          easy_request_wakeup(packet->get_request());
+          onev_request_wakeup(packet->get_request());
           if (context.session_info_ != NULL)
           {
             context.session_info_->set_warnings_buf();
@@ -1772,7 +1772,7 @@ namespace oceanbase
       ret = check_param(packet);
       if (OB_SUCCESS == ret)
       {
-        easy_addr_t addr = get_easy_addr(packet->get_request());
+        onev_addr_e addr = get_onev_addr(packet->get_request());
         number = packet->get_packet_header().seq_;
         //fake result
         ObMySQLResultSet result;
@@ -1790,7 +1790,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::post_packet(easy_request_t* req, ObMySQLPacket* packet, uint8_t seq)
+    int ObMySQLServer::post_packet(onev_request_e* req, ObMySQLPacket* packet, uint8_t seq)
     {
       int ret = OB_SUCCESS;
       if (NULL == req || NULL == packet)
@@ -1808,14 +1808,14 @@ namespace oceanbase
 
         uint64_t size = packet->get_serialize_size() + OB_MYSQL_PACKET_HEADER_SIZE;
         //同样，还是在message的pool上分配内存
-        easy_buf_t* buf = reinterpret_cast<easy_buf_t*>(easy_pool_alloc(req->ms->pool,
-                                                                         static_cast<uint32_t>(sizeof(easy_buf_t) + size)));
+        onev_buf_e* buf = reinterpret_cast<onev_buf_e*>(onev_pool_alloc(req->ms->pool,
+                                                                         static_cast<uint32_t>(sizeof(onev_buf_e) + size)));
         char* buff = NULL;
         if (NULL != buf)
         {
           pos += SEQ_OFFSET;
           buff = reinterpret_cast<char*>(buf + 1);
-          init_easy_buf(buf, buff, req, size);
+          init_onev_buf(buf, buff, req, size);
           ObMySQLUtil::store_int1(buff, size, seq, pos);
           ret = packet->serialize(buff, size, pos);
           if (OB_SUCCESS != ret)
@@ -1841,7 +1841,7 @@ namespace oceanbase
           TBSYS_LOG(ERROR, "alloc buffer from req->ms->pool failed");
           ret = OB_ERROR;
         }
-        easy_request_wakeup(req);
+        onev_request_wakeup(req);
       }
       return ret;
     }
@@ -1874,8 +1874,8 @@ namespace oceanbase
       }
       else
       {
-        easy_request_t* req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
+        onev_request_e* req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
         number = packet->get_packet_header().seq_;
         if (OB_SUCCESS != (ret = result->open()))
         {
@@ -2107,8 +2107,8 @@ namespace oceanbase
       }
       else
       {
-        easy_request_t *req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
+        onev_request_e *req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
         ObString message = ob_get_err_msg();
         char msg_buf[64];
         if (message.length() <= 0)
@@ -2128,7 +2128,7 @@ namespace oceanbase
         {
           //makesure seq is continuous
           ++number;
-          req->retcode = EASY_OK;
+          req->retcode = ONEV_OK;
           ret = post_packet(req, &epacket, number);
           if (OB_SUCCESS != ret)
           {
@@ -2159,8 +2159,8 @@ namespace oceanbase
       }
       else
       {
-        easy_request_t *req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
+        onev_request_e *req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
         sprpacket.set_statement_id(static_cast<uint32_t>(result->get_statement_id()));
         sprpacket.set_column_num(static_cast<uint16_t>(result->get_field_cnt()));
         sprpacket.set_param_num(
@@ -2193,8 +2193,8 @@ namespace oceanbase
       }
       else
       {
-        easy_request_t *req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
+        onev_request_e *req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
         ObMySQLOKPacket ok;
         ok.set_affected_rows(result->get_affected_rows());
         ok.set_warning_count(static_cast<uint16_t>(result->get_warning_count()));
@@ -2205,7 +2205,7 @@ namespace oceanbase
                                   const_cast<char*>(result->get_message())));
         ok.set_message(message);
         number++;
-        req->retcode = EASY_OK;
+        req->retcode = ONEV_OK;
         ret = post_packet(req, &ok, number);
         if (OB_SUCCESS != ret)
         {
@@ -2234,8 +2234,8 @@ namespace oceanbase
       else
       {
         TBSYS_LOG(TRACE, "query result=(%s)", to_cstring(*result));
-        easy_request_t *req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
+        onev_request_e *req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
         //send spr packet following with param && field  no need open result
         uint16_t server_status = 0;
         if (session->get_autocommit())
@@ -2558,7 +2558,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::send_result_set(easy_request_t *req, ObMySQLResultSet *result,
+    int ObMySQLServer::send_result_set(onev_request_e *req, ObMySQLResultSet *result,
                                        MYSQL_PROTOCOL_TYPE type, uint16_t server_status, uint16_t charset)
     {
       int ret = OB_SUCCESS;
@@ -2571,14 +2571,14 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
-        easy_buf_t* buf = reinterpret_cast<easy_buf_t*>(easy_pool_alloc(req->ms->pool, OB_MAX_PACKET_LENGTH));
+        onev_addr_e addr = get_onev_addr(req);
+        onev_buf_e* buf = reinterpret_cast<onev_buf_e*>(onev_pool_alloc(req->ms->pool, OB_MAX_PACKET_LENGTH));
         if (NULL != buf)
         {
           FILL_TRACE_LOG("server_status=0x%hX", server_status);
           char *data_buffer = reinterpret_cast<char *>(buf + 1);
-          buffer_length = OB_MAX_PACKET_LENGTH - sizeof(easy_buf_t);
-          init_easy_buf(buf, data_buffer, req, buffer_length);
+          buffer_length = OB_MAX_PACKET_LENGTH - sizeof(onev_buf_e);
+          init_onev_buf(buf, data_buffer, req, buffer_length);
           if (OB_SUCCESS != (ret = process_resheader_packet(buf, buffer_pos, req, result)))
           {
             TBSYS_LOG(WARN, "process resheasder packet failed dest is %s ret is %d", inet_ntoa_r(addr), ret);
@@ -2633,14 +2633,14 @@ namespace oceanbase
       }
       else
       {
-        easy_request_t *req = packet->get_request();
-        easy_addr_t addr = get_easy_addr(req);
-        easy_buf_t* buf = reinterpret_cast<easy_buf_t*>(easy_pool_alloc(req->ms->pool, OB_MAX_PACKET_LENGTH));
+        onev_request_e *req = packet->get_request();
+        onev_addr_e addr = get_onev_addr(req);
+        onev_buf_e* buf = reinterpret_cast<onev_buf_e*>(onev_pool_alloc(req->ms->pool, OB_MAX_PACKET_LENGTH));
         if (NULL != buf && NULL != req)
         {
           char *data_buffer = reinterpret_cast<char *>(buf + 1);
-          buffer_length = OB_MAX_PACKET_LENGTH - sizeof(easy_buf_t);
-          init_easy_buf(buf, data_buffer, req, buffer_length);
+          buffer_length = OB_MAX_PACKET_LENGTH - sizeof(onev_buf_e);
+          init_onev_buf(buf, data_buffer, req, buffer_length);
           //send spr packet following with param && field
           if (result->get_field_cnt() > 0 || result->get_param_cnt() > 0)
           {
@@ -2708,8 +2708,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_spr_packet(easy_buf_t *&buff, int64_t &buff_pos,
-                                          easy_request_t *req, ObMySQLResultSet *result)
+    int ObMySQLServer::process_spr_packet(onev_buf_e *&buff, int64_t &buff_pos,
+                                          onev_request_e *req, ObMySQLResultSet *result)
     {
       int ret = OB_SUCCESS;
       if (NULL == buff || NULL == req || NULL == result)
@@ -2736,8 +2736,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_resheader_packet(easy_buf_t *&buff, int64_t &buff_pos,
-                                                easy_request_t *req, ObMySQLResultSet *result)
+    int ObMySQLServer::process_resheader_packet(onev_buf_e *&buff, int64_t &buff_pos,
+                                                onev_request_e *req, ObMySQLResultSet *result)
     {
       int ret = OB_SUCCESS;
       if (NULL == buff || NULL == req || NULL == result)
@@ -2760,8 +2760,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_field_packets(easy_buf_t *&buff, int64_t &buff_pos,
-                              easy_request_t *req, ObMySQLResultSet *result, bool is_field, uint16_t charset)
+    int ObMySQLServer::process_field_packets(onev_buf_e *&buff, int64_t &buff_pos,
+                              onev_request_e *req, ObMySQLResultSet *result, bool is_field, uint16_t charset)
     {
       int ret = OB_SUCCESS;
       if (NULL == buff || NULL == req || NULL == result)
@@ -2772,7 +2772,7 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
+        onev_addr_e addr = get_onev_addr(req);
         ObMySQLField field;
         int (ObMySQLResultSet::*get_next) (ObMySQLField &field);
         if (is_field)
@@ -2803,7 +2803,7 @@ namespace oceanbase
         }
         else if (OB_CONNECT_ERROR == ret)
         {
-          TBSYS_LOG(WARN, "libeasy connection error");
+          TBSYS_LOG(WARN, "libonev connection error");
         }
         else
         {
@@ -2822,8 +2822,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_eof_packet(easy_buf_t *&buff, int64_t &buff_pos,
-                                          easy_request_t *req, ObMySQLResultSet *result,
+    int ObMySQLServer::process_eof_packet(onev_buf_e *&buff, int64_t &buff_pos,
+                                          onev_request_e *req, ObMySQLResultSet *result,
                                           uint16_t server_status)
     {
       int ret = OB_SUCCESS;
@@ -2835,7 +2835,7 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
+        onev_addr_e addr = get_onev_addr(req);
         ObMySQLEofPacket eof;
         eof.set_warning_count(static_cast<uint16_t>(result->get_warning_count()));
         eof.set_seq(static_cast<uint8_t>(number+1));
@@ -2849,8 +2849,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_row_packets(easy_buf_t *&buff, int64_t &buff_pos,
-                                           easy_request_t *req, ObMySQLResultSet *result, MYSQL_PROTOCOL_TYPE type)
+    int ObMySQLServer::process_row_packets(onev_buf_e *&buff, int64_t &buff_pos,
+                                           onev_request_e *req, ObMySQLResultSet *result, MYSQL_PROTOCOL_TYPE type)
     {
       int ret = OB_SUCCESS;
       if (NULL == buff || NULL == req || NULL == result)
@@ -2861,7 +2861,7 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
+        onev_addr_e addr = get_onev_addr(req);
         ObMySQLRow row;
         int64_t row_num = 0;
         while (OB_SUCCESS == ret
@@ -2888,7 +2888,7 @@ namespace oceanbase
           result->set_errcode(ret);
           if (OB_CONNECT_ERROR == ret)
           {
-            TBSYS_LOG(WARN, "libeasy connection error");
+            TBSYS_LOG(WARN, "libonev connection error");
           }
           else
           {
@@ -2927,8 +2927,8 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::process_single_packet(easy_buf_t *&buff, int64_t &buff_pos,
-                                             easy_request_t *req, ObMySQLPacket *packet)
+    int ObMySQLServer::process_single_packet(onev_buf_e *&buff, int64_t &buff_pos,
+                                             onev_request_e *req, ObMySQLPacket *packet)
     {
       int ret = OB_SUCCESS;
       int sret = OB_SUCCESS;
@@ -2939,7 +2939,7 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
+        onev_addr_e addr = get_onev_addr(req);
         ret = packet->encode(buff->pos, buff->end - buff->pos, buff_pos);
         if (OB_BUF_NOT_ENOUGH == ret || OB_ARRAY_OUT_OF_RANGE == ret || OB_SIZE_OVERFLOW == ret) //buff not enough to hold this packet
         {
@@ -2959,7 +2959,7 @@ namespace oceanbase
             else
             {
               //now we can reuse message buffer
-              buff->pos = buff->pos - buff_pos;//libeasy 发包后会移动buf->pos 移回去
+              buff->pos = buff->pos - buff_pos;//libonev 发包后会移动buf->pos 移回去
               buff_pos = 0;
               ret = packet->encode(buff->pos, buff->end - buff->pos, buff_pos);
             }
@@ -2982,7 +2982,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObMySQLServer::send_raw_packet(easy_request_t *req)
+    int ObMySQLServer::send_raw_packet(onev_request_e *req)
     {
       int ret = OB_SUCCESS;
       if (NULL == req)
@@ -2993,35 +2993,35 @@ namespace oceanbase
       else
       {
 
-        easy_buf_t *buf = static_cast<easy_buf_t*>(req->opacket);
+        onev_buf_e *buf = static_cast<onev_buf_e*>(req->opacket);
         if (NULL != buf)
         {
           OB_STAT_INC(OBMYSQL, SQL_QUERY_BYTES, buf->last - buf->pos);
           query_cache_.append_ongoing_res(buf);
         }
-        easy_client_wait_t wait_obj;
+        onev_client_wait_e wait_obj;
         wait_obj.done_count = 0;
-        easy_client_wait_init(&wait_obj);
+        onev_client_wait_init(&wait_obj);
         req->client_wait = &wait_obj;
-        req->retcode = EASY_AGAIN;
+        req->retcode = ONEV_AGAIN;
         req->waiting = 1;
-        //io线程被唤醒，r->opacket被挂过去,send_response->easy_connection_request_done
-        easy_request_wakeup(req);
-        // IO线程回调 int ObMySQLCallback::process(easy_request_t* r)的时候唤醒工作线程
+        //io线程被唤醒，r->opacket被挂过去,send_response->onev_connection_request_done
+        onev_request_wakeup(req);
+        // IO线程回调 int ObMySQLCallback::process(onev_request_e* r)的时候唤醒工作线程
         wait_client_obj(wait_obj);
-        //return OB_CONNECT_ERROR if status eq EASY_CONN_CLOSE
-        if (EASY_CONN_CLOSE == wait_obj.status)
+        //return OB_CONNECT_ERROR if status eq ONEV_CONN_CLOSE
+        if (ONEV_CONN_CLOSE == wait_obj.status)
         {
           TBSYS_LOG(WARN, "send error happen, quit current query");
           ret = OB_CONNECT_ERROR;
         }
-        easy_client_wait_cleanup(&wait_obj);
+        onev_client_wait_cleanup(&wait_obj);
         req->client_wait = NULL;
       }
       return ret;
     }
 
-    int ObMySQLServer::post_raw_packet(easy_request_t *req)
+    int ObMySQLServer::post_raw_packet(onev_request_e *req)
     {
       int ret = OB_SUCCESS;
       if (NULL == req)
@@ -3031,20 +3031,20 @@ namespace oceanbase
       }
       else
       {
-        easy_buf_t *buf = static_cast<easy_buf_t*>(req->opacket);
+        onev_buf_e *buf = static_cast<onev_buf_e*>(req->opacket);
         if (NULL != buf)
         {
           OB_STAT_INC(OBMYSQL, SQL_QUERY_BYTES, buf->last - buf->pos);
           query_cache_.append_ongoing_res(buf);
         }
-        req->retcode = EASY_OK;
-        //io线程被唤醒，r->opacket被挂过去,send_response->easy_connection_request_done
-        easy_request_wakeup(req);
+        req->retcode = ONEV_OK;
+        //io线程被唤醒，r->opacket被挂过去,send_response->onev_connection_request_done
+        onev_request_wakeup(req);
       }
       return ret;
     }
 
-    int ObMySQLServer::post_raw_bytes(easy_request_t * req, const char * bytes, int64_t len)
+    int ObMySQLServer::post_raw_bytes(onev_request_e * req, const char * bytes, int64_t len)
     {
       int ret = OB_SUCCESS;
 
@@ -3055,18 +3055,18 @@ namespace oceanbase
       }
       else
       {
-        easy_addr_t addr = get_easy_addr(req);
-        easy_buf_t * buf = reinterpret_cast<easy_buf_t *>(
-            easy_pool_alloc(req->ms->pool, static_cast<uint32_t>(sizeof(easy_buf_t) + len)));
+        onev_addr_e addr = get_onev_addr(req);
+        onev_buf_e * buf = reinterpret_cast<onev_buf_e *>(
+            onev_pool_alloc(req->ms->pool, static_cast<uint32_t>(sizeof(onev_buf_e) + len)));
         if (NULL == buf)
         {
-          TBSYS_LOG(ERROR, "easy_pool_alloc failed");
+          TBSYS_LOG(ERROR, "onev_pool_alloc failed");
           ret = OB_ERROR;
         }
         else
         {
           char * data_buffer = reinterpret_cast<char *>(buf + 1);
-          init_easy_buf(buf, data_buffer, req, len);
+          init_onev_buf(buf, data_buffer, req, len);
           buf->last = buf->pos + len;
           memcpy(buf->pos, bytes, len);
           req->opacket = reinterpret_cast<void*>(buf);
@@ -3194,7 +3194,7 @@ namespace oceanbase
         }
         else if (OB_SUCCESS == ret)
         {
-          easy_request_t * req = packet->get_request();
+          onev_request_e * req = packet->get_request();
           if (NULL == req)
           {
             TBSYS_LOG(ERROR, "get_request failed");

@@ -17,7 +17,7 @@
 #ifndef OB_TBNET_CALLBACK_H_
 #define OB_TBNET_CALLBACK_H_
 
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 
 namespace oceanbase
 {
@@ -26,20 +26,20 @@ namespace oceanbase
     class ObTbnetCallback
     {
       public:
-        static void *  decode(easy_message_t *m);
+        static void *  decode(onev_message_e *m);
 
-        static int     encode(easy_request_t *r, void *packet);
+        static int     encode(onev_request_e *r, void *packet);
 
-        static int    batch_process(easy_message_t *m);
+        static int    batch_process(onev_message_e *m);
 
-        static uint64_t get_packet_id(easy_connection_t *c, void *packet);
+        static uint64_t get_packet_id(onev_connection_e *c, void *packet);
 
-        static int shadow_process(easy_request_t*  r);
+        static int shadow_process(onev_request_e*  r);
 
-        static int on_disconnect(easy_connection_t* c);
+        static int on_disconnect(onev_connection_e* c);
 
         //session的回调函数，用于销毁session
-        static int default_callback(easy_request_t* r);
+        static int default_callback(onev_request_e* r);
     };
   }
 }

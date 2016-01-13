@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <time.h>
-#include "easy_pool.h"
+#include "onev_palloc.h"
 #include "tbsys.h"
 #ifdef __OB_MDEBUG__
 #include <dmalloc.h>
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     abort();
   }
 
-  //easy_pool_set_allocator(ob_malloc);
+  //onev_pool_set_allocator(ob_malloc);
   BaseMain* mergeServer = ObMergeServerMain::get_instance();
   if (NULL == mergeServer)
   {

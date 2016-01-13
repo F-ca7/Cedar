@@ -1,10 +1,10 @@
 AM_CPPFLAGS := $(AM_CPPFLAGS) -I${TBLIB_ROOT}/include/tbsys\
-             -I${EASY_ROOT}/include/easy\
+             -I${ONEV_ROOT}/include/onev\
              -I${top_srcdir}/include\
              -I${top_srcdir}/src\
              -fPIC
 
-LDADD = ${EASY_LIB_PATH}/libeasy.a \
+LDADD = ${ONEV_LIB_PATH}/libonev.a \
         ${TBLIB_ROOT}/lib/libtbsys.a \
         $(top_builddir)/src/common/btree/libbtree.a \
         ${top_builddir}/src/sql/libsql.a
@@ -100,8 +100,8 @@ common_sources=				                                                  \
   ob_define.h                                                           \
   ob_delay_guard.h                                                      \
   ob_direct_log_reader.h           ob_direct_log_reader.cpp             \
-  ob_easy_array.h                                                       \
-  ob_easy_log.h                    ob_easy_log.cpp                      \
+  ob_onev_array.h                                                       \
+  ob_onev_log.h                    ob_onev_log.cpp                      \
   ob_encrypt.h                     ob_encrypt.cpp                       \
   ob_endian.h                                                           \
   ob_expr_obj.h                    ob_expr_obj.cpp                      \
@@ -295,7 +295,7 @@ common_sources=				                                                  \
 	ob_profile_fill_log.h              ob_profile_fill_log.cpp\
 	ob_request_profile_data.h\
   ob_queue_thread.h                  ob_queue_thread.cpp\
-	ob_libeasy_mem_pool.h              ob_libeasy_mem_pool.cpp\
+	ob_libonev_mem_pool.h              ob_libonev_mem_pool.cpp\
 	ob_balance_filter.h								 ob_balance_filter.cpp\
 	ob_adapter_allocator.h\
 	ob_reload_config.h\

@@ -2,7 +2,7 @@
 #ifndef OCEANBASE_PACKET_H_
 #define OCEANBASE_PACKET_H_
 
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "ob_record_header.h" // for ObRecordHeader
 #include "data_buffer.h"
 //#include "ob_malloc.h"
@@ -522,8 +522,8 @@ namespace oceanbase
 
         ObPacket* get_next() const;
 
-        easy_request_t* get_request() const;
-        void set_request(easy_request_t *r);
+        onev_request_e* get_request() const;
+        void set_request(onev_request_e *r);
 
         int serialize();
         /*serialize packet to buffer*/
@@ -594,7 +594,7 @@ namespace oceanbase
         ObDataBuffer buffer_; // user buffer holder
         ObDataBuffer inner_buffer_; // packet inner buffer
         ObRecordHeader header_;
-        easy_request_t *req_;       //request pointer for sendreponse
+        onev_request_e *req_;       //request pointer for sendreponse
 
         ObPacket* _next;         //tbnet::Packet* _next  ObPacketQueue using _next;
         int64_t expire_time_;    //compatible with tbnet packet int64_t _expireTime;

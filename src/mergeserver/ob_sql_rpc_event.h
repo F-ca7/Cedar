@@ -33,7 +33,7 @@ namespace oceanbase
       void set_result_code(const int32_t code);
       
       /// get handler
-      easy_io_process_pt* get_handler() const;
+      onev_io_process_pe* get_handler() const;
 
       /// get response for serialize the result from net io buffer
       common::ObNewScanner & get_result(void);
@@ -89,7 +89,7 @@ namespace oceanbase
       int64_t session_id_;
 
       //packet handler
-      easy_io_process_pt* handler_;
+      onev_io_process_pe* handler_;
     };
   }
 }

@@ -16,7 +16,7 @@
  */
 #ifndef OB_LSYNC_CALLBACK_H_
 #define OB_LSYNC_CALLBACK_H_
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 
 namespace oceanbase
 {
@@ -25,7 +25,7 @@ namespace oceanbase
     class ObLsyncCallback
     {
     public:
-      static int process(easy_request_t* req);
+      static int process(onev_request_e* req);
     };
   }
 }

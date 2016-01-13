@@ -146,7 +146,7 @@ namespace oceanbase
 
     const int OB_RPC_SEND_ERROR = -121;
     const int OB_RPC_POST_ERROR = -122;
-    const int OB_LIBEASY_ERROR = -123;
+    const int OB_LIBONEV_ERROR = -123;
     const int OB_CONNECT_ERROR = -124;
     const int OB_NOT_FREE = -125;
     const int OB_INIT_SQL_CONTEXT_ERROR = -126;
@@ -462,7 +462,7 @@ namespace oceanbase
     const int OB_TBNET_HEADER_LENGTH = 16;  //16 bytes packet header
 
     const int OB_TBNET_PACKET_FLAG = 0x416e4574;
-    const int OB_SERVER_ADDR_STR_LEN = 128; //used for buffer size of easy_int_addr_to_str
+    const int OB_SERVER_ADDR_STR_LEN = 128; //used for buffer size of onev_int_addr_to_str
 
     /*   3bytes   1 byte
      * ------------------
