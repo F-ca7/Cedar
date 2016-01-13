@@ -18,7 +18,7 @@
 #define _NB_SCAN_COND_H 1
 
 #include "common/ob_simple_condition.h"
-#include "common/ob_easy_array.h"
+#include "common/ob_onev_array.h"
 
 namespace oceanbase
 {
@@ -26,7 +26,7 @@ namespace common
 {
   namespace nb_accessor
   {
-    class ScanConds : public EasyArray<ObSimpleCond>
+    class ScanConds : public OnevArray<ObSimpleCond>
     {
     public:
       ScanConds();
