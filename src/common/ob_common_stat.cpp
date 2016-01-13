@@ -145,6 +145,12 @@ const char *ObStatSingleton::ups_map[] = {
   "ups_proc_if_time",
   "ups_proc_loop_time",
   "ups_plan_deserialize_time",
+
+  "gen_inc_scan",
+  "gen_mem_sstable",
+  "exec_inc_scan",
+  "exec_mem_sstable",
+  "exec_merge"
   //add by zt 20151214:e
 };
 

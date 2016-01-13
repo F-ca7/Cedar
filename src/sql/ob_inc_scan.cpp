@@ -16,6 +16,7 @@
 #include "common/utility.h"
 #include "common/ob_trace_log.h"
 #include "common/ob_packet.h"
+#include "common/ob_common_stat.h"
 
 
 namespace oceanbase{
@@ -172,6 +173,7 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
       int64_t new_pos = pos;
+      int64_t start_ts = tbsys::CTimeUtil::getTime();
       if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, (int32_t*)&lock_flag_)))
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -212,6 +214,8 @@ namespace oceanbase
       {
         pos = new_pos;
       }
+
+      OB_STAT_INC(UPDATESERVER, UPS_GEN_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
       return err;
     }
 

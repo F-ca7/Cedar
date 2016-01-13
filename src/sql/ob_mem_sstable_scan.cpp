@@ -16,6 +16,7 @@
 
 #include "ob_mem_sstable_scan.h"
 #include "ob_table_rpc_scan.h"
+#include "common/ob_common_stat.h"
 
 using namespace oceanbase;
 using namespace common;
@@ -65,6 +66,7 @@ int ObMemSSTableScan::open()
 int ObMemSSTableScan::get_next_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
+  int64_t start_ts = tbsys::CTimeUtil::getTime();
   ret = row_store_.get_next_row(cur_row_);
   if (OB_ITER_END == ret)
   {
@@ -79,6 +81,7 @@ int ObMemSSTableScan::get_next_row(const common::ObRow *&row)
     row = &cur_row_;
     TBSYS_LOG(DEBUG, "[MemSSTableScan] %s", to_cstring(cur_row_));
   }
+  OB_STAT_INC(UPDATESERVER, UPS_EXEC_MEM_SSTABLE, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
@@ -183,6 +186,7 @@ DEFINE_SERIALIZE(ObMemSSTableScan)
 DEFINE_DESERIALIZE(ObMemSSTableScan)
 {
   int ret = OB_SUCCESS;
+  int64_t start_ts = tbsys::CTimeUtil::getTime();
   if (OB_SUCCESS != (ret = cur_row_desc_.deserialize(buf, data_len, pos)))
   {
     TBSYS_LOG(WARN, "fail to deserialize row desc:ret[%d]", ret);
@@ -195,6 +199,7 @@ DEFINE_DESERIALIZE(ObMemSSTableScan)
   {
     from_deserialize_ = true;
   }
+  OB_STAT_INC(UPDATESERVER, UPS_GEN_MEM_SSTABLE, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 

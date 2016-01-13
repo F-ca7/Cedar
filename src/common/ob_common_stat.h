@@ -156,6 +156,12 @@ namespace oceanbase
       UPS_PROC_IF,
       UPS_PROC_LOOP,
       UPS_PLAN_TIME,
+
+      UPS_GEN_INC_SCAN,
+      UPS_GEN_MEM_SSTABLE,
+      UPS_EXEC_INC_SCAN,
+      UPS_EXEC_MEM_SSTABLE,
+      UPS_EXE_MERGE,
       //add by zt 20151214:e
 
       UPDATESERVER_STAT_MAX,

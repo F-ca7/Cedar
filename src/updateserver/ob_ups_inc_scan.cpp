@@ -14,7 +14,7 @@
 #include "common/ob_new_scanner_helper.h"
 #include "ob_ups_inc_scan.h"
 #include "ob_update_server_main.h"
-
+#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 
 namespace oceanbase{
@@ -268,6 +268,7 @@ namespace oceanbase
     int ObUpsIncScan::open()
     {
       int err = OB_SUCCESS;
+      int64_t start_ts = tbsys::CTimeUtil::getTime();
       ObUpsTableMgr* table_mgr = NULL;
 
       if (NULL == (table_mgr = get_table_mgr()))
@@ -301,6 +302,7 @@ namespace oceanbase
           TBSYS_LOG(WARN, "result->open()=>%d", err);
         }
       }
+      OB_STAT_INC(UPDATESERVER, UPS_EXEC_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
       return err;
     }
 
@@ -344,6 +346,7 @@ namespace oceanbase
     int ObUpsIncScan::get_next_row(const ObRow *&row)
     {
       int err = OB_SUCCESS;
+      int64_t start_ts = tbsys::CTimeUtil::getTime();
       if (NULL == result_)
       {
         err = OB_NOT_INIT;
@@ -357,6 +360,7 @@ namespace oceanbase
           TBSYS_LOG(WARN, "result->get_next_row()=>%d", err);
         }
       }
+      OB_STAT_INC(UPDATESERVER, UPS_EXEC_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
       return err;
     }
 

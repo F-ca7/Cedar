@@ -16,7 +16,7 @@
 
 #include "ob_multiple_get_merge.h"
 #include "common/ob_row_fuse.h"
-
+#include "common/ob_common_stat.h"
 using namespace oceanbase;
 using namespace sql;
 
@@ -78,6 +78,7 @@ int ObMultipleGetMerge::get_next_row(const ObRow *&row)
   int ret = OB_SUCCESS;
   const ObRow *tmp_row = NULL;
   bool is_row_empty = true;
+  int64_t start_ts = tbsys::CTimeUtil::getTime();
   if (child_num_ <= 0)
   {
     ret = OB_NOT_INIT;
@@ -152,6 +153,7 @@ int ObMultipleGetMerge::get_next_row(const ObRow *&row)
   {
     row = &cur_row_;
   }
+  OB_STAT_INC(UPDATESERVER, UPS_EXE_MERGE, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
