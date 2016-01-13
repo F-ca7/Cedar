@@ -27,7 +27,7 @@
 #include "common/hash/ob_hashmap.h"
 #include "common/ob_rowkey.h"
 #include "common/ob_simple_condition.h"
-#include "common/ob_easy_array.h"
+#include "common/ob_onev_array.h"
 #include "common/ob_mutator_helper.h"
 #include "common/roottable/ob_scan_helper.h"
 #include "nb_scan_cond.h"
