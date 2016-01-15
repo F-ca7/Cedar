@@ -45,12 +45,24 @@ namespace oceanbase
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add by zt 20160114:b
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const;
+        int deserialize_template(const char* buf, const int64_t data_len, int64_t& pos);
+      private:
+        int prepare_data();
+        //add by zt 20160114:e
       private:
         common::ObRow cur_row_;
         common::ObRowDesc cur_row_desc_;
         common::ObRowStore row_store_;
         bool from_deserialize_;
         uint64_t tmp_table_subquery_;
+
+        //add by zt 20160113:b
+        common::ObRowStore *row_store_ptr_; //used to seperate row_store from the operator
+        bool proc_exec_;
+        //add by zt 20160113:e
     };
   }
 }

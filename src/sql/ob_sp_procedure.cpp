@@ -697,7 +697,6 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
       }
     }
   }
-//  TBSYS_LOG(INFO, "temp var size: %ld", pos - last_pos);
   last_pos = pos;
   //serialize array variables
   if( OB_SUCCESS != ret ){}
@@ -747,31 +746,33 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
         }
       }
     }
-//    TBSYS_LOG(INFO, "array size: %ld", pos - last_pos);
   }
-  //serialize the variable set to ups
-//  for(int64_t rd_var_itr = 0; rd_var_itr < rs_.var_set_.count() && OB_SUCCESS == ret; ++rd_var_itr)
-//  {
-//    const ObString &var_name = rs_.var_set_.at(rd_var_itr);
-//    const ObObj *obj;
-//    proc_->read_variable(var_name, obj);
-//    if( NULL == obj )
-//    {
-//      TBSYS_LOG(WARN, "variable[%.*s] does not found in session", var_name.length(), var_name.ptr());
-//    }
-//    else if( OB_SUCCESS != (ret = var_name.serialize(buf, buf_len, pos)) )
-//    {
-//      TBSYS_LOG(WARN, "variable name serialization fail");
-//    }
-//    else if( OB_SUCCESS != (ret = obj->serialize(buf, buf_len, pos)) )
-//    {
-//      TBSYS_LOG(WARN, "variable value serialization fail");
-//    }
-//    else
-//    {
-//      TBSYS_LOG(TRACE, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
-//    }
-//  }
+  //serialize static data
+  int64_t static_data_count = proc_->get_static_data_count();
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, static_data_count)) )
+  {
+    TBSYS_LOG(WARN, "fail to serialize static data count");
+  }
+  else
+  {
+    const StaticData *store = NULL;
+    for(int64_t i = 0; OB_SUCCESS == ret && i < static_data_count; ++i)
+    {
+      if( OB_SUCCESS != (ret = proc_->get_static_data_by_idx(i, store)))
+      {
+        TBSYS_LOG(WARN, "fail to get static data");
+      }
+      else if( OB_SUCCESS != (serialization::encode_i64(buf, buf_len, pos, store->id)) )
+      {
+        TBSYS_LOG(WARN, "fail to serialize static data id");
+      }
+      else if( OB_SUCCESS != (store->store.serialize(buf, buf_len, pos)))
+      {
+        TBSYS_LOG(WARN, "fail to serialize static data");
+      }
+    }
+  }
   return ret;
 }
 
@@ -869,6 +870,28 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
             TBSYS_LOG(WARN, "write array variables %.*s[%ld] = %s into table fail", var_name.length(), var_name.ptr(), j, to_cstring(obj));
           }
         }
+      }
+    }
+  }
+
+  int64_t static_data_count;
+  if( OB_SUCCESS == ret && OB_SUCCESS == (ret = serialization::decode_i64(buf, data_len, pos, &static_data_count)) )
+  {
+    TBSYS_LOG(TRACE, "block inst, static_data_count: %ld", static_data_count);
+    for(int64_t i = 0; i < static_data_count && OB_SUCCESS == ret; ++i)
+    {
+      StaticData *static_data = NULL;
+      if( OB_SUCCESS != (ret = proc_->create_static_data(static_data)) )
+      {
+        TBSYS_LOG(WARN, "failed to create static store");
+      }
+      else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, (int64_t *)&static_data->id)) )
+      {
+        TBSYS_LOG(WARN, "failed to deserialize static data id");
+      }
+      else if( OB_SUCCESS != (ret = static_data->store.deserialize(buf, data_len, pos)) )
+      {
+        TBSYS_LOG(WARN, "failed to deserialize static data");
       }
     }
   }
@@ -1254,9 +1277,24 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   {
     TBSYS_LOG(WARN, "serialize loop counter var fail");
   }
-  else if( OB_SUCCESS != (ret = const_cast<SpLoopInst*>(this)->serialize_loop_body(buf, buf_len, pos, itr, itr_end)))
+  else if( OB_SUCCESS != (ret = serialize_loop_template(buf, buf_len, pos)))
   {
-    TBSYS_LOG(WARN, "serialize loop body fail");
+    TBSYS_LOG(WARN, "serialize loop template failed");
+  }
+//  else if( OB_SUCCESS != (ret = const_cast<SpLoopInst*>(this)->serialize_loop_body(buf, buf_len, pos, itr, itr_end)))
+//  {
+//    TBSYS_LOG(WARN, "serialize loop body fail");
+//  }
+  return ret;
+}
+
+int SpLoopInst::serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
+  {
+    TBSYS_LOG(WARN, "serialize loop body template failed");
   }
   return ret;
 }
@@ -1320,10 +1358,10 @@ int SpLoopInst::serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, in
       }
 
       //close inst
-      if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->close(this)) ) //close body inst operation
-      {
-        TBSYS_LOG(WARN, "reset loop body inst operation fail");
-      }
+//      if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->close(this)) ) //close body inst operation
+//      {
+//        TBSYS_LOG(WARN, "reset loop body inst operation fail");
+//      }
     }
     is_first_loop_iteration = false;
   }
@@ -1569,11 +1607,11 @@ int SpCaseInst::optimize(SpInstList &exec_list)
              SpProcedure Defintion
  * ===============================================*/
 
-int SpInstExecStrategy::close(SpInst *inst)
-{
-  UNUSED(inst);
-  return OB_NOT_SUPPORTED;
-}
+//int SpInstExecStrategy::close(SpInst *inst)
+//{
+//  UNUSED(inst);
+//  return OB_NOT_SUPPORTED;
+//}
 
 SpProcedure::SpProcedure(){}
 
@@ -1677,6 +1715,31 @@ int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
     ret = OB_ERR_ILLEGAL_INDEX;
   }
   return ret;
+}
+
+int SpProcedure::create_static_data(StaticData *&static_data)
+{
+  UNUSED(static_data);
+  return OB_NOT_SUPPORTED;
+}
+
+int64_t SpProcedure::get_static_data_count() const
+{
+  return 0;
+}
+
+int SpProcedure::get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const
+{
+  UNUSED(idx);
+  UNUSED(static_data);
+  return OB_NOT_SUPPORTED;
+}
+
+int SpProcedure::get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr)
+{
+  UNUSED(static_data_id);
+  UNUSED(row_store_ptr);
+  return OB_NOT_SUPPORTED;
 }
 
 SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)

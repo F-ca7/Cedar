@@ -139,7 +139,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
       {
         const SpVar &var = var_list_.at(i);
         const ObObj *cell = NULL;
-        if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))//取出一列
+        if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))
         {
 //          TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
         }
@@ -253,10 +253,10 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
   ObObj itr_obj;
   int64_t itr_value = inst->get_lowest_number();
   int64_t loop_size = inst->get_highest_number() - itr_value;
-  int64_t body_size  = inst->get_body_size();
+//  int64_t body_size  = inst->get_body_size();
   const SpVar &loop_var = inst->get_loop_counter_var();
 
-  int64_t expanded_inst_itr = 0;
+//  int64_t expanded_inst_itr = 0;
   for(int64_t i = 0; OB_SUCCESS == ret && i < loop_size; ++i)
   {
     itr_obj.set_int(itr_value++);
@@ -264,7 +264,11 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
     {
 //      TBSYS_LOG(WARN, "update loop counter var failed");
     }
-    for(int64_t j = 0; OB_SUCCESS == ret && j < body_size; ++j)
+    else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_loop_body())) )
+    {
+      TBSYS_LOG(WARN, "failed to execute loop body");
+    }
+/*    for(int64_t j = 0; OB_SUCCESS == ret && j < body_size; ++j)
     {
       SpInst *exec_inst = NULL;
       if( inst->get_flag(j) || i == 0 )
@@ -286,7 +290,7 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
 //      {
 //        static_cast<SpRwDeltaInst*>(exec_inst)->get_rwdelta_op()->close();
 //      }
-    }
+    }*/
   }
   return ret;
 }
@@ -396,7 +400,7 @@ int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &
   {
 //    TBSYS_LOG(WARN, "deserialize loop counter variable failed");
   }
-  else if( OB_SUCCESS != (ret = deserialize_loop_body(buf, data_len, pos, allocator, operators_store, op_factory)))
+  else if( OB_SUCCESS != (ret = deserialize_loop_template(buf, data_len, pos, allocator, operators_store, op_factory)))
   {
 //    TBSYS_LOG(TRACE, "expanded loop iteration %s in (%ld  %ld)", to_cstring(loop_counter_var_), lowest_number_, highest_number_);
 //    itr_count = highest_number_ - lowest_number_;
@@ -435,6 +439,16 @@ int SpUpsLoopInst::deserialize_loop_body(const char *buf, int64_t data_len, int6
   return ret;
 }
 
+int SpUpsLoopInst::deserialize_loop_template(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = expanded_loop_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "failed to deserialize loop_body");
+  }
+  return ret;
+}
+
 int SpUpsLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   UNUSED(buf);
@@ -455,11 +469,6 @@ int SpUpsLoopInst::assign(const SpInst *inst)
   UNUSED(inst);
   return OB_NOT_SUPPORTED;
 }
-
-/*============================================================================
- *                    ObCaseInst  Definition
- * ==========================================================================*/
-
 
 /*============================================================================
  *                    ObUpsProcedure  Definition
@@ -507,6 +516,8 @@ void ObUpsProcedure::reset()
 {
   pc_ = 0;
 
+  static_ptr_ = 0;
+  static_store_.clear();
   SpProcedure::reset();
   name_pool_.clear();
   var_name_val_map_.destroy();
@@ -691,6 +702,38 @@ int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value,
       //TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
       ret = OB_ERR_ILLEGAL_INDEX;
     }
+  }
+  return ret;
+}
+
+int ObUpsProcedure::create_static_data(StaticData *&static_data)
+{
+  int ret = OB_SUCCESS;
+  StaticData item;
+  ret = static_store_.push_back(item);
+  static_data = &(static_store_.at(static_store_.count() - 1));
+  return ret;
+}
+
+int64_t ObUpsProcedure::get_static_data_count() const
+{
+  return static_store_.count();
+}
+
+int ObUpsProcedure::get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr)
+{
+  int ret = OB_ERR_ILLEGAL_ID;
+  for(; static_ptr_ < static_store_.count(); ++static_ptr_)
+  {
+    if( static_data_id == static_store_.at(static_ptr_).id )
+    {
+      ret = OB_SUCCESS;
+      break;
+    }
+  }
+  if( OB_SUCCESS == ret )
+  {
+    row_store_ptr = &(static_store_.at(static_ptr_).store);
   }
   return ret;
 }

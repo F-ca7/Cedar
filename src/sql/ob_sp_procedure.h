@@ -102,7 +102,7 @@ namespace oceanbase
      *
      * @brief The SpVariableSet struct
      */
-    class SpVariableSet //???
+    class SpVariableSet
     {
     public:
       const static int VAR_PER_INST = 5;
@@ -136,6 +136,11 @@ namespace oceanbase
       Da_Anti_Dep, //data anti dependecne
       Da_Out_Dep,  //data output dependece
       Tr_Itm_Dep   //transaction item dependence
+    };
+
+    struct StaticData {
+        uint64_t id;
+        ObRowStore store;
     };
 
     /**
@@ -236,6 +241,8 @@ namespace oceanbase
       SpVariableSet rs_;
     };
 
+    //TODO: build a link between static operation and delta operation.
+    //For delta operation, it should answer whether in a group execution
     class SpRdBaseInst :public SpInst
     {
     public:
@@ -252,6 +259,7 @@ namespace oceanbase
       ObPhyOperator* get_rd_op() { return op_;}
       int32_t get_query_id() const {return query_id_; }
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
+      bool is_for_group_exec() const { return false; }
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
       int assign(const SpInst *inst);
@@ -489,6 +497,8 @@ namespace oceanbase
                                    ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
       int serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end);
+
+      int serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
       virtual int assign(const SpInst *inst);
@@ -509,34 +519,6 @@ namespace oceanbase
       bool reverse_;   //this variable could be elimated
     };
 
-//    class SpCaseInsts;
-
-//    class SpWhenInst : public SpInst
-//    {
-//    public:
-//      SpWhenInst() : SpInst(SP_CW_INST), then_branch_(this) {}
-//        virtual ~SpWhenInst();
-//        int add_then_inst(SpInst *inst);
-//        void add_read_var(ObArray<const ObRawExpr*>& var_list);
-//        ObSqlExpression& get_when_expr(){return when_expr_;}
-//        SpMultiInsts* get_then_block(){return &then_branch_;}
-
-//        virtual const VariableSet &get_read_variable_set() const { return rs_set_; }
-//        virtual const VariableSet &get_write_variable_set() const { return ws_set_; }
-
-//        virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
-//        virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-
-//        virtual int64_t to_string(char *buf, const int64_t buf_len) const;
-
-//        virtual int assign(const SpInst *inst);
-//    private:
-//      ObSqlExpression when_expr_;
-//      SpMultiInsts then_branch_;
-//      VariableSet rs_set_;
-//      VariableSet ws_set_;
-//    };
- 
     class SpCaseInst;
     class SpWhenBlock : public SpMultiInsts
     {
@@ -659,7 +641,7 @@ namespace oceanbase
     {
     public:
       virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
-      virtual int close(SpInst *inst);
+//      virtual int close(SpInst *inst);
     private:
       virtual int execute_expr(SpExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
@@ -703,6 +685,12 @@ namespace oceanbase
 
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
       virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
+
+      //for static data management
+      virtual int create_static_data(StaticData *&static_data);
+      virtual int64_t get_static_data_count() const ;
+      virtual int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
+      virtual int get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr);
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object
@@ -757,6 +745,7 @@ namespace oceanbase
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
       ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
+
     };
   }
 }

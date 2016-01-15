@@ -62,6 +62,8 @@ namespace oceanbase
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
       virtual int deserialize_loop_body(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+      int deserialize_loop_template(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
+
 
 //      int64_t get_iteration_count() const { return expanded_loop_body_.count(); }
       int64_t get_inst_count() const { return expanded_loop_body_.inst_count(); }
@@ -71,6 +73,7 @@ namespace oceanbase
 //      SpMultiInsts & get_loop_body(int64_t itr) { return expanded_loop_body_.at(itr); }
 
       SpInst *get_inst(int64_t idx) { return expanded_loop_body_.get_inst(idx); }
+      SpMultiInsts * get_loop_body() { return &expanded_loop_body_; }
       bool get_flag(int64_t idx) const { return flags.at(idx); }
       int64_t get_body_size() const { return flags.count(); }
 
@@ -103,6 +106,11 @@ namespace oceanbase
 
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
+
+      int create_static_data(StaticData *&static_data);
+      int64_t get_static_data_count() const;
+      int get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr);
+
       //specially handle the loop inst creataion
       virtual SpInst * create_inst(SpInstType type, SpMultiInsts *mul_inst);
 
@@ -139,6 +147,11 @@ namespace oceanbase
       };
 
       ObSEArray<ObUpsArray, 4> array_table_;
+
+      ObSEArray<StaticData, 64> static_store_;
+      //be careful use of static_ptr.
+      //For now, I assume static data is consumed in ascending order.
+      int64_t static_ptr_;
     };
 
   }

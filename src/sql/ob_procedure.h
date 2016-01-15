@@ -22,7 +22,7 @@ namespace oceanbase
     {
     public:
       virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
-      int close(SpInst *inst);
+//      int close(SpInst *inst);
     private:
       virtual int execute_expr(SpExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
@@ -94,7 +94,10 @@ namespace oceanbase
       virtual int read_variable(const SpVar &var, const ObObj *&val) const;
 
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
-//      virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
+
+      int create_static_data(StaticData *&static_data);
+      int64_t get_static_data_count() const;
+      int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
 
       int optimize();
 
@@ -103,6 +106,7 @@ namespace oceanbase
 
       DECLARE_PHY_OPERATOR_ASSIGN;
       int set_inst_op();
+
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
@@ -117,7 +121,10 @@ namespace oceanbase
 
       SpInstList exec_list_;
 
+
       mergeserver::ObMergerRpcProxy *rpc_;
+
+      ObArray<StaticData> static_store_;
     }; 
   }
 }

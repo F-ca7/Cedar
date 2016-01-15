@@ -268,8 +268,17 @@ namespace oceanbase
     int ObUpsIncScan::open()
     {
       int err = OB_SUCCESS;
-      int64_t start_ts = tbsys::CTimeUtil::getTime();
       ObUpsTableMgr* table_mgr = NULL;
+
+      //add by zt 20160113:b
+      if(proc_exec_)
+      {
+        if( OB_SUCCESS != (err = prepare_data()) )
+        {
+          TBSYS_LOG(WARN, "prepare_data()=>%d", err);
+        }
+      }
+      //add by zt 20160113:e
 
       if (NULL == (table_mgr = get_table_mgr()))
       {
@@ -302,7 +311,6 @@ namespace oceanbase
           TBSYS_LOG(WARN, "result->open()=>%d", err);
         }
       }
-      OB_STAT_INC(UPDATESERVER, UPS_EXEC_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
       return err;
     }
 
@@ -346,7 +354,7 @@ namespace oceanbase
     int ObUpsIncScan::get_next_row(const ObRow *&row)
     {
       int err = OB_SUCCESS;
-      int64_t start_ts = tbsys::CTimeUtil::getTime();
+      int64_t start_ts = tbsys::CTimeUtil::getTime(); //add by zt
       if (NULL == result_)
       {
         err = OB_NOT_INIT;
@@ -360,7 +368,7 @@ namespace oceanbase
           TBSYS_LOG(WARN, "result->get_next_row()=>%d", err);
         }
       }
-      OB_STAT_INC(UPDATESERVER, UPS_EXEC_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
+      OB_STAT_INC(UPDATESERVER, UPS_EXEC_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts); //add by zt
       return err;
     }
 
@@ -378,5 +386,110 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add by zt 20160113:b
+    int ObUpsIncScan::prepare_data()
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS != (ret = input_values_.open()))
+      {
+        TBSYS_LOG(WARN, "failed to open values, err=%d", ret);
+      }
+      else
+      {
+        const ObRow *row = NULL;
+        const ObRowkey *rowkey = NULL;
+        ObCellInfo cell_info;
+        const common::ObObj *cell = NULL;
+        uint64_t tid = OB_INVALID_ID;
+        uint64_t cid = OB_INVALID_ID;
+        while (OB_SUCCESS == ret)
+        {
+          ret = input_values_.get_next_row(row);
+          if (OB_ITER_END == ret)
+          {
+            ret = OB_SUCCESS;
+            break;
+          }
+          else if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "failed to get next row, err=%d", ret);
+            break;
+          }
+          else if (OB_SUCCESS != (ret = row->get_rowkey(rowkey)))
+          {
+            TBSYS_LOG(WARN, "failed to get rowkey, err=%d", ret);
+            break;
+          }
+          else
+          {
+            int64_t cell_num = rowkey->length();
+            for (int64_t i = 0; i < cell_num; ++i)
+            {
+              if (OB_SUCCESS != (ret = row->raw_get_cell(i, cell, tid, cid)))
+              {
+                TBSYS_LOG(WARN, "failed to get cell, err=%d i=%ld", ret, i);
+                break;
+              }
+              else
+              {
+                cell_info.row_key_ = *rowkey;
+                cell_info.table_id_ = tid;
+                cell_info.column_id_ = cid;
+                if (OB_SUCCESS != (ret = get_param_->add_cell(cell_info)))
+                {
+                  TBSYS_LOG(WARN, "failed to add cell into get param, err=%d", ret);
+                  break;
+                }
+              }
+            } // end for
+          }
+        } // end while
+      }
+      return ret;
+    }
+
+    int ObUpsIncScan::deserialize(const char *buf, const int64_t data_len, int64_t &pos)
+    {
+      int64_t new_pos = pos;
+      int err = OB_SUCCESS;
+      if( OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &proc_exec_)))
+      {
+        TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+      }
+      if( !proc_exec_ )
+      {
+        err = ObIncScan::deserialize(buf, data_len, pos);
+      }
+      else
+      {
+        if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, (int32_t*)&lock_flag_)))
+        {
+          TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+        }
+        else if (OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &hotspot_)))
+        {
+          TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+        }
+        else if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, (int32_t*)&scan_type_)))
+        {
+          TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+        }
+        else if (ST_MGET == scan_type_)
+        {
+          if (NULL == get_get_param())
+          {
+            err = OB_MEM_OVERFLOW;
+            TBSYS_LOG(ERROR, "get_param == NULL");
+          }
+          else if( OB_SUCCESS != (err = input_values_.deserialize(buf, data_len, new_pos)) )
+          {
+            TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+          }
+        }
+      }
+      return err;
+    }
+    //add by zt 20160113:e
   }; // end namespace updateserver
 }; // end namespace oceanbase

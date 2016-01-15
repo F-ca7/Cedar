@@ -115,6 +115,9 @@ namespace oceanbase
         void set_hotspot(bool flag) { hotspot_ = flag; }
         int serialize(char* buf, const int64_t buf_len, int64_t& pos) const;
         int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
+
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const; //add by zt 20160113
+
         int64_t get_serialize_size() const;
         void set_scan_type(const ScanType scan_type) { scan_type_ = scan_type; }
         void set_values(uint64_t subquery, bool with_only_rowkey) {values_subquery_id_ = subquery;

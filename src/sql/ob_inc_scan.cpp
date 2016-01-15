@@ -96,6 +96,19 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
       int64_t new_pos = pos;
+
+      //add by zt 20160113:b
+      if( OB_SUCCESS != (err = serialization::encode_bool(buf, buf_len, new_pos, my_phy_plan_->is_proc_exec())))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      else if( my_phy_plan_->is_proc_exec() )
+      {
+        //step into the new branch
+        err = serialize_template(buf, buf_len, new_pos);
+      }
+      else //step into the original branch
+      //add by zt 20160113:e
       if (OB_SUCCESS != (err = serialization::encode_i32(buf, buf_len, new_pos, lock_flag_)))
       {
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
@@ -168,6 +181,57 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add by zt 20160113:b
+    int ObIncScan::serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const
+    {
+      int err = OB_SUCCESS;
+      int64_t new_pos = pos;
+      if (OB_SUCCESS != (err = serialization::encode_i32(buf, buf_len, new_pos, lock_flag_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      else if (OB_SUCCESS != (err = serialization::encode_bool(buf, buf_len, new_pos, hotspot_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      else if (OB_SUCCESS != (err = serialization::encode_i32(buf, buf_len, new_pos, scan_type_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      else if (ST_MGET == scan_type_)
+      {
+        if (OB_UNLIKELY(common::OB_INVALID_ID == values_subquery_id_))
+        {
+          err = OB_NOT_INIT;
+          TBSYS_LOG(ERROR, "values is invalid");
+        }
+        else
+        {
+          ObExprValues* input_values = dynamic_cast<ObExprValues*>(my_phy_plan_->get_phy_query_by_id(values_subquery_id_));
+          if( NULL == input_values )
+          {
+            err = OB_NOT_INIT;
+            TBSYS_LOG(ERROR, "input_values is null");
+          }
+          else if( OB_SUCCESS != (input_values->serialize(buf, buf_len, new_pos)) )
+          {
+            TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+          }
+        }
+      }
+      else if( ST_SCAN == scan_type_ )
+      {
+        //not supported here.
+        err = OB_NOT_SUPPORTED;
+      }
+      if( OB_SUCCESS == err )
+      {
+        pos = new_pos;
+      }
+      return err;
+    }
+    //add by zt 20160113:e
 
     int ObIncScan::deserialize(const char* buf, const int64_t data_len, int64_t& pos)
     {

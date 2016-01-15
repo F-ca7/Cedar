@@ -15,6 +15,7 @@
  */
 #include "ob_values.h"
 #include "common/utility.h"
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -103,6 +104,23 @@ int ObValues::get_row_desc(const common::ObRowDesc *&row_desc) const
   row_desc = &row_desc_;
   return OB_SUCCESS;
 }
+
+//add by zt 20160114:b
+int ObValues::get_row_desc_template(const common::ObRowDesc *&row_desc) const
+{
+  int ret = OB_SUCCESS;
+  UNUSED(row_desc);
+  if( NULL != child_op_ )
+  {
+    ret = child_op_->get_row_desc(row_desc);
+  }
+  else
+  {
+    row_desc = &row_desc_;
+  }
+  return ret;
+}
+//add by zt 20160114:e
 
 namespace oceanbase{
   namespace sql{

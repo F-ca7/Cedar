@@ -39,7 +39,8 @@ namespace oceanbase
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
-        bool is_opened() const { return is_open_; } // add zt 20151203
+        int get_row_desc_template(const common::ObRowDesc *&row_desc) const; //add by zt 20160114
+//        bool is_opened() const { return is_open_; } // add zt 20151203
         enum ObPhyOperatorType get_type() const{return PHY_VALUES;}
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;

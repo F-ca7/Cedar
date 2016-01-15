@@ -71,8 +71,11 @@ int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
 {
   int ret = OB_SUCCESS;
-  ObPhyOperator *op = inst->get_rd_op(); //op_ is in the UpsExecutor::inner_plan, that is different from the procedure->my_phy_plan_
+  int err = OB_SUCCESS;
+  const ObRow *row = NULL;
+  const ObRowStore::StoredRow *stored_row = NULL;
 
+  ObPhyOperator *op = inst->get_rd_op(); //op_ is in the UpsExecutor::inner_plan, that is different from the procedure->my_phy_plan_
   ObPhysicalPlan *phy_plan = inst->get_ownner()->get_phy_plan();
   //table rpc scan is in the ups_executor's inner plan that is different from the current plan
   op->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
@@ -82,17 +85,70 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   {
     TBSYS_LOG(WARN, "rd_base fail, sp rdbase inst exec(proc_op: %p, phy_plan: %p, result_set: %p)", inst->get_ownner(), phy_plan, phy_plan->get_result_set());
   }
+  else if( inst->is_for_group_exec() )
+  {
+    //if the static data is used for group execution, we need save which into static_store and close the op by self.
+    //later, it would be sent to the UPS.
+    //if not, ObUpsExecutor would consume the static data and close the ObValues op.
+    StaticData* static_data;
+
+    if( OB_SUCCESS == (ret = inst->get_ownner()->create_static_data(static_data)) )
+    {
+      static_data->id = op->get_id();
+    }
+
+    while( OB_SUCCESS == ret )
+    {
+      ret = op->get_next_row(row);
+      if (OB_ITER_END == ret)
+      {
+        ret = OB_SUCCESS;
+        break;
+      }
+      else if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "fail to get next row from rpc scan");
+      }
+      else
+      {
+        TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
+        if (OB_SUCCESS != (ret = static_data->store.add_row(*row, stored_row)))
+        {
+          TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
+        }
+      }
+    }
+
+    if( OB_SUCCESS != (err = op->close()))
+    {
+      TBSYS_LOG(WARN, "fail to close rpc scan:err[%d]", err);
+      if( OB_SUCCESS == ret )
+      {
+        ret = err;
+      }
+    }
+  }
+
   return ret;
 }
 
 int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
+  int err = OB_SUCCESS;
   inst->get_ownner()->get_phy_plan()->get_result_set()->get_session()->set_autocommit(true);
   ObPhyOperator *op = inst->get_ups_exec_op();
   if( OB_SUCCESS != (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "execute rw_delta_inst fail");
+  }
+  else if ( OB_SUCCESS != (err = op->close() ))
+  {
+    TBSYS_LOG(WARN, "failed to close the rw_delta op");
+    if( OB_SUCCESS == ret )
+    {
+      ret = err;
+    }
   }
   return ret;
 }
@@ -100,14 +156,15 @@ int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
 {
   int ret = OB_SUCCESS;
+  int err = OB_SUCCESS;
   const ObRow *row;
-  ObPhyOperator* op_ = inst->get_rwcomp_op();
+  ObPhyOperator* op = inst->get_rwcomp_op();
   const ObIArray<SpVar> &var_list = inst->get_var_list();
-  if( OB_SUCCESS != (ret = op_->open()) )
+  if( OB_SUCCESS != (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "open rw_com_inst fail");
   }
-  else if( OB_SUCCESS != (ret = op_->get_next_row(row))) //properly we need to check only one row is got
+  else if( OB_SUCCESS != (ret = op->get_next_row(row))) //properly we need to check only one row is got
   {
     TBSYS_LOG(WARN, "get new_row fail");
   }
@@ -127,12 +184,22 @@ int SpMsInstExecStrategy::execute_rw_comp(SpRwCompInst *inst)
       }
     }
   }
+
+  if( OB_SUCCESS != (err = op->close()))
+  {
+    TBSYS_LOG(WARN, "failed to close the select op");
+    if( OB_SUCCESS == ret )
+    {
+      ret = err;
+    }
+  }
   return ret;
 }
 
 int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 {
   int ret = OB_SUCCESS;
+  int err = OB_SUCCESS;
   const ObRow *row;
   TBSYS_LOG(TRACE, "sp rwintovar inst exec()");
   ObRowDesc fake_desc;
@@ -176,6 +243,15 @@ int SpMsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
       {
         TBSYS_LOG(WARN, "write into variables fail");
       }
+    }
+  }
+
+  if( OB_SUCCESS != (err = op->close()) )
+  {
+    TBSYS_LOG(WARN, "failed to close the rw_delta op");
+    if( OB_SUCCESS == ret )
+    {
+      ret = err;
     }
   }
   return ret;
@@ -310,10 +386,10 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
         {
           TBSYS_LOG(WARN, "execute loop body fail");
         }
-        else if( OB_SUCCESS != (ret = close(inst)) ) //close body inst operation
-        {
-          TBSYS_LOG(WARN, "reset loop body inst operation fail");
-        }
+//        else if( OB_SUCCESS != (ret = close(inst)) ) //close body inst operation
+//        {
+//          TBSYS_LOG(WARN, "reset loop body inst operation fail");
+//        }
         else if( OB_SUCCESS != (ret = inst->get_highest_expr().calc(fake_row, highest_value)))
         {
           TBSYS_LOG(WARN, "calculate highest value fail");
@@ -399,7 +475,6 @@ int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
  * important protocal, a group of instructions would be sent to ups
  * @return
  */
-//int SpBlockInsts::exec()
 int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
 {
   int ret = OB_SUCCESS;
@@ -479,88 +554,92 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
   return ret;
 }
 
-int SpMsInstExecStrategy::close(SpInst *inst)
-{
-  int ret = OB_SUCCESS;
-  SpMultiInsts *mul_inst = NULL;
-  switch(inst->get_type())
-  {
-  case SP_E_INST:
-    break;
-  case SP_B_INST:
-    ret = static_cast<SpRdBaseInst*>(inst)->get_rd_op()->close();
-    break;
-  case SP_D_INST:
-    ret = static_cast<SpRwDeltaInst*>(inst)->get_ups_exec_op()->close();
-    break;
-  case SP_DE_INST:
-    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->get_ups_exec_op()->close();
-    break;
-  case SP_A_INST:
-    ret = static_cast<SpRwCompInst*>(inst)->get_rwcomp_op()->close();
-    break;
-  case SP_BLOCK_INST:
-    break;
-  case SP_C_INST:
-    {
-      //only one branch is opened and closed
-      SpIfCtrlInsts *if_inst = static_cast<SpIfCtrlInsts*>(inst);
-      if( 1 == if_inst->get_open_flag() ) //then branch is opened, close it
-      {
-        mul_inst = if_inst->get_then_block();
-        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-          SpInst *inner_inst = NULL;
-          mul_inst->get_inst(i, inner_inst);
-          if( NULL != inner_inst) ret = close(inner_inst);
-        }
-      }
-      else if( 0 == if_inst->get_open_flag() ) //else branch is opened, close it
-      {
-        mul_inst = if_inst->get_else_block();
-        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-          SpInst *inner_inst = NULL;
-          mul_inst->get_inst(i, inner_inst);
-          if( NULL != inner_inst) ret = close(inner_inst);
-        }
-      }
-      break;
-    }
-  case SP_L_INST:
-    mul_inst = static_cast<SpLoopInst*>(inst)->get_body_block();
-    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-      SpInst *inner_inst = NULL;
-      mul_inst->get_inst(i, inner_inst);
-      if( NULL != inner_inst) ret = close(inner_inst);
-    }
-    break;
-  case SP_CW_INST:
-    {
-      SpCaseInst *case_inst = static_cast<SpCaseInst*>(inst);
-      for(int64_t i = 0; OB_SUCCESS == ret && i < case_inst->get_when_count(); ++i)
-      {
-        mul_inst = case_inst->get_when_block(i);
-        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-          SpInst *inner_inst = NULL;
-          mul_inst->get_inst(i, inner_inst);
-          if( NULL != inner_inst) ret = close(inner_inst);
-        }
-      }
-      mul_inst = case_inst->get_else_block();
-      for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
-        SpInst *inner_inst = NULL;
-        mul_inst->get_inst(i, inner_inst);
-        if( NULL != inner_inst) ret = close(inner_inst);
-      }
-      break;
-    }
-  case SP_UNKOWN:
-  default:
-    TBSYS_LOG(WARN, "close unsupport inst[%d] on mergeserver", inst->get_type());
-    ret = OB_NOT_SUPPORTED;
-    break;
-  }
-  return ret;
-}
+
+/**
+ * This function is innecessary any more. Because we would close each op afte execution.
+ * */
+//int SpMsInstExecStrategy::close(SpInst *inst)
+//{
+//  int ret = OB_SUCCESS;
+//  SpMultiInsts *mul_inst = NULL;
+//  switch(inst->get_type())
+//  {
+//  case SP_E_INST:
+//    break;
+//  case SP_B_INST:
+//    ret = static_cast<SpRdBaseInst*>(inst)->get_rd_op()->close();
+//    break;
+//  case SP_D_INST:
+//    ret = static_cast<SpRwDeltaInst*>(inst)->get_ups_exec_op()->close();
+//    break;
+//  case SP_DE_INST:
+//    ret = static_cast<SpRwDeltaIntoVarInst*>(inst)->get_ups_exec_op()->close();
+//    break;
+//  case SP_A_INST:
+//    ret = static_cast<SpRwCompInst*>(inst)->get_rwcomp_op()->close();
+//    break;
+//  case SP_BLOCK_INST:
+//    break;
+//  case SP_C_INST:
+//    {
+//      //only one branch is opened and closed
+//      SpIfCtrlInsts *if_inst = static_cast<SpIfCtrlInsts*>(inst);
+//      if( 1 == if_inst->get_open_flag() ) //then branch is opened, close it
+//      {
+//        mul_inst = if_inst->get_then_block();
+//        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+//          SpInst *inner_inst = NULL;
+//          mul_inst->get_inst(i, inner_inst);
+//          if( NULL != inner_inst) ret = close(inner_inst);
+//        }
+//      }
+//      else if( 0 == if_inst->get_open_flag() ) //else branch is opened, close it
+//      {
+//        mul_inst = if_inst->get_else_block();
+//        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+//          SpInst *inner_inst = NULL;
+//          mul_inst->get_inst(i, inner_inst);
+//          if( NULL != inner_inst) ret = close(inner_inst);
+//        }
+//      }
+//      break;
+//    }
+//  case SP_L_INST:
+//    mul_inst = static_cast<SpLoopInst*>(inst)->get_body_block();
+//    for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+//      SpInst *inner_inst = NULL;
+//      mul_inst->get_inst(i, inner_inst);
+//      if( NULL != inner_inst) ret = close(inner_inst);
+//    }
+//    break;
+//  case SP_CW_INST:
+//    {
+//      SpCaseInst *case_inst = static_cast<SpCaseInst*>(inst);
+//      for(int64_t i = 0; OB_SUCCESS == ret && i < case_inst->get_when_count(); ++i)
+//      {
+//        mul_inst = case_inst->get_when_block(i);
+//        for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+//          SpInst *inner_inst = NULL;
+//          mul_inst->get_inst(i, inner_inst);
+//          if( NULL != inner_inst) ret = close(inner_inst);
+//        }
+//      }
+//      mul_inst = case_inst->get_else_block();
+//      for(int64_t i = 0; OB_SUCCESS == ret && i < mul_inst->inst_count(); ++i) {
+//        SpInst *inner_inst = NULL;
+//        mul_inst->get_inst(i, inner_inst);
+//        if( NULL != inner_inst) ret = close(inner_inst);
+//      }
+//      break;
+//    }
+//  case SP_UNKOWN:
+//  default:
+//    TBSYS_LOG(WARN, "close unsupport inst[%d] on mergeserver", inst->get_type());
+//    ret = OB_NOT_SUPPORTED;
+//    break;
+//  }
+//  return ret;
+//}
 
 /*=================================================
  *           ObProcedure Definition
@@ -604,6 +683,8 @@ void ObProcedure::reset()
   params_.clear();
   defs_.clear();
   exec_list_.clear();
+  static_store_.clear();
+//  static_store_.clear();
   SpProcedure::reset();
 }
 
@@ -614,14 +695,14 @@ void ObProcedure::reuse()
 int ObProcedure::close()
 {
   int ret = OB_SUCCESS;
-  SpMsInstExecStrategy strategy;
-  for(int64_t i = 0; i < exec_list_.count() && OB_SUCCESS == ret; ++i)
-  {
-    if( OB_SUCCESS != (ret = strategy.close(exec_list_.at(i))) )
-    {
-      TBSYS_LOG(WARN, "close inst fail[%ld], ret=%d", i, ret);
-    }
-  }
+//  SpMsInstExecStrategy strategy;
+//  for(int64_t i = 0; i < exec_list_.count() && OB_SUCCESS == ret; ++i)
+//  {
+//    if( OB_SUCCESS != (ret = strategy.close(exec_list_.at(i))) )
+//    {
+//      TBSYS_LOG(WARN, "close inst fail[%ld], ret=%d", i, ret);
+//    }
+//  }
 //  exec_list_.clear();
   my_phy_plan_->set_proc_exec(false);
   pc_ = 0;
@@ -1213,6 +1294,34 @@ int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
                      get_session()->get_variable_array_size(array_name, size)))
   {
     TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+  }
+  return ret;
+}
+
+int ObProcedure::create_static_data(StaticData *&static_data)
+{
+  int ret = OB_SUCCESS;
+  StaticData item;
+  ret = static_store_.push_back(item);
+  static_data = &(static_store_.at(static_store_.count() - 1));
+  return ret;
+}
+
+int64_t ObProcedure::get_static_data_count() const
+{
+  return static_store_.count();
+}
+
+int ObProcedure::get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const
+{
+  int ret = OB_SUCCESS;
+  if( idx < static_store_.count() )
+  {
+    static_data = &static_store_.at(idx);
+  }
+  else
+  {
+    ret = OB_ERR_ILLEGAL_INDEX;
   }
   return ret;
 }
