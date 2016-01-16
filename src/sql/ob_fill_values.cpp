@@ -88,7 +88,7 @@ int ObFillValues::open()
     bool is_empty = false;
 
     //fill data
-    while(OB_SUCCESS == ret)
+    while(OB_SUCCESS == ret && !this->my_phy_plan_->is_terminate(ret))
     {
       ret = op_from_->get_next_row(cur_row);
       if (OB_ITER_END == ret)
@@ -157,6 +157,11 @@ int ObFillValues::open()
     if (!has_data) //if no data to update, return OB_NO_RESULT to terminate the plan, do not send to ups.
     {
       ret = OB_NO_RESULT;
+    }
+    //query canceled
+    if (OB_ERR_QUERY_INTERRUPTED == ret || OB_ERR_SESSION_INTERRUPTED == ret)
+    {
+      ret = OB_SUCCESS;
     }
   }
   return ret;
