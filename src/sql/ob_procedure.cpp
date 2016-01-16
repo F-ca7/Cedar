@@ -411,14 +411,14 @@ int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
   const ObObj *flag = NULL;
   const ObObj *when_value = NULL;
   bool else_flag = true;
-  TBSYS_LOG(INFO, "execute casewhen instruction");
+  TBSYS_LOG(TRACE, "execute casewhen instruction");
   if(OB_SUCCESS != (ret = inst->get_case_expr().calc(fake_row, flag)) )
   {
     TBSYS_LOG(WARN, "fail to execute case expr");
   }
   else
   {
-    TBSYS_LOG(INFO, "case expr value: %s", to_cstring(*flag));
+    TBSYS_LOG(TRACE, "case expr value: %s", to_cstring(*flag));
     for( int64_t i=0; i < inst->get_when_count(); i++ )
     {
       SpWhenBlock *when_block = inst->get_when_block(i);
@@ -487,7 +487,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
   SpProcedure proc;
   ObUpsResult result;
 
-  ObPhysicalPlan *out_plan = inst->proc_->get_phy_plan();
+  ObPhysicalPlan *out_plan = inst->get_ownner()->get_phy_plan();
   if( NULL == out_plan )
   {
     ret = OB_ERROR;
@@ -507,7 +507,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
     exec_plan.add_phy_query(&proc, NULL, true);
 
     //adjust the serialize methods for ObExprValues/ ObPostfixExpression
-    out_plan->set_proc_exec(true);
+    out_plan->set_group_exec(true);
 
     /******************************************************
     * the procedure rpc call protocal should be modified
@@ -525,7 +525,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       {
         TBSYS_LOG(WARN, "execution was terminated ret is %d", ret);
       }
-      else if (OB_SUCCESS != (ret = static_cast<ObProcedure *>(inst->proc_)->get_rpc_stub()->ups_plan_execute(remain_us, exec_plan, result)))
+      else if (OB_SUCCESS != (ret = static_cast<ObProcedure *>(inst->get_ownner())->get_rpc_stub()->ups_plan_execute(remain_us, exec_plan, result)))
       {
         int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
         OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
@@ -547,7 +547,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
       }
     }
     //adjust the serialize methods for ObExprValues / ObPostfixExpression
-    out_plan->set_proc_exec(false);
+    out_plan->set_group_exec(false);
     proc.clear_inst_list(); //avoid destruction of instruction
   }
 //  TBSYS_LOG(INFO, "End execution of SpBlockInst, ret=%d", ret);
@@ -704,7 +704,7 @@ int ObProcedure::close()
 //    }
 //  }
 //  exec_list_.clear();
-  my_phy_plan_->set_proc_exec(false);
+  my_phy_plan_->set_group_exec(false);
   pc_ = 0;
   return ret;
 }
@@ -1041,6 +1041,47 @@ int ObProcedure::optimize()
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(12));
   }
+  else if( proc_name_.compare("neworder4") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(3));
+
+    SpLoopInst *static_item_loop = create_inst<SpLoopInst>(NULL);
+    static_item_loop->assign_template(item_loop);
+    SpMultiInsts* static_item_loop_body = static_item_loop->get_body_block();
+
+    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(0LL));
+    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(1LL));
+//    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(2LL));
+//    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(3LL));
+
+    SpInstList item_static_inst_list;
+    item_loop->optimize(item_static_inst_list);
+    for(int64_t i = 0 ; i < item_static_inst_list.count(); ++i)
+    {
+      static_item_loop_body->add_inst(item_static_inst_list.at(i));
+    }
+    exec_list_.push_back(static_item_loop);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+    block_inst->add_inst(inst_list_.at(11));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(12));
+  }
   else if( proc_name_.compare("ins_loop") == 0 )
   {
     SpBlockInsts * block_inst =create_inst<SpBlockInsts>(NULL);
@@ -1072,6 +1113,7 @@ int ObProcedure::optimize()
       exec_list_.push_back(inst_list_.at(i));
     }
   }
+  deter_exec_mode();
   if (special_proc)
   {
     char buf[4096];
@@ -1083,6 +1125,7 @@ int ObProcedure::optimize()
     buf[pos] = '\0';
     TBSYS_LOG(INFO, "%.*s optimize:\n%s", proc_name_.length(), proc_name_.ptr(), buf);
   }
+
   return OB_SUCCESS;
 }
 
@@ -1116,6 +1159,19 @@ int ObProcedure::open()
     TBSYS_LOG(WARN, "clear varialbes fail");
   }
   return ret;
+}
+
+int ObProcedure::deter_exec_mode()
+{
+  for(int64_t i = 0; i < inst_store_.count(); ++i)
+  {
+    if( inst_store_.at(i)->get_type() == SP_B_INST )
+    {
+      SpRdBaseInst *rd_base = static_cast<SpRdBaseInst*>(inst_store_.at(i));
+      rd_base->set_exec_mode();
+    }
+  }
+  return OB_SUCCESS;
 }
 
 int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)

@@ -279,7 +279,7 @@ namespace oceanbase
       {
         ret = OB_NOT_INIT;
         //add by zt 20160115:b to get a template row desc before rpc execution
-        if( my_phy_plan_->is_proc_exec() )
+        if( my_phy_plan_->is_group_exec() )
         {
           ret = rpc_scan_.get_row_desc(row_desc);
         }

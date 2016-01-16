@@ -298,20 +298,6 @@ void SpRdBaseInst::get_write_variable_set(SpVariableSet &write_set) const
   UNUSED(write_set);
 }
 
-//void SpRdBaseInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
-//{
-//  for(int64_t i = 0; i < var_list.count(); ++i)
-//  {
-//    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
-//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-//    {
-//      ObString var_name;
-//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-//      rs_.add_tmp_var(var_name);
-//    }
-//  }
-//}
-
 int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, int32_t query_id)
 {
   int ret = OB_SUCCESS;
@@ -330,9 +316,18 @@ int SpRdBaseInst::assign(const SpInst *inst)
   op_ = NULL; //get the op_ from query_id_'s inner plan
   query_id_ = old_inst->query_id_;
   rs_ = old_inst->rs_;
-//  ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
+  for_group_exec_ = old_inst->for_group_exec_;
   return ret;
+}
+
+void SpRdBaseInst::set_exec_mode()
+{
+  SpInst *rw_inst = NULL;
+  if( rw_inst_id_ != -1 && OB_SUCCESS == get_ownner()->get_inst_by_id(rw_inst_id_, rw_inst) )
+  {
+    for_group_exec_ = rw_inst->in_group_exec();
+  }
 }
 
 /* ========================================================
@@ -392,7 +387,7 @@ int SpRwDeltaInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) cons
 //  ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
 
   //op_'s phyplan is different with proc_'s phyplan, op_ is in the ups_executor's innerplan
-  op_->get_phy_plan()->set_proc_exec(true);
+  op_->get_phy_plan()->set_group_exec(true);
   if( OB_SUCCESS != (ret = proc_->serialize_tree(buf, buf_len, pos, *op_)) )
   {
     TBSYS_LOG(WARN, "Serialize ups main query fail: ret=%d", ret);
@@ -421,6 +416,7 @@ int SpRwDeltaInst::assign(const SpInst *inst)
   rs_ = old_inst->rs_;
 //  ws_ = old_inst->ws_;
   table_id_ = old_inst->table_id_;
+  group_exec_ = old_inst->group_exec_;
   return ret;
 }
 
@@ -451,7 +447,7 @@ int SpRwDeltaIntoVarInst::serialize_inst(char *buf, int64_t buf_len, int64_t &po
 //  ObPhyOperator *ups_main_query = ups_exec->get_inner_plan()->get_main_query();
 
   //op_'s phyplan is different with proc_'s phyplan, op_ is in the ups_executor's innerplan
-  op_->get_phy_plan()->set_proc_exec(true);
+  op_->get_phy_plan()->set_group_exec(true);
   /**
    * serialize the main query[ObUpsModifyWithDmlType] to the ups
    * caution. not the ups_executor
@@ -495,6 +491,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
   else
   {
     var_list_.reserve(var_count);
+    TBSYS_LOG(INFO, "var_count: %ld", var_count);
     for(int64_t i = 0; i < var_count; ++i)
     {
 //      ObString var_name;
@@ -622,6 +619,7 @@ int SpBlockInsts::add_inst(SpInst *inst)
   }
   inst->get_read_variable_set(rs_);
   inst->get_write_variable_set(ws_);
+  inst->set_in_group_exec();
   return ret;
 }
 
@@ -893,6 +891,7 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
       {
         TBSYS_LOG(WARN, "failed to deserialize static data");
       }
+      TBSYS_LOG(INFO, "static_data_id: %ld", static_data->id);
     }
   }
   return ret;
@@ -1052,6 +1051,14 @@ int SpMultiInsts::optimize(SpInstList &exec_list)
   return ret;
 }
 
+void SpMultiInsts::set_in_group_exec()
+{
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    inst_list_.at(i)->set_in_group_exec();
+  }
+}
+
 /*================================================
  * 					SpIfContrlInsts Definition
  * ==============================================*/
@@ -1061,19 +1068,11 @@ SpIfBlock::~SpIfBlock()
 SpIfCtrlInsts::~SpIfCtrlInsts()
 {}
 
-//void SpIfCtrlInsts::add_read_var(const ObIArray<const ObRawExpr*> &var_list)
-//{
-//  for(int64_t i = 0; i < var_list.count(); ++i)
-//  {
-//    ObItemType raw_type = var_list.at(i)->get_expr_type();
-//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-//    {
-//      ObString var_name;
-//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-//      expr_rs_set_.add_tmp_var(var_name);
-//    }
-//  }
-//}
+void SpIfCtrlInsts::set_in_group_exec()
+{
+  then_branch_.set_in_group_exec();
+  else_branch_.set_in_group_exec();
+}
 
 void SpIfCtrlInsts::get_read_variable_set(SpVariableSet &read_set) const
 {
@@ -1428,6 +1427,21 @@ int SpLoopInst::assign(const SpInst *inst)
   return ret;
 }
 
+int SpLoopInst::assign_template(const SpLoopInst *old_inst)
+{
+  loop_counter_var_.assign(old_inst->loop_counter_var_);
+  lowest_expr_ = old_inst->lowest_expr_;
+  lowest_expr_.set_owner_op(proc_);
+
+  highest_expr_ = old_inst->highest_expr_;
+  highest_expr_.set_owner_op(proc_);
+
+
+  step_size_ = old_inst->step_size_;
+  reverse_ = old_inst->reverse_;
+  return OB_SUCCESS;
+}
+
 int SpLoopInst::optimize(SpInstList &exec_list)
 {
   int ret = OB_SUCCESS;
@@ -1440,6 +1454,11 @@ int SpLoopInst::optimize(SpInstList &exec_list)
   else
   {}
   return ret;
+}
+
+void SpLoopInst::set_in_group_exec()
+{
+  loop_body_.set_in_group_exec();
 }
 
 /*=================================================
@@ -1602,16 +1621,19 @@ int SpCaseInst::optimize(SpInstList &exec_list)
   return ret;
 }
 
+void SpCaseInst::set_in_group_exec()
+{
+  else_branch_.set_in_group_exec();
+  for(int64_t i = 0; i < when_list_.count(); ++i)
+  {
+    when_list_.at(i).set_in_group_exec();
+  }
+}
+
 
 /*=================================================
              SpProcedure Defintion
  * ===============================================*/
-
-//int SpInstExecStrategy::close(SpInst *inst)
-//{
-//  UNUSED(inst);
-//  return OB_NOT_SUPPORTED;
-//}
 
 SpProcedure::SpProcedure(){}
 
@@ -1627,6 +1649,7 @@ void SpProcedure::reset()
     inst_list_.at(i)->~SpInst();
   }
   inst_list_.clear();
+  inst_store_.clear();
   arena_.free();
 }
 
@@ -2018,7 +2041,7 @@ DEFINE_DESERIALIZE(SpProcedure)
   }
   else
   {
-    my_phy_plan_->set_proc_exec(true); //help the ups to determine the execution strategy
+    my_phy_plan_->set_group_exec(true); //help the ups to determine the execution strategy
   }
   return ret;
 }
@@ -2062,7 +2085,7 @@ int64_t SpRdBaseInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [B], ws: %s, rs: %s, tid[%ld]\n", to_cstring(write_set), to_cstring(read_set), table_id_);
+  databuff_printf(buf, buf_len, pos, "type [B], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, for_group_exec_? "Group" : "Normal");
   return pos;
 }
 
@@ -2072,7 +2095,7 @@ int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [D], ws: %s, rs: %s, tid[%ld]\n", to_cstring(write_set), to_cstring(read_set), table_id_);
+  databuff_printf(buf, buf_len, pos, "type [D], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
   return pos;
 }
 
@@ -2093,7 +2116,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [DW], ws: %s, rs: %s, tid[%ld]\n", to_cstring(write_set), to_cstring(read_set), table_id_);
+  databuff_printf(buf, buf_len, pos, "type [DW], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
   return pos;
 }
 

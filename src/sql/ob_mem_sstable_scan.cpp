@@ -164,13 +164,14 @@ DEFINE_SERIALIZE(ObMemSSTableScan)
   const common::ObRowDesc *row_desc = NULL;
   ObValues *tmp_table = NULL;
   //add by zt 20160114:b
-  if( my_phy_plan_->is_proc_exec() )
+  TBSYS_LOG(TRACE, "ups exec mode: %d", my_phy_plan_->is_group_exec());
+  if( OB_SUCCESS != serialization::encode_bool(buf, buf_len, pos, my_phy_plan_->is_group_exec() ))
   {
-    if( OB_SUCCESS != serialization::encode_bool(buf, buf_len, pos, my_phy_plan_->is_proc_exec() ))
-    {
-      TBSYS_LOG(WARN, "failed to serialize proc_exec flag");
-    }
-    else if( OB_SUCCESS != serialize_template(buf, buf_len, pos))
+    TBSYS_LOG(WARN, "failed to serialize proc_exec flag");
+  }
+  else if( my_phy_plan_->is_group_exec() )
+  {
+    if( OB_SUCCESS != (ret = serialize_template(buf, buf_len, pos)) )
     {
       TBSYS_LOG(WARN, "failed to serialize template version");
     }
@@ -247,6 +248,11 @@ DEFINE_DESERIALIZE(ObMemSSTableScan)
     from_deserialize_ = true;
     row_store_ptr_ = &row_store_; //add by zt 20160114
   }
+  TBSYS_LOG(INFO, "success[%p], mode [%d], row_desc [%s], static_id [%ld]",
+            this,
+            proc_exec_,
+            to_cstring(cur_row_desc_),
+            tmp_table_subquery_);
   OB_STAT_INC(UPDATESERVER, UPS_GEN_MEM_SSTABLE, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
@@ -318,6 +324,7 @@ int ObMemSSTableScan::prepare_data()
   {
     TBSYS_LOG(WARN, "can not get static data[%ld]", tmp_table_subquery_);
   }
+  TBSYS_LOG(INFO, "consume static data: %ld", tmp_table_subquery_);
   return ret;
 }
 //add by zt 20160114:e

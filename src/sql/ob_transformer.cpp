@@ -1600,7 +1600,7 @@ int ObTransformer::gen_physical_procedure_select_into(
     {
       SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
       SpRwDeltaIntoVarInst* rw_delta_into_var_inst = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
-
+      rd_base_inst->set_rw_id(rw_delta_into_var_inst->get_id());
       for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
       {
         const SpRawVar &raw_var = stmt->get_variable(i);
@@ -1779,7 +1779,7 @@ int ObTransformer::gen_physical_procedure_insert(
   {
     SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
     SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-
+    rd_base_inst->set_rw_id(rw_delta_inst->get_id());
     ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
 
     //set the read and write variables for each instruction
@@ -1934,7 +1934,7 @@ int ObTransformer::gen_physical_procedure_update(
 
   SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
   SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-
+  rd_base_inst->set_rw_id(rw_delta_inst->get_id());
   if(OB_SUCCESS != (ret = gen_physical_update_new(logical_plan, physical_plan, err_stat, query_id, &idx, rd_base_inst, rw_delta_inst)))
   {}
   else

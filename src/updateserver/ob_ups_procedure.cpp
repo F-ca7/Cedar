@@ -728,6 +728,7 @@ int ObUpsProcedure::get_static_data_by_id(uint64_t static_data_id, ObRowStore *&
     if( static_data_id == static_store_.at(static_ptr_).id )
     {
       ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "static_ptr_ move to %ld", static_ptr_);
       break;
     }
   }

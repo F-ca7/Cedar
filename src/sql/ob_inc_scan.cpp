@@ -98,11 +98,12 @@ namespace oceanbase
       int64_t new_pos = pos;
 
       //add by zt 20160113:b
-      if( OB_SUCCESS != (err = serialization::encode_bool(buf, buf_len, new_pos, my_phy_plan_->is_proc_exec())))
+      TBSYS_LOG(TRACE, "ups exec mode: %d", my_phy_plan_->is_group_exec());
+      if( OB_SUCCESS != (err = serialization::encode_bool(buf, buf_len, new_pos, my_phy_plan_->is_group_exec())))
       {
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
       }
-      else if( my_phy_plan_->is_proc_exec() )
+      else if( my_phy_plan_->is_group_exec() )
       {
         //step into the new branch
         err = serialize_template(buf, buf_len, new_pos);

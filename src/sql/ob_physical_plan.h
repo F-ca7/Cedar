@@ -124,8 +124,8 @@ namespace oceanbase
         //bind the proc_exec flag with phy_plan is not a good idea,
         //better bind with result_set, since all operators points to the same result_set,
         //but may binds with different physical_plans
-        bool is_proc_exec() { return procedure_execution_; }
-        void set_proc_exec(bool exec_flag) { procedure_execution_ = exec_flag; }
+        bool is_group_exec() { return group_exec_mode_; }
+        void set_group_exec(bool exec_flag) { group_exec_mode_ = exec_flag; }
         //add zt 20151109 :e
       private:
         static const int64_t COMMON_OP_NUM = 16;
@@ -162,7 +162,7 @@ namespace oceanbase
         common::ObTransReq start_trans_req_;
         uint64_t next_phy_operator_id_;
         //add zt 20151109 :b
-        bool procedure_execution_;
+        bool group_exec_mode_;
         //add zt 20151109 :e
     };
 
@@ -232,7 +232,7 @@ namespace oceanbase
       cons_from_assign_ = false;
 
       //add zt 20151119
-      procedure_execution_ = false;
+      group_exec_mode_ = false;
       //add zt 20151119
     }
 

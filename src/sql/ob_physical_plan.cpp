@@ -47,7 +47,7 @@ ObPhysicalPlan::ObPhysicalPlan()
    cons_from_assign_(false),
    next_phy_operator_id_(0),
    //add zt 20151109 :b
-   procedure_execution_(false)
+   group_exec_mode_(false)
    //add zt 20151109 :e
 {
 }

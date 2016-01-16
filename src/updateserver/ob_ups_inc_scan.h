@@ -109,6 +109,8 @@ namespace oceanbase
           result_ = NULL;
           get_iter_.reset();
           scan_iter_.reset();
+
+          input_values_.reset();
         }
       public:
         int open();
@@ -137,7 +139,7 @@ namespace oceanbase
 
         //add by zt 20160113
         sql::ObExprValues input_values_;
-        bool proc_exec_;
+        bool group_exec_mode_;
     };
   }; // end namespace updateserver
 }; // end namespace oceanbase

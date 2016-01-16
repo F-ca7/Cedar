@@ -271,15 +271,16 @@ namespace oceanbase
       ObUpsTableMgr* table_mgr = NULL;
 
       //add by zt 20160113:b
-      if(proc_exec_)
+      if(group_exec_mode_)
       {
         if( OB_SUCCESS != (err = prepare_data()) )
         {
           TBSYS_LOG(WARN, "prepare_data()=>%d", err);
         }
       }
+      if( OB_SUCCESS != err ) {}
+      else
       //add by zt 20160113:e
-
       if (NULL == (table_mgr = get_table_mgr()))
       {
         err = OB_ERR_UNEXPECTED;
@@ -453,13 +454,13 @@ namespace oceanbase
     {
       int64_t new_pos = pos;
       int err = OB_SUCCESS;
-      if( OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &proc_exec_)))
+      if( OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &group_exec_mode_)))
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
       }
-      if( !proc_exec_ )
+      else if( !group_exec_mode_ )
       {
-        err = ObIncScan::deserialize(buf, data_len, pos);
+        err = ObIncScan::deserialize(buf, data_len, new_pos);
       }
       else
       {
@@ -486,8 +487,24 @@ namespace oceanbase
           {
             TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
           }
+          else
+          {
+            input_values_.set_phy_plan(my_phy_plan_);
+          }
         }
       }
+
+      if( OB_SUCCESS == err )
+      {
+        pos = new_pos;
+      }
+      TBSYS_LOG(INFO, "success[%p], mode [%d], lock_flag [%d], hotspot [%d], scan_type [%d], input_values [%s]",
+                this,
+                group_exec_mode_,
+                lock_flag_,
+                hotspot_,
+                scan_type_,
+                to_cstring(input_values_));
       return err;
     }
     //add by zt 20160113:e

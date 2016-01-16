@@ -326,9 +326,9 @@ DEFINE_SERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  serialization::encode_bool(buf, buf_len, tmp_pos, my_phy_plan_->is_proc_exec()); //determine the serialize methods
+  serialization::encode_bool(buf, buf_len, tmp_pos, my_phy_plan_->is_group_exec()); //determine the serialize methods
   //add zt 20151109 :b
-  if( ! my_phy_plan_->is_proc_exec() )
+  if( ! my_phy_plan_->is_group_exec() )
   {
   //add zt 20151109 :e
     if (do_eval_when_serialize_)
@@ -362,7 +362,11 @@ DEFINE_SERIALIZE(ObExprValues)
   }
   else
   {
-    if( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
+    if( OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+    {
+      TBSYS_LOG(WARN, "serialize row_desc fail");
+    }
+    else if( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
     {
       TBSYS_LOG(WARN, "serialzie row_desc ext fail");
     }
@@ -416,7 +420,11 @@ DEFINE_DESERIALIZE(ObExprValues)
   else
   {
     int64_t expr_value_count;
-    if( OB_SUCCESS != (ret = row_desc_ext_.deserialize(buf, data_len, tmp_pos)) )
+    if( OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, tmp_pos)))
+    {
+      TBSYS_LOG(WARN, "deserialize the row_desc fail");
+    }
+    else if( OB_SUCCESS != (ret = row_desc_ext_.deserialize(buf, data_len, tmp_pos)) )
     {
       TBSYS_LOG(WARN, "deserialize the row_desc_ext fail");
     }
@@ -447,7 +455,7 @@ DEFINE_DESERIALIZE(ObExprValues)
       //each time when opened, it should read from the expr_values;
       from_deserialize_ = false;
       pos = tmp_pos;
-      row_desc_.assign(row_desc_ext_.get_row_desc());
+//      row_desc_.assign(row_desc_ext_.get_row_desc());
     }
   }
   //add zt 20151109:e
@@ -460,7 +468,7 @@ DEFINE_GET_SERIALIZE_SIZE(ObExprValues)
 //  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
   //delete by zt 20151109 :e
   bool proc_exec = false;
-  if( NULL != my_phy_plan_ && my_phy_plan_->is_proc_exec() ) proc_exec = true;
+  if( NULL != my_phy_plan_ && my_phy_plan_->is_group_exec() ) proc_exec = true;
   if( !proc_exec )
   {
     return (row_desc_.get_serialize_size() + row_store_.get_serialize_size() + sizeof(bool));

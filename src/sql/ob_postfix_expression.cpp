@@ -1420,7 +1420,7 @@ namespace oceanbase
         * PARAM_IDX could be resolved on ups
         * we send the real value to ups
         */
-      if( !owner_op_->get_phy_plan()->is_proc_exec() || type == PARAM_IDX )
+      if( !owner_op_->get_phy_plan()->is_group_exec() || type == PARAM_IDX )
       { //normal execution path
         if( type == ARRAY_VAR )
         {

@@ -100,6 +100,7 @@ namespace oceanbase
       int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
 
       int optimize();
+      int deter_exec_mode();
 
       const ObParamDef& get_param(int64_t index) const;
       int64_t get_param_num() const;
