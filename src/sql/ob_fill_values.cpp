@@ -14,6 +14,7 @@
 //add wangjiahao [dev_update_more] 20151204:b
 #include "ob_fill_values.h"
 #include "common/serialization.h"
+#include "ob_physical_plan.h"
 #include "common/ob_tsi_factory.h"
 #include "ob_raw_expr.h"
 
