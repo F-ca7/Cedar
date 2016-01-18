@@ -303,6 +303,7 @@ int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, int32_t query_id)
   int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_VALUES);
   op_ = op;
+  static_cast<ObValues*>(op_)->set_static_data_id(proc_->generate_static_data_id());
   query_id_ = query_id;
   return ret;
 }
@@ -491,7 +492,7 @@ int SpRwDeltaIntoVarInst::deserialize_inst(const char *buf, int64_t data_len, in
   else
   {
     var_list_.reserve(var_count);
-    TBSYS_LOG(INFO, "var_count: %ld", var_count);
+    TBSYS_LOG(TRACE, "var_count: %ld", var_count);
     for(int64_t i = 0; i < var_count; ++i)
     {
 //      ObString var_name;
@@ -769,6 +770,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
       {
         TBSYS_LOG(WARN, "fail to serialize static data");
       }
+      TBSYS_LOG(TRACE, "static_data_id: %ld, %s", store->id, to_cstring(store->store));
     }
   }
   return ret;
@@ -891,7 +893,7 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
       {
         TBSYS_LOG(WARN, "failed to deserialize static data");
       }
-      TBSYS_LOG(INFO, "static_data_id: %ld", static_data->id);
+      TBSYS_LOG(TRACE, "static_data_id: %ld, %s", static_data->id, to_cstring(static_data->store));
     }
   }
   return ret;
@@ -1635,7 +1637,8 @@ void SpCaseInst::set_in_group_exec()
              SpProcedure Defintion
  * ===============================================*/
 
-SpProcedure::SpProcedure(){}
+SpProcedure::SpProcedure() : static_data_id_gen_(0)
+{}
 
 SpProcedure::~SpProcedure()
 {
@@ -1651,6 +1654,7 @@ void SpProcedure::reset()
   inst_list_.clear();
   inst_store_.clear();
   arena_.free();
+  static_data_id_gen_ = 0;
 }
 
 

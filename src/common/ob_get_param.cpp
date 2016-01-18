@@ -551,6 +551,26 @@ namespace oceanbase
       deep_copy_args_ = deep_copy_args;
     }
 
+    void ObGetParam::reset_cells()
+    {
+      cell_size_ = 0;
+      row_size_ = 0;
+      prev_rowkey_.assign(NULL, 0);
+      id_only_ = true;
+      row_index_ = NULL;
+      cell_list_ = NULL;
+      // if memory inflates too large, free.
+      if (allocator_.total() > DEFAULT_CELLS_BUF_SIZE)
+      {
+        allocator_.free();
+      }
+      else
+      {
+        allocator_.reuse();
+      }
+//      deep_copy_args_ = deep_copy_args;
+    }
+
     int ObGetParam::serialize_flag(char* buf, const int64_t buf_len, int64_t& pos,
       const int64_t flag) const
     {

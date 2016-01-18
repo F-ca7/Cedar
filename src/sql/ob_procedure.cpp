@@ -94,7 +94,7 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
 
     if( OB_SUCCESS == (ret = inst->get_ownner()->create_static_data(static_data)) )
     {
-      static_data->id = op->get_id();
+      static_data->id = static_cast<ObValues*>(op)->get_static_data_id();
     }
 
     while( OB_SUCCESS == ret )
@@ -142,7 +142,8 @@ int SpMsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
   {
     TBSYS_LOG(WARN, "execute rw_delta_inst fail");
   }
-  else if ( OB_SUCCESS != (err = op->close() ))
+
+  if ( OB_SUCCESS != (err = op->close() ))
   {
     TBSYS_LOG(WARN, "failed to close the rw_delta op");
     if( OB_SUCCESS == ret )
@@ -683,6 +684,11 @@ void ObProcedure::reset()
   params_.clear();
   defs_.clear();
   exec_list_.clear();
+
+  for(int64_t i = 0; i < static_store_.count(); ++i)
+  {
+    static_store_.at(i).store.clear();
+  }
   static_store_.clear();
 //  static_store_.clear();
   SpProcedure::reset();

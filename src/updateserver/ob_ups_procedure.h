@@ -148,7 +148,8 @@ namespace oceanbase
 
       ObSEArray<ObUpsArray, 4> array_table_;
 
-      ObSEArray<StaticData, 64> static_store_;
+      ModuleArena static_store_area_;
+      ObSEArray<StaticData*, 64> static_store_;
       //be careful use of static_ptr.
       //For now, I assume static data is consumed in ascending order.
       int64_t static_ptr_;

@@ -730,6 +730,8 @@ namespace oceanbase
 
       int get_inst_by_id(int64_t inst_id, SpInst *&inst) { return inst_store_.at(inst_id, inst); }
 
+      int64_t generate_static_data_id() { return ++static_data_id_gen_; }
+
       int debug_status(const SpInst *inst) const;
 
       int deserialize_tree(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
@@ -749,6 +751,7 @@ namespace oceanbase
       ObSEArray<SpInst *, 32> inst_store_;
 
       SpInstExecStrategy *exec_strategy_;
+      int64_t static_data_id_gen_;
       typedef int64_t ProgramCounter;
       ProgramCounter pc_;
       ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction

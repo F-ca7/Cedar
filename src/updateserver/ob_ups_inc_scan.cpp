@@ -295,6 +295,7 @@ namespace oceanbase
       }
       else if (ObIncScan::ST_MGET == scan_type_)
       {
+        TBSYS_LOG(DEBUG, "ObUpsIncScan, GetParam[%p]: %s", get_param_, to_cstring(*get_param_)); //add by zt 20160118
         if (OB_SUCCESS != (err = get_iter_.open(session_ctx_, table_mgr, get_param_, lock_flag_, result_)))
         {
           TBSYS_LOG(WARN, "get_iter_.open()=>%d", err);
@@ -404,6 +405,9 @@ namespace oceanbase
         const common::ObObj *cell = NULL;
         uint64_t tid = OB_INVALID_ID;
         uint64_t cid = OB_INVALID_ID;
+
+        get_param_->reset_cells();
+
         while (OB_SUCCESS == ret)
         {
           ret = input_values_.get_next_row(row);
@@ -424,7 +428,7 @@ namespace oceanbase
           }
           else
           {
-            int64_t cell_num = rowkey->length();
+            int64_t cell_num = row->get_column_num();
             for (int64_t i = 0; i < cell_num; ++i)
             {
               if (OB_SUCCESS != (ret = row->raw_get_cell(i, cell, tid, cid)))
@@ -446,6 +450,7 @@ namespace oceanbase
             } // end for
           }
         } // end while
+        TBSYS_LOG(TRACE, "GetParam New [%s]", to_cstring(*get_param_));
       }
       return ret;
     }
@@ -454,6 +459,8 @@ namespace oceanbase
     {
       int64_t new_pos = pos;
       int err = OB_SUCCESS;
+      int64_t start_ts = tbsys::CTimeUtil::getTime();
+
       if( OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &group_exec_mode_)))
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -483,6 +490,10 @@ namespace oceanbase
             err = OB_MEM_OVERFLOW;
             TBSYS_LOG(ERROR, "get_param == NULL");
           }
+          else if (OB_SUCCESS != (err = get_param_->ObReadParam::deserialize(buf, data_len, new_pos)))
+          {
+            TBSYS_LOG(ERROR, "read_param.deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+          }
           else if( OB_SUCCESS != (err = input_values_.deserialize(buf, data_len, new_pos)) )
           {
             TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -496,15 +507,19 @@ namespace oceanbase
 
       if( OB_SUCCESS == err )
       {
+        TBSYS_LOG(TRACE, "success[%p], mode [%d], lock_flag [%d], hotspot [%d], scan_type [%d], read_param[%s],input_values [%s]",
+                  this,
+                  group_exec_mode_,
+                  lock_flag_,
+                  hotspot_,
+                  scan_type_,
+                  to_cstring(*get_param_),
+                  to_cstring(input_values_));
+
         pos = new_pos;
       }
-      TBSYS_LOG(INFO, "success[%p], mode [%d], lock_flag [%d], hotspot [%d], scan_type [%d], input_values [%s]",
-                this,
-                group_exec_mode_,
-                lock_flag_,
-                hotspot_,
-                scan_type_,
-                to_cstring(input_values_));
+      OB_STAT_INC(UPDATESERVER, UPS_GEN_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
+
       return err;
     }
     //add by zt 20160113:e

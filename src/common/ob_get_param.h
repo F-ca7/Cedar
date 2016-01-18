@@ -144,6 +144,12 @@ namespace oceanbase
        */
       void reset(bool deep_copy_args = false);
 
+
+      /**
+       * clear all cells;
+       */
+      void reset_cells(); //add by zt 20160118
+
       /**
        * get how mang rows in get parameter 
        * 

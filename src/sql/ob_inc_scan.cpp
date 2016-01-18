@@ -207,7 +207,25 @@ namespace oceanbase
           err = OB_NOT_INIT;
           TBSYS_LOG(ERROR, "values is invalid");
         }
-        else
+
+        if (OB_LIKELY(OB_SUCCESS == err))
+        {
+          ObReadParam read_param;
+          ObVersionRange version_range;
+          version_range.border_flag_.set_inclusive_start();
+          version_range.border_flag_.set_max_value();
+          version_range.start_version_ = my_phy_plan_->get_curr_frozen_version() + 1;
+
+          read_param.set_version_range(version_range);
+
+          FILL_TRACE_LOG("inc_version=%s", to_cstring(version_range));
+          if (OB_SUCCESS != (err = read_param.serialize(buf, buf_len, new_pos)))
+          {
+            TBSYS_LOG(ERROR, "get_param.serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+          }
+        }
+
+        if (OB_LIKELY(OB_SUCCESS == err))
         {
           ObExprValues* input_values = dynamic_cast<ObExprValues*>(my_phy_plan_->get_phy_query_by_id(values_subquery_id_));
           if( NULL == input_values )
@@ -220,6 +238,7 @@ namespace oceanbase
             TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
           }
         }
+
       }
       else if( ST_SCAN == scan_type_ )
       {
@@ -238,7 +257,6 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
       int64_t new_pos = pos;
-      int64_t start_ts = tbsys::CTimeUtil::getTime();
       if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, (int32_t*)&lock_flag_)))
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -280,7 +298,6 @@ namespace oceanbase
         pos = new_pos;
       }
 
-      OB_STAT_INC(UPDATESERVER, UPS_GEN_INC_SCAN, tbsys::CTimeUtil::getTime() - start_ts);
       return err;
     }
 

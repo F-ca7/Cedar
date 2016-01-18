@@ -248,7 +248,7 @@ DEFINE_DESERIALIZE(ObMemSSTableScan)
     from_deserialize_ = true;
     row_store_ptr_ = &row_store_; //add by zt 20160114
   }
-  TBSYS_LOG(INFO, "success[%p], mode [%d], row_desc [%s], static_id [%ld]",
+  TBSYS_LOG(TRACE, "success[%p], mode [%d], row_desc [%s], static_id [%ld]",
             this,
             proc_exec_,
             to_cstring(cur_row_desc_),
@@ -289,7 +289,8 @@ int ObMemSSTableScan::serialize_template(char *buf, const int64_t buf_len, int64
   {
     TBSYS_LOG(WARN, "fail to serialize row desc:ret[%d]", ret);
   }
-  else if ( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, tmp_table_subquery_)) )
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, tmp_table->get_static_data_id())) )
+//  else if ( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, tmp_table_subquery_)) )
   {
     TBSYS_LOG(WARN, "failed to serialize static data id");
   }
@@ -324,7 +325,10 @@ int ObMemSSTableScan::prepare_data()
   {
     TBSYS_LOG(WARN, "can not get static data[%ld]", tmp_table_subquery_);
   }
-  TBSYS_LOG(INFO, "consume static data: %ld", tmp_table_subquery_);
+  else
+  {
+    TBSYS_LOG(TRACE, "get static data[%p]: %ld", row_store_ptr_, tmp_table_subquery_);
+  }
   return ret;
 }
 //add by zt 20160114:e

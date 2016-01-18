@@ -104,6 +104,7 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
 {
   int ret = OB_SUCCESS;
+  int err = OB_SUCCESS;
   //it should be a ObUpsModify
 //  TBSYS_LOG(TRACE, "rw delta inst plan: \n%s", to_cstring(*(inst->get_rwdelta_op())));
   int64_t start_ts = tbsys::CTimeUtil::getTime();
@@ -111,29 +112,44 @@ int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
   {
 //    TBSYS_LOG(WARN, "execute rw_delta_inst on ups");
   }
+
+  if ( OB_SUCCESS != (err = inst->get_rwdelta_op()->close() ))
+  {
+    if( OB_SUCCESS == ret )
+    {
+      ret = err;
+    }
+  }
+
   OB_STAT_INC(UPDATESERVER, UPS_PROC_D, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
 int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 {
-  int ret = OB_SUCCESS;
+  int ret = OB_SUCCESS, err = OB_SUCCESS;
   int64_t start_ts = tbsys::CTimeUtil::getTime();
   const common::ObRow *row;
-  ObPhyOperator *op_ = inst->get_rwdelta_op();
+  ObPhyOperator *op = inst->get_rwdelta_op();
   const ObIArray<SpVar> &var_list_ = inst->get_var_list();
   SpProcedure *proc = inst->get_ownner();
 //  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
-  if(NULL != op_)
+  if(NULL != op)
   {
-    op_->open();
-    ret = op_->get_next_row(row);
-
-    if( ret == OB_ITER_END )
+    if( OB_SUCCESS != (ret = op->open()) )
     {
-      ret = OB_ERROR; //does not get row
+//      TBSYS_LOG(WARN, "failed to open read_delta_into_var operator");
     }
-    else if( ret == OB_SUCCESS )
+    else if( OB_SUCCESS != (ret = op->get_next_row(row)) )
+    {
+//      TBSYS_LOG(WARN, "failed to get next row");
+    }
+//    else
+//    {
+//      TBSYS_LOG(INFO, "read row: [%s]", to_cstring(*row));
+//    }
+
+    if( ret == OB_SUCCESS )
     {
       for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
       {
@@ -148,6 +164,14 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 //          TBSYS_LOG(WARN, "write into variables fail");
         }
 
+      }
+    }
+
+    if ( OB_SUCCESS != (err = op->close() ))
+    {
+      if( OB_SUCCESS == ret )
+      {
+        ret = err;
       }
     }
   }
@@ -266,7 +290,7 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
     }
     else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_loop_body())) )
     {
-      TBSYS_LOG(WARN, "failed to execute loop body");
+//      TBSYS_LOG(WARN, "failed to execute loop body");
     }
 /*    for(int64_t j = 0; OB_SUCCESS == ret && j < body_size; ++j)
     {
@@ -477,11 +501,12 @@ ObUpsProcedure::ObUpsProcedure() :
   is_var_tab_created(false),
   block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
   var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
-  name_pool_()
+  name_pool_(), static_ptr_(0)
 {}
 
 ObUpsProcedure::~ObUpsProcedure()
 {
+  reset();
 //  TBSYS_LOG(INFO, "release ob_ups_procedure");
 }
 
@@ -516,8 +541,15 @@ void ObUpsProcedure::reset()
 {
   pc_ = 0;
 
-  static_ptr_ = 0;
+  for(int64_t i = 0; i < static_store_.count(); ++i)
+  {
+    static_store_.at(i)->store.clear();
+  }
+
   static_store_.clear();
+  static_store_area_.free();
+  static_ptr_ = 0;
+
   SpProcedure::reset();
   name_pool_.clear();
   var_name_val_map_.destroy();
@@ -562,7 +594,7 @@ int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
   }
   else
   {
-//    TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
     ret = OB_SUCCESS;
   }
   return ret;
@@ -584,7 +616,7 @@ int ObUpsProcedure::write_variable(const SpVar &var, const ObObj &val)
     }
     else if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
     {
-//      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
+      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
     }
   }
   return ret;
@@ -675,7 +707,7 @@ int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) c
   }
   else
   {
-//    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
+    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
   }
 	return ret;
 }
@@ -709,9 +741,10 @@ int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value,
 int ObUpsProcedure::create_static_data(StaticData *&static_data)
 {
   int ret = OB_SUCCESS;
-  StaticData item;
+  StaticData *item = (StaticData*)static_store_area_.alloc(sizeof(StaticData));
+  item = new(item) StaticData();
   ret = static_store_.push_back(item);
-  static_data = &(static_store_.at(static_store_.count() - 1));
+  static_data = (static_store_.at(static_store_.count() - 1));
   return ret;
 }
 
@@ -723,18 +756,21 @@ int64_t ObUpsProcedure::get_static_data_count() const
 int ObUpsProcedure::get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr)
 {
   int ret = OB_ERR_ILLEGAL_ID;
+  TBSYS_LOG(TRACE, "[find] static_data_id=%ld", static_data_id);
   for(; static_ptr_ < static_store_.count(); ++static_ptr_)
   {
-    if( static_data_id == static_store_.at(static_ptr_).id )
+
+    TBSYS_LOG(TRACE, "[test] static_ptr_=%ld", static_ptr_);
+    if( static_data_id == static_store_.at(static_ptr_)->id )
     {
+//      TBSYS_LOG(TRACE, "[hit] static_ptr_=%ld", static_ptr_);
       ret = OB_SUCCESS;
-      TBSYS_LOG(INFO, "static_ptr_ move to %ld", static_ptr_);
       break;
     }
   }
   if( OB_SUCCESS == ret )
   {
-    row_store_ptr = &(static_store_.at(static_ptr_).store);
+    row_store_ptr = &(static_store_.at(static_ptr_++)->store);
   }
   return ret;
 }
