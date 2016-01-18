@@ -7,6 +7,7 @@
  *
  * @file ob_transformer.h
  * @brief generate physical plans
+ * modified by wangjiahao: add method to generate physical plan for update_more
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @date 2015_12_30

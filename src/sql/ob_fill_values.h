@@ -28,7 +28,7 @@ namespace oceanbase
     using namespace common;
 
     /**
-     * @brief ObFillValues is designed for the purpose of
+     * @brief this class is designed for the purpose of
      * supporting new update operation which can update
      * not even given full rowkey condition but also
      * other conditions. We need to fill the values from

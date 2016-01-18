@@ -7,6 +7,7 @@
  *
  * @file ob_transformer.cpp
  * @brief generate physical plans
+ * modified by wangjiahao: add method to generate physical plan for update_more
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @date 2015_12_30
@@ -16,7 +17,7 @@
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
+ * version 2 as publ`ished by the Free Software Foundation.
  *
  * Version: $Id$
  *

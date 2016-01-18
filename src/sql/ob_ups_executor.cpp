@@ -7,6 +7,7 @@
  *
  * @file ob_ups_executor.cpp
  * @brief send physical plan to ups
+ * modified by wangjiahao: No data to update, About it, for update_more
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @date 2015_12_30

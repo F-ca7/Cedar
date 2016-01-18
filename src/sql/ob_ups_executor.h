@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_executor.cpp
+ * @brief send physical plan to ups
+ * modified by wangjiahao: No data to update, About it, for update_more
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
