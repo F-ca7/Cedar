@@ -20,8 +20,8 @@
 #include <execinfo.h>
 #include <unistd.h>
 #include "tbsys.h"
-#include "onev_defines.h"
-#include "onev_defines.h"
+#include "onev_define.h"
+#include "onev_define.h"
 #include "onev_struct.h"
 #include "ob_server.h"
 #include "ob_object.h"

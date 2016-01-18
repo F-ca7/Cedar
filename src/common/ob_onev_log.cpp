@@ -16,7 +16,7 @@
 #include "ob_onev_log.h"
 #include "common/ob_define.h"
 #include <onev_log.h>
-#include <onev_defines.h>
+#include <onev_define.h>
 #include <onev_string.h>
 #include <onev_baseth_palloc.h>
 #include <onev_time.h>

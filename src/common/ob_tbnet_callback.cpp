@@ -3,7 +3,7 @@
 #include "tblog.h"
 #include "ob_define.h"
 #include "onev_io.h"
-#include "onev_defines.h"
+#include "onev_define.h"
 #include "ob_single_server.h"
 #include <byteswap.h>
 #include "utility.h"
