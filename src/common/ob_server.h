@@ -31,6 +31,7 @@ namespace oceanbase
       public:
         static const int32_t IPV4 = 4;
         static const int32_t IPV6 = 6;
+        static const int64_t MAX_IP_PORT_SQL_LENGTH = MAX_IP_ADDR_LENGTH + 10;      // copy from 0.5
 
         ObServer()
           : version_(IPV4), port_(0)
@@ -60,6 +61,7 @@ namespace oceanbase
         bool ip_to_string(char* buffer, const int32_t size) const;
         const char* to_cstring() const; // use this carefully, the content of the returned buffer will be modified by the next call
 
+        bool set_ipv6_addr(const char* ip, const int32_t port);     // copy from 0.5
         bool set_ipv4_addr(const char* ip, const int32_t port);
         bool set_ipv4_addr(const int32_t ip, const int32_t port);
 
@@ -77,8 +79,9 @@ namespace oceanbase
         uint64_t get_ipv6_low() const;
         void set_port(int32_t port);
         void set_max();
-
+        bool is_valid() const;
         void reset_ipv4_10(int ip = 10);
+        int parse_from_cstring(const char* ip_str);   // copy from 0.5
 
         NEED_SERIALIZE_AND_DESERIALIZE;
 

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add a command parameters to set the
+ *        auto_elect_flag of master rootserver
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  * Copyright (C) 2007-2013 Taobao Inc.
  *
@@ -78,6 +96,12 @@ namespace oceanbase
       printf("\tcs_create_table -o table_id=<table_id> -o table_version=<frozen_verson>\n");
       printf("\tget_obi_role\n");
       printf("\tset_obi_role -o OBI_SLAVE|OBI_MASTER\n");
+      // add by zcd [multi_cluster] 20150416:b
+      // 将指定的rs所在集群设定为主集群
+      printf("\tset_obi_master_rs\n");
+      // 在集群第一次启动的时候，将指定的集群设定为主集群
+      printf("\tset_obi_master_first\n");
+      // add:e
       printf("\tget_config\n");
       printf("\tset_config -o config_name=config_value[,config_name2=config_value2[,...]]\n");
       printf("\tget_obi_config\n");
@@ -86,6 +110,9 @@ namespace oceanbase
       printf("\tset_ups_config -o ups_ip=<ups_ip>,ups_port=<ups_port>,ms_read_percentage=<percentage>,cs_read_percentage=<percentage>\n");
       printf("\tset_master_ups_config -o master_master_ups_read_percentage=<percentage>,slave_master_ups_read_percentage=<percentage>\n");
       printf("\tchange_ups_master -o ups_ip=<ups_ip>,ups_port=<ups_port>[,force]\n");
+      // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      printf("\tset_auto_elect -o [true|false]\n");
+      // add:e
       printf("\timport_tablets -o table_id=<table_id>\n");
       printf("\tprint_root_table -o table_id=<table_id>\n");
       printf("\tprint_schema -o location=<location>\n");
@@ -258,6 +285,20 @@ namespace oceanbase
         }
       ,
         {
+          "set_obi_master_rs", OB_RS_ADMIN_SET_OBI_MASTER_RS, do_rs_admin
+        }
+      ,
+        {
+          "set_obi_master_first", OB_RS_ADMIN_SET_OBI_MASTER_FIRST, do_rs_admin
+        }
+      ,
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        {
+          "set_auto_elect", OB_RS_SET_AUTO_ELECT_FLAG, do_set_auto_elect_flag
+        }
+      ,
+        // add:e
+        {
           "boot_recover", OB_RS_ADMIN_BOOT_RECOVER, do_rs_admin
         }
       ,
@@ -304,6 +345,12 @@ namespace oceanbase
         {
           "read_root_table_point", OB_RS_ADMIN_READ_ROOT_TABLE, read_root_table_point
         }
+      // add by guojinwei [new rs_admin command][multi_cluster] 20150901:b
+      ,
+        {
+          "reelect", OB_RS_ADMIN_REELECT, do_rs_admin
+        }
+      // add:e
     };
 
     enum
@@ -2272,5 +2319,63 @@ int do_drop_table_for_emergency(ObBaseClient &client, Arguments &args)
       return ret;
     }
 
+    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    int do_set_auto_elect_flag(ObBaseClient &client, Arguments &args)
+    {
+      int ret = OB_SUCCESS;
+      static const int32_t MY_VERSION = 1;
+      const int buff_size = OB_MAX_PACKET_LENGTH;
+      char buff[buff_size];
+      ObDataBuffer msgbuf(buff, buff_size);
+
+      bool auto_elect_flag = false;
+      if(strncasecmp(args.config_str, "true", 4) == 0)
+      {
+        auto_elect_flag = true;
+      }
+      else if(strncasecmp(args.config_str, "false", 5) == 0)
+      {
+        auto_elect_flag = false;
+      }
+      else
+      {
+        ret = OB_ERROR;
+        printf("set_auto_elect should be true or false\n");
+      }
+      if(OB_SUCCESS == ret)
+      {
+        printf("set_auto_elect to %s\n", auto_elect_flag ? "true" : "false");
+      }
+      if(OB_SUCCESS != ret)
+      {
+      }
+      else if (OB_SUCCESS != (ret = serialization::encode_bool(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), auto_elect_flag)))
+      {
+        printf("failed to serialize auto_elect_flag, err=%d\n", ret);
+      }
+      else if (OB_SUCCESS != (ret = client.send_recv(OB_RS_SET_AUTO_ELECT_FLAG, MY_VERSION, args.request_timeout_us, msgbuf)))
+      {
+        printf("failed to send request, err=%d\n", ret);
+      }
+      else
+      {
+        ObResultCode result_code;
+        msgbuf.get_position() = 0;
+        if (OB_SUCCESS != (ret = result_code.deserialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+        {
+          printf("failed to deserialize response, err=%d\n", ret);
+        }
+        else if (OB_SUCCESS != (ret = result_code.result_code_))
+        {
+          printf("failed to set_auto_elect, err=%d\n", result_code.result_code_);
+        }
+        else
+        {
+          printf("Okay\n");
+        }
+      }
+      return ret;
+    }
+    // add:e
   } // end namespace rootserver
 }

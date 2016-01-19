@@ -745,7 +745,7 @@ namespace oceanbase
         header.set_magic_num(magic);
         header.header_length_ = static_cast<int16_t>(header_len);
         header.version_ = 0;      //current record header version is 0
-        header.reserved_ = 0;
+        header.timestamp_ = 0;
 
         /**
          * if data_length_ == data_zlength_, it means that the data is

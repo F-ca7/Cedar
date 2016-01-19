@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_server2.h
+ * @brief ObRootServer
+ *        support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -14,6 +32,7 @@
 #ifndef OCEANBASE_ROOTSERVER_OB_ROOT_SERVER2_H_
 #define OCEANBASE_ROOTSERVER_OB_ROOT_SERVER2_H_
 #include <tbsys.h>
+#include <vector>
 
 #include "common/ob_define.h"
 #include "common/ob_server.h"
@@ -59,6 +78,10 @@
 #include "ob_schema_service_ups_provider.h"
 #include "rootserver/ob_root_operation_helper.h"
 #include "rootserver/ob_root_timer_task.h"
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+#include "common/ob_election_role_mgr.h"
+#include "common/ob_cluster_mgr.h"
+// add:e
 
 class ObBalanceTest;
 class ObBalanceTest_test_n_to_2_Test;
@@ -133,6 +156,11 @@ namespace oceanbase
         virtual ~ObRootServer2();
 
         bool init(const int64_t now, ObRootWorker* worker);
+
+        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        bool is_master_ups_lease_valid();
+        bool get_is_have_inited();
+        // add:e
         int start_master_rootserver();
         int init_first_meta();
         int init_boot_state();
@@ -154,6 +182,20 @@ namespace oceanbase
         void commit_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
                          const char* server_version, const int32_t cluster_role = 0);
         // for monitor info
+        // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+        /**
+         * @brief commit a inner table task with cluster id
+         * @param[in] type  task type
+         * @param[in] role  server type
+         * @param[in] server  server
+         * @param[in] sql_port  port
+         * @param[in] server_version  the string of server type
+         * @param[in] cluster_id  cluster id
+         * @param[in] cluster_role  cluster role
+         */
+        void commit_cluster_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
+                                 const char* server_version, const int64_t cluster_id, const int32_t cluster_role = 0);
+        // add:e
         int64_t get_table_count(void) const;
         void get_tablet_info(int64_t & tablet_count, int64_t & row_count, int64_t & date_size) const;
         int change_table_id(const int64_t table_id, const int64_t new_table_id=0);
@@ -296,6 +338,56 @@ namespace oceanbase
         int serialize_ms_list(char* buf, const int64_t buf_len, int64_t& pos) const;
         int serialize_proxy_list(char* buf, const int64_t buf_len, int64_t& pos) const;
         int grant_eternal_ups_lease();
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        /**
+         * @brief grant ups lease
+         * @param[in] did_force  whether it is necessary
+         * @return OB_SUCCESS if success
+         */
+        int grant_ups_lease(bool did_force = false);
+
+        /**
+         * @brief get election role manager
+         * @return the reference of election_role_
+         */
+        const common::ObElectionRoleMgr &get_election_role() const;
+
+        /**
+         * @brief update election role
+         * @param[in] role  election role
+         * @return OB_SUCCESS if success
+         */
+        int set_election_role_with_role(const common::ObElectionRoleMgr::Role &role);
+
+        /**
+         * @brief update election state
+         * @param[in] state  election state
+         * @return OB_SUCCESS if success
+         */
+        int set_election_role_with_state(const common::ObElectionRoleMgr::State &state);
+        // add:e
+        // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+        /**
+         * @brief update cluster role of slave clusters in inner table
+         * @return OB_SUCCESS if success
+         */
+        int set_slave_cluster_obi_role();
+        // add:e
+        // add by guojinwei [reelect][multi_cluster] 20151129:b
+        /**
+         * @brief get cluster manager
+         * @param[out] cluster_mgr  the pointer reference of ObClusterMgr
+         * @return OB_SUCCESS if success
+         */
+        int get_cluster_mgr(ObClusterMgr *&cluster_mgr);
+
+        /**
+         * @brief whether the clusters are ready for election
+         * This function is only called by master cluster.
+         * @return OB_SUCCESS if the clusters are ready for election
+         */
+        int is_clusters_ready_for_election();
+        // add:e
         int cs_import_tablets(const uint64_t table_id, const int64_t tablet_version);
         /// force refresh the new schmea manager through inner table scan
         int refresh_new_schema(int64_t & table_count);
@@ -316,7 +408,13 @@ namespace oceanbase
         int alter_table(common::AlterTableSchema &tschema);
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
         int64_t get_last_frozen_version() const;
-
+        // add by zcd [multi_cluster] 20150416:b
+        // 返回slave_array_的内容
+        std::vector<common::ObServer> get_slave_root_cluster_ip();
+        // 从slave_array_中移除当前rs的地址
+        int remove_current_rs_from_slaves_array();
+        int parse_string_to_ips(const char *str, std::vector<ObServer>& slave_array);
+        // add:e
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();
         bool is_bypass_process();
@@ -537,6 +635,15 @@ namespace oceanbase
         ObRootOperationHelper operation_helper_;
         ObRootOperationDuty operation_duty_;
         common::ObTimer timer_;
+
+        // add by zcd [multi_cluster] 20150416:b
+        std::vector<common::ObServer> slave_array_;
+        // add:e
+
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+        common::ObElectionRoleMgr election_role_;    ///< the information of rs election
+        common::ObClusterMgr cluster_mgr_;           ///< the information of clusters
+        // add:e
     };
   }
 }

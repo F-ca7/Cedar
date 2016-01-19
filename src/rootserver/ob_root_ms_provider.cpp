@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_ms_provider.cpp
+ * @brief modify the process of the rs get the master rs.
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -15,6 +29,8 @@
  */
 #include "ob_root_ms_provider.h"
 #include "common/ob_scan_param.h"
+#include "ob_root_worker.h"
+
 using namespace oceanbase::rootserver;
 using namespace oceanbase::common;
 
@@ -29,11 +45,16 @@ ObRootMsProvider::~ObRootMsProvider()
 {
 }
 
-void ObRootMsProvider::init(ObRootServerConfig & config, ObRootRpcStub &rpc_stub)
+// modify by zcd [multi_cluster] 20150405:b
+void ObRootMsProvider::init(ObRootServerConfig & config, ObRootRpcStub &rpc_stub, ObRootWorker &root_worker)
+// modify:e
 {
   init_ = true;
   config_ = &config;
   rpc_stub_ = &rpc_stub;
+  // add by zcd [multi_cluster] 20150405:b
+  root_worker_ = &root_worker;
+  // add:e
 }
 
 int ObRootMsProvider::get_ms(ObServer &server, const bool query_master_cluster)
@@ -46,7 +67,12 @@ int ObRootMsProvider::get_ms(ObServer &server, const bool query_master_cluster)
       ObServer master_rs;
       ObServer master_master_rs;
       config_->get_root_server(master_rs);
-      config_->get_master_root_server(master_master_rs);
+      // add by zcd [multi_cluster] 20150416:b
+      // 将获取主集群rs的函数从原来的config中获取
+      // 替换为现在从root_worker_获取
+      //config_->get_master_root_server(master_master_rs);
+      master_master_rs = root_worker_->get_obi_master_root_server();
+      // add:e
       if (master_rs == master_master_rs)
       {
         ret = get_ms(server);

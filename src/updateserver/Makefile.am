@@ -107,7 +107,8 @@ libupdateserver_a_SOURCES =                                                 \
   ob_trigger_handler.h              ob_trigger_handler.cpp                  \
   ob_update_reload_config.h         ob_update_reload_config.cpp             \
   ob_util_interface.h                                                       \
-  ob_inc_seq.h                      ob_inc_seq.cpp
+  ob_inc_seq.h                      ob_inc_seq.cpp			    \
+  ob_commit_point_runnable.h	    ob_commit_point_runnable.cpp
 
 bin_PROGRAMS = updateserver ob_ping
 updateserver_SOURCES = main.cpp ${libupdateserver_a_SOURCES}

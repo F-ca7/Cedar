@@ -1,5 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_rpc_stub.cpp
+ * @brief ObRootRpcStub
+ *        support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add some remote process control function to the ObRootRpcStub class.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 #include "rootserver/ob_root_worker.h"
 #include "rootserver/ob_root_rpc_stub.h"
+#include "rootserver/ob_root_admin_cmd.h"
 #include "common/ob_schema.h"
 #include "common/ob_define.h"
 #include "sql/ob_sql_result_set.h"
@@ -89,6 +109,107 @@ int ObRootRpcStub::slave_register(const ObServer& master, const ObServer& slave_
   return err;
 }
 
+// add by zcd [multi_cluster] 20150405:b
+// 设置备rs的角色的远程调用
+int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRole &role, const int64_t timeout)
+{
+  int err = OB_SUCCESS;
+  ObDataBuffer data_buff;
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(WARN, "invalid status, client_mgr_[%p]", client_mgr_);
+    err = OB_ERROR;
+  }
+  else
+  {
+    err = get_thread_buffer_(data_buff);
+  }
+
+  // step 1. serialize obi_role
+  if (OB_SUCCESS == err)
+  {
+    err = role.serialize(data_buff.get_data(), data_buff.get_capacity(),
+        data_buff.get_position());
+  }
+
+  // step 2. send request to set slave obi_role to obi_slave
+  if (OB_SUCCESS == err)
+  {
+    err = client_mgr_->send_request(slave,
+        OB_SET_OBI_ROLE, DEFAULT_VERSION, timeout, data_buff);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "send request to register failed"
+          "err[%d].", err);
+    }
+  }
+
+  // step 3. deserialize the response code
+  int64_t pos = 0;
+  if (OB_SUCCESS == err)
+  {
+    ObResultCode result_code;
+    err = result_code.deserialize(data_buff.get_data(), data_buff.get_position(), pos);
+    if (OB_SUCCESS != err)
+    {
+      TBSYS_LOG(ERROR, "deserialize result_code failed:pos[%ld], err[%d].", pos, err);
+    }
+    else
+    {
+      err = result_code.result_code_;
+    }
+  }
+
+  return err;
+}
+// add:e
+
+// add by zcd [multi_cluster] 20150416:b
+// bootstrap命令的远程调用
+int ObRootRpcStub::boot_strap(const common::ObServer& server)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi32(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), OB_RS_ADMIN_BOOT_STRAP)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize, err=%d\n", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_RS_ADMIN, DEFAULT_VERSION, INT64_MAX, msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to send request, err=%d, timeout=%ld\n", ret, INT64_MAX);
+  }
+  else
+  {
+    ObResultCode result_code;
+    msgbuf.get_position() = 0;
+    if (OB_SUCCESS != (ret = result_code.deserialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d\n", ret);
+    }
+    else if (OB_SUCCESS != (ret = result_code.result_code_))
+    {
+      TBSYS_LOG(ERROR, "failed to do_boot_strap, err=%d\n", result_code.result_code_);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "BootStrap OK!");
+    }
+  }
+  return ret;
+}
+// add:e
+
 int ObRootRpcStub::get_thread_buffer_(common::ObDataBuffer& data_buffer)
 {
   int ret = OB_SUCCESS;
@@ -161,6 +282,48 @@ int ObRootRpcStub::get_row_checksum(const common::ObServer& server, const int64_
 
   return ret;
 }
+
+// add by zcd [multi_cluster] 20150405:b
+// 远程设置其他server的config信息的调用过程
+int ObRootRpcStub::set_config(const common::ObServer& server, const ObString& config_str, int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = config_str.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(WARN, "failed to serialize config_str, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_SET_CONFIG, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result_code;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result_code.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result_code.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to set config, err=%d", result_code.result_code_);
+      ret = result_code.result_code_;
+    }
+  }
+  return ret;
+}
+// add:e
 
 int ObRootRpcStub::set_obi_role(const common::ObServer& ups, const common::ObiRole& role, const int64_t timeout_us)
 {
@@ -741,6 +904,53 @@ int ObRootRpcStub::get_ups_max_log_seq(const common::ObServer& ups, uint64_t &ma
   }
   return ret;
 }
+
+// add by guojinwei [log timestamp][multi_cluster] 20150820:b
+// get max log timestamp from ups
+int ObRootRpcStub::get_ups_max_log_timestamp(const common::ObServer& ups, int64_t &max_log_timestamp, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(ups, OB_RS_GET_MAX_LOG_TIMESTAMP, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    // success
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to revoke lease, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else if (OB_SUCCESS != (ret = serialization::decode_vi64(msgbuf.get_data(), msgbuf.get_position(),
+                                                             pos, (int64_t*)&max_log_timestamp)))
+    {
+      TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "get ups max log timestamp, ups=%s timestamp=%ld", ups.to_cstring(), max_log_timestamp);
+    }
+  }
+  return ret;
+}
+// add:e
 
 int ObRootRpcStub::shutdown_cs(const common::ObServer& cs, bool is_restart, const int64_t timeout_us)
 {
@@ -1964,3 +2174,152 @@ int ObRootRpcStub::notify_switch_schema(const common::ObServer& rs, const int64_
   return ret;
 }
 
+// add by chujiajia [rs_election][multi_cluster] 20150823:b
+int ObRootRpcStub::rs_election(const common::ObServer &root_server, const ObMsgRsElection &msg_rselection, char info[], const int64_t timeout_rs)
+{
+  int err = OB_SUCCESS;
+  ObDataBuffer data_buff;
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(WARN, "invalid status, client_mgr_[%p]", client_mgr_);
+    err = OB_ERROR;
+  }
+  else
+  {
+    err = get_thread_buffer_(data_buff);
+  }
+
+  //setp 1. serialize the vote info
+  if (OB_SUCCESS == err)
+  {
+    if (OB_SUCCESS != (err = msg_rselection.serialize(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position())))
+    {
+      TBSYS_LOG(WARN, "Serialize msg_rselection error, err=%d", err);
+    }
+  }
+  // step 2. send request to root_server
+  if (OB_SUCCESS == err)
+  {
+    err = client_mgr_->send_request(root_server,
+        OB_RS_ELECTION, msg_rselection.MY_VERSION, timeout_rs, data_buff);
+    if (OB_SUCCESS != err)
+    {
+      TBSYS_LOG(WARN, "send request  failed, err[%d], rootserver addr = %s", err, root_server.to_cstring());
+    }
+  }
+
+  // step 3. deserialize the response code
+  int64_t pos = 0;
+  int64_t len=20;
+  int64_t *lenp=&len;
+
+  if (OB_SUCCESS == err)
+  {
+    ObResultCode result_code;
+    err = result_code.deserialize(data_buff.get_data(), data_buff.get_position(), pos);
+    if (OB_SUCCESS != err)
+    {
+      TBSYS_LOG(WARN, "deserialize result_code failed:pos[%ld], err[%d].", pos, err);
+    }
+    else
+    {
+      err = result_code.result_code_;
+    }
+  }
+  if (OB_SUCCESS == err)
+  {
+    strcpy(info,serialization::decode_vstr(data_buff.get_data(), data_buff.get_position(), pos,lenp));
+  }
+
+  if (OB_SUCCESS != err && OB_ALREADY_REGISTERED != err)
+  {
+    TBSYS_LOG(WARN, "fail to send vote to rootserver. err=%d", err);
+  }
+  else
+  {
+    err = OB_SUCCESS;
+  }
+  return err;
+}
+// add:e
+
+// add by guojinwei [reelect][multi_cluster] 20151129:b
+int ObRootRpcStub::get_cluster_election_ready(const common::ObServer& rs, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(rs, OB_RS_GET_ELECTION_READY, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    // success
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "cluster=%s is not ready for rs election, err=%d", rs.to_cstring(), result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "cluster=%s is ready for rs election", rs.to_cstring());
+    }
+  }
+  return ret;
+}
+
+int ObRootRpcStub::get_ups_election_ready(const common::ObServer& ups, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(ups, OB_RS_UPS_GET_READY, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    // success
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "ups=%s is not ready for rs election, err=%d", ups.to_cstring(), result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "ups=%s is ready for rs election", ups.to_cstring());
+    }
+  }
+  return ret;
+}
+// add:e

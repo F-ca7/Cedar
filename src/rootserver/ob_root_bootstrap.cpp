@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        modify the construction function of class ObBootstrap.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +47,9 @@
 using namespace oceanbase::rootserver;
 using namespace oceanbase::common;
 
-ObBootstrap::ObBootstrap(ObRootServer2 & root_server):root_server_(root_server), log_worker_(NULL)
+// modify by zcd [multi_cluster] 20150406:b
+ObBootstrap::ObBootstrap(ObRootServer2 & root_server, ObRootWorker &root_worker):root_server_(root_server), log_worker_(NULL), root_worker_(&root_worker)
+// modify:e
 {
   core_table_count_ = 0;
   sys_table_count_ = 0;
@@ -516,8 +535,10 @@ int ObBootstrap::init_all_cluster()
   {
     ObServer server;
     ObRootMsProvider ms_provider(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()));
+    // modify by zcd [multi_cluster] 20150406:b
     ms_provider.init(const_cast<ObRootServerConfig&>(config),
-        const_cast<ObRootRpcStub&>(root_server_.get_rpc_stub()));
+        const_cast<ObRootRpcStub&>(root_server_.get_rpc_stub()), *root_worker_);
+    // modify:e
     for (int64_t i = 0; i < config.retry_times; i++)
     {
       if (OB_SUCCESS != (ret = ms_provider.get_ms(server)))
@@ -765,7 +786,10 @@ int ObBootstrap::init_all_sys_param()
         acc,
         OB_READ_CONSISTENCY,
         ObIntType,
-        "3",
+        // modify by guojinwei [multi_cluster] 20151020:b
+        //"3",
+        "4",
+        // modify:e
         "read consistency level:4=STRONG, 3=WEAK, 2=FROZEN, 1=STATIC, 0=NONE");
     char version_comment[256];
     snprintf(version_comment, 256, "OceanBase %s (r%s) (Built %s %s)",

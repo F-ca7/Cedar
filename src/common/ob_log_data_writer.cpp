@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_log_date_writer.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -647,5 +662,37 @@ namespace oceanbase
       cursor = end_cursor_;
       return err;
     }
+    //add lbzhong [Commit Point] 20150820:b
+    int ObLogDataWriter::write_eof(const ObLogCursor cursor)
+    {
+      int err = OB_SUCCESS;
+      char fname[OB_MAX_FILE_NAME_LENGTH];
+      int64_t fname_len = 0;
+      int fd = -1;
+      if ((fname_len = snprintf(fname, sizeof(fname), "%s/%ld", log_dir_, cursor.file_id_)) < 0
+               || fname_len >= (int64_t)sizeof(fname))
+      {
+        err = OB_BUF_NOT_ENOUGH;
+        TBSYS_LOG(ERROR, "gen fname fail: fname_len=%ld, fname=%s/%ld", sizeof(fname), log_dir_, cursor.file_id_);
+      }
+      else if ((fd = open(fname, OPEN_FLAG, OPEN_MODE)) < 0)
+      {
+        err = OB_IO_ERROR;
+        TBSYS_LOG(ERROR, "open %s fail: %s", fname, strerror(errno));
+      }
+      else if (unintr_pwrite(fd, ObLogGenerator::eof_flag_buf_,
+               sizeof(ObLogGenerator::eof_flag_buf_), cursor.offset_) != sizeof(ObLogGenerator::eof_flag_buf_))
+      {
+        err = OB_IO_ERROR;
+        TBSYS_LOG(ERROR, "write_eof_flag fail(%s): %s", fname, strerror(errno));
+      }
+
+      if (fd >= 0)
+      {
+        close(fd);
+      }
+      return err;
+    }
+    //add:e
   }; // end namespace common
 }; // end namespace oceanbase

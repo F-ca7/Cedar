@@ -1,3 +1,24 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file base_main.cpp
+ * @brief base main for all servers
+ * 1. support multiple clusters for HA by adding or modifying
+ *    some functions, member variables
+ * 2. modify the command line parameters of rootserver,
+ *    add the -s/--all_root_servers to command line.
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -39,7 +60,10 @@ namespace oceanbase
 
     BaseMain::BaseMain(const bool daemon)
       : cmd_cluster_id_(0), cmd_rs_port_(0), cmd_master_rs_port_(0), cmd_port_(0),
-        cmd_inner_port_(0), cmd_obmysql_port_(0), pid_dir_(DEFAULT_PID_DIR),
+        cmd_inner_port_(0), cmd_obmysql_port_(0),
+        // modify by chujiajia [rs_election][multi_cluster] 20150929:b
+        cmd_rs_election_random_wait_time_(0),pid_dir_(DEFAULT_PID_DIR),
+        // modify:e
         log_dir_(DEFAULT_LOG_DIR), server_name_(NULL), use_daemon_(daemon)
     {
       setlocale(LC_ALL, "");
@@ -152,7 +176,14 @@ namespace oceanbase
     void BaseMain::parse_cmd_line(const int argc,  char *const argv[])
     {
       int opt = 0;
-      const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
+      // modify by zcd [multi_cluster] 20150416:b
+      // 加入-s选项
+      // 代表当前所有集群的rs地址
+      // 以#号隔开多个ip号和端口,
+      // 例如192.168.1.1：10000#192.168.1.2:10006#192.168.1.2:10012
+      //const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
+      const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:s:";
+      // modify:e
       struct option longopts[] =
         {
           {"rootserver", 1, NULL, 'r'},
@@ -172,6 +203,9 @@ namespace oceanbase
           {"extra_config", 0, NULL, 'o'},
           {"ms_type", 0, NULL, 't'},
           {"proxy_config_file", 0, NULL, 'f'},
+          // add by zcd [multi_cluster] 20150416:b
+          {"all_root_servers", 1, NULL, 's'},
+          // add:e
           {0, 0, 0, 0}
         };
 
@@ -216,6 +250,11 @@ namespace oceanbase
           case 'z':
             cmd_obmysql_port_ = static_cast<int32_t>(strtol(optarg, NULL, 0));
             break;
+          // add by zcd [multi_cluster] 20150416:b
+          case 's':
+            snprintf(cmd_rs_cluster_ips_, sizeof (cmd_rs_cluster_ips_), "%s", optarg);
+            break;
+          // add:e
           case 'V':
             print_version();
             exit(1);
@@ -429,6 +468,12 @@ namespace oceanbase
         if (use_daemon_)
         {
           start_ok = (tbsys::CProcess::startDaemon(pid_file, log_file) == 0);
+          //add by lbzhong [Restart UPS] 20150827:b
+	  if(start_ok)
+          {
+            tbsys::CProcess::writePidFile(pid_file);
+          }
+	  //add:e
         }
         if(start_ok)
         {
@@ -470,7 +515,9 @@ namespace oceanbase
     bool BaseMain::restart_server(int argc, char* argv[])
     {
       pid_t pid;
-      bool ret;
+      //add lbzhong [Commit Point] 20150820:b
+      volatile bool ret = true;
+      //add:e
 
       for (int i = 0; ret && i < argc; i++)
       {

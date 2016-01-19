@@ -1,4 +1,13 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_ups_timer_task.h
+ * @brief
+ *           add a timertask ObUpsSetMajorityCountTask to execute setting majority_count.
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
+/**
   * (C) 2007-2010 Taobao Inc.
   *
   * This program is free software; you can redistribute it and/or modify
@@ -43,6 +52,16 @@ namespace oceanbase
         virtual ~ObUpsLeaseTask() {};
         virtual void runTimerTask();
     };
+
+    // add by zhangcd [majority_count_init] 20151118:b
+    class ObUpsSetMajorityCountTask : public common::ObTimerTask
+    {
+      public:
+        ObUpsSetMajorityCountTask() {};
+        virtual ~ObUpsSetMajorityCountTask() {};
+        virtual void runTimerTask();
+    };
+    // add:e
   }
 }
 

@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_log_mgr.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         liubozhong <51141500077@encu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,6 +48,9 @@
 #include "ob_clog_stat.h"
 #include "ob_log_replay_worker.h"
 #include "ob_ups_stat.h"
+//add lbzhong [Commit Point] 20150820:b
+#include "ob_commit_point_runnable.h"
+//add:e
 
 namespace oceanbase
 {
@@ -117,12 +136,52 @@ namespace oceanbase
       virtual ~ObUpsLogMgr();
       int init(const char* log_dir, const int64_t log_file_max_size,
                ObLogReplayWorker* replay_worker_, ObReplayLogSrc* replay_log_src, ObUpsTableMgr* table_mgr,
-               ObUpsSlaveMgr *slave_mgr, ObiRole* obi_role, ObUpsRoleMgr *role_mgr, int64_t log_sync_type);
+               ObUpsSlaveMgr *slave_mgr, ObiRole* obi_role, ObUpsRoleMgr *role_mgr, int64_t log_sync_type
+               //add by lbzhong [Commit Point] 20150824:b
+               , ObCommitPointRunnable* commit_point_thread
+               //add:e
+               );
 
       /// @brief set new replay point
       /// this method will write replay point to replay_point_file
       int write_replay_point(uint64_t replay_point);
+      //add lbzhong [Commit Point] 20150820:b
+      /**
+       * @brief flush commit point to file
+       * @return OB_SUCCESS if success
+       */
+      int flush_commit_point();
 
+      /**
+       * @brief get was_master from file
+       * @param was_master [out] whether the ups was master before restart
+       * @return true if the ups was master before restart
+       */
+      bool get_was_master(bool& was_master);
+      //add:e
+      // add by guojinwei [commit point for log replay][multi_cluster] 20151119:b
+      /**
+       * @brief flush commit point to file
+       * @param[in] commit_point  the commit point
+       * @return OB_SUCCESS if success
+       */
+      int flush_commit_point(const int64_t commit_point); 
+
+      /**
+       * @brief get last flushed commit point
+       * @param[out] last_commit_point  the last flushed commit point
+       * @return OB_SUCCESS if success
+       */
+      int get_last_commit_point(int64_t& last_commit_point) const;
+      // add:e
+      //add lbzhong [Max Log Timestamp] 20150820:b
+      /**
+       * @brief get max log timestamp from log file and log buffer
+       * @param[out] max_timestamp  the max log timestamp
+       * @return OB_SUCCESS if success
+       */
+      int get_max_log_timestamp(int64_t& max_timestamp) const;
+      //add:e
       public:
         // 继承log_writer留下的回调接口
 
@@ -170,7 +229,35 @@ namespace oceanbase
       int64_t wait_new_log_to_replay(const int64_t timeout_us);
       int write_log_as_slave(const char* buf, const int64_t len);
       int64_t to_string(char* buf, const int64_t len) const;
-        
+      //add lbzhong [Commit Point] 20150820:b
+      /**
+       * @brief whether the ups is master master
+       * @return true if the ups is master master
+       */
+      bool is_master_master() const;
+
+      /**
+       * @brief [overwrite]
+       * @return OB_SUCCESS if success
+       */
+      int store_log(const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
+
+      /**
+       * @brief [overwrite]
+       * If the ups is master master, it will update was_master to true in this function.
+       * And it will update max log timestamp of log buffer in this function.
+       * @return OB_SUCCESS if success
+       */
+      int async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
+
+      /**
+       * @brief [overwrite]
+       * If the ups is not master master, it will update was_master to false in this function.
+       * @return OB_SUCCESS if success
+       */
+      int flush_log(TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer(),
+                          const bool sync_to_slave = true, const bool is_master = true);
+      //add:e
       protected:
         // 下面几个方法都是replay_log()需要的辅助方法
       int replay_and_write_log(const int64_t start_id, const int64_t end_id, const char* buf, int64_t len);
@@ -181,7 +268,25 @@ namespace oceanbase
       int start_log_for_replay();
 
       protected:
-      bool is_master_master() const;
+      //add lbzhong [Max Log Timestamp] 20150820:b
+      /**
+       * @brief get max log timestamp from log file
+       * @param[out] max_timestamp  max log timestamp from log file
+       * @return OB_SUCCESS if success
+       */
+      int get_max_log_timestamp_in_file(int64_t& max_timestamp) const;
+
+      /**
+       * @brief get max log timestamp from log buffer
+       * @param[out] max_timestamp  max log timestamp from log buffer
+       * @return OB_SUCCESS if success
+       */
+      int get_max_log_timestamp_in_buffer(int64_t& max_timestamp) const;
+      //add:e
+      //delete by lbzhong [Commit point] 20150820:b
+      //move this function to public
+      //bool is_master_master() const;
+      //delete:e
       bool is_slave_master() const;
       int set_state_as_active();
       int get_max_log_seq_in_file(int64_t& log_seq) const;
@@ -228,7 +333,9 @@ namespace oceanbase
       bool is_inited() const;
       private:
       int load_replay_point_();
-
+      //add lbzhong [Commit Point] 20150820:b
+      int get_commit_point_from_file(int64_t& commit_seq);
+      //add:e
       inline int check_inner_stat() const
       {
         int ret = common::OB_SUCCESS;
@@ -269,6 +376,17 @@ namespace oceanbase
       bool is_initialized_;
       char log_dir_[common::OB_MAX_FILE_NAME_LENGTH];
       bool is_started_;
+      //add lbzhong [Commit Point] 20150820:b
+      ObCommitPointRunnable* commit_point_thread_;
+      int64_t last_commit_point_;
+      int is_master_;
+      ObFileForLog<int64_t> commit_point_;
+      ObFileForLog<bool> was_master_;
+      //add:e
+      //add lbzhong [Max Log Timestamp] 20150820:b
+      int64_t local_max_log_timestamp_when_start_;
+      int64_t local_max_log_timestamp_;
+      //add:e
     };
   } // end namespace updateserver
 } // end namespace oceanbase

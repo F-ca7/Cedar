@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_inner_table_task.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add the CHANGE_MASTER_CLUSTER_ROOTSERVER task_type to the process.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
   * (C) 2007-2010 Taobao Inc.
   *
   * This program is free software; you can redistribute it and/or modify
@@ -104,7 +121,19 @@ int ObRootInnerTableTask::modify_all_server_table(const ObRootAsyncTaskQueue::Ob
       TBSYS_LOG(INFO, "process inner task succ:task_id[%lu], timestamp[%ld], sql[%s]",
           task.get_task_id(), task.get_task_timestamp(), buf);
     }
+  // add by zcd [multi_cluster] 20150416:b
+  // 处理任务失败的时候也要输出出来是那个sql执行有错
+    else
+    {
+      TBSYS_LOG(INFO, "process inner task failed:task_id[%lu], timestamp[%ld], sql[%s]",
+          task.get_task_id(), task.get_task_timestamp(), buf);
+    }
   }
+  else
+  {
+    TBSYS_LOG(INFO, "modify the __all_server failed! task_id[%lu], timestamp[%ld], sql[%s]", task.get_task_id(), task.get_task_timestamp(), buf);
+  }
+  // add:e
   return ret;
 }
 
@@ -133,10 +162,73 @@ int ObRootInnerTableTask::modify_all_cluster_table(const ObRootAsyncTaskQueue::O
   }
   else if (task.type_ == OBI_ROLE_CHANGE)
   {
-    const char * sql_temp = "REPLACE INTO %s"
-      "(cluster_id, cluster_role)"
-      "VALUES(%d, %d);";
-    snprintf(buf, sizeof (buf), sql_temp, OB_ALL_CLUSTER, cluster_id_, task.cluster_role_);
+    if (OB_SUCCESS == ret)
+    {
+      // modify by zcd [multi_cluster] 20150406:b
+      // 在修改__all_cluster这个表时
+      // 也要修改记录的cluster_flow_percent这个字段的值
+      // 这个字段表示流量分配比例，主集群是100，备集群是0
+      const char * sql_temp = "REPLACE INTO %s"
+        "(cluster_id, cluster_role, cluster_flow_percent)"
+        "VALUES(%d, %d, %d);";
+      snprintf(buf, sizeof (buf), sql_temp, OB_ALL_CLUSTER, cluster_id_, task.cluster_role_, task.cluster_role_ == 1 ? 100 : 0);
+      // modify:e
+    }
+  }
+  else
+  {
+    ret = OB_INVALID_ARGUMENT;
+    TBSYS_LOG(WARN, "check input param failed:task_type[%d]", task.type_);
+  }
+  if (OB_SUCCESS == ret)
+  {
+    ObString sql;
+    sql.assign_ptr(buf, static_cast<ObString::obstr_size_t>(strlen(buf)));
+    ret = proxy_->query(true, RETRY_TIMES, TIMEOUT, sql);
+    if (OB_SUCCESS == ret)
+    {
+      TBSYS_LOG(INFO, "process inner task succ:task_id[%lu], timestamp[%ld], sql[%s]",
+          task.get_task_id(), task.get_task_timestamp(), buf);
+    }
+  // add by zcd [multi_cluster] 20150406:b
+    // 在失败的时候也要输出执行错误的sql
+    else
+    {
+      TBSYS_LOG(INFO, "process inner task failed:task_id[%lu], timestamp[%ld], sql[%s]",
+          task.get_task_id(), task.get_task_timestamp(), buf);
+    }
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "modify the __all_cluster failed! task_id[%lu], timestamp[%ld], sql[%s]", task.get_task_id(), task.get_task_timestamp(), buf);
+  }
+  // add:e
+  return ret;
+}
+// add by zcd [multi_cluster] 20150405:b
+// 修改__all_sys_config中master_root_server_ip
+// 和master_root_server_port的值的函数
+int ObRootInnerTableTask::modify_master_cluster_root_server_ip(const ObRootAsyncTaskQueue::ObSeqTask & task)
+{
+  int ret = OB_SUCCESS;
+  // write cluster info to internal table
+  char buf[OB_MAX_SQL_LENGTH] = "";
+
+  if (task.type_ == CHANGE_MASTER_CLUSTER_ROOTSERVER)
+  {
+    char ip_buf[OB_MAX_SERVER_ADDR_SIZE] = "";
+    if (false == task.server_.ip_to_string(ip_buf, sizeof(ip_buf)))
+    {
+      ret = OB_INVALID_ARGUMENT;
+      TBSYS_LOG(WARN, "convert server ip to string failed:ret[%d]", ret);
+    }
+    else
+    {
+      const char * sql_temp = "alter system set master_root_server_ip='%s' "
+                              "server_type=rootserver,master_root_server_port=%d server_type=rootserver;";
+      snprintf(buf, sizeof (buf), sql_temp, ip_buf,
+               task.server_.get_port());
+    }
   }
   else
   {
@@ -156,6 +248,37 @@ int ObRootInnerTableTask::modify_all_cluster_table(const ObRootAsyncTaskQueue::O
   }
   return ret;
 }
+// add:e
+
+// add by guojinwei [obi role switch][multi_cluster] 20150916:b
+int ObRootInnerTableTask::modify_all_cluster_table_with_id(const ObRootAsyncTaskQueue::ObSeqTask & task)
+{
+  int ret = OB_SUCCESS;
+  // write cluster info to internal table
+  char buf[OB_MAX_SQL_LENGTH] = "";
+
+  const char * sql_temp = "REPLACE INTO %s"
+    "(cluster_id, cluster_role, cluster_flow_percent)"
+    "VALUES(%d, %d, %d);";
+  snprintf(buf, sizeof (buf), sql_temp, OB_ALL_CLUSTER, task.cluster_id_, task.cluster_role_, task.cluster_role_ == 1 ? 100 : 0);
+
+  ObString sql;
+  sql.assign_ptr(buf, static_cast<ObString::obstr_size_t>(strlen(buf)));
+  ret = proxy_->query(true, RETRY_TIMES, TIMEOUT, sql);
+  if (OB_SUCCESS == ret)
+  {
+    TBSYS_LOG(INFO, "process inner task succ:task_id[%lu], timestamp[%ld], sql[%s]",
+        task.get_task_id(), task.get_task_timestamp(), buf);
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "process inner task failed:task_id[%lu], timestamp[%ld], sql[%s]",
+        task.get_task_id(), task.get_task_timestamp(), buf);
+  }
+
+  return ret;
+}
+// add:e
 
 void ObRootInnerTableTask::runTimerTask(void)
 {
@@ -205,6 +328,20 @@ int ObRootInnerTableTask::process_head_task(void)
         ret = modify_all_cluster_table(task);
         break;
       }
+    // add by zcd [multi_cluster] 20150405:b
+    case CHANGE_MASTER_CLUSTER_ROOTSERVER:
+      {
+        ret = modify_master_cluster_root_server_ip(task);
+      }
+      break;
+    // add:e
+    // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+    case CLUSTER_OBI_ROLE_CHANGE:
+      {
+        ret = modify_all_cluster_table_with_id(task);
+      }
+      break;
+    // add:e
     default:
       {
         ret = OB_ERROR;

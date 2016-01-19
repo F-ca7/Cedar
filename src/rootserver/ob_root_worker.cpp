@@ -1,3 +1,26 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_worker.cpp
+ * @brief ObRootWorker
+ * support multiple clusters for HA by adding or modifying
+ *   some functions, member variables
+ *
+ *   1.add the auto_elect_flag to election process.
+ *   2.modify the election state.
+ *   3.add the majority_count setting in rootserver.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia  <52151500014@ecnu.edu.cn>
+ *         pangtianze <pangtianze@ecnu.com>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -25,6 +48,7 @@
 #include "common/ob_trigger_msg.h"
 #include "common/ob_general_rpc_stub.h"
 #include "common/ob_data_source_desc.h"
+#include "common/ob_election_role_mgr.h"
 #include "rootserver/ob_root_callback.h"
 #include "rootserver/ob_root_worker.h"
 #include "rootserver/ob_root_admin_cmd.h"
@@ -40,6 +64,7 @@
 #include "common/ob_common_stat.h"
 #include "sql/ob_sql_scan_param.h"
 #include "sql/ob_sql_get_param.h"
+#include "common/ob_version.h"
 #include <sys/types.h>
 #include <unistd.h>
 //#define PRESS_TEST
@@ -57,14 +82,21 @@ namespace oceanbase
 {
   namespace rootserver
   {
-    using namespace oceanbase::common;
-
+    //mod by pangtianze [rs_election] 20160106:b
+//    // mod by zcd [multi_cluster] 20150405:b
+//    ObRootWorker::ObRootWorker(ObConfigManager &config_mgr, ObRootServerConfig &rs_config)
+//      : config_mgr_(config_mgr), config_(rs_config), is_registered_(false),
+//      root_server_(config_), check_rselection_thread_(rs_config),sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_),*this)
+//    // mod by zcd [multi_cluster] 20150405:e
     ObRootWorker::ObRootWorker(ObConfigManager &config_mgr, ObRootServerConfig &rs_config)
       : config_mgr_(config_mgr), config_(rs_config), is_registered_(false),
-      root_server_(config_), sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_))
+      root_server_(config_), check_rselection_thread_(rs_config, root_server_),sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_),*this)
+    //mod:e
+
     {
       schema_version_ = 0;
     }
+
 
     ObRootWorker::~ObRootWorker()
     {
@@ -278,6 +310,10 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "schedule ms list task fail, ret: [%d]", ret);
       }
 
+      // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      set_auto_elect_flag_task_.init(this);
+      // add:e
+
       ObRoleMgr::Role role = role_mgr_.get_role();
       if (role == ObRoleMgr::MASTER)
       {
@@ -336,6 +372,47 @@ namespace oceanbase
         TBSYS_LOG(INFO, "[NOTICE] master start-up finished");
         root_server_.dump_root_table();
 
+        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        ObServer current_cluster_ups;
+        while(OB_ENTRY_NOT_EXIST == (ret = root_server_.get_master_ups(current_cluster_ups, false)))
+        {
+          TBSYS_LOG(WARN, "ups is not available now, wait...");
+          usleep(1000 * 1000);
+        }
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(ERROR, "get master ups failed!");
+        }
+        std::vector<ObServer> other_rs_tmp = root_server_.get_slave_root_cluster_ip();
+        ObArray<ObServer> other_rs;
+        other_rs.clear();
+        for (int i = 0; i < (int)(other_rs_tmp.size()); i++)
+        {
+          TBSYS_LOG(INFO, "other_rs_tmp=%s",to_cstring(other_rs_tmp.at(i)));
+          other_rs.push_back(other_rs_tmp[i]);
+        }
+        //modify by chujiajia [rs_election][multi_cluster] 20151026:b
+        //check_rselection_thread_.init(config_.vip_check_period,
+        //                              root_server_,
+        //                              client_manager,
+        //                              rt_rpc_stub_,
+        //                              rt_master_,
+        //                              current_cluster_ups,
+        //                              other_rs);
+        check_rselection_thread_.init(root_server_,
+                                      client_manager,
+                                      rt_rpc_stub_,
+                                      rt_master_,
+                                      current_cluster_ups,
+                                      other_rs);
+        //modify:e
+        check_rselection_thread_.start();
+        // add:e
+        // add by zcd [multi_cluster] 20150405:b
+        ObiRole cur_role;
+        cur_role.set_role(common::ObiRole::INIT);
+        // add:e
+
         // wait finish
         for (;;)
         {
@@ -345,7 +422,156 @@ namespace oceanbase
             TBSYS_LOG(INFO, "role manager change state, stat=%d", role_mgr_.get_state());
             break;
           }
-          usleep(10 * 1000); // 10 ms
+          // add by zcd [multi_cluster] 20150405:b
+          switch(cur_role.get_role())
+          {
+          case common::ObiRole::INIT:
+          {
+            switch(check_rselection_thread_.get_election_state())
+            {
+            // modify by zhangcd [multi_clusters] 20151120:b
+            // case INIT:
+            case common::ObElectionRoleMgr::INIT:
+            // modify:e
+              // the rootserver is just start-up, donot have a role
+              // do nothing
+              TBSYS_LOG(INFO, "current election state is INIT");
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case DURING_ELECTION:
+            case common::ObElectionRoleMgr::DURING_ELECTION:
+            // modify:e
+              // do nothing
+              TBSYS_LOG(INFO, "current election state is DURING_ELECTION");
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case AFTER_ELECTION:
+            case common::ObElectionRoleMgr::AFTER_ELECTION:
+            // modify:e
+              // there is a leader selected out.
+              TBSYS_LOG(INFO, "current election state is AFTER_ELECTION");
+              if(check_rselection_thread_.get_election_role() == OB_LEADER)
+              {
+                usleep(10 * 1000 * 1000);
+                start_master_cluster();
+                cur_role.set_role(common::ObiRole::MASTER);
+                TBSYS_LOG(INFO, "obi role has changed, from INIT to MASTER!");
+              }
+              else if(check_rselection_thread_.get_election_role() == OB_FOLLOWER)
+              {
+                start_slave_cluster();
+                cur_role.set_role(common::ObiRole::SLAVE);
+                TBSYS_LOG(INFO, "obi role has changed, from INIT to SLAVE!");
+              }
+              else
+              {
+                TBSYS_LOG(ERROR, "election failed!");
+              }
+              break;
+            default:
+              break;
+            }
+          }
+            break;
+          case common::ObiRole::SLAVE:
+          {
+            switch(check_rselection_thread_.get_election_state())
+            {
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case INIT:
+            case common::ObElectionRoleMgr::INIT:
+            // modify:e
+              TBSYS_LOG(INFO, "current election state is INIT");
+              // the rootserver is just start-up, donot have a role
+              // unknown status
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case DURING_ELECTION:
+            case common::ObElectionRoleMgr::DURING_ELECTION:
+            // modify:e
+              TBSYS_LOG(INFO, "current election state is DURING_ELECTION");
+              // keep the state of obi_role
+              // do nothing
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case AFTER_ELECTION:
+            case common::ObElectionRoleMgr::AFTER_ELECTION:
+            // modify:e
+              TBSYS_LOG(INFO, "current election state is AFTER_ELECTION");
+              // there is a leader selected
+              if(check_rselection_thread_.get_election_role() == OB_LEADER)
+              {
+                TBSYS_LOG(INFO, "obi role has changed from SLAVE to MASTER");
+                start_master_cluster();
+                cur_role.set_role(common::ObiRole::MASTER);
+              }
+              else if(check_rselection_thread_.get_election_role() == OB_FOLLOWER)
+              {
+                TBSYS_LOG(INFO, "obi role not change, still SLAVE!");
+              }
+              else
+              {
+                TBSYS_LOG(ERROR, "election failed!");
+              }
+
+              break;
+            default:
+              break;
+            }
+          }
+            break;
+          case common::ObiRole::MASTER:
+          {
+            switch(check_rselection_thread_.get_election_state())
+            {
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case INIT:
+            case common::ObElectionRoleMgr::INIT:
+            // modify:e
+              // the rootserver is just start-up, donot have a role
+              TBSYS_LOG(INFO, "current election state is INIT");
+              // do nothing
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case DURING_ELECTION:
+            case common::ObElectionRoleMgr::DURING_ELECTION:
+            // modify:e
+              // add by zhangcd [multi_clusters] 20151130:b
+              start_slave_cluster();
+              cur_role.set_role(common::ObiRole::SLAVE);
+              // add:e
+              TBSYS_LOG(INFO, "current election state is DURING_ELECTION");
+              break;
+            // modify by zhangcd [multi_clusters] 20151120:b
+            //case AFTER_ELECTION:
+            case common::ObElectionRoleMgr::AFTER_ELECTION:
+            // modify:e
+              TBSYS_LOG(INFO, "current election state is AFTER_ELECTION");
+              if(check_rselection_thread_.get_election_role() == OB_LEADER)
+              {
+                TBSYS_LOG(INFO, "obi role not change, still MASTER!");
+              }
+              else if(check_rselection_thread_.get_election_role() == OB_FOLLOWER)
+              {
+                start_slave_cluster();
+                cur_role.set_role(common::ObiRole::SLAVE);
+                TBSYS_LOG(INFO, "obi role has changed, from MASTER to SLAVE!");
+              }
+              else
+              {
+                TBSYS_LOG(ERROR, "election failed!");
+              }
+              break;
+            default:
+              break;
+            }
+          }
+            break;
+          default:
+            break;
+          }
+          // add:e
+          usleep(100 * 1000); // 100 ms
         }
       }
 
@@ -354,6 +580,239 @@ namespace oceanbase
 
       return ret;
     }
+
+    // add by zcd [multi_cluster] 20150416:b
+    // 设置所有的备集群中RootServer的角色为SLAVE
+    int ObRootWorker::set_all_slaves_role_to_slave()
+    {
+      int ret = OB_SUCCESS;
+      ObServer slave;
+      common::ObiRole role;
+      role.set_role(common::ObiRole::SLAVE);
+//      const std::vector<ObServer>& slave_array = check_rselection_thread_.get_ob_election_node().get_available_slave_rs();
+      const std::vector<ObServer>& slave_array = root_server_.get_slave_root_cluster_ip();
+
+      for(unsigned int i = 0; i < slave_array.size(); i++)
+      {
+        slave = slave_array.at(i);
+        if(OB_SUCCESS != (ret = rt_rpc_stub_.set_slave_obi_role(slave, role, config_.network_timeout)))
+        {
+          TBSYS_LOG(WARN, "fail to set_slave_obi_role. ret =%d", ret);
+        }
+        TBSYS_LOG(INFO, "set slave obi role slave [%s]", to_cstring(slave));
+      }
+      // debug info
+      ret = OB_SUCCESS;
+      // end
+      return ret;
+    }
+    // add:e
+
+    ObServer ObRootWorker::get_obi_master_root_server()
+    {
+      ObServer obi_master;
+      if(check_rselection_thread_.get_ob_election_node().get_leaderinfo().is_valid())
+      {
+        obi_master = check_rselection_thread_.get_ob_election_node().get_leaderinfo();
+      }
+      else
+      {
+        obi_master.set_ipv4_addr("0.0.0.0", 0);
+      }
+      return obi_master;
+    }
+
+    int ObRootWorker::set_obi_master_role()
+    {
+      int ret = OB_SUCCESS;
+      if(OB_SUCCESS != (ret = check_rselection_thread_.get_ob_election_node().rs_init_selected_leader_broadcast()))
+      {
+        TBSYS_LOG(ERROR, "manually set master failed! ret=%d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "manually set master succ!");
+      }
+      return ret;
+    }
+
+    int ObRootWorker::set_obi_master_first()
+    {
+      int ret = OB_SUCCESS;
+      // debug by guojinwei [rs_election][multi_cluster] 20150914:b
+      for (int i = 0; (i < 180 && !check_rselection_thread_.get_is_inited()); i++)
+      {
+        usleep(100 * 1000);
+      }
+      if (!check_rselection_thread_.get_is_inited())
+      {
+        ret = OB_NOT_INIT;
+        TBSYS_LOG(WARN, "check_rselection_thread_ is not initialized! ret=%d", ret);
+      }
+      //add by pangtianze [rs_election] 20151120:b
+      else if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().is_valid()){
+          ret = OB_RS_LEADER_SETTED_WHEN_STARTING;
+      }
+      //add:e
+      else
+      {
+      // debug:e
+        ret = check_rselection_thread_.get_ob_election_node().rs_init_selected_leader_broadcast();
+      // debug by guojinwei [rs election][multi_cluster] 20150914:b
+      }
+      // debug:e
+      return ret;
+    }
+
+    // add by zcd [multi_cluster] 20150416:b
+    int ObRootWorker::start_master_cluster()
+    {
+      int ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "current rootserver election role is leader, start_master_cluster");
+      TBSYS_LOG(INFO, "start master cluster start");
+      TBSYS_LOG(INFO, "start master cluster step1, set other rs to slave...");
+      // 设置备集群中RootServer的角色为slave
+      // delete by guojinwei [obi role switch][multi_cluster] 20150915:b
+      //if(OB_SUCCESS != (ret = set_all_slaves_role_to_slave()))
+      //{
+      //  TBSYS_LOG(WARN, "fail to set_slave_obi_role. ret = %d", ret);
+      //}
+      // delete:e
+
+      TBSYS_LOG(INFO, "start master cluster step2, set self to master...");
+      // 设置当前自己的角色为master
+//      usleep(9 * 1000 * 1000);
+      ObiRole role;
+      role.set_role(common::ObiRole::MASTER);
+      root_server_.set_obi_role(role);
+      // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+      root_server_.set_slave_cluster_obi_role();
+      // add:e
+      root_server_.commit_task(OBI_ROLE_CHANGE, OB_ROOTSERVER, rt_master_, rt_master_.get_port(), "rootserver", 1);
+
+      ThreadSpecificBuffer::Buffer *my_buffer = my_thread_buffer.get_buffer();
+      ObServer rs;
+
+      // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS != (ret = schedule_set_auto_elect_flag_task()))
+        {
+          TBSYS_LOG(WARN, "fail to schedule set_auto_elect_flag_task_, ret=%d", ret);
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "start to schedule set_auto_elect_flag_task_.");
+        }
+      }
+      // add:e
+
+      config_.get_root_server(rs);
+      char server_version[OB_SERVER_VERSION_LENGTH] = "";
+      get_package_and_svn(server_version, sizeof(server_version));
+
+      if (NULL == my_buffer)
+      {
+        TBSYS_LOG(ERROR, "alloc thread buffer fail");
+        ret = OB_MEM_OVERFLOW;
+      }
+
+      if (OB_SUCCESS == ret)
+      {
+        ObDataBuffer buff(my_buffer->current(), my_buffer->remain());
+        TBSYS_LOG(INFO, "start master cluster step3, set rs config about obi_master ip and port...");
+        // 设置当前自己的config
+        char config_str[OB_MAX_CONFIG_INFO_LEN] = "";
+        char ip_str[32] = "";
+
+        rt_master_.ip_to_string(ip_str, 32);
+        snprintf(config_str, sizeof(config_str), "master_root_server_ip=%s,master_root_server_port=%d", ip_str, rt_master_.get_port());
+        ObString config_string = ObString::make_string(config_str);
+
+        // 设置当前RootServer的config
+        if (OB_SUCCESS != (ret = config_.add_extra_config(config_str, true)))
+        {
+          TBSYS_LOG(ERROR, "Set config failed! ret: [%d]", ret);
+        }
+        else if (OB_SUCCESS != (ret = config_mgr_.reload_config()))
+        {
+          TBSYS_LOG(ERROR, "Reload config failed! ret: [%d]", ret);
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "Set config successfully! str: [%s]", config_str);
+          config_.print();
+        }
+
+        // 设置备集群中RootServer的config
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(ERROR, "set obi master config failed!, ret=[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = config_string.serialize(buff.get_data(), buff.get_capacity(), buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "config_str serialize failed! ret=[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = set_master_root_server_config_on_slave(config_string)))
+        {
+          TBSYS_LOG(ERROR, "set_master_root_server_config_on_slave failed! ret=[%d]", ret);
+        }
+        // 修改内部表中关于master_root_server_ip和master_root_server_port的内容，相当于提交sql给ms执行
+        else
+        {
+          TBSYS_LOG(INFO, "start master cluster step4, alter system config about obi_master ip and port...");
+          usleep(1 * 1000 * 1000);
+          root_server_.commit_task(CHANGE_MASTER_CLUSTER_ROOTSERVER, OB_ROOTSERVER, rs, rs.get_port(), server_version);
+        }
+      }
+      TBSYS_LOG(INFO, "start master cluster end");
+
+      return ret;
+    }
+    // add:e
+
+    // add by zcd [multi_cluster] 20150416:b
+    int ObRootWorker::start_slave_cluster()
+    {
+      int ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "current rootserver election role is follower, start_slave_cluster");
+      ObiRole role;
+      role.set_role(common::ObiRole::SLAVE);
+      root_server_.set_obi_role(role);
+      return ret;
+    }
+    // add:e
+
+    // add by guojinwei [new rs_admin command][multi_cluster] 20150901:b
+    int ObRootWorker::reelect_master_rootserver()
+    {
+      int ret = OB_SUCCESS;
+      common::ObClusterMgr *cluster_mgr = NULL;
+      ObServer master_ups;
+
+      if (OB_SUCCESS != (ret = root_server_.get_master_ups(master_ups, false)))
+      {
+        TBSYS_LOG(WARN, "fail to get master ups addr. ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_election_ready(master_ups, config_.network_timeout)))
+      {
+        TBSYS_LOG(WARN, "master ups is not ready for reelect. ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = root_server_.get_cluster_mgr(cluster_mgr)))
+      {
+        TBSYS_LOG(WARN, "fail to get cluster_mgr");
+      }
+      else if (OB_SUCCESS != (ret = root_server_.is_clusters_ready_for_election()))
+      {
+        TBSYS_LOG(WARN, "other clusters are not ready for election");
+      }
+      else
+      {
+        check_rselection_thread_.get_ob_election_node().set_is_extendlease(false);
+      }
+      return ret;
+    }
+    // add:e
 
     int ObRootWorker::start_as_slave()
     {
@@ -678,6 +1137,8 @@ namespace oceanbase
       }
       TBSYS_LOG(INFO, "stop flag set");
       root_server_.stop_threads();
+      check_rselection_thread_.stop();
+      check_rselection_thread_.wait();
       wait_for_queue();
       ObBaseServer::destroy();
     }
@@ -808,6 +1269,9 @@ namespace oceanbase
         case OB_RS_GET_IMPORT_STATUS:
         case OB_RS_SET_IMPORT_STATUS:
         case OB_RS_NOTIFY_SWITCH_SCHEMA:
+        // add by zhangcd [majority_count_init] 20151118:b
+        case OB_RS_GET_ALL_CLUSTERS_INFO:
+        // add:e
           ps = read_thread_queue_.push(packet, (int32_t)config_.read_queue_size, false);
           break;
         case OB_REPORT_TABLETS:
@@ -840,9 +1304,23 @@ namespace oceanbase
             ps = false;
           }
           break;
+        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        case OB_RS_ELECTION:
+          ps = write_thread_queue_.push(packet,
+                                        (int32_t) config_.write_queue_size,
+                                        false,
+                                        false);
+          break;
+        // add:e
         case OB_RENEW_LEASE_REQUEST:
         case OB_SLAVE_QUIT:
         case OB_SET_OBI_ROLE:
+        // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+        case OB_SET_SLAVE_CLUSTER_OBI_ROLE:
+        // add:e
+        // add by guojinwei [reelect][multi_cluster] 20151129:b
+        case OB_RS_GET_ELECTION_READY:
+        // add:e
         case OB_FETCH_SCHEMA:
         case OB_WRITE_SCHEMA_TO_FILE:
         case OB_FETCH_SCHEMA_VERSION:
@@ -862,6 +1340,9 @@ namespace oceanbase
         case OB_SET_MASTER_UPS_CONFIG:
         case OB_CHANGE_UPS_MASTER:
         case OB_CHANGE_TABLE_ID:
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        case OB_RS_SET_AUTO_ELECT_FLAG:
+        // add:e
         case OB_CS_IMPORT_TABLETS:
         case OB_RS_SHUTDOWN_SERVERS:
         case OB_RS_RESTART_SERVERS:
@@ -991,6 +1472,11 @@ namespace oceanbase
                   TBSYS_LOG(DEBUG, "handle packet, packe code is %d", packet_code);
                   switch(packet_code)
                   {
+                    // add by chujiajia [rs_election][multi_cluster] 20150823:b
+                    case OB_RS_ELECTION:
+                      return_code = rt_rs_election(version, *in_buf, req,channel_id, thread_buff);
+                      break;
+                    // add:e
                     case OB_REPORT_TABLETS:
                       return_code = rt_report_tablets(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1145,6 +1631,16 @@ namespace oceanbase
                     case OB_SET_OBI_ROLE:
                       return_code = rt_set_obi_role(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                    // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+                    case OB_SET_SLAVE_CLUSTER_OBI_ROLE:
+                      return_code = rt_set_slave_cluster_obi_role(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    // add:e
+                    // add by guojinwei [reelect][multi_cluster] 20151129:b
+                    case OB_RS_GET_ELECTION_READY:
+                      return_code = rt_get_election_ready(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    // add:e
                     case OB_RS_GET_LAST_FROZEN_VERSION:
                       return_code = rt_get_last_frozen_version(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1190,6 +1686,10 @@ namespace oceanbase
                     case OB_CHANGE_TABLE_ID:
                       return_code = rt_change_table_id(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+                    case OB_RS_SET_AUTO_ELECT_FLAG:
+                      return_code = rt_set_auto_elect_flag(version, *in_buf, req, channel_id, thread_buff);
+                    // add:e
                     case OB_GET_CS_LIST:
                       return_code = rt_get_cs_list(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1247,6 +1747,11 @@ namespace oceanbase
                     case OB_RS_NOTIFY_SWITCH_SCHEMA:
                       return_code = rt_notify_switch_schema(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                    // add by zhangcd [majority_count_init] 20151118:b
+                    case OB_RS_GET_ALL_CLUSTERS_INFO:
+                      return_code = rt_get_all_clusters_info(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                    // add:e
                     default:
                       TBSYS_LOG(ERROR, "unknow packet code %d in read queue", packet_code);
                       return_code = OB_ERROR;
@@ -1296,6 +1801,432 @@ namespace oceanbase
       }
       return ret;
     }
+    //del by pangtianze [rs_election] 20160106:b
+    /*
+    // add by chujiajia [rs_election][multi_cluster] 20150823:b
+    int ObRootWorker::rt_rs_election(const int32_t version,
+                                     common::ObDataBuffer& in_buff,
+                                     easy_request_t* req,
+                                     const uint32_t channel_id,
+                                     common::ObDataBuffer& out_buff)
+    {
+      char ip_mark[ELECTION_ARRAY_SIZE];
+      static int MY_VERSION = 1;
+      int ret = OB_SUCCESS;
+      ObMsgRsElection msg;
+      char responseinfo[ELECTION_ARRAY_SIZE] = "NO";
+      int64_t now=tbsys::CTimeUtil::getTime();
+      // debug by guojinwei [rs_election][multi_cluster] 20150914:b
+      if (!check_rselection_thread_.get_is_inited())
+      {
+        ret = OB_NOT_INIT;
+        TBSYS_LOG(WARN, "check_rselection_thread_ is not initialized! ret=%d", ret);
+      }
+      else
+      {
+      // debug:e
+        if (msg.MY_VERSION != version)
+        {
+          ret = OB_ERROR_FUNC_VERSION;
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = msg.deserialize(in_buff.get_data(),
+                             in_buff.get_capacity(),
+                             in_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "deserialize vote msg error, err=%d", ret);
+          }
+        }
+        msg.addr_.ip_to_string(ip_mark, ELECTION_ARRAY_SIZE);
+        now=tbsys::CTimeUtil::getTime();
+        if (msg.type_ == OB_VOTEREQUEST)
+        {
+          if(!check_rselection_thread_.get_auto_elect_flag())
+          {
+            strcpy(responseinfo, "NO");
+          }
+          else
+          {
+            if(!check_rselection_thread_.get_is_run_election())
+            {
+              check_rselection_thread_.set_is_run_election(true);
+              // add by chujiajia [rs_election][multi_cluster] 20150909:b
+              if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
+              {
+                root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
+              }
+              else
+              {
+                root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+              }
+              // add:e
+              TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+            }
+            int64_t max_log_timestamp = -1;
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // TBSYS_LOG(INFO, "rt_rs_election:msg.term_=%ld", msg.term_);
+            // TBSYS_LOG(INFO, "rt_rs_election:check_rselection_thread_.get_ob_election_node().get_current_term()=%ld",
+            //                check_rselection_thread_.get_ob_election_node().get_current_term());
+            // delete:e
+            TBSYS_LOG(INFO, "rt_rs_election:msg.log_max_timestamp_=%ld", msg.max_log_timestamp_);
+            if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_max_log_timestamp(
+                               check_rselection_thread_.get_ob_election_node().get_my_ups(),
+                               max_log_timestamp, election_message_time_out_us)))
+            {
+              TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
+            }
+            TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
+            if(((int64_t)(max_log_timestamp)) >= 0)
+            {
+              // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+              // if ((msg.term_ >= check_rselection_thread_.get_ob_election_node().get_current_term())
+              //                    && (msg.max_log_timestamp_ >= max_log_timestamp)
+              //                    && (check_rselection_thread_.get_ob_election_node().get_votefor().get_ipv4()
+              //                    == 0))
+              // delete:e
+              if ((msg.max_log_timestamp_ >= max_log_timestamp)
+                   && (check_rselection_thread_.get_ob_election_node().get_votefor().get_ipv4() == 0))
+              {
+                char ip_tmp[ELECTION_ARRAY_SIZE];
+                msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+                check_rselection_thread_.get_ob_election_node().set_votefor(ip_tmp,msg.addr_.get_port());
+                check_rselection_thread_.set_starttime(time(NULL));
+                strcpy(responseinfo, "YES");
+              }
+              else if(msg.max_log_timestamp_ <max_log_timestamp)
+              {
+                TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
+                strcpy(responseinfo, "LOWER_LOG");
+              }
+              // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+              // else
+              // {
+              //  sprintf(responseinfo, "%d",(int) check_rselection_thread_.get_ob_election_node().get_current_term());
+              //  TBSYS_LOG(INFO, "rt_rs_election:msg.term_<current_term_,responseinfo_current_term()=%ld",
+              //                   check_rselection_thread_.get_ob_election_node().get_current_term());
+              // }
+              // delete:e
+            }
+          }
+        }
+        else if ((msg.type_ == OB_BROADCAST)&&(msg.lease_-now>0))
+        {
+          if(!check_rselection_thread_.get_is_run_election())
+          {
+            check_rselection_thread_.set_is_run_election(true);
+            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
+            {
+              root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
+            }
+            else
+            {
+              root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+            }
+            // add:e
+            TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+          }
+          if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+          {
+            char ip_tmp[ELECTION_ARRAY_SIZE];
+            msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+            check_rselection_thread_.get_ob_election_node().set_leaderinfo(ip_tmp,msg.addr_.get_port());
+            check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
+            check_rselection_thread_.get_ob_election_node().set_is_leader(false);
+            check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
+            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+            root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+            // add:e
+            check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
+            check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
+            // delete:e
+            strcpy(responseinfo, "YES");
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld,term=%ld",
+            //                 ip_tmp,
+            //                 check_rselection_thread_.get_ob_election_node().get_lease(),
+            //                 check_rselection_thread_.get_ob_election_node().get_current_term());
+            // delete:e
+            TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld",
+                            ip_tmp,
+                            check_rselection_thread_.get_ob_election_node().get_lease());
+          }
+        }
+        else if ((msg.type_ == OB_EXTENDLEASE)&&(msg.lease_-now>0))
+        {
+          char ip_tmp[ELECTION_ARRAY_SIZE];
+          char ip_receive[ELECTION_ARRAY_SIZE];
+          check_rselection_thread_.get_ob_election_node().get_leaderinfo().ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+          msg.addr_.ip_to_string(ip_receive, ELECTION_ARRAY_SIZE);
+          // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+          check_rselection_thread_.set_auto_elect_flag(msg.auto_elect_flag);
+          // add:e
+          if(!check_rselection_thread_.get_is_run_election())
+          {
+            check_rselection_thread_.set_is_run_election(true);
+            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
+            {
+              root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
+            }
+            else
+            {
+              root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+            }
+            // add:e
+            TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+          }
+          //add by chujiajia [rs_election][multi_cluster] 20150923:b
+          int64_t max_log_timestamp = -1;
+          if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_max_log_timestamp(
+                            check_rselection_thread_.get_ob_election_node().get_my_ups(),
+                            max_log_timestamp, election_message_time_out_us)))
+          {
+            TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
+          }
+          TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
+          // modify by guojinwei [rs election][multi_cluster] 20151128:b
+          //if(((int64_t)(max_log_timestamp)) >= 0)
+          //{
+          //  if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+          //  {
+          //    check_rselection_thread_.get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
+          //    check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
+          //    check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
+          //    root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+          //    root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+          //    check_rselection_thread_.get_ob_election_node().set_is_leader(false);
+          //    check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+          //    check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
+          //   TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+          //                   ip_receive,
+          //                   check_rselection_thread_.get_ob_election_node().get_lease());
+          //   strcpy(responseinfo, "YES");
+          //  }
+          //  else if (strcmp(ip_tmp, ip_receive) == 0)
+          //  {
+          //    strcpy(responseinfo, "YES");
+          //    check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+          //    TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+          //                    ip_tmp,
+          //                    check_rselection_thread_.get_ob_election_node().get_lease());
+          //  }
+          //}
+          if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+          {
+            check_rselection_thread_.get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
+            check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
+            check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
+            root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+            root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+            check_rselection_thread_.get_ob_election_node().set_is_leader(false);
+            check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+            check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
+            TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+                           ip_receive, check_rselection_thread_.get_ob_election_node().get_lease());
+          }
+          else if (strcmp(ip_tmp, ip_receive) == 0)
+          {
+            check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+            TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+                            ip_tmp, check_rselection_thread_.get_ob_election_node().get_lease());
+            // reply YES iff (1) ip of leader does not change and (2) ups is alive
+            if (((int64_t)(max_log_timestamp)) >= 0)
+            {
+              strcpy(responseinfo, "YES");
+            }
+          }
+          // modify 20151128:e
+          //add:e
+          //delete by chujiajia [rs_election][multi_cluster] 20150923:b
+          //if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+          //{
+          //  check_rselection_thread_.get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
+          //   check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
+          //  check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
+            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+          //  root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+          //  root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+            // add:e
+          //  check_rselection_thread_.get_ob_election_node().set_is_leader(false);
+          //  check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+         //   check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
+            // delete:e
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld,term=%ld",
+            //               ip_receive,
+            //               check_rselection_thread_.get_ob_election_node().get_lease(),
+            //               check_rselection_thread_.get_ob_election_node().get_current_term());
+            // delete:e
+         //   TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+         //                   ip_receive,
+         //                   check_rselection_thread_.get_ob_election_node().get_lease());
+         //  strcpy(responseinfo, "YES");
+         // }
+         // else if (strcmp(ip_tmp, ip_receive) == 0)
+         // {
+         //   strcpy(responseinfo, "YES");
+         //   check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
+            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            // TBSYS_LOG(INFO,
+            //          "Receive extend_lease request! leader is %s,lease=%ld,term=%ld",
+            //          ip_tmp,
+            //          check_rselection_thread_.get_ob_election_node().get_lease(),
+            //          check_rselection_thread_.get_ob_election_node().get_current_term());
+            // delete:e
+        //    TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+        //                   ip_tmp,
+        //                   check_rselection_thread_.get_ob_election_node().get_lease());
+        // }
+        }
+        //delete:e
+        else if (msg.type_ == OB_EXPIRE)
+        {
+          if (OB_SUCCESS == (ret = check_rselection_thread_.get_ob_election_node().expire_reset()))
+          {
+            strcpy(responseinfo, "YES");
+            TBSYS_LOG(INFO, "expire_reset()==OB_SUCCESS");
+          }
+        }
+        else if (msg.type_ == OB_ELECTIONTIMEOUT)
+        {
+          if (OB_SUCCESS == (ret = check_rselection_thread_.get_ob_election_node().timeout_reset()))
+          {
+            strcpy(responseinfo, "YES");
+            TBSYS_LOG(INFO, "timeout_reset()==OB_SUCCESS");
+          }
+        }
+      // debug by guojinwei [rs election][multi_cluster] 20150914:b
+      }
+      // debug:e
+      // send response
+      ObResultCode res;
+      res.result_code_ = ret;
+      if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                         out_buff.get_capacity(),
+                         out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "serialize error, err=%d", ret);
+      }
+      else
+      {
+        if (OB_SUCCESS == res.result_code_)
+        {
+          if (OB_SUCCESS != (ret = serialization::encode_vstr(out_buff.get_data(),
+                             out_buff.get_capacity(),
+                             out_buff.get_position(),
+                             responseinfo,
+                             ELECTION_ARRAY_SIZE)))
+          {
+            TBSYS_LOG(WARN, "failed to serialize");
+          }
+        }
+        if (OB_SUCCESS == ret)
+        {
+          ret = send_response(OB_RS_ELECTION_RESPONSE, MY_VERSION, out_buff,req, channel_id);
+        }
+      }
+      return ret;
+    }
+    // add:e
+    */
+    //del:e
+    // add by pangtianze [rs_election] 20160106:b
+    int ObRootWorker::rt_rs_election(const int32_t version,
+                                     common::ObDataBuffer& in_buff,
+                                     onev_request_e* req,
+                                     const uint32_t channel_id,
+                                     common::ObDataBuffer& out_buff)
+    {
+      char ip_mark[ELECTION_ARRAY_SIZE];
+      static int MY_VERSION = 1;
+      int ret = OB_SUCCESS;
+      ObMsgRsElection msg;
+      char responseinfo[ELECTION_ARRAY_SIZE] = "NO";
+      int64_t now=tbsys::CTimeUtil::getTime();
+      // debug by guojinwei [rs_election][multi_cluster] 20150914:b
+      if (!check_rselection_thread_.get_is_inited())
+      {
+        ret = OB_NOT_INIT;
+        TBSYS_LOG(WARN, "check_rselection_thread_ is not initialized! ret=%d", ret);
+      }
+      else
+      {
+      // debug:e
+        if (msg.MY_VERSION != version)
+        {
+          ret = OB_ERROR_FUNC_VERSION;
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = msg.deserialize(in_buff.get_data(),
+                             in_buff.get_capacity(),
+                             in_buff.get_position())))
+          {
+            TBSYS_LOG(WARN, "deserialize vote msg error, err=%d", ret);
+          }
+        }
+        msg.addr_.ip_to_string(ip_mark, ELECTION_ARRAY_SIZE);
+        now=tbsys::CTimeUtil::getTime();
+        if (msg.type_ == OB_VOTEREQUEST)
+        {
+            ret = check_rselection_thread_.handle_vote_request(msg, responseinfo);
+        }
+        else if ((msg.type_ == OB_BROADCAST)&&(msg.lease_-now>0))
+        {
+            ret = check_rselection_thread_.handle_broadcast(msg, responseinfo);
+        }
+        else if ((msg.type_ == OB_EXTENDLEASE)&&(msg.lease_-now>0))
+        {
+            ret = check_rselection_thread_.handle_rs_extend_lease(msg, responseinfo);
+        }
+        else if (msg.type_ == OB_EXPIRE)
+        {
+            ret = check_rselection_thread_.handle_expire(responseinfo);
+        }
+        else if (msg.type_ == OB_ELECTIONTIMEOUT)
+        {
+            ret = check_rselection_thread_.handle_electiontimeout(responseinfo);
+        }
+      // debug by guojinwei [rs election][multi_cluster] 20150914:b
+      }
+      // debug:e
+      // send response
+      ObResultCode res;
+      res.result_code_ = ret;
+      if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                         out_buff.get_capacity(),
+                         out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "serialize error, err=%d", ret);
+      }
+      else
+      {
+        if (OB_SUCCESS == res.result_code_)
+        {
+          if (OB_SUCCESS != (ret = serialization::encode_vstr(out_buff.get_data(),
+                             out_buff.get_capacity(),
+                             out_buff.get_position(),
+                             responseinfo,
+                             ELECTION_ARRAY_SIZE)))
+          {
+            TBSYS_LOG(WARN, "failed to serialize");
+          }
+        }
+        if (OB_SUCCESS == ret)
+        {
+          ret = send_response(OB_RS_ELECTION_RESPONSE, MY_VERSION, out_buff,req, channel_id);
+        }
+      }
+      return ret;
+    }
+    // add:e
     int ObRootWorker::rt_get_update_server_info(const int32_t version, ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, ObDataBuffer& out_buff,
         bool use_inner_port /* = false*/)
@@ -2920,6 +3851,38 @@ namespace oceanbase
       return ret;
     }
 
+    // add by zcd [multi_cluster] 20150416:b
+    int ObRootWorker::set_master_root_server_config_on_slave(const ObString& config_string)
+    {
+      int ret = OB_SUCCESS;
+      ObServer slave_rs;
+      const int retry_times = 3;
+//      std::vector<ObServer> slave_array = check_rselection_thread_.get_ob_election_node().get_available_slave_rs();
+      std::vector<ObServer> slave_array = root_server_.get_slave_root_cluster_ip();
+      for(std::vector<ObServer>::iterator it = slave_array.begin(); it != slave_array.end(); it++)
+      {
+        slave_rs = *it;
+        int total_times = 0;
+        while(total_times < retry_times &&
+              OB_SUCCESS != (ret = rt_rpc_stub_.set_config(slave_rs, config_string, config_.network_timeout)))
+        {
+          usleep(1000000);
+          total_times++;
+        }
+        if(total_times >= retry_times)
+        {
+          TBSYS_LOG(ERROR, "set config to slave[%s] failed!", to_cstring(slave_rs));
+        }
+        // 为每个slave设置后必须等待1s再继续设置下一个slave
+        usleep(1000*1000);
+      }
+      // debug begin
+      ret = OB_SUCCESS;
+      // debug end
+      return ret;
+    }
+    // add:e
+
     int ObRootWorker::rt_grant_lease(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
     {
@@ -3178,8 +4141,38 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       {
         ret = send_response(OB_SET_OBI_ROLE_RESPONSE, MY_VERSION, out_buff, req, channel_id);
       }
+      TBSYS_LOG(INFO, "set obi role, ret=%d", ret);
       return ret;
     }
+
+    // add by guojinwei [obi role switch][multi_cluster] 20150914:b
+    int ObRootWorker::rt_set_slave_cluster_obi_role(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 1;
+      UNUSED(version);
+      UNUSED(in_buff);
+      common::ObResultCode result_msg;
+      result_msg.result_code_ = OB_SUCCESS;
+      if (OB_SUCCESS != (ret = root_server_.set_slave_cluster_obi_role()))
+      {
+        TBSYS_LOG(WARN, "fail to set slave cluster obi role! ret=%d", ret);
+      }
+      result_msg.result_code_ = ret;
+      // send response
+      if (OB_SUCCESS != (ret = result_msg.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "serialize error, err=%d", ret);
+      }
+      else
+      {
+        ret = send_response(OB_SET_SLAVE_CLUSTER_OBI_ROLE_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      }
+      TBSYS_LOG(INFO, "set all slave clusters obi role, ret=%d", ret);
+      return ret;
+    }
+    // add:e
 
     int ObRootWorker::rt_get_last_frozen_version(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
@@ -3379,15 +4372,47 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
         case OB_RS_ADMIN_INIT_CLUSTER:
           {
             TBSYS_LOG(INFO, "start init cluster table");
-            ObBootstrap bootstrap(root_server_);
+            // modify by zcd [multi_cluster] 20150405:b
+            ObBootstrap bootstrap(root_server_, *this);
+            // modify:e
             ret = bootstrap.init_all_cluster();
             break;
           }
         case OB_RS_ADMIN_BOOT_STRAP:
           TBSYS_LOG(INFO, "start to bootstrap");
-          ret = root_server_.boot_strap();
-          TBSYS_LOG(INFO, "bootstrap over");
+          // add by zcd [multi_cluster] 20150416:b
+          {
+            common::ObServer obi_master = check_rselection_thread_.get_ob_election_node().get_leaderinfo();
+            TBSYS_LOG(INFO, "current obi master is %s, self_addr_ is %s...", to_cstring(obi_master), to_cstring(self_addr_));
+            if(obi_master == self_addr_)
+            {
+              ret = root_server_.boot_strap();
+            }
+            else if(!obi_master.is_valid())
+            {
+              ret = OB_NOT_INIT;
+              TBSYS_LOG(WARN, "leader hasn't been elect out!");
+            }
+            else
+            {
+              TBSYS_LOG(INFO, "current obi master is %s, send boot strap command...", to_cstring(obi_master));
+              rt_rpc_stub_.boot_strap(check_rselection_thread_.get_ob_election_node().get_leaderinfo());
+            }
+            TBSYS_LOG(INFO, "bootstrap over");
+          }
           break;
+        case OB_RS_ADMIN_SET_OBI_MASTER_RS:
+          TBSYS_LOG(INFO, "start set obi_master_rs");
+          //
+          ret = start_master_cluster();
+          TBSYS_LOG(INFO, "end set obi_master_rs");
+          break;
+        case OB_RS_ADMIN_SET_OBI_MASTER_FIRST:
+          TBSYS_LOG(INFO, "start set obi_master_first");
+          ret = set_obi_master_first();
+          TBSYS_LOG(INFO, "end set obi_master_first");
+          break;
+          // add:e
         case OB_RS_ADMIN_CHECKPOINT:
           if (root_server_.is_master())
           {
@@ -3419,6 +4444,25 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
             TBSYS_LOG(WARN, "switch ini schema failed:ret[%d]", ret);
           }
           break;
+        // add by guojinwei [new rs_admin command][multi_cluster] 20150901:b
+        case OB_RS_ADMIN_REELECT:
+          {
+            common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+            common::ObElectionRoleMgr::State election_state = root_server_.get_election_role().get_state();
+            if ((common::ObiRole::MASTER == role) 
+                && (common::ObElectionRoleMgr::AFTER_ELECTION == election_state))
+            {
+              TBSYS_LOG(INFO, "start reelect master rootserver!");
+              ret = reelect_master_rootserver();
+            }
+            else
+            {
+              ret = OB_NOT_MASTER;
+              TBSYS_LOG(WARN, "I'm not master cluster!");  
+            }
+          }
+          break;
+        // add:e
         case OB_RS_ADMIN_BOOT_RECOVER:
         case OB_RS_ADMIN_DUMP_ROOT_TABLE:
         case OB_RS_ADMIN_DUMP_UNUSUAL_TABLETS:
@@ -4245,6 +5289,14 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
     {
       return &my_thread_buffer;
     }
+
+    // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+    int64_t ObRootWorker::get_rs_election_lease()
+    {
+      return check_rselection_thread_.get_ob_election_node().get_lease();
+    }
+    // add by guojinwei 20150820:e
+
     template <class Queue>
       int ObRootWorker::submit_async_task_(const PacketCode pcode, Queue& qthread, int32_t task_queue_size,
           const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req,
@@ -4770,22 +5822,34 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
           {
             TBSYS_LOG(ERROR, "seriliaze self addr fail, ret: [%d]", ret);
           }
-          TBSYS_LOG(TRACE, "send master obi rs: [%s]", to_cstring(self_addr_));
+          TBSYS_LOG(TRACE, "master cluster, send master obi rs: [%s]", to_cstring(self_addr_));
         }
         else /* if (role == common::ObiRole::SLAVE) */
         {
           ObServer master_rs;
-          if (OB_SUCCESS != config_.get_master_root_server(master_rs))
-          {
-            TBSYS_LOG(ERROR, "Get master root server error, ret: [%d]", ret);
-          }
-          else if (OB_SUCCESS != (ret = master_rs.serialize(out_buff.get_data(),
+          // modify by zcd [multi_cluster] 20150405:b
+          master_rs = get_obi_master_root_server();
+
+//          if (OB_SUCCESS != config_.get_master_root_server(master_rs))
+//          {
+//            TBSYS_LOG(ERROR, "Get master root server error, ret: [%d]", ret);
+//          }
+//          else
+          // modify:e
+          if (OB_SUCCESS != (ret = master_rs.serialize(out_buff.get_data(),
                   out_buff.get_capacity(),
                   out_buff.get_position())))
           {
             TBSYS_LOG(ERROR, "seriliaze master obi rs fail, ret: [%d]", ret);
           }
-          TBSYS_LOG(INFO, "send master obi rs: [%s]", to_cstring(master_rs));
+          if (role == common::ObiRole::SLAVE)
+          {
+            TBSYS_LOG(TRACE, "slave cluster, send master obi rs: [%s]", to_cstring(master_rs));
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "init cluster, send master obi rs: [%s]", to_cstring(master_rs));
+          }
         }
       }
 
@@ -5141,6 +6205,33 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       }
       return ret;
     }
+
+    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    int ObRootWorker::set_auto_elect_flag(bool flag)
+    {
+      int ret = OB_SUCCESS;
+      if(flag)
+      {
+        ret = root_server_.is_clusters_ready_for_election();
+        TBSYS_LOG(INFO, "root_server_.is_clusters_ready_for_election() ret = %d", ret);
+      }
+      if(OB_SUCCESS == ret)
+      {
+        check_rselection_thread_.set_auto_elect_flag(flag);
+      }
+      return ret;
+    }
+    int ObRootWorker::schedule_set_auto_elect_flag_task()
+    {
+      int ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "enter ObRootWorker::schedule_set_auto_elect_flag_task()");
+      if(OB_SUCCESS != (ret = timer_.schedule(set_auto_elect_flag_task_, config_.set_auto_elect_flag_delay, false)))
+      {
+        TBSYS_LOG(WARN, "schedule set_auto_elect_flag_task_ failed, err = %d", ret);
+      }
+      return ret;
+    }
+    // add:e
 int ObRootWorker::rt_write_schema_to_file(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
 {
@@ -5215,6 +6306,50 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
       }
       return ret;
     }
+
+    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    int ObRootWorker::rt_set_auto_elect_flag(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      TBSYS_LOG(INFO, "enter ObRootWorker::rt_set_auto_elect_flag");
+      int ret = OB_SUCCESS;
+      static const int32_t MY_VERSION = 1;
+      bool auto_elect_flag = 0;
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "invalid version=%d", version);
+        ret = OB_ERROR_FUNC_VERSION;
+      }
+      else if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+              in_buff.get_capacity(), in_buff.get_position(), &auto_elect_flag)))
+      {
+        TBSYS_LOG(WARN, "deserialize register msg error, err=%d", ret);
+      }
+      else if(OB_SUCCESS != (ret = root_server_.is_clusters_ready_for_election()))
+      {
+        TBSYS_LOG(WARN, "clusters is not ready for election, err=%d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "set_auto_elect to %s", auto_elect_flag ? "true" : "false");
+        check_rselection_thread_.set_auto_elect_flag(auto_elect_flag);
+      }
+      // send response
+      common::ObResultCode res;
+      res.result_code_ = ret;
+      out_buff.get_position() = 0;
+      if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+              out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "serialize error, err=%d", ret);
+      }
+      else
+      {
+        ret = send_response(OB_RS_SET_AUTO_ELECT_FLAG_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      }
+      return ret;
+    }
+    // add:e
 
     int ObRootWorker::rt_start_import(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
@@ -5729,5 +6864,125 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
       return ret;
     }
 
+    // add by zhangcd [majority_count_init] 20151118:b
+    int ObRootWorker::rt_get_all_clusters_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      UNUSED(in_buff);
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 1;
+      common::ObResultCode res;
+      ObClusterMgr *cluster_mgr = NULL;
+      // delete by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      // std::vector<ObServer> slave_array;
+      // delete:e
+      TBSYS_LOG(INFO, "enter rt_get_all_clusters_info");
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+        res.result_code_ = OB_ERROR_FUNC_VERSION;
+      }
+      // delete by zhangcd [rs_election][auto_elect_flag] 20151129:b
+//      if(OB_SUCCESS != (ret = root_server_.parse_string_to_ips(config_.all_cluster_rs_ip, slave_array)))
+//      {
+//        TBSYS_LOG(ERROR, "parse_string_to_ips failed!");
+//      }
+
+      res.result_code_ = ret;
+
+      // send response message
+      if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+              out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+      }
+      else if (OB_SUCCESS != res.result_code_)
+      {
+        TBSYS_LOG(WARN, "finish serialize, send back result_code = %d", res.result_code_);
+      }
+      // modify by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      if(OB_SUCCESS != (ret = root_server_.get_cluster_mgr(cluster_mgr)))
+      {
+        TBSYS_LOG(WARN, "root_server_.get_cluster_mgr failed  ret = %d", ret);
+      }
+      else if(OB_SUCCESS != (ret = cluster_mgr->serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "failed to serialize ObClusterMgr, err=%d", ret);
+      }
+//      else if(OB_SUCCESS != (ret = serialization::encode_vi32(out_buff.get_data(),
+//              out_buff.get_capacity(), out_buff.get_position(), (int32_t)slave_array.size())))
+//      {
+//      }
+//      else
+//      {
+//        for(int32_t i = 0; i < (int32_t)slave_array.size(); i++)
+//        {
+//          if(OB_SUCCESS != (slave_array[i].serialize(out_buff.get_data(),
+//                                                     out_buff.get_capacity(), out_buff.get_position())))
+//          {
+//            TBSYS_LOG(WARN, "failed to serialize slave_array server_info, err=%d", ret);
+//            break;
+//          }
+//        }
+//      }
+      // modify:e
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "failed to serialize slave_array!");
+      }
+      else if (OB_SUCCESS != (ret = send_response(OB_RS_GET_ALL_CLUSTERS_INFO_RESPONSE, MY_VERSION, out_buff, req, channel_id)))
+      {
+        TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "send response for get_all_clusters_info, ret=%d", res.result_code_);
+      }
+
+      if (OB_SUCCESS != res.result_code_)
+      {
+        ret = res.result_code_;
+      }
+      return ret;
+    }
+    // add:e
+    // add by guojinwei [reelect][multi_cluster] 20151129:b
+    int ObRootWorker::rt_get_election_ready(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req,
+                                 const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(in_buff);
+      static const int MY_VERSION = 1;
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "invalid reqeust version, version=%d", version);
+        ret = OB_ERROR_FUNC_VERSION;
+      }
+      else
+      {
+        ObServer master_ups;
+        if (OB_SUCCESS != (ret = root_server_.get_master_ups(master_ups, false)))
+        {
+          TBSYS_LOG(WARN, "fail to get master ups addr. ret=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_election_ready(master_ups, config_.network_timeout)))
+        {
+          TBSYS_LOG(WARN, "fail to get ups election ready. ret=%d", ret);
+        }
+      }
+
+      common::ObResultCode res;
+      res.result_code_ = ret;
+      if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                  out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "serialize error, err=%d", ret);
+      }
+      else
+      {
+        ret = send_response(OB_RS_GET_ELECTION_READY_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      }
+      return ret;
+    }
+    // add:e
   }; // end namespace
 }

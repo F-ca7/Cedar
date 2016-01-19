@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_trans_executor.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 ////===================================================================
  //
  // ob_trans_executor.cpp updateserver / Oceanbase
@@ -153,6 +168,12 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       bool queue_rebalance = true;
       bool dynamic_rebalance = true;
+      // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+      message_residence_time_us_ = 1000;
+      message_residence_protection_us_ = UPS.get_param().message_residence_protection_time;
+      message_residence_max_us_ = UPS.get_param().message_residence_max_time;
+      last_commit_log_time_us_ = 0;
+      // add:e
       TransHandlePool::set_cpu_affinity(trans_thread_start_cpu, trans_thread_end_cpu);
       TransCommitThread::set_cpu_affinity(commit_thread_cpu);
       if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE)))
@@ -1522,10 +1543,22 @@ namespace oceanbase
           kill(getpid(), SIGTERM);
         }
       }
+      // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+      int64_t cur_time_us = tbsys::CTimeUtil::getTime();
+      // add:e
       if (OB_SUCCESS == ret
-          && (0 == TransCommitThread::get_queued_num()
-              || MAX_BATCH_NUM <= uncommited_session_list_.size()))
+      // modify by guojinwei [log synchronization][multi_cluster] 20151028:b
+      //    && (0 == TransCommitThread::get_queued_num()
+      //        || MAX_BATCH_NUM <= uncommited_session_list_.size()))
+          && (0 == TransCommitThread::get_queued_num())
+          && ((message_residence_time_us_<message_residence_max_us_?
+                (message_residence_time_us_+message_residence_protection_us_):message_residence_max_us_) 
+              <= (cur_time_us - last_commit_log_time_us_)))
+      // modify:e
       {
+        // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+        last_commit_log_time_us_ = tbsys::CTimeUtil::getTime();
+        // add:e
         ret = commit_log_();
       }
       if (OB_SUCCESS != ret)
@@ -1554,6 +1587,9 @@ namespace oceanbase
       else
       {
         UPS.get_log_mgr().get_clog_stat().add_net_us(node.start_seq_, node.end_seq_, node.get_delay());
+        // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+        message_residence_time_us_ = (message_residence_time_us_ >> 1) + (node.message_residence_time_us_ >> 1);
+        // add:e
       }
       return ret;
     }
@@ -1575,6 +1611,19 @@ namespace oceanbase
       int64_t flushed_clog_id = UPS.get_log_mgr().get_flushed_clog_id();
       int64_t flush_seq = 0;
       Task *task = NULL;
+      // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
+      int64_t last_commit_point = 0;
+      if (OB_SUCCESS != (err = UPS.get_log_mgr().get_last_commit_point(last_commit_point)))
+      {
+        TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
+      }
+      else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type) 
+               && (flushed_clog_id > last_commit_point))
+      {
+        TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
+        UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
+      }
+      // add:e
       while(true)
       {
         if (OB_SUCCESS != (err = flush_queue_.tail(flush_seq, (void*&)task))
@@ -1793,9 +1842,16 @@ namespace oceanbase
           }
         }
         uncommited_session_list_.clear(); */
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, tbsys::CTimeUtil::getTime() - batch_start_time());
-        batch_start_time() = 0;
+        // debug by guojinwei [inner table error][multi_cluster] 20150919:b
+        if (0 != batch_start_time())
+        {
+        // debug:e
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, tbsys::CTimeUtil::getTime() - batch_start_time());
+          batch_start_time() = 0;
+        // debug by guojinwei [inner table error][multi_custer] 20150919:b
+        }
+        // debug:e
       }
       try_submit_auto_freeze_();
       return ret;

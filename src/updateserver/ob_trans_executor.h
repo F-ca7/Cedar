@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_trans_executor.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 ////===================================================================
  //
  // ob_trans_executor.h updateserver / Oceanbase
@@ -315,6 +330,12 @@ namespace oceanbase
         Task nop_task_;
 
         common::ObFIFOStream fifo_stream_;
+        // add by guojinwei [log synchronize][multi_cluster] 20151028:b
+        int64_t message_residence_time_us_;
+        int64_t message_residence_protection_us_;
+        int64_t message_residence_max_us_;
+        int64_t last_commit_log_time_us_;
+        // add:e
     };
   }
 }

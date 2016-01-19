@@ -104,6 +104,21 @@ namespace oceanbase
       return buff[ i % BUFFER_NUM];
     }
 
+    bool ObServer::is_valid() const
+    {
+      bool valid = true;
+      if (port_ <= 0)
+      {
+        valid = false;
+      }
+      else
+      {
+        valid = (version_ == IPV4) ? (0 != ip.v4_) :
+          (0 != ip.v6_[0] || 0 != ip.v6_[1] || 0 != ip.v6_[2] || 0 != ip.v6_[3]);
+      }
+      return valid;
+    }
+
     bool ObServer::set_ipv4_addr(const char* ip, const int32_t port)
     {
       bool res = true;
@@ -373,6 +388,71 @@ namespace oceanbase
       return total_size;
     }
 
+     bool ObServer::set_ipv6_addr(const char* ip, const int32_t port)
+    {
+      UNUSED(ip);
+      UNUSED(port);
+      TBSYS_LOG(WARN, "set ipv6 address is not complete");
+      return false;
+    }
+
+    int ObServer::parse_from_cstring(const char* target_server)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == target_server || static_cast<int32_t>(strlen(target_server)) >= MAX_IP_PORT_SQL_LENGTH)
+      {
+        TBSYS_LOG(WARN, "invalid argument, buff=%p, lenght=%ld", target_server, strlen(target_server));
+        ret = OB_INVALID_ARGUMENT;
+      }
+      int32_t target_server_port = 0;
+      char target_server_ip[MAX_IP_ADDR_LENGTH];
+      char * index = NULL;
+      if (OB_SUCCESS == ret)
+      {
+        //IPV6
+        if (target_server[0] == '[')
+        {
+          index = strrchr(const_cast<char*>(target_server), ']');
+          if (NULL == index)
+          {
+            ret = OB_INVALID_ARGUMENT;
+            TBSYS_LOG(WARN, "fail to parse string to IPV6 address, buf=%s", target_server);
+          }
+          else
+          {
+            memcpy(target_server_ip, target_server + 1, (index - target_server - 1));
+            target_server_ip[index - target_server - 1] = '\0';
+            target_server_port = atoi(static_cast<const char*>(index + 1));
+            if (!set_ipv6_addr(target_server_ip, target_server_port))
+            {
+              ret = OB_INVALID_ARGUMENT;
+              TBSYS_LOG(WARN, "invalid server string. buf=%s", target_server);
+            }
+          }
+        }
+        else  //IPV4
+        {
+          index = strrchr(const_cast<char*>(target_server), ':');
+          if (NULL == index)
+          {
+            ret = OB_INVALID_ARGUMENT;
+            TBSYS_LOG(WARN, "fail to parse string to IPV4 address, buf=%s", target_server);
+          }
+          else
+          {
+            memcpy(target_server_ip, target_server, (index - target_server));
+            target_server_ip[index - target_server] = '\0';
+            target_server_port = atoi(static_cast<const char*>(index + 1));
+            if (!set_ipv4_addr(target_server_ip, target_server_port))
+            {
+              ret = OB_INVALID_ARGUMENT;
+              TBSYS_LOG(WARN, "invalid server string. buf=%s", target_server);
+            }
+          }
+        }
+      }
+      return ret;
+    }
   } // end namespace common
 } // end namespace oceanbase
 

@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ms_sql_proxy.cpp
+ * @brief set the default sql_env when a sql is executed in an transaction.
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -113,6 +127,34 @@ int ObMsSQLProxy::init_sql_env(ObSqlContext &context, int64_t &schema_version,
   {
     session.set_version_provider(ms_service_);
     session.set_config_provider(&ms_service_->get_config());
+
+    // add by zcd [multi_cluster] 20150406:b
+    // 为了解决alter system这样的sql语句在OB_SQL_EXECUTE
+    // 这个远程处理流程中无法执行的问题，必须在session的初始化
+    // 过程中指定对应的tx_isolation,ob_tx_timeout,
+    // ob_tx_idle_timeout的值
+    ObObj type_tx_isolation;
+    ObString name_str_tx_isolation = ObString::make_string("tx_isolation");
+    ObObj value_tx_isolation;
+    type_tx_isolation.set_type(ObVarcharType);
+    value_tx_isolation.set_varchar(ObString::make_string("READ-COMMITTED"));
+    session.load_system_variable(name_str_tx_isolation, type_tx_isolation, value_tx_isolation);
+
+    ObObj type_ob_tx_timeout;
+    ObString name_str_ob_tx_timeout = ObString::make_string("ob_tx_timeout");
+    ObObj value_ob_tx_timeout;
+    type_ob_tx_timeout.set_type(ObIntType);
+    value_ob_tx_timeout.set_int(100000000);
+    session.load_system_variable(name_str_ob_tx_timeout, type_ob_tx_timeout, value_ob_tx_timeout);
+
+    ObObj type_ob_tx_idle_timeout;
+    ObString name_str_ob_tx_idle_timeout = ObString::make_string("ob_tx_idle_timeout");
+    ObObj value_ob_tx_idle_timeout;
+    type_ob_tx_idle_timeout.set_type(ObIntType);
+    value_ob_tx_idle_timeout.set_int(100000000);
+    session.load_system_variable(name_str_ob_tx_idle_timeout, type_ob_tx_idle_timeout, value_ob_tx_idle_timeout);
+    // add:e
+
     context.session_info_ = &session;
     context.session_info_->set_current_result_set(&result);
 
@@ -122,6 +164,10 @@ int ObMsSQLProxy::init_sql_env(ObSqlContext &context, int64_t &schema_version,
     context.rs_rpc_proxy_ = root_rpc_;      // thread safe singleton
     context.merge_service_ = ms_service_;
     context.disable_privilege_check_ = true;
+    // add by zcd [multi_cluster] 20150406:b
+    context.merger_schema_mgr_ = schema_mgr_;
+    // add:e
+
     // reuse memory pool for parser
     context.session_info_->get_parser_mem_pool().reuse();
     context.session_info_->get_transformer_mem_pool().start_batch_alloc();

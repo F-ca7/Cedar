@@ -244,7 +244,7 @@ namespace oceanbase
       header_.set_magic_num(OB_PACKET_CHECKSUM_MAGIC);
       header_.header_length_ = static_cast<int16_t>(header_.get_serialize_size());
       header_.version_ = 0;
-      header_.reserved_ = 0;
+      header_.timestamp_ = 0;
 
       header_.data_length_ = static_cast<int32_t>(buffer_.get_position());
       header_.data_zlength_ = header_.data_length_; // not compressed

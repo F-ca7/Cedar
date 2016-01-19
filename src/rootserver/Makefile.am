@@ -19,7 +19,7 @@ if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov
 endif
-
+  
 pub_source =                                                                \
   rootserver.conf.template                                                  \
   ob_root_main.h                                                            \
@@ -27,7 +27,7 @@ pub_source =                                                                \
   ob_root_admin2.h                                                          \
   ob_root_stat.h                                                            \
   ob_root_server_state.h               ob_root_server_state.cpp             \
-	ob_daily_merge_checker.h             ob_daily_merge_checker.cpp           \
+  ob_daily_merge_checker.h             ob_daily_merge_checker.cpp           \
   ob_heartbeat_checker.h               ob_heartbeat_checker.cpp             \
   ob_rs_trigger_event_util.h           ob_rs_trigger_event_util.cpp         \
   ob_root_inner_table_task.h           ob_root_inner_table_task.cpp         \
@@ -50,9 +50,11 @@ pub_source =                                                                \
   ob_root_rpc_stub.h                   ob_root_rpc_stub.cpp                 \
   ob_root_server2.h                    ob_root_server2.cpp                  \
   ob_root_stat_key.h                   ob_root_stat_key.cpp                 \
-  ob_root_table2.h                     ob_root_table2.cpp                   \
+  ob_root_table2.h                     ob_root_table2.cpp                   \ 
   ob_root_ups_provider.h               ob_root_ups_provider.cpp             \
-  ob_root_util.h                       ob_root_util.cpp                     \
+  ob_root_util.h                       ob_root_util.cpp                     \  
+  ob_election_node.h                   ob_election_node.cpp                 \
+  ob_check_rselection.h                ob_check_rselection.cpp              \
   ob_root_worker.h                     ob_root_worker.cpp                   \
   ob_schema_service_ms_provider.h      ob_schema_service_ms_provider.cpp    \
   ob_schema_service_ups_provider.h     ob_schema_service_ups_provider.cpp   \

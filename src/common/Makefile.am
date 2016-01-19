@@ -83,6 +83,7 @@ common_sources=				                                                  \
   ob_client_manager.h              ob_client_manager.cpp                \
   ob_client_proxy.h                ob_client_proxy.cpp                  \
   ob_client_wait_obj.h             ob_client_wait_obj.cpp               \
+  ob_cluster_mgr.h                 ob_cluster_mgr.cpp                   \
   ob_column_filter.h                                                    \
   ob_common_param.h                ob_common_param.cpp                  \
   ob_common_rpc_stub.h             ob_common_rpc_stub.cpp               \
@@ -102,6 +103,7 @@ common_sources=				                                                  \
   ob_direct_log_reader.h           ob_direct_log_reader.cpp             \
   ob_onev_array.h                                                       \
   ob_onev_log.h                    ob_onev_log.cpp                      \
+  ob_election_role_mgr.h                                                \
   ob_encrypt.h                     ob_encrypt.cpp                       \
   ob_endian.h                                                           \
   ob_expr_obj.h                    ob_expr_obj.cpp                      \
@@ -136,6 +138,7 @@ common_sources=				                                                  \
   ob_log_writer.h                  ob_log_writer.cpp                    \
   ob_log_writer2.h                 ob_log_writer2.cpp                   \
   ob_log_data_writer.h                 ob_log_data_writer.cpp                   \
+  ob_log_post.h                    ob_log_post.cpp                      \
   ob_login_mgr.h                   ob_login_mgr.cpp                     \
   ob_lrucache.h                                                         \
   ob_malloc.h                      ob_malloc.cpp                        \
@@ -191,6 +194,7 @@ common_sources=				                                                  \
   ob_row_util.h                    ob_row_util.cpp                      \
   ob_rowkey.h                      ob_rowkey.cpp                        \
   ob_rowkey_helper.h               ob_rowkey_helper.cpp                 \
+  ob_rs_rs_message.h               ob_rs_rs_message.cpp                 \
   ob_rs_ups_message.h              ob_rs_ups_message.cpp                \
   ob_scan_param.h                  ob_scan_param.cpp                    \
   ob_scanner.h                     ob_scanner.cpp                       \

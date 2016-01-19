@@ -1,4 +1,13 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_ups_timer_task.cpp
+ * @brief
+ *           add a timertask ObUpsSetMajorityCountTask to execute setting majority_count.
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -67,5 +76,26 @@ namespace oceanbase
         ups.submit_lease_task();
       }
     }
+
+    // add by zhangcd [majority_count_init] 20151118:b
+    void ObUpsSetMajorityCountTask::runTimerTask()
+    {
+      ObUpdateServerMain *ups_main = ObUpdateServerMain::get_instance();
+      if (NULL == ups_main)
+      {
+        TBSYS_LOG(WARN, "get ups_main fail");
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "begin runTimerTask of upsSetMajorityCountTask");
+        ObUpdateServer &ups = ups_main->get_update_server();
+        int ret = OB_SUCCESS;
+        if(OB_SUCCESS != (ret = ups.ups_set_majority_count()))
+        {
+          TBSYS_LOG(WARN, "ups_set_majority_count failed, ret = %d", ret);
+        }
+      }
+    }
+    // add:e
   }
 }

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_server2.cpp
+ * @brief ObRootServer
+ *        support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        parse the cmd_rs_cluster_ips_ into clusters info array.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -321,6 +340,10 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
     worker_ = worker;
     log_worker_ = worker_->get_log_manager()->get_log_worker();
     obi_role_.set_role(ObiRole::INIT); // init as init instance
+    // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+    election_role_.set_role(ObElectionRoleMgr::OB_CANDIDATE);
+    election_role_.set_state(ObElectionRoleMgr::INIT);
+    // add:e
     worker_->get_config_mgr().got_version(0);
     timer_.init();
     operation_helper_.init(this, &config_, &worker_->get_rpc_stub(), &server_manager_);
@@ -357,7 +380,11 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
                                                        config_.ups_lease_reserved_time,
                                                        config_.ups_waiting_register_time,
                                                        obi_role_, schema_timestamp_,
-                                                       worker_->get_config_mgr().get_version())))
+                                                       // modify by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+                                                       //worker_->get_config_mgr().get_version())))
+                                                       worker_->get_config_mgr().get_version(),
+                                                       election_role_)))
+                                                       // modify:e
     {
       TBSYS_LOG(ERROR, "no memory");
     }
@@ -413,6 +440,22 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
     {
       TBSYS_LOG(ERROR, "no memory");
     }
+    // add by zcd [multi_cluster] 20150405:b
+    // 将-s选项的内容转换为ip地址数组
+    else if(OB_SUCCESS != (err = parse_string_to_ips(config_.all_cluster_rs_ip, slave_array_)))
+    {
+      TBSYS_LOG(ERROR, "parse_string_to_ips failed!");
+    }
+    // 判断转换是否有错
+    else if(slave_array_.size() <= 0)
+    {
+      TBSYS_LOG(ERROR, "all cluster rs ip is empty!");
+    }
+    else if(OB_SUCCESS != (err = remove_current_rs_from_slaves_array()))
+    {
+      TBSYS_LOG(ERROR, "remove_current_rs_from_slaves_array failed!");
+    }
+    // add:e
     else
     {
       // task queue init max task count
@@ -468,16 +511,103 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
       restart_server_->set_root_table_build_mutex(&root_table_build_mutex_);
       restart_server_->set_server_manager_rwlock(&server_manager_rwlock_);
       restart_server_->set_root_table_rwlock(&root_table_rwlock_);
-      ms_provider_.init(config_, worker_->get_rpc_stub());
+      // modify by zcd [multi_cluster] 20150405:b
+      ms_provider_.init(config_, worker_->get_rpc_stub(), *worker_);
+      // modify:e
       // init root trigger
       root_trigger_.set_ms_provider(&ms_provider_);
       root_trigger_.set_rpc_stub(&worker_->get_general_rpc_stub());
       res = true;
       have_inited_ = res;
+
+      // add by zcd [multi_cluster] 20150416:b
+      std::vector<ObServer> slave = get_slave_root_cluster_ip();
+      TBSYS_LOG(INFO, "print slave rs begin");
+      for(unsigned int i = 0; i < slave.size(); i++)
+      {
+        TBSYS_LOG(INFO, "slave[i]=%s", to_cstring(slave[i]));
+      }
+      TBSYS_LOG(INFO, "print slave rs end");
+      // add:e
     }
   }
   return res;
 }
+
+// add by zcd [multi_cluster] 20150416:b
+int ObRootServer2::parse_string_to_ips(const char *str, std::vector<ObServer>& slave_array)
+{
+  int ret = OB_SUCCESS;
+  int64_t p = 0;
+  char ip[64] = "";
+  char port[16] = "";
+  // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+  char id[16] = "";
+  int id_i = -1;
+  // add:e
+  int port_i = 0;
+  const char field_delima = '#';
+  while(str[p] != '\0' && OB_SUCCESS == ret)
+  {
+    const char * ip_start = str + p;
+    const char * port_start = str + p;
+    // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+    const char * id_start = str + p;
+    // add:e
+    ObServer slave_rs;
+    int64_t del = 0;
+    for (del = 0; ip_start[del] != field_delima && ip_start[del] != '\0'; del++)
+    {
+      if(del >= 64)
+      {
+        ret = OB_ERROR;
+        break;
+      }
+      else if (':' == ip_start[del])
+      {
+        strncpy(ip, ip_start, del);
+        port_start = ip_start + del + 1;
+      }
+      // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+      else if ('@' == ip_start[del])
+      {
+        id_start = ip_start + del + 1;
+      }
+      // add:e
+    }
+
+    if(ip_start[del] != field_delima && ip_start[del] != '\0')
+    {
+      ret = OB_ERROR;
+    }
+    else if(ip_start[del] == field_delima)
+    {
+      del++;
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      // modify by guojinwei [obi role switch][multi_cluster] 20150916:b
+      //strncpy(port, port_start, ip_start + del - port_start);
+      strncpy(port, port_start, 5);
+      // modify:e
+      port_i = atoi(port);
+      slave_rs.set_ipv4_addr(ip, (int32_t)port_i);
+      slave_array.push_back(slave_rs);
+      // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+      if ((str + p) != id_start)
+      {
+        strncpy(id, id_start, ip_start + del - id_start);
+        id_i = atoi(id);
+        cluster_mgr_.add_cluster(slave_rs, (int64_t)id_i);
+      }
+      // add:e
+    }
+    p = ip_start + del - str;
+  }
+  return ret;
+}
+// add:e
 
 void ObRootServer2::after_switch_to_master()
 {
@@ -594,7 +724,9 @@ int ObRootServer2::boot_recover()
   else
   {
     boot_state_.set_boot_recover();
-    ObBootstrap bootstrap(*this);
+    // modify by zcd [multi_cluster] 20150405:b
+    ObBootstrap bootstrap(*this, *worker_);
+    // modify:e
     while (!receive_stop_)
     {
       if (OB_SUCCESS != (ret = request_cs_report_tablet()))
@@ -717,7 +849,9 @@ int ObRootServer2::boot_strap(void)
 {
   int ret = OB_ERROR;
   TBSYS_LOG(INFO, "ObRootServer2::bootstrap() start");
-  ObBootstrap bootstrap(*this);
+  // modify by zcd [multi_cluster] 20150405:b
+  ObBootstrap bootstrap(*this, *worker_);
+  // modify:e
   if (!boot_state_.can_boot_strap())
   {
     TBSYS_LOG(WARN, "cannot bootstrap twice, boot_state=%s", boot_state_.to_cstring());
@@ -914,7 +1048,9 @@ int ObRootServer2::slave_boot_strap()
 {
   int ret = OB_SUCCESS;
   TBSYS_LOG(INFO, "ObRootServer2::bootstrap() start");
-  ObBootstrap bootstrap(*this);
+  // modify by zcd [multi_cluster] 20150405:b
+  ObBootstrap bootstrap(*this, *worker_);
+  // modify:e
   if (!boot_state_.can_boot_strap())
   {
     TBSYS_LOG(WARN, "cannot bootstrap twice, boot_state=%s", boot_state_.to_cstring());
@@ -1268,7 +1404,9 @@ int ObRootServer2::get_table_id_name(ObTableIdNameIterator *table_id_name, bool&
 {
   int ret = OB_SUCCESS;
   ObRootMsProvider ms_provider(server_manager_);
-  ms_provider.init(config_, worker_->get_rpc_stub());
+  // modify by zcd [multi_cluster] 20150405:b
+  ms_provider.init(config_, worker_->get_rpc_stub(), *worker_);
+  // modify:e
   ObUps ups_master;
   ups_manager_->get_ups_master(ups_master);
   ObRootUpsProvider ups_provider(ups_master.addr_);
@@ -2171,6 +2309,42 @@ void ObRootServer2::commit_task(const ObTaskType type, const ObRole role, const 
         task.server_.to_cstring(), type, print_role(task.role_), task.inner_port_);
   }
 }
+
+// add by guojinwei [obi role switch][multi_cluster] 20150916:b
+void ObRootServer2::commit_cluster_task(const ObTaskType type, const ObRole role, const ObServer & server,
+    int32_t inner_port, const char* server_version, const int64_t cluster_id, const int32_t cluster_role)
+{
+  ObRootAsyncTaskQueue::ObSeqTask task;
+  task.type_ = type;
+  task.role_ = role;
+  task.server_ = server;
+  task.inner_port_ = inner_port;
+  task.cluster_role_ = cluster_role;
+  task.cluster_id_ = cluster_id;
+  int64_t server_version_length = strlen(server_version);
+  if (server_version_length < OB_SERVER_VERSION_LENGTH)
+  {
+    strncpy(task.server_version_, server_version, server_version_length + 1);
+  }
+  else
+  {
+    strncpy(task.server_version_, server_version, OB_SERVER_VERSION_LENGTH - 1);
+    task.server_version_[OB_SERVER_VERSION_LENGTH - 1] = '\0';
+  }
+
+  int ret = seq_task_queue_.push(task);
+  if (ret != OB_SUCCESS)
+  {
+    TBSYS_LOG(ERROR, "commit inner task failed:server[%s], task_type[%d], server_role[%s], inner_port[%d], ret[%d]",
+        task.server_.to_cstring(), type, print_role(task.role_), task.inner_port_, ret);
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "commit inner task succ:server[%s], task_type[%d], server_role[%s], inner_port[%d]",
+        task.server_.to_cstring(), type, print_role(task.role_), task.inner_port_);
+  }
+}
+// add:e
 
 int ObRootServer2::regist_merge_server(const common::ObServer& server, const int32_t sql_port,
     const bool is_listen_ms, const char * server_version, int64_t time_stamp)
@@ -3984,7 +4158,9 @@ int ObRootServer2::switch_ini_schema()
   }
   else
   {
-    ObBootstrap bootstrap(*this);
+    // modify by zcd [multi_cluster] 20150405:b
+    ObBootstrap bootstrap(*this, *worker_);
+    // modify:e
     ret = bootstrap.bootstrap_ini_tables();
     if (ret != OB_SUCCESS)
     {
@@ -5464,6 +5640,53 @@ int ObRootServer2::grant_eternal_ups_lease()
   }
   return ret;
 }
+
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+int ObRootServer2::grant_ups_lease(bool did_force /*= false*/)
+{
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS != (ret =ups_manager_->send_rs_election_lease(did_force)))
+  {
+    TBSYS_LOG(ERROR,"ups_manager_->send_rs_election_lease() error!");
+  }
+  return ret;
+}
+
+const ObElectionRoleMgr& ObRootServer2::get_election_role() const
+{
+  return election_role_;
+}
+
+int ObRootServer2::set_election_role_with_role(const ObElectionRoleMgr::Role &role)
+{
+  int ret = OB_SUCCESS;
+  if (NULL == ups_manager_)
+  {
+    TBSYS_LOG(ERROR, "not init");
+    ret = OB_NOT_INIT;
+  }
+  else
+  {
+    election_role_.set_role(role);
+  }
+  return ret;
+}
+
+int ObRootServer2::set_election_role_with_state(const ObElectionRoleMgr::State &state)
+{
+  int ret = OB_SUCCESS;
+  if (NULL == ups_manager_)
+  {
+    TBSYS_LOG(ERROR, "not init");
+    ret = OB_NOT_INIT;
+  }
+  else
+  {
+    election_role_.set_state(state);
+  }
+  return ret;
+}
+// add:e
 
 int ObRootServer2::cs_import_tablets(const uint64_t table_id, const int64_t tablet_version)
 {
@@ -7109,3 +7332,158 @@ int ObRootServer2::get_ms(ObServer& ms_server)
   }
   return ret;
 }
+
+// add by zcd [multi_cluster] 20150416:b
+int ObRootServer2::remove_current_rs_from_slaves_array()
+{
+  int ret = OB_SUCCESS;
+  std::vector<ObServer>::iterator it = slave_array_.begin();
+  TBSYS_LOG(INFO, "master rs [%s]", to_cstring(worker_->get_rs_master()));
+  for(; it != slave_array_.end(); it++)
+  {
+    TBSYS_LOG(INFO, "slave rs [%s]", to_cstring(*it));
+    if(*it == worker_->get_rs_master())
+    {
+      break;
+    }
+  }
+  if(it != slave_array_.end())
+  {
+    slave_array_.erase(it);
+  }
+  else
+  {
+    // 当前的ip不在这个列表中,属于书写错误的情况
+    ret = OB_ERROR;
+  }
+  return ret;
+}
+// add:e
+
+
+// add by zcd [multi_cluster] 20150416:b
+std::vector<common::ObServer> ObRootServer2::get_slave_root_cluster_ip()
+{
+  return slave_array_;
+}
+// add:e
+
+// add by chujiajia [rs_election][multi_cluster] 20150823:b
+bool ObRootServer2::get_is_have_inited()
+{
+  return have_inited_;
+}
+
+bool ObRootServer2::is_master_ups_lease_valid()
+{
+  return ups_manager_->is_master_lease_valid();
+}
+// add:e
+
+// add by guojinwei [obi role switch][multi_cluster] 20150915:b
+int ObRootServer2::set_slave_cluster_obi_role()
+{
+  int ret = OB_SUCCESS;
+  ObServer slave_rs;
+  const ObiRole &role = get_obi_role();
+  const ObElectionRoleMgr &election_role = get_election_role();
+  if ((ObiRole::MASTER != role.get_role())
+      || (ObElectionRoleMgr::AFTER_ELECTION != election_role.get_state()))
+  {
+    ret = OB_NOT_MASTER;
+    TBSYS_LOG(WARN, "I am not master cluster! obi_role=%s, election_state=%s", role.get_role_str(),
+        election_role.get_state_str());
+  }
+  else
+  {
+    int64_t cluster_num = cluster_mgr_.get_cluster_num();
+    for(int64_t i = 0; i < cluster_num; i++)
+    {
+      const ObCluster* cluster = cluster_mgr_.get_cluster(i);
+      slave_rs = cluster->rs_;
+      if (slave_rs == worker_->get_rs_master())
+      {
+        continue;
+      }
+      else if (!slave_rs.is_valid())
+      {
+        TBSYS_LOG(WARN, "slave cluster rs is invalid!");
+      }
+      else
+      {
+        commit_cluster_task(CLUSTER_OBI_ROLE_CHANGE, OB_ROOTSERVER, slave_rs, slave_rs.get_port(), "rootserver", cluster->cluster_id_, 2);
+      }
+    }
+  }
+  return ret;
+}
+// add:e
+
+// add by guojinwei [reelect][multi_cluster] 20151129:b
+int ObRootServer2::get_cluster_mgr(common::ObClusterMgr*& cluster_mgr)
+{
+  int ret = OB_SUCCESS;
+  if (0 == cluster_mgr_.get_cluster_num())
+  {
+    ret = OB_NOT_INIT;
+  }
+  else
+  {
+    cluster_mgr = &cluster_mgr_;
+  }
+  return ret;
+}
+
+/**
+ * check whether other clusters are ready for election
+ * @ret OB_SUCCESS  if other clusters are ready for election
+ * @ret OB_NEED_REREY  if other clusters are not ready for election
+ */
+int ObRootServer2::is_clusters_ready_for_election()
+{
+  int ret = OB_SUCCESS;
+  int tmp_ret = OB_SUCCESS;
+  int64_t success_num = 0;
+  int64_t cluster_num = cluster_mgr_.get_cluster_num();
+  ObServer slave_rs;
+  for(int64_t i = 0; i < cluster_num; i++)
+  {
+    const ObCluster* cluster = cluster_mgr_.get_cluster(i);
+    slave_rs = cluster->rs_;
+    if (slave_rs == worker_->get_rs_master())
+    {
+      continue;
+    }
+    else if (!slave_rs.is_valid())
+    {
+      TBSYS_LOG(WARN, "slave cluster rs is invalid!");
+    }
+    else
+    {
+      if (OB_SUCCESS != (tmp_ret = get_rpc_stub().get_cluster_election_ready(slave_rs, config_.network_timeout)))
+      {
+        TBSYS_LOG(WARN, "fail to get cluster election ready, rs_server=%s", slave_rs.to_cstring());
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "cluster=%s is ready for reelect", slave_rs.to_cstring());
+        success_num++;
+      }
+      if (success_num >= (cluster_num / 2 + 1))
+      {
+        break;
+      }
+    }
+  }
+  if (success_num >= (cluster_num / 2 + 1))
+  {
+    TBSYS_LOG(INFO, "System will reelect master cluster. cluster_num=%ld, success_num=%ld", cluster_num, success_num);
+  }
+  else
+  {
+    ret = OB_NEED_RETRY;
+    TBSYS_LOG(WARN, "System will not reelect master cluster. cluster_num=%ld, success_num=%ld", cluster_num, success_num);
+  }
+  return ret;
+}
+// add:e

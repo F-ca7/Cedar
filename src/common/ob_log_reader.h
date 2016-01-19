@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_log_reader.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -64,6 +79,17 @@ namespace oceanbase
        * @return otherwise 失败
        */
       int read_log(LogCommand &cmd, uint64_t &seq, char* &log_data, int64_t &data_len);
+
+      //add lbzhong [Max Log Timestamp] 20150824:b
+      /**
+       * @brief get log timestamp
+       * @param[out] log_seq  LSN
+       * @param[out] timestamp  log timestamp
+       * @return OB_SUCCESS if success
+       */
+      int read_log(uint64_t &log_seq, int64_t& timestamp);
+      //add:e
+
       //重新打开一个新的文件，并定位到当前日志的下一位
       int reset_file_id(const uint64_t log_id_start, const uint64_t log_seq_start);
 
@@ -140,6 +166,10 @@ namespace oceanbase
       int open_log_(const uint64_t log_file_id, const uint64_t last_log_seq = 0);
 
       int read_log_(LogCommand &cmd, uint64_t &log_seq, char *&log_data, int64_t &data_len);
+
+      //add lbzhong [Max Log Timestamp] 20150824:b
+      int read_log_(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp);
+      //add:e
 
     private:
       uint64_t cur_log_file_id_;

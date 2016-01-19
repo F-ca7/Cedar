@@ -1,4 +1,13 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_root_timer_task.h
+ * @brief    add a timer task class to run
+ *           the set_the set_auto_elect_flag task.
+ * @version __DaSE_VERSION
+ * @author   zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
+/**
   * (C) 2007-2010 Taobao Inc.
   *
   * This program is free software; you can redistribute it and/or modify
@@ -33,6 +42,19 @@ namespace oceanbase
       private:
         ObRootWorker* worker_;
     };
+    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    class ObRootSetAutoElectFlagTask : public common::ObTimerTask
+    {
+      public:
+        ObRootSetAutoElectFlagTask():worker_(NULL)
+      {}
+        virtual ~ObRootSetAutoElectFlagTask() {}
+        int init(ObRootWorker *worker);
+        virtual void runTimerTask(void);
+      private:
+        ObRootWorker* worker_;
+    };
+    // add:e
   }
 }
 

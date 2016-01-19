@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_packet.h
+ * @brief packet 
+ * support multiple clusters for HA by adding or modifying
+ *   some functions, member variables
+ * 1. add the packet_code OB_RS_GET_ALL_CLUSTERS_INFO, used in set majority_count
+ * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag 
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         liubozhong <51141500077@ecnu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 
 #ifndef OCEANBASE_PACKET_H_
 #define OCEANBASE_PACKET_H_
@@ -267,6 +287,18 @@ namespace oceanbase
       OB_ALTER_TABLE = 504,
       OB_ALTER_TABLE_RESPONSE = 505,
 
+      // add by guojinwei [log timestamp][multi_cluster] 20150820:b
+      // get log timestamp from ups to rs
+      OB_RS_GET_MAX_LOG_TIMESTAMP = 550,
+      OB_RS_GET_MAX_LOG_TIMESTAMP_RESPONSE = 551,
+      // add:e
+
+      // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+      // reset slave cluster information in __all_cluster
+      OB_SET_SLAVE_CLUSTER_OBI_ROLE = 552,
+      OB_SET_SLAVE_CLUSTER_OBI_ROLE_RESPONSE = 553,
+      // add:e
+
       // trigger event
       OB_HANDLE_TRIGGER_EVENT = 600,
       OB_HANDLE_TRIGGER_EVENT_RESPONSE = 601,
@@ -355,6 +387,13 @@ namespace oceanbase
       OB_UPS_KILL_SESSION = 1309,
       OB_UPS_KILL_SESSION_RESPONSE = 1310,
       OB_UPS_ASYNC_CHECK_SSTABLE_CHECKSUM = 1311,
+
+      //add lbzhong [Commit Point] 20150522:b
+      /**
+       * @brief for server to restart
+      */
+      OB_UPS_RESTART_SERVER = 1312,
+      //add:e
 
       OB_GET_CLOG_STAT = 1340,
       OB_GET_CLOG_STAT_RESPONSE = 1341,
@@ -450,6 +489,28 @@ namespace oceanbase
       OB_RS_SET_IMPORT_STATUS_RESPONSE = 9014,
       OB_RS_NOTIFY_SWITCH_SCHEMA = 9015,
       OB_RS_NOTIFY_SWITCH_SCHEMA_RESPONSE = 9016,
+
+      // add by chujiajia [rs_election][multi_cluster] 20150823:b
+      OB_RS_ELECTION = 9600,
+      OB_RS_ELECTION_RESPONSE = 9601,
+      OB_RS_GET_UPS_RS_LEASE = 9602,
+      OB_RS_GET_UPS_RS_LEASE_RESPONSE = 9603,
+      // add:e
+      // add by zhangcd [majority_count_init] 20151118:b
+      OB_RS_GET_ALL_CLUSTERS_INFO = 9604,
+      OB_RS_GET_ALL_CLUSTERS_INFO_RESPONSE = 9605,
+      // add:e
+      // add by guojinwei [reelect][multi_cluster] 20151129:b
+      OB_RS_GET_ELECTION_READY = 9606,
+      OB_RS_GET_ELECTION_READY_RESPONSE = 9607,
+      OB_RS_UPS_GET_READY = 9608,
+      OB_RS_UPS_GET_READY_RESPONSE = 9609,
+      // add:e
+
+      // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      OB_RS_SET_AUTO_ELECT_FLAG = 9610,
+      OB_RS_SET_AUTO_ELECT_FLAG_RESPONSE = 9611,
+      // add:e
 
       /// network session
       OB_SESSION_NEXT_REQUEST = 9999,

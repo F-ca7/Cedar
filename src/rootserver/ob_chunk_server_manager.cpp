@@ -1,3 +1,15 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_chunk_server_manager.cpp
+ * @brief    class used for manager the information of all chunkservers and mergeservers
+ *           modify the int ObChunkServerManager::serialize_ms_list()
+ *           function, if there is no other ms available then take
+ *           the lms into account.
+ *
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -807,7 +819,7 @@ namespace oceanbase
           header.set_magic_num(CHUNK_SERVER_MAGIC);
           header.header_length_ = static_cast<int16_t>(header_length);
           header.version_ = 0;
-          header.reserved_ = 0;
+          header.timestamp_ = 0;
 
           header.data_length_ = static_cast<int32_t>(total_size);
           header.data_zlength_ = static_cast<int32_t>(total_size);
@@ -1134,29 +1146,49 @@ namespace oceanbase
           ms_num++;
         }
       }
-      if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, ms_num)))
+      // add by zcd [multi_cluster] 20150405:b
+      // 在只有一个lms的时候就返回lms的地址
+      if(ms_num == 0 && size() > 0)
       {
-        TBSYS_LOG(WARN, "serialize error");
+        ms_num = 1;
+        if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, ms_num)))
+        {
+          TBSYS_LOG(WARN, "serialize error");
+        }
+        else if(OB_SUCCESS != (ret = serialize_ms(begin(), buf, buf_len, pos)))
+        {
+          TBSYS_LOG(WARN, "serialize ms error");
+        }
       }
+      // add:e
+      // modify by zcd [multi_cluster] 20150405:b
       else
       {
-        int i = 0;
-        for (it = begin(); it != end() && i < ms_num; ++it)
+        if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, ms_num)))
         {
-          if (ObServerStatus::STATUS_DEAD != it->ms_status_
-              && !it->lms_)
+          TBSYS_LOG(WARN, "serialize error");
+        }
+        else
+        {
+          int i = 0;
+          for (it = begin(); it != end() && i < ms_num; ++it)
           {
-            if (OB_SUCCESS != (ret = serialize_ms(it, buf, buf_len, pos)))
+            if (ObServerStatus::STATUS_DEAD != it->ms_status_
+                && !it->lms_)
             {
-              break;
-            }
-            else
-            {
-              ++i;
+              if (OB_SUCCESS != (ret = serialize_ms(it, buf, buf_len, pos)))
+              {
+                break;
+              }
+              else
+              {
+                ++i;
+              }
             }
           }
         }
       }
+      // modify:e
       return ret;
     }
     int ObChunkServerManager::get_ms_port(const ObServer& server, int32_t &port)const

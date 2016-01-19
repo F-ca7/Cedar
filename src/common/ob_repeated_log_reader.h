@@ -1,4 +1,20 @@
-
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_repeated_log_reader.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        modify the class ObRepeatedLogReader, output the timestamp info of each logEntry
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /**
  * (C) 2007-2010 Taobao Inc.
  *
@@ -39,6 +55,21 @@ namespace oceanbase
        *         others: 发生了错误.
        */
       int read_log(LogCommand &cmd, uint64_t &log_seq, char *&log_data, int64_t &data_len);
+
+      //add lbzhong [Max Log Timestamp] 20150824:b
+      //add lbzhong [Max Log Timestamp] 20150824:b
+      /**
+       * @brief [overwrite] read log timestamp from commit log
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] timestamp  log timestamp
+       * @return OB_SUCCESS if success
+       */
+      int read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp);
+      //add:e
+      // add by zhangcd [log_reader] 20151215:b
+      int64_t timestamp_;
+      // add:e
     };
   } // end namespace common
 } // end namespace oceanbase

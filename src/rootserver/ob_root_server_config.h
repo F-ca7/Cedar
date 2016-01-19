@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_server_config.h
+ * @brief we add a system param for election
+ *        add a rootserver config item
+ *        set_auto_elect_flag_delay, which represent the delay
+ *        time of set auto_elect_falg after rootserver start.
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Chu Jiajia  <52151500014@ecnu.edu.cn>
+ *   zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_08_23
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -112,6 +131,19 @@ namespace oceanbase
 
         DEF_IP(master_root_server_ip, "0.0.0.0", "master OceanBase instance vip address");
         DEF_INT(master_root_server_port, "0", "master OceanBase instance listen port");
+
+        // add by zcd [multi_cluster] 20150416:b
+        // 加入rootserver的config条目__all_cluster_rs_ip
+        DEF_STR(all_cluster_rs_ip, "0.0.0.0:0", "all_cluster_rs_ip");
+        // add:e
+        // add by chujiajia [rs_election][multi_cluster] 20150929:b
+        DEF_TIME(rs_election_random_wait_time, "300ms", "rs_election_random_wait_time");
+        DEF_TIME(rs_election_protection_time_us, "200ms", "rs_election_protection_time_us");
+        // add:e
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        DEF_INT(set_auto_elect_flag_delay, "10000000", "set auto_elect_flag delay after timer start");
+        // add:e
+
     };
   }
 }

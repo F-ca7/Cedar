@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_repeated_log_reader.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        modify the class ObRepeatedLogReader
+ *        output the timestamp info of each logEntry
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+           zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,6 +46,9 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, char *&log
 {
   int ret = OB_SUCCESS;
 
+  // add by zhangcd [log_reader] 20151215:b
+  timestamp_ = 0;
+  // add:e
   ObLogEntry entry;
   if (!is_initialized_)
   {
@@ -149,6 +170,9 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, char *&log
       last_log_seq_ = entry.seq_;
       cmd = static_cast<LogCommand>(entry.cmd_);
       log_seq = entry.seq_;
+      // add by zhangcd [log_reader] 20151215:b
+      timestamp_ = entry.header_.timestamp_;
+      // add:e
       log_data = log_buffer_.get_data() + log_buffer_.get_position();
       data_len = entry.get_log_data_len();
       log_buffer_.get_position() += data_len;
@@ -168,4 +192,17 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, char *&log
 
   return ret;
 }
+
+//add lbzhong [Max Log Timestamp] 20150824:b
+int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp)
+{
+  UNUSED(cmd);
+  UNUSED(log_seq);
+  UNUSED(timestamp);
+  // add by zhangcd [log_reader] 20151215:b
+  timestamp = timestamp_;
+  // add:e
+  return OB_SUCCESS;
+}
+//add:e
 

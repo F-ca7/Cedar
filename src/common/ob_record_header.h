@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_record_header.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -53,7 +68,9 @@ namespace oceanbase
       int16_t header_length_;  // header length
       int16_t version_;        // version
       int16_t header_checksum_;// header checksum
-      int64_t reserved_;       // reserved,must be 0
+      //add by lbzhong [Max Log Timestamp] 20150824:b
+      int64_t timestamp_;       // reserved,must be 0
+      //add:e
       int32_t data_length_;    // length before compress
       int32_t data_zlength_;   // length after compress, if without compresssion 
                                // data_length_= data_zlength_
@@ -66,7 +83,7 @@ namespace oceanbase
         databuff_printf(buf, buf_len, pos, "[RecordHeader] magic=%hd header_length=%hd version=%hd "
                         "header_checksum=%hd reserved=%ld data_length=%d data_zlength=%d",
                         magic_, header_length_, version_,
-                        header_checksum_, reserved_, data_length_, data_zlength_);
+                        header_checksum_, timestamp_, data_length_, data_zlength_);
         return pos;
       }
       
@@ -81,7 +98,7 @@ namespace oceanbase
       }
       int64_t get_reserved()
       {
-        return reserved_;
+        return timestamp_;
       }
 
       /**

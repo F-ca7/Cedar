@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_update_server.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add the majority_count setting in updateserver.
+ *        put the setting operation in a timer task and
+ *        redo it until success.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         liubozhong <51141500077@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -59,6 +79,10 @@
 #include "ob_trigger_handler.h"
 #include "ob_util_interface.h"
 #include "common/ob_trace_id.h"
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150909:b
+#include "common/ob_election_role_mgr.h"
+// add:e
+
 namespace oceanbase
 {
   namespace updateserver
@@ -190,6 +214,16 @@ namespace oceanbase
         bool is_master_lease_valid() const;
         virtual void on_ioth_start();
       public:
+        //add lbzhong [Commit Point] 20150820:b
+        /**
+         * @brief whether the ups need to replay local log to commit point
+         * @return true if the ups need to replay local log to commit point
+         */
+        bool need_replay_to_commit_point()
+        {
+            return is_replay_to_commit_point_;
+        }
+        //add:e
         const common::ObClientManager& get_client_manager() const
         {
           return client_manager_;
@@ -339,6 +373,9 @@ namespace oceanbase
         int submit_lease_task();
         int submit_check_keep_alive();
         int submit_fake_write_for_keep_alive();
+        // add by zhangcd [majority_count_init] 20151118:b
+        int ups_set_majority_count();
+        // add:e
         int submit_update_schema();
         int submit_kill_zombie();
         int submit_check_sstable_checksum(const uint64_t sstable_id, const uint64_t checksum);
@@ -372,6 +409,9 @@ namespace oceanbase
         int set_timer_time_update();
         int init_slave_log_mgr();
         int slave_report_quit();
+        // add by zhangcd [majority_count_init] 20151118:b
+        int set_timer_majority_count();
+        // add:e
 
         int register_and_start_fetch(const common::ObServer &master, uint64_t &replay_point);
         //add
@@ -387,6 +427,13 @@ namespace oceanbase
         int ups_update_lease(const common::ObMsgUpsHeartbeat &hb);
         int ups_revoke_lease(const common::ObMsgRevokeLease &revoke_info);
         bool is_lease_valid() const;
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20151127:b
+        /**
+         * @brief whether the rs election lease is valid
+         * @return true if the rs election is valid
+         */
+        bool is_rs_election_lease_valid() const;
+        // add:e
         bool get_sync_state();
         bool can_serve_read_req(const bool is_consistency_read, const int64_t query_version);
         int init_fetch_thread(const common::ObFetchParam &fetch_param);
@@ -413,6 +460,13 @@ namespace oceanbase
         int check_keep_alive_();
         int grant_keep_alive_();
         int check_lease_();
+        //add lbzhong [Commit Point] 20150820:b
+        /**
+         * @brief let master ups restart when switch to slave
+         * @return OB_SUCCESS if success
+         */
+        int ups_restart_server();
+        //add:e
         void set_heartbeat_res(ObMsgUpsHeartbeatResp &hb_res);
         int register_to_rootserver(const uint64_t log_seq_id);
         void set_register_msg(const uint64_t log_id, ObMsgUpsRegister &msg_register);
@@ -495,6 +549,14 @@ namespace oceanbase
             onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_rs_get_max_log_seq(const int32_t version,
             onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add by guojinwei [log timestamp][multi_cluster] 20150820:b
+        int ups_rs_get_max_log_timestamp(const int32_t version,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer &out_buff);
+        // add:e
+        // add by guojinwei [reelect][multi_cluster] 20151129:b
+        int ups_get_election_ready(const int32_t version, common::ObDataBuffer& in_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add:e
         int ups_get_table_time_stamp(const int32_t version, common::ObDataBuffer& in_buff,
             onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_enable_memtable_checksum(const int32_t version, onev_request_e* req, const uint32_t channel_id);
@@ -684,6 +746,9 @@ namespace oceanbase
         ObUpsGrantKeepAliveTask grant_keep_alive_duty_;
         KillZombieDuty kill_zombie_duty_;
         ObUpsLeaseTask ups_lease_task_;
+        // add by zhangcd [majority_count_init] 20151118:b
+        ObUpsSetMajorityCountTask set_majority_count_task_;
+        // add:e
         common::ObTimer timer_;
         common::ObTimer config_timer_;
         common::MsList ms_list_task_;
@@ -700,6 +765,13 @@ namespace oceanbase
         tbsys::CThreadMutex mutex_;
         int64_t lease_timeout_in_advance_;
         int64_t lease_expire_time_us_;
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        int64_t rs_election_lease_;
+        common::ObElectionRoleMgr election_role_;
+        bool need_restart_;
+        bool is_restarting_;
+        int64_t last_obi_change_to_slave_time_us_;
+        // add:e
         //int64_t last_keep_alive_time_;
         int64_t keep_alive_valid_interval_;
         int64_t ups_renew_reserved_us_;
@@ -710,6 +782,12 @@ namespace oceanbase
         TransExecutor trans_executor_;
         ObLogReplayWorker replay_worker_;
         ObAsyncLogApplier log_applier_;
+
+        //add lbzhong [Commit Point] 20150820:b
+        bool is_replay_to_commit_point_;
+        bool has_master_ups_;
+        ObCommitPointRunnable commit_point_thread_;
+        //add:e
     };
   }
 }

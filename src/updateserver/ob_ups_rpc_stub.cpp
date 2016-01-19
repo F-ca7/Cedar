@@ -1,3 +1,12 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_ups_rpc_stub.cpp
+ * @brief
+ * add the function ObUpsRpcStub::get_all_clusters_info()
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -20,6 +29,9 @@
 #include "ob_update_server_main.h"
 #include "ob_fetched_log.h"
 #include "common/ob_trigger_msg.h"
+// add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+#include "common/ob_cluster_mgr.h"
+// add:e
 
 namespace oceanbase
 {
@@ -1232,6 +1244,80 @@ namespace oceanbase
       }
       return err; 
     }
+
+    // add by zhangcd [majority_count_init] 20151118:b
+    // modify by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    //int ObUpsRpcStub::get_all_clusters_info(const ObServer &rootserver, std::vector<ObServer> &clusters_array, const int64_t timeout)
+    int ObUpsRpcStub::get_all_clusters_info(const ObServer &rootserver, ObClusterMgr& cluster_mgr, const int64_t timeout)
+    // modify:e
+    {
+      int err = OB_SUCCESS;
+      ObDataBuffer data_buff;
+      if (NULL == client_mgr_)
+      {
+        TBSYS_LOG(WARN, "invalid status, client_mgr_[%p]", client_mgr_);
+        err = OB_ERROR;
+      }
+      else
+      {
+        err = get_thread_buffer_(data_buff);
+      }
+
+      if (OB_SUCCESS == err)
+      {
+        err = client_mgr_->send_request(rootserver, OB_RS_GET_ALL_CLUSTERS_INFO, DEFAULT_VERSION, timeout, data_buff);
+        if (OB_SUCCESS != err)
+        {
+          TBSYS_LOG(ERROR, "fail to send request to rootserver [%s], err = %d", rootserver.to_cstring(), err);
+        }
+      }
+      common::ObResultCode res;
+      // delete by zhangcd [rs_election][auto_elect_flag] 20151129:b
+//      int32_t array_size = 0;
+      // delete:e
+      data_buff.get_position() = 0;
+      if(OB_SUCCESS != (err = res.deserialize(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "failed to deserialize the result_code, err = %d", err);
+      }
+      if(OB_SUCCESS != (err = res.result_code_))
+      {
+        TBSYS_LOG(WARN, "failed to get_all_clusters_info, err_code = %d", err);
+      }
+      // modify by zhangcd [rs_election][auto_elect_flag] 20151129:b
+      else if(OB_SUCCESS != (err = cluster_mgr.deserialize(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "failed to decode ObClusterMgr, err = %d", err);
+      }
+//      else if(OB_SUCCESS != (err = serialization::decode_vi32(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position(), &array_size)))
+//      {
+//        TBSYS_LOG(WARN, "failed to decode the clusters size, err = %d", err);
+//      }
+//      else
+//      {
+//        if( 0 == array_size)
+//        {
+//          TBSYS_LOG(WARN, "the clusters size is 0");
+//        }
+//        for(int32_t i = 0; i < array_size; i++)
+//        {
+//          ObServer server;
+//          if(OB_SUCCESS != (err = server.deserialize(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position())))
+//          {
+//            TBSYS_LOG(WARN, "failed to deserialize the server info, err = %d", err);
+//            break;
+//          }
+//          clusters_array.push_back(server);
+//        }
+//      }
+      // modify:e
+      if(OB_SUCCESS != err)
+      {
+        TBSYS_LOG(WARN, "failed to get_all_clusters_info, err_code = %d", err);
+      }
+      return err;
+    }
+    // add:e
   } // end namespace updateserver
 }
 

@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_direct_log_reader.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -98,4 +113,79 @@ int ObDirectLogReader::read_log(LogCommand &cmd, uint64_t &log_seq,
 
   return ret;
 }
+
+//add lbzhong [Max Log Timestamp] 20150824:b
+int ObDirectLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp)
+{
+  int ret = OB_SUCCESS;
+
+  ObLogEntry entry;
+  if (!is_initialized_)
+  {
+    TBSYS_LOG(ERROR, "ObSingleLogReader has not been initialized, "
+        "please initialize first");
+    ret = OB_NOT_INIT;
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = read_header(entry)) && OB_READ_NOTHING != ret)
+    {
+      TBSYS_LOG(ERROR, "read_header()=>%d", ret);
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if (log_buffer_.get_remain_data_len() < entry.get_log_data_len())
+    {
+      read_log_();
+    }
+    if (log_buffer_.get_remain_data_len() < entry.get_log_data_len())
+    {
+      TBSYS_LOG(ERROR, "Get an illegal log entry, log file maybe corrupted, "
+              "file_id=%ld, get_remain_data_len()=%ld get_log_data_len()=%d",
+                file_id_, log_buffer_.get_remain_data_len(), entry.get_log_data_len());
+      TBSYS_LOG(WARN, "log_buffer_ get_data()=%p get_limit()=%ld "
+              "get_position()=%ld get_capacity()=%ld",
+              log_buffer_.get_data(), log_buffer_.get_limit(),
+              log_buffer_.get_position(), log_buffer_.get_capacity());
+      hex_dump(log_buffer_.get_data(), static_cast<int32_t>(log_buffer_.get_limit()), true,
+              TBSYS_LOG_LEVEL_WARN);
+      ret = OB_ERROR;
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if (last_log_seq_ != 0 &&
+        (OB_LOG_SWITCH_LOG == entry.cmd_?
+         (last_log_seq_ != entry.seq_ && last_log_seq_ + 1 != entry.seq_):
+         (last_log_seq_ + 1) != entry.seq_))
+    {
+      TBSYS_LOG(ERROR, "the log sequence is not continuous[%lu => %lu[cmd=%d]",
+                last_log_seq_, entry.seq_, entry.cmd_);
+      ret = OB_ERROR;
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    last_log_seq_ = entry.seq_;
+    log_seq = entry.seq_;
+    cmd = static_cast<LogCommand>(entry.cmd_);
+    /****************************************************/
+    timestamp = entry.header_.timestamp_;
+    /****************************************************/
+    log_buffer_.get_position() += entry.get_log_data_len();
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    pos += entry.header_.header_length_ + entry.header_.data_length_;
+  }
+
+  return ret;
+}
+//add:e
 

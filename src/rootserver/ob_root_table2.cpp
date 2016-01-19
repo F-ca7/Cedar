@@ -1828,7 +1828,7 @@ int ObRootTable2::write_to_file(const char* filename)
       header.set_magic_num(ROOT_TABLE_MAGIC);
       header.header_length_ = static_cast<int16_t>(header_length);
       header.version_ = 0;
-      header.reserved_ = 0;
+      header.timestamp_ = 0;
 
       header.data_length_ = static_cast<int32_t>(total_size);
       header.data_zlength_ = static_cast<int32_t>(total_size);

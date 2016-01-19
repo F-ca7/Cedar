@@ -1,3 +1,26 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_worker.h
+ * @brief ObRootWorker
+ * support multiple clusters for HA by adding or modifying
+ *   some functions, member variables
+ *
+ *   1.add the auto_elect_flag to election process.
+ *   2.modify the election state.
+ *   3.add the majority_count setting in rootserver.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia  <52151500014@ecnu.edu.cn>
+ *         pangtianze <pangtianze@ecnu.com>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -34,6 +57,7 @@
 #include "rootserver/ob_root_fetch_thread.h"
 #include "rootserver/ob_root_server_config.h"
 #include "rootserver/ob_root_inner_table_task.h"
+#include "rootserver/ob_check_rselection.h"
 
 namespace oceanbase
 {
@@ -80,6 +104,10 @@ namespace oceanbase
         bool start_merge();
 
         int submit_check_task_process();
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        int set_auto_elect_flag(bool flag = true);
+        int schedule_set_auto_elect_flag_task();
+        // add:e
         int submit_delete_tablets_task(const common::ObTabletReportInfoList& delete_list);
         int schedule_after_restart_task(const int64_t delay,bool repeate = false);
         int submit_restart_task();
@@ -99,6 +127,39 @@ namespace oceanbase
         int64_t get_network_timeout();
         common::ObServer get_rs_master();
         common::ThreadSpecificBuffer* get_thread_buffer();
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        /**
+         * @brief get rs election lease
+         * @return the rs election lease
+         */
+        int64_t get_rs_election_lease();
+        // add by guojinwei 20150523:e
+        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        int rt_rs_election(const int32_t version,
+                           common::ObDataBuffer& in_buff,
+                           onev_request_e* req,
+                           const uint32_t channel_id,
+                           common::ObDataBuffer& out_buff);
+        // add:e
+        // add by zcd [multi_cluster] 20150405:b
+        int start_master_cluster();
+        int start_slave_cluster();
+        int set_master_root_server_config_on_slave(const ObString& config_string);
+        int set_all_slaves_role_to_slave();
+        ObServer get_obi_master_root_server();
+        int set_obi_master_role();
+        int set_obi_master_first();
+        // add:e
+        // add by guojinwei [new rs_admin command][multi_cluster] 20150901:b
+        // ensure that this cluster is master before using this function
+        /**
+         * @brief reelect master cluster
+         * This function is only called by master cluster.
+         * @return OB_SUCCESS if success
+         */
+        int reelect_master_rootserver();
+        // add:e
+        
       private:
         int start_as_master();
         int start_as_slave();
@@ -121,6 +182,9 @@ namespace oceanbase
         int rt_after_restart(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_write_schema_to_file(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_change_table_id(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        int rt_set_auto_elect_flag(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add:e
         int rt_fetch_schema(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_fetch_schema_version(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_report_tablets(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -149,6 +213,9 @@ namespace oceanbase
         int rt_get_boot_state(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_set_obi_role_to_slave(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_set_obi_role(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add by guojinwei [obi role switch][multi_cluster] 20150914:b
+        int rt_set_slave_cluster_obi_role(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add:e
         int rt_get_last_frozen_version(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_force_cs_to_report(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_admin(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -205,6 +272,12 @@ namespace oceanbase
         int rt_get_import_status(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_set_import_status(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_notify_switch_schema(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add by zhangcd [majority_count_init] 20151118:b
+        int rt_get_all_clusters_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add:e
+        // add by guojinwei [reelect][multi_cluster] 20151129:b
+        int rt_get_election_ready(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        // add:e
       private:
         int do_stat(int stat_key, char *buf, const int64_t buf_len, int64_t& pos);
         int get_obi_role_from_master();
@@ -232,6 +305,9 @@ namespace oceanbase
         common::ObRoleMgr role_mgr_;
         common::ObSlaveMgr slave_mgr_;
         common::ObCheckRunnable check_thread_;
+        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        rootserver::ObCheckRsElection check_rselection_thread_;
+        // add:e
         ObRootFetchThread fetch_thread_;
         ObRootSQLProxy sql_proxy_;
         ObRootRpcStub rt_rpc_stub_;
@@ -243,6 +319,9 @@ namespace oceanbase
         MsList ms_list_task_;
         ObRootInnerTableTask inner_table_task_;
         ObRsAfterRestartTask after_restart_task_;
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        ObRootSetAutoElectFlagTask set_auto_elect_flag_task_;
+        // add:e
         ObTimer timer_;
     };
 

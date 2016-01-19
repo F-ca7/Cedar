@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_update_server_config.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -151,7 +166,16 @@ namespace oceanbase
         DEF_TIME(keep_alive_timeout, "5s", "keep alive timeout");
         DEF_TIME(lease_timeout_in_advance, "500ms", "lease timeout in advance");
         DEF_BOOL(real_time_slave, "True", "whetch the server is a realtime slave ups");
-        DEF_INT(consistency_type, "3", "[1,3]", "consistency type of log-sync, 1: strong, 2: normal, 3: weak");
+        // modify by guojinwei [multi_cluster] 20151020:b
+        //DEF_INT(consistency_type, "3", "[1,3]", "consistency type of log-sync, 1: strong, 2: normal, 3: weak");
+        DEF_INT(consistency_type, "1", "[1,3]", "consistency type of log-sync, 1: strong, 2: normal, 3: weak");
+        DEF_TIME(rs_election_lease_protection_time, "150ms", "rs election lease expires early");
+        DEF_TIME(message_residence_protection_time, "150us", "the extra time in which message may reside slave ups");
+        DEF_TIME(message_residence_max_time, "6ms", "the max time in which message reside slave ups");
+        // modify:e
+        // add by guojinwei [commit point for log repaly][multi_cluster] 20151127:b
+        DEF_INT(commit_point_sync_type, "1", "sync commit point to disk");
+        // add:e
 
         DEF_BOOL(using_static_cm_column_id, "False", "should treat 2 and 3 as create_time and modify_time column id");
         DEF_BOOL(using_hash_index, "True", "using hash index");
@@ -161,7 +185,10 @@ namespace oceanbase
         DEF_CAP(replay_log_buf_size, "10GB", "replay log buffer size");
         DEF_INT(replay_queue_len, "500", "replay queue size");
         DEF_TIME(wait_slave_sync_time, "100ms", "wait slave sync time");
-        DEF_INT(wait_slave_sync_type, "0", "[0,2]", "0: response master ups before replay; 1: response master ups after replay before sync to disk; 2: response master ups after sync to disk");
+        // modify by guojinwei [log synchronization][multi_cluster] 20151211:b
+        //DEF_INT(wait_slave_sync_type, "0", "[0,2]", "0: response master ups before replay; 1: response master ups after replay before sync to disk; 2: response master ups after sync to disk");
+        DEF_INT(wait_slave_sync_type, "2", "[0,2]", "0: response master ups before replay; 1: response master ups after replay before sync to disk; 2: response master ups after sync to disk");
+        // modify:e
         DEF_TIME(disk_warn_threshold, "5ms", "disk warn threshold");
         DEF_TIME(net_warn_threshold, "5ms", "net worn threshold");
 

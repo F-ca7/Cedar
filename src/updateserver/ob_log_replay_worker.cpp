@@ -510,7 +510,6 @@ namespace oceanbase
         task.batch_buf_len_ = len;
         log_id = task.log_id_;
         task.profile_.enable_ = (TraceLog::get_log_level() <= TBSYS_LOG_LEVEL_INFO);
-
         log_applier_->on_submit(task);
         if (OB_SUCCESS != (err = apply_worker_.push(&task))
             && OB_EAGAIN != err)

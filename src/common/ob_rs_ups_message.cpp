@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rs_ups_message.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -41,6 +57,16 @@ int ObMsgUpsHeartbeat::serialize(char* buf, const int64_t buf_len, int64_t &pos)
   {
     TBSYS_LOG(ERROR, "serailize config_version fail, err=%d", ret);
   }
+  // add by guojinwei [lease between rs and ups][multi_cluster] 20150819:b
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, rs_election_lease_)))
+  {
+    TBSYS_LOG(ERROR, "serialize rs_election_rs fail, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = election_role_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(ERROR, "serialize election_role fail, err=%d", ret);
+  }
+  // add:e
   return ret;
 }
 
@@ -69,6 +95,16 @@ int ObMsgUpsHeartbeat::deserialize(const char* buf, const int64_t data_len, int6
   {
     TBSYS_LOG(ERROR, "deserialize config_version fail, ret: [%d]", ret);
   }
+  // add by guojinwei [lease between rs and ups][multi_cluster] 20150819:b
+  else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, &rs_election_lease_)))
+  {
+    TBSYS_LOG(ERROR, "deserialize rs_election_lease fail, ret: [%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = election_role_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(ERROR, "deserialize election_role fail, err=%d", ret);
+  }
+  // add:e
   return ret;
 }
 

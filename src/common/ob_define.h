@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 /*
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -252,6 +267,9 @@ namespace oceanbase
     const int OB_MULTIPLE_MASTER_CLUSTERS_NOT_EXIST = -3033;
     const int OB_MASTER_CLUSTER_ALREADY_EXISTS = -3034;
     const int OB_CREATE_TABLE_TWICE = -3035;
+    //add by pangtianze [rs_election] 20151120:b
+    const int OB_RS_LEADER_SETTED_WHEN_STARTING = -3036;
+    //add:e
 
     const int OB_DATA_SOURCE_NOT_EXIST = -3100;
     const int OB_DATA_SOURCE_TABLE_NOT_EXIST = -3101;
@@ -435,6 +453,13 @@ namespace oceanbase
     const int64_t OB_LOG_SYNC = 1;
     const int64_t OB_LOG_DELAYED_SYNC = 2;
     const int64_t OB_LOG_NOT_PERSISTENT = 4;
+
+    // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
+    // commit point synchronization type
+    const int64_t OB_COMMIT_POINT_ASYNC = 0;
+    const int64_t OB_COMMIT_POINT_SYNC = 1;
+    // add:e
+
 
     const int64_t OB_MAX_UPS_LEASE_DURATION_US = INT64_MAX;
 

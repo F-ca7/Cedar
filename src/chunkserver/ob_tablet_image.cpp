@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_log_utils.cpp
+ * @brief ObTabletImage
+ * support multiple clusters for HA by adding or modifying
+ *   some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
@@ -1139,7 +1155,10 @@ namespace oceanbase
       record_header.set_magic_num(ObTabletMetaHeader::TABLET_META_MAGIC);
       record_header.header_length_ = OB_RECORD_HEADER_LENGTH;
       record_header.version_ = 0;
-      record_header.reserved_ = 0;
+      // modify by lbzhong [multi_cluster] 20151111:b
+      // record_header.reserved_ = 0;
+      record_header.timestamp_ = 0;
+      // modify:e
 
       int64_t payload_pos = pos + OB_RECORD_HEADER_LENGTH;
       int64_t tablet_pos = payload_pos + meta_header.get_serialize_size();

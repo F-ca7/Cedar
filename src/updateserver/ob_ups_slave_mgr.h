@@ -1,4 +1,13 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_ups_slave_mgr.h
+ * @brief
+ *           modify the class ObUpsSlaveMgr to add the majority_count setting process.
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -34,8 +43,16 @@ namespace oceanbase
         virtual ~ObUpsSlaveMgr();
 
         /// @brief 初始化
+        // modify by guojinwei [log synchronization][multi_cluster] 20151117:b
+        //int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
+        //    int64_t log_sync_timeout);
+        // modify by zhangcd [majority_count_init] 20151118:b
+        //int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
+        //    int64_t log_sync_timeout, int32_t slave_count);
         int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
             int64_t log_sync_timeout);
+        // modify:e
+        // modify:e
 
         /// @brief 向各台Slave发送数据
         /// 目前依次向各台Slave发送数据, 并且等待Slave的成功返回
@@ -59,6 +76,10 @@ namespace oceanbase
         int set_send_log_point(const ObServer &server, const uint64_t send_log_point);
         int get_num() const;
         void print(char *buf, const int64_t buf_len, int64_t& pos);
+        // add by zhangcd [majority_count_init] 20151118:b
+        void set_ack_queue_majority_count(int32_t majority_count);
+        int32_t get_ack_queue_majority_count();
+        // add:e
       private:
         int64_t n_slave_last_post_;
         ObUpsRoleMgr *role_mgr_;

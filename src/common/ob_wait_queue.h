@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_wait_queue.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,6 +32,7 @@
 #include "tbsys.h"
 #include "ob_malloc.h"
 #include "utility.h"
+#include "ob_log_post.h"
 
 namespace oceanbase
 {
@@ -137,7 +153,10 @@ namespace oceanbase
           }
           return err;
         }
-        int done(int64_t seq, DataT& data, int handle_err)
+        // modify by guojinwei [log synchronization][multi_cluster] 20150819:b
+        //int done(int64_t seq, DataT& data, int handle_err)
+        int done(int64_t seq, const ObLogPostResponse& response_data, DataT& data, int handle_err)
+        // modify:e
         {
           int err = OB_SUCCESS;
           Item* item = NULL;
@@ -160,7 +179,10 @@ namespace oceanbase
             }
             else
             {
-              item->data_.done(handle_err);
+              // modify by guojinwei [log synchronization][multi_cluster] 20150819:b
+              //item->data_.done(handle_err);
+              item->data_.done(response_data, handle_err);
+              // modify:e
               data = item->data_;
               __sync_synchronize();
               item->wait_seq_ = seq + DONE;
@@ -186,7 +208,16 @@ namespace oceanbase
             else if (pop + REGISTERED == item->wait_seq_ && item->data_.is_timeout())
             {
               err = OB_PROCESS_TIMEOUT;
-              item->data_.done(OB_PROCESS_TIMEOUT);
+              // add by guojinwei [log synchronization][multi_cluster] 20150819:b
+              ObLogPostResponse response_data;
+              response_data.next_flush_log_id_ = 0;
+              response_data.message_residence_time_us_ = -1;
+              response_data.slave_status_ = response_data.OFFLINE;
+              // add:e
+              // modify by guojinwei [log synchronization][multi_cluster] 20150819:b
+              //item->data_.done(OB_PROCESS_TIMEOUT);
+              item->data_.done(response_data, OB_PROCESS_TIMEOUT);
+              // modify:e
             }
             else
             {
