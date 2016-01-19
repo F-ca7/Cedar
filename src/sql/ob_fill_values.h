@@ -7,6 +7,7 @@
  *
  * @file ob_fill_values.h
  * @brief ObFillValues is designed for update_more
+ * created by wangjiahao: fill expressions designed for update_more.
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @date 2015_12_30
@@ -80,10 +81,9 @@ namespace oceanbase
         //VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
 
       protected:
-        ObValues *op_from_;
-        ObExprValues *op_to_;
-        common::ObRowkeyInfo rowkey_info_;
-        bool has_data_;
+        ObValues *op_from_; ///< source operator
+        ObExprValues *op_to_; ///< target operator
+        common::ObRowkeyInfo rowkey_info_; ///< rowken info
 
     };
 

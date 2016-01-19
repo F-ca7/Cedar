@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_phy_operators_test.cpp
+ * @brief test physical operators
+ * modified by wangjiahao: add fill_values operator test.
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -397,7 +411,7 @@ int build_values(ObRowDesc& row_desc, ObValues& values, int64_t row_count) {
   }
   return err;
 }
-
+//add wangjiahao [dev_update_more] 20151209 :b
 TEST_F(ObPhyOperatorsTest, extra_fill_values_test)
 {
   ObFillValues op_fillv;
@@ -423,7 +437,7 @@ TEST_F(ObPhyOperatorsTest, extra_fill_values_test)
   char buf[2000];
   op_fillv.to_string(buf, 2000);
 }
-
+//add :e
 
 int main(int argc, char **argv)
 {
