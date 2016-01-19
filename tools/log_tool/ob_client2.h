@@ -4,10 +4,10 @@
 #include "common/ob_packet_factory.h"
 #include "common/ob_client_manager.h"
 #include "common/ob_ack_queue.h"
-#if USE_LIBEASY
+#if USE_LIBONEV
 #include "common/ob_tbnet_callback.h"
-#include "easy_io_struct.h"
-#include "easy_io.h"
+#include "onev_struct.h"
+#include "onev_io.h"
 #endif
 
 using namespace oceanbase::common;
@@ -236,7 +236,7 @@ int send_request(int64_t* rt, ObClientManager* client_mgr, const ObServer& serve
 
 const int64_t DEFAULT_VERSION = 1;
 const int64_t DEFAULT_TIMEOUT = 2 * 1000*1000;
-#if !USE_LIBEASY
+#if !USE_LIBONEV
 class TbnetBaseClient
 {
   public:
@@ -324,16 +324,16 @@ class TbnetBaseClient
 };
 typedef TbnetBaseClient BaseClient;
 #else
-int process(easy_request_t* r)
+int process(onev_request_e* r)
 {
-  int ret = EASY_OK;
+  int ret = ONEV_OK;
   if (NULL == r || NULL == r->ipacket)
   {
-    ret = EASY_BREAK;
+    ret = ONEV_BREAK;
   }
   else
   {
-    ret = EASY_AGAIN;
+    ret = ONEV_AGAIN;
   }
   return ret;
 }
@@ -399,14 +399,14 @@ struct AsyncReqReporter {
   int64_t last_report_time_;
 };
 
-class EasyBaseClient
+class OnevBaseClient
 {
   public:
     const static int64_t MAX_N_CLIENT = 256;
-    EasyBaseClient(): n_client_(0), io_thread_count_(0) {
+    OnevBaseClient(): n_client_(0), io_thread_count_(0) {
       memset(eio_, 0, sizeof(eio_));
     }
-    virtual ~EasyBaseClient(){
+    virtual ~OnevBaseClient(){
       int err = OB_SUCCESS;
       if (OB_SUCCESS != (err = destroy()))
       {
@@ -414,9 +414,9 @@ class EasyBaseClient
       }
     }
   public:
-    int init_server_handler(easy_io_handler_pt& server_handler) {
+    int init_server_handler(onev_io_handler_pe& server_handler) {
       int err = OB_SUCCESS;
-      memset(&server_handler, 0, sizeof(easy_io_handler_pt));
+      memset(&server_handler, 0, sizeof(onev_io_handler_pe));
       server_handler.encode = ObTbnetCallback::encode;
       server_handler.decode = ObTbnetCallback::decode;
       server_handler.process = process;
@@ -436,7 +436,7 @@ class EasyBaseClient
       {}
       for(int64_t i = 0; OB_SUCCESS == err && i < n_client; i++)
       {
-        if (NULL == (eio_[i] = easy_eio_create(eio_[i], (int)io_thread_count)))
+        if (NULL == (eio_[i] = onev_create_io(eio_[i], (int)io_thread_count)))
         {
           err = OB_CONN_ERROR;
         }
@@ -448,9 +448,9 @@ class EasyBaseClient
         {
           TBSYS_LOG(ERROR, "client_mgr.initialize()=>%d", err);
         }
-        else if (OB_SUCCESS != (err = easy_eio_start(eio_[i])))
+        else if (OB_SUCCESS != (err = onev_start_io(eio_[i])))
         {
-          TBSYS_LOG(ERROR, "easy_eio_start(i=%ld)=>%d", i, err);
+          TBSYS_LOG(ERROR, "onev_start_io(i=%ld)=>%d", i, err);
         }
       }
       if (OB_SUCCESS != err)
@@ -472,9 +472,9 @@ class EasyBaseClient
       int err = OB_SUCCESS;
       for(int64_t i = 0; i < n_client_; i++)
       {
-        easy_eio_stop(eio_[i]);
-        easy_eio_wait(eio_[i]);
-        easy_eio_destroy(eio_[i]);
+        onev_stop_io(eio_[i]);
+        onev_wait_io(eio_[i]);
+        onev_destroy_io(eio_[i]);
       }
       for(int64_t i = 0; i < n_client_; i++)
       {
@@ -487,7 +487,7 @@ class EasyBaseClient
       int err = OB_SUCCESS;
       for(int64_t i = 0; i < n_client_; i++)
       {
-        easy_eio_wait(eio_[i]);
+        onev_wait_io(eio_[i]);
       }
       return err;
     }
@@ -540,13 +540,13 @@ class EasyBaseClient
     int64_t n_client_;
     int64_t io_thread_count_;
     int64_t dedicate_thread_count_;
-    easy_io_t *eio_[MAX_N_CLIENT];
-    easy_io_handler_pt server_handler_;
+    onev_io_e *eio_[MAX_N_CLIENT];
+    onev_io_handler_pe server_handler_;
     ObClientManager client_[MAX_N_CLIENT];
     ObAckQueue ack_queue_;
     AsyncReqMonitor async_mon_;
     ThreadSpecificBuffer rpc_buffer_;
 };
-typedef EasyBaseClient BaseClient;
+typedef OnevBaseClient BaseClient;
 #endif
 Dummy _dummy_;

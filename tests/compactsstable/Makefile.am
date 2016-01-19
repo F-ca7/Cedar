@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
 			  -I${TBLIB_ROOT}/include/tbnet \
-			  -I${EASY_ROOT}/include/easy \
+			  -I${ONEV_ROOT}/include/onev \
 			  -I${top_srcdir}/include \
 			  -I${top_srcdir}/src \
 			  -I${top_srcdir}/src/common \
@@ -13,7 +13,7 @@ LDADD =  \
 		 ${top_builddir}/src/chunkserver/libchunkserver.a \
 		 $(top_builddir)/src/common/compress/libcomp.a \
 		 ${top_builddir}/src/common/libcommon.a \
-		 ${EASY_LIB_PATH}/libeasy.a \
+		 ${ONEV_LIB_PATH}/libonev.a \
 		 ${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
 AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB} -lcrypt

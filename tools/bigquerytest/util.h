@@ -17,7 +17,7 @@
 #ifndef __OCEANBASE_UTIL_H__
 #define __OCEANBASE_UTIL_H__
 #include "common/ob_define.h"
-#include "easy/easy_io.h"
+#include "onev/onev_io.h"
 #include "tbsys.h"
 
 using namespace oceanbase::common;

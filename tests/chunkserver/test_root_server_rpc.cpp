@@ -58,7 +58,7 @@ namespace oceanbase
               set_default_queue_size(100);
               set_thread_count(1);
 
-              memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+              memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
               server_handler_.encode = ObTbnetCallback::encode;
               server_handler_.decode = ObTbnetCallback::decode;
               server_handler_.process = rootserver::ObRootCallback::process;
@@ -156,7 +156,7 @@ namespace oceanbase
                 }
 
 
-                easy_request_t* connection = ob_packet->get_request();
+                onev_request_e* connection = ob_packet->get_request();
                 ThreadSpecificBuffer::Buffer* thread_buffer =
                   response_packet_buffer_.get_buffer();
                 if (NULL != thread_buffer)
@@ -196,7 +196,7 @@ namespace oceanbase
               }
               else
               {
-                easy_request_t* connection = ob_packet->get_request();
+                onev_request_e* connection = ob_packet->get_request();
                 ThreadSpecificBuffer::Buffer* thread_buffer =
                   response_packet_buffer_.get_buffer();
                 if (NULL != thread_buffer)

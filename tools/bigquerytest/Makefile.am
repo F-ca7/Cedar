@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-			  -I${EASY_ROOT}/include/easy \
+			  -I${ONEV_ROOT}/include/onev \
 			  -I${top_srcdir}/include \
 				-I${top_srcdir}/tools/bigquerytest/include/mysql \
 			  -I${top_srcdir}/src
@@ -10,7 +10,7 @@ LDADD = $(top_builddir)/src/chunkserver/libchunkserver.a \
 		$(top_builddir)/src/common/compress/libcomp.a \
 		$(top_builddir)/src/common/libcommon.a \
 		$(top_builddir)/src/common/btree/libbtree.a \
-		${EASY_LIB_PATH}/libeasy.a \
+		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
 AM_LDFLAGS = -lmysqlclient_r -lpthread -lc -lm -lrt -ldl -lnuma -lssl -Llib

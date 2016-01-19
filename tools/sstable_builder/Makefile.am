@@ -10,7 +10,7 @@ libmrsstable_la_SOURCES = sstable_builder.cpp \
 						  sstable_writer.cpp 
 
 libmrsstable_la_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-						   -I${EASY_ROOT}/include/easy \
+						   -I${ONEV_ROOT}/include/onev \
 						   -I${top_srcdir}/src \
 						   -I${JAVA_HOME}/include \
 						   -I${JAVA_HOME}/include/linux \
@@ -20,9 +20,9 @@ libmrsstable_la_LDFLAGS = -L${top_builddir}/src/sstable/ \
 						  -L${top_builddir}/src/common/ \
 						  -L${top_builddir}/src/common/compress/ \
 						  -L${TBLIB_ROOT}/lib/ \
-              -L${EASY_ROOT}/lib \
+              -L${ONEV_ROOT}/lib \
               -lsstable -lcommon -lcomp \
-						  -Wl,-static,-leasy \
+						  -Wl,-static,-lonev \
 						  -Wl,-static,-ltbsys \
 						  -lpthread -lc -lm -lrt -ldl
 
@@ -31,12 +31,12 @@ test_sstable_builder_SOURCES = test_sstable_builder.cpp ${libmrsstable_la_SOURCE
 test_sstable_builder_LDADD = $(top_builddir)/src/sstable/libsstable.a \
 							 $(top_builddir)/src/common/libcommon.a \
 							 $(top_builddir)/src/common/compress/libcomp.a \
-							 ${EASY_LIB_PATH}/libeasy.a \
+							 ${ONEV_LIB_PATH}/libonev.a \
 							 ${TBLIB_ROOT}/lib/libtbsys.a \
 							 -lpthread -lc -lm -lrt -ldl
 
 test_sstable_builder_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-								-I${EASY_ROOT}/include/easy \
+								-I${ONEV_ROOT}/include/onev \
 								-I${JAVA_HOME}/include \
 								-I${JAVA_HOME}/include/linux \
 								-I${top_srcdir}/src

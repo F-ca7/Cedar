@@ -18,7 +18,7 @@
 ////====================================================================
 
 #include "tbsys.h"
-#include "easy_io.h"
+#include "onev_io.h"
 #include "common/ob_tbnet_callback.h"
 #include "ob_log_rpc_stub.h"
 
@@ -33,7 +33,7 @@ namespace oceanbase
                                    eio_(NULL),
                                    client_handler_()
     {
-      memset(&client_handler_, 0, sizeof(easy_io_handler_pt));
+      memset(&client_handler_, 0, sizeof(onev_io_handler_pe));
       client_handler_.encode = ObTbnetCallback::encode;
       client_handler_.decode = ObTbnetCallback::decode;
       client_handler_.get_packet_id = ObTbnetCallback::get_packet_id;
@@ -51,17 +51,17 @@ namespace oceanbase
       {
         ret = OB_INIT_TWICE;
       }
-      else if (NULL == (eio_ = easy_eio_create(eio_, 1)))
+      else if (NULL == (eio_ = onev_create_io(eio_, 1)))
       {
-        TBSYS_LOG(WARN, "easy_eio_create fail");
+        TBSYS_LOG(WARN, "onev_create_io fail");
         ret = OB_ERR_UNEXPECTED;
       }
       else
       {
         eio_->do_signal = 0;
-        if (EASY_OK != easy_eio_start(eio_))
+        if (ONEV_OK != onev_start_io(eio_))
         {
-          TBSYS_LOG(WARN, "easy_eio_start fail");
+          TBSYS_LOG(WARN, "onev_start_io fail");
           ret = OB_ERR_UNEXPECTED;
         }
         else if (OB_SUCCESS != (ret = client_.initialize(eio_, &client_handler_)))
@@ -89,9 +89,9 @@ namespace oceanbase
       inited_ = false;
       if (NULL != eio_)
       {
-        easy_eio_stop(eio_);
-        easy_eio_wait(eio_);
-        easy_eio_destroy(eio_);
+        onev_stop_io(eio_);
+        onev_wait_io(eio_);
+        onev_destroy_io(eio_);
         eio_ = NULL;
       }
     }

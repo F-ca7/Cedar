@@ -75,7 +75,7 @@ int TaskServer::initialize(void)
   }
   else
   {
-    memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+    memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
     server_handler_.encode = ObTbnetCallback::encode;
     server_handler_.decode = ObTbnetCallback::decode;
     server_handler_.process = TaskServerCallback::process;

@@ -9,10 +9,10 @@ using namespace oceanbase::common;
 static const int32_t server_port = 8515;
 ObServer file_server(ObServer::IPV4, "127.0.0.1", server_port);
 ObFileClient client;
-easy_io_t *eio_ = NULL;
+onev_io_e *eio_ = NULL;
 ThreadSpecificBuffer rpc_buffer;
 ObClientManager client_mgr;
-easy_io_handler_pt client_handler_;
+onev_io_handler_pe client_handler_;
 
 
 // compare two file
@@ -99,7 +99,7 @@ class ObFileServer : public common::ObSingleServer
       set_default_queue_size(1000);
       set_thread_count(50);
 
-      memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+      memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
       server_handler_.encode = ObTbnetCallback::encode;
       server_handler_.decode = ObTbnetCallback::decode;
       server_handler_.process = process;
@@ -119,19 +119,19 @@ class ObFileServer : public common::ObSingleServer
 
       return ret;
     }
-    static int process(easy_request_t *r)
+    static int process(onev_request_e *r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
 
       if (NULL == r)
       {
         TBSYS_LOG(WARN, "request is NULL, r = %p", r);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else if (NULL == r->ipacket)
       {
         TBSYS_LOG(WARN, "request is NULL, r->ipacket = %p", r->ipacket);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else
       {
@@ -139,8 +139,8 @@ class ObFileServer : public common::ObSingleServer
         ObPacket* packet = (ObPacket*)r->ipacket;
         packet->set_request(r);
         r->ms->c->pool->ref++;
-        easy_atomic_inc(&r->ms->pool->ref);
-        easy_pool_set_lock(r->ms->pool);
+        onev_atomic_inc(&r->ms->pool->ref);
+        onev_pool_set_lock(r->ms->pool);
         if (OB_REQUIRE_HEARTBEAT == packet->get_packet_code())
         {
           server->handle_request(packet);
@@ -150,7 +150,7 @@ class ObFileServer : public common::ObSingleServer
           server->handlePacket(packet);
         }
 
-        ret = EASY_AGAIN;
+        ret = ONEV_AGAIN;
       }
       return ret;
     }
@@ -213,13 +213,13 @@ void init_client()
 {
   int ret = OB_SUCCESS; 
   int rc = OB_SUCCESS;
-  eio_ = easy_eio_create(eio_, 100);
+  eio_ = onev_create_io(eio_, 100);
   if (NULL == eio_)
   {
     ret = OB_ERROR;
-    TBSYS_LOG(ERROR, "easy_io_create error");
+    TBSYS_LOG(ERROR, "onev_io_create error");
   }
-  memset(&client_handler_, 0, sizeof(easy_io_handler_pt));
+  memset(&client_handler_, 0, sizeof(onev_io_handler_pe));
   client_handler_.encode = ObTbnetCallback::encode;
   client_handler_.decode = ObTbnetCallback::decode;
   client_handler_.get_packet_id = ObTbnetCallback::get_packet_id;
@@ -233,15 +233,15 @@ void init_client()
     //start io thread
     if (ret == OB_SUCCESS)
     {
-      rc = easy_eio_start(eio_);
-      if (EASY_OK == rc)
+      rc = onev_start_io(eio_);
+      if (ONEV_OK == rc)
       {
         ret = OB_SUCCESS;
         TBSYS_LOG(INFO, "start io thread");
       }
       else
       {
-        TBSYS_LOG(ERROR, "easy_eio_start failed");
+        TBSYS_LOG(ERROR, "onev_start_io failed");
         ret = OB_ERROR;
       }
     }
@@ -268,9 +268,9 @@ int main(int argc, char **argv)
     init_client();
     sleep(1);
     ret = RUN_ALL_TESTS();
-    easy_eio_stop(eio_);
-    easy_eio_wait(eio_);
-    easy_eio_destroy(eio_);
+    onev_stop_io(eio_);
+    onev_wait_io(eio_);
+    onev_destroy_io(eio_);
     kill(pid, SIGTERM);
   }
   sleep(1);

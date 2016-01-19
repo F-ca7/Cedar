@@ -1,7 +1,7 @@
 #ifndef TASK_SERVER_CALLBACK_H_
 #define TASK_SERVER_CALLBACK_H_
 
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 namespace oceanbase
 {
   namespace tools
@@ -9,7 +9,7 @@ namespace oceanbase
     class TaskServerCallback
     {
     public:
-      static int process(easy_request_t* req);
+      static int process(onev_request_e* req);
     };
   }
 }

@@ -96,7 +96,7 @@ namespace oceanbase
               {
                 EXPECT_EQ(0, memcmp(data->get_data() + data->get_position(), log_data, BUFSIZ));
                 ObResultCode result_msg;
-                easy_request_t* connection = ob_packet->get_request();
+                onev_request_e* connection = ob_packet->get_request();
                 ThreadSpecificBuffer::Buffer* thread_buffer = response_packet_buffer_.get_buffer();
                 if (NULL != thread_buffer)
                 {

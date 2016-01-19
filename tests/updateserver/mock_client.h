@@ -17,7 +17,7 @@
 #ifndef __OCEANBASE_CHUNKSERVER_MOCK_CLIENT_H__
 #define __OCEANBASE_CHUNKSERVER_MOCK_CLIENT_H__
 
-#include "easy_io.h"
+#include "onev_io.h"
 #include "common/ob_tbnet_callback.h"
 #include "common/ob_define.h"
 #include "common/data_buffer.h"
@@ -99,8 +99,8 @@ class BaseClient
 
   public:
     ObClientManager client_;
-    easy_io_t *eio_;
-    easy_io_handler_pt client_handler_;
+    onev_io_e *eio_;
+    onev_io_handler_pe client_handler_;
 };
 
 inline int BaseClient::initialize()
@@ -108,16 +108,16 @@ inline int BaseClient::initialize()
   ob_init_memory_pool();
 
   int ret = OB_ERROR;
-  int rc = EASY_OK;
-  eio_ = easy_eio_create(eio_, 1);
+  int rc = ONEV_OK;
+  eio_ = onev_create_io(eio_, 1);
   if (NULL == eio_)
   {
     ret = OB_ERROR;
-    TBSYS_LOG(ERROR, "easy_io_create error");
+    TBSYS_LOG(ERROR, "onev_io_create error");
   }
   else
   {
-    memset(&client_handler_, 0, sizeof(easy_io_handler_pt));
+    memset(&client_handler_, 0, sizeof(onev_io_handler_pe));
     client_handler_.encode = ObTbnetCallback::encode;
     client_handler_.decode = ObTbnetCallback::decode;
     client_handler_.get_packet_id = ObTbnetCallback::get_packet_id;
@@ -130,15 +130,15 @@ inline int BaseClient::initialize()
       //start io thread
       if (ret == OB_SUCCESS)
       {
-        rc = easy_eio_start(eio_);
-        if (EASY_OK == rc)
+        rc = onev_start_io(eio_);
+        if (ONEV_OK == rc)
         {
           ret = OB_SUCCESS;
           TBSYS_LOG(INFO, "start io thread");
         }
         else
         {
-          TBSYS_LOG(ERROR, "easy_eio_start failed");
+          TBSYS_LOG(ERROR, "onev_start_io failed");
           ret = OB_ERROR;
         }
       }
@@ -149,15 +149,15 @@ inline int BaseClient::initialize()
 
 inline int BaseClient::destroy()
 {
-  easy_eio_stop(eio_);
-  easy_eio_wait(eio_);
-  easy_eio_destroy(eio_);
+  onev_stop_io(eio_);
+  onev_wait_io(eio_);
+  onev_destroy_io(eio_);
   return OB_SUCCESS;
 }
 
 inline int BaseClient::wait()
 {
-  return easy_eio_wait(eio_);
+  return onev_wait_io(eio_);
 }
 
 class MockClient : public BaseClient
