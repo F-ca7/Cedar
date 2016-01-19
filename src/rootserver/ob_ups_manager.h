@@ -98,6 +98,10 @@ namespace oceanbase
         virtual ~ObUpsManager();
 
         // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        /**
+         * @brief if master ups lease valid
+         * @return true or false
+         */
         bool is_master_lease_valid() const;
         // add:e
         int get_ups_master(ObUps &ups_master) const;

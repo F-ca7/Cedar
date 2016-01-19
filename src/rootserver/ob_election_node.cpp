@@ -286,7 +286,7 @@ int ObElectionNode::rs_vote()   //candidate send vote_request and handle the res
   }
   if (max_log_timestamp >= 0)
   {
-      ///change to candidate
+    ///change to candidate
     role_ = OB_CANDIDATE;
     // delete by chujiajia [rs_election][multi_cluster] 20150902:b
     // current_term_++;

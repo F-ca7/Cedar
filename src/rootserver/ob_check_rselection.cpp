@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -346,7 +346,7 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
         }
       }
       // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
-      // 如果auto_elect_flag被设置为false，则将自己的身份有OB_CANDIDATE转变为OB_FOLLOWER
+      // if auto_elect_flag is set false， then convert OB_CANDIDATE to OB_FOLLOWER
       /// if auto_elect_falg is set false, will change OB_CANDIDATE to OB_FOLLOWER
       else if(!ob_election_node_.get_auto_elect_flag())
       {
@@ -485,75 +485,18 @@ void ObCheckRsElection::set_auto_elect_flag(bool flag)
 //add by pangtianze [rs_election] 20160106:b
 int ObCheckRsElection::handle_vote_request(const common::ObMsgRsElection &msg, char responseinfo[])
 {
-    int ret = OB_SUCCESS;
-    if(!get_auto_elect_flag())
-    {
-      strcpy(responseinfo, "NO");
-    }
-    else
-    {
-      if(!get_is_run_election())
-      {
-        set_is_run_election(true);
-        // add by chujiajia [rs_election][multi_cluster] 20150909:b
-        /// set election state
-        if(!get_ob_election_node().get_is_exist_leader())
-        {
-          root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
-        }
-        else
-        {
-          root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-        }
-        // add:e
-        TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
-      }
-      int64_t max_log_timestamp = -1;
-      /// get log_max_timestamp from ups
-      TBSYS_LOG(INFO, "rt_rs_election:msg.log_max_timestamp_=%ld", msg.max_log_timestamp_);
-      if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
-                         get_ob_election_node().get_my_ups(),
-                         max_log_timestamp, election_message_time_out_us)))
-      {
-        TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
-      }
-      TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
-      /// max_log_timestamp>=0 means ups is normal
-      if(((int64_t)(max_log_timestamp)) >= 0)
-      {
-        if ((msg.max_log_timestamp_ >= max_log_timestamp)
-             && (get_ob_election_node().get_votefor().get_ipv4() == 0))
-        {
-          char ip_tmp[ELECTION_ARRAY_SIZE];
-          msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
-          get_ob_election_node().set_votefor(ip_tmp,msg.addr_.get_port());
-          set_starttime(time(NULL));
-          strcpy(responseinfo, "YES");
-        }
-        else if(msg.max_log_timestamp_ <max_log_timestamp)
-        {
-          TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
-          strcpy(responseinfo, "LOWER_LOG");
-        }
-      }
-    }
-    return ret;
-}
-
-int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg, char responseinfo[])
-{
-    int ret = OB_SUCCESS;
-    char ip_tmp[ELECTION_ARRAY_SIZE];
-    char ip_receive[ELECTION_ARRAY_SIZE];
-    get_ob_election_node().get_leaderinfo().ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
-    msg.addr_.ip_to_string(ip_receive, ELECTION_ARRAY_SIZE);
-    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
-    set_auto_elect_flag(msg.auto_elect_flag);
-    // add:e
+  int ret = OB_SUCCESS;
+  if(!get_auto_elect_flag())
+  {
+    strcpy(responseinfo, "NO");
+  }
+  else
+  {
     if(!get_is_run_election())
     {
       set_is_run_election(true);
       // add by chujiajia [rs_election][multi_cluster] 20150909:b
+      /// set election state
       if(!get_ob_election_node().get_is_exist_leader())
       {
         root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -565,112 +508,169 @@ int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg
       // add:e
       TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
     }
-    //add by chujiajia [rs_election][multi_cluster] 20150923:b
     int64_t max_log_timestamp = -1;
-    /// get ups_max_log from ups
+    /// get log_max_timestamp from ups
+    TBSYS_LOG(INFO, "rt_rs_election:msg.log_max_timestamp_=%ld", msg.max_log_timestamp_);
     if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
-                      get_ob_election_node().get_my_ups(),
-                      max_log_timestamp, election_message_time_out_us)))
+                     get_ob_election_node().get_my_ups(),
+                     max_log_timestamp, election_message_time_out_us)))
     {
       TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
     }
     TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
-    if (get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+    /// max_log_timestamp>=0 means ups is normal
+    if(((int64_t)(max_log_timestamp)) >= 0)
     {
-      get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
-      get_ob_election_node().set_is_exist_leader(true);
-      get_ob_election_node().set_role(OB_FOLLOWER);
-      root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
-      root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-      get_ob_election_node().set_is_leader(false);
-      ///update lease
-      get_ob_election_node().set_lease(msg.lease_);
-      get_ob_election_node().set_is_lower_log(false);
-      TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
-                     ip_receive, get_ob_election_node().get_lease());
-    }
-    else if (strcmp(ip_tmp, ip_receive) == 0)
-    {
-      get_ob_election_node().set_lease(msg.lease_);
-      TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
-                      ip_tmp, get_ob_election_node().get_lease());
-      // reply YES iff (1) ip of leader does not change and (2) ups is alive
-      if (((int64_t)(max_log_timestamp)) >= 0)
+      if ((msg.max_log_timestamp_ >= max_log_timestamp)
+         && (get_ob_election_node().get_votefor().get_ipv4() == 0))
       {
+        char ip_tmp[ELECTION_ARRAY_SIZE];
+        msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+        get_ob_election_node().set_votefor(ip_tmp,msg.addr_.get_port());
+        set_starttime(time(NULL));
         strcpy(responseinfo, "YES");
       }
+      else if(msg.max_log_timestamp_ <max_log_timestamp)
+      {
+       TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
+       strcpy(responseinfo, "LOWER_LOG");
+      }
     }
-    return ret;
+  }
+  return ret;
+}
+
+int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg, char responseinfo[])
+{
+  int ret = OB_SUCCESS;
+  char ip_tmp[ELECTION_ARRAY_SIZE];
+  char ip_receive[ELECTION_ARRAY_SIZE];
+  get_ob_election_node().get_leaderinfo().ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+  msg.addr_.ip_to_string(ip_receive, ELECTION_ARRAY_SIZE);
+  // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+  set_auto_elect_flag(msg.auto_elect_flag);
+  // add:e
+  if(!get_is_run_election())
+  {
+    set_is_run_election(true);
+    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    if(!get_ob_election_node().get_is_exist_leader())
+    {
+      root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
+    }
+    else
+    {
+      root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+    }
+    // add:e
+    TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+  }
+  //add by chujiajia [rs_election][multi_cluster] 20150923:b
+  int64_t max_log_timestamp = -1;
+  /// get ups_max_log from ups
+  if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
+                      get_ob_election_node().get_my_ups(),
+                      max_log_timestamp, election_message_time_out_us)))
+  {
+    TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
+  }
+  TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
+  if (get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+  {
+    get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
+    get_ob_election_node().set_is_exist_leader(true);
+    get_ob_election_node().set_role(OB_FOLLOWER);
+    root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+    root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+    get_ob_election_node().set_is_leader(false);
+    ///update lease
+    get_ob_election_node().set_lease(msg.lease_);
+    get_ob_election_node().set_is_lower_log(false);
+    TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+                     ip_receive, get_ob_election_node().get_lease());
+  }
+  else if (strcmp(ip_tmp, ip_receive) == 0)
+  {
+    get_ob_election_node().set_lease(msg.lease_);
+    TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
+                    ip_tmp, get_ob_election_node().get_lease());
+    // reply YES iff (1) ip of leader does not change and (2) ups is alive
+    if (((int64_t)(max_log_timestamp)) >= 0)
+    {
+      strcpy(responseinfo, "YES");
+    }
+  }
+  return ret;
 }
 
 int ObCheckRsElection::handle_broadcast(const common::ObMsgRsElection &msg, char responseinfo[])
 {
-    int ret = OB_SUCCESS;
-    if(!get_is_run_election())
+  int ret = OB_SUCCESS;
+  if(!get_is_run_election())
+  {
+    set_is_run_election(true);
+    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    if(!get_ob_election_node().get_is_exist_leader())
     {
-      set_is_run_election(true);
-      // add by chujiajia [rs_election][multi_cluster] 20150909:b
-      if(!get_ob_election_node().get_is_exist_leader())
-      {
-        root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
-      }
-      else
-      {
-        root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-      }
-      // add:e
-      TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+      root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
     }
-    if (get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+    else
     {
-      char ip_tmp[ELECTION_ARRAY_SIZE];
-      msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
-      get_ob_election_node().set_leaderinfo(ip_tmp,msg.addr_.get_port());
-      get_ob_election_node().set_role(OB_FOLLOWER);
-      get_ob_election_node().set_is_leader(false);
-      get_ob_election_node().set_is_exist_leader(true);
-      // add by chujiajia [rs_election][multi_cluster] 20150909:b
-      root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
       root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-      // add:e
-      get_ob_election_node().set_is_lower_log(false);
-      get_ob_election_node().set_lease(msg.lease_);
-      // delete by chujiajia [rs_election][multi_cluster] 20150902:b
-      // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
-      // delete:e
-      strcpy(responseinfo, "YES");
-      // delete by chujiajia [rs_election][multi_cluster] 20150902:b
-      // TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld,term=%ld",
-      //                 ip_tmp,
-      //                 check_rselection_thread_.get_ob_election_node().get_lease(),
-      //                 check_rselection_thread_.get_ob_election_node().get_current_term());
-      // delete:e
-      TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld",
-                      ip_tmp,
-                      get_ob_election_node().get_lease());
     }
-    return ret;
+    // add:e
+    TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
+  }
+  if (get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
+  {
+    char ip_tmp[ELECTION_ARRAY_SIZE];
+    msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
+    get_ob_election_node().set_leaderinfo(ip_tmp,msg.addr_.get_port());
+    get_ob_election_node().set_role(OB_FOLLOWER);
+    get_ob_election_node().set_is_leader(false);
+    get_ob_election_node().set_is_exist_leader(true);
+    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
+    root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
+    // add:e
+    get_ob_election_node().set_is_lower_log(false);
+    get_ob_election_node().set_lease(msg.lease_);
+    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
+    // delete:e
+    strcpy(responseinfo, "YES");
+    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    // TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld,term=%ld",
+    //                 ip_tmp,
+    //                 check_rselection_thread_.get_ob_election_node().get_lease(),
+    //                 check_rselection_thread_.get_ob_election_node().get_current_term());
+    // delete:e
+    TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld",
+                    ip_tmp,
+                    get_ob_election_node().get_lease());
+  }
+  return ret;
 }
 
 int ObCheckRsElection::handle_expire(char responseinfo[])
 {
-    int ret = OB_SUCCESS;
-    if (OB_SUCCESS == (ret = get_ob_election_node().expire_reset()))
-    {
-      strcpy(responseinfo, "YES");
-      TBSYS_LOG(INFO, "expire_reset()==OB_SUCCESS");
-    }
-    return ret;
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS == (ret = get_ob_election_node().expire_reset()))
+  {
+    strcpy(responseinfo, "YES");
+    TBSYS_LOG(INFO, "expire_reset()==OB_SUCCESS");
+  }
+  return ret;
 }
 
 int ObCheckRsElection::handle_electiontimeout(char responseinfo[])
 {
-    int ret = OB_SUCCESS;
-    if (OB_SUCCESS == (ret = get_ob_election_node().timeout_reset()))
-    {
-      strcpy(responseinfo, "YES");
-      TBSYS_LOG(INFO, "timeout_reset()==OB_SUCCESS");
-    }
-    return ret;
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS == (ret = get_ob_election_node().timeout_reset()))
+  {
+    strcpy(responseinfo, "YES");
+    TBSYS_LOG(INFO, "timeout_reset()==OB_SUCCESS");
+  }
+  return ret;
 }
 //add:e
