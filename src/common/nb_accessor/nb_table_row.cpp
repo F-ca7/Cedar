@@ -51,6 +51,16 @@ void TableRow::dump() const
   }
 }
 
+//add wenghaixing [secondary index.static_index]20160117
+void TableRow::dump_test() const
+{
+  for (int64_t i = 0 ; i < cell_count_; ++i)
+  {
+    TBSYS_LOG(INFO, "test::whx cell:%ld, %s", i, print_cellinfo(&cells_[i]));
+  }
+}
+//add e
+
 int TableRow::init(hash::ObHashMap<const char*, int64_t>* cell_map, ObCellInfo* cells, int64_t cell_count)
 {
   int ret = OB_SUCCESS;

@@ -46,12 +46,44 @@ namespace oceanbase
     {
     }
 
-    int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
+    //modify wenghaixing [secondary index.static_index]20160118
+    /*int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
         const ObServer & merge_server, const bool is_merger, int32_t & status, const char* server_version) const
     {
       return send_3_return_1(root_server, timeout, OB_SERVER_REGISTER,
                              DEFAULT_VERSION, merge_server, is_merger, server_version, status);
+    }*/
+    int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
+                                          const ObServer & chunk_server, const bool is_merger,
+                                          int32_t & status, int64_t &cluster_id,
+                                          const char* server_version) const
+    {
+      int ret = OB_SUCCESS;
+      int64_t pos = 0;
+      ObDataBuffer data_buffer;
+      ObResultCode rc;
+
+      if (OB_SUCCESS != (ret = get_rpc_buffer(data_buffer)))
+      {
+        TBSYS_LOG(WARN, "get_rpc_buffer failed with rpc call, ret =%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = send_param_3(data_buffer, root_server, timeout,
+                                                 OB_SERVER_REGISTER, DEFAULT_VERSION,
+                                                 chunk_server, is_merger, server_version)))
+      {
+        TBSYS_LOG(WARN, "send param to register server fail, ret: [%d]", ret);
+      }
+      else if (OB_SUCCESS != (ret = deserialize_result_1(data_buffer, pos, rc, status)))
+      {
+        TBSYS_LOG(ERROR, "deserialize server register result fail, ret: [%d]", ret);
+      }
+      else if (OB_SUCCESS != deserialize_result(data_buffer, pos, cluster_id)) /* succ though */
+      {
+        TBSYS_LOG(WARN, "deserialize cluster_id fail, maybe rootserver has low version.");
+      }
+      return ret;
     }
+    //modify e
 
     int ObGeneralRpcStub::register_merge_server(const int64_t timeout,
                                                 const common::ObServer & root_server,

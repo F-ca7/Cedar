@@ -39,7 +39,7 @@ namespace oceanbase
           if(OB_ITER_END == ret)
           {
             local_idx_scan_finish_ = true;
-            TBSYS_LOG(INFO, "local_idx_scan_finish_ is true");
+            //TBSYS_LOG(INFO, "local_idx_scan_finish_ is true");
           }
           else
           {
@@ -56,6 +56,7 @@ namespace oceanbase
            }
           else
           {
+            TBSYS_LOG(ERROR, "get interactive next row failed");
           }
         }
         else

@@ -70,8 +70,13 @@ namespace oceanbase
         //        @root_server root server addr
         //        @merge_server merge server addr
         //        @is_merger merge server status
+        //modify wenghaixing [secondary index.static_index]20160118
+        //int register_server(const int64_t timeout, const common::ObServer & root_server,
+            //const common::ObServer & server, const bool is_merger, int32_t &status, const char* server_version) const;
         int register_server(const int64_t timeout, const common::ObServer & root_server,
-            const common::ObServer & server, const bool is_merger, int32_t &status, const char* server_version) const;
+                            const common::ObServer & chunk_server, const bool is_merger,
+                            int32_t &status, int64_t &cluster_id, const char* server_version) const;
+        //modify e
 
         // register to root server as a merge server by rpc call
         // param  @timeout  action timeout

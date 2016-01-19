@@ -25,7 +25,8 @@ namespace oceanbase
                     ObChunkServerMain::get_instance()->get_chunk_server().get_config().merge_timeout)
     {
       // TODO Auto-generated constructor stub
-      table_id_ = 1024;
+      table_id_ = 1024;//@fixme(longfei):for test
+      //TBSYS_LOG(ERROR,"test::longfei>>>handle_pool_ is null?[%s]",((get_handle_pool() == NULL)?"yes":"no"));
 
     }
 

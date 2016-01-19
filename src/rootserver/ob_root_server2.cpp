@@ -7699,7 +7699,11 @@ int ObRootServer2::trigger_create_table(const uint64_t table_id/* =0 */)
       }
     }
   }
-  if (OB_SUCCESS == ret)
+  //modify wenghaixing [secondary index.static_index]20160118
+  //if (OB_SUCCESS == ret)
+  if ((OB_SUCCESS == ret && OB_INVALID_ID == table_schema.original_table_id_)
+      || (OB_SUCCESS == ret && OB_INVALID_ID != table_schema.original_table_id_ && get_config().index_immediate_effect))
+  //add e
   {
     ObArray<ObServer> created_cs;
     ret = create_empty_tablet(table_schema, created_cs);

@@ -42,6 +42,9 @@ namespace common
       int set_cell(ObCellInfo* cell, int64_t index);
       int64_t count() const;
       void dump() const;
+      //add wenghaixing [secondary index.static_index]20160117
+      void dump_test() const;
+      //add e
 
     private:
       bool check_inner_stat() const;

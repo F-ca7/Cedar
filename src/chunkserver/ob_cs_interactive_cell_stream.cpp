@@ -188,7 +188,7 @@ namespace oceanbase
              ret = ObCellStream::rpc_scan_row_data(cur_scan_param_, (chunkserver_)[cur_rep_index_].server_.chunkserver_);
              if(OB_SUCCESS != ret)
              {
-               cur_rep_index_ ++;//< 只要第一副本失败了,从下次开始就换个CS取数据
+               cur_rep_index_ ++;///< 只要第一副本失败了,从下次开始就换个CS取数据
 
              }
            } while(OB_TABLET_HAS_NO_LOCAL_SSTABLE == ret && cur_rep_index_ < MAX_REP_COUNT);

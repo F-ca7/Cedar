@@ -1570,7 +1570,7 @@ int ObExtraTablesSchema::all_column_checksum_stat(TableSchema &table_schema)
         ObIntType,  //column_type
         sizeof(int64_t), //column length
         false); //is nullable
-    ADD_COLUMN_SCHEMA("culster_id", //column_name
+    ADD_COLUMN_SCHEMA("cluster_id", //column_name
         column_id ++, //column_id
         2, //rowkey_id
         ObIntType,  //column_type

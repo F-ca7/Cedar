@@ -2093,6 +2093,19 @@ namespace oceanbase
         }
       }
 
+      //add wenghaixing [secondary index.static_index]20160118
+      //serialized buffer in cluster_id
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::encode_vi64(out_buff.get_data(), out_buff.get_capacity(),
+                                         out_buff.get_position(), config_.cluster_id);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "serialize cluster_id error");
+        }
+      }
+      //add e
+
       if (OB_SUCCESS == ret)
       {
         send_response(OB_SERVER_REGISTER_RESPONSE, MY_VERSION, out_buff, req, channel_id);

@@ -323,10 +323,15 @@ namespace oceanbase
       status = 0;
       char server_version[OB_SERVER_VERSION_LENGTH] = "";
       get_package_and_svn(server_version, sizeof(server_version));
-
+      //add wenghaixing [secondary index.static_index]20160117
+      int64_t cluster_id = 0;
+      //add e
       while (inited_)
       {
-        rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status, server_version);
+        //modify wenghaixing [secondary index.static_index]20160117
+        //rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status,  server_version);
+          rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status, cluster_id,  server_version);
+        //modify e
         if (OB_SUCCESS == rc) break;
         if (OB_RESPONSE_TIME_OUT != rc && OB_NOT_INIT != rc)
         {
@@ -335,6 +340,12 @@ namespace oceanbase
         }
         usleep(static_cast<useconds_t>(chunk_server_->get_config().network_timeout));
       }
+      //add wenghaixing [secondary index.static_index]20160117
+      if (OB_SUCCESS == rc)
+      {
+        chunk_server_->get_config().cluster_id = cluster_id;
+      }
+      //add e
       return rc;
     }
 

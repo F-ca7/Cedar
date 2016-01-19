@@ -2018,6 +2018,7 @@ int ObSchemaServiceImpl::check_column_checksum(const int64_t orginal_table_id, c
     return ret;
 }
 
+//modify wenghaixing [secondary index.static_index]20160118
 int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version)
 {
     int ret = OB_SUCCESS;
@@ -2025,18 +2026,20 @@ int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_ver
     TableRow* table_row = NULL;
     ObNewRange range;
     int64_t cell_index = 0;
-
+    //int64_t version_index  = 2;
+    int64_t filter_version = current_version - max_draution_of_version;
     range.set_whole_range();
+    ScanConds conds;
+    conds("version", LT, filter_version);
+    TBSYS_LOG(INFO, "clean version less than %ld, conds count = %ld",filter_version, conds.count());
 
-    TBSYS_LOG(INFO, "clean version less than %ld", current_version - max_draution_of_version);
-
-    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("version"), ScanConds("version", LT, current_version - max_draution_of_version))))
+    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("version"), conds)))
     {
       TBSYS_LOG(WARN, "failed to scan data to delete from column_checksum ret[%d]" , ret);
     }
     else
     {
-      while(OB_SUCCESS == res->next_row())
+      while(OB_SUCCESS == res->next_row()&& OB_SUCCESS == ret)
       {
         if(OB_SUCCESS != (ret = res->get_row(&table_row)))
         {
@@ -2045,6 +2048,7 @@ int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_ver
         }
         else if(NULL != table_row)
         {
+          table_row->dump_test();
           if(OB_SUCCESS != (ret = nb_accessor_.delete_row(OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, table_row->get_cell_info(cell_index)->row_key_)))
           {
             TBSYS_LOG(WARN, "failed to delete one row from column cheksum ret[%d]", ret);
@@ -2058,17 +2062,10 @@ int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_ver
           break;
         }
       }
-      if (OB_ITER_END != ret)
-      {
-        TBSYS_LOG(WARN, "failed to get table column checksum");
-      }
-      else
-      {
-        ret = OB_SUCCESS;
-      }
     }
     return ret;
 }
+//modify e
 
 int ObSchemaServiceImpl::get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum)
 {
