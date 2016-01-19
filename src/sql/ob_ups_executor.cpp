@@ -91,6 +91,10 @@ int ObUpsExecutor::open()
     session = my_phy_plan_->get_result_set()->get_session();
 
     inner_plan_->set_result_set(my_result_set);
+//add wangjiahao [dev_update_more] 20160119 :b
+    //set inner_plan timeout_timestamp in order to terminate the long running in subquery.
+    inner_plan_->set_timeout_timestamp(this->my_phy_plan_->get_timeout_timestamp());
+ //add :e
     inner_plan_->set_curr_frozen_version(my_phy_plan_->get_curr_frozen_version());
     local_result_.clear();
     // When read_only is enabled, the server permits no updates except for system tables.

@@ -87,9 +87,10 @@ int ObFillValues::open()
   {
     int64_t cell_num = row_desc->get_column_num();
     bool is_empty = false;
+    int64_t remain_us = 0;
 
     //fill data
-    while(OB_SUCCESS == ret && !this->my_phy_plan_->is_terminate(ret))
+    while(OB_SUCCESS == ret && !this->my_phy_plan_->is_terminate(ret) && !this->my_phy_plan_->is_timeout(&remain_us))
     {
       ret = op_from_->get_next_row(cur_row);
       if (OB_ITER_END == ret)
@@ -161,6 +162,10 @@ int ObFillValues::open()
     }
     //query canceled
     if (OB_ERR_QUERY_INTERRUPTED == ret || OB_ERR_SESSION_INTERRUPTED == ret)
+    {
+      ret = OB_SUCCESS;
+    }
+    if (remain_us < 0)
     {
       ret = OB_SUCCESS;
     }
