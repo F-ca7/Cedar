@@ -4744,8 +4744,7 @@ namespace oceanbase
       {
         //NORMAL STATUS, DO NOTHING AT THIS TIME
       }
-      else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_
-          && LOCAL_INDEX_STAGE == beat.stage_)
+      else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_ && LOCAL_INDEX_STAGE == beat.stage_)
       {
         //con local static index
         TBSYS_LOG(DEBUG,
@@ -4753,6 +4752,7 @@ namespace oceanbase
             se_index_task_.get_schedule_idx_tid(),
             se_index_task_.is_scheduled(),
             se_index_task_.get_round_end());
+
         //check if this idx_tid_ is processing?
         is_processing = se_index_task_.check_if_in_processing(beat.idx_tid_);
         if (!se_index_task_.is_scheduled() && se_index_task_.get_round_end())
@@ -4788,8 +4788,7 @@ namespace oceanbase
           se_index_task_.try_stop_mission(beat.idx_tid_);
         }
       }
-      else if(OB_INVALID_ID != beat.idx_tid_
-          && GLOBAL_INDEX_STAGE == beat.stage_)
+      else if(OB_INVALID_ID != beat.idx_tid_ && GLOBAL_INDEX_STAGE == beat.stage_)
       {
         //con global static index
         bool new_flag = se_index_task_.check_new_global();
@@ -4808,18 +4807,14 @@ namespace oceanbase
             {
               //se_index_task_.set_hist_width(beat.hist_width_);
               se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
-              TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]",
-                  beat.idx_tid_, beat.hist_width_);
-              if (OB_SUCCESS
-                  != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
+              TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]", beat.idx_tid_, beat.hist_width_);
+              if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
               {
-                TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us",
-                    wait_time);
+                TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
               }
               else
               {
-                TBSYS_LOG(INFO, "launch a new index process after wait %ld us",
-                    wait_time);
+                TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
                 se_index_task_.set_scheduled();
               }
             }

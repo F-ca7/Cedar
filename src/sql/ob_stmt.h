@@ -10,7 +10,7 @@
 
 namespace oceanbase
 {
-  // add by zcd 20141216 :b
+  // add longfei
   namespace sql
   {
     using namespace common;
@@ -46,7 +46,7 @@ namespace oceanbase
       typedef int32_t difference_type;
     };
   }
-  // add :e
+
   namespace sql
   {
     struct ObQueryHint
@@ -56,17 +56,15 @@ namespace oceanbase
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
       }
-
-      // add by zcd 20141218 :b
       bool has_index_hint() const
       {
         return use_index_array_.size() > 0 ? true : false;
       }
-      // end :e
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_; // add by zcd 20141216
     };
+    // add :e
     
     struct TableItem
     {

@@ -170,7 +170,7 @@ namespace oceanbase
             int32_t* index);
 
         //add fanqiushi_index
-        int gen_phy_table_for_storing(
+        int gen_phy_table_not_back(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
@@ -183,7 +183,7 @@ namespace oceanbase
             uint64_t index_tid=OB_INVALID_ID,
             common::Expr_Array *filter_array=NULL,
             common::Expr_Array *project_array=NULL );
-        int gen_phy_table_without_storing(
+        int gen_phy_table_back(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
@@ -206,7 +206,7 @@ namespace oceanbase
             bool* group_agg_pushed_down = NULL,
             bool* limit_pushed_down = NULL);
 
-        //add fanqiushi_index
+        //add longfei
         bool handle_index_for_one_table(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -287,7 +287,7 @@ namespace oceanbase
             ErrStat& err_stat,
             ObShowStmt *show_stmt,
             ObPhyOperator *&out_op);
-        //add liumengzhan_show_index
+        //add longfei
         int gen_phy_show_index(
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,

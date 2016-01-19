@@ -79,18 +79,22 @@ namespace oceanbase
 
         TBSYS_LOG(INFO,"config merge thread num[%ld],MAX WORK THREAD[%ld]",max_work_thread_num,MAX_WORK_THREAD);
 
+        // 创建两个hashmap,用来保存rs切分的range
         if (OB_SUCCESS != (ret = set_config_param()))
         {
           TBSYS_LOG(ERROR, "failed to set index work param[%d]", ret);
         }
+        // 调用tbsys::CDefaultRunnable的start函数来启动多个线程
         else if (OB_SUCCESS != (ret = create_work_thread(max_work_thread_num)))
         {
           TBSYS_LOG(ERROR, "failed to initialize thread for index[%d]", ret);
         }
+        // 为每一个handler(完成索引构建的类)分配空间
         else if (OB_SUCCESS != (ret = create_all_index_handlers()))
         {
           TBSYS_LOG(ERROR, "failed to create all index handler[%d]", ret);
         }
+        // 初始化处理索引构建失败信息保存类
         else if (OB_SUCCESS != (ret = black_list_array_.init()))
         {
           TBSYS_LOG(ERROR, "failed to init black list array");
@@ -149,9 +153,7 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       TBSYS_LOG(INFO, "NOW START CREATE INDEX HANDLER");
-      if (OB_SUCCESS
-          != (ret = create_index_handlers(global_handler_, local_handler_,
-                                          MAX_WORK_THREAD)))
+      if (OB_SUCCESS != (ret = create_index_handlers(global_handler_, local_handler_, MAX_WORK_THREAD)))
       {
         TBSYS_LOG(ERROR, "failed to create index handlers");
       }
@@ -160,7 +162,8 @@ namespace oceanbase
 
     int ObIndexHandlePool::create_index_handlers(
         ObGlobalIndexHandler **global_handler,
-        ObLocalIndexHandler **local_handler, const int64_t size)
+        ObLocalIndexHandler **local_handler,
+        const int64_t size)
     {
       int ret = OB_SUCCESS;
       char* ptr = NULL;
@@ -169,10 +172,7 @@ namespace oceanbase
         ret = OB_INVALID_ARGUMENT;
         TBSYS_LOG(ERROR, "the pointer of index handler is null");
       }
-      else if (NULL
-               == (ptr = reinterpret_cast <char*>(ob_malloc(
-                                                    (sizeof(ObGlobalIndexHandler) + sizeof(ObLocalIndexHandler))
-                                                    * size, ObModIds::OB_INDEX_HANDLER))))
+      else if (NULL == (ptr = reinterpret_cast <char*>(ob_malloc((sizeof(ObGlobalIndexHandler) + sizeof(ObLocalIndexHandler)) * size, ObModIds::OB_INDEX_HANDLER))))
       {
         TBSYS_LOG(WARN, "allocate memory for index handler object error");
         ret = OB_ALLOCATE_MEMORY_FAILED;

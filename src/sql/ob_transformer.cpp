@@ -1752,7 +1752,7 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
  * add longfei [secondary index select] 20151101
  * for secondary index use select
  */
-int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
+int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, bool is_use_storing_column, uint64_t index_tid, Expr_Array *filter_array,
     Expr_Array *project_array)
 {
@@ -1769,7 +1769,7 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   }
   sec_idx_ser->init(sql_context_->schema_manager_);
   int64_t num = 0;
-//  int64_t sub_query_num = 0;        //add fanqiushi_index_in  tianz
+//  int64_t sub_query_num = 0;
   bool is_ailias_table = false;
   ObRpcScanHint hint;
   uint64_t source_tid = OB_INVALID_ID;
@@ -1789,7 +1789,7 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(ERROR,"test::longfei,,,source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());    if (table_item->type_ == TableItem::ALIAS_TABLE)
+    TBSYS_LOG(INFO,"source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());    if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
       is_ailias_table = true;
     }
@@ -1950,7 +1950,7 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
           }
         }
         //output_expr.set_tid_cid();
-        if (output_expr.get_table_id() == source_tid)    //���ñ���ʽ��tid��
+        if (output_expr.get_table_id() == source_tid)
         {
           output_expr.set_table_id(index_tid);
         }
@@ -1969,70 +1969,12 @@ int ObTransformer::gen_phy_table_for_storing(ObLogicalPlan *logical_plan, ObPhys
   }
   *group_agg_pushed_down = false;
   *limit_pushed_down = false;
-  /*
-   * del longfei subquery will be done in future
-   */
-  /*
-  //add by fanqiushi_index_in tianz
-  ObMultiBind *multi_bind_op = NULL;
-  if (ret == OB_SUCCESS && (sub_query_num > 0))
-  //if(ret!=OB_SUCCESS)
-  {
-    physical_plan->need_extend_time();
-    int32_t main_query_idx = 0;
-    if (CREATE_PHY_OPERRATOR(multi_bind_op, ObMultiBind, physical_plan,
-        err_stat) == NULL || (ret = multi_bind_op->set_child(main_query_idx, *table_op)) != OB_SUCCESS)
-    {
-      TRANS_LOG("fail to set child:ret[%d]", ret);
-    }
-    else
-    {
-      ObTableRpcScan *table_rpc_scan_op = dynamic_cast<ObTableRpcScan *>(table_scan_op);
-      if (NULL == table_rpc_scan_op)
-      {
-        ret = OB_ERROR;
-        TRANS_LOG("wrong get table_rpc_scan_op, can't dynamic cast");
-      }
-      else
-      {
-        //for every sub_query
-        //1.get it's physical plan index from main query(ObTableRpcScan)
-        //2.get it's top physical operator address from ObPhysicalPlan by it's physical plan index
-        //3.bind it's top physical operator address to ObMultiBind
-        for (int32_t sub_query_idx = 1; sub_query_idx <= sub_query_num; sub_query_idx++)
-        {
-          int32_t index = OB_INVALID_INDEX;
-          ObPhyOperator * sub_operator = NULL;
-          if ((ret = table_rpc_scan_op->get_sub_query_index(sub_query_idx, index)) != OB_SUCCESS)
-          {
-            TRANS_LOG("wrong get sub query index");
-          }
-          else if (NULL == (sub_operator = physical_plan->get_phy_query(index)))
-          {
-            ret = OB_INVALID_INDEX;
-            TRANS_LOG("wrong get sub query operator");
-          }
-          else if (OB_SUCCESS != (ret = multi_bind_op->set_child(sub_query_idx, *sub_operator)))
-          {
-            TRANS_LOG("fail to set child:ret[%d]", ret);
-          }
 
-        }
-      }
-
-    }
-    //set multi_bind_op as top opertator
-    if (ret == OB_SUCCESS)
-      table_op = multi_bind_op;
-  }
-  */
-
-  //add:e
   return ret;
 }
 
 //add longfei
-int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
+int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, uint64_t index_tid_without_storing, Expr_Array * filter_array,
     Expr_Array * project_array)
 {
@@ -2282,8 +2224,27 @@ int ObTransformer::gen_phy_table_without_storing(ObLogicalPlan *logical_plan, Ob
   return ret;
 }
 
-bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
-    ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down)
+/**
+* @brief Query Optimization for using secondaryIndex
+* @param in logical_plan
+* @param out physical_plan
+* @param out err_stat
+* @param in stmt
+* @param in table_id
+* @param out table_op new root operator if we using secondaryIndex
+* @param in group_agg_pushed_down
+* @param in limit_pushed_down
+* @return ture : use index or false : can't use index
+*/
+bool ObTransformer::handle_index_for_one_table(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    ObStmt *stmt,
+    uint64_t table_id,
+    ObPhyOperator*& table_op,
+    bool* group_agg_pushed_down,
+    bool* limit_pushed_down)
 {
   Expr_Array filter_array;
   Expr_Array project_array;
@@ -2323,7 +2284,6 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
     TBSYS_LOG(WARN, "  table_item=NULL");
     ret = OB_NOT_SUPPORTED;
   }
-  //TBSYS_LOG(ERROR,"enter this2,table_id=%ld",table_id);
 
   if (OB_SUCCESS == ret)    //很据table_bitset，把sql语句中与该表有关的filter和输出列都存到相应的数组里面
   {
@@ -2512,7 +2472,7 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
     bool limit_down = false;
     if (is_use_storing_column)
     {
-      ret = gen_phy_table_for_storing(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down, is_use_storing_column, index_id,
+      ret = gen_phy_table_not_back(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down, is_use_storing_column, index_id,
           &filter_array, &project_array);
     }
     else if (is_use_index_without_storing)
@@ -2529,7 +2489,7 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
       }
       if (sub_query_num == 0)
       {
-        ret = gen_phy_table_without_storing(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down,
+        ret = gen_phy_table_back(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down,
         //is_use_storing_column,
             index_id_without_storing, &filter_array, &project_array);
       }
@@ -2569,13 +2529,12 @@ bool ObTransformer::handle_index_for_one_table(ObLogicalPlan *logical_plan, ObPh
 int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id, ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  //add fanqiushi_index
+  //add longfei
   bool handle_index_ret = false;
   ObPhyOperator* tmp_table_op = NULL;
   handle_index_ret = handle_index_for_one_table(logical_plan, physical_plan, err_stat, stmt, table_id, tmp_table_op, group_agg_pushed_down, limit_pushed_down);
   //add:e
   TBSYS_LOG(INFO, "in gen_phy_table() func && handle_index_ret is %s", handle_index_ret ? "true" : "false");
-  //handle_index_ret = false;
   if (!handle_index_ret)
   {
     TableItem* table_item = NULL;
@@ -2859,10 +2818,12 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
         *limit_pushed_down = false;
     }
   }
-  else   //add fanqiushi_index
+  //add longfei
+  else
   {
     table_op = tmp_table_op;
   }
+  // add e
 
   return ret;
 }

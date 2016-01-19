@@ -1217,13 +1217,13 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
             {
               TBSYS_LOG(WARN, "failed to sort columns in schema manager, err=%d", ret);
             }
-            //add wenghaixing [secondary index drop table_with_index]20150121
-           //init index hash when rootserver refresh new version schema
-           else if(OB_SUCCESS != (ret = out_schema.init_index_hash()))
-           {
-             TBSYS_LOG(WARN, "failed to init_index_hash");
-           }
-           //add e
+            //add [secondary index]
+            //init index hash when rootserver refresh new version schema
+            else if(OB_SUCCESS != (ret = out_schema.init_index_hash()))
+            {
+              TBSYS_LOG(WARN, "failed to init_index_hash");
+            }
+            //add e
             else if (OB_SUCCESS != (ret = switch_schema_manager(out_schema)))
             {
               TBSYS_LOG(WARN, "fail to switch schema. ret=%d", ret);
@@ -8029,7 +8029,7 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
         }
       }
     }
-    //add liumz, [obsolete trigger event, use ddl_operation]20150701:b
+
     if (force_update_schema)
     {
       int64_t count = 0;

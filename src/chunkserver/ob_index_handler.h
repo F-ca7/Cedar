@@ -44,7 +44,7 @@ namespace oceanbase
       {
         return disk_no_;
       }
-      //@todo(longfei):why i cannot use const here?
+      //@todo(longfei):why cannot use const here?
       inline common::ObNewRange get_new_range()
       {
         return new_range_;

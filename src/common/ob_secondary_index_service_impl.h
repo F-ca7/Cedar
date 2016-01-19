@@ -1,9 +1,17 @@
-/*
- * ob_secondary_index_service_impl.h
- *
- *  Created on: 2015年10月29日
- *      Author: longfei
- */
+/**
+* Copyright (C) 2013-2015 ECNU_DASE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_secondary_index_service_impl.h
+* @brief for using secondary index in select statement or more?
+*
+* @version __DaSE_VERSION
+* @author fei long <longfei@stu.ecnu.edu.cn>
+* @date 2015_10_29
+*/
 
 #ifndef COMMON_OB_SECONDARY_INDEX_SERVICE_IMPL_H_
 #define COMMON_OB_SECONDARY_INDEX_SERVICE_IMPL_H_

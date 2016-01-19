@@ -413,7 +413,6 @@ namespace oceanbase
     }
 
     /*
-     * @todo(longfei):del this!
      * longfei:不管你上面给我什么样的range，我这个函数负责的是把这个range所对应的table的所有的tablet上在这个range上的数据
      * 拿过来做一个排序！所以会分为两个部分：一部分是我这个cs上有这个range的数据，那么用封装的sstablescan去取数据；
      * 第二部分是在其他cs上的数据，通过rpc调用去其他cs上拿过来！

@@ -217,6 +217,7 @@ namespace oceanbase
       inline void set_which_stage(common::ConIdxStage which_stage)
       {
         which_stage_ = which_stage;
+        //设置global阶段的开始时间，用于判断是否是新的global阶段
         if (which_stage_ == GLOBAL_INDEX_STAGE)
         {
           total_work_start_time_ = tbsys::CTimeUtil::getTime();
