@@ -79,6 +79,13 @@ namespace oceanbase
         virtual int shutdown_cs(const common::ObServer& cs, bool is_restart, const int64_t timeout_us);
         virtual int get_row_checksum(const common::ObServer& server, const int64_t data_version, const uint64_t table_id, ObRowChecksum &row_checksum, int64_t timeout_us);
         // add by zcd [multi_cluster] 20150405:b
+        /**
+         * @brief set the config info of the specific server
+         * @param[in] server address
+         * @param[in] configure strings to be set
+         * @param[in] timeout_us the max timeout
+         * @return OB_SUCCESS if success
+         */
         virtual int set_config(const common::ObServer& server, const ObString& config_str, int64_t timeout_us);
         // add:e
 

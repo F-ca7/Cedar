@@ -48,6 +48,7 @@ using namespace oceanbase::rootserver;
 using namespace oceanbase::common;
 
 // modify by zcd [multi_cluster] 20150406:b
+/// add the parameter root_worker
 ObBootstrap::ObBootstrap(ObRootServer2 & root_server, ObRootWorker &root_worker):root_server_(root_server), log_worker_(NULL), root_worker_(&root_worker)
 // modify:e
 {

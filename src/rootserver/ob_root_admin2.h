@@ -1,8 +1,8 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
  * @file     ob_root_admin2.h
- * @brief    add a command parameters to set the
- *           auto_elect_flag of master rootserver
+ * @brief    add a rs_admin command parameters to set the
+ *           auto_elect_flag in the master rootserver
  * @version __DaSE_VERSION
  * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date     2015-12-25

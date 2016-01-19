@@ -49,6 +49,7 @@ namespace oceanbase
     {
       public:
         // modify by zcd [multi_cluster] 20150406:b
+        /// add the parameter root_worker
         ObBootstrap(ObRootServer2 & root_server, ObRootWorker &root_worker);
         // modify:e
         ~ObBootstrap();

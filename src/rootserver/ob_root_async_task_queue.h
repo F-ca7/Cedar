@@ -54,8 +54,10 @@ namespace oceanbase
       OBI_ROLE_CHANGE = 7,
       ROLE_CHANGE = 5,
       // add by zcd [multi_cluster] 20150405:b
-      // 新增的修改内部表的定时任务，表示更新__all_sys_config
-      // 这张表中的master_root_server_ip和master_root_server_port这两个记录值
+      /// represent the task which update inner table __all_sys_config
+      /// In this table there are two records master_root_server_ip and
+      /// master_root_server_port, the task is used to modify the two records
+      /// value.
       CHANGE_MASTER_CLUSTER_ROOTSERVER = 8,
       // add:e
       // add by guojinwei [obi role switch][multi_cluster] 20150916:b

@@ -129,10 +129,9 @@ int ObMsSQLProxy::init_sql_env(ObSqlContext &context, int64_t &schema_version,
     session.set_config_provider(&ms_service_->get_config());
 
     // add by zcd [multi_cluster] 20150406:b
-    // 为了解决alter system这样的sql语句在OB_SQL_EXECUTE
-    // 这个远程处理流程中无法执行的问题，必须在session的初始化
-    // 过程中指定对应的tx_isolation,ob_tx_timeout,
-    // ob_tx_idle_timeout的值
+    /// fix the bug: when we execute sql like 'alter system' through OB_SQL_EXECUTE RPC function,
+    /// the function doesn't work, so we should set the value of tx_isolation, ob_tx_timeout and
+    /// ob_tx_idle_timeout during the initialization of the session.
     ObObj type_tx_isolation;
     ObString name_str_tx_isolation = ObString::make_string("tx_isolation");
     ObObj value_tx_isolation;

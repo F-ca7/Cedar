@@ -7,8 +7,8 @@
  *
  * @file ob_root_inner_table_task.cpp
  * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
- *        add the CHANGE_MASTER_CLUSTER_ROOTSERVER task_type to the process.
+ * some functions, member variables
+ * add the CHANGE_MASTER_CLUSTER_ROOTSERVER task_type to the process.
  *
  * @version __DaSE_VERSION
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
@@ -121,8 +121,8 @@ int ObRootInnerTableTask::modify_all_server_table(const ObRootAsyncTaskQueue::Ob
       TBSYS_LOG(INFO, "process inner task succ:task_id[%lu], timestamp[%ld], sql[%s]",
           task.get_task_id(), task.get_task_timestamp(), buf);
     }
-  // add by zcd [multi_cluster] 20150416:b
-  // 处理任务失败的时候也要输出出来是那个sql执行有错
+    // add by zcd [multi_cluster] 20150416:b
+    /// output the error message and the failed SQL
     else
     {
       TBSYS_LOG(INFO, "process inner task failed:task_id[%lu], timestamp[%ld], sql[%s]",

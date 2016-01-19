@@ -45,6 +45,13 @@ namespace oceanbase
     {
     public:
       // modify by zcd [multi_cluster] 20150405:b
+      /**
+       * @brief the constructed function of class ObRootSQLProxy
+       * @param[in] server_manager
+       * @param[in] config
+       * @param[in] rpc_stub
+       * @param[in] root_worker
+       */
       ObRootSQLProxy(ObChunkServerManager & server_manager, ObRootServerConfig &config, ObRootRpcStub & rpc_stub, ObRootWorker &root_worker);
       // modify:e
       virtual ~ObRootSQLProxy();

@@ -60,8 +60,16 @@ namespace oceanbase
         int64_t to_string(char* buffer, const int64_t size) const;
         bool ip_to_string(char* buffer, const int32_t size) const;
         const char* to_cstring() const; // use this carefully, the content of the returned buffer will be modified by the next call
-
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief set_ipv6_addr
+         * convert the ip_str which is stored as a string to current type
+         * @param ip
+         * @param port
+         * @return
+         */
         bool set_ipv6_addr(const char* ip, const int32_t port);     // copy from 0.5
+        // add:e
         bool set_ipv4_addr(const char* ip, const int32_t port);
         bool set_ipv4_addr(const int32_t ip, const int32_t port);
 
@@ -79,9 +87,24 @@ namespace oceanbase
         uint64_t get_ipv6_low() const;
         void set_port(int32_t port);
         void set_max();
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief is_valid
+         * check if the address is valid
+         * @return true if the address is valid
+         */
         bool is_valid() const;
+        // add:e
         void reset_ipv4_10(int ip = 10);
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief parse_from_cstring
+         * convert the ip address stored as the string format to current type.
+         * @param ip_str ip address stored as string.
+         * @return OB_SUCCESS if success
+         */
         int parse_from_cstring(const char* ip_str);   // copy from 0.5
+        // add:e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
 

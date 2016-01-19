@@ -1147,7 +1147,7 @@ namespace oceanbase
         }
       }
       // add by zcd [multi_cluster] 20150405:b
-      // 在只有一个lms的时候就返回lms的地址
+      /// return the lms's address when only one lms exists.
       if(ms_num == 0 && size() > 0)
       {
         ms_num = 1;

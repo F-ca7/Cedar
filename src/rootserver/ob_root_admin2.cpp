@@ -97,9 +97,9 @@ namespace oceanbase
       printf("\tget_obi_role\n");
       printf("\tset_obi_role -o OBI_SLAVE|OBI_MASTER\n");
       // add by zcd [multi_cluster] 20150416:b
-      // 将指定的rs所在集群设定为主集群
+      /// set the specific cluster as the master cluster
       printf("\tset_obi_master_rs\n");
-      // 在集群第一次启动的时候，将指定的集群设定为主集群
+      /// set the specific cluster as the master cluster before the initialization of OB
       printf("\tset_obi_master_first\n");
       // add:e
       printf("\tget_config\n");

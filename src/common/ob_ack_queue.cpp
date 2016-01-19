@@ -416,15 +416,16 @@ namespace oceanbase
         }
         if (-1 == index_temp)
         {
-          // 没有找到合适的备机，说明有响应的备机的数量没有达到majority_count_
-          // 系统错误码暂时使用OB_ERROR
+          // there are no available slaves exist, which means the count
+          // of responsing slaves have not reach at majority_count_.
+          // set the error code as OB_ERROR temporarily.
           TBSYS_LOG(ERROR, "The amount of slaves is less than majority_count.");
           err = OB_ERROR;
           break;
         }
         else if (true == slave_array_[index_temp].query_flag_)
         {
-          // 正常情况下进入不到该分支
+          // normaly the process should not be here
           err = OB_ERROR;
           break;
         }

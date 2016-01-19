@@ -59,7 +59,7 @@ namespace oceanbase
     static const int OB_RS_ADMIN_CLEAN_ROOT_TABLE = 20;
     static const int OB_RS_ADMIN_CHECK_SCHEMA = 21;
     // add by zcd [multi_cluster] 20150416:b
-    // 为rs_admin工具添加的两个命令对应的号码
+    /// allocate two numbers for the rs_admin tools
     static const int OB_RS_ADMIN_SET_OBI_MASTER_RS = 22;
     static const int OB_RS_ADMIN_SET_OBI_MASTER_FIRST = 23;
     // add:e

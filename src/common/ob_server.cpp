@@ -104,6 +104,7 @@ namespace oceanbase
       return buff[ i % BUFFER_NUM];
     }
 
+    // add by zhangcd [rs_election] 20151129:b
     bool ObServer::is_valid() const
     {
       bool valid = true;
@@ -118,6 +119,7 @@ namespace oceanbase
       }
       return valid;
     }
+    // add:e
 
     bool ObServer::set_ipv4_addr(const char* ip, const int32_t port)
     {
@@ -388,14 +390,17 @@ namespace oceanbase
       return total_size;
     }
 
-     bool ObServer::set_ipv6_addr(const char* ip, const int32_t port)
+    // add by zhangcd [rs_election] 20151129:b
+    bool ObServer::set_ipv6_addr(const char* ip, const int32_t port)
     {
       UNUSED(ip);
       UNUSED(port);
       TBSYS_LOG(WARN, "set ipv6 address is not complete");
       return false;
     }
+    // add:e
 
+    // add by zhangcd [rs_election] 20151129:b
     int ObServer::parse_from_cstring(const char* target_server)
     {
       int ret = OB_SUCCESS;
@@ -453,6 +458,7 @@ namespace oceanbase
       }
       return ret;
     }
+    // add:e
   } // end namespace common
 } // end namespace oceanbase
 

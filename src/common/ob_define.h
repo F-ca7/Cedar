@@ -455,7 +455,7 @@ namespace oceanbase
     const int64_t OB_LOG_NOT_PERSISTENT = 4;
 
     // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
-    // commit point synchronization type
+    /// commit point synchronization type
     const int64_t OB_COMMIT_POINT_ASYNC = 0;
     const int64_t OB_COMMIT_POINT_SYNC = 1;
     // add:e

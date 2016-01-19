@@ -7,12 +7,12 @@
  *
  * @file ob_root_worker.cpp
  * @brief ObRootWorker
- * support multiple clusters for HA by adding or modifying
- *   some functions, member variables
+ *        support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
  *
- *   1.add the auto_elect_flag to election process.
- *   2.modify the election state.
- *   3.add the majority_count setting in rootserver.
+ *        1.add the auto_elect_flag to election process.
+ *        2.modify the election state.
+ *        3.add the majority_count setting in rootserver.
  *
  * @version __DaSE_VERSION
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>

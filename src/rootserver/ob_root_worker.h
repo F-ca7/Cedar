@@ -105,6 +105,11 @@ namespace oceanbase
 
         int submit_check_task_process();
         // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        /**
+         * @brief set_auto_elect_flag
+         * @param flag the auto_elect_flag value
+         * @return OB_SUCCESS if success, not OB_SUCCESS if failed
+         */
         int set_auto_elect_flag(bool flag = true);
         int schedule_set_auto_elect_flag_task();
         // add:e
@@ -135,12 +140,48 @@ namespace oceanbase
         int64_t get_rs_election_lease();
         // add by guojinwei 20150523:e
         // add by zcd [multi_cluster] 20150405:b
+        /**
+         * @brief start_master_cluster
+         * start as the master cluster rootserver
+         * @return OB_SUCCESS if success
+         */
         int start_master_cluster();
+        /**
+         * @brief start_slave_cluster
+         * start as the slave cluster rootserver
+         * @return OB_SUCCESS if success
+         */
         int start_slave_cluster();
+        /**
+         * @brief set_master_root_server_config_on_slave
+         * set the configure information
+         * in the master cluster rootserver
+         * @param config_string the configure strings
+         * @return OB_SUCCESS if success
+         */
         int set_master_root_server_config_on_slave(const ObString& config_string);
+        /**
+         * @brief set_all_slaves_role_to_slave
+         * set the obi role of all the slave cluster rootserver to OBI_SLAVE
+         * @return OB_SUCCESS if success
+         */
         int set_all_slaves_role_to_slave();
+        /**
+         * @brief get_obi_master_root_server get the current master cluster rootserver address
+         * @return the current master cluster rootserver
+         */
         ObServer get_obi_master_root_server();
+        /**
+         * @brief set_obi_master_role
+         * set the obi_role to OBI_MASTER of current rootserver
+         * @return OB_SUCCESS if success
+         */
         int set_obi_master_role();
+        /**
+         * @brief set_obi_master_first
+         * set the current rootserver as Leader.
+         * @return OB_SUCCESS if success
+         */
         int set_obi_master_first();
         // add:e
         // add by guojinwei [new rs_admin command][multi_cluster] 20150901:b
@@ -179,6 +220,15 @@ namespace oceanbase
         int rt_write_schema_to_file(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_change_table_id(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        /**
+         * @brief rt_set_auto_elect_flag set the auto_elect_flag, called by handlePacketQueue()
+         * @param version
+         * @param in_buff input data buffer
+         * @param req request used by rpc
+         * @param channel_id
+         * @param out_buff outcome data buffer
+         * @return OB_SUCCESS if success.
+         */
         int rt_set_auto_elect_flag(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         // add:e
         int rt_fetch_schema(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -269,6 +319,15 @@ namespace oceanbase
         int rt_set_import_status(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_notify_switch_schema(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         // add by zhangcd [majority_count_init] 20151118:b
+        /**
+         * @brief rt_get_all_clusters_info get all the clusters info from master rootserver
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return OB_SUCCESS if success.
+         */
         int rt_get_all_clusters_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         // add:e
         // add by guojinwei [reelect][multi_cluster] 20151129:b
@@ -316,6 +375,9 @@ namespace oceanbase
         ObRootInnerTableTask inner_table_task_;
         ObRsAfterRestartTask after_restart_task_;
         // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        /**
+         * @brief set_auto_elect_flag_task_ the timer task used for modify the auto_elect_flag
+         */
         ObRootSetAutoElectFlagTask set_auto_elect_flag_task_;
         // add:e
         ObTimer timer_;

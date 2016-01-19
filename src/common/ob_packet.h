@@ -288,13 +288,13 @@ namespace oceanbase
       OB_ALTER_TABLE_RESPONSE = 505,
 
       // add by guojinwei [log timestamp][multi_cluster] 20150820:b
-      // get log timestamp from ups to rs
+      /// get log timestamp from ups to rs
       OB_RS_GET_MAX_LOG_TIMESTAMP = 550,
       OB_RS_GET_MAX_LOG_TIMESTAMP_RESPONSE = 551,
       // add:e
 
       // add by guojinwei [obi role switch][multi_cluster] 20150915:b
-      // reset slave cluster information in __all_cluster
+      /// reset slave cluster information in __all_cluster
       OB_SET_SLAVE_CLUSTER_OBI_ROLE = 552,
       OB_SET_SLAVE_CLUSTER_OBI_ROLE_RESPONSE = 553,
       // add:e

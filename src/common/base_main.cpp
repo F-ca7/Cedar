@@ -177,10 +177,10 @@ namespace oceanbase
     {
       int opt = 0;
       // modify by zcd [multi_cluster] 20150416:b
-      // 加入-s选项
-      // 代表当前所有集群的rs地址
-      // 以#号隔开多个ip号和端口,
-      // 例如192.168.1.1：10000#192.168.1.2:10006#192.168.1.2:10012
+      // add the option -s
+      // the string after -s represents the rs addresses of all clusters,
+      // which is comprised of all the ip addresses and ports, seperate by comma.
+      // Example:192.168.1.1：10000#192.168.1.2:10006#192.168.1.2:10012
       //const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
       const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:s:";
       // modify:e
@@ -469,11 +469,11 @@ namespace oceanbase
         {
           start_ok = (tbsys::CProcess::startDaemon(pid_file, log_file) == 0);
           //add by lbzhong [Restart UPS] 20150827:b
-	  if(start_ok)
+          if(start_ok)
           {
             tbsys::CProcess::writePidFile(pid_file);
           }
-	  //add:e
+          //add:e
         }
         if(start_ok)
         {

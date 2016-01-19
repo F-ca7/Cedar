@@ -10,9 +10,8 @@
  *        store the cmd_rs_cluster_ips_ to the rs_config values.
  *
  * @version __DaSE_VERSION
- * @author
- *   Chu Jiajia  <52151500014@ecnu.edu.cn>
- *   zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @author Chu Jiajia  <52151500014@ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_08_23
  */
 /*===============================================================

@@ -346,8 +346,7 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
         }
       }
       // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
-      // if auto_elect_flag is set false， then convert OB_CANDIDATE to OB_FOLLOWER
-      /// if auto_elect_falg is set false, will change OB_CANDIDATE to OB_FOLLOWER
+      /// if auto_elect_flag is set false，current rs should convert itself from OB_CANDIDATE to OB_FOLLOWER
       else if(!ob_election_node_.get_auto_elect_flag())
       {
         char info1[ELECTION_ARRAY_SIZE] = "NO";
@@ -512,8 +511,8 @@ int ObCheckRsElection::handle_vote_request(const common::ObMsgRsElection &msg, c
     /// get log_max_timestamp from ups
     TBSYS_LOG(INFO, "rt_rs_election:msg.log_max_timestamp_=%ld", msg.max_log_timestamp_);
     if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
-                     get_ob_election_node().get_my_ups(),
-                     max_log_timestamp, election_message_time_out_us)))
+                       get_ob_election_node().get_my_ups(),
+                       max_log_timestamp, election_message_time_out_us)))
     {
       TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
     }
@@ -522,7 +521,7 @@ int ObCheckRsElection::handle_vote_request(const common::ObMsgRsElection &msg, c
     if(((int64_t)(max_log_timestamp)) >= 0)
     {
       if ((msg.max_log_timestamp_ >= max_log_timestamp)
-         && (get_ob_election_node().get_votefor().get_ipv4() == 0))
+           && (get_ob_election_node().get_votefor().get_ipv4() == 0))
       {
         char ip_tmp[ELECTION_ARRAY_SIZE];
         msg.addr_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
@@ -532,8 +531,8 @@ int ObCheckRsElection::handle_vote_request(const common::ObMsgRsElection &msg, c
       }
       else if(msg.max_log_timestamp_ <max_log_timestamp)
       {
-       TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
-       strcpy(responseinfo, "LOWER_LOG");
+        TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
+        strcpy(responseinfo, "LOWER_LOG");
       }
     }
   }
@@ -569,8 +568,8 @@ int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg
   int64_t max_log_timestamp = -1;
   /// get ups_max_log from ups
   if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
-                      get_ob_election_node().get_my_ups(),
-                      max_log_timestamp, election_message_time_out_us)))
+                    get_ob_election_node().get_my_ups(),
+                    max_log_timestamp, election_message_time_out_us)))
   {
     TBSYS_LOG(WARN, "rt_rs_election:rt_rpc_stub_->get_ups_max_log_timestamp error, err=%d",ret);
   }
@@ -587,7 +586,7 @@ int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg
     get_ob_election_node().set_lease(msg.lease_);
     get_ob_election_node().set_is_lower_log(false);
     TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
-                     ip_receive, get_ob_election_node().get_lease());
+                   ip_receive, get_ob_election_node().get_lease());
   }
   else if (strcmp(ip_tmp, ip_receive) == 0)
   {

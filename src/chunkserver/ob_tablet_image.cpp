@@ -5,7 +5,7 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file ob_ups_log_utils.cpp
+ * @file ob_tablet_image.cpp
  * @brief ObTabletImage
  * support multiple clusters for HA by adding or modifying
  *   some functions, member variables
