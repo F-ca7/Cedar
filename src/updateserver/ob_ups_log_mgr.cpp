@@ -6,8 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_ups_log_mgr.cpp
- * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
+ * @brief ObUpsLogMgr
+ *     modify by guojinwei, liubozhong: support multiple clusters
+ *     for HA by adding or modifying some functions, member variables
  *
  * @version __DaSE_VERSION
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>

@@ -6,7 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_commit_point_runnable.h
- * @brief flush commit point to disk asynchronously
+ * @brief ObCommitPointRunnable
+ * (1) create by liubozhong: flush commit point to disk asynchronously
+ * (2) modify by guojinwei: modify the judgment in function run()
  *
  * @version __DaSE_VERSION
  * @author liubozhong <51141500077@edu.cn>
@@ -47,6 +49,8 @@ namespace oceanbase
         /**
          * @brief [overwrite]
          * flush commit point to disk at intervals
+         * @param[in] thread  UNUSED
+         * @param[in] arg     UNUSED
          */
         void run(tbsys::CThread * thread, void * arg);
     };
