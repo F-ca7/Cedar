@@ -497,7 +497,7 @@ namespace oceanbase
             //case AFTER_ELECTION:
             case common::ObElectionRoleMgr::AFTER_ELECTION:
             // modify:e
-              TBSYS_LOG(INFO, "current election state is AFTER_ELECTION");
+              TBSYS_LOG(DEBUG, "current election state is AFTER_ELECTION");
               // there is a leader selected
               if(check_rselection_thread_.get_election_role() == OB_LEADER)
               {
@@ -507,7 +507,7 @@ namespace oceanbase
               }
               else if(check_rselection_thread_.get_election_role() == OB_FOLLOWER)
               {
-                TBSYS_LOG(INFO, "obi role not change, still SLAVE!");
+                TBSYS_LOG(DEBUG, "obi role not change, still SLAVE!");
               }
               else
               {
@@ -546,10 +546,10 @@ namespace oceanbase
             //case AFTER_ELECTION:
             case common::ObElectionRoleMgr::AFTER_ELECTION:
             // modify:e
-              TBSYS_LOG(INFO, "current election state is AFTER_ELECTION");
+              TBSYS_LOG(DEBUG, "current election state is AFTER_ELECTION");
               if(check_rselection_thread_.get_election_role() == OB_LEADER)
               {
-                TBSYS_LOG(INFO, "obi role not change, still MASTER!");
+                TBSYS_LOG(DEBUG, "obi role not change, still MASTER!");
               }
               else if(check_rselection_thread_.get_election_role() == OB_FOLLOWER)
               {
