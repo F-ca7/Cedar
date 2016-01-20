@@ -6,9 +6,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_semi_left_join.h
- * @brief    sort 
- * sort row from child_op get_next_row(),use std::sort
- * it will use at logical plan transform to physical plan 
+ * @brief    semi left join operator
+ * created by yu shengjuan: sort row from child_op get_next_row(),use std::sort it will use at logical plan transform to physical plan
  * @version  __DaSE_VERSION
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_29
@@ -31,7 +30,8 @@ namespace oceanbase
       {
         public:
 		/**
-		 * This is a physical operator for semi_join,it is a optimizing for join at distributed system
+     * @brief ObSemiLeftJoin
+     * This is a physical operator for semi_join,it is a optimizing for join at distributed system
 		 * The brief idea of it is get all element from left table and then construct the filter to right table,
 		 * if we do that, we can filter the element which does not meet the equal join conditions,so that,we can
 		 * reduce the press of network and reduce compare time at join operator.
@@ -111,7 +111,7 @@ namespace oceanbase
       //tid = sort_columns_.at(0).table_id_;
       //cid = sort_columns_.at(0).column_id_;
       //add:e
-      return left_table_element_stored_; ///< interface for right table
+      return left_table_element_stored_; // interface for right table
     }
   }//end namespace sql
 }//end namespace oceanbase

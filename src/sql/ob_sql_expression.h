@@ -5,7 +5,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_sql_expression.h
- * @brief    add some functions to create a new expression
+ * @brief    sql expression operator
+ * modified by Qiushi FAN: add some functions to create a new expression
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30

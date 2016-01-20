@@ -4,8 +4,9 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_table_rpc_can.h
- * @brief    add some functions to insert a new expression to scan operator.
+ * @file     ob_table_rpc_scan.cpp
+ * @brief    table rpc scan operator
+ * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30

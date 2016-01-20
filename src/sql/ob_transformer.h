@@ -5,9 +5,12 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_transformer.h
- * @brief    add some functions to create an phsical plan for semijoin.
+ * @brief    generate physical plan
+ * modified by fanqiushi: add some functions to create an phsical plan for semijoin
+ * modified by wangjiahao: add method to generate physical plan for update_more
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @author   wangjiahao <51151500051@ecnu.edu.cn>
  * @date     2015_12_30
  */
 /**
@@ -335,6 +338,36 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+//add wangjiahao [dev_update_more] 20151204 :b
+        /**
+         * @brief gen_phy_table_for_update_more is a new method
+         * to generate physical plan for update which support update
+         * not even given full rowkey condition but also
+         * other conditions. In the full rowkey condition
+         * physical plan generated will be as the same as
+         * the old gen_phy_table_for_update method.
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param rowkey_info
+         * @param row_desc
+         * @param row_desc_ext
+         * @param table_op
+         * @return OB_SUCCESS
+         */
+        int gen_phy_table_for_update_more(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan*& physical_plan,
+            ErrStat& err_stat,
+            ObStmt *stmt,
+            uint64_t table_id,
+            const ObRowkeyInfo &rowkey_info,
+            const ObRowDesc &row_desc,
+            const ObRowDescExt &row_desc_ext,
+            ObPhyOperator*& table_op);
+//add :e
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,

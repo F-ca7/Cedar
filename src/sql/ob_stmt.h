@@ -7,7 +7,7 @@
  *
  * @file     ob_sort.h
  * @brief    storing some information from sql session
- * storing such as table_id column_id table_name and other information from sql
+ * modified by yu shengjuan : storing such as table_id column_id table_name and other information from sql
  * it will use at logical plan transform to physical plan 
  * @version  __DaSE_VERSION
  * @author   yu shengjuan <51141500090@ecnu.cn>
@@ -25,7 +25,7 @@
 
 namespace oceanbase
 {
-/// add by yusj[SEMI_JOIN] 20150819
+// add by yusj[SEMI_JOIN] 20150819
  namespace sql
  {
      using namespace common;
@@ -83,7 +83,7 @@ namespace oceanbase
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
       }
-      /// add by yusj [SEMI_JOIN] 20150819
+      // add by yusj [SEMI_JOIN] 20150819
       bool has_semi_join_hint() const
       {
         return use_join_array_.size() > 0 ? true:false;
@@ -91,7 +91,7 @@ namespace oceanbase
       //add end
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
-      common::ObVector<ObSemiTableList> use_join_array_; ///< add by yusj [SEMI_JOIN] 20150819
+      common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
     };
     
     struct TableItem
