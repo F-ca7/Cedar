@@ -6,8 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_pos_log_reader.h
- * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
+ * @brief ObPosLogReader
+ *     modify by liubozhong: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
  *
  * @version __DaSE_VERSION
  * @author liubozhong <51141500077@ecnu.cn>

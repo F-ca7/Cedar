@@ -1,11 +1,18 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
- * @file     ob_ups_timer_task.cpp
- * @brief
- *           add a timertask ObUpsSetMajorityCountTask to execute setting majority_count.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_timer_task.cpp
+ * @brief ObUpsSlaveMgr
+ *     modify by zhangcd: add a timertask ObUpsSetMajorityCountTask
+ *     to execute setting majority_count
+ *
  * @version __DaSE_VERSION
- * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
- * @date     2015-12-25
+ * @author zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_25
  */
 /**
  * (C) 2007-2010 Taobao Inc.

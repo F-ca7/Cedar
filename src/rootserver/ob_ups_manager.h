@@ -7,8 +7,9 @@
  *
  * @file ob_ups_manager.h
  * @brief ObUpsManager
- * support multiple clusters for HA by adding or modifying
- *   some functions, member variables
+ *     modify by guojinwei, chujiajia, pangtianze: support multiple
+ *     clusters for HA by adding or modifying some functions,
+ *     member variables
  *
  * @version __DaSE_VERSION
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>

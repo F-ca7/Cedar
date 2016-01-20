@@ -6,8 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_update_server_config.h
- * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
+ * @brief ObUpdateServerConfig
+ *     modify by guojinwei: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
  *
  * @version __DaSE_VERSION
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>

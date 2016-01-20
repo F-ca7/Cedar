@@ -6,8 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_ups_log_utils.cpp
- * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
+ * @brief utilities for commit log of ups
+ *     modify by liubozhong: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
  *
  * @version __DaSE_VERSION
  * @author liubozhong <51141500077@ecnu.cn>
@@ -1010,98 +1011,98 @@ namespace oceanbase
       }
       while (OB_SUCCESS == err && pos <= len)
       {
-          /*********************************************************/
-          if(commit_seq >= 0 && real_end_id > commit_seq)
-          {
-              has_committed_end = true;
-              break;
-          }
-          /*********************************************************/
-
-          if (is_align(offset + pos, align_bits))
-          {
-            last_align_end_id = real_end_id;
-            last_align_end_pos = offset + pos;
-          }
-          old_pos = pos;
-          if (ObLogGenerator::is_eof(log_data + pos, len - pos))
-          {
-            TBSYS_LOG(WARN, "read_eof: offset=%ld, pos=%ld, log_id=%ld", offset, pos, real_end_id);
-            break;
-          }
-          else if (is_file_end)
-          {
-            break;
-          }
-          else if (pos + log_entry.get_serialize_size() > len || is_file_end)
-          {
-            break;
-          }
-          else if (OB_SUCCESS != (err = log_entry.deserialize(log_data, len, pos)))
-          {
-            TBSYS_LOG(ERROR, "log_entry.deserialize(log_data=%p, len=%ld, pos=%ld)=>%d", log_data, len, pos, err);
-          }
-          else if (old_pos + log_entry.get_serialize_size() + log_entry.get_log_data_len() > len)
-          {
-            pos = old_pos;
-            break;
-          }
-          else if (OB_SUCCESS != (err = log_entry.check_data_integrity(log_data + pos)))
-          {
-            TBSYS_LOG(ERROR, "log_entry.check_data_integrity()=>%d", err);
-          }
-          else if (real_end_id > 0 && real_end_id != (int64_t)log_entry.seq_)
-          {
-            err = OB_DISCONTINUOUS_LOG;
-            TBSYS_LOG(WARN, "expected_id[%ld] != log_entry.seq[%ld]", real_end_id, log_entry.seq_);
-          }
-          else
-          {
-            pos = old_pos + log_entry.get_serialize_size() + log_entry.get_log_data_len();
-            real_end_id = log_entry.seq_ + 1;
-            if (0 >= real_start_id)
-            {
-              real_start_id = log_entry.seq_;
-            }
-            if (OB_LOG_SWITCH_LOG == log_entry.cmd_)
-            {
-              is_file_end = true;
-            }
-          }
-        }
-
-        if (OB_SUCCESS != err && OB_INVALID_ARGUMENT != err)
+        /*********************************************************/
+        if(commit_seq >= 0 && real_end_id > commit_seq)
         {
-          TBSYS_LOG(ERROR, "parse log buf error:");
-          //hex_dump(log_data, static_cast<int32_t>(len), true, TBSYS_LOG_LEVEL_WARN);
+          has_committed_end = true;
+          break;
         }
-        else if (last_align_end_id > 0)
+        /*********************************************************/
+
+        if (is_align(offset + pos, align_bits))
         {
-          is_file_end = (last_align_end_pos == offset + pos)? is_file_end: false;
-          end_pos = last_align_end_pos - offset;
-          start_id = real_start_id;
-          end_id = last_align_end_id;
+          last_align_end_id = real_end_id;
+          last_align_end_pos = offset + pos;
+        }
+        old_pos = pos;
+        if (ObLogGenerator::is_eof(log_data + pos, len - pos))
+        {
+          TBSYS_LOG(WARN, "read_eof: offset=%ld, pos=%ld, log_id=%ld", offset, pos, real_end_id);
+          break;
+        }
+        else if (is_file_end)
+        {
+          break;
+        }
+        else if (pos + log_entry.get_serialize_size() > len || is_file_end)
+        {
+          break;
+        }
+        else if (OB_SUCCESS != (err = log_entry.deserialize(log_data, len, pos)))
+        {
+          TBSYS_LOG(ERROR, "log_entry.deserialize(log_data=%p, len=%ld, pos=%ld)=>%d", log_data, len, pos, err);
+        }
+        else if (old_pos + log_entry.get_serialize_size() + log_entry.get_log_data_len() > len)
+        {
+          pos = old_pos;
+          break;
+        }
+        else if (OB_SUCCESS != (err = log_entry.check_data_integrity(log_data + pos)))
+        {
+          TBSYS_LOG(ERROR, "log_entry.check_data_integrity()=>%d", err);
+        }
+        else if (real_end_id > 0 && real_end_id != (int64_t)log_entry.seq_)
+        {
+          err = OB_DISCONTINUOUS_LOG;
+          TBSYS_LOG(WARN, "expected_id[%ld] != log_entry.seq[%ld]", real_end_id, log_entry.seq_);
         }
         else
         {
-          is_file_end = false;
-          end_pos = 0;
-          end_id = start_id;
+          pos = old_pos + log_entry.get_serialize_size() + log_entry.get_log_data_len();
+          real_end_id = log_entry.seq_ + 1;
+          if (0 >= real_start_id)
+          {
+            real_start_id = log_entry.seq_;
+          }
+          if (OB_LOG_SWITCH_LOG == log_entry.cmd_)
+          {
+            is_file_end = true;
+          }
         }
+      }
 
-        /*********************************************************/
-        if(has_committed_end)
-        {
-            end_id = commit_seq;
-        }
-        /*********************************************************/
+      if (OB_SUCCESS != err && OB_INVALID_ARGUMENT != err)
+      {
+        TBSYS_LOG(ERROR, "parse log buf error:");
+        //hex_dump(log_data, static_cast<int32_t>(len), true, TBSYS_LOG_LEVEL_WARN);
+      }
+      else if (last_align_end_id > 0)
+      {
+        is_file_end = (last_align_end_pos == offset + pos)? is_file_end: false;
+        end_pos = last_align_end_pos - offset;
+        start_id = real_start_id;
+        end_id = last_align_end_id;
+      }
+      else
+      {
+        is_file_end = false;
+        end_pos = 0;
+        end_id = start_id;
+      }
 
-        if (OB_SUCCESS == err && len > 0 && end_pos <= 0)
-        {
-          TBSYS_LOG(WARN, "trim_log_buffer(offset=%ld, align=%ld, len=%ld, end_pos=%ld): not found aligned pos",
-                    offset, align_bits, len, end_pos);
-        }
-        return err;
+      /*********************************************************/
+      if(has_committed_end)
+      {
+        end_id = commit_seq;
+      }
+      /*********************************************************/
+
+      if (OB_SUCCESS == err && len > 0 && end_pos <= 0)
+      {
+        TBSYS_LOG(WARN, "trim_log_buffer(offset=%ld, align=%ld, len=%ld, end_pos=%ld): not found aligned pos",
+                  offset, align_bits, len, end_pos);
+      }
+      return err;
     }
     //add:e
 
@@ -1110,16 +1111,17 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int64_t pos = 0;
-      if(OB_LOG_UPS_MUTATOR == cmd){
+      if(OB_LOG_UPS_MUTATOR == cmd)
+      {
         ObUpsMutator mut;
-          if(OB_SUCCESS != (ret = mut.deserialize(buf, len, pos)))
-          {
-            TBSYS_LOG(INFO, "Error occured when deserializing ObUpsMutator");
-          }
-          else
-          {
-            timestamp = mut.get_mutate_timestamp();
-          }
+        if(OB_SUCCESS != (ret = mut.deserialize(buf, len, pos)))
+        {
+          TBSYS_LOG(INFO, "Error occured when deserializing ObUpsMutator");
+        }
+        else
+        {
+          timestamp = mut.get_mutate_timestamp();
+        }
       }
       else if(OB_LOG_NOP == cmd)
       {

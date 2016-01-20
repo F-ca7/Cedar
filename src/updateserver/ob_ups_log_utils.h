@@ -6,10 +6,9 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_ups_log_utils.h
- * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
- *        modify the ObFileForLog::write function,
- *        change the way store commit_point.
+ * @brief utilities for commit log of ups
+ *     modify by liubozhong, zhangcd: support multiple clusters
+ *     for HA by adding or modifying some functions, member variables
  *
  * @version __DaSE_VERSION
  * @author liubozhong <51141500077@ecnu.cn>
@@ -48,16 +47,16 @@ namespace oceanbase
   namespace updateserver
   {
     //add lbzhong [Commit Point] 20150820:b
+    //
+    // @brief write commitpoint file
+    //
+    // class ObFileForLog is modify by zhangcd 20151215, change the write function
+    // from repeatly openning and closing file to just writting content into file.
+    // The file is just openned at the initialization ObFileForlog object while
+    // new write function is just writting content to the file, and closing the
+    // file in the object destory function.
+    //
     /**
-     * @brief write commitpoint file
-     *
-     * class ObFileForLog is modify by zhangcd 20151215, change the write function
-     * from repeatly openning and closing file to just writting content into file.
-     * The file is just openned at the initialization ObFileForlog object while
-     * new write function is just writting content to the file, and closing the
-     * file in the object destory function.
-     */
-    /*
      * @brief ObFileForLog
      * This class is designed for special file read/write, e.g. was_master, commit_point.
      * The initialization opens this special file, while write/read function writes/reads
