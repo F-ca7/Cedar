@@ -232,7 +232,10 @@ namespace oceanbase
         err = OB_BUF_NOT_ENOUGH;
         TBSYS_LOG(ERROR, "snprintf file_str error[%s][data=%ld]", strerror(errno), static_cast<int64_t>(data));
       }
-      else if (0 > (file_str_len = file_file->pwrite(file_str, file_str_len, 0, true)))
+      // modify by zhangcd [majority_count_init] 20160120:b
+      else if (0 > (file_str_len = file_file->pwrite(file_str, file_str_len, 0, false)))
+      //else if (0 > (file_str_len = file_file->pwrite(file_str, file_str_len, 0, true)))
+      // modify:e
       {
         err = OB_ERR_SYS;
         TBSYS_LOG(ERROR, "write error[%s][file_str=%p file_str_len=%ld]", strerror(errno), file_str, file_str_len);
