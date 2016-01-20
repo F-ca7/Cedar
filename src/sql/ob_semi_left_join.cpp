@@ -6,9 +6,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_semi_left_join.cpp
- * @brief    sort 
- * sort row from child_op get_next_row(),use std::sort
- * it will use at logical plan transform to physical plan 
+ * @brief    semi left join operator
+ * created by yu shengjuan: sort row from child_op get_next_row(),use std::sort it will use at logical plan transform to physical plan
  * @version  __DaSE_VERSION
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_29

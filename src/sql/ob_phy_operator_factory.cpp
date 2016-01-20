@@ -5,7 +5,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_phy_operator_factory.cpp
- * @brief    insert a new operator : ObSemiLeftJoin.
+ * @brief    physical operator factory
+ * modified by Qiushi FAN: insert a new operator ObSemiLeftJoin.
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30

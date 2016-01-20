@@ -5,8 +5,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_merge_join.cpp
- * @brief    insert some function and member variable of class ObMergeJoin,
- *           in order to complete the semijoin feature.
+ * @brief    merge_join operator
+ * modified by Qiushi FAN: insert some function and member variable of class ObMergeJoin, in order to complete the semijoin feature.
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30

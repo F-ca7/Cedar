@@ -7,7 +7,7 @@
  *
  * @file     ob_item_type.h
  * @brief    define ObItemType
- * ObItemType is an enum used to describe the type of item at oceanbase 
+ * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
  * @version  __DaSE_VERSION
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_19
@@ -245,7 +245,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
-  T_SEMI_JOIN,///< add by yusj [SEMI_JOIN] 20150819
+  T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
   T_KILL,
 
   T_MAX,

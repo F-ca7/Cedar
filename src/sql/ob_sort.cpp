@@ -5,7 +5,8 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_sort.cpp
- * @brief    add some functions to get an array form child
+ * @brief    sort operator
+ * modified by Qiushi FAN: add some functions to get an array form child
  * @version  __DaSE_VERSION
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30

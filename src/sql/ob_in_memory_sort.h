@@ -7,8 +7,7 @@
  *
  * @file     ob_stmt.h
  * @brief    sort 
- * sort row from child_op get_next_row(),use std::sort
- * it will use at logical plan transform to physical plan 
+ * modified by yu shengjuan: sort row from child_op get_next_row(),use std::sort . it will use at logical plan transform to physical plan
  * @version  __DaSE_VERSION
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_19
