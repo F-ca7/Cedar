@@ -373,6 +373,11 @@ namespace oceanbase
         int submit_check_keep_alive();
         int submit_fake_write_for_keep_alive();
         // add by zhangcd [majority_count_init] 20151118:b
+        /**
+         * @brief ups_set_majority_count
+         * set up a timer task to set the member variable majority_count_
+         * @return OB_SUCCESS if success
+         */
         int ups_set_majority_count();
         // add:e
         int submit_update_schema();
