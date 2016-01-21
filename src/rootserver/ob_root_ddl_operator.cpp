@@ -50,8 +50,9 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
       }
     }
   }
-  //modify wenghaixing [secondary index.static_index]20151223
-  if (OB_SUCCESS == ret && OB_INVALID_ID == table_schema.original_table_id_)
+  //modify wenghaixing [secondary index.static_index]20160119
+  if ((OB_SUCCESS == ret && OB_INVALID_ID == table_schema.original_table_id_)
+          || (OB_SUCCESS == ret && OB_INVALID_ID != table_schema.original_table_id_ && root_server_->get_config().index_immediate_effect))
   //if (OB_SUCCESS == ret)
   //modify e
   {
