@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_stmt.h
+ * @brief basic structure and functions
+ *
+ * modified by longfei：add struct ObQueryHint for user use hint in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
 #ifndef OCEANBASE_SQL_STMT_H_
 #define OCEANBASE_SQL_STMT_H_
 #include "common/ob_row_desc.h"
@@ -62,7 +79,7 @@ namespace oceanbase
       }
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
-      common::ObVector<IndexTableNamePair> use_index_array_; // add by zcd 20141216
+      common::ObVector<IndexTableNamePair> use_index_array_;
     };
     // add :e
     

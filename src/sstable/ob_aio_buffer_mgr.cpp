@@ -2404,7 +2404,6 @@ namespace oceanbase
     }
 
     //add wenghaixing [secondary index static_index_build]20150804
-    //longfei
     void ObThreadAIOBufferMgrArray::reset()
     {
       for(int64_t i = 0; i < item_count_; i++)

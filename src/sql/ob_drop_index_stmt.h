@@ -1,8 +1,18 @@
-/*
- * ob_drop_index_stmt.h
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年10月26日
- *      Author: longfei
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_drop_index_stmt.h
+ * @brief for logical plan of drop index
+ *
+ * Created by longfei：for resolving logical plan of drop index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_10_26
  */
 
 #ifndef SQL_OB_DROP_INDEX_STMT_H_

@@ -1,15 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
+ * @file ob_create_table_stmt.h
+ * @brief for logical plan of create index
  *
- * ob_create_table_stmt.h
+ * Created by longfei：for create index
  *
- * Authors:
- *   fei long <feilong_nobug@163.com>
- *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
  */
 #ifndef OCEANBASE_SQL_OB_CREATE_INDEX_STMT_H
 #define OCEANBASE_SQL_OB_CREATE_INDEX_STMT_H

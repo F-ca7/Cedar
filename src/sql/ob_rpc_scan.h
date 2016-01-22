@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rpc_scan.h
+ * @brief 用于MS进行全表扫描
+ *
+ * modified by longfei：add some member variables and some rule for Query Optimization
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -155,7 +172,7 @@ namespace oceanbase
         void set_hint(const common::ObRpcScanHint &hint);
         void cleanup_request();
 
-        //add fanqiushi_index
+        //add longfei
         int create_get_param_for_index(ObSqlGetParam &get_param);
         int fill_read_param_for_index(ObSqlReadParam &dest_param);
         int cons_get_rows_for_index(ObSqlGetParam &get_param);
@@ -170,16 +187,16 @@ namespace oceanbase
         mergeserver::ObMsSqlScanRequest *sql_scan_request_;
         mergeserver::ObMsSqlGetRequest *sql_get_request_;
 
-        //add fanqiushi_index
+        //add longfei
         //mergeserver::ObMsSqlGetRequest *index_sql_get_request_;
-        bool is_use_index_;         //是否使用回表的索引
-        bool is_use_index_for_storing_;  //是否使用不回表的索引
-        uint64_t main_table_id_;    //主表的tid
-        int64_t get_next_row_count_;    //判断是否是第一次调用get_new_row
-        ObProject main_project;     //第二次get原表时的输出列
-        ObFilter main_filter_;      //where条件中如果有不在索引表中的列的表达式，就把它存到这里，第二次get原表时用做过滤。
-        common::ObRowkeyInfo main_rowkey_info_;    //主表的主键信息
-        common::ObRowDesc second_row_desc_;  //回表时，第二次get原表时用到的行描述
+        bool is_use_index_;         ///< 是否使用回表的索引
+        bool is_use_index_for_storing_;  ///< 是否使用不回表的索引
+        uint64_t main_table_id_;    ///< 主表的tid
+        int64_t get_next_row_count_;    ///< 判断是否是第一次调用get_new_row
+        ObProject main_project;     ///< 第二次get原表时的输出列
+        ObFilter main_filter_;      ///< where条件中如果有不在索引表中的列的表达式，就把它存到这里，第二次get原表时用做过滤。
+        common::ObRowkeyInfo main_rowkey_info_;    ///< 主表的主键信息
+        common::ObRowDesc second_row_desc_;  ///< 回表时，第二次get原表时用到的行描述
         //add:e
 
         ObSqlScanParam *scan_param_;
@@ -198,8 +215,8 @@ namespace oceanbase
         common::ObObj end_key_objs_[OB_MAX_ROWKEY_COLUMN_NUMBER];
         common::ObRow cur_row_;
 
-        //add fanqiushi_index
-        common::ObRow cur_row_for_storing_;  //在不回表的查询中，需要对CS返回的数据修改tid，修改后的行存到cur_row_for_storing_里面
+        //add longfei
+        common::ObRow cur_row_for_storing_;  ///< 在不回表的查询中，需要对CS返回的数据修改tid，修改后的行存到cur_row_for_storing_里面
         common::ObRowDesc cur_row_desc_for_storing;
         //add:e
 

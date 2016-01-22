@@ -1,17 +1,19 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DASE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_secondary_index_service_impl.cpp
-* @brief for using secondary index in select statement or more?
-*
-* @version __DaSE_VERSION
-* @author fei long <longfei@stu.ecnu.edu.cn>
-* @date 2015_10_29
-*/
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_secondary_index_service_impl.cpp
+ * @brief for using secondary index in select statement or more?
+ *
+ * Created by longfei：implementation of secondary index service
+ *
+ * @version __DaSE_VERSION
+ * @author fei long <longfei@stu.ecnu.edu.cn>
+ * @date 2015_10_29
+ */
 
 #include "ob_secondary_index_service_impl.h"
 #include "ob_postfix_expression.h"

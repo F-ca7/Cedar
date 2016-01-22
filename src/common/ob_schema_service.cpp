@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_schema_service.cpp
+ * @brief 表单schema相关数据结构。创建，删除，获取schema描述结构接口
+ *
+ * modified by longfei：
+ * 1.add two more member variables in TableSchema(struct) and their serialize() series function
+ * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_schema_service.h"
 #include "common/utility.h"
 #include "common/ob_common_param.h"

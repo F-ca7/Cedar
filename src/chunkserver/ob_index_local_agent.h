@@ -1,10 +1,19 @@
-/*
- * ob_index_local_agent.h
- * local agent is for the global stage of construct static index,
- * get the datas of the range when those datas in myself.
- *  Created on: 2015年12月2日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_local_agent.h
+ * @brief get range data in cs itself
+ *
+ * Created by longfei： local agent is for the global stage of construct static index,
+ *  get the datas of the range when those datas in myself.
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_02
  */
 
 #ifndef CHUNKSERVER_OB_INDEX_LOCAL_AGENT_H_

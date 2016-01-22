@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_postfix_expression.h
+ * @brief 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
+ *
+ * modified by longfei：add interface: get_expr()..
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
 /*
  * (C) 2007-2011 Taobao Inc.
  *
@@ -14,9 +31,6 @@
  *     - 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
  *
  */
-
-
-
 #ifndef OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #define OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #include "ob_item_type.h"
@@ -353,10 +367,11 @@ namespace oceanbase
 
       public:
         // add longfei [secondary index select]
-        /*Exp: get different ObPostExprNodeType's params number
-         * @param idx[in] current position in expr
-         * @param type[in] current ObPostExprNodeType
-         * @return current ObPostExprNodeType's params number
+        /**
+         * @brief get_type_num: get different ObPostExprNodeType's params number
+         * @param idx
+         * @param type
+         * @return
          */
         int64_t get_type_num(int64_t idx,int64_t type) const;
         ObObj& get_expr_by_index(int64_t index);
@@ -457,6 +472,10 @@ namespace oceanbase
         // add longfei [secondary index select] 20151031 :b
         // to my opinion, sometimes we need to know what the actually expr_ is, so i add this interface
         // and i used this in the series of secondary index service functions
+        /**
+         * @brief get_expr
+         * @return
+         */
         const ExprArray& get_expr() const
         {
           return expr_;

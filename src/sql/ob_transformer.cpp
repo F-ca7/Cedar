@@ -1,4 +1,21 @@
 ﻿/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transformer.cpp
+ * @brief logical plan --transformer--> physical plan
+ *
+ * modified by longfei：generate physical plan for create, drop, index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -2225,17 +2242,17 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
 }
 
 /**
-* @brief Query Optimization for using secondaryIndex
-* @param in logical_plan
-* @param out physical_plan
-* @param out err_stat
-* @param in stmt
-* @param in table_id
-* @param out table_op new root operator if we using secondaryIndex
-* @param in group_agg_pushed_down
-* @param in limit_pushed_down
-* @return ture : use index or false : can't use index
-*/
+ * @brief handle_index_for_one_table: Query Optimization for using secondaryIndex
+ * @param logical_plan
+ * @param physical_plan
+ * @param err_stat
+ * @param stmt
+ * @param table_id
+ * @param table_op
+ * @param group_agg_pushed_down
+ * @param limit_pushed_down
+ * @return ture : use index or false : can't use index
+ */
 bool ObTransformer::handle_index_for_one_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
@@ -8457,7 +8474,7 @@ int ObTransformer::gen_physical_update_new(
           ObPostfixExpression::ObPostExprNodeType val_type;
           ObString  table_name;
           bool have_modifiable_index_flag = false;
-		  UNUSED(have_modifiable_index_flag); // add longfei [merge maoxx] 20151115
+          UNUSED(have_modifiable_index_flag); // add longfei [merge maoxx] 20151115
           for(int32_t i = 0; i < update_stmt->get_condition_size(); i++)
           {
             ObSqlRawExpr *cnd_expr = logical_plan->get_expr(update_stmt->get_condition_id(i));

@@ -518,7 +518,6 @@ namespace oceanbase
       const char* get_thread_aio_stat_str();
 
       //add wenghaixing [secondary index static_index_build]20150804
-      //longfei
       void reset();
       //add e
 

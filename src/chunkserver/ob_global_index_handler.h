@@ -1,9 +1,20 @@
-/*
- * ob_global_index_handler.h
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年12月5日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_global_index_handler.h
+ * @brief for global stage of construct secondary index
+ *
+ * Created by longfei： for global stage of construct secondary index
+ * future work
+ *   1.some function need to be realized,see todo list in this page
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_05
  */
 
 #ifndef CHUNKSERVER_OB_GLOBAL_INDEX_HANDLER_H_

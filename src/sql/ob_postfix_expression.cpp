@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_postfix_expression.cpp
+ * @brief 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
+ *
+ * modified by longfei：add interface: get_expr()..
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
 /*
  * (C) 2007-2011 Taobao Inc.
  *
@@ -36,7 +53,7 @@ namespace oceanbase
 {
   namespace sql
   {
-    //add fanqiushi_index
+    //add longfei
     ObObj& ObPostfixExpression::get_expr_by_index(int64_t index){
      //int64_t index;
      if(expr_.count()<=index){

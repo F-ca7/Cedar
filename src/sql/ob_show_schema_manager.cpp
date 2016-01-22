@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_show_schema_manager.cpp
+ * @brief schema for show statement
+ *
+ * modified by longfei：
+ * 1.add function: add_show_index_schema()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -84,8 +102,12 @@ int ObShowSchemaManager::add_show_tables_schema(ObSchemaManagerV2& schema_mgr)
   return ret;
 }
 
-/* add liumengzhan_show_index [20141208]
- * add virtual table __index_show's schema to schema_mgr
+
+/**
+ * @brief ObShowSchemaManager::add_show_index_schema: add virtual table __index_show's schema to schema_mgr
+ * @param schema_mgr
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @return
  */
 int ObShowSchemaManager::add_show_index_schema(ObSchemaManagerV2& schema_mgr)
 {

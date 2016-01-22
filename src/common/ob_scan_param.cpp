@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_scan_param.cpp
+ * @brief parameters for scan operator
+ *
+ * modified by longfei：add member variables fake_range_, need_fake_range_... and some function about it
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_action_flag.h"
 #include "ob_malloc.h"
 #include "ob_scan_param.h"

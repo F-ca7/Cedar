@@ -1,4 +1,22 @@
-﻿#include "sql_parser.tab.h"
+﻿/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file build_plan.cpp
+ * @brief resolve or destory logical plan
+ *
+ * modified by longfei：
+ * 1.add resolve function of create, drop and show index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+#include "sql_parser.tab.h"
 #include "build_plan.h"
 #include "dml_build_plan.h"
 #include "priv_build_plan.h"

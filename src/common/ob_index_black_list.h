@@ -1,17 +1,24 @@
-/*
- * ob_index_black_list.h
- * This is a black list for building partitional or global Index
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_black_list.h
+ * @brief   This is a black list for building partitional or global Index
  * when a cs build a index failed,then push this tablet / range in BlackList and send list to other cs
  * another cs recieved the list to redo index mission, if failed, send list to third cs
  * in the end of phase, cs found that all replication are failed,then the index create failed.
  *
+ * Created by longfei：for re-try building secondary index\
  * WARNING:
  * Now index building will only handle 3 replication of data;
  * that is failed in 3 replicate, this index build failed;
  *
- *  Created on: 2015年12月10日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_10
  */
 
 #ifndef COMMON_OB_INDEX_BLACK_LIST_H_

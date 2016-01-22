@@ -1,9 +1,18 @@
-/*
- * obcsinteractivecellstream.cpp
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年12月4日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_cs_interactive_cell_stream.cpp
+ * @brief cs <== communicate ==> cs
+ *
+ * Created by longfei：provide cell stream for operator ObCsInteractiveAgent
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_04
  */
 
 #include "ob_cs_interactive_cell_stream.h"

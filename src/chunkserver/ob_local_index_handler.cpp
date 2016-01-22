@@ -1,5 +1,5 @@
 #include "ob_local_index_handler.h"
-#include "ob_index_handle_pool.h" //add longfei
+#include "ob_index_handle_pool.h"
 #include "ob_disk_manager.h"
 #include "ob_tablet_manager.h"
 #include "common/file_directory_utils.h"

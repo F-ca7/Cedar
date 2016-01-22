@@ -2,7 +2,7 @@
  * ob_column_checksum.cpp
  *
  *  Created on: 2015年12月16日
- *      Author: longfei
+ *      Author: maoxiaoxiao
  */
 
 #ifndef OB_COLUMN_CHECKSUM_CPP

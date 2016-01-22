@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_manager.cpp
+ * @brief tablet mannager class
+ *
+ * modified by longfei： according has_fake_range change strategies to take tablet
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -1542,7 +1559,6 @@ namespace oceanbase
       //longfei 这儿加上特别加上sstable命名空间是因为编译的时候遇到了这么一个错误
       //cc1plus: error: candidates are: #‘tree_list’ not supported by dump_decl#<declaration error>
       //google了之后发现是因为命名空间的污染的原因，sstable和sql里面都分别有一个类ObSSTableScanner
-      //但是，疑惑的是交行版本的为什么没有这个问题，再者也没有加上using namespace oceanbase::sql;之类的声明
       sstable::ObSSTableScanner *sstable_scanner = GET_TSI_MULT(sstable::ObSSTableScanner, TSI_CS_SSTABLE_SCANNER_1);
 
       int64_t query_version = 0;

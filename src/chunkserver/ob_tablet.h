@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet.h
+ * @brief Basic data structure for tablet
+ *
+ * modified by longfei：
+ * 1.sstable number of a tablet: 1 --> 2
+ * 2.add member function: find_loc_idx_sstable()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_01_19
+ */
+
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -182,7 +201,7 @@ namespace oceanbase
         inline bool is_with_next_brother() const { return with_next_brother_ > 0; }
         inline int32_t get_merge_count() const { return merge_count_; }
         inline void inc_merge_count() { ++merge_count_; }
-        //@(longfei):__sync_add_and_fetch相当于(++i),自动加上线程锁,保证原子性
+        //__sync_add_and_fetch相当于(++i),自动加上线程锁,保证原子性
         inline int64_t inc_ref()
         {
           return __sync_add_and_fetch(&ref_count_, 1);

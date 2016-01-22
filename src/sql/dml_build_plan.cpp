@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file dml_build_plan.cpp
+ * @brief resolve some dml operation
+ *
+ * modified by longfei：
+ * 1.generate inner index table name
+ * 2.resolve user's hint for using secondary index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -3591,7 +3610,7 @@ int generate_inner_index_table_name(ObString& index_name, ObString& original_tab
 }
 //add e
 
-// add by zcd 20141217:b
+//add longfei
 int generate_index_hint(
     ResultPlan * result_plan,
     ObStmt* stmt,

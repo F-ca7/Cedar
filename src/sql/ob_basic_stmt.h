@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_basic_stmt.h
+ * @brief basic statement
+ *
+ * modified by longfei：add three basic statement: T_CREATE_INDEX, T_DROP_INDEX, T_SHOW_INDEX
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -41,7 +58,7 @@ namespace oceanbase
 
         // show statements
         T_SHOW_TABLES,
-        //add liumengzhan_show_index [20141208]
+        //add longfei
         T_SHOW_INDEX,
         //add:e
         T_SHOW_COLUMNS,

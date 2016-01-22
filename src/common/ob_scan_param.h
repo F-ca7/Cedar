@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_scan_param.h
+ * @brief parameters for scan operator
+ *
+ * modified by longfei：add member variables fake_range_, need_fake_range_... and some function about it
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 #ifndef OCEANBASE_COMMON_SCAN_PARAM_H_
 #define OCEANBASE_COMMON_SCAN_PARAM_H_
 

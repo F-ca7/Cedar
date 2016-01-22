@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transformer.h
+ * @brief logical plan --transformer--> physical plan
+ *
+ * modified by longfei：generate physical plan for create, drop, index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -22,9 +39,6 @@
 #include "ob_multi_logic_plan.h"
 #include "ob_sql_context.h"
 #include "ob_insert_stmt.h"
-//add maoxx
-#include "ob_update_stmt.h"
-//add e
 #include "ob_show_stmt.h"
 #include "ob_values.h"
 #include "ob_expr_values.h"
@@ -35,6 +49,9 @@
 
 //add longfei [secondary index select]
 #include "common/ob_secondary_index_service.h"
+//add e
+//add maoxx
+#include "ob_update_stmt.h"
 //add e
 
 namespace oceanbase
@@ -110,8 +127,15 @@ namespace oceanbase
             const uint64_t& query_id,
             int32_t* index);
 
+        // longfei [create index]
         /**
-         * longfei [create index]
+         * @brief gen_physical_create_index
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param query_id
+         * @param index
+         * @return
          */
         int gen_physical_create_index(
             ObLogicalPlan *logical_plan,
@@ -120,6 +144,16 @@ namespace oceanbase
             const uint64_t& query_id,
             int32_t* index);
         // longfei [drop index]
+        /**
+         * @brief gen_physical_drop_index
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param query_id
+         * @param index
+         * @author longfei <longfei@stu.ecnu.edu.cn>
+         * @return
+         */
         int gen_physical_drop_index(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -169,7 +203,7 @@ namespace oceanbase
             const uint64_t& query_id,
             int32_t* index);
 
-        //add fanqiushi_index
+        //add longfei
         int gen_phy_table_not_back(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -207,6 +241,18 @@ namespace oceanbase
             bool* limit_pushed_down = NULL);
 
         //add longfei
+        /**
+         * @brief handle_index_for_one_table: Query Optimization for using secondaryIndex
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param table_op
+         * @param group_agg_pushed_down
+         * @param limit_pushed_down
+         * @return ture : use index or false : can't use index
+         */
         bool handle_index_for_one_table(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

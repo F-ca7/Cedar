@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_chunk_service.cpp
+ * @brief for chunkserver provides services
+ *
+ * modified by longfei：
+ *   1.add se_index_task
+ *   2.init index_handle_pool
+ *   3.deal with index heart beat
+ * future work:
+ *   deal with failed index task
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
