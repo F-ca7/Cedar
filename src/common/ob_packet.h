@@ -1,4 +1,19 @@
-
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_packet.h
+ * @brief define packet information
+ *
+ * modified by longfei：add some packet using by secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #ifndef OCEANBASE_PACKET_H_
 #define OCEANBASE_PACKET_H_
 

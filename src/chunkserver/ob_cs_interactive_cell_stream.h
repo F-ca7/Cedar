@@ -1,11 +1,18 @@
-/*
- * ob_cs_interactive_cell_stream.h
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- * ob_cs_interactive_cell_stream.h for define rpc interface between chunk
- * server and chunk server.
- *  Created on: 2015年12月4日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_cs_interactive_cell_stream.h
+ * @brief ob_cs_interactive_cell_stream.h for define rpc interface between chunk like this :) cs <== rpc ==> cs
+ *
+ * Created by longfei：provide cell stream for operator ObCsInteractiveAgent
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_04
  */
 
 #ifndef CHUNKSERVER_OB_CS_INTERACTIVE_CELL_STREAM_H_

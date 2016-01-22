@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_phy_operator_type.h
+ * @brief all physical operator type
+ *
+ * modified by longfei：add some operators for secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -86,12 +103,9 @@ namespace oceanbase
       PHY_OB_CHANGE_OBI,
       PHY_ADD_PROJECT,
       PHY_UPS_MODIFY_WITH_DML_TYPE,
-      //add maoxx
-      PHY_INDEX_TRIGGER,
-      //add e
-	  //add longfei [secondary index drop index]
-      PHY_DROP_INDEX,
-      //add e
+
+      PHY_INDEX_TRIGGER, //add maoxx
+      PHY_DROP_INDEX, //add longfei [secondary index drop index]
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
       PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
 

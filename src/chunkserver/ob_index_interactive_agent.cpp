@@ -1,11 +1,20 @@
-/*
- * ob_index_interactive_agent.cpp
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年12月2日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_interactive_agent.cpp
+ * @brief for define rpc interface between chunkserver like this :) cs <== rpc ==> cs
+ *
+ * Created by longfei：  interactive agent is for the global stage of construct static index,
+ *  get the datas of the range when those datas in other chunkserver.
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_02
  */
-
 #include "ob_index_interactive_agent.h"
 
 namespace oceanbase

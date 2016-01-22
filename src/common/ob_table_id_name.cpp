@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_id_name.cpp
+ * @brief get all the table schema in the database
+ *
+ * modified by longfei：get "__all_secondary_index"
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_table_id_name.h"
 #include "utility.h"
 
@@ -103,9 +119,10 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 4) //longfei [create index]
+      if (table_idx_ < CORE_TABLE_COUNT) //longfei [create index]
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
+        // and __all_secondary_index
       }
       else
       {
@@ -116,9 +133,10 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 4) //longfei [create index]
+      if (table_idx_ < CORE_TABLE_COUNT) //longfei [create index]
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
+        // and __all_secondary_index
       }
       else if (NULL == res_)
       {
@@ -160,7 +178,7 @@ int ObTableIdNameIterator::get(ObTableIdName** table_info)
     ret = OB_ERR_UNEXPECTED;
     TBSYS_LOG(ERROR, "get failed");
   }
-  else if (table_idx_ < 4)
+  else if (table_idx_ < CORE_TABLE_COUNT)
   {
     ret = internal_get(table_info);
   }

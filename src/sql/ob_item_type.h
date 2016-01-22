@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_item_type.h
+ * @brief all items
+ *
+ * modified by longfei：add items for secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
 

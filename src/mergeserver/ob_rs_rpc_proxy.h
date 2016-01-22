@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rs_rpc_proxy.h
+ * @brief rpc to rs
+ *
+ * modified by longfei：
+ * 1.set timeout of drop table with index
+ * 2.add rpc function: drop_index()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #ifndef _OB_MERGER_RS_RPC_PROXY_H_
 #define _OB_MERGER_RS_RPC_PROXY_H_
 
@@ -40,7 +58,7 @@ namespace oceanbase
       static const int64_t RETRY_INTERVAL_TIME = 20; // 20 ms usleep
       static const int64_t CREATE_DROP_TABLE_TIME_OUT = 5 * 1000 * 1000; // 5s
       //add longfei [drop table with index timeout] 151202:b
-      static const int64_t DROP_INDEX_TIME_OUT = 30 * 1000 * 1000; // 30s
+      static const int64_t DROP_INDEX_TIME_OUT = 30 * 1000 * 1000; ///< set drop index timeout = 30s
       //add e
 
       ///
@@ -79,6 +97,12 @@ namespace oceanbase
     public:
       // longfei secondary index service
       // longfei [drop index]
+      /**
+       * @brief drop_index
+       * @param if_exists
+       * @param indexs
+       * @return
+       */
       int drop_index(bool if_exists, const common::ObStrings & indexs);
 
     private:

@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_schema_service.h
+ * @brief 表单schema相关数据结构。创建，删除，获取schema描述结构接口
+ *
+ * modified by longfei：
+ * 1.add two more member variables in TableSchema(struct) and their serialize() series function
+ * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -188,9 +207,9 @@ namespace oceanbase
           tablet_max_size_(OB_DEFAULT_MAX_TABLET_SIZE),
           max_rowkey_length_(0),
 
-		  //longfei [create index]
-		  original_table_id_(OB_INVALID_ID),
-		  index_status_(ERROR),
+          //longfei [create index]
+          original_table_id_(OB_INVALID_ID),
+          index_status_(ERROR),
 
           merge_write_sstable_version_(DEFAULT_SSTABLE_VERSION),
           schema_version_(0),

@@ -1,9 +1,18 @@
-/*
- * ob_cs_interactive_scan.cpp
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年12月7日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_cs_interactive_scan.cpp
+ * @brief ob_cs_interactive_scan.cpp base node for ObIndexLocalAgent and ObIndexInteractiveAgent
+ *
+ * Created by longfei：scan agent for construct static index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_07
  */
 
 #include "ob_cs_interactive_scan.h"

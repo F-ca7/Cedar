@@ -680,7 +680,6 @@ common/ob_schema_service_impl.h
 common/ob_schema_table.cpp
 common/ob_schema_table.h
 common/ob_se_array.h
-common/ob_secondary_index_service.cpp
 common/ob_secondary_index_service.h
 common/ob_secondary_index_service_impl.cpp
 common/ob_secondary_index_service_impl.h

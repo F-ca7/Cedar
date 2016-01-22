@@ -1,9 +1,20 @@
-/*
- * ob_index_handle_pool.h
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年12月2日
- *      Author: longfei
- *  longfei1lantern@gmail.com
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_handle_pool.h
+ * @brief multi-thread's pool, each thread is responsible for one tablet
+ *
+ * Created by longfei： multi-thread to construct secondary index
+ * future work
+ *   1.some function need to be realized,see todo list in this page
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_12_02
  */
 
 #ifndef CHUNKSERVER_OB_INDEX_HANDLE_POOL_H_

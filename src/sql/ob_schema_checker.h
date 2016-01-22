@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema_checker.h
+ * @brief schema checker
+ *
+ * modified by longfei：
+ * 1.add check function: is_index_full()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -57,6 +75,12 @@ namespace oceanbase
             const common::ObString& table_name,
             const common::ObString& column_name) const;
         // longfei [create index]
+        /**
+         * @brief is_index_full: check index number of a table
+         * @param table_id
+         * @param is_full
+         * @return
+         */
         int is_index_full(uint64_t table_id,bool& is_full);
         
       private:

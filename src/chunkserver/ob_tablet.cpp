@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet.cpp
+ * @brief Basic data structure for tablet
+ *
+ * modified by longfei：
+ * 1.add member function: add_local_index_sstable_by_id()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_01_19
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *  

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rs_rpc_proxy.cpp
+ * @brief rpc to rs
+ *
+ * modified by longfei：
+ * 1.set timeout of drop table with index
+ * 2.add rpc function: drop_index()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "common/ob_schema.h"
 #include "common/ob_scanner.h"
 #include "common/ob_schema_manager.h"
@@ -347,7 +365,7 @@ int ObMergerRootRpcProxy::create_table(bool if_not_exists, const common::TableSc
     ret = rpc_stub_->create_table(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_not_exists, table_schema);
     if (ret != OB_SUCCESS)
     {
-      TBSYS_LOG(WARN, "failed to create table, err=%d", ret);
+      TBSYS_LOG(WARN, "failed to create table[%s], err=%d", table_schema.table_name_, ret);
     }
     else
     {
@@ -440,6 +458,13 @@ int ObMergerRootRpcProxy::fetch_master_ups(const ObServer &rootserver, ObServer 
   return ret;
 }
 
+// longfei [drop index]
+/**
+ * @brief ObMergerRootRpcProxy::drop_index
+ * @param if_exists
+ * @param indexs
+ * @return
+ */
 int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & indexs)
 {
   int ret = OB_SUCCESS;
@@ -450,10 +475,7 @@ int ObMergerRootRpcProxy::drop_index(bool if_exists, const common::ObStrings & i
   }
   else
   {
-    // mod longfei [drop table with index timeout] 151202:b
-    //ret = rpc_stub_->drop_index(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, indexs);
     ret = rpc_stub_->drop_index(DROP_INDEX_TIME_OUT, root_server_, if_exists, indexs);
-    // mod e
     if (ret != OB_SUCCESS)
     {
       TBSYS_LOG(WARN, "failed to drop index, err=%d", ret);

@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_rpc_scan.h
+ * @brief table rpc scan operator
+ *
+ * modified by longfei：
+ * add member variables and member function for using index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -50,9 +68,9 @@ namespace oceanbase
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
 
         //add longfei [secondary index select] 20151116 :b
-        void set_main_tid(uint64_t tid);  //存原表的tid
-        void set_is_index_for_storing(bool is_use,uint64_t tid);  //设置这次查询是否用到不回表的索引
-        void set_is_index_without_storing(bool is_use,uint64_t tid);//设置这次查询是否用到回表的索引
+        void set_main_tid(uint64_t tid);  ///< 存原表的tid
+        void set_is_index_for_storing(bool is_use,uint64_t tid);  ///< 设置这次查询是否用到不回表的索引
+        void set_is_index_without_storing(bool is_use,uint64_t tid);///< 设置这次查询是否用到回表的索引
         void set_is_use_index_without_storing();
         void set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc);
         int add_main_output_column(const ObSqlExpression& expr);
@@ -142,7 +160,7 @@ namespace oceanbase
         bool has_limit_;
         bool is_skip_empty_row_;
         int32_t read_method_;
-        //add fanqiushi_index
+        //add longfei
         bool is_use_index_rpc_scan_;  //判断是否使用了回表的索引
         bool is_use_index_for_storing; //判断是否使用了不回表的索引
         //ObRpcScan index_rpc_scan_;

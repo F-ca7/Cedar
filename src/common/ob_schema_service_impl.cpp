@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema_service_impl.cpp
+ * @brief implementation of schema service
+ *
+ * modified by longfei：add some function for new a core table
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_schema_service_impl.h"
 #include "ob_extra_tables_schema.h"
 #include "ob_schema_service.h"
@@ -846,7 +862,7 @@ int ObSchemaServiceImpl::init_id_name_map(ObTableIdNameIterator& iterator)
       }
       else
       {
-        TBSYS_LOG(INFO, "get_table_id_name = %.*s", table_id_name->table_name_.length(),table_id_name->table_name_.ptr());
+        //TBSYS_LOG(INFO, "get_table_id_name = %.*s", table_id_name->table_name_.length(),table_id_name->table_name_.ptr());
       }
     }
 
@@ -1705,7 +1721,10 @@ int ObSchemaServiceImpl::prepare_privilege_for_table(const TableRow* table_row, 
 }
 
 /**
- * @author:longfei [create index]
+ * @brief ObSchemaServiceImpl::create_index_mutator
+ * @param table_schema
+ * @param mutator
+ * @return success or fail
  */
 int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, ObMutator* mutator)
 {
@@ -1769,7 +1788,9 @@ int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, O
 }
 
 /**
- * @author:longfei [create index]
+ * @brief ObSchemaServiceImpl::is_index_table_or_not 判断是否是索引表
+ * @param table_name
+ * @return true or false
  */
 bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 {

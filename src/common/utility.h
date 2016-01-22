@@ -104,9 +104,6 @@ namespace oceanbase
     class ObRowkey;
     class ObVersionRange;
     class ObNewRange;
-    //add longfei [cons static index] 151207:b
-//    struct Token;
-    //add e
 
     void hex_dump(const void* data, const int32_t size,
         const bool char_type = true, const int32_t log_level = TBSYS_LOG_LEVEL_DEBUG);
@@ -114,10 +111,7 @@ namespace oceanbase
         const char del, int32_t *array, int32_t& size);
     int32_t hex_to_str(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
     int32_t str_to_hex(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
-    //add longfei [cons static index] 151207:b
-//    int transform_str_to_int(const char* data, const int64_t &dlen, uint64_t &value);
-//    int tokenize(const char *data, int64_t dlen, char delima, int &token_nr, Token *tokens);
-    //add e
+
     int64_t lower_align(int64_t input, int64_t align);
     int64_t upper_align(int64_t input, int64_t align);
     bool is2n(int64_t input);

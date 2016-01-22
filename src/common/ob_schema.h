@@ -1,3 +1,24 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema.cpp
+ * @brief schema message for oceanbase
+ *
+ * modified by longfei：
+ * 1.add member variables original_table_id_, index_status_ into TableSchema(class)
+ * 2.modified DEFINE_SERIALIZE(ObTableSchema) and DEFINE_DESERIALIZE(ObTableSchema) for new member mentioned above
+ * 3.create an hash map to log the (tid <--> indexList)
+ * 4.add Judgment Rule for using secondary index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *

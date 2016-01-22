@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief define constant
+ *
+ * modified by longfei：add some macros used in secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -472,7 +489,8 @@ namespace oceanbase
     const int64_t OB_DEFAULT_STMT_TIMEOUT = 3L * 1000L * 1000L; // 1s
     const int64_t OB_DEFAULT_INTERNAL_TABLE_QUERY_TIMEOUT = 10L * 1000L * 1000L; // 10s
     static const int64_t CORE_SCHEMA_VERSION = 1984;
-    static const int64_t CORE_TABLE_COUNT = 3;
+    //static const int64_t CORE_TABLE_COUNT = 3;
+    static const int64_t CORE_TABLE_COUNT = 4; ///< change core_table_count form 3 to 4 by longfei
 
     //Oceanbase network protocol
     /*  4bytes    4bytes        4bytes       4bytes

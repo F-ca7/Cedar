@@ -1,23 +1,24 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * Version: $Id$
+ * @file ob_create_table_stmt.cpp
+ * @brief for logical plan of create index
  *
- * ob_create_table_stmt.cpp
+ * Created by longfei：for create index
  *
- * Authors:
- *   fei long <feilong_nobug@163.com>
- *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
  */
+
 #include "ob_create_index_stmt.h"
 #include "ob_schema_checker.h"
-// add longfei [create index] [secondaryindex reconstruct] 20151008 :b
 #include "common/ob_strings.h"
 #include "common/ob_postfix_expression.h"
-// add e
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;

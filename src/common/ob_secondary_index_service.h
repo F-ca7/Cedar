@@ -1,8 +1,19 @@
-/*
- * ob_secondary_index_service.h
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
- *  Created on: 2015年10月29日
- *      Author: longfei
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_secondary_index_service.h
+ * @brief interface of determination rule for using secondary index in select
+ *
+ * modified by longfei：interface of determination rule for using secondary index in select,
+ * maybe more in the future
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_10_29
  */
 
 #ifndef COMMON_OB_SECONDRY_INDEX_SERVICE_H_

@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema.cpp
+ * @brief schema message for oceanbase
+ *
+ * modified by longfei：
+ * 1.add member variables original_table_id_, index_status_ into TableSchema(struct&&class)
+ * 2.modified DEFINE_SERIALIZE(ObTableSchema) and DEFINE_DESERIALIZE(ObTableSchema) for new member mentioned above
+ * 3.create an hash map to log the tid <--> indexList
+ * 4.add Judgment Rule for using secondary index in select
+ * 5.print_info can only be seen at level debug
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -471,9 +493,14 @@ namespace oceanbase
 
     void ObColumnSchemaV2::print_info() const
     {
-      TBSYS_LOG(INFO,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
-      TBSYS_LOG(INFO,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
+      //mod longfei [] 160121:b
+//      TBSYS_LOG(INFO,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
+//      TBSYS_LOG(INFO,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
+//          join_info_.correlated_column_);
+      TBSYS_LOG(DEBUG,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
+      TBSYS_LOG(DEBUG,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
           join_info_.correlated_column_);
+      //mod e
     }
 
     void ObColumnSchemaV2::print(FILE* fd) const
@@ -843,8 +870,8 @@ namespace oceanbase
     internal_ups_scan_size_(0),
     merge_write_sstable_version_(2),
     replica_count_(2),
-	//longfei [create index]
-	original_table_id_(OB_INVALID_ID),
+    //longfei [create index]
+    original_table_id_(OB_INVALID_ID),
     version_(OB_SCHEMA_VERSION_FOUR_SECOND),
     schema_version_(0),
     create_time_column_id_(OB_INVALID_ID),
