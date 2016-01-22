@@ -721,6 +721,12 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
   return ret;
   // add :e
 }
+<hint>[0-9]+"."[0-9]*  {
+//add wenghaixing [bugfix.index_datasource] 20160122
+  return NAME;
+  //add e
+}
+
 <hint>. {}
 
 {comment} { /* ignore */ }
