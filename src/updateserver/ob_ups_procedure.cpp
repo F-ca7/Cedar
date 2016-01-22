@@ -4,6 +4,71 @@
 using namespace oceanbase::updateserver;
 using namespace oceanbase::sql;
 
+int ObUpsNewOrder::execute(int w_id, int d_id, int item_ids[], double i_prices[], int supplier_w_ids[], int order_quantities[], int o_ol_cnt)
+{
+  int ol_i_id, d_next_o_id, o_id;
+  int s_remote_cnt_increment;
+  double ol_amount, total_amount = 0, i_price;
+  int o_quantity, ol_supply_w_id, s_quantity;
+  ObString ol_dist_info;
+  ObString s_dist_info[10];
+  double ol_amounts[MAX_ITEM_COUNT];
+  ObString ol_dist_infos[MAX_ITEM_COUNT];
+
+  for(int itr = 0; itr < o_ol_cnt; ++itr)
+  {
+    ol_i_id = item_ids[itr];
+    ol_supply_w_id = supplier_w_ids[itr];
+    o_quantity = order_quantities[itr];
+    i_price = i_prices[itr];
+
+    //commit a select_stock sql
+
+    if( s_quantity - o_quantity >= 10 )
+    {
+      s_quantity -= o_quantity;
+    }
+    else
+    {
+      s_quantity = s_quantity - o_quantity + 91;
+    }
+
+    if( ol_supply_w_id == w_id )
+    {
+      s_remote_cnt_increment = 0;
+    }
+    else
+    {
+      s_remote_cnt_increment = 1;
+    }
+
+    //commit a update_stock sql
+
+    ol_amount = o_quantity * i_price;
+    total_amount = total_amount + ol_amount;
+
+    ol_dist_info = s_dist_info[d_id];
+
+    ol_amounts[itr] = ol_amount;
+    ol_dist_infos[itr] = ol_dist_info;
+  }
+
+  //commit a select district;
+
+  //commit a update district;
+
+  o_id = d_next_o_id;
+
+  //commit a replace oorder
+
+  //commit a replace new_order
+
+  for(int itr = 0; itr < o_ol_cnt; ++itr)
+  {
+    //commit a replace order_line
+  }
+}
+
 SpUpsInstExecStrategy::SpUpsInstExecStrategy()
 {
   inst_handler[SP_E_INST] = pexecute_expr;

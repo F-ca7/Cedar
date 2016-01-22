@@ -8,6 +8,16 @@ namespace oceanbase
 {
   namespace updateserver
   {
+    class ObUpsNewOrder
+    {
+      public:
+        int execute();
+
+      private:
+
+        int select_stock(/*primary key*/int o_i_id, int ol_supply_w_id, /*get fields*/int s_quantity,);
+        const int32_t MAX_ITEM_COUNT = 16;
+    };
 
     class SpUpsLoopInst;
 

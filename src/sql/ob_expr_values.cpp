@@ -19,7 +19,6 @@
 #include "common/ob_obj_cast.h"
 #include "common/hash/ob_hashmap.h"
 #include "ob_physical_plan.h" //add zt 20151109
-#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 ObExprValues::ObExprValues()
@@ -136,7 +135,6 @@ int ObExprValues::close()
 int ObExprValues::get_next_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
-  int64_t start_ts = tbsys::CTimeUtil::getTime();
   if( group_exec_ )
   {
     ret = get_next_row_template(row);
@@ -153,7 +151,6 @@ int ObExprValues::get_next_row(const common::ObRow *&row)
   {
     row = &row_;
   }
-  OB_STAT_INC(UPDATESERVER, UPS_EXPR_VALUES, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
@@ -534,11 +531,9 @@ int ObExprValues::deserialize_template(const char *buf, const int64_t data_len, 
 int ObExprValues::prepare_data()
 {
   int ret = OB_SUCCESS;
-  int64_t start_ts = tbsys::CTimeUtil::getTime();
 //  row_store_.reuse();
 //  ret = eval();
   expr_idx_ = 0;
-  OB_STAT_INC(UPDATESERVER, UPS_PREPARE_DATA, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
