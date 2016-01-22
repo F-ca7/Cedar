@@ -58,6 +58,13 @@ namespace oceanbase
         enum ObPhyOperatorType get_type() const {return PHY_EXPR_VALUES;}
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add by zt 20160119:b
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const;
+        int deserialize_template(const char *buf, const int64_t data_len, int64_t& pos);
+        int prepare_data();
+        int get_next_row_template(const common::ObRow *&row);
+        //add by zt 20160119:e
       private:
         // types and constants
       private:
@@ -76,6 +83,8 @@ namespace oceanbase
         bool from_deserialize_;
         bool check_rowkey_duplicat_;
         bool do_eval_when_serialize_;
+        bool group_exec_;
+        int64_t expr_idx_;
     };
   } // end namespace sql
 } // end namespace oceanbase

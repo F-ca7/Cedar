@@ -86,7 +86,7 @@ int SpUpsInstExecStrategy::pexecute_block(SpUpsInstExecStrategy *host, SpInst *i
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
-//  int64_t start_ts = tbsys::CTimeUtil::getTime();
+  int64_t start_ts = tbsys::CTimeUtil::getTime();
 //  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(inst->get_val()));
   common::ObRow input_row;
   const ObObj *val = NULL;
@@ -97,7 +97,7 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   //update the varialbe here
   else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_var(), *val)) )
   {}
-//  OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
+  OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
@@ -149,6 +149,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
 //      TBSYS_LOG(INFO, "read row: [%s]", to_cstring(*row));
 //    }
 
+  OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
     if( ret == OB_SUCCESS )
     {
       for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
@@ -175,7 +176,6 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
       }
     }
   }
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
@@ -206,6 +206,8 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   {
 //    TBSYS_LOG(WARN, "if expr evalute failed");
   }
+  OB_STAT_INC(UPDATESERVER, UPS_PROC_IF, tbsys::CTimeUtil::getTime() - start_ts);
+  if( OB_SUCCESS != ret ) {}
   else if( flag->is_true() )
   { //execute the then branch
     if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_then_block())) )
@@ -220,7 +222,6 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
 //      TBSYS_LOG(WARN, "execute else block fail");
     }
   }
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_IF, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
 
@@ -288,6 +289,8 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
     {
 //      TBSYS_LOG(WARN, "update loop counter var failed");
     }
+
+    if( OB_SUCCESS != ret ) {}
     else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_loop_body())) )
     {
 //      TBSYS_LOG(WARN, "failed to execute loop body");

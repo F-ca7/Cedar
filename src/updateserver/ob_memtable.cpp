@@ -229,6 +229,7 @@ namespace oceanbase
                                 ObBatchChecksum &bc)
     {
       int ret = OB_SUCCESS;
+      //label 1 begin
       if (!is_nop_(cell_info.value_))
       {
         ccw.get_ctime_recorder().add(ccw.is_row_deleted(), cell_info.value_);
@@ -259,6 +260,7 @@ namespace oceanbase
           TBSYS_LOG(DEBUG, "[CHECKSUM][OBJ] %ld %s", bc.calc(), print_obj(cell_info.value_));
         }
       }
+      //label 1 end 43, 41, 44
       return ret;
     }
 
@@ -308,12 +310,16 @@ namespace oceanbase
                                 int64_t &new_row_counter,
                                 ObBatchChecksum &bc)
     {
+      //label 1 begin
       int ret = OB_SUCCESS;
+      //label 2 begin
       if (is_row_changed
           || NULL == cur_value)
       {
+        //label 5 begin
         while (true)
         {
+          //labe 4 begin
           if (NULL != (cur_value = table_engine_.get(cur_key)))
           {
             if (OB_SUCCESS != (ret = lock_info.on_write_begin(cur_key, *cur_value)))
@@ -330,6 +336,7 @@ namespace oceanbase
             }
             break;
           }
+          //label 4 end : 25 23 22
           else if (NULL == (cur_value = (TEValue*)mem_tank_.tevalue_alloc(sizeof(TEValue))))
           {
             ret = OB_MEM_OVERFLOW;
@@ -374,6 +381,7 @@ namespace oceanbase
             }
           }
         }
+        //label 5 end : 161 158 157
         if (OB_SUCCESS == ret)
         {
           total_row_counter++;
@@ -381,6 +389,8 @@ namespace oceanbase
           TBSYS_LOG(DEBUG, "[CHECKSUM][RK] %ld %s", bc.calc(), cur_key.log_str());
         }
       }
+      //label 2 end 159 156 163
+      //label 3 begin
       if (OB_SUCCESS == ret
           && NULL != cur_value)
       {
@@ -410,6 +420,8 @@ namespace oceanbase
           TBSYS_LOG(DEBUG, "fetch uc_info value=%p uc_info=%p", cur_uci->value, cur_value->cur_uc_info);
         }
       }
+      //label 3 end : 16 18 18
+      //label 1 end : 220 190 181
       return ret;
     }
 
@@ -504,6 +516,7 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       TEValueUCInfo *cur_uci = NULL;
+      //label 0 begin
       if (OB_SUCCESS == (ret = get_cur_value_(session, lock_info,
                                               cur_key, cur_value, cur_uci, is_row_changed,
                                               total_row_counter, new_row_counter, bc)))
@@ -515,6 +528,7 @@ namespace oceanbase
         }
         else
         {
+          //label 1 begin
           ret = update_value_(session, cur_key.table_id, cell_info, *cur_uci, ccw, bc);
           if (OB_SUCCESS == ret)
           {
@@ -555,8 +569,10 @@ namespace oceanbase
           {
             TBSYS_LOG(WARN, "update value fail ret=%d %s", ret, print_cellinfo(&cell_info));
           }
+          //label 1 end : 114
         }
       }
+      //label 0 end : 397, 368, 386
       return ret;
     }
 
@@ -1184,6 +1200,7 @@ namespace oceanbase
         {
           bool is_row_changed = false;
           bool is_row_finished = false;
+          //label 0 begin
           if (OB_SUCCESS != (ret = iter.get_cell(&cell_info, &is_row_changed))
               || OB_SUCCESS != (ret = iter.is_row_finished(&is_row_finished))
               || NULL == cell_info)
@@ -1193,6 +1210,7 @@ namespace oceanbase
           }
           else
           {
+            //label 1 begin
             TBSYS_LOG(DEBUG, "trans set cell_info %s irc=%s irf=%s",
                       print_cellinfo(cell_info), STR_BOOL(is_row_changed), STR_BOOL(is_row_finished));
             cur_key.table_id = cell_info->table_id_;
@@ -1214,6 +1232,7 @@ namespace oceanbase
               TBSYS_LOG(WARN, "can not handle db sem now %s", print_cellinfo(cell_info));
             }
             cell_counter++;
+            //label 2 begin
             if (OB_SUCCESS == ret)
             {
               // 处理后的mutator全转化为update语义
@@ -1237,7 +1256,10 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "add rowkey barrier to mutator fail, ret=%d", ret);
               }
             }
+            //label 2 end : 110 126 93
+            //label 1 end : 506, 477, 493
           }
+          //label 0 end : 531, 511, 531
         }
         ret = (OB_ITER_END == ret) ? OB_SUCCESS : ret;
         FILL_TRACE_BUF(session_ctx.get_tlog_buffer(), "dml_type=%s total_row_num=%ld new_row_num=%ld cell_num=%ld ret=%d",
@@ -1503,6 +1525,7 @@ namespace oceanbase
                       const sql::ObLockFlag lock_flag /*=0*/)
     {
       int ret = OB_SUCCESS;
+
       TEKey key(table_id, row_key);
       TEValue *value = NULL;
       ILockInfo* lock_info = NULL;
@@ -1536,10 +1559,12 @@ namespace oceanbase
           value = table_engine_.get(key);
         }
       }
+
       if (OB_SUCCESS == ret)
       {
         iterator.get_get_iter_().set_(key, value, column_filter, true, &session_ctx);
       }
+
       return ret;
     }
 

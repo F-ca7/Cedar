@@ -128,7 +128,7 @@ int ObProcedureExecute::open()
   else
   {
     ObPhyOperator *tmp_op = result_set->get_physical_plan()->get_main_query();
-    TBSYS_LOG(INFO,"get main query success");
+//    TBSYS_LOG(INFO,"get main query success");
     if( PHY_PROCEDURE != tmp_op->get_type() )
     {
       TBSYS_LOG(WARN, "the procedure plan is not correct");
@@ -153,9 +153,9 @@ int ObProcedureExecute::open()
     OB_ASSERT(proc->get_type() == PHY_PROCEDURE);
     child_op_ = proc;
     int64_t param_desired = proc->get_param_num();
-    TBSYS_LOG(INFO,"param num is %ld",param_desired);
+//    TBSYS_LOG(INFO,"param num is %ld",param_desired);
     int64_t param_provided = get_param_size();
-     TBSYS_LOG(INFO,"param size is %ld",param_provided);
+//     TBSYS_LOG(INFO,"param size is %ld",param_provided);
     if(param_desired!=param_provided)
     {
       ret =OB_INPUT_PARAM_ERROR;
