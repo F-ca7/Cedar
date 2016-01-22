@@ -4595,10 +4595,23 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
         {
           TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
         }
-        else if (OB_SUCCESS != (ret = root_server_.create_table(if_not_exists, tschema)))
+        //modify wenghaixing [secondary index.static_index]20160119
+        /*else if (OB_SUCCESS != (ret = root_server_.create_table(if_not_exists, tschema)))
         {
           TBSYS_LOG(WARN, "failed to create table, err=%d", ret);
+        }*/
+        else if(OB_INVALID_ID != tschema.original_table_id_ && root_server_.get_config().index_immediate_effect)
+        {
+          tschema.index_status_ = AVALIBALE;
         }
+        if(OB_SUCCESS == ret)
+        {
+          if (OB_SUCCESS != (ret = root_server_.create_table(if_not_exists, tschema)))
+          {
+            TBSYS_LOG(WARN, "failed to create table, err=%d", ret);
+          }
+        }
+        //modify e
         if (OB_SUCCESS != ret)
         {
           res.message_ = ob_get_err_msg();
