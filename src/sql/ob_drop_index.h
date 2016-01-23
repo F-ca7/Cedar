@@ -30,22 +30,53 @@ namespace oceanbase
 
   namespace sql
   {
+    /**
+     * @brief The ObDropIndex class
+     * ObDropIndex is designed for drop index physical plan
+     */
     class ObDropIndex: public ObDropTable
     {
-      public:
-        ObDropIndex();
-        virtual ~ObDropIndex();
-        int add_index_name (const common::ObString &tname);
+    public:
+      /**
+       * @brief ObDropIndex: constructor
+       */
+      ObDropIndex();
+      /**
+       * @brief ~ObDropIndex: destructor
+       */
+      virtual ~ObDropIndex();
+      /**
+       * @brief add_index_name into indexs_
+       * @param tname
+       * @return
+       */
+      int add_index_name (const common::ObString &tname);
 
-        /// execute the insert statement
-        virtual int open();
-        virtual int close();
-        virtual ObPhyOperatorType get_type() const { return PHY_DROP_INDEX; }
-        virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+      /**
+       * @brief execute the drop index statement
+       * @return
+       */
+      virtual int open();
+      /**
+       * @brief close the operator
+       * @return
+       */
+      virtual int close();
+      /**
+       * @brief get_type
+       * @return
+       */
+      virtual ObPhyOperatorType get_type() const { return PHY_DROP_INDEX; }
+      /**
+       * @brief to_string
+       * @param buf
+       * @param buf_len
+       * @return
+       */
+      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
-      private:
-        // data members
-        common::ObStrings indexs_; // store the index we will drops
+    private:
+      common::ObStrings indexs_; ///< store the index we will drops
     };
 
   } // end namespace sql

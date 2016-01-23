@@ -2562,8 +2562,7 @@ namespace oceanbase
     }
 
     //add longfei [cons static index] 151207:b
-    int ObMultiVersionTabletImage::upgrade_index_tablet(ObTablet* tablet,
-        const bool load_sstable)
+    int ObMultiVersionTabletImage::upgrade_index_tablet(ObTablet* tablet, const bool load_sstable)
     {
       int ret = OB_SUCCESS;
       int64_t new_version = tablet->get_data_version();
@@ -2595,7 +2594,6 @@ namespace oceanbase
     const int ObTabletImage::delete_local_index_sstable() const
     {
       int ret = OB_SUCCESS;
-      TBSYS_LOG(ERROR,"test ::longfei delete_local_index_sstable in for loop");
       ObSortedVector <ObTablet*>::iterator it = tablet_list_.begin();
       for (; it != tablet_list_.end(); ++it)
       {

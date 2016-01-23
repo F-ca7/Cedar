@@ -308,7 +308,7 @@ int ObTabletScan::build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
  * @brief ObTabletScan::build_sstable_scan_param_pub make build_sstable_scan_param() public
  * @param basic_columns
  * @param sql_scan_param
- * @param sstable_scan_param
+ * @param sstable_scan_param [out]
  * @return
  */
 int ObTabletScan::build_sstable_scan_param_pub(ObArray<uint64_t> &basic_columns,

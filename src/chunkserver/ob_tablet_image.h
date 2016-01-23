@@ -171,6 +171,10 @@ namespace oceanbase
 
       public:
         //add longfei [cons static index] 151220:b
+        /**
+         * @brief delete_local_index_sstable: 删除局部索引的sstable，遍历所有的tablet，逐个检查并删除
+         * @return ret code
+         */
         const int delete_local_index_sstable() const;
         //add e
 
@@ -379,6 +383,12 @@ namespace oceanbase
             const bool load_sstable = false);
 
         //add longfei [cons static index] 151207:b
+        /**
+         * @brief upgrade_index_tablet: add tablet to tablet image
+         * @param obtablet
+         * @param load_sstable
+         * @return error code
+         */
         int upgrade_index_tablet(ObTablet* obtablet,const bool load_sstable = false);
         //add e
 

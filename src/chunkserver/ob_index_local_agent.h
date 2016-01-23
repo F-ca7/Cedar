@@ -34,62 +34,148 @@ namespace oceanbase
   namespace chunkserver
   {
     typedef hash::ObHashMap<ObNewRange, ObTabletLocationList,
-        hash::NoPthreadDefendMode> RangeServerHash;
+    hash::NoPthreadDefendMode> RangeServerHash;
     typedef hash::ObHashMap<ObNewRange, ObTabletLocationList,
-        hash::NoPthreadDefendMode>::const_iterator HashIterator;
+    hash::NoPthreadDefendMode>::const_iterator HashIterator;
 
+    /**
+     * @brief The ObIndexLocalAgent class
+     * is designed for scan range in cs itself
+     */
     class ObIndexLocalAgent: public ObNoChildrenPhyOperator
     {
-      public:
-        ObIndexLocalAgent();
-        virtual ~ObIndexLocalAgent();
-        virtual void reset();
-        virtual void reuse();
-        virtual int open();
-        virtual int close();
-        virtual ObPhyOperatorType get_type() const
-        {
-          return PHY_INDEX_LOCAL_AGENT;
-        }
-        virtual int get_next_row(const ObRow *&row);
-        virtual int get_row_desc(const ObRowDesc *&row_desc) const;
-        virtual int64_t to_string(char* buf, const int64_t buf_len) const;
+    public:
+      /**
+       * @brief ObIndexLocalAgent
+       * constructor
+       */
+      ObIndexLocalAgent();
+      /**
+       * @brief ~ObIndexLocalAgent
+       * destructor
+       */
+      virtual ~ObIndexLocalAgent();
+      /**
+       * @brief reset
+       */
+      virtual void reset();
+      /**
+       * @brief reuse
+       */
+      virtual void reuse();
+      /**
+       * @brief open
+       * @return
+       */
+      virtual int open();
+      /**
+       * @brief close
+       * @return
+       */
+      virtual int close();
+      /**
+       * @brief get_type
+       * @return
+       */
+      virtual ObPhyOperatorType get_type() const
+      {
+        return PHY_INDEX_LOCAL_AGENT;
+      }
+      /**
+       * @brief get_next_row
+       * @param row [out]
+       * @return
+       */
+      virtual int get_next_row(const ObRow *&row);
+      /**
+       * @brief get_row_desc
+       * @param row_desc [out]
+       * @return
+       */
+      virtual int get_row_desc(const ObRowDesc *&row_desc) const;
+      /**
+       * @brief to_string: Not implemented
+       * @param buf
+       * @param buf_len
+       * @return success
+       */
+      virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
+    public:
+      /**
+       * @brief set_row_desc
+       * @param desc
+       */
+      void set_row_desc(const ObRowDesc &desc);
+      /**
+       * @brief set_scan_param
+       * @param scan_param
+       * @return success or fail
+       */
+      int set_scan_param(ObScanParam *scan_param);
+      /**
+       * @brief set_range_server_hash
+       * @param range_server_hash
+       * @return success or fail
+       */
+      int set_range_server_hash(const chunkserver::RangeServerHash *range_server_hash);
+      /**
+       * @brief build_sst_scan_param: build sstable scan parameter according to scan_param_
+       * @return success or fail
+       */
+      int build_sst_scan_param();
+      /**
+       * @brief get_next_local_row
+       * @param [out] row
+       * @return success or fail
+       */
+      int get_next_local_row(const ObRow *&row);
+      /**
+       * @brief scan
+       * 1.get_next_local_range
+       * 2.open_scan_context_local_idx
+       * 3.init_sstable_scanner_for_local_idx
+       * @return success, iter_end or fail
+       */
+      int scan();
+      /**
+       * @brief get_next_local_range: get next range in the cs itself
+       * @param range
+       * @return success, iter_end or fail
+       */
+      int get_next_local_range(ObNewRange &range);
+      /**
+       * @brief set_server
+       * @param server
+       */
+      void set_server(ObServer server)
+      {
+        self_ = server;
+      }
+      /**
+       * @brief set_scan_context
+       * @param sc
+       */
+      void set_scan_context(ScanContext &sc)
+      {
+        sc_ = sc;
+      }
+      DECLARE_PHY_OPERATOR_ASSIGN;
 
-      public:
-        void set_row_desc(const ObRowDesc &desc);
-        int set_scan_param(ObScanParam *scan_param);
-        int set_range_server_hash(const chunkserver::RangeServerHash *range_server_hash);
-//        void set_query_agent(chunkserver::ObIndexLocalAgent *agent);
-//        void set_failed_fake_range(const ObNewRange &range);
-        int build_sst_scan_param();
-        int get_next_local_row(const ObRow *&row);
-        int scan();
-        int get_next_local_range(ObNewRange &range);
-        void set_server(ObServer server)
-        {
-          self_ = server;
-        }
-        void set_scan_context(ScanContext &sc)
-        {
-          sc_ = sc;
-        }
-        DECLARE_PHY_OPERATOR_ASSIGN;
-
-      private:
-        ObRowDesc row_desc_;
-        ObRow cur_row_;
-        ObSSTableScan sst_scan_;
-        ObScanParam *scan_param_;
-        sstable::ObSSTableScanParam sst_scan_param_;
-        const chunkserver::RangeServerHash *range_server_hash_;
-        ObNewRange fake_rage_;
-        int64_t hash_index_;
-        bool local_idx_scan_finish_;
-        bool local_idx_block_end_;
-        bool first_scan_;
-        ObServer self_;
-        ScanContext sc_;
+    private:
+      ObRowDesc row_desc_; ///< row desc
+      ObRow cur_row_; ///< cur row for get_next_row()
+      ObSSTableScan sst_scan_; ///< sstable scan operator
+      ObScanParam *scan_param_; ///< scan parameter
+      sstable::ObSSTableScanParam sst_scan_param_; ///< sstable scan parameter
+      const chunkserver::RangeServerHash *range_server_hash_; ///< range which needs to be constructed
+      ObNewRange fake_rage_; ///< range recieved from rs
+      int64_t hash_index_; ///< index of range_server_hash
+      bool local_idx_scan_finish_; ///< is local index scan finished?
+      bool local_idx_block_end_; ///< is all local index has been dealt with?
+      bool first_scan_; ///< is first scan?
+      ObServer self_; ///< cs itself
+      ScanContext sc_; ///< sstable scan context
     };
 
   } //end chunkserver

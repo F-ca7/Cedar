@@ -25,69 +25,103 @@ namespace oceanbase
 {
   namespace chunkserver
   {
+    /**
+     * @brief The ObCsInteractiveCellStream class
+     * for get data in other cs
+     */
     class ObCsInteractiveCellStream: public ObCellStream
     {
     public:
+      /**
+       * @brief ~ObCsInteractiveCellStream destructor
+       */
       virtual ~ObCsInteractiveCellStream();
-      ObCsInteractiveCellStream(ObMergerRpcProxy * rpc_proxy,
+      /**
+       * @brief ObCsInteractiveCellStream constructor
+       * @param rpc_proxy
+       * @param server_type
+       * @param time_out
+       */
+      ObCsInteractiveCellStream(
+          ObMergerRpcProxy * rpc_proxy,
           const common::ObServerType server_type = common::MERGE_SERVER,
           const int64_t time_out = 0);
-
     public:
-      // get next cell
-      virtual int next_cell(void);
-      // scan init
-      virtual int scan(const common::ObScanParam & param);
-
       /**
+       * @brief next_cell retrieve cell from cur_result_
+       * @return error code
+       */
+      virtual int next_cell();
+      /**
+       * @brief scan fill cur_result_
+       * @param param
+       * @return error code
+       */
+      virtual int scan(const common::ObScanParam & param);
+      /**
+       * @brief get_data_version
        * get the current scan data version, this function must
        * be called after next_cell()
-       *
        * @return int64_t return data version
        */
       virtual int64_t get_data_version() const;
-
+      /**
+       * @brief set_chunkserver
+       * @param server
+       */
       void set_chunkserver(const ObTabletLocationList server);
-
-      // reset inner stat
-      void reset_inner_stat(void);
+      /**
+       * @brief reset_inner_stat
+       */
+      void reset_inner_stat();
+      /**
+       * @brief set_self
+       * @param self
+       */
       inline void set_self(ObServer self)
       {
         self_ = self;
       }
+      /**
+       * @brief get_self
+       * @return self_
+       */
       inline ObServer get_self()
       {
         return self_;
       }
-
     private:
-
-      // check whether finish scan, if finished return server's servering tablet range
-      // param  @param current scan param
+      /**
+       * @brief check_finish_scan
+       * check whether finish scan, if finished return server's servering tablet range
+       * @param param current scan param
+       * @return error code
+       */
       int check_finish_scan(const common::ObScanParam & param);
-
-      // scan for get next cell
-      // 从cur_result_中将结果取出来返回给上一层
+      /**
+       * @brief get_next_cell 从cur_result_中将结果取出来返回给上一层
+       * @return error code
+       */
       int get_next_cell(void);
-
-      // scan data
-      // param @param scan data param
-      // 真正的扫描cell将结果存在cur_result_中
+      /**
+       * @brief scan_row_data 真正的扫描cell将结果存在cur_result_中
+       * @return error code
+       */
       int scan_row_data();
-
-      // check inner stat
+      /**
+       * @brief check_inner_stat: check rpc_proxy_
+       * @return true or false
+       */
       bool check_inner_stat(void) const;
-
-    private:
       DISALLOW_COPY_AND_ASSIGN(ObCsInteractiveCellStream);
-
-      bool finish_;                          // finish all scan routine status
-      common::ObMemBuf range_buffer_;           // for modify param range
-      const common::ObScanParam * scan_param_;  // orignal scan param
-      common::ObScanParam cur_scan_param_;      // current scan param
-      ObTabletLocationList chunkserver_;                    // 选择需要发送的CS
-      int64_t cur_rep_index_; //当前副本的索引
-      ObServer self_;
+    private:
+      bool finish_; ///< finish all scan routine status
+      common::ObMemBuf range_buffer_; ///< for modify param range
+      const common::ObScanParam * scan_param_; ///<  orignal scan param
+      common::ObScanParam cur_scan_param_; ///< current scan param
+      ObTabletLocationList chunkserver_; ///<  选择需要发送的CS
+      int64_t cur_rep_index_; ///< 当前副本的索引
+      ObServer self_; ///< this cs itself
     };
 
     // check inner stat
@@ -98,7 +132,7 @@ namespace oceanbase
     }
 
     // reset inner stat
-    inline void ObCsInteractiveCellStream::reset_inner_stat(void)
+    inline void ObCsInteractiveCellStream::reset_inner_stat()
     {
       ObCellStream::reset_inner_stat();
       finish_ = false;

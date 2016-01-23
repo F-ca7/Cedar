@@ -3525,7 +3525,7 @@ int resolve_when_clause(
   }
   return ret;
 }
-//add wenghaixing[secondary index create fix]20141226
+//add longfei
 int generate_expire_col_list(ObString input, ObStrings &out)
 {
   int ret = OB_SUCCESS;

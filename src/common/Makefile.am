@@ -200,7 +200,7 @@ common_sources=				                                                  \
   ob_schema_service.h              ob_schema_service.cpp                \
   ob_schema_service_impl.h         ob_schema_service_impl.cpp           \
   ob_schema_table.h                ob_schema_table.cpp                  \
-  ob_secondary_index_service.h     ob_secondary_index_service.cpp       \
+  ob_secondary_index_service.h \
   ob_secondary_index_service_impl.h  ob_secondary_index_service_impl.cpp \
   ob_seq_queue.h                   ob_seq_queue.cpp                     \
   ob_server.h                      ob_server.cpp                        \

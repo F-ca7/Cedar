@@ -25,18 +25,44 @@ namespace oceanbase
 {
   namespace chunkserver
   {
+    /**
+     * @brief The ObCsInteractiveScan class
+     * scan operator to get data in a special range
+     */
     class ObCsInteractiveScan: public ObDoubleChildrenPhyOperator
     {
     public:
+      /**
+       * @brief ObCsInteractiveScan constructor
+       */
       ObCsInteractiveScan();
+      /**
+       * @brief ~ObCsInteractiveScan destructor
+       */
       virtual ~ObCsInteractiveScan();
     public:
+      /**
+       * @brief get_next_row
+       * @param row
+       * @return
+       */
       virtual int get_next_row(const common::ObRow *&row);
+      /**
+       * @brief get_row_desc Not implemented
+       * @param row_desc
+       * @return error code
+       */
       virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+      /**
+       * @brief to_string Not implemented
+       * @param buf
+       * @param buf_len
+       * @return
+       */
       virtual int64_t to_string(char *buf,const int64_t buf_len) const;
 
     private:
-      bool local_idx_scan_finish_;
+      bool local_idx_scan_finish_; ///< to distinguish left and right child
     };
 
   } /* namespace chunkserver */

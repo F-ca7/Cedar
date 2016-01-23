@@ -32,12 +32,11 @@ namespace oceanbase
       interactive_cell_ = NULL;
       scan_param_ = NULL;
       inited_ = false;
-      not_used_ = true;
       range_server_hash_ = NULL;
       hash_index_ = -1;
       column_count_ = -1;
       failed_fake_range_.reset();
-//      curr_row_.reset();
+      //      curr_row_.reset();
     }
 
     void ObIndexInteractiveAgent::reuse()
@@ -50,8 +49,10 @@ namespace oceanbase
       row_desc_ = desc;
     }
 
-    int ObIndexInteractiveAgent::start_agent(ObScanParam &scan_param,
-        ObCsInteractiveCellStream &cs_stream, const RangeServerHash *hash)
+    int ObIndexInteractiveAgent::start_agent(
+        ObScanParam &scan_param,
+        ObCsInteractiveCellStream &cs_stream,
+        const RangeServerHash *hash)
     {
       int ret = OB_SUCCESS;
       reset();
@@ -72,9 +73,9 @@ namespace oceanbase
         ObTabletLocationList list;
         int loop = 0;
 
-//          遍历此table的所有tablet，如果说存在tablet的第一副本不在本cs上的话，
-//          就将当前位置用hash_index_记录下来,然后设置interactive_cell的cs(组)为此tablet所在所有cs。
-//          跳出遍历
+//        遍历此table的所有tablet，如果说存在tablet的第一副本不在本cs上的话，
+//            就将当前位置用hash_index_记录下来,然后设置interactive_cell的cs(组)为此tablet所在所有cs。
+//            跳出遍历
 
         for (; iter != range_server_hash_->end(); ++iter)
         {
@@ -98,7 +99,7 @@ namespace oceanbase
         }
         if (iter_end)
         {
-          //这个意思是说在本机上的数据就不需要去和其他CS interactive。
+          //在本机上的数据就不需要去和其他CS interactive
           ret = OB_ITER_END;
         }
         if (OB_SUCCESS == ret)
@@ -112,7 +113,6 @@ namespace oceanbase
           }
           else if (OB_SUCCESS == ret || OB_ITER_END == ret)
           {
-            //TBSYS_LOG(ERROR,"test::whx ret start_agent first scan,hash_index_ [%d],fake_range(%s),range(%s) ret= [%d]", hash_index_,to_cstring(*(scan_param_->get_fake_range())),to_cstring(*(scan_param_->get_range())), ret);
             ret = OB_SUCCESS;
           }
         }
@@ -130,7 +130,6 @@ namespace oceanbase
     int ObIndexInteractiveAgent::open()
     {
       int ret = OB_SUCCESS;
-      //@todo(longfei):here is cell stream,need not to set rowdesc
       /*
        * @todo(longfei)现在的代码这儿的操作在write_total_index_v1之前就已经做了。
        * 请将代码转移的这儿来做
@@ -149,10 +148,10 @@ namespace oceanbase
 
     int64_t ObIndexInteractiveAgent::to_string(char* buf, const int64_t buf_len) const
     {
-        int ret = OB_SUCCESS;
-        UNUSED(buf);
-        UNUSED(buf_len);
-        return ret;
+      int ret = OB_SUCCESS;
+      UNUSED(buf);
+      UNUSED(buf_len);
+      return ret;
     }
 
     int ObIndexInteractiveAgent::get_next_row(const ObRow *&row)
@@ -187,7 +186,7 @@ namespace oceanbase
     }
 
     int ObIndexInteractiveAgent::get_cell(ObCellInfo **cell,
-        bool *is_row_changed)
+                                          bool *is_row_changed)
     {
       int ret = OB_SUCCESS;
       if (NULL == interactive_cell_)
@@ -208,8 +207,8 @@ namespace oceanbase
       if (!inited_ || NULL == interactive_cell_ || NULL == range_server_hash_)
       {
         TBSYS_LOG(WARN,
-            "run start_agent() first, inited_=%d, interactive_cell_=%p",
-            inited_, interactive_cell_);
+                  "run start_agent() first, inited_=%d, interactive_cell_=%p",
+                  inited_, interactive_cell_);
         ret = OB_INVALID_ARGUMENT;
       }
       else if (OB_SUCCESS == (ret = interactive_cell_->next_cell()))
@@ -233,7 +232,7 @@ namespace oceanbase
               list = iter->second;
               if (loop <= hash_index_
                   || list[0].server_.chunkserver_
-                      == interactive_cell_->get_self())
+                  == interactive_cell_->get_self())
               {
                 loop++;
                 //TBSYS_LOG(ERROR,"test::whx show loop hash_index_[%d]",hash_index_);
@@ -287,54 +286,46 @@ namespace oceanbase
       ObCellInfo* cell = NULL;
       //bool is_row_changed = false;
       int64_t column_count = 0;
-
-      if (true) //if (used_) ==> if (true)
+      do
       {
-        do
+        if (OB_SUCCESS == (ret = next_cell()))
         {
-          if (OB_SUCCESS == (ret = next_cell()))
-          {
-            ret = get_cell(&cell);
-          }
-          else if (OB_ITER_END == ret)
-          {
-            TBSYS_LOG(INFO, "interactiveAgent return OB_ITER_END");
-            break;
-          }
-          else
-          {
-            TBSYS_LOG(WARN, "get cell failed,ret[%d]", ret);
-          }
-
-          if (OB_SUCCESS == ret)
-          {
-            if (OB_SUCCESS
-                == (ret = row.set_cell((cell)->table_id_,
-                                       (cell)->column_id_,
-                                       (cell)->value_)))
-            {
-            }
-            else
-            {
-              TBSYS_LOG(WARN, "row set cell failed, tid[%ld], cid[%ld]",
-                        (cell)->table_id_, (cell)->column_id_);
-              break;
-            }
-          }
-          else
-          {
-            break;
-          }
-
-        } while (++column_count < column_count_);
-        if (OB_SUCCESS != ret && OB_ITER_END != ret)
-        {
-          TBSYS_LOG(WARN, "get_next_row failed[%d]", ret);
+          ret = get_cell(&cell);
         }
-      }
-      else
+        else if (OB_ITER_END == ret)
+        {
+          TBSYS_LOG(INFO, "interactiveAgent return OB_ITER_END");
+          break;
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "get cell failed,ret[%d]", ret);
+        }
+
+        if (OB_SUCCESS == ret)
+        {
+          if (OB_SUCCESS
+              == (ret = row.set_cell((cell)->table_id_,
+                                     (cell)->column_id_,
+                                     (cell)->value_)))
+          {
+          }
+          else
+          {
+            TBSYS_LOG(WARN, "row set cell failed, tid[%ld], cid[%ld]",
+                      (cell)->table_id_, (cell)->column_id_);
+            break;
+          }
+        }
+        else
+        {
+          break;
+        }
+      } while (++column_count < column_count_);
+
+      if (OB_SUCCESS != ret && OB_ITER_END != ret)
       {
-        ret = OB_ITER_END;
+        TBSYS_LOG(WARN, "get_next_row failed[%d]", ret);
       }
       return ret;
     }

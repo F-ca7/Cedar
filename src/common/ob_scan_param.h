@@ -100,14 +100,26 @@ namespace oceanbase
         return &range_;
       }
       //add longfei [cons static index] 151204:b
+      /**
+       * @brief get_fake_range
+       * @return fake_range_
+       */
       inline const ObNewRange* const get_fake_range() const
       {
         return &fake_range_;
       }
+      /**
+       * @brief set_fake
+       * @param fake
+       */
       inline void set_fake(const bool fake)
       {
         need_fake_range_ = fake;
       }
+      /**
+       * @brief if_need_fake
+       * @return need_fake_range_
+       */
       inline bool if_need_fake() const
       {
         return need_fake_range_;

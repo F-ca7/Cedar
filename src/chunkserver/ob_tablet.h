@@ -107,11 +107,25 @@ namespace oceanbase
         //add longfei [cons static index] 151202:b
         template <typename Reader>
           int find_loc_idx_sstable(const common::ObNewRange& range,
-              Reader* sstable[], int32_t &size) const ;
+                                   Reader* sstable[], int32_t &size) const ;
+        /**
+         * @brief add_local_index_sstable_by_id: 将sstable加入到tablet中
+         * @param sstable_id
+         * @return return code
+         */
         int add_local_index_sstable_by_id(const sstable::ObSSTableId &sstable_id);
+        /**
+         * @brief delete_local_index_sstableid
+         * @return return code
+         */
         int delete_local_index_sstableid();
+        /**
+         * @brief load_local_sstable
+         * @param tablet_version
+         * @return return code
+         */
         int load_local_sstable(const int64_t tablet_version = 0);
-        //add e
+          //add e
 
         int find_sstable(const sstable::ObSSTableId & sstable_id,
             sstable::ObSSTableReader* &reader) const;
@@ -335,16 +349,11 @@ namespace oceanbase
         {
           sstable::SSTableReader* reader = sstable_reader_list_.at(1);
           sstable[index] = dynamic_cast<Reader*> (reader);
-          TBSYS_LOG(ERROR,"test::whx load_local_sstable> 1");
         }
         if(1 == sstable_id_list_.count())
         {
           ret = OB_TABLET_HAS_NO_LOCAL_SSTABLE;
           TBSYS_LOG(WARN, "get local sstable load failed[%d]", ret);
-        }
-        if(OB_SUCCESS == ret)
-        {
-          TBSYS_LOG(ERROR,"test::whx reader range = %s",to_cstring(sstable[index]->get_range()));
         }
         return ret;
       }

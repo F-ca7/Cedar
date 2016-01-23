@@ -775,12 +775,6 @@ namespace oceanbase
     }
 
     //add longfei [cons static index] 151202:b
-    /**
-     * @brief ObTablet::add_local_index_sstable_by_id
-     * @param sstable_id
-     * 将sstable加入到tablet中
-     * @return return code
-     */
     int ObTablet::add_local_index_sstable_by_id(const ObSSTableId &sstable_id)
     {
       int ret = OB_SUCCESS;
@@ -822,9 +816,7 @@ namespace oceanbase
       {
         sstable_reader_list_.at(1)->reset();
         ret = (sstable_reader_list_.remove(1));
-        TBSYS_LOG(ERROR, "test::whx delete sstable");
       }
-
       return ret;
     }
 
@@ -859,9 +851,9 @@ namespace oceanbase
             ret = OB_ALLOCATE_MEMORY_FAILED;
             break;
           }
-          else if (OB_SUCCESS
-                   != (ret = reader->open(sstable_id_list_.at(i).sstable_file_id_,
-                                          tablet_version)))
+          else if (OB_SUCCESS != (ret = reader->open(
+                                    sstable_id_list_.at(i).sstable_file_id_,
+                                    tablet_version)))
           {
             TBSYS_LOG(ERROR, "read sstable failed, sstable id=%ld, ret =%d",
                       sstable_id_list_.at(i).sstable_file_id_, ret);
@@ -881,9 +873,7 @@ namespace oceanbase
         }
       }
       sstable_loaded_ = ret;
-
       load_sstable_mutex_.unlock();
-
       return ret;
     }
     //add e

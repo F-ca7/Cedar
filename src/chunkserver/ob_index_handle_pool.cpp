@@ -78,9 +78,8 @@ namespace oceanbase
         inited_ = true;
         tablet_manager_ = manager;
         schema_mgr_ = chunk_server.get_schema_manager();
-
         pthread_mutex_init(&mutex_, NULL);
-        pthread_mutex_init(&phase_mutex_, NULL);
+        pthread_mutex_init(&stage_mutex_, NULL);
         pthread_cond_init(&cond_, NULL);
 
         int64_t max_work_thread_num =
@@ -122,7 +121,7 @@ namespace oceanbase
       if (OB_SUCCESS != ret && inited_)
       {
         pthread_mutex_destroy(&mutex_);
-        pthread_mutex_destroy(&phase_mutex_);
+        pthread_mutex_destroy(&stage_mutex_);
         pthread_cond_destroy(&cond_);
         inited_ = false;
       }
@@ -145,8 +144,7 @@ namespace oceanbase
       {
         if (thread_num_ != max_work_thread)
         {
-          TBSYS_LOG(WARN,
-                    "failed to start [%ld] threads to build index, there is [%ld] threads",
+          TBSYS_LOG(WARN, "failed to start [%ld] threads to build index, there is [%ld] threads",
                     max_work_thread, thread_num_);
         }
         min_work_thread_num_ = thread_num_ / 3;//?
@@ -163,7 +161,6 @@ namespace oceanbase
     int ObIndexHandlePool::create_all_index_handlers()
     {
       int ret = OB_SUCCESS;
-      TBSYS_LOG(INFO, "NOW START CREATE INDEX HANDLER");
       if (OB_SUCCESS != (ret = create_index_handlers(global_handler_, local_handler_, MAX_WORK_THREAD)))
       {
         TBSYS_LOG(ERROR, "failed to create index handlers");
@@ -245,7 +242,6 @@ namespace oceanbase
       return ret;
     }
 
-    //根据阶段进行HandlePool的调度算法
     int ObIndexHandlePool::schedule()
     {
       int ret = OB_SUCCESS;
@@ -290,15 +286,12 @@ namespace oceanbase
       {
         process_idx_tid_ = schedule_idx_tid_;
       }
-
-      // add longfei [cons static index] 151110:
       if (LOCAL_INDEX_STAGE == which_stage_)
       {
         if (OB_SUCCESS != (ret = fetch_tablet_info(LOCAL_INDEX_STAGE)))
         {
           TBSYS_LOG(ERROR, "start build index,round local error");
         }
-
       }
       else if (GLOBAL_INDEX_STAGE == which_stage_)
       {
@@ -314,8 +307,6 @@ namespace oceanbase
                   "can't understand the stage of cons static index,which_stage = %d",
                   (int) which_stage_);
       }
-      // add e
-
       return ret;
     }
 
@@ -327,14 +318,13 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "can't understand which stage,which_stage = %d",
                   which_stage);
-        ret = OB_ERROR; //@todo(longfei) need to change error type
+        ret = OB_ERROR;
       }
 
       if (ret == OB_SUCCESS && LOCAL_INDEX_STAGE == which_stage)
       {
         // get original table's tablet on this cs,and sort them
-        const ObSchemaManagerV2* schema_mgr = schema_mgr_->get_schema(
-                                                process_idx_tid_);
+        const ObSchemaManagerV2* schema_mgr = schema_mgr_->get_schema(process_idx_tid_);
         const ObTableSchema* index_schema = NULL;
         // process_idx_tid is the index table's id && ori_tid is the original table's id
         // by original,i mean the table which index table comes from
@@ -352,13 +342,9 @@ namespace oceanbase
         }
         ori_tid = index_schema->get_original_table_id();
         //找到本机上存储ori_tid对应的table的tablet的数据放到vector中
-        TBSYS_LOG(INFO,"local stage:index_tid[%ld],original_tid[%ld].",process_idx_tid_,ori_tid);
         if (OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().get_serving_image().acquire_tablets_by_table_id(ori_tid, tablet_list)))
         {
           TBSYS_LOG(WARN, "get tablets error!");
-        }
-        else
-        {
         }
         if (OB_SUCCESS == ret)
         {
@@ -366,27 +352,17 @@ namespace oceanbase
           for (ObVector <ObTablet*>::iterator it = tablet_list.begin();
                it != tablet_list.end(); ++it)
           {
-//            ObTabletLocationList list;
             bool is_handled = false;//tablet是否被处理过
+            ObTabletLocationList list;
             if (OB_SUCCESS == (ret = is_tablet_handle(*it, is_handled)))
             {
               if (!is_handled)
               {
-//                if (OB_SUCCESS
-//                    != (ret = is_tablet_need_build_static_index(*it, list,
-//                                                                need_index)))
-//                {
-//                  TBSYS_LOG(ERROR,
-//                            "error in is_need_static_index_tablet,ret[%d]", ret);
-//                }
-                if ((*it)->get_sstable_id_list().count() == ObTablet::MAX_SSTABLE_PER_TABLET)
+                if (OB_SUCCESS != (ret = is_tablet_need_build_static_index(*it, list, need_index)))
                 {
-                  TBSYS_LOG(WARN,
-                            "This tablet's can't add sstable,sstable'num = %ld",
-                            ObTablet::MAX_SSTABLE_PER_TABLET);
-                  need_index = false;
+                  TBSYS_LOG(ERROR, "error in is_need_static_index_tablet,ret[%d]", ret);
                 }
-                if (need_index)
+                else if (need_index)
                 {
                   TabletRecord record;
                   record.tablet_ = *it;
@@ -394,12 +370,9 @@ namespace oceanbase
                   //也就是说还没有进行排序
                   tablet_array_.push_back(record);
                 }
-                else if (OB_SUCCESS !=
-                         (ret = tablet_manager_->get_serving_tablet_image().release_tablet(*it)))
+                else if (OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().release_tablet(*it)))
                 {
-                  TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]",
-                            ret);
-                  //break;//del liumz
+                  TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]",ret);
                 }
               }
               else if (OB_SUCCESS
@@ -408,7 +381,6 @@ namespace oceanbase
                              *it)))
               {
                 TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]", ret);
-                //break;//del liumz
               }
             }
           }
@@ -537,7 +509,7 @@ namespace oceanbase
         }while(true);
 
         hash::ObHashMap<ObNewRange, ObTabletLocationList,hash::NoPthreadDefendMode>::const_iterator iter = range_hash_.begin();
-        RangeRecord record; 
+        RangeRecord record;
         for (;iter != range_hash_.end(); ++iter)
         {
           if(0 == range_array_.count())
@@ -580,16 +552,14 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "init index range hash error,ret=%d", ret);
       }
-      else
-      {
-        //reset_failed_record();
-        TBSYS_LOG(INFO,"init <range,tabletloc> hash map succ.");
-      }
       return ret;
     }
 
-    int ObIndexHandlePool::parse_location_from_scanner(ObScanner &scanner,
-                                                       ObRowkey &row_key, uint64_t table_id, bool need_other_cs)
+    int ObIndexHandlePool::parse_location_from_scanner(
+        ObScanner &scanner,
+        ObRowkey &row_key,
+        uint64_t table_id,
+        bool need_other_cs)
     {
       int ret = OB_SUCCESS;
       ObRowkey start_key;
@@ -604,7 +574,7 @@ namespace oceanbase
       ObNewRange range;
       ++iter;
 
-      scanner.dump_all(TBSYS_LOG_LEVEL_ERROR);      //test::lmz
+      scanner.dump_all(TBSYS_LOG_LEVEL_ERROR); //test
 
       while ((iter != scanner.end())
              && (OB_SUCCESS == (ret = iter.get_cell(&cell, &row_change)))
@@ -629,16 +599,13 @@ namespace oceanbase
           ret = iter.get_cell(&cell, &row_change);
           if (ret != OB_SUCCESS)
           {
-            TBSYS_LOG(ERROR, "get cell from scanner iterator failed:ret[%d]",
-                      ret);
+            TBSYS_LOG(ERROR, "get cell from scanner iterator failed:ret[%d]",ret);
             break;
           }
           else if (row_change) // && (iter != last_iter))
           {
             construct_tablet_item(table_id, start_key, end_key, range, list);
-            list.print_info(); //test::lmz
-            //TBSYS_LOG(INFO, "list[0]'s ip [%s], self ip[%s]",
-            //          to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
+            list.print_info();
             if (need_other_cs)
             {
               //把所有table_id对应的所有的tablet的，包括所有副本的信息都放到data_multcs_range_hash里面去
@@ -650,7 +617,7 @@ namespace oceanbase
             //need other cs 设置为true，则不做下面的range_hash_的填充
             else if (list[0].server_.chunkserver_.get_ipv4() == THE_CHUNK_SERVER.get_self().get_ipv4())
             {
-              //如果第一副本是自己的话，那么把这个tablet(包括其他副本)放入range_hash里面去
+              //如果第一副本(list[0])是自己的话，那么把这个tablet(包括其他副本)放入range_hash里面去
               if(-1 == range_hash_.set(list.get_tablet_range(), list, 1))
               {
                 TBSYS_LOG(ERROR,"insert range_hash_ error!");
@@ -685,16 +652,12 @@ namespace oceanbase
                 ObTabletLocation addr(0, server);
                 if (OB_SUCCESS != (ret = list.add(addr)))
                 {
-                  TBSYS_LOG(ERROR,
-                            "add addr failed:ip[%ld], port[%ld], ret[%d]", ip, port,
-                            ret);
+                  TBSYS_LOG(ERROR,"add addr failed:ip[%ld], port[%ld], ret[%d]", ip, port, ret);
                   break;
                 }
                 else
                 {
-                  TBSYS_LOG(DEBUG,
-                            "add addr succ:ip[%ld], port[%ld], server:%s", ip, port,
-                            to_cstring(server));
+                  TBSYS_LOG(DEBUG, "add addr succ:ip[%ld], port[%ld], server:%s", ip, port, to_cstring(server));
                 }
                 ip = port = 0;
               }
@@ -707,14 +670,11 @@ namespace oceanbase
           }
         }
         // for the last row
-        TBSYS_LOG(DEBUG, "get a new tablet start_key[%s], end_key[%s]",
-                  to_cstring(start_key), to_cstring(end_key));
+        TBSYS_LOG(DEBUG, "get a new tablet start_key[%s], end_key[%s]", to_cstring(start_key), to_cstring(end_key));
         if ((OB_SUCCESS == ret) && (start_key != end_key))
         {
           construct_tablet_item(table_id, start_key, end_key, range, list);
-          list.print_info(); //test::lmz
-          TBSYS_LOG(INFO, "list[0]'s ip [%s], self ip[%s]",
-                    to_cstring(list[0].server_.chunkserver_), to_cstring(THE_CHUNK_SERVER.get_self()));
+          list.print_info();
           if (need_other_cs)
           {
             if (-1 == data_multcs_range_hash_.set(list.get_tablet_range(), list,1))
@@ -745,8 +705,10 @@ namespace oceanbase
       return ret;
     }
 
-    int ObIndexHandlePool::is_tablet_need_build_static_index(ObTablet *tablet,
-                                                             ObTabletLocationList &list, bool &is_need_index)
+    int ObIndexHandlePool::is_tablet_need_build_static_index(
+        ObTablet *tablet,
+        ObTabletLocationList &list,
+        bool &is_need_index)
     {
       int ret = OB_SUCCESS;
       is_need_index = false;
@@ -758,9 +720,6 @@ namespace oceanbase
       else
       {
         ObNewRange range = tablet->get_range();
-        //char str[1024] = {0};
-        //range.to_string(str,1024);
-        // TBSYS_LOG(INFO,"test::whx range_str=%s",str);
         if (hash::HASH_EXIST == range_hash_.get(range, list))
         {
           is_need_index = true;
@@ -770,7 +729,6 @@ namespace oceanbase
           is_need_index = false;
         }
       }
-      //TBSYS_LOG(INFO,"test::whx sstable count=%ld",tablet->get_sstable_id_list().count());
       if (is_need_index
           && tablet->get_sstable_id_list().count()
           == ObTablet::MAX_SSTABLE_PER_TABLET)
@@ -793,7 +751,7 @@ namespace oceanbase
         static_index_report_infolist->reset();
         for (int i = 0; i < 10; i++)
         {
-          //@todo(longfei)>>>@maoxx:完成发送local index info失败时候内存释放函数
+          //完成发送local index info失败时候内存释放函数
           local_handler_[i]->get_allocator()->reuse();   //发送失败,释放内存
           local_handler_[i]->get_index_reporter()->reset_report_info();
         }
@@ -805,7 +763,7 @@ namespace oceanbase
         static_index_report_infolist->reset();
         for (int i = 0; i < 10; i++)
         {
-          local_handler_[i]->get_allocator()->reuse();   //发送成功,释放内存d
+          local_handler_[i]->get_allocator()->reuse();   //发送成功,释放内存
           local_handler_[i]->get_index_reporter()->reset_report_info();
         }
         TBSYS_LOG(INFO,"partional tablet histogram info report success, memory reuse");
@@ -817,7 +775,7 @@ namespace oceanbase
     int ObIndexHandlePool::finish_phase2(bool & total_reported)
     {
       int ret = OB_SUCCESS;
-      pthread_mutex_lock(&phase_mutex_);
+      pthread_mutex_lock(&stage_mutex_);
       if (ROUND_FALSE >= round_end_)
       {
         if (OB_RESPONSE_TIME_OUT ==
@@ -843,19 +801,17 @@ namespace oceanbase
         round_start_ = ROUND_FALSE;
 
       }
-      pthread_mutex_unlock(&phase_mutex_);
+      pthread_mutex_unlock(&stage_mutex_);
       return ret;
     }
 
-    //add wenghaixing [secondary index static_sstable_build.report]20150316
     int ObIndexHandlePool::add_tablet_info(ObTabletReportInfo *tablet)
     {
       int ret = OB_SUCCESS;
       ObNewRange copy_range;
-      //alloc_mutex_.lock();
       ObTabletReportInfo copy;
       copy = *tablet;
-      //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
+
       if (NULL == tablet)
       {
         ret = OB_ERROR;
@@ -864,8 +820,6 @@ namespace oceanbase
       else if (OB_SUCCESS
                != (ret = deep_copy_range(report_allocator_,
                                          tablet->tablet_info_.range_, copy_range)))
-        //if ( OB_SUCCESS != (ret = deep_copy_range(report_allocator_, tablet->tablet_info_.range_, copy_range)) )
-        //modify e
       {
         TBSYS_LOG(ERROR, "copy range failed.");
       }
@@ -873,24 +827,22 @@ namespace oceanbase
       {
         copy.tablet_info_.range_ = copy_range;
       }
-      // alloc_mutex_.unlock();
       if (OB_SUCCESS != ret || NULL == tablet)
       {
-        TBSYS_LOG(ERROR,
-                  "failed to add tablet report info for sstable local index,null pointer");
+        TBSYS_LOG(ERROR, "failed to add tablet report info for sstable local index,null pointer");
         ret = OB_ERROR;
       }
       else
       {
         ret = report_info_.add_tablet(copy);
       }
-
       return ret;
     }
 
-    //add e
-    int ObIndexHandlePool::get_tablets_ranges(TabletRecord *&tablet,
-                                              RangeRecord *&range, int &err)
+    int ObIndexHandlePool::get_tablets_ranges(
+        TabletRecord *&tablet,
+        RangeRecord *&range,
+        int &err)
     {
       int ret = OB_SUCCESS;
       bool reported = false;
@@ -906,14 +858,14 @@ namespace oceanbase
         tablet = &(tablet_array_.at(tablet_index_++));
         err = OB_GET_TABLETS;
       }
-      //liumz, 多线程已经处理完tablet_array_.count()个tablet
+      // 多线程已经处理完tablet_array_.count()个tablet
       else if (tablets_have_got_ == tablet_array_.count() && tablets_have_got_ != 0)
       {
         if (check_if_tablet_range_failed(true, tablet, range)) //检查是否有失败的任务，有的话，赋值，继续完成
         {
           err = OB_GET_TABLETS;
         }
-        else if (is_phase_one_need_end() && OB_SUCCESS == (ret = finish_phase1(reported)))
+        else if (is_local_stage_need_end() && OB_SUCCESS == (ret = finish_phase1(reported)))
         {
           if (reported)
           {
@@ -922,7 +874,7 @@ namespace oceanbase
         }
       }
       if (OB_GET_NOTHING == err)
-      {     
+      {
         if (0 < range_array_.count() && range_index_ < range_array_.count())
         {
           range = &range_array_.at(range_index_++);
@@ -934,18 +886,17 @@ namespace oceanbase
           {
             err = OB_GET_RANGES;
           }
-          else if (is_phase_two_need_end() && OB_SUCCESS ==
+          else if (is_global_stage_need_end() && OB_SUCCESS ==
                    (ret = finish_phase2(total_reported)))
           {
             if (total_reported)
             {
-              TBSYS_LOG(INFO, "report total index tablet success!");  
+              TBSYS_LOG(INFO, "report total index tablet success!");
             }
           }
         }
-        //
       }
-      TBSYS_LOG(INFO,">>>ret[%d],err[%d]",ret,err);
+      TBSYS_LOG(DEBUG,">>>ret[%d],err[%d]",ret,err);
       return ret;
     }
 
@@ -956,9 +907,7 @@ namespace oceanbase
       for (int64_t i = 0; i < tablet_array_.count(); i++)
       {
         tablet = tablet_array_.at(i).tablet_;
-        if (OB_SUCCESS
-            != (ret =
-                tablet_manager_->get_serving_tablet_image().release_tablet(tablet)))
+        if (OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().release_tablet(tablet)))
         {
           TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]", ret);
           break;
@@ -979,8 +928,7 @@ namespace oceanbase
       }
       else
       {
-        TBSYS_LOG(INFO,
-                  "all tablet has been consume, check if has failed record");
+        TBSYS_LOG(INFO,"all tablet has been consume, check if has failed record");
       }
     }
 
@@ -997,10 +945,10 @@ namespace oceanbase
     }
 
     //add longfei [cons static index] 151220:b
-    int ObIndexHandlePool::get_global_index_handler(const int64_t thread_no,
-                                                    ObGlobalIndexHandler *&global_handler)
+    int ObIndexHandlePool::get_global_index_handler(
+        const int64_t thread_no,
+        ObGlobalIndexHandler *&global_handler)
     {
-      //@todo(longfei):why not use global_handler_ directly??
       int ret = OB_SUCCESS;
       global_handler = NULL;
       ObGlobalIndexHandler** global_handlers = NULL;
@@ -1024,15 +972,14 @@ namespace oceanbase
       }
       else
       {
-        TBSYS_LOG(ERROR,"GLOBAL_HANDLER[%p]",global_handler);
+        TBSYS_LOG(DEBUG,"GLOBAL_HANDLER[%p]",global_handler);
       }
-
       return ret;
-
     }
 
-    int ObIndexHandlePool::get_local_index_handler(const int64_t thread_no,
-                                                   ObLocalIndexHandler *&local_handler)
+    int ObIndexHandlePool::get_local_index_handler(
+        const int64_t thread_no,
+        ObLocalIndexHandler *&local_handler)
     {
       int ret = OB_SUCCESS;
       local_handler = NULL;
@@ -1060,69 +1007,6 @@ namespace oceanbase
     }
     //add e
 
-    //add wenghaixing [secondary index static_index_build cluster.p2]20150630
-    bool ObIndexHandlePool::is_current_index_failed(const int64_t status)
-    {
-      bool ret = true;
-      //int64_t now = tbsys::CTimeUtil::getTime();
-      //int64_t nernal = THE_CHUNK_SERVER.get_config().build_index_timeout;
-      //TBSYS_LOG(WARN, "build local static index timeout, mission_start_time_=%ld, now=%ld,ternal[%ld]", local_work_start_time_, now, nernal);
-      if (OB_INVALID_ID == process_idx_tid_)
-      {
-        ret = false;
-        //TBSYS_LOG(INFO,"this is first round of index construction!");
-      }
-      /*else if(now > local_work_start_time_ + THE_CHUNK_SERVER.get_config().build_index_timeout)
-       {
-       ret = true;
-       TBSYS_LOG(WARN, "build local static index timeout, mission_start_time_=%ld, now=%ld.", local_work_start_time_, now);
-       }*/
-      else
-      {
-        ret = ERROR == status ? true : false;
-      }
-
-      return ret;
-    }
-
-    bool ObIndexHandlePool::is_current_index_complete(const int64_t status)
-    {
-      bool ret = false;
-      if (OB_INVALID_ID == process_idx_tid_)
-      {
-        ret = true;
-        //TBSYS_LOG(INFO,"this is first round of index construction!");
-      }
-      else //if(round_end_ > ROUND_FALSE)//del liumz, bugfix: tablet image 20150626
-      {
-        ret = (NOT_AVALIBALE == status || AVALIBALE == status) ? true : false;
-      }
-
-      return ret;
-    }
-    //add e
-
-    // add longfei [cons static index] 151123:b
-    //    int ObIndexHandlePool::construct_index(const int64_t thread_no)
-    //    {
-    //      int ret = OB_SUCCESS;
-    //      if (LOCAL_INDEX_STAGE == get_which_stage())
-    //      {
-    //        // construct local index stage
-    //      }
-    //      else if (GLOBAL_INDEX_STAGE == get_which_stage())
-    //      {
-    //        // construct global index stage
-    //      }
-    //      else
-    //      {
-    //        ret = OB_ERROR;
-    //        TBSYS_LOG(ERROR, "stage message error");
-    //      }
-
-    //    }
-
-    //@todo(longfei):with a return values
     void ObIndexHandlePool::construct_index(const int64_t thread_no)
     {
       int ret = OB_SUCCESS;
@@ -1130,13 +1014,9 @@ namespace oceanbase
       const int64_t sleep_interval = 5000000;
       TabletRecord *tablet = NULL;
       RangeRecord *range = NULL;
-      //del longfei 151220:b
-      //ObIndexHandler * handler = NULL;
-      //del e
       ObGlobalIndexHandler * global_handler = NULL; // add longfei [cons static index] 151205:e
       ObLocalIndexHandler * local_handler = NULL; // add longfei [cons static index] 151220:e
 
-      //死循环
       while (true)
       {
         if (!inited_)
@@ -1167,10 +1047,7 @@ namespace oceanbase
           {
             break;
           }
-          //if(phase1_ && !phase2_)
-          {
-            ret = get_tablets_ranges(tablet, range, err);
-          }
+          ret = get_tablets_ranges(tablet, range, err);
         }
         pthread_mutex_unlock(&mutex_);
 
@@ -1197,10 +1074,9 @@ namespace oceanbase
               TBSYS_LOG(WARN, "build partitional index failed,tablet[%s],fail count[%d],if_process[%d],err[%d]",to_cstring(tablet->tablet_->get_range()), (int)tablet->fail_count_,(int)tablet->if_process_, err_local);
               tablet->if_process_ = 0;
               tablet->fail_count_++;
-              if(tablet->fail_count_ > MAX_FAILE_COUNT && !tablet->wok_send_)
+              if(tablet->fail_count_ > MAX_FAILE_COUNT && !tablet->work_send_)
               {
                 //todo 如果失败超过一定次数的处理方法
-                //开始甩锅给别的CS
                 //bool is_local_index = true;
                 ObNewRange no_use_range;
                 if(OB_SUCCESS != (err_local = retry_failed_work(LOCAL_INDEX_SST_BUILD_FAILED, tablet->tablet_, no_use_range)))
@@ -1211,7 +1087,7 @@ namespace oceanbase
                 }
                 else
                 {
-                  tablet->wok_send_ = 1;
+                  tablet->work_send_ = 1;
                   tablet->fail_count_ = 0;
                   tablet->if_process_ = -1;
                 }
@@ -1228,7 +1104,6 @@ namespace oceanbase
               tablet->if_process_ = -1;
             }
           }
-          ///TODO,这段代码应该删除
 #if 0
           if (tablet_manager_->get_serving_tablet_image().release_tablet(tablet) != OB_SUCCESS)
           {
@@ -1246,8 +1121,7 @@ namespace oceanbase
         }
         else if (OB_GET_RANGES == err)
         {
-          //todo(longfei) 如果是得到一个range，则处于全局索引构建的阶段
-          // TBSYS_LOG(INFO,"test::whx the index range is not null and range is %s",to_cstring(range->range_));
+          // 如果是得到一个range，则处于全局索引构建的阶段
           if (OB_SUCCESS != (ret = get_global_index_handler(thread_no, global_handler)))
           {
             TBSYS_LOG(ERROR, "get index handler error, ret[%d]", ret);
@@ -1255,10 +1129,6 @@ namespace oceanbase
           else
           {
             int err_global = OB_SUCCESS;
-
-            TBSYS_LOG(INFO,"now index handler begin to build total index,range[%s]!", to_cstring(range->range_));
-            //            if (OB_SUCCESS
-            //                != (err_local = handler->start(&range->range_)))
             //add longfei [cons static index] 151221:b
             if (OB_SUCCESS != (err_global = global_handler->set_handle_range(&range->range_)))
             {
@@ -1296,7 +1166,7 @@ namespace oceanbase
               {
                 range->if_process_ = 0;
                 range->fail_count_++;
-                if (range->fail_count_ > MAX_FAILE_COUNT && !range->wok_send_)
+                if (range->fail_count_ > MAX_FAILE_COUNT && !range->work_send_)
                 {
                   //todo 如果失败超过一定次数的处理方法
                   TBSYS_LOG(WARN, "range failed too much");
@@ -1311,7 +1181,7 @@ namespace oceanbase
                   {
                     range->fail_count_ = 0;
                     range->if_process_ = -1;
-                    range->wok_send_ = 1;
+                    range->work_send_ = 1;
                   }
                 }
               }
@@ -1321,7 +1191,6 @@ namespace oceanbase
               range->fail_count_ = 0;
               range->if_process_ = -1;
             }
-
           }
           pthread_mutex_lock(&tablet_range_mutex_);
           inc_get_range_count();
@@ -1331,7 +1200,6 @@ namespace oceanbase
             TBSYS_LOG(WARN, "stop in index");
             ret = OB_ERROR;
           }
-
         }
       }
 
@@ -1348,8 +1216,8 @@ namespace oceanbase
     {
       bool ret = false;
       // int64_t now = tbsys::CTimeUtil::getTime();
-      // TBSYS_LOG(ERROR,"test::whx inited_[%d],active_thread_num_[%ld]",(int)inited_,active_thread_num_);
-      //del longfei 删除判断is_work_stoped()
+      // TBSYS_LOG(DEBUG,"inited_[%d],active_thread_num_[%ld]",(int)inited_,active_thread_num_);
+      // 删除判断is_work_stoped()
       if (inited_ /*&& is_work_stoped()*/
           // && now - total_work_last_end_time_ > THE_CHUNK_SERVER.get_config().min_merge_interval
           //&& THE_CHUNK_SERVER.get_tablet_manager().get_bypass_sstable_loader().is_loader_stoped()
@@ -1360,9 +1228,12 @@ namespace oceanbase
       return ret;
     }
 
-    void ObIndexHandlePool::construct_tablet_item(const uint64_t table_id,
-                                                  const ObRowkey & start_key, const ObRowkey & end_key,
-                                                  ObNewRange & range, ObTabletLocationList & list)
+    void ObIndexHandlePool::construct_tablet_item(
+        const uint64_t table_id,
+        const ObRowkey & start_key,
+        const ObRowkey & end_key,
+        ObNewRange & range,
+        ObTabletLocationList & list)
     {
       range.table_id_ = table_id;
       range.border_flag_.unset_inclusive_start();
@@ -1379,37 +1250,32 @@ namespace oceanbase
       // double check add all range->locationlist to cache
       if (range.start_key_ >= range.end_key_)
       {
-        TBSYS_LOG(WARN, "check range invalid:start[%s], end[%s]",
-                  to_cstring(range.start_key_), to_cstring(range.end_key_));
+        TBSYS_LOG(WARN, "check range invalid:start[%s], end[%s]", to_cstring(range.start_key_), to_cstring(range.end_key_));
       }
       else
       {
-        TBSYS_LOG(DEBUG, "got a tablet:%s, with location list:%ld",
-                  to_cstring(range), list.size());
+        TBSYS_LOG(DEBUG, "got a tablet:%s, with location list:%ld",to_cstring(range), list.size());
       }
     }
 
-    //add wenghaixing [secondary index static_index_build]20150320
-    bool ObIndexHandlePool::check_if_tablet_range_failed(bool is_local_index,
-                                                         TabletRecord *&tablet, RangeRecord *&range)
+    bool ObIndexHandlePool::check_if_tablet_range_failed(
+        bool is_local_index,
+        TabletRecord *&tablet,
+        RangeRecord *&range)
     {
       bool ret = false;
       tablet = NULL;
       range = NULL;
-      //TBSYS_LOG(ERROR,"test::whx check if failed here");
       if (is_local_index)
       {
         for (int64_t i = 0; i < tablet_array_.count(); i++)
         {
-          //TBSYS_LOG(ERROR,"test::whx if_process set 1 pashe 1,range = [%s],if_process[%d],fail_count[%d]",to_cstring(tablet_array_.at(i).tablet_->get_range()),(int)tablet_array_.at(i).if_process_,(int)tablet_array_.at(i).fail_count_);
           if (tablet_array_.at(i).fail_count_ > 0
               && 0 == tablet_array_.at(i).if_process_)
           {
             tablet_array_.at(i).if_process_ = 1;
             tablet = &(tablet_array_.at(i));
-            //TBSYS_LOG(ERROR,"test::whx if_process set 1 pashe 1");
             ret = true;
-            //local_failed_[i]++;
             break;
           }
         }
@@ -1423,20 +1289,18 @@ namespace oceanbase
           {
             range = &range_array_.at(i);
             range_array_.at(i).if_process_ = 1;
-            //TBSYS_LOG(ERROR,"test::whx if_process set 1 pashe 2");
             ret = true;
-            //local_failed_[i]++;
             break;
           }
         }
       }
       return ret;
     }
-    //add e
 
-    ///if a tablet/range construct failed in this cs over 3 times,then other cs would finishi it
-    int ObIndexHandlePool::retry_failed_work(ErrNo level, const ObTablet *tablet,
-                                             ObNewRange range)
+    int ObIndexHandlePool::retry_failed_work(
+        ErrNo level,
+        const ObTablet *tablet,
+        ObNewRange range)
     {
       int ret = OB_SUCCESS;
       ObTabletLocationList list;
@@ -1445,8 +1309,7 @@ namespace oceanbase
       BlackList black_list;
       ObServer next_server;
       ObNewRange wok_range;
-      hash::ObHashMap <ObNewRange, ObTabletLocationList,
-          hash::NoPthreadDefendMode> * range_info = NULL;
+      hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> * range_info = NULL;
       //debug 20150420
       switch (level)
       {
@@ -1477,15 +1340,15 @@ namespace oceanbase
         if (hash::HASH_EXIST != range_info->get(wok_range, list))
         {
           ret = OB_INVALID_ARGUMENT;
-          TBSYS_LOG(ERROR,
-                    "range hash cannot find range,wok_range[%s],hash_size[%ld]",
+          TBSYS_LOG(ERROR,"range hash cannot find range,wok_range[%s],hash_size[%ld]",
                     to_cstring(wok_range), data_multcs_range_hash_.size());
         }
         else
         {
-          if (OB_SUCCESS
-              != (ret = black_list_array_.check_range_in_list(wok_range,
-                                                              in_list, index)))
+          if (OB_SUCCESS != (ret = black_list_array_.check_range_in_list(
+                               wok_range,
+                               in_list,
+                               index)))
           {
             //never happen
           }
@@ -1496,7 +1359,7 @@ namespace oceanbase
             {
               TBSYS_LOG(WARN, "get black list failed, ret = [%d]", ret);
             }
-            else if (0 == black_list.get_wok_send())
+            else if (0 == black_list.get_work_send())
             {
               black_list.set_server_unserved(THE_CHUNK_SERVER.get_self());
               if(OB_SUCCESS != (ret = black_list.next_replic_server(next_server)))
@@ -1506,27 +1369,24 @@ namespace oceanbase
               else if(OB_SUCCESS != (ret = tablet_manager_->retry_failed_work(black_list, next_server)))
               {
                 black_list.set_server_unserved(next_server);
-                black_list.set_wok_send(0);
+                black_list.set_work_send(0);
                 TBSYS_LOG(WARN, "whipping wok failed,ret [%d]", ret);
               }
               else
               {
-                black_list.set_wok_send();
+                black_list.set_work_send();
               }
             }
           }
           else if(!in_list)
           {
-            ///todo 不在list里的时候，写BlackList并发送
             if (OB_SUCCESS != (ret = black_list.write_list(wok_range, list)))
             {
               TBSYS_LOG(WARN, "write wok range in black list failed ret[%d]",ret);
             }
-            else if (0 == black_list.get_wok_send())
+            else if (0 == black_list.get_work_send())
             {
-              //bug 20150420
               black_list.set_server_unserved(THE_CHUNK_SERVER.get_self());
-              //bug2 20150420
               if(OB_SUCCESS != (ret = black_list_array_.push(black_list)))
               {
                 TBSYS_LOG(WARN,"pus black list in array failed ret [%d] ",ret);
@@ -1537,13 +1397,13 @@ namespace oceanbase
               }
               else if(OB_SUCCESS != (ret = tablet_manager_->retry_failed_work(black_list, next_server)))
               {
-                black_list.set_wok_send(0);
+                black_list.set_work_send(0);
                 black_list.set_server_unserved(next_server);
                 TBSYS_LOG(WARN, "whipping wok failed,ret [%d]", ret);
               }
               else
               {
-                black_list.set_wok_send();
+                black_list.set_work_send();
               }
             }
           }
@@ -1554,8 +1414,7 @@ namespace oceanbase
       return ret;
     }
 
-    //add wenghaixing [secondary index static_index.exceptional_handle]201504232
-    bool ObIndexHandlePool::is_phase_one_need_end()
+    bool ObIndexHandlePool::is_local_stage_need_end()
     {
       bool ret = true;
       for (int64_t i = 0; i < tablet_array_.count(); i++)
@@ -1569,7 +1428,7 @@ namespace oceanbase
       return ret;
     }
 
-    bool ObIndexHandlePool::is_phase_two_need_end()
+    bool ObIndexHandlePool::is_global_stage_need_end()
     {
       bool ret = true;
       for (int64_t i = 0; i < range_array_.count(); i++)
@@ -1582,7 +1441,7 @@ namespace oceanbase
       }
       return ret;
     }
-    //add e
+
     int ObIndexHandlePool::push_work(BlackList &list)
     {
       return black_list_array_.push(list);
@@ -1598,7 +1457,6 @@ namespace oceanbase
       tablet_index_ = 0;
       range_index_ = 0;
       hist_width_ = 0;
-      //schedule_idx_tid_ = OB_INVALID_ID;
       process_idx_tid_ = OB_INVALID_ID;
       total_work_last_end_time_ = 0;
       total_work_start_time_ = 0;
@@ -1637,22 +1495,14 @@ namespace oceanbase
 
     int ObIndexHandlePool::try_stop_mission(uint64_t index_tid)
     {
-      //modify by liuxiao [secondary index static_index_build.fix] 20150812
-      //bool need_set_time = false;
-      //if(0 == total_work_last_end_time_ && index_tid != process_idx_tid_ && index_tid != OB_INVALID_ID)
       int ret = OB_SUCCESS;
       if (0 == total_work_last_end_time_ && index_tid != process_idx_tid_)
-        //modify e
       {
         pthread_mutex_lock(&mutex_);
-        //modify by liuxiao [secondary index static_index_build.fix] 20150818
         if (active_thread_num_ != 0
             || (active_thread_num_ == 0 && round_end_ != TABLET_RELEASE))
-          //modify e
         {
-          TBSYS_LOG(WARN,
-                    "try stop index build work current idx_tid:[%ld] new idx_tid:[%ld]",
-                    process_idx_tid_, index_tid);
+          TBSYS_LOG(WARN,"try stop index build work current idx_tid:[%ld] new idx_tid:[%ld]", process_idx_tid_, index_tid);
           if (tablet_index_ != tablet_array_.count())
           {
             tablet_index_ = tablet_array_.count();
@@ -1660,9 +1510,6 @@ namespace oceanbase
           if (tablets_have_got_ != tablet_array_.count())
           {
             tablets_have_got_ = tablet_array_.count();
-            //delete by liuxiao [secondary index static_index_build.fix] 20150812
-            //need_set_time = true;
-            //delete e
           }
           if (range_index_ != range_array_.count())
           {
@@ -1671,15 +1518,7 @@ namespace oceanbase
           if (range_have_got_ != range_array_.count())
           {
             range_have_got_ = range_array_.count();
-            //delete by liuxiao [secondary index static_index_build.fix] 20150812
-            //need_set_time = true;
-            //delete e
           }
-
-          //modify by liuxiao [secondary index static_index_build.fix] 20150812
-          //if(need_set_time)
-          if (true)
-            //modify e
           {
             int64_t time = tbsys::CTimeUtil::getTime();
             total_work_last_end_time_ = time;
@@ -1708,7 +1547,7 @@ namespace oceanbase
           }
           //add e
         }
-        pthread_mutex_unlock(&mutex_);      
+        pthread_mutex_unlock(&mutex_);
       }
       return ret;
     }

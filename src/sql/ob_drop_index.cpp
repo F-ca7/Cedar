@@ -24,7 +24,7 @@ using namespace oceanbase::common;
 using namespace oceanbase::mergeserver;
 
 ObDropIndex::ObDropIndex()
-    :ObDropTable()
+  :ObDropTable()
 {
 }
 
@@ -63,7 +63,7 @@ int ObDropIndex::open()
   else
   {
     TBSYS_LOG(INFO,"drop index succ,tables=[%s]",
-                  to_cstring(indexs_));
+              to_cstring(indexs_));
   }
   return ret;
 }

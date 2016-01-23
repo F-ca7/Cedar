@@ -2551,7 +2551,7 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
   ObPhyOperator* tmp_table_op = NULL;
   handle_index_ret = handle_index_for_one_table(logical_plan, physical_plan, err_stat, stmt, table_id, tmp_table_op, group_agg_pushed_down, limit_pushed_down);
   //add:e
-  TBSYS_LOG(INFO, "in gen_phy_table() func && handle_index_ret is %s", handle_index_ret ? "true" : "false");
+  //TBSYS_LOG(INFO, "in gen_phy_table() func && handle_index_ret is %s", handle_index_ret ? "true" : "false");
   if (!handle_index_ret)
   {
     TableItem* table_item = NULL;
@@ -3930,12 +3930,8 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   ObCreateIndexStmt *crt_idx_stmt = NULL;
   ObCreateTable *crt_tab_op = NULL;
-  //add wenghaixing 20141029
   // uint64_t magic_cid=OB_APP_MIN_COLUMN_ID;
-  //add e
-  //add wenghaixing [secondary index] 20141111
   uint64_t max_col_id = 0;
-  //add e
   bool rowkey_will_add_in = true;
   int64_t column_num = 0;
   int64_t this_index_col_num = 0;
@@ -4022,9 +4018,9 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
       table_schema.expire_condition_[len] = '\0';
       if (idxed_tab_schema->get_expire_condition()[0] != '\0')
       {
-        /*如果超时信息当中的列没有在索引列当中，那么就要在索引表里添加��?列超时信息涉及到的列*/
+        /*如果超时信息当中的列没有在索引列当中，那么就要在索引表里的冗余列种添加超时信息涉及到的列*/
         const ObColumnSchemaV2* oc_expire = NULL;
-        if (OB_SUCCESS != (ret = generate_expire_col_list(expire_info, expire_col)))
+        if (OB_SUCCESS != (ret = crt_idx_stmt->generate_expire_col_list(expire_info, expire_col)))
         {
           TBSYS_LOG(WARN, "generate expire col list error");
         }
@@ -4045,7 +4041,6 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
             else if (!crt_idx_stmt->is_expire_col_in_storing(val) && !idxed_tab_schema->get_rowkey_info().is_rowkey_column(oc_expire->get_id()))
             {
               crt_idx_stmt->set_storing_columns_simple(val);
-              //TBSYS_LOG(ERROR,"test::whx set_storing_columns_simple,[%.*s]",val.length(),val.ptr());
             }
           }
         }
@@ -4099,11 +4094,8 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
       //ObString idxed_tname=crt_idx_stmt->get_idxed_name();
       uint64_t tid = idxed_tab_schema->get_table_id();
       ObRowkeyInfo ori = idxed_tab_schema->get_rowkey_info();
-      //modify wenghaixing [secondary index static_index_build]20150317
-      //ih.idx_tid=OB_FLAG_TID;
       table_schema.original_table_id_ = tid;
       table_schema.index_status_ = INDEX_INIT;
-      //modify e
 
       int64_t rowkey_id = 0;
       for (int64_t i = 0; OB_SUCCESS == ret && i < crt_idx_stmt->get_index_columns_count() + ori.get_size(); i++)
@@ -4111,7 +4103,6 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
         ColumnSchema col;
         ObString col_name;
         uint64_t cid;
-        /*这个地方可能会出问题，要注意review下代码*/
         const ObColumnSchemaV2* ocs2 = NULL;
         if (i < crt_idx_stmt->get_index_columns_count())
         {

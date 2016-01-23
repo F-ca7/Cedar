@@ -23,18 +23,13 @@ namespace oceanbase
   using namespace common;
   namespace chunkserver
   {
-
-
     ObCsInteractiveScan::ObCsInteractiveScan() :
-        local_idx_scan_finish_(false)
+      local_idx_scan_finish_(false)
     {
-      // TODO Auto-generated constructor stub
-
     }
 
     ObCsInteractiveScan::~ObCsInteractiveScan()
     {
-      // TODO Auto-generated destructor stub
     }
 
     int ObCsInteractiveScan::get_next_row(const common::ObRow *&row)
@@ -48,7 +43,6 @@ namespace oceanbase
           if(OB_ITER_END == ret)
           {
             local_idx_scan_finish_ = true;
-            //TBSYS_LOG(INFO, "local_idx_scan_finish_ is true");
           }
           else
           {
@@ -61,15 +55,12 @@ namespace oceanbase
         if (OB_SUCCESS != (ret = (right_op_->get_next_row(row))))
         {
           if(OB_ITER_END == ret)
-           {
-           }
+          {
+          }
           else
           {
             TBSYS_LOG(ERROR, "get interactive next row failed");
           }
-        }
-        else
-        {
         }
       }
       return ret;

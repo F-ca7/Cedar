@@ -6,12 +6,13 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_secondary_index_service_impl.cpp
- * @brief for using secondary index in select statement or more?
+ * @brief for using secondary index in select statement
  *
  * Created by longfei：implementation of secondary index service
+ * maybe more function?
  *
  * @version __DaSE_VERSION
- * @author fei long <longfei@stu.ecnu.edu.cn>
+ * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2015_10_29
  */
 
@@ -37,7 +38,7 @@ int ObSecondaryIndexServiceImpl::init(const ObSchemaManagerV2* schema_manager_)
 }
 
 ObSecondaryIndexServiceImpl::ObSecondaryIndexServiceImpl() :
-    schema_manager_(NULL)
+  schema_manager_(NULL)
 {
 }
 
@@ -56,8 +57,9 @@ void oceanbase::common::ObSecondaryIndexServiceImpl::setSchemaManager(
  * find the information in OB's expression
  *************************************************************************/
 
-int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
-    uint64_t &cid)  //获得表达式中列的cid
+int ObSecondaryIndexServiceImpl::find_cid(
+    ObSqlExpression& sql_expr,
+    uint64_t &cid)
 {
   int ret = OB_SUCCESS;
   //bool return_ret = false;
@@ -81,13 +83,11 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tid)))
       {
-        //return_ret=true;
         TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
         break;
       }
       else if (OB_SUCCESS != (ret = expr_[idx + 2].get_int(tmp_cid)))
       {
-        //return_ret=true;
         TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
         break;
       }
@@ -97,9 +97,8 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
         idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
       }
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-        || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -109,7 +108,6 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   if (column_count == 1 && ret == OB_SUCCESS)
   {
@@ -123,8 +121,9 @@ int ObSecondaryIndexServiceImpl::find_cid(ObSqlExpression& sql_expr,
   return ret;
 }
 
-//add fanqiushi_index
-int ObSecondaryIndexServiceImpl::change_tid(ObSqlExpression* sql_expr, uint64_t& array_index) //获得表达式中记录列的tid的ObObj在ObObj数组里的下标
+int ObSecondaryIndexServiceImpl::change_tid(
+    ObSqlExpression* sql_expr,
+    uint64_t& array_index)
 {
 
   int ret = OB_SUCCESS;
@@ -148,7 +147,6 @@ int ObSecondaryIndexServiceImpl::change_tid(ObSqlExpression* sql_expr, uint64_t&
       column_count++;
       idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
@@ -159,7 +157,6 @@ int ObSecondaryIndexServiceImpl::change_tid(ObSqlExpression* sql_expr, uint64_t&
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   if (column_count == 1 && ret == OB_SUCCESS)
     array_index = (uint64_t) tmp_index;
@@ -168,7 +165,9 @@ int ObSecondaryIndexServiceImpl::change_tid(ObSqlExpression* sql_expr, uint64_t&
   return ret;
 }
 
-int ObSecondaryIndexServiceImpl::get_cid(ObSqlExpression* sql_expr, uint64_t& cid)  //获得表达式中列的cid，如果表达式中有多个列，则报错
+int ObSecondaryIndexServiceImpl::get_cid(
+    ObSqlExpression* sql_expr,
+    uint64_t& cid)
 {
   int ret = OB_SUCCESS;
   int64_t type = 0;
@@ -190,13 +189,11 @@ int ObSecondaryIndexServiceImpl::get_cid(ObSqlExpression* sql_expr, uint64_t& ci
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tmp_tid)))
       {
-        //return_ret=false;
         TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
         break;
       }
       else if (OB_SUCCESS != (ret = expr_[idx + 2].get_int(tmp_cid)))
       {
-        //return_ret=false;
         TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
         break;
       }
@@ -206,7 +203,6 @@ int ObSecondaryIndexServiceImpl::get_cid(ObSqlExpression* sql_expr, uint64_t& ci
         idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
       }
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
@@ -217,7 +213,6 @@ int ObSecondaryIndexServiceImpl::get_cid(ObSqlExpression* sql_expr, uint64_t& ci
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   if (column_count == 1 && ret == OB_SUCCESS)
     cid = (uint64_t) tmp_cid;
@@ -225,7 +220,7 @@ int ObSecondaryIndexServiceImpl::get_cid(ObSqlExpression* sql_expr, uint64_t& ci
     ret = OB_ERROR;
   return ret;
 }
-//add:e
+
 
 //判断该表达式的所有列是否都在索引表index_tid中
 bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
@@ -277,9 +272,8 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
           idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
       }
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW  // ??
-    || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -289,14 +283,14 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   return return_ret;
 }
 
 bool ObSecondaryIndexServiceImpl::is_have_main_cid(
-    sql::ObSqlExpression& sql_expr, uint64_t main_column_id)
-{ //如果表达式中有主表的第一主键，或者表达式中有超过两列的，返回true
+    sql::ObSqlExpression& sql_expr,
+    uint64_t main_column_id)
+{
   int ret = OB_SUCCESS;
   bool return_ret = false;
   int64_t type = 0;
@@ -343,9 +337,8 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
         }
       }
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-        || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -355,33 +348,26 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   if (column_count > 1)
     return_ret = true;
   return return_ret;
 }
 
-//获得表达式中所有列的存tid的ObObj在ObObj数组里的下标
-int ObSecondaryIndexServiceImpl::get_all_cloumn(sql::ObSqlExpression& sql_expr,
+int ObSecondaryIndexServiceImpl::get_all_cloumn(
+    sql::ObSqlExpression& sql_expr,
     ObArray<uint64_t> &column_index)
 {
-  //bool return_ret=true;
   int ret = OB_SUCCESS;
-  //bool return_ret = false;
   int64_t type = 0;
   const sql::ObPostfixExpression& pf_expr = sql_expr.get_decoded_expression();
   const ExprArray& expr_ = pf_expr.get_expr();
   int64_t count = expr_.count();
   int64_t idx = 0;
-  //int32_t column_count=0;
-  //int64_t tmp_cid = OB_INVALID_ID;
-  // int64_t tid = OB_INVALID_ID;
   while (idx < count)
   {
     if (OB_SUCCESS != (ret = expr_[idx].get_int(type)))
     {
-      //return_ret=false;
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
@@ -390,10 +376,9 @@ int ObSecondaryIndexServiceImpl::get_all_cloumn(sql::ObSqlExpression& sql_expr,
       column_index.push_back(idx + 1);
       idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-        || type == CONST_OBJ || type == END
-        || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END
+             || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -403,16 +388,16 @@ int ObSecondaryIndexServiceImpl::get_all_cloumn(sql::ObSqlExpression& sql_expr,
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   return ret;
 }
 
 bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
-    sql::ObSqlExpression& sql_expr, uint64_t &index_tid, uint64_t main_tid,
+    sql::ObSqlExpression& sql_expr,
+    uint64_t &index_tid,
+    uint64_t main_tid,
     const ObSchemaManagerV2 *sm_v2)
 {
-  //判断该表达式是否能够使用索引。如果该表达式只有一列，并且是个等值或in表达式，并且该表达式的列的cid是主表main_tid的某一张索引表的第一主键，则该表达式能够使用索引
   int ret = OB_SUCCESS;
   bool return_ret = false;
   int64_t type = 0;
@@ -426,7 +411,6 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
   int32_t IN_count = 0;
   int64_t cid = OB_INVALID_ID;
   int64_t tid = OB_INVALID_ID;
-  //uint64_t tmp_index_tid= OB_INVALID_ID;
   while (idx < count)
   {
     if (OB_SUCCESS != (ret = expr_[idx].get_int(type)))
@@ -484,10 +468,9 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
         idx = idx + pf_expr.get_type_num(idx, OP);
       }
     }
-    //add fanqiushi_index_prepare
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-        || type == CONST_OBJ || type == END
-        || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END
+             || type == UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -497,7 +480,6 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
       TBSYS_LOG(WARN, "wrong expr type: %ld", type);
       break;
     }
-    //add:e
   }
   if ((column_count == 1 && EQ_count == 1)
       || (column_count == 1 && IN_count == 1))
@@ -520,7 +502,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
  * for transformer to generate physical plan
  *************************************************************************/
 
-bool ObSecondaryIndexServiceImpl::is_this_table_avalibale(uint64_t tid) //判断tid为参数的表是否是可用的索引表
+bool ObSecondaryIndexServiceImpl::is_this_table_avalibale(uint64_t tid)
 {
   bool ret = false;
   const ObTableSchema *main_table_schema = NULL;
@@ -531,19 +513,19 @@ bool ObSecondaryIndexServiceImpl::is_this_table_avalibale(uint64_t tid) //判断
   }
   else
   {
-    if (main_table_schema->get_index_status() == INDEX_INIT)
+    if (main_table_schema->get_index_status() == AVALIBALE)
     {
       ret = true;
     }
-
   }
   return ret;
 }
 
 bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
-    uint64_t index_tid, Expr_Array *filter_array, Expr_Array *project_array)
+    uint64_t index_tid,
+    Expr_Array *filter_array,
+    Expr_Array *project_array)
 {
-  //判断索引表是否包含sql语句中出现的所有列
   bool ret = true;
   if (is_this_table_avalibale(index_tid))
   {
@@ -554,12 +536,11 @@ bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
       const sql::ObPostfixExpression& postfix_pro_expr =
           col_expr.get_decoded_expression();
       if (!is_all_expr_cid_in_indextable(index_tid, postfix_pro_expr,
-          schema_manager_))
+                                         schema_manager_))
       {
         ret = false;
         break;
       }
-
     }
     int64_t c_num = filter_array->count();
     for (int32_t j = 0; j < c_num; j++)
@@ -569,20 +550,20 @@ bool ObSecondaryIndexServiceImpl::is_index_table_has_all_cid_V2(
       const sql::ObPostfixExpression& postfix_fil_expr =
           c_filter.get_decoded_expression();
       if (!is_all_expr_cid_in_indextable(index_tid, postfix_fil_expr,
-          schema_manager_))
+                                         schema_manager_))
       {
         ret = false;
         break;
       }
     }
   }
-  TBSYS_LOG(ERROR,"test::fanqs,,return_ret=%d,,index_tid=%ld",ret,index_tid);  return ret;
+  return ret;
 }
 
-int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(uint64_t cid,
+int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(
+    uint64_t cid,
     uint64_t tid)
 {
-  //判断该列是否在该索引表中。结果是0，表示不在；结果��?1，表示该列是索引表的主键；结果是2，表示该列是索引表的非主��?
   int64_t return_ret = 0;
   int ret = OB_SUCCESS;
   bool is_in_rowkey = false;
@@ -601,7 +582,7 @@ int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(uint64_t cid,
     {
       if (OB_SUCCESS
           != (ret = index_table_schema->get_rowkey_info().get_column_id(j,
-              tmp_cid)))
+                                                                        tmp_cid)))
       {
         TBSYS_LOG(ERROR, "get column schema failed,cid[%ld]", tmp_cid);
         ret = OB_SCHEMA_ERROR;
@@ -617,16 +598,6 @@ int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(uint64_t cid,
     }
     if (!is_in_rowkey)
     {
-      /* uint64_t max_cid=OB_INVALID_ID;
-       max_cid=index_table_schema->get_max_column_id();
-       for(uint64_t k=OB_APP_MIN_COLUMN_ID;k<=max_cid;k++)
-       {
-       if(cid==k)
-       {
-       is_in_other_column=true;
-       break;
-       }
-       }*/
       const ObColumnSchemaV2* index_column_schema = NULL;
       index_column_schema = schema_manager_->get_column_schema(tid, cid);
       if (index_column_schema != NULL)
@@ -643,10 +614,12 @@ int64_t ObSecondaryIndexServiceImpl::is_cid_in_index_table(uint64_t cid,
 }
 
 bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
-    ObSqlExpression c_filter, uint64_t mian_tid, uint64_t &index_tid,
-    Expr_Array * filter_array, Expr_Array *project_array)
+    ObSqlExpression c_filter,
+    uint64_t mian_tid,
+    uint64_t &index_tid,
+    Expr_Array * filter_array,
+    Expr_Array *project_array)
 {
-  //输出：bool类型返回��?; uint64_t &index_tid：索引表的tid
   bool ret = false;
   uint64_t expr_cid = OB_INVALID_ID;
   uint64_t tmp_index_tid = OB_INVALID_ID;
@@ -666,7 +639,7 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
         {
           //判断是否��?有在sql语句里面出现的列，都在这张索引表��?
           if (is_index_table_has_all_cid_V2(index_tid_array[i], filter_array,
-              project_array))
+                                            project_array))
           {
             tmp_index_tid = index_tid_array[i];
             ret = true;
@@ -681,8 +654,9 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
 }
 
 bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
-    Expr_Array *filter_array, uint64_t main_cid)
-{   //如果where条件的某个表达式有main_cid或�?�某个表达式有多个列,返回true
+    Expr_Array *filter_array,
+    uint64_t main_cid)
+{
   bool return_ret = false;
   int ret = OB_SUCCESS;
 
@@ -700,13 +674,12 @@ bool ObSecondaryIndexServiceImpl::is_wherecondition_have_main_cid_V2(
   return return_ret;
 }
 
-//add wenghaixing [secondary index for paper]
-bool ObSecondaryIndexServiceImpl::if_rowkey_in_expr(Expr_Array *filter_array,
+bool ObSecondaryIndexServiceImpl::if_rowkey_in_expr(
+    Expr_Array *filter_array,
     uint64_t main_tid)
 {
   bool return_ret = false;
   uint64_t tid = main_tid;
-// uint64_t index_tid=OB_INVALID_ID;
   const ObTableSchema *mian_table_schema = NULL;
   if (NULL == (mian_table_schema = schema_manager_->get_table_schema(tid)))
   {
@@ -722,13 +695,13 @@ bool ObSecondaryIndexServiceImpl::if_rowkey_in_expr(Expr_Array *filter_array,
   }
   return return_ret;
 }
-//add e
 
 bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
-    Expr_Array *filter_array, Expr_Array *project_array,
-    uint64_t &index_table_id, uint64_t main_tid)
+    Expr_Array *filter_array,
+    Expr_Array *project_array,
+    uint64_t &index_table_id,
+    uint64_t main_tid)
 {
-  //输出：bool类型   返回值： uint64_t &index_table_id：索引表的tid
   bool return_ret = false;
   int ret = OB_SUCCESS;
 
@@ -753,7 +726,7 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
         ObSqlExpression c_filter = filter_array->at(i);
         //判断该表达式能否使用不回表的索引
         if (is_expr_can_use_storing_V2(c_filter, tid, index_tid, filter_array,
-            project_array))
+                                       project_array))
         {
           index_table_id = index_tid;
           return_ret = true;
@@ -766,7 +739,8 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
 }
 
 bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
-    Expr_Array *filter_array, Expr_Array *project_array,
+    Expr_Array *filter_array,
+    Expr_Array *project_array,
     uint64_t index_table_id)
 {
   bool cond_has_main_cid = false;
@@ -784,9 +758,9 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
     if (OB_SUCCESS != rowkey_info.get_column_id(0, index_key_cid))
     {
       TBSYS_LOG(WARN,
-          "Fail to get column id, index_table name:[%s], index_table id: [%ld]",
-          index_table_schema->get_table_name(),
-          index_table_schema->get_table_id());
+                "Fail to get column id, index_table name:[%s], index_table id: [%ld]",
+                index_table_schema->get_table_name(),
+                index_table_schema->get_table_id());
       cond_has_main_cid = false;
     }
     // 判断where条件的表达式中是否包含索引表的第��?主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
@@ -803,8 +777,9 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
   if (cond_has_main_cid)
   {
     // 如果where条件中包含索引表的第��?主键再判断这些表达式中的列和select的输出列是不是都在索引表��?
-    can_use_hint_for_storing = is_index_table_has_all_cid_V2(index_table_id,
-        filter_array, project_array);
+    can_use_hint_for_storing = is_index_table_has_all_cid_V2(
+                                 index_table_id,
+                                 filter_array, project_array);
   }
   // 如果对于where条件不能使用主键索引的情况则认为不能使用索引表的storing��?
   else
@@ -816,7 +791,8 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
 }
 
 bool ObSecondaryIndexServiceImpl::is_can_use_hint_index_V2(
-    Expr_Array *filter_ayyay, uint64_t index_table_id)
+    Expr_Array *filter_array,
+    uint64_t index_table_id)
 {
   bool can_use_hint_index = false;
   bool cond_has_main_cid = false;
@@ -834,13 +810,13 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_index_V2(
     if (OB_SUCCESS != rowkey_info.get_column_id(0, index_key_cid))
     {
       TBSYS_LOG(WARN,
-          "Fail to get column id, index_table name:[%s], index_table id: [%ld]",
-          index_table_schema->get_table_name(),
-          index_table_schema->get_table_id());
+                "Fail to get column id, index_table name:[%s], index_table id: [%ld]",
+                index_table_schema->get_table_name(),
+                index_table_schema->get_table_id());
       cond_has_main_cid = false;
     }
     // 判断where条件的表达式中是否包含索引表的第��?主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
-    else if (!is_wherecondition_have_main_cid_V2(filter_ayyay, index_key_cid))
+    else if (!is_wherecondition_have_main_cid_V2(filter_array, index_key_cid))
     {
       cond_has_main_cid = false;
     }
@@ -858,8 +834,5 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_index_V2(
   {
     can_use_hint_index = false;
   }
-
   return can_use_hint_index;
 }
-//add:e
-

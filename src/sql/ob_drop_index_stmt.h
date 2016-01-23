@@ -28,23 +28,59 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObDropIndexStmt class
+     * ObDropIndexStmt is designed for drop index's logical plan
+     */
     class ObDropIndexStmt : public ObDropTableStmt
     {
     public:
+      /**
+       * @brief ObDropIndexStmt: constructor
+       * @param name_pool_
+       */
       ObDropIndexStmt(common::ObStringBuf* name_pool_):ObDropTableStmt(name_pool_),drp_all_(false)
-     {
+      {
         set_stmt_type(T_DROP_INDEX);
-     }
+      }
       ~ObDropIndexStmt(){}
-      int generate_inner_index_table_name(common::ObString& idx_name, common::ObString& ori_tab_name, char* inner_idx_name, int64_t& len);
+      /**
+       * @brief generate_inner_index_table_name
+       * @param idx_name
+       * @param ori_tab_name
+       * @param inner_idx_name [out]
+       * @param len
+       * @return succ or fail
+       */
+      int generate_inner_index_table_name(
+          common::ObString& idx_name,
+          common::ObString& ori_tab_name,
+          char* inner_idx_name,
+          int64_t& len);
+      /**
+       * @brief get original table name
+       * @return
+       */
       const common::ObString& getOriTabName() const;
+      /**
+       * @brief set original table name
+       * @param oriTabName
+       */
       void setOriTabName(const common::ObString& oriTabName);
+      /**
+       * @brief is drop all index tables?
+       * @return
+       */
       bool isDrpAll() const;
+      /**
+       * @brief set drop all index table
+       * @param drpAll
+       */
       void setDrpAll(bool drpAll);
 
     private:
-      common::ObString ori_tab_name_;
-      bool drp_all_;
+      common::ObString ori_tab_name_; ///< original table's name
+      bool drp_all_; ///< flag of drop all index
     };
   }
 }

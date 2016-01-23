@@ -30,27 +30,23 @@ namespace oceanbase
   {
 
     ObGlobalIndexHandler::ObGlobalIndexHandler(ObIndexHandlePool *pool,
-        common::ObMergerSchemaManager *schema_mgr, ObTabletManager* tablet_mgr) :
-        ObIndexHandler(pool, schema_mgr, tablet_mgr),handle_range_(NULL),
-        ms_wrapper_(*(ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()),
-                    ObChunkServerMain::get_instance()->get_chunk_server().get_config().merge_timeout)
+                                               common::ObMergerSchemaManager *schema_mgr, ObTabletManager* tablet_mgr) :
+      ObIndexHandler(pool, schema_mgr, tablet_mgr),handle_range_(NULL),
+      ms_wrapper_(*(ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()),
+                  ObChunkServerMain::get_instance()->get_chunk_server().get_config().merge_timeout)
     {
-      // TODO Auto-generated constructor stub
-      table_id_ = 1024;//@fixme(longfei):for test
-      //TBSYS_LOG(ERROR,"test::longfei>>>handle_pool_ is null?[%s]",((get_handle_pool() == NULL)?"yes":"no"));
-
+      table_id_ = OB_INVALID_ID;
     }
 
     ObGlobalIndexHandler::~ObGlobalIndexHandler()
     {
-      // TODO Auto-generated destructor stub
     }
 
     int ObGlobalIndexHandler::to_string()
     {
-        int ret = OB_SUCCESS;
-        //@todo(longfei):complete
-        return ret;
+      int ret = OB_SUCCESS;
+      //@todo(longfei):complete
+      return ret;
     }
 
     int ObGlobalIndexHandler::init()
@@ -61,13 +57,7 @@ namespace oceanbase
         TBSYS_LOG(ERROR,"null pointer of handler_pool_");
         ret = OB_ERR_NULL_POINTER;
       }
-      //mod longfei [cons static index] 151217:b
-      //else if(range_server_hash_ = get_handle_pool()->get_range_info())
-      /*
-       * 不能使用指针作为判断条件
-       */
       else if(NULL == (range_server_hash_ = get_handle_pool()->get_range_info()))
-      //mod e
       {
         TBSYS_LOG(ERROR,"null pointer of range_hash_pointer");
         ret = OB_ERR_NULL_POINTER;
@@ -78,7 +68,7 @@ namespace oceanbase
     int ObGlobalIndexHandler::start()
     {
       int ret = OB_SUCCESS;
-      //1.构建处理的range --> 应该交给上层去完成，这儿假定成员变量handle_range_是已经构建好的
+      //1.构建处理的range --> 应该交给上层去完成
       if (NULL == handle_range_)
       {
         TBSYS_LOG(ERROR,"handle_range_ is null.");
@@ -87,15 +77,12 @@ namespace oceanbase
       //2.交给start_impl来实现
       else if (OB_SUCCESS != (ret = cons_global_index(handle_range_)))
       {
-        TBSYS_LOG(WARN, "global index construction failed");
+        TBSYS_LOG(WARN, "global index construction failed,ret[%d]",ret);
       }
       else
       {
-        TBSYS_LOG(INFO,"construct global index succ.");
+        TBSYS_LOG(DEBUG,"construct global index succ.");
       }
-
-      //sstable_writer_.close_sstable();
-
       //3.打印错误信息，返回错误码
       return ret;
     }
@@ -106,7 +93,6 @@ namespace oceanbase
       const ObSSTableSchemaColumnDef* def = NULL;
       param.set_fake(true);
       param.set_copy_args(true);
-
       //add column
       if (OB_SUCCESS == (ret = param.set_range(get_new_range())))
       {
@@ -131,31 +117,23 @@ namespace oceanbase
       return ret;
     }
 
-    int ObGlobalIndexHandler::write_global_index_v1()
+    int ObGlobalIndexHandler::write_global_index()
     {
       int ret = OB_SUCCESS;
       const ObRow *row = NULL;
-      // ObRow* row_ptr = &row;
       ObRowDesc desc;
       ObCsInteractiveScan cs2cs_scan;
-      //ObSort sort;
       if(OB_SUCCESS != (ret = sort_.set_child(0, cs2cs_scan)))
       {
         TBSYS_LOG(WARN,"set sort's children failed.ret[%d]",ret);
       }
-      else
-      {
-        TBSYS_LOG(INFO,"set sort's children succ.");
-      }
-
       ObRowDesc index_desc;
       cc.reset();
-
       if (OB_SUCCESS != ret || NULL == get_handle_pool()
           || NULL == get_handle_pool()->get_tablet_manager())
       {
         ret = OB_ERR_UNEXPECTED;
-        TBSYS_LOG(WARN, "handle_pool_ should not be null!");
+        TBSYS_LOG(WARN, "handler construct error");
       }
       else if (OB_SUCCESS != (ret = get_sstable_row().set_table_id(table_id_)))
       {
@@ -172,10 +150,6 @@ namespace oceanbase
       else if (OB_SUCCESS != (ret = cons_row_desc_without_virtual(index_desc)))
       {
         TBSYS_LOG(WARN, "failed to construct index row desc[%d]", ret);
-      }
-      else
-      {
-        //row.set_row_desc(desc);
       }
 
       /*construct operator local_scan*/
@@ -196,13 +170,11 @@ namespace oceanbase
           TBSYS_LOG(ERROR,"range_server_hash hasn't been set.ret[%d]",ret);
         }
       }
-
       /*construct operator ia_scan*/
       if (OB_SUCCESS == ret)
       {
         interactive_agent_.set_row_desc(desc);
       }
-
       if (OB_SUCCESS == ret)
       {
         for (int64_t i = 0; i < desc.get_rowkey_cell_count(); i++)
@@ -212,46 +184,43 @@ namespace oceanbase
           if (OB_SUCCESS != (ret = desc.get_tid_cid(i, tid, cid)))
           {
             TBSYS_LOG(WARN, "get tid cid from row desc failed,i[%ld],ret[%d]",
-                i, ret);
+                      i, ret);
             break;
           }
           else if (OB_SUCCESS != (ret = sort_.add_sort_column(tid, cid, true)))
           {
             TBSYS_LOG(WARN, "set sort column failed,tid[%ld], cid[%ld],ret[%d]",
-                tid, cid, ret);
+                      tid, cid, ret);
             break;
           }
         }
       }
-
       /*construct operator cs2cs_scan*/
       if (OB_SUCCESS != (ret = cs2cs_scan.set_child(0, local_agent_))) //设置左孩子
       {
         TBSYS_LOG(ERROR, "set local scan failed!");
         ret = OB_ERROR;
       }
-
       if (OB_SUCCESS != (ret = cs2cs_scan.set_child(1, interactive_agent_))) //设置右孩子
       {
         TBSYS_LOG(ERROR, "set local scan failed!");
         ret = OB_ERROR;
       }
-
       if (OB_SUCCESS == ret)
       {
         ret = sort_.open();
       }
-
       if (OB_SUCCESS == ret)
       {
         while (OB_SUCCESS == (ret = sort_.get_next_row(row)))
         {
-          if (OB_SUCCESS
-              != (ret = calc_tablet_col_checksum_index(*row, index_desc,
-                  cc.get_str(), table_id_)))
+          if (OB_SUCCESS != (ret = calc_tablet_col_checksum_index(
+                               *row,
+                               index_desc,
+                               cc.get_str(),
+                               table_id_)))
           {
-            TBSYS_LOG(ERROR,
-                "fail to calculate tablet column checksum index =%d", ret);
+            TBSYS_LOG(ERROR, "fail to calculate tablet column checksum index =%d", ret);
             break;
           }
           else if (OB_SUCCESS != (ret = column_checksum_.add(cc)))
@@ -259,7 +228,7 @@ namespace oceanbase
             TBSYS_LOG(ERROR, "checksum sum error =%d", ret);
             break;
           }
-          cc.reset();       
+          cc.reset();
           if (OB_SUCCESS != (ret = trans_row_to_sstrow(desc, *row, get_sstable_row())))
           {
             TBSYS_LOG(WARN, "failed to trans row to sstable_row,ret = %d", ret);
@@ -275,68 +244,55 @@ namespace oceanbase
         {
           {
             ObMultiVersionTabletImage& tablet_image =
-                get_tablet_mgr()->get_serving_tablet_image();       //todo 和下面重复了
+                get_tablet_mgr()->get_serving_tablet_image();
             int64_t frozen_version = tablet_image.get_serving_version();
             set_frozen_version(frozen_version);
-            //delete by liuxiao [secondary index bug.fix]20150812
+            //delete [secondary index bug.fix]
             //ObServer master_master_ups;
             //if(OB_SUCCESS != (ret = ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()->get_master_master_update_server(true,master_master_ups)))
             //{
             //  TBSYS_LOG(ERROR,"failed to get ups for report index cchecksum");
             //}
             //delete e
-            if (OB_SUCCESS
-                != (ret = get_tablet_mgr()->send_tablet_column_checksum(
-                    column_checksum_, get_new_range(), get_frozen_version())))
+            if (OB_SUCCESS != (ret = get_tablet_mgr()->send_tablet_column_checksum(
+                                 column_checksum_, get_new_range(), get_frozen_version())))
             {
               TBSYS_LOG(ERROR, "send tablet column checksum failed =%d", ret);
             }
-            else
-            {
-              //ret = OB_SUCCESS;
-            }
-
             column_checksum_.reset();
-
-            get_tablet_extend_info().row_checksum_ =
-                get_sstable_writer().get_row_checksum();
+            get_tablet_extend_info().row_checksum_ = get_sstable_writer().get_row_checksum();
           }
         }
       }
-
       if (OB_SUCCESS == ret)
       {
         ObTablet* index_image_tablet;
         ObMultiVersionTabletImage& tablet_image = get_tablet_mgr()->get_serving_tablet_image();
         bool sync_meta = THE_CHUNK_SERVER.get_config().each_tablet_sync_meta;
-        if ((ret = tablet_image.alloc_tablet_object(get_new_range(), get_frozen_version(),
-            index_image_tablet)) != OB_SUCCESS)
+        if ((ret = tablet_image.alloc_tablet_object(
+               get_new_range(),
+               get_frozen_version(),
+               index_image_tablet)) != OB_SUCCESS)
         {
           TBSYS_LOG(ERROR, "alloc_index_image_tablet_object failed.");
         }
         else
         {
-          if ((ret = construct_index_tablet_info(index_image_tablet))
-              == OB_SUCCESS)
+          if ((ret = construct_index_tablet_info(index_image_tablet)) == OB_SUCCESS)
           {
-            if (OB_SUCCESS
-                != (ret = update_meta_index(index_image_tablet, sync_meta)))
+            if (OB_SUCCESS != (ret = update_meta_index(index_image_tablet, sync_meta)))
             {
               TBSYS_LOG(WARN, "upgrade new index tablets error [%d]", ret);
             }
           }
         }
       }
-
-      //if(OB_SUCCESS == ret)
-      TBSYS_LOG(INFO, "write total index will end!");
       sort_.reset();
       local_agent_.reset();
       interactive_agent_.reset();
       set_sstable_size(0);
       /*when we stop to read sstable,we should reset tmi*/
-      ObThreadAIOBufferMgrArray* aio_buf_mgr_array = GET_TSI_MULT(
-          ObThreadAIOBufferMgrArray, TSI_SSTABLE_THREAD_AIO_BUFFER_MGR_ARRAY_1);
+      ObThreadAIOBufferMgrArray* aio_buf_mgr_array = GET_TSI_MULT(ObThreadAIOBufferMgrArray, TSI_SSTABLE_THREAD_AIO_BUFFER_MGR_ARRAY_1);
       if (NULL != aio_buf_mgr_array)
       {
         aio_buf_mgr_array->reset();
@@ -347,15 +303,12 @@ namespace oceanbase
     int ObGlobalIndexHandler::cons_row_desc(ObRowDesc &desc)
     {
       int ret = OB_SUCCESS;
-      int64_t key_count = 0;
-      int64_t column_count = 0;
+      int64_t key_count = 0; //rowkey column count
+      int64_t column_count = 0; //total column count
       const ObSSTableSchemaColumnDef* col_def = NULL;
-      if (OB_SUCCESS
-          != (ret = get_sstable_schema().get_rowkey_column_count(table_id_,
-              key_count)))
+      if (OB_SUCCESS != (ret = get_sstable_schema().get_rowkey_column_count(table_id_,key_count)))
       {
-        TBSYS_LOG(WARN, "get rowkey count failed,tid[%ld],ret[%d]", table_id_,
-            ret);
+        TBSYS_LOG(WARN, "get rowkey count failed,tid[%ld],ret[%d]", table_id_, ret);
       }
       else
       {
@@ -366,46 +319,39 @@ namespace oceanbase
       {
         if (NULL == (col_def = get_sstable_schema().get_column_def((int) i)))
         {
-          TBSYS_LOG(WARN,
-              "failed to get column def of table[%ld], i[%ld],ret[%d]",
-              table_id_, i, ret);
+          TBSYS_LOG(WARN, "failed to get column def of table[%ld], i[%ld],ret[%d]",
+                    table_id_, i, ret);
           break;
         }
-        else if (OB_SUCCESS
-            != (desc.add_column_desc(table_id_, col_def->column_name_id_)))
+        else if (OB_SUCCESS != (desc.add_column_desc(table_id_, col_def->column_name_id_)))
         {
           TBSYS_LOG(WARN, "failed to set column desc table_id[%ld], ret[%d]",
-              table_id_, ret);
+                    table_id_, ret);
           break;
         }
       }
-
       return ret;
     }
 
     int ObGlobalIndexHandler::cons_row_desc_without_virtual(ObRowDesc &desc)
     {
       int ret = OB_SUCCESS;
-      //int64_t key_count = 0;
-      //int64_t column_count = 0;
       const ObTableSchema* index_schema;
       const ObTableSchema* table_schema;
       const ObSSTableSchemaColumnDef* col_def = NULL;
-      //const ObSchemaManagerV2 *schemav2 = get_merge_schema_mgr()->get_user_schema(get_frozen_version());
       uint64_t max_data_table_cid = OB_INVALID_ID;
       index_schema = get_schema_mgr()->get_table_schema(table_id_);
       uint64_t data_tid = index_schema->get_original_table_id();
       table_schema = get_schema_mgr()->get_table_schema(data_tid);
-      max_data_table_cid =
-          get_schema_mgr()->get_table_schema(data_tid)->get_max_column_id();
+      max_data_table_cid = table_schema->get_max_column_id();
       desc.set_rowkey_cell_count(index_schema->get_rowkey_info().get_size());
       for (int64_t i = 0; i < get_sstable_schema().get_column_count(); i++)
       {
         if (NULL == (col_def = get_sstable_schema().get_column_def((int) i)))
         {
           TBSYS_LOG(WARN,
-              "failed to get column def of table[%ld], i[%ld],ret[%d]",
-              table_id_, i, ret);
+                    "failed to get column def of table[%ld], i[%ld],ret[%d]",
+                    table_id_, i, ret);
           break;
         }
         else if (col_def->column_name_id_ <= max_data_table_cid)
@@ -414,7 +360,7 @@ namespace oceanbase
               != (desc.add_column_desc(table_id_, col_def->column_name_id_)))
           {
             TBSYS_LOG(WARN, "failed to set column desc table_id[%ld], ret[%d]",
-                table_id_, ret);
+                      table_id_, ret);
             break;
           }
         }
@@ -423,7 +369,7 @@ namespace oceanbase
     }
 
     /*
-     * longfei:不管你上面给我什么样的range，我这个函数负责的是把这个range所对应的table的所有的tablet上在这个range上的数据
+     * longfei:不管你上面给我什么样的range，这个函数负责的是把这个range所对应的table的所有的tablet上在这个range上的数据
      * 拿过来做一个排序！所以会分为两个部分：一部分是我这个cs上有这个range的数据，那么用封装的sstablescan去取数据；
      * 第二部分是在其他cs上的数据，通过rpc调用去其他cs上拿过来！
      */
@@ -432,7 +378,6 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       const RangeServerHash* range_server = NULL;
       ObScanParam param;
-      //int64_t trailer_offset = 0;
       ObMergerSchemaManager *merge_schema_mgr = get_merge_schema_mgr();
       const ObSchemaManagerV2 *current_schema_manager = NULL;
       int64_t trailer_offset = 0;
@@ -476,12 +421,12 @@ namespace oceanbase
 
       if (OB_SUCCESS == ret)
       {
-        (*ms_wrapper_.get_cs_interactive_cell_stream()).set_self(
-        THE_CHUNK_SERVER.get_self());
+        (*ms_wrapper_.get_cs_interactive_cell_stream()).set_self(THE_CHUNK_SERVER.get_self());
         if (OB_SUCCESS != (ret = fill_scan_param(param)))
         {
           TBSYS_LOG(WARN, "fill scan param for index failed,ret[%d]", ret);
         }
+        //@TODO: start_agent() --> agent's open()
         else if (OB_SUCCESS != (ret = interactive_agent_.start_agent(param, *ms_wrapper_.get_cs_interactive_cell_stream(), range_server)))
         {
           if(OB_ITER_END == ret)
@@ -493,9 +438,6 @@ namespace oceanbase
             TBSYS_LOG(WARN, "start query agent failed,ret[%d]", ret);
           }
         }
-        else
-        {
-        }
       }
 
       if (OB_SUCCESS == ret || OB_ITER_END == ret)
@@ -504,7 +446,7 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN,"local agent set scan param failed!ret[%d]",ret);
         }
-        else if (OB_SUCCESS != (ret = write_global_index_v1()))
+        else if (OB_SUCCESS != (ret = write_global_index()))
         {
           TBSYS_LOG(WARN, "write total index failed,ret[%d]", ret);
         }
@@ -526,14 +468,14 @@ namespace oceanbase
           set_schema_mgr(NULL);
         }
       }
-
+      //must close sstable!
       cur_sstab_sz = get_cur_sstable_size();
       get_sstable_writer().close_sstable(trailer_offset, cur_sstab_sz);
       return ret;
     }
 
     int ObGlobalIndexHandler::calc_tablet_col_checksum_index(const ObRow& row,
-        ObRowDesc desc, char *column_checksum, int64_t tid)
+                                                             ObRowDesc desc, char *column_checksum, int64_t tid)
     {
 
       int ret = OB_SUCCESS;
@@ -624,8 +566,8 @@ namespace oceanbase
         if (OB_SUCCESS == ret)
         {
           get_tablet_mgr()->get_disk_manager().add_used_space(
-              (get_sstable_id().sstable_file_id_ & DISK_NO_MASK),
-              get_cur_sstable_size(), false);
+                (get_sstable_id().sstable_file_id_ & DISK_NO_MASK),
+                get_cur_sstable_size(), false);
         }
       }
       else
@@ -646,12 +588,12 @@ namespace oceanbase
         ret = OB_INVALID_ARGUMENT;
       }
       else if (!get_tablet_mgr()->get_disk_manager().is_disk_avail(
-          tablet->get_disk_no()))
+                 tablet->get_disk_no()))
       {
         TBSYS_LOG(WARN, "tablet:%s locate on bad disk:%d, sstable_id:%ld",
-            to_cstring(tablet->get_range()), tablet->get_disk_no(),
-            (tablet->get_sstable_id_list()).count() > 0 ?
-                (tablet->get_sstable_id_list()).at(0).sstable_file_id_ : 0);
+                  to_cstring(tablet->get_range()), tablet->get_disk_no(),
+                  (tablet->get_sstable_id_list()).count() > 0 ?
+                    (tablet->get_sstable_id_list()).at(0).sstable_file_id_ : 0);
         ret = OB_ERROR;
       }
       //check sstable path where exist
@@ -666,14 +608,14 @@ namespace oceanbase
             != (ret = get_sstable_path(sstable_id, path, sizeof(path))))
         {
           TBSYS_LOG(WARN,
-              "can't get the path of sstable, tablet:%s sstable_id:%ld",
-              to_cstring(tablet->get_range()), sstable_id);
+                    "can't get the path of sstable, tablet:%s sstable_id:%ld",
+                    to_cstring(tablet->get_range()), sstable_id);
         }
         else if (false == FileDirectoryUtils::exists(path))
         {
           TBSYS_LOG(WARN,
-              "tablet:%s sstable file is not exist, path:%s, sstable_id:%ld",
-              to_cstring(tablet->get_range()), path, sstable_id);
+                    "tablet:%s sstable file is not exist, path:%s, sstable_id:%ld",
+                    to_cstring(tablet->get_range()), path, sstable_id);
           ret = OB_FILE_NOT_EXIST;
         }
       }
@@ -686,8 +628,7 @@ namespace oceanbase
       return interactive_agent_.get_failed_fake_range(range);
     }
 
-    int ObGlobalIndexHandler::update_meta_index(ObTablet* tablet,
-        const bool sync_meta)
+    int ObGlobalIndexHandler::update_meta_index(ObTablet* tablet, const bool sync_meta)
     {
       int ret = OB_SUCCESS;
       if (tablet == NULL)
@@ -697,14 +638,12 @@ namespace oceanbase
       }
       if (get_tablet_mgr() == NULL)
       {
-        TBSYS_LOG(WARN,
-            "update meta index error, null pointor of tabletmanager");
+        TBSYS_LOG(WARN, "update meta index error, null pointor of tabletmanager");
         ret = OB_ERROR;
       }
       if (OB_SUCCESS == ret)
       {
-        ObMultiVersionTabletImage& tablet_image =
-            get_tablet_mgr()->get_serving_tablet_image();
+        ObMultiVersionTabletImage& tablet_image = get_tablet_mgr()->get_serving_tablet_image();
         if (OB_SUCCESS == ret)
         {
           ret = check_tablet(tablet);
@@ -712,8 +651,7 @@ namespace oceanbase
 
         if (OB_SUCCESS == ret)
         {
-          if (OB_SUCCESS
-              != (ret = tablet_image.upgrade_index_tablet(tablet, false)))
+          if (OB_SUCCESS != (ret = tablet_image.upgrade_index_tablet(tablet, false)))
           {
             TBSYS_LOG(WARN, "upgrade new index tablets error [%d]", ret);
           }
@@ -723,13 +661,12 @@ namespace oceanbase
             {
               // sync new index tablet meta files;
 
-              if (OB_SUCCESS
-                  != (ret = tablet_image.write(tablet->get_data_version(),
-                      tablet->get_disk_no())))
+              if (OB_SUCCESS != (ret = tablet_image.write(tablet->get_data_version(),
+                                                          tablet->get_disk_no())))
               {
                 TBSYS_LOG(WARN,
-                    "write new index meta failed , version=%ld, disk_no=%d",
-                    tablet->get_data_version(), tablet->get_disk_no());
+                          "write new index meta failed , version=%ld, disk_no=%d",
+                          tablet->get_data_version(), tablet->get_disk_no());
               }
             }
           }

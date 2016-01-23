@@ -105,9 +105,21 @@ namespace oceanbase
 
       public:
         //add longfei [cons static index] 151202:b
+        /**
+         * @brief open_scan_context_local_idx
+         * @param param
+         * @param context
+         * @param fake_range
+         * @return return code
+         */
         int open_scan_context_local_idx(
             const sstable::ObSSTableScanParam& param,
             const ScanContext& context, ObNewRange &fake_range);
+        /**
+         * @brief init_sstable_scanner_for_local_idx
+         * @param fake_range
+         * @return return code
+         */
         int init_sstable_scanner_for_local_idx(ObNewRange &fake_range);
         //add e
 

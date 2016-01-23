@@ -51,8 +51,7 @@ namespace oceanbase
         range_.start_key_.assign(array_, OB_MAX_ROWKEY_COLUMN_NUMBER);
         range_.end_key_.assign(array_ + OB_MAX_ROWKEY_COLUMN_NUMBER,
             OB_MAX_ROWKEY_COLUMN_NUMBER);
-        wok_send_ = 0;
-        //init_ = 1;
+        work_send_ = 0;
       }
       return ret;
     }
@@ -60,12 +59,6 @@ namespace oceanbase
     int BlackList::write_list(ObNewRange &range, ObTabletLocationList &list)
     {
       int ret = OB_SUCCESS;
-      //      if(NULL == list || count > OB_INDEX_HANDLE_REP)
-      //      {
-      //        TBSYS_LOG(ERROR, "invalid argument!");
-      //        ret = OB_INVALID_ARGUMENT;
-      //      }
-      //      else
       {
         range_ = range;
       }
@@ -101,8 +94,7 @@ namespace oceanbase
       if (!can_add)
       {
         ret = OB_INVALID_ARGUMENT;
-        TBSYS_LOG(ERROR,
-            "this server is not in black list, we cant turn on server");
+        TBSYS_LOG(ERROR, "this server is not in black list, we cant turn on server");
       }
       return ret;
     }
@@ -153,7 +145,6 @@ namespace oceanbase
       range_ = range;
     }
 
-    //begin from 0
     int BlackList::get_server(int i, ObServer &server)
     {
       int ret = OB_SUCCESS;
@@ -482,7 +473,6 @@ namespace oceanbase
 
       if (OB_SUCCESS == ret && !has_new_range)
       {
-        // BlackList &tmp_list = ;
         if (1 == list_bleach_.at(index))
         {
           TBSYS_LOG(INFO, "this black list is already bleach!");
@@ -500,8 +490,7 @@ namespace oceanbase
                 != (ret = list_array_.at(index).add_in_black_list(range_dst,
                     server)))
             {
-              TBSYS_LOG(WARN, "add server into black list failed, ret[%d]",
-                  ret);
+              TBSYS_LOG(WARN, "add server into black list failed, ret[%d]", ret);
               break;
             }
           }

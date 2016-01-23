@@ -103,10 +103,10 @@ extern int generate_inner_index_table_name(
     ObString& original_table_name,
     char *out_buff,
     int64_t& str_len);
+extern int generate_expire_col_list(
+    ObString input,
+    oceanbase::common::ObStrings &out);
 // add e
 
-//add wenghaixing [secondary index create fix]20141226
-extern int generate_expire_col_list(ObString input, oceanbase::common::ObStrings &out);
-//add e
 #endif //DML_BUILD_PLAN_H_
 

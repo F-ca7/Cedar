@@ -34,15 +34,11 @@
 #include "common/ob_mod_define.h"
 #include "common/ob_tablet_histogram.h"
 #include "common/ob_tablet_histogram_report_info.h"
-//add e
-#include "common/ob_index_black_list.h"
-//add maoxx
-//#include "ob_local_index_handler.h"
-//#include "ob_global_index_handler.h"
 #include "ob_index_reporter.h"
 #include "common/ob_tablet_info.h"
-
 //add e
+#include "common/ob_index_black_list.h" // add longfei
+
 namespace oceanbase
 {
   namespace chunkserver
@@ -50,13 +46,9 @@ namespace oceanbase
     using namespace common;
     class ObTabletManager;
     class ObChunkServer;
-    // mod longfei [cons static index] 151120:b
-    //class ObIndexBuilder;
     class ObIndexHandler;
     class ObGlobalIndexHandler;
     class ObLocalIndexHandler;
-    //151205
-    // mod e
     class ObTablet;
 
     struct FailRecord
@@ -70,13 +62,13 @@ namespace oceanbase
       ObTablet* tablet_;
       int8_t fail_count_;
       int8_t if_process_;
-      int8_t wok_send_;
+      int8_t work_send_;
       TabletRecord()
       {
         tablet_ = NULL;
         fail_count_ = 0;
         if_process_ = 0;
-        wok_send_ = 0;
+        work_send_ = 0;
 
       }
     };
@@ -86,12 +78,12 @@ namespace oceanbase
       ObNewRange range_;
       int64_t fail_count_;
       int8_t if_process_;
-      int8_t wok_send_;
+      int8_t work_send_;
       RangeRecord()
       {
         fail_count_ = 0;
         if_process_ = 0;
-        wok_send_ = 0;
+        work_send_ = 0;
       }
     };
 
@@ -102,67 +94,158 @@ namespace oceanbase
       GLOBAL_INDEX_BUILD_FAILED,
     };
 
+    /**
+     * @brief The ObIndexHandlePool class
+     * thread pool for constructing index
+     */
     class ObIndexHandlePool: public tbsys::CDefaultRunnable
     {
     public:
+      /**
+       * @brief ObIndexHandlePool constructor
+       */
       ObIndexHandlePool();
-      ~ObIndexHandlePool()
-      {
-      }
-
+      ~ObIndexHandlePool(){}
+      /**
+       * @brief init 初始化工作线程
+       * @param manager
+       * @return
+       */
       int init(ObTabletManager *manager);
-      // mod longfei [cons static index] 151121:b
-      //        int schedule();
+      /**
+       * @brief schedule 根据阶段进行HandlePool的调度算法
+       * @return return code
+       */
       int schedule();
-      //        int start_round();
+      /**
+       * @brief start_round: fetch infomation from rs
+       * @return return_code
+       */
       int start_round();
-      //mod e
-      void destroy();
+      /**
+       * @brief set_config_param: 创建两个hashmap,用来保存rs切分的range
+       * @return
+       */
       int set_config_param();
+      /**
+       * @brief create_work_thread: 调用tbsys::CDefaultRunnable的start函数来启动多个线程
+       * @param max_work_thread_num
+       * @return return code
+       */
       int create_work_thread(const int64_t max_work_thread_num);
-
-      //      int fetch_tablet_info(bool is_local_index = true, bool need_other_cs =
-      //          false);
-      // add longfei [cons static index] 151124:b
-      int fetch_tablet_info(common::ConIdxStage which_stage =
-          STAGE_INIT);
-      // add e
-
-      //int is_need_static_index_tablet(ObTablet* tablet,bool &is_need_index);
-      int is_tablet_need_build_static_index(ObTablet* tablet,
-                                            ObTabletLocationList &list, bool &is_need_index);
-      void construct_tablet_item(const uint64_t table_id,
-                                 const common::ObRowkey &start_key, const common::ObRowkey &end_rowkey,
-                                 common::ObNewRange &range, ObTabletLocationList &list);
-
+      /**
+       * @brief fetch_tablet_info 取回tablet或者range信息
+       * @param which_stage
+       * @return return code
+       */
+      int fetch_tablet_info(common::ConIdxStage which_stage = STAGE_INIT);
+      /**
+       * @brief is_tablet_need_build_static_index ?
+       * @param tablet
+       * @param list
+       * @param [out] is_need_index
+       * @return return code
+       */
+      int is_tablet_need_build_static_index(
+          ObTablet* tablet,
+          ObTabletLocationList &list,
+          bool &is_need_index);
+      /**
+       * @brief construct_tablet_item
+       * @param table_id
+       * @param start_key
+       * @param end_rowkey
+       * @param range
+       * @param [out]list
+       */
+      void construct_tablet_item(
+          const uint64_t table_id,
+          const common::ObRowkey &start_key,
+          const common::ObRowkey &end_rowkey,
+          common::ObNewRange &range,
+          ObTabletLocationList &list);
+      /**
+       * @brief can_launch_next_round
+       * @return true or false
+       */
       bool can_launch_next_round();
-      int parse_location_from_scanner(ObScanner &scanner, ObRowkey &row_key,
-                                      uint64_t table_id, bool need_other_cs = false);
-
-      //add wenghaixing [secondary index static_sstable_build.report]20150316
+      /**
+       * @brief parse_location_from_scanner: fill range_hash_ or data_multcs_range_hash_
+       * @param scanner
+       * @param row_key
+       * @param table_id
+       * @param need_other_cs
+       * @return return code
+       */
+      int parse_location_from_scanner(
+          ObScanner &scanner,
+          ObRowkey &row_key,
+          uint64_t table_id,
+          bool need_other_cs = false);
+      /**
+       * @brief add_tablet_info: for information report
+       * @param tablet
+       * @return succ or error
+       */
       int add_tablet_info(ObTabletReportInfo* tablet);
-      //add e
+      /**
+       * @brief push_work: push failed work into black list
+       * @param [out] list
+       * @return ret
+       */
       int push_work(BlackList &list);
+      /**
+       * @brief reset
+       */
       void reset();
+      /**
+       * @brief is_tablet_handle
+       * @param [in] tablet
+       * @param [out] is_handle
+       * @return OB_INVALID_ARGUMENT or succ
+       */
       int is_tablet_handle(ObTablet* tablet, bool &is_handle);
+      /**
+       * @brief try_stop_mission
+       * @param index_tid
+       * @return ret
+       */
       int try_stop_mission(uint64_t index_tid);
+      /**
+       * @brief check_if_in_processing
+       * @param index_tid
+       * @return true or false
+       */
       bool check_if_in_processing(uint64_t index_tid);
-
+      /**
+       * @brief is_work_stoped
+       * @return true or false
+       */
       inline bool is_work_stoped() const
       {
         return 0 == active_thread_num_ || OB_INVALID_ID == process_idx_tid_;
       }
-
+      /**
+       * @brief get_tablet_manager
+       * @return tablet_manager_
+       */
       inline ObTabletManager* get_tablet_manager()
       {
         return tablet_manager_;
       }
-
+      /**
+       * @brief get_round_end
+       * @return true or false
+       */
       inline bool get_round_end()
       {
         return round_end_ == TABLET_RELEASE;
       }
-
+      /**
+       * @brief set_schedule_idx_tid
+       * @param index_tid
+       * @return succ or already_done
+       */
       inline int set_schedule_idx_tid(uint64_t index_tid)
       {
         int ret = OB_SUCCESS;
@@ -176,23 +259,34 @@ namespace oceanbase
         }
         return ret;
       }
-
+      /**
+       * @brief get_process_tid
+       * @return process_idx_tid_
+       */
       inline uint64_t get_process_tid()
       {
         return process_idx_tid_;
       }
-
+      /**
+       * @brief set_hist_width
+       * @param hist_width
+       */
       inline void set_hist_width(int64_t hist_width)
       {
         hist_width_ = hist_width;
       }
-
+      /**
+       * @brief get_schedule_idx_tid
+       * @return schedule_idx_tid_
+       */
       inline uint64_t get_schedule_idx_tid()
       {
         return schedule_idx_tid_;
       }
-      //add liuxiao [secondary index static index bug_fix] 20150626
-      //判断是否有在建索引
+      /**
+       * @brief if_is_building_index 判断是否有在建索引
+       * @return true or false
+       */
       inline bool if_is_building_index()
       {
         //如果process_idx_tid_的值没有有效索引表id，则此时没有建索引的工作
@@ -205,14 +299,19 @@ namespace oceanbase
           return true;
         }
       }
-
+      /**
+       * @brief check_new_global
+       * @return true or false
+       */
       inline bool check_new_global()
       {
         return (total_work_start_time_ == 0);
       }
-
-      //add e
     public:
+      /**
+       * @brief get_range_info
+       * @return data_multcs_range_hash_
+       */
       inline hash::ObHashMap <ObNewRange, ObTabletLocationList,
       hash::NoPthreadDefendMode>* get_range_info()
       {
@@ -221,10 +320,18 @@ namespace oceanbase
 
       // add longfei [cons static index] 151123
     public:
+      /**
+       * @brief get_which_stage
+       * @return which_stage_
+       */
       inline common::ConIdxStage get_which_stage()
       {
         return which_stage_;
       }
+      /**
+       * @brief set_which_stage
+       * @param which_stage
+       */
       inline void set_which_stage(common::ConIdxStage which_stage)
       {
         which_stage_ = which_stage;
@@ -250,105 +357,156 @@ namespace oceanbase
       const static int8_t ROUND_FALSE = 0;
       const static int8_t TABLET_RELEASE = 2;
     private:
-      // mod longfei [cons static index] 151120:b
-      //int create_all_index_workers();
+      /**
+       * @brief create_all_index_handlers: 为每一个handler(完成索引构建的类)分配空间
+       * @return ret
+       */
       int create_all_index_handlers();
-      // mod e
-
-      // mod longfei [cons static index] 151120:b
-      //int create_index_builders(ObIndexHandler** handler, const int64_t size);
-      int create_index_handlers(ObGlobalIndexHandler** global_handler, ObLocalIndexHandler** local_handler, const int64_t size);
-      // mod e
-
-      int destroy_index_builders(ObIndexHandler** handler, const int64_t size);
+      /**
+       * @brief create_index_handlers
+       * @param global_handler
+       * @param local_handler
+       * @param size
+       * @return ret
+       */
+      int create_index_handlers(
+          ObGlobalIndexHandler** global_handler,
+          ObLocalIndexHandler** local_handler,
+          const int64_t size);
+      /**
+       * @brief run: multi-thread will execute run() after created
+       * @param thread
+       * @param arg
+       */
       virtual void run(tbsys::CThread* thread, void *arg);
+      /**
+       * @brief construct_index:thread really do work
+       * @param thread_no
+       */
       void construct_index(const int64_t thread_no);
-      //void construct_total_index(const int64_t thread_no);
-      int get_tablets_ranges(TabletRecord* &tablet, RangeRecord* &range,
-                             int &err);
+      /**
+       * @brief get_tablets_ranges: give a signal to awake thread
+       * @param tablet
+       * @param range
+       * @param [out] err
+       * @return
+       */
+      int get_tablets_ranges(
+          TabletRecord* &tablet,
+          RangeRecord* &range,
+          int &err);
+      /**
+       * @brief finish_phase1: finish local stage, send report infomation
+       * @param reported
+       * @return ret
+       */
       int finish_phase1(bool &reported);
+      /**
+       * @brief finish_phase2: finish global stage, send report infomation
+       * @param total_reported
+       * @return ret
+       */
       int finish_phase2(bool &total_reported);
       //add longfei [cons static index] 151220:b
+      /**
+       * @brief get_global_index_handler
+       * @param thread_no
+       * @param [out] global_handler
+       * @return ret
+       */
       int get_global_index_handler(const int64_t thread_no, ObGlobalIndexHandler* &global_handler);
       //add e
       //add maoxx
+      /**
+       * @brief get_local_index_handler
+       * @param thread_no
+       * @param [out] local_handler
+       * @return ret
+       */
       int get_local_index_handler(const int64_t thread_no, ObLocalIndexHandler* &local_handler);
       //add e
-      bool check_if_tablet_range_failed(bool is_local_index,
-                                        TabletRecord* &tablet, RangeRecord* &range);
-      //add wenghaixing [secondary index static_index_build cluster.p2]20150630
-      bool is_current_index_complete(const int64_t status);
-      bool is_current_index_failed(const int64_t status);
-      //add e
-      int add_tablet(ObTablet* tablet);
-      int add_range(ObNewRange* range);
-      //add wenghaixing [secondary index static_index.]20150408
-      int retry_failed_work(ErrNo level, const ObTablet* tablet, ObNewRange range);
-      //add e
-      //add wenghaixing [secondary index static_index.exceptional_handle]201504232
-      bool is_phase_one_need_end();
-      bool is_phase_two_need_end();
+      /**
+       * @brief check_if_tablet_range_failed
+       * @param is_local_index
+       * @param [out] tablet
+       * @param [out] range
+       * @return
+       */
+      bool check_if_tablet_range_failed(
+          bool is_local_index,
+          TabletRecord* &tablet,
+          RangeRecord* &range);
+      /**
+       * @brief retry_failed_work: if a tablet/range construct failed in this cs over 3 times,then send to other cs
+       * @param level
+       * @param tablet
+       * @param range
+       * @return
+       */
+      int retry_failed_work(
+          ErrNo level,
+          const ObTablet* tablet,
+          ObNewRange range);
+      /**
+       * @brief is_local_stage_need_end
+       * @return true or false
+       */
+      bool is_local_stage_need_end();
+      /**
+       * @brief is_global_stage_need_end
+       * @return true or false
+       */
+      bool is_global_stage_need_end();
+      /**
+       * @brief release_tablet_array: release all tablet && set round_end_
+       * @return ret
+       */
       int release_tablet_array();
+      /**
+       * @brief inc_get_tablet_count
+       */
       void inc_get_tablet_count();
+      /**
+       * @brief inc_get_range_count
+       */
       void inc_get_range_count();
-      //add e
     private:
-      common::ObTabletHistogramReportInfoList *static_index_report_infolist; //collect histogram report info
-      volatile bool inited_;
-      int64_t thread_num_;
-      uint64_t process_idx_tid_;        //当前处理的索引表id
-      uint64_t schedule_idx_tid_;        //计划即将处理的索引表tid
-      int64_t tablet_index_;
-      int64_t range_index_;
-      int64_t hist_width_;
-      volatile int64_t tablets_have_got_;
-      volatile int64_t range_have_got_;
-      volatile int64_t active_thread_num_;
-      int64_t min_work_thread_num_;
-      volatile int8_t round_start_; //1 round  is start, 0 round is not start
-      volatile int8_t round_end_; //1 round  is end, 0 round is not start, 2 round is end and all tablet is release
-
+      common::ObTabletHistogramReportInfoList *static_index_report_infolist; ///< collect histogram report info
+      volatile bool inited_; ///< is inited?
+      int64_t thread_num_; ///< thread number
+      uint64_t process_idx_tid_; ///< 当前处理的索引表id
+      uint64_t schedule_idx_tid_; ///< 计划即将处理的索引表tid
+      int64_t tablet_index_; ///< index of tablet_array_
+      int64_t range_index_; ///< index of range_array_
+      int64_t hist_width_; ///< histogram's width
+      volatile int64_t tablets_have_got_; ///< successed tablets number
+      volatile int64_t range_have_got_; ///< successed range number
+      volatile int64_t active_thread_num_; ///< active thread number
+      int64_t min_work_thread_num_; ///< the min number of work thread is 1
+      volatile int8_t round_start_; ///< 1 round  is start, 0 round is not start
+      volatile int8_t round_end_; ///< 1 round  is end, 0 round is not start, 2 round is end and all tablet is release
       // add longfei [cons static index] 151122
-      common::ConIdxStage which_stage_;
+      common::ConIdxStage which_stage_; ///< index's stage
       // add longfei e
-
-      ObTabletManager *tablet_manager_;
-      //SpinRWLock migrate_lock_;
-      common::ObMergerSchemaManager *schema_mgr_;
-      volatile int64_t local_work_start_time_;    //this version start time
-      volatile int64_t local_work_last_end_time_;
-      volatile int64_t total_work_start_time_;    //this version start time
-      volatile int64_t total_work_last_end_time_; //if root server mean to stop mission, change it not to be zero
-      //uint64_t tablet_list_[common::OB_MAX_TABLE_NUMBER];
-      pthread_cond_t cond_;
-      pthread_mutex_t mutex_;
-      pthread_mutex_t phase_mutex_;
-      pthread_mutex_t tablet_range_mutex_;
-      ObArray<TabletRecord> tablet_array_;//tablet_array存的是本cs上原数据表的所有的tablet
-      ObArray<RangeRecord> range_array_;//本cs上存的tablet(第一副本)的range,实际上要做的range
-
+      ObTabletManager *tablet_manager_; ///< tablet manager
+      common::ObMergerSchemaManager *schema_mgr_; ///< schema manager
+      volatile int64_t local_work_start_time_;    ///< this version start time
+      volatile int64_t total_work_start_time_;    ///< this version start time
+      volatile int64_t total_work_last_end_time_; ///< if root server mean to stop mission, change it not to be zero
+      pthread_cond_t cond_; ///< condition
+      pthread_mutex_t mutex_; ///< mutex
+      pthread_mutex_t stage_mutex_; ///< stage mutex
+      pthread_mutex_t tablet_range_mutex_; ///< tablet range mutex for increse counter
+      ObArray<TabletRecord> tablet_array_;///< tablet_array存的是本cs上原数据表的所有的tablet
+      ObArray<RangeRecord> range_array_;///< 本cs上存的tablet(第一副本)的range,实际上要做的range
       //ObIndexHandler *handler_[MAX_WORK_THREAD];
-      ObGlobalIndexHandler *global_handler_[MAX_WORK_THREAD];
-      ObLocalIndexHandler *local_handler_[MAX_WORK_THREAD];
-
-      hash::ObHashMap <ObNewRange, ObTabletLocationList,
-      hash::NoPthreadDefendMode> data_multcs_range_hash_;
-      hash::ObHashMap <ObNewRange, ObTabletLocationList,
-      hash::NoPthreadDefendMode> range_hash_;
-      //add wenghaixing [secondary index static_sstable_build.report]20150316
-      ObTabletReportInfoList report_info_;
-      common::ModuleArena report_allocator_;
-      //add e
-      //add wenghaixing [secondary index static_sstable_build]20150320
-      CharArena allocator_;
-      //add e
-      //add wenghaixing [secondary index static_data_build.exceptional_handle]20150403
-      BlackListArray black_list_array_;
-      //add e
+      ObGlobalIndexHandler *global_handler_[MAX_WORK_THREAD]; ///< global working thread
+      ObLocalIndexHandler *local_handler_[MAX_WORK_THREAD]; ///< local working thread
+      hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> data_multcs_range_hash_; ///< all tablet infomation
+      hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> range_hash_; ///< the range need to be construct
+      CharArena allocator_; ///< for rowkey deep-copy
+      BlackListArray black_list_array_; ///< failed list
     };
-
   }
-
 }
-
 #endif /* CHUNKSERVER_OB_INDEX_HANDLE_POOL_H_ */
