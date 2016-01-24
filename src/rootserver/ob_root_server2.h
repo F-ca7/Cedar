@@ -365,8 +365,27 @@ namespace oceanbase
 
         // longfei [create index]
         //secodary index service
+        /**
+         * @brief create_index: sql api
+         * @param if_not_exists
+         * @param tschema
+         * @return error code
+         */
         int create_index(const bool if_not_exists, const common::TableSchema &tschema);
+        /**
+         * @brief drop_indexs: sql api
+         * @param if_exists
+         * @param indexs
+         * @return error code
+         */
         int drop_indexs(const bool if_exists, const common::ObStrings &indexs);
+        /**
+         * @brief drop_one_index: drop index from inner and syn schema
+         * @param if_exists
+         * @param table_name
+         * @param refresh
+         * @return
+         */
         int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
 
         //add maoxx
@@ -376,6 +395,10 @@ namespace oceanbase
         //add e
 
         //add longfei [cons static index] 151216:b
+        /**
+         * @brief get_local_schema
+         * @return schema_manager_for_cache_
+         */
         inline ObSchemaManagerV2* get_local_schema() const
         {
           return schema_manager_for_cache_;;

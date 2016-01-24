@@ -98,14 +98,19 @@ extern int resolve_table_columns(
     oceanbase::sql::TableItem& table_item,
     int64_t num_columns = -1);
 // add longfei 20151105
+/**
+ * @brief generate_inner_index_table_name
+ * @param index_name
+ * @param original_table_name
+ * @param out_buff
+ * @param str_len
+ * @return
+ */
 extern int generate_inner_index_table_name(
     ObString& index_name,
     ObString& original_table_name,
     char *out_buff,
     int64_t& str_len);
-extern int generate_expire_col_list(
-    ObString input,
-    oceanbase::common::ObStrings &out);
 // add e
 
 #endif //DML_BUILD_PLAN_H_

@@ -129,7 +129,7 @@ namespace oceanbase
       empty_row_filter_.reset();
       is_skip_empty_row_ = true;
       read_method_ = ObSqlReadStrategy::USE_SCAN;
-      //add fanqiushi_index
+      //add longfei
       is_use_index_rpc_scan_=false;
       is_use_index_for_storing=false;
       is_use_index_for_storing_for_tostring_=false;
@@ -360,33 +360,36 @@ namespace oceanbase
     void ObTableRpcScan::set_main_tid(uint64_t tid)
     {
       //is_use_index_rpc_scan_=true;
-      main_tid_=tid;
+      main_tid_= tid;
       rpc_scan_.set_main_tid(tid);
     }
-    void ObTableRpcScan::set_is_index_for_storing(bool is_use,uint64_t tid)
+
+    void ObTableRpcScan::set_is_index_for_storing(bool is_use, uint64_t tid)
     {
-      is_use_index_for_storing_for_tostring_=is_use;
-      index_tid_for_storing_for_tostring_=tid;
+      is_use_index_for_storing_for_tostring_ = is_use;
+      index_tid_for_storing_for_tostring_ = tid;
     }
-    void ObTableRpcScan::set_is_index_without_storing(bool is_use,uint64_t tid)
+
+    void ObTableRpcScan::set_is_index_without_storing(bool is_use, uint64_t tid)
     {
-      is_use_index_without_storing_for_tostring_=is_use;
-      index_tid_without_storing_for_tostring_=tid;
+      is_use_index_without_storing_for_tostring_ = is_use;
+      index_tid_without_storing_for_tostring_ = tid;
     }
 
     void ObTableRpcScan::set_is_use_index_without_storing()
     {
       is_use_index_rpc_scan_=true;
     }
+
     void ObTableRpcScan::set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc)
     {
       is_use_index_for_storing = true;
-      rpc_scan_.set_is_use_index_for_storing(tid,row_desc);
+      rpc_scan_.set_is_use_index_for_storing(tid, row_desc);
     }
 
-    void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo RI)
+    void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo rowkey_info)
     {
-      rpc_scan_.set_main_rowkey_info(RI);
+      rpc_scan_.set_main_rowkey_info(rowkey_info);
     }
 
     int ObTableRpcScan::cons_second_row_desc(ObRowDesc &row_desc)

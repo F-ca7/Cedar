@@ -193,6 +193,15 @@ namespace oceanbase
                            const int64_t time_out = 0);
 
       // add longfei [cons static index] 151204
+      /**
+       * @brief cs_cs_scan scan data from chunk server
+       * @param scan_param
+       * @param chunkserver
+       * @param [out] scanner
+       * @param server_type
+       * @param time_out
+       * @return error code
+       */
       virtual int cs_cs_scan(const common::ObScanParam & scan_param,
                              common::ObServer chunkserver,
                              common::ObScanner & scanner,
@@ -324,6 +333,11 @@ namespace oceanbase
       inline bool check_need_retry_ups(const int rc);
 
       //add longfei [cons static index] 151204
+      /**
+       * @brief check_need_retry_cs
+       * @param rc
+       * @return true for need or false for not need
+       */
       inline bool check_need_retry_cs(const int rc);
       //add e
 

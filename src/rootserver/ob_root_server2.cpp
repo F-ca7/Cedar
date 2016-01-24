@@ -7869,8 +7869,7 @@ int ObRootServer2::get_ms(ObServer& ms_server)
 int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &tschema)
 {
   int ret = OB_SUCCESS;
-  TBSYS_LOG(INFO, "create index, if_not_exists=%c index_name=%s",
-      if_not_exists?'Y':'N', tschema.table_name_);
+  TBSYS_LOG(INFO, "create index, if_not_exists=%c index_name=%s", if_not_exists?'Y':'N', tschema.table_name_);
   // just for pass the schema checking
   uint64_t old_table_id = tschema.table_id_;
   if (OB_INVALID_ID == old_table_id)
@@ -8009,10 +8008,9 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
   else if (true == is_all_merged)
   {
     {
-      ///@todo(lognfei):BLOCK first we must close index so that all sql execution cannot read the index
+      //@todo(lognfei):BLOCK first we must close index so that all sql execution cannot read the index
     }
-    ///BLOCK Now begin to drop index
-    ///wenghaixing
+    //BLOCK Now begin to drop index
     if(OB_SUCCESS == ret)
     {
       for (int64_t i = 0; i < tables.count(); ++i)
@@ -8027,10 +8025,8 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
         {
           bool refresh = false;
           ret = drop_one_index(if_exists, index_name, refresh);
-          //mod liumz, [obsolete trigger event, use ddl_operation]20150701:b
           //if (true == refresh)
           if (true == refresh && OB_SUCCESS == ret)
-          //mod:e
           {
             force_update_schema = true;
           }
@@ -8120,20 +8116,12 @@ int ObRootServer2::drop_one_index(const bool if_exists, const ObString &table_na
       else
       {
         idx_table_id = table->get_table_id();
-        //mod liumz, [bugfix: index table need not check ddl_system_table_switch]:20150604
-        /*if (idx_table_id < OB_APP_MIN_TABLE_ID && !config_.ddl_system_table_switch)
+        if (idx_table_id < OB_APP_MIN_TABLE_ID && !config_.ddl_system_table_switch)
         {
           TBSYS_LOG(USER_ERROR, "drop table failed, while idx_table_id[%ld] less than %ld, and drop system table switch is %s",
                 idx_table_id, OB_APP_MIN_TABLE_ID, config_.ddl_system_table_switch?"true":"false");
           ret = OB_OP_NOT_ALLOW;
-        }*/
-        if (idx_table_id < OB_APP_MIN_TABLE_ID)
-        {
-          TBSYS_LOG(USER_ERROR, "drop table failed, while idx_table_id[%ld] less than %ld",
-                idx_table_id, OB_APP_MIN_TABLE_ID);
-          ret = OB_OP_NOT_ALLOW;
         }
-        //mod:e
       }
     }
   }

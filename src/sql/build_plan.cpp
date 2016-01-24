@@ -88,18 +88,17 @@ int resolve_drop_table_stmt(
 		ParseNode* node,
 		uint64_t& query_id);
 
-//longfei [create index]
+//longfei [create index] [drop index]
 int resolve_create_index_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
 		uint64_t& query_id);
-//add wenghaixing [secondary index drop index]20141222
 int resolve_drop_index_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id
         );
-//add e
+
 
 int resolve_show_stmt(
 		ResultPlan* result_plan,
@@ -933,263 +932,263 @@ int resolve_drop_table_stmt(
 
 int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t& query_id)
 {
-	int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
-	OB_ASSERT(node && node->type_ == T_CREATE_INDEX && node->num_child_ == 6);
-	ObLogicalPlan* logical_plan = NULL;
-	ObCreateIndexStmt* create_index_stmt = NULL;
-	query_id = OB_INVALID_ID;
-	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
-	ObString original_table_name_;
-	ObString index_table_name_;
-	uint64_t original_table_id_ = OB_INVALID_ID;
-	if (result_plan->plan_tree_ == NULL)
-	{
-		logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
-		if (logical_plan == NULL)
-		{
-			ret = OB_ERR_PARSER_MALLOC_FAILED;
-			snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-					"Can not malloc ObLogicalPlan");
-		}
-		else
-		{
-			logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
-			result_plan->plan_tree_ = logical_plan;
-		}
-	}
-	else
-	{
-		logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
-	}
-	if (ret == OB_SUCCESS)
-	{
-		create_index_stmt = (ObCreateIndexStmt*)parse_malloc(sizeof(ObCreateIndexStmt), result_plan->name_pool_);
-		if (create_index_stmt == NULL)
-		{
-			ret = OB_ERR_PARSER_MALLOC_FAILED;
-			snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-					"Can not malloc ObCreateIndexStmt");
-		}
-		else
-		{
-			create_index_stmt = new(create_index_stmt) ObCreateIndexStmt(name_pool);
-			query_id = logical_plan->generate_query_id();
-			create_index_stmt->set_query_id(query_id);
-			ret = logical_plan->add_query(create_index_stmt);
-			if (ret != OB_SUCCESS)
-			{
-				snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-						"Can not add ObCreateIndexStmt to logical plan");
-			}
-		}
-	}
-	if (ret == OB_SUCCESS)
-	{
-		// check (if not exists)
-		if (node->children_[0] != NULL)
-		{
-			OB_ASSERT(node->children_[0]->type_ == T_IF_NOT_EXISTS);
-			create_index_stmt->set_if_not_exists(true);
-		}
-	}
-	if (ret == OB_SUCCESS)
-	{
-		OB_ASSERT(node->children_[1]->type_ == T_IDENT);
-		original_table_name_.assign_ptr(
-				(char*)(node->children_[1]->str_value_),
-				static_cast<int32_t>(strlen(node->children_[1]->str_value_))
-		);
-		if ((ret = create_index_stmt->set_original_table_name(*result_plan, original_table_name_)) != OB_SUCCESS)
-		{
-			//snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-			//    "Add table name to ObCreateTableStmt failed");
-		}
-		else
-		{
-			TBSYS_LOG(WARN,"original_table_name_ = %s",original_table_name_.ptr());
-			ObSchemaChecker* schema_checker = NULL;
-			schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
-			if (NULL == schema_checker)
-			{
-				ret = OB_ERR_SCHEMA_UNSET;
-				snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-						"Schema(s) are not set");
-			}
-			if (OB_SUCCESS == ret)
-			{
-				if((original_table_id_ = schema_checker->get_table_id(original_table_name_)) == OB_INVALID_ID)
-				{
-					ret = OB_ENTRY_NOT_EXIST;
-					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-							"the table to create index '%.*s' is not exist", original_table_name_.length(), original_table_name_.ptr());
-				}
-			}
-		}
-	}
-	if (ret == OB_SUCCESS)
-	{
-		OB_ASSERT(node->children_[3] != NULL);
-		OB_ASSERT(node->children_[2]->type_ == T_IDENT);
-		char str[OB_MAX_TABLE_NAME_LENGTH];
-		memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
-		int64_t str_len = 0;
-		index_table_name_.assign_ptr(
-				(char*)(node->children_[2]->str_value_),
-				static_cast<int32_t>(strlen(node->children_[2]->str_value_))
-		);
-		if((ret = create_index_stmt->generate_inner_index_table_name(index_table_name_, original_table_name_, str, str_len)) != OB_SUCCESS)
-		{
-			snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-					"failed to generate index table name!");
-		}
-		else
-		{
-			index_table_name_.reset();
-			index_table_name_.assign_ptr(str,static_cast<int32_t>(str_len));
-			TBSYS_LOG(WARN,"inner_index_table_name = %s",index_table_name_.ptr());
-		}
-		if((ret = create_index_stmt->set_table_name(*result_plan, index_table_name_)) != OB_SUCCESS)
-		{
-			snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-					"failed to set index table name!");
-		}
-	}
-	if (ret == OB_SUCCESS)
-	{
-		OB_ASSERT(node->children_[3]->type_ == T_COLUMN_LIST);
-		ParseNode *column_node = NULL;
-		ObString index_column;
-		for(int32_t i = 0; i < node->children_[3]->num_child_; i ++)
-		{
-			column_node = node->children_[3]->children_[i];
-			index_column.reset();
-			index_column.assign_ptr(
-					(char*)(column_node->str_value_),
-					static_cast<int32_t>(strlen(column_node->str_value_))
-			);
-			if(OB_SUCCESS != (ret = create_index_stmt->set_index_columns(*result_plan, original_table_name_, index_column)))
-			{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  OB_ASSERT(node && node->type_ == T_CREATE_INDEX && node->num_child_ == 6);
+  ObLogicalPlan* logical_plan = NULL;
+  ObCreateIndexStmt* create_index_stmt = NULL;
+  query_id = OB_INVALID_ID;
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+  ObString original_table_name_;
+  ObString index_table_name_;
+  uint64_t original_table_id_ = OB_INVALID_ID;
+  if (result_plan->plan_tree_ == NULL)
+  {
+    logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
+    if (logical_plan == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "Can not malloc ObLogicalPlan");
+    }
+    else
+    {
+      logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
+      result_plan->plan_tree_ = logical_plan;
+    }
+  }
+  else
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+  }
+  if (ret == OB_SUCCESS)
+  {
+    create_index_stmt = (ObCreateIndexStmt*)parse_malloc(sizeof(ObCreateIndexStmt), result_plan->name_pool_);
+    if (create_index_stmt == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "Can not malloc ObCreateIndexStmt");
+    }
+    else
+    {
+      create_index_stmt = new(create_index_stmt) ObCreateIndexStmt(name_pool);
+      query_id = logical_plan->generate_query_id();
+      create_index_stmt->set_query_id(query_id);
+      ret = logical_plan->add_query(create_index_stmt);
+      if (ret != OB_SUCCESS)
+      {
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                 "Can not add ObCreateIndexStmt to logical plan");
+      }
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    // check (if not exists)
+    if (node->children_[0] != NULL)
+    {
+      OB_ASSERT(node->children_[0]->type_ == T_IF_NOT_EXISTS);
+      create_index_stmt->set_if_not_exists(true);
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    OB_ASSERT(node->children_[1]->type_ == T_IDENT);
+    original_table_name_.assign_ptr(
+          (char*)(node->children_[1]->str_value_),
+        static_cast<int32_t>(strlen(node->children_[1]->str_value_))
+        );
+    if ((ret = create_index_stmt->set_original_table_name(*result_plan, original_table_name_)) != OB_SUCCESS)
+    {
+      //snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+      //    "Add table name to ObCreateTableStmt failed");
+    }
+    else
+    {
+      TBSYS_LOG(WARN,"original_table_name_ = %s",original_table_name_.ptr());
+      ObSchemaChecker* schema_checker = NULL;
+      schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+      if (NULL == schema_checker)
+      {
+        ret = OB_ERR_SCHEMA_UNSET;
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                 "Schema(s) are not set");
+      }
+      if (OB_SUCCESS == ret)
+      {
+        if((original_table_id_ = schema_checker->get_table_id(original_table_name_)) == OB_INVALID_ID)
+        {
+          ret = OB_ENTRY_NOT_EXIST;
+          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                   "the table to create index '%.*s' is not exist", original_table_name_.length(), original_table_name_.ptr());
+        }
+      }
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    OB_ASSERT(node->children_[3] != NULL);
+    OB_ASSERT(node->children_[2]->type_ == T_IDENT);
+    char str[OB_MAX_TABLE_NAME_LENGTH];
+    memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
+    int64_t str_len = 0;
+    index_table_name_.assign_ptr(
+          (char*)(node->children_[2]->str_value_),
+        static_cast<int32_t>(strlen(node->children_[2]->str_value_))
+        );
+    if((ret = create_index_stmt->generate_inner_index_table_name(index_table_name_, original_table_name_, str, str_len)) != OB_SUCCESS)
+    {
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "failed to generate index table name!");
+    }
+    else
+    {
+      index_table_name_.reset();
+      index_table_name_.assign_ptr(str,static_cast<int32_t>(str_len));
+      TBSYS_LOG(WARN,"inner_index_table_name = %s",index_table_name_.ptr());
+    }
+    if((ret = create_index_stmt->set_table_name(*result_plan, index_table_name_)) != OB_SUCCESS)
+    {
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "failed to set index table name!");
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    OB_ASSERT(node->children_[3]->type_ == T_COLUMN_LIST);
+    ParseNode *column_node = NULL;
+    ObString index_column;
+    for(int32_t i = 0; i < node->children_[3]->num_child_; i ++)
+    {
+      column_node = node->children_[3]->children_[i];
+      index_column.reset();
+      index_column.assign_ptr(
+            (char*)(column_node->str_value_),
+            static_cast<int32_t>(strlen(column_node->str_value_))
+            );
+      if(OB_SUCCESS != (ret = create_index_stmt->set_index_columns(*result_plan, original_table_name_, index_column)))
+      {
         //mod longfei 151201
-//        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-//        						"failed to add_index_colums!");
+        //        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+        //        						"failed to add_index_colums!");
         TBSYS_LOG(ERROR, "failed to set_index_columns!");
         //mod e
-				break;
-			}
-		}
-	}
-	if (ret == OB_SUCCESS)
-	{
-		ObString storing_column; // ������
-		ParseNode *column_node = NULL;
-		if(NULL == node->children_[4])
-		{
-			create_index_stmt->set_has_storing(false);
-		}
-		else
-		{
-			for(int32_t i = 0; i < node->children_[4]->num_child_; i++)
-			{
-				column_node = node->children_[4]->children_[i];
-				storing_column.reset();
-				storing_column.assign_ptr(
-						(char*)(column_node->str_value_),
-						static_cast<int32_t>(strlen(column_node->str_value_))
-				);
-				if(OB_SUCCESS != (ret = create_index_stmt->set_storing_columns(*result_plan, original_table_name_, storing_column)))
-				{
-                    //mod longfei 151201
-//					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-//							"failed to add_index_colums!");
-                    TBSYS_LOG(WARN, "failed to set_storing_columns!");
-                    //mod e
-					break;
-				}
-			}
-		}
-	}
-	if (ret == OB_SUCCESS && node->children_[5])
-	{
-		OB_ASSERT(node->children_[5]->type_ == T_INDEX_OPTION_LIST);
-		ObString str;
-		ParseNode *option_node = NULL;
-		int32_t num = node->children_[5]->num_child_;
-		if(NULL == node->children_[5])
-		{
-			create_index_stmt->set_has_option_list(false);
-		}
-		else
-		{
-			for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
-			{
-				option_node = node->children_[5]->children_[i];
-				switch (option_node->type_)
-				{
-				case T_JOIN_INFO:
-					str.assign_ptr(
-							const_cast<char*>(option_node->children_[0]->str_value_),
-							static_cast<int32_t>(option_node->children_[0]->value_));
-					if ((ret = create_index_stmt->set_join_info(str)) != OB_SUCCESS)
-						snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-								"Set JOIN_INFO failed");
-					break;
-				case T_EXPIRE_INFO:
-					str.assign_ptr(
-							(char*)(option_node->children_[0]->str_value_),
-							static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
-					);
-					if ((ret = create_index_stmt->set_expire_info(str)) != OB_SUCCESS)
-						snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-								"Set EXPIRE_INFO failed");
-					break;
-				case T_TABLET_MAX_SIZE:
-					create_index_stmt->set_tablet_max_size(option_node->children_[0]->value_);
-					break;
-				case T_TABLET_BLOCK_SIZE:
-					create_index_stmt->set_tablet_block_size(option_node->children_[0]->value_);
-					break;
-				case T_TABLET_ID:
-					create_index_stmt->set_table_id(
-							*result_plan,
-							static_cast<uint64_t>(option_node->children_[0]->value_)
-					);
-					break;
-				case T_REPLICA_NUM:
-					create_index_stmt->set_replica_num(static_cast<int32_t>(option_node->children_[0]->value_));
-					break;
-				case T_COMPRESS_METHOD:
-					str.assign_ptr(
-							(char*)(option_node->children_[0]->str_value_),
-							static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
-					);
-					if ((ret = create_index_stmt->set_compress_method(str)) != OB_SUCCESS)
-						snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-								"Set COMPRESS_METHOD failed");
-					break;
-				case T_USE_BLOOM_FILTER:
-					create_index_stmt->set_use_bloom_filter(option_node->children_[0]->value_ ? true : false);
-					break;
-				case T_CONSISTENT_MODE:
-					create_index_stmt->set_consistency_level(option_node->value_);
-					break;
-				case T_COMMENT:
-					str.assign_ptr(
-							(char*)(option_node->children_[0]->str_value_),
-							static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
-					);
-					if ((ret = create_index_stmt->set_comment_str(str)) != OB_SUCCESS)
-						snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-								"Set COMMENT failed");
-					break;
-				default:
-					/* won't be here */
-					OB_ASSERT(0);
-					break;
-				}
-			}
-		}
-	}
-	return ret;
+        break;
+      }
+    }
+  }
+  if (ret == OB_SUCCESS)
+  {
+    ObString storing_column; // ������
+    ParseNode *column_node = NULL;
+    if(NULL == node->children_[4])
+    {
+      create_index_stmt->set_has_storing(false);
+    }
+    else
+    {
+      for(int32_t i = 0; i < node->children_[4]->num_child_; i++)
+      {
+        column_node = node->children_[4]->children_[i];
+        storing_column.reset();
+        storing_column.assign_ptr(
+              (char*)(column_node->str_value_),
+              static_cast<int32_t>(strlen(column_node->str_value_))
+              );
+        if(OB_SUCCESS != (ret = create_index_stmt->set_storing_columns(*result_plan, original_table_name_, storing_column)))
+        {
+          //mod longfei 151201
+          //					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          //							"failed to add_index_colums!");
+          TBSYS_LOG(WARN, "failed to set_storing_columns!");
+          //mod e
+          break;
+        }
+      }
+    }
+  }
+  if (ret == OB_SUCCESS && node->children_[5])
+  {
+    OB_ASSERT(node->children_[5]->type_ == T_INDEX_OPTION_LIST);
+    ObString str;
+    ParseNode *option_node = NULL;
+    int32_t num = node->children_[5]->num_child_;
+    if(NULL == node->children_[5])
+    {
+      create_index_stmt->set_has_option_list(false);
+    }
+    else
+    {
+      for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
+      {
+        option_node = node->children_[5]->children_[i];
+        switch (option_node->type_)
+        {
+          case T_JOIN_INFO:
+            str.assign_ptr(
+                  const_cast<char*>(option_node->children_[0]->str_value_),
+                static_cast<int32_t>(option_node->children_[0]->value_));
+            if ((ret = create_index_stmt->set_join_info(str)) != OB_SUCCESS)
+              snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                       "Set JOIN_INFO failed");
+            break;
+          case T_EXPIRE_INFO:
+            str.assign_ptr(
+                  (char*)(option_node->children_[0]->str_value_),
+                static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
+                );
+            if ((ret = create_index_stmt->set_expire_info(str)) != OB_SUCCESS)
+              snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                       "Set EXPIRE_INFO failed");
+            break;
+          case T_TABLET_MAX_SIZE:
+            create_index_stmt->set_tablet_max_size(option_node->children_[0]->value_);
+            break;
+          case T_TABLET_BLOCK_SIZE:
+            create_index_stmt->set_tablet_block_size(option_node->children_[0]->value_);
+            break;
+          case T_TABLET_ID:
+            create_index_stmt->set_table_id(
+                  *result_plan,
+                  static_cast<uint64_t>(option_node->children_[0]->value_)
+                );
+            break;
+          case T_REPLICA_NUM:
+            create_index_stmt->set_replica_num(static_cast<int32_t>(option_node->children_[0]->value_));
+            break;
+          case T_COMPRESS_METHOD:
+            str.assign_ptr(
+                  (char*)(option_node->children_[0]->str_value_),
+                static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
+                );
+            if ((ret = create_index_stmt->set_compress_method(str)) != OB_SUCCESS)
+              snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                       "Set COMPRESS_METHOD failed");
+            break;
+          case T_USE_BLOOM_FILTER:
+            create_index_stmt->set_use_bloom_filter(option_node->children_[0]->value_ ? true : false);
+            break;
+          case T_CONSISTENT_MODE:
+            create_index_stmt->set_consistency_level(option_node->value_);
+            break;
+          case T_COMMENT:
+            str.assign_ptr(
+                  (char*)(option_node->children_[0]->str_value_),
+                static_cast<int32_t>(strlen(option_node->children_[0]->str_value_))
+                );
+            if ((ret = create_index_stmt->set_comment_str(str)) != OB_SUCCESS)
+              snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                       "Set COMMENT failed");
+            break;
+          default:
+            /* won't be here */
+            OB_ASSERT(0);
+            break;
+        }
+      }
+    }
+  }
+  return ret;
 }
 
 //add longfei [drop index] 20151026
@@ -1212,7 +1211,7 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
     {
       ret = OB_ERR_PARSER_MALLOC_FAILED;
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-              "Can not malloc ObLogicalPlan");
+               "Can not malloc ObLogicalPlan");
     }
     else
     {
@@ -1231,7 +1230,7 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
     {
       ret = OB_ERR_PARSER_MALLOC_FAILED;
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-              "Can not malloc ObDropIndexStmt");
+               "Can not malloc ObDropIndexStmt");
     }
     else
     {
@@ -1241,7 +1240,7 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
       if (OB_SUCCESS != (ret = logical_plan->add_query(drp_idx_stmt)))
       {
         snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-              "Can not add ObDropIndexStmt to logical plan");
+                 "Can not add ObDropIndexStmt to logical plan");
       }
     }
   }
@@ -1256,73 +1255,73 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
     ObString table_name;
     table_node =node->children_[2];
     table_name.assign_ptr(
-              (char*)(table_node->str_value_),
-              static_cast<int32_t>(strlen(table_node->str_value_))
-              );
+          (char*)(table_node->str_value_),
+          static_cast<int32_t>(strlen(table_node->str_value_))
+          );
     schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
     if (schema_checker == NULL)
     {
       ret = OB_ERR_SCHEMA_UNSET;
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                "Schema(s) are not set");
+               "Schema(s) are not set");
     }
     else if((data_table_id=schema_checker->get_table_id(table_name))==OB_INVALID_ID)
     {
       ret = OB_ERR_TABLE_UNKNOWN;
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                  "table '%.*s' does not exist", table_name.length(), table_name.ptr());
+               "table '%.*s' does not exist", table_name.length(), table_name.ptr());
     }
     drp_idx_stmt->setOriTabName(table_name);
-   }
-   if (OB_SUCCESS == ret)
-   {
-     ParseNode *table_node = NULL;
-     ObString table_name;
-     ObString ori_tab_name;
-     ObString table_lable;
-     if (node->children_[1])
-     {
-       for (int32_t i = 0; i < node->children_[1]->num_child_; i++)
-       {
-         table_node = node->children_[1]->children_[i];
-         table_name.assign_ptr(
-                (char*)(table_node->str_value_),
-                static_cast<int32_t>(strlen(table_node->str_value_))
-                );
-         //add longfei [secondary index ecnu_opencode] 20150822:b
-         table_lable.assign_ptr(
-                     (char*)(node->children_[2]->str_value_),
-                     static_cast<int32_t>(strlen(node->children_[2]->str_value_))
-                     );
-         // add 20150822:e
-          //generate index name here
-         memset(tname_str,0,OB_MAX_TABLE_NAME_LENGTH);
-         // mod longfei 20150822:b
-         //if(OB_SUCCESS != (ret = generate_index_table_name(table_name,data_table_id,tname_str,str_len)))
-         if(OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(table_name, table_lable, tname_str, str_len)))
-         //mod :e
-         {
-           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                    "generate index name failed '%.*s'", table_name.length(), table_name.ptr());
-         }
-         else
-         {
-           table_name.reset();
-           table_name.assign_ptr(tname_str,(int32_t)str_len);
-         }
-         if (OB_SUCCESS == ret && OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
-         {
-           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                      "failed to do add_table_name_id");
-         }
-       }
-     }
-     else
-     {
-       drp_idx_stmt->setDrpAll(true);
-     }
-   }
-   return ret;
+  }
+  if (OB_SUCCESS == ret)
+  {
+    ParseNode *table_node = NULL;
+    ObString table_name;
+    ObString ori_tab_name;
+    ObString table_lable;
+    if (node->children_[1])
+    {
+      for (int32_t i = 0; i < node->children_[1]->num_child_; i++)
+      {
+        table_node = node->children_[1]->children_[i];
+        table_name.assign_ptr(
+              (char*)(table_node->str_value_),
+              static_cast<int32_t>(strlen(table_node->str_value_))
+              );
+        //add longfei [secondary index ecnu_opencode] 20150822:b
+        table_lable.assign_ptr(
+              (char*)(node->children_[2]->str_value_),
+            static_cast<int32_t>(strlen(node->children_[2]->str_value_))
+            );
+        // add 20150822:e
+        //generate index name here
+        memset(tname_str,0,OB_MAX_TABLE_NAME_LENGTH);
+        // mod longfei 20150822:b
+        //if(OB_SUCCESS != (ret = generate_index_table_name(table_name,data_table_id,tname_str,str_len)))
+        if(OB_SUCCESS != (ret = drp_idx_stmt->generate_inner_index_table_name(table_name, table_lable, tname_str, str_len)))
+          //mod :e
+        {
+          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                   "generate index name failed '%.*s'", table_name.length(), table_name.ptr());
+        }
+        else
+        {
+          table_name.reset();
+          table_name.assign_ptr(tname_str,(int32_t)str_len);
+        }
+        if (OB_SUCCESS == ret && OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
+        {
+          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                   "failed to do add_table_name_id");
+        }
+      }
+    }
+    else
+    {
+      drp_idx_stmt->setDrpAll(true);
+    }
+  }
+  return ret;
 }
 //add e
 

@@ -79,7 +79,7 @@ namespace oceanbase
          * @brief is_index_full: check index number of a table
          * @param table_id
          * @param is_full
-         * @return
+         * @return err code
          */
         int is_index_full(uint64_t table_id,bool& is_full);
         

@@ -183,11 +183,6 @@ namespace oceanbase
     const int OB_WAITING_COMMIT = -148;
     const int OB_STMT_EXPIRED = -149;
     const int OB_DISCARD_PACKET = -150;
-    //del longfei 151201
-    //longfei [drop index]
-    //move this to SQL specific error code
-//    const int OB_INDEX_NOT_EXIST = -151;
-    //del e
 
 
     //error code for chunk server -1001 ---- -2000
@@ -727,8 +722,8 @@ namespace oceanbase
     enum ConIdxStage
     {
       STAGE_INIT = -1,
-      LOCAL_INDEX_STAGE = 0, //局部索引创建阶段
-      GLOBAL_INDEX_STAGE     //全局索引创建阶段
+      LOCAL_INDEX_STAGE = 0, ///< 局部索引创建阶段
+      GLOBAL_INDEX_STAGE     ///< 全局索引创建阶段
     };
     // add e
   } // end namespace common

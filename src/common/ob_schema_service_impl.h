@@ -109,8 +109,25 @@ namespace oceanbase
 
       // longfei [create index]
       // secondary index service
+      /**
+       * @brief create_index_mutator: 根据table_schema构造mutator
+       * @param [in] table_schema
+       * @param [out] mutator
+       * @return error code
+       */
       int create_index_mutator(const TableSchema& table_schema, ObMutator* mutator);
+      /**
+       * @brief is_index_table_or_not: 判断是否是索引表
+       * @param table_name
+       * @return true for yes or false for not
+       */
       bool is_index_table_or_not(const ObString& table_name);
+      /**
+       * @brief assemble_index_table: get schema from table row
+       * @param [in] table_row
+       * @param [out] table_schema
+       * @return
+       */
       int assemble_index_table(const nb_accessor::TableRow* table_row, TableSchema& table_schema);
       //add maoxx
       virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag);

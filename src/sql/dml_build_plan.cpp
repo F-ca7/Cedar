@@ -125,7 +125,14 @@ int resolve_hints(
     ResultPlan * result_plan,
     ObStmt* stmt,
     ParseNode* node);
-// add by zcd 20141217 :b
+// add longfei
+/**
+ * @brief generate_index_hint: for resolve index hint
+ * @param result_plan
+ * @param stmt
+ * @param hint_node
+ * @return error code
+ */
 int generate_index_hint(
     ResultPlan * result_plan,
     ObStmt* stmt,
@@ -3525,88 +3532,33 @@ int resolve_when_clause(
   }
   return ret;
 }
-//add longfei
-int generate_expire_col_list(ObString input, ObStrings &out)
+
+// add longfei 20151105
+// too many generate_inner_index_table_name!
+int generate_inner_index_table_name(ObString& index_name, ObString& original_table_name, char *out_buff, int64_t& str_len)
 {
   int ret = OB_SUCCESS;
-  ObExpressionParser parser;
-  ObArrayHelper<ObObj> obj_array;
-  ObObj sym_list_[OB_MAX_COMPOSITE_SYMBOL_COUNT];
-  obj_array.init(OB_MAX_COMPOSITE_SYMBOL_COUNT, sym_list_);
-  ObString val;
-  int i                 = 0;
-  int64_t type          = 0;
-  int64_t postfix_size  = 0;
-  if(OB_SUCCESS != (ret = (parser.parse(input,obj_array))))
+  char str[OB_MAX_TABLE_NAME_LENGTH];
+  char raw[OB_MAX_TABLE_NAME_LENGTH];
+  memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
+  memset(raw,0,OB_MAX_TABLE_NAME_LENGTH);
+  if(index_name.length() > OB_MAX_TABLE_NAME_LENGTH || original_table_name.length() > OB_MAX_TABLE_NAME_LENGTH)
   {
-    TBSYS_LOG(ERROR,"generate_expire_col_list parse error,ret[%d]",ret);
+    TBSYS_LOG(WARN,"buff is not enough to generate index table name");
+    ret=OB_ERROR;
   }
   else
   {
-    postfix_size=obj_array.get_array_index();
-  }
-  if(OB_SUCCESS == ret)
-  {
-    i=0;
-    while(i<postfix_size-1)
+    strncpy(str, index_name.ptr(), index_name.length());
+    strncpy(raw, original_table_name.ptr(), original_table_name.length());
+    int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___%s_%s",  raw, str);
+    if((size_t)wlen > (size_t)OB_MAX_TABLE_NAME_LENGTH)
     {
-      if(OB_SUCCESS != obj_array.at(i)->get_int(type))
-      {
-        TBSYS_LOG(WARN, "unexpected data type. int expected, but actual type is %d",
-          obj_array.at(i)->get_type());
-        ret = OB_ERR_UNEXPECTED;
-        break;
-      }
-      else
-      {
-        if(ObExpression::COLUMN_IDX == type)
-        {
-          if (OB_SUCCESS != obj_array.at(i+1)->get_varchar(val))
-          {
-            TBSYS_LOG(WARN, "unexpected data type. varchar expected, "
-                            "but actual type is %d",
-            obj_array.at(i+1)->get_type());
-            ret = OB_ERR_UNEXPECTED;
-            break;
-          }
-          else
-          {
-            out.add_string(val);;
-          }
-        }
-      }
-      i += 2;
+      ret = OB_ERROR;
     }
+    str_len = wlen;
   }
   return ret;
-}
-
-// add longfei 20151105
-// too many generate_inner_index_table_name, need to be optimized
-int generate_inner_index_table_name(ObString& index_name, ObString& original_table_name, char *out_buff, int64_t& str_len)
-{
-    int ret = OB_SUCCESS;
-    char str[OB_MAX_TABLE_NAME_LENGTH];
-    char raw[OB_MAX_TABLE_NAME_LENGTH];
-    memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
-    memset(raw,0,OB_MAX_TABLE_NAME_LENGTH);
-    if(index_name.length() > OB_MAX_TABLE_NAME_LENGTH || original_table_name.length() > OB_MAX_TABLE_NAME_LENGTH)
-    {
-        TBSYS_LOG(WARN,"buff is not enough to generate index table name");
-        ret=OB_ERROR;
-    }
-    else
-    {
-       strncpy(str, index_name.ptr(), index_name.length());
-       strncpy(raw, original_table_name.ptr(), original_table_name.length());
-       int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___%s_%s",  raw, str);
-       if((size_t)wlen > (size_t)OB_MAX_TABLE_NAME_LENGTH)
-       {
-          ret = OB_ERROR;
-       }
-       str_len = wlen;
-    }
-    return ret;
 }
 //add e
 
@@ -3648,7 +3600,7 @@ int generate_index_hint(
   if(NULL != (src_table_schema = schema_checker->get_table_schema(hint_node->children_[0]->str_value_)))
   {
     pair.src_table_name_.write(hint_node->children_[0]->str_value_,
-                               (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
+        (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
     pair.src_table_id_ = src_table_schema->get_table_id();
   }
   else
@@ -3665,16 +3617,16 @@ int generate_index_hint(
   ObString index_table_name;
   ObString org_tab_name;
   index_table_name.assign_ptr(
-      (char*)(hint_node->children_[1]->str_value_),
+        (char*)(hint_node->children_[1]->str_value_),
       static_cast<int32_t>(strlen(hint_node->children_[1]->str_value_))
-  );
+      );
   org_tab_name.assign_ptr(
-      (char*)(hint_node->children_[0]->str_value_),
+        (char*)(hint_node->children_[0]->str_value_),
       static_cast<int32_t>(strlen(hint_node->children_[0]->str_value_))
-  );
+      );
   generate_inner_index_table_name(index_table_name,
-                            org_tab_name,
-                            tablename, len);
+                                  org_tab_name,
+                                  tablename, len);
   if(NULL != (index_table_schema = schema_checker->get_table_schema(tablename)))
   {
     pair.index_table_name_.write(tablename, (ObString::obstr_size_t)strlen(tablename));
@@ -3688,7 +3640,7 @@ int generate_index_hint(
                "unknown index name '%s' of '%s'",
                hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_);
       TBSYS_LOG(ERROR, "unknown index name '%s' of '%s', index table name '%s', ret=[%d]",
-               hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_, tablename, ret);
+                hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_, tablename, ret);
     }
   }
   else
@@ -3697,7 +3649,7 @@ int generate_index_hint(
     snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "unknown index name '%s'",
              hint_node->children_[1]->str_value_);
     TBSYS_LOG(ERROR, "unknown index name '%s', index table name '%s', ret=[%d]",
-             hint_node->children_[1]->str_value_, tablename, ret);
+              hint_node->children_[1]->str_value_, tablename, ret);
 
   }
   // 将index的hint加入到数组中

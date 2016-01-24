@@ -56,7 +56,16 @@ namespace oceanbase
 
       int set_range(const ObNewRange& range);
       //add longfei [cons static index] 151204:b
+      /**
+       * @brief set_fake_range:fake range is the one we recieve from rs
+       * @param fake_range
+       * @return error code
+       */
       int set_fake_range(const ObNewRange &fake_range);
+      /**
+       * @brief set_copy_args 深拷贝
+       * @param arg
+       */
       void set_copy_args(bool arg);
       //add e
 
@@ -315,8 +324,8 @@ namespace oceanbase
       ObString table_name_;
       ObNewRange range_;
       //add longfei [cons static index]:b
-      ObNewRange fake_range_; //静态数据构建阶段，cs需要构建的range
-      bool need_fake_range_; //标志是否需要构建fake_range_
+      ObNewRange fake_range_; ///< 静态数据构建阶段，cs需要构建的range
+      bool need_fake_range_; ///< 标志是否需要构建fake_range_
       //add e
       int64_t scan_size_;
       ScanFlag scan_flag_;
@@ -357,8 +366,8 @@ namespace oceanbase
       ObObj end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
       //add longfei [cons static index] 151204:b
       // 反序列化使用
-      ObObj fake_start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
-      ObObj fake_end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER];
+      ObObj fake_start_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER]; ///< 反序列化使用
+      ObObj fake_end_rowkey_obj_array_[OB_MAX_ROWKEY_COLUMN_NUMBER]; ///< 反序列化使用
       //add e
       const ObSchemaManagerV2* schema_manager_; // rowkey compatible information get from schema
       bool is_binary_rowkey_format_;

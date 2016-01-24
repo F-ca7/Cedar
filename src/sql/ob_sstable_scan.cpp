@@ -305,11 +305,13 @@ int ObSSTableScan::open_scan_context_local_idx(
               to_cstring(scan_param_.get_version_range()));
     ret = OB_ERROR;
   }
-  else if (OB_SUCCESS != (ret = scan_context_.tablet_image_->acquire_tablet(fake_range,
-                                                                            ObMultiVersionTabletImage::SCAN_FORWARD, query_version, scan_context_.tablet_)))
+  else if (OB_SUCCESS != (ret = scan_context_.tablet_image_->acquire_tablet(
+                            fake_range,
+                            ObMultiVersionTabletImage::SCAN_FORWARD,
+                            query_version,
+                            scan_context_.tablet_)))
   {
-    TBSYS_LOG(WARN, "cannot acquire tablet with scan range: %s, version: %ld",
-              to_cstring(fake_range), query_version);
+    TBSYS_LOG(WARN, "cannot acquire tablet with scan range: %s, version: %ld", to_cstring(fake_range), query_version);
   }
   //add [cons static index.bug_fix.merge_error]
   else if (NULL == scan_context_.tablet_)

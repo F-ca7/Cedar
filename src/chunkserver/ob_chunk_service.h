@@ -342,9 +342,16 @@ namespace oceanbase
             easy_request_t* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
+
+        // add longfei [cons static index] 151120:b
         /**
-         * add longfei [cons static index] 151120:b
-         * construct static data of secondary index
+         * @brief cs_recieve_work: 处理其他cs发送过来的构建失败的索引
+         * @param version
+         * @param channel_id
+         * @param req
+         * @param in_buffer
+         * @param out_buffer
+         * @return error code
          */
         int cs_recieve_work(
             const int32_t version,
@@ -352,11 +359,13 @@ namespace oceanbase
             easy_request_t* req,
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
-
-        int handle_index_beat(IndexBeat beat);
         /**
-         * add e
+         * @brief handle_index_beat: 处理rs发送过来的心跳包中包含索引的部分
+         * @param beat
+         * @return error code
          */
+        int handle_index_beat(IndexBeat beat);
+        //add e
 
       private:
         class LeaseChecker : public common::ObTimerTask
@@ -402,40 +411,114 @@ namespace oceanbase
         };
 
         // add longfei [cons static index] 111520:b
+        /**
+         * @brief The SeIndexTask class
+         * is designed for set timeTask of constructing secondary index
+         */
         class SeIndexTask : public common::ObTimerTask
         {
           public:
+            /**
+             * @brief SeIndexTask constructor
+             * @param service
+             */
             SeIndexTask(ObChunkService* service)
               :which_stage_(STAGE_INIT),task_scheduled_(false),service_(service){}
           public:
-            inline bool is_scheduled() const { return task_scheduled_;}
-            inline void set_scheduled() { task_scheduled_ = true;}
-            inline void unset_scheduled() { task_scheduled_ = false;}
+            /**
+             * @brief is_scheduled
+             * @return task_scheduled_
+             */
+            inline bool is_scheduled() const
+            {
+              return task_scheduled_;
+            }
+            /**
+             * @brief set_scheduled
+             */
+            inline void set_scheduled()
+            {
+              task_scheduled_ = true;
+            }
+            /**
+             * @brief unset_scheduled
+             */
+            inline void unset_scheduled()
+            {
+              task_scheduled_ = false;
+            }
+            /**
+             * @brief set_schedule_idx_tid
+             * @param table_id
+             * @return error code
+             */
             int set_schedule_idx_tid(uint64_t table_id);
+            /**
+             * @brief set_hist_width
+             * @param hist_width
+             */
             void set_hist_width(int64_t hist_width);
+            /**
+             * @brief get_round_end
+             * @return true or false
+             */
             bool get_round_end();
+            /**
+             * @brief get_schedule_idx_tid
+             * @return schedule_idx_tid_
+             */
             uint64_t get_schedule_idx_tid();
+            /**
+             * @brief try_stop_mission
+             * @param index_tid
+             * @return
+             */
             int try_stop_mission(uint64_t index_tid);
             bool check_new_global();
             /**
              * @brief check_if_in_processing
              * @param [in] index_tid
-             * @return
+             * @return true or false
              */
             bool check_if_in_processing(uint64_t index_tid);
+            /**
+             * @brief runTimerTask 索引定时任务
+             */
             virtual void runTimerTask();
           public:
             // add longfei [cons static index] :b
-            inline int get_which_stage() const {return which_stage_;}
+            /**
+             * @brief get_which_stage
+             * @return which_stage_
+             */
+            inline int get_which_stage() const
+            {
+              return which_stage_;
+            }
+            /**
+             * @brief set_which_stage: set stage
+             * @param stage
+             */
             void set_which_stage(common::ConIdxStage stage);
+            /**
+             * @brief reset
+             */
             void reset();
-            inline ObChunkService* get_chunk_service(){return service_;}
+            /**
+             * @brief get_chunk_service
+             * @return service_
+             */
+            inline ObChunkService* get_chunk_service()
+            {
+              return service_;
+            }
             // add e
 
           private:
-            common::ConIdxStage which_stage_; // add longfei [cons static index] e
-            bool task_scheduled_;
-            ObChunkService* service_;
+            // add longfei [cons static index] e
+            common::ConIdxStage which_stage_; ///< stage info
+            bool task_scheduled_; ///< is scheduled?
+            ObChunkService* service_; ///< provide chunk service
         };
         // add e
 
@@ -494,7 +577,7 @@ namespace oceanbase
         StatUpdater  stat_updater_;
         MergeTask    merge_task_;
         // add longfei [cons static index] 151120:b
-        SeIndexTask se_index_task_; // se_index_task_ is aimed to construct static data for secondary index
+        SeIndexTask se_index_task_; ///< se_index_task_ is aimed to construct static data for secondary index
         // add e
         FetchUpsTask fetch_ups_task_;
         ObMergerSchemaTask fetch_schema_task_;

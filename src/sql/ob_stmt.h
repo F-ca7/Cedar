@@ -77,8 +77,8 @@ namespace oceanbase
       {
         return use_index_array_.size() > 0 ? true : false;
       }
-      bool    hotspot_;
-      common::ObConsistencyLevel    read_consistency_;
+      bool hotspot_;
+      common::ObConsistencyLevel read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_;
     };
     // add :e

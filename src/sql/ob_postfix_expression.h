@@ -371,9 +371,14 @@ namespace oceanbase
          * @brief get_type_num: get different ObPostExprNodeType's params number
          * @param idx
          * @param type
-         * @return
+         * @return error code
          */
         int64_t get_type_num(int64_t idx,int64_t type) const;
+        /**
+         * @brief get_expr_by_index
+         * @param index
+         * @return expr_
+         */
         ObObj& get_expr_by_index(int64_t index);
         // add e
 
@@ -474,7 +479,7 @@ namespace oceanbase
         // and i used this in the series of secondary index service functions
         /**
          * @brief get_expr
-         * @return
+         * @return expr_
          */
         const ExprArray& get_expr() const
         {

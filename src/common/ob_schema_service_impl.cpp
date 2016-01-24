@@ -1720,12 +1720,6 @@ int ObSchemaServiceImpl::prepare_privilege_for_table(const TableRow* table_row, 
   return ret;
 }
 
-/**
- * @brief ObSchemaServiceImpl::create_index_mutator
- * @param table_schema
- * @param mutator
- * @return success or fail
- */
 int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, ObMutator* mutator)
 {
   int ret = OB_SUCCESS;

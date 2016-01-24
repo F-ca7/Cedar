@@ -240,7 +240,7 @@ int ObTableIdNameIterator::internal_get(ObTableIdName** table_info)
   return ret;
 }
 
-int ObTableIdNameIterator::normal_get(ObTableIdName** table_id_name,bool index)
+int ObTableIdNameIterator::normal_get(ObTableIdName** table_id_name, bool index)
 {
   int ret = OB_SUCCESS;
 

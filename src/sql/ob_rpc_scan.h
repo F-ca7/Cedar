@@ -77,15 +77,61 @@ namespace oceanbase
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 
-        //add fanqiushi_index
+        //add longfei
+        /**
+         * @brief set_main_tid: 设置原表tid
+         * @param main_tid
+         * @return OB_SUCCESS
+         */
         int set_main_tid(uint64_t main_tid);
+        /**
+         * @brief set_is_use_index_for_storing: 设置行描述
+         * @param main_tid
+         * @param [in] row_desc
+         * @return
+         */
         int set_is_use_index_for_storing(uint64_t main_tid,common::ObRowDesc &row_desc);
+        /**
+         * @brief get_next_compact_row_for_index 第一次scan索引表，返回索引表的数据
+         * @param row
+         * @return error code
+         */
         int get_next_compact_row_for_index(const common::ObRow *&row);
-        int set_main_rowkey_info(common::ObRowkeyInfo RI);
+        /**
+         * @brief set_main_rowkey_info
+         * @param rowkey_info
+         * @return err code
+         */
+        int set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        /**
+         * @brief add_main_output_column: 第二次get原表时的输出列
+         * @param expr
+         * @return err code
+         */
         int add_main_output_column(const ObSqlExpression& expr);
+        /**
+         * @brief add_main_filter: 第二次get原表时用做过滤
+         * @param expr
+         * @return err code
+         */
         int add_main_filter(ObSqlExpression* expr);
+        /**
+         * @brief get_other_row_desc: 获得第二次get时的行描述
+         * @param row_desc
+         * @return err code
+         */
         int get_other_row_desc(const common::ObRowDesc *&row_desc);
+        /**
+         * @brief set_second_rowdesc: 回表时，第二次get原表时用到的行描述
+         * @param row_desc
+         * @return err code
+         */
         int set_second_rowdesc(common::ObRowDesc *row_desc);
+        /**
+         * @brief fill_read_param_for_first_scan 设置第一次读表参数
+         * @param dest_param
+         * @return err code
+         */
         int fill_read_param_for_first_scan(ObSqlReadParam &dest_param);
         //add:e
 
@@ -173,10 +219,35 @@ namespace oceanbase
         void cleanup_request();
 
         //add longfei
+        /**
+         * @brief create_get_param_for_index: 生成第二次get原表时的get_param
+         * @param get_param
+         * @return error code
+         */
         int create_get_param_for_index(ObSqlGetParam &get_param);
+        /**
+         * @brief fill_read_param_for_index
+         * @param dest_param
+         * @return err code
+         */
         int fill_read_param_for_index(ObSqlReadParam &dest_param);
+        /**
+         * @brief cons_get_rows_for_index: 根据第一次scan索引表返回的数据，构造第二次get原表的主键的范围
+         * @param get_param
+         * @return error code
+         */
         int cons_get_rows_for_index(ObSqlGetParam &get_param);
+        /**
+         * @brief reset_read_param_for_index 重置一下read_param
+         * @return error code
+         */
         int reset_read_param_for_index();
+        /**
+         * @brief cons_index_row_desc: 生成第二次get原表时用到的行描述
+         * @param sql_get_param
+         * @param row_desc
+         * @return err code
+         */
         int cons_index_row_desc(const ObSqlGetParam &sql_get_param, ObRowDesc &row_desc);
         //add:e
 
@@ -217,7 +288,7 @@ namespace oceanbase
 
         //add longfei
         common::ObRow cur_row_for_storing_;  ///< 在不回表的查询中，需要对CS返回的数据修改tid，修改后的行存到cur_row_for_storing_里面
-        common::ObRowDesc cur_row_desc_for_storing;
+        common::ObRowDesc cur_row_desc_for_storing; ///< cur_row_for_storing_行描述
         //add:e
 
         common::ObRowDesc cur_row_desc_;
