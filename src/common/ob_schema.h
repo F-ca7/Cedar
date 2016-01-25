@@ -14,6 +14,9 @@
  * 3.create an hash map to log the (tid <--> indexList)
  * 4.add Judgment Rule for using secondary index in select
  *
+ * modified by WengHaixing:
+ * 1.add a fuction call to find all not available index
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_21

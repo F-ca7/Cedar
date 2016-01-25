@@ -9,6 +9,7 @@
  * @brief implementation of schema service
  *
  * modified by longfei：add some function for new a core table
+ * modified by WengHaixing: add some funcfion for secondary index status/columnchecksum
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>

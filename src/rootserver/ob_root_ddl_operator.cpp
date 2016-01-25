@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_ddl_operator.cpp
+ * @brief modify main procedure of create table, only when table is not index or index switch is on ,root server
+ *        will create tablet for table
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
 #include "ob_root_ddl_operator.h"
 #include "ob_root_server2.h"
 #include "common/ob_range.h"

@@ -9,7 +9,7 @@
  * @brief for boot strap
  *
  * modified by longfei：boot the new core table "__all_secondary_index"
- *
+ * modified by Wenghaixing：boot the new core table
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_21

@@ -9,7 +9,7 @@
  * @brief root server
  *
  *  modified by longfei：add create_index() and drop_indexs()
- *
+ *  modified by Wenghaixing: add some fuction for secondary index construction, get index stat, set icu , start icu and so on
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_21

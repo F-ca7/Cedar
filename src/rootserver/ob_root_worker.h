@@ -9,6 +9,7 @@
  * @brief root server worker
  *
  * modified by longfei：add rt_create_index() and rt_drop_index()
+ * modified by wenghaixing: add icu into root worker
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>

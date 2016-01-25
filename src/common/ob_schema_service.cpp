@@ -12,6 +12,8 @@
  * 1.add two more member variables in TableSchema(struct) and their serialize() series function
  * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
  *
+ * modified by WengHaixing:
+ * 1.add some function to fit secondary index constrution
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_21

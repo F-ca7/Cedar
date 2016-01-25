@@ -9,6 +9,7 @@
  * @brief for rpc among chunk server, update server and root server.
  *
  * modified by longfei：add rpc call for drop index and retry_failed_work
+ * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>

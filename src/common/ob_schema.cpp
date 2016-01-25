@@ -15,6 +15,9 @@
  * 4.add Judgment Rule for using secondary index in select
  * 5.print_info can only be seen at level debug
  *
+ * modified by WengHaixing:
+ * 1.add a fuction call to find all not available index
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_21
