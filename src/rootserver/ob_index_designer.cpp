@@ -1,4 +1,21 @@
-
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_designer.cpp
+ * @brief design global index distribution, and check if local/global index construction is finished
+ *
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
 #include "rootserver/ob_index_designer.h"
 
 namespace oceanbase
@@ -107,7 +124,7 @@ namespace oceanbase
       }
       else if(pos == end())
       {
-        //new tablet info,should add in meta index
+        ///new tablet info,should add in meta index
         hist_meta.report_cs_info[0].server_info_index = server_index;
         hist_meta.report_cs_info[0].report_timestamp = tbsys::CTimeUtil::getTime();
 
@@ -517,7 +534,7 @@ namespace oceanbase
       else if (data_meta_.get_array_index() > 0)
       {
         //first set ret = OB_NO_MONITOR_DATA, otherwise, if meta_table_'s size() == 0, return OB_SUCCESS anyway
-        //check pass even if cs has not reported!!!
+        ///check pass even if cs has not reported!!!
         for (int64_t i = 0; i < data_meta_.get_array_index(); i++)
         {
           const ObTabletInfo * tablet_info = NULL;

@@ -1,4 +1,23 @@
-/**/
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_control_unit.cpp
+ * @brief control unit of index construction
+ *  icu start when common daily merge begin,and will submit mission while common merge finished.
+ *  icu will control main procedure of index construction one by one
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
 #include "ob_index_control_unit.h"
 #include "ob_root_worker.h"
 namespace oceanbase
@@ -180,11 +199,11 @@ namespace oceanbase
         ret = OB_ERR_NULL_POINTER;
         TBSYS_LOG(WARN, "hist manager cannot be NULL");
       }
-      TBSYS_LOG(ERROR, "test::whx tablet_info = %s", to_cstring(add_tablets.tablets[0].tablet_info.range_));
+      //TBSYS_LOG(ERROR, "test::whx tablet_info = %s", to_cstring(add_tablets.tablets[0].tablet_info.range_));
       for (int64_t i = 0; i < add_tablets.tablet_list.get_array_index() && OB_SUCCESS == ret; i ++)
       {
         const ObTabletHistogramReportInfo &report_info = add_tablets.tablets[i];
-        TBSYS_LOG(ERROR, "test::whx tablet_info pre = %s, other = %s, idx = %ld", to_cstring(report_info.tablet_info.range_), to_cstring(add_tablets.tablets[i].tablet_info.range_), i);
+        //TBSYS_LOG(ERROR, "test::whx tablet_info pre = %s, other = %s, idx = %ld", to_cstring(report_info.tablet_info.range_), to_cstring(add_tablets.tablets[i].tablet_info.range_), i);
         if(report_info.tablet_info.range_.table_id_ != designer_->get_table_id())
         {
           ret = OB_INVALID_DATA;
@@ -197,7 +216,7 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(ERROR, "test::whx tablet_info = %s, other = %s, idx = %ld", to_cstring(report_info.tablet_info.range_), to_cstring(add_tablets.tablets[i].tablet_info.range_), i);
+          //TBSYS_LOG(ERROR, "test::whx tablet_info = %s, other = %s, idx = %ld", to_cstring(report_info.tablet_info.range_), to_cstring(add_tablets.tablets[i].tablet_info.range_), i);
           tbsys::CThreadGuard hist_mutex_gard(&designer_mutex_);
           if(OB_SUCCESS != (ret = designer_->add_hist_meta(add_tablets.tablets[i].tablet_info, meta_index, server_index)))
           {
@@ -341,7 +360,7 @@ namespace oceanbase
           int64_t now = tbsys::CTimeUtil::getTime();
           bool finished1 = false, finished2 = false;
           bool need_delete_rt = false;
-          //step1: 判断创建局部索引的时间是否超时
+          ///step1: 判断创建局部索引的时间是否超时
           ch_.set_index_beat(LOCAL_INDEX_STAGE);
           while(!finished1)
           {
@@ -367,7 +386,7 @@ namespace oceanbase
 
           if(OB_SUCCESS == ret)
           {
-            //step2, if local index build success, write golbal index range  into rt
+            ///step2, if local index build success, write golbal index range  into rt
             if(OB_SUCCESS != (ret = fill_all_samples()))
             {
               TBSYS_LOG(WARN, "failed to fill samples, ret = %d", ret);
@@ -380,7 +399,7 @@ namespace oceanbase
             else
             {
               need_delete_rt = true;
-              //step3 check if global index done
+              ///step3 check if global index done
               ch_.set_index_beat(GLOBAL_INDEX_STAGE);
               while(!finished2)
               {
@@ -405,10 +424,10 @@ namespace oceanbase
             }
           }
 
-          //step4 check column checksum
+          ///step4 check column checksum
           if(OB_SUCCESS == ret)
           {
-            //todo check column checksum here
+            /// check column checksum here
             if(OB_SUCCESS != (ret = root_woker_->get_root_server().check_column_checksum(idx_id)))
             {
               TBSYS_LOG(WARN, "check index %ld column checksum failed", idx_id);
@@ -426,7 +445,7 @@ namespace oceanbase
               usleep(sleep_interval);
             }
           }
-          //clear up the mess
+          ///clear up the mess
           if (OB_SUCCESS != ret)
           {
             clean_mess(idx_id, need_delete_rt);
@@ -441,7 +460,7 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
       common::ObArray<uint64_t> delete_table;
-      //step1. modify index stat to ERROR, if modify failed, does not matter, because index is not avaliable now.
+      ///step1. modify index stat to ERROR, if modify failed, does not matter, because index is not avaliable now.
       if (OB_SUCCESS != (err = service_.modify_index_process_info(idx_id, ERROR)))
       {
         TBSYS_LOG(WARN, "fail modify index table's stat to [ERROR], index_tid=%ld.", idx_id);
@@ -452,7 +471,7 @@ namespace oceanbase
       }
       if (need_delete_rt)
       {
-       //step2. delete index table from rt.
+       ///step2. delete index table from rt.
        if (OB_SUCCESS != (err = delete_table.push_back(idx_id)))
        {
          TBSYS_LOG(WARN, "add idx_id to delete table failed. index_tid=%ld", idx_id);

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_index_cs_handler.cpp
+ * @brief handle chunkserver while index construct,include cs selection/server off_line and so on
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
 #include "ob_index_cs_handler.h"
 #include "ob_root_worker.h"
 namespace oceanbase
@@ -114,7 +132,7 @@ namespace oceanbase
       {
         int64_t ip = 0;
         int64_t port = 0;
-        // next cell
+        /// next cell
         for(++iter; iter != scanner.end(); ++iter)
         {
           ret = iter.get_cell(&cell,&row_change);
@@ -167,7 +185,7 @@ namespace oceanbase
             }
           }
         }
-        // for the last row
+        /// for the last row
         TBSYS_LOG(DEBUG, "get a new tablet start_key[%s], end_key[%s]",
                   to_cstring(start_key), to_cstring(end_key));
         if ((OB_SUCCESS == ret) && (start_key != end_key))
