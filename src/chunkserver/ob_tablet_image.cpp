@@ -981,8 +981,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       if (OB_INVALID_ID == table_id)
       {
-        TBSYS_LOG(WARN, "tablet image acquire_tablets, invalid table_id=%lu",
-            table_id);
+        TBSYS_LOG(WARN, "tablet image acquire_tablets, invalid table_id=%lu", table_id);
         ret = OB_INVALID_ARGUMENT;
       }
       else

@@ -1208,7 +1208,6 @@ namespace oceanbase
         ret = rpc_stub->scan((time_out > 0) ? time_out : rpc_timeout_, chunkserver, scan_param, scanner);
         if(scan_param.if_need_fake())
         {
-          //TBSYS_LOG(INFO, "test::whx scan_param----fake_range[%s]", to_cstring(*scan_param.get_fake_range()));
         }
         if (false == check_need_retry_cs(ret))
         {

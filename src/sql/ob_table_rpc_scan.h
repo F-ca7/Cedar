@@ -68,16 +68,67 @@ namespace oceanbase
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
 
         //add longfei [secondary index select] 20151116 :b
-        void set_main_tid(uint64_t tid);  ///< 存原表的tid
-        void set_is_index_for_storing(bool is_use,uint64_t tid);  ///< 设置这次查询是否用到不回表的索引
-        void set_is_index_without_storing(bool is_use,uint64_t tid);///< 设置这次查询是否用到回表的索引
+        /**
+         * @brief set_main_tid 存原表的tid
+         * @param tid
+         */
+        void set_main_tid(uint64_t tid);
+        /**
+         * @brief set_is_index_for_storing 设置这次查询是否用到不回表的索引
+         * @param is_use
+         * @param tid
+         */
+        void set_is_index_for_storing(bool is_use,uint64_t tid);
+        /**
+         * @brief set_is_index_without_storing 设置这次查询是否用到回表的索引
+         * @param is_use
+         * @param tid
+         */
+        void set_is_index_without_storing(bool is_use,uint64_t tid);
+        /**
+         * @brief set_is_use_index_without_storing 置位
+         */
         void set_is_use_index_without_storing();
-        void set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc);
+        /**
+         * @brief set_is_use_index_for_storing 置位 && 设置行描述
+         * @param tid
+         * @param row_desc
+         */
+        void set_is_use_index_for_storing(uint64_t tid ,ObRowDesc &row_desc);
+        /**
+         * @brief add_main_output_column 输出列
+         * @param expr
+         * @return err code
+         */
         int add_main_output_column(const ObSqlExpression& expr);
+        /**
+         * @brief add_main_filter select语句中的过滤列
+         * @param expr
+         * @return err code
+         */
         int add_main_filter(ObSqlExpression* expr);
+        /**
+         * @brief add_index_filter 使用索引时的过滤列
+         * @param expr
+         * @return
+         */
         int add_index_filter(ObSqlExpression* expr);
-        void set_main_rowkey_info(common::ObRowkeyInfo RI);
+        /**
+         * @brief set_main_rowkey_info
+         * @param rowkey_info
+         */
+        void set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        /**
+         * @brief cons_second_row_desc
+         * @param row_desc
+         * @return err code
+         */
         int cons_second_row_desc(ObRowDesc &row_desc);
+        /**
+         * @brief set_second_row_desc
+         * @param row_desc
+         * @return err code
+         */
         int set_second_row_desc(ObRowDesc *row_desc);
         //add:e
 
@@ -161,16 +212,16 @@ namespace oceanbase
         bool is_skip_empty_row_;
         int32_t read_method_;
         //add longfei
-        bool is_use_index_rpc_scan_;  //判断是否使用了回表的索引
-        bool is_use_index_for_storing; //判断是否使用了不回表的索引
+        bool is_use_index_rpc_scan_;  ///< 判断是否使用了回表的索引
+        bool is_use_index_for_storing; ///< 判断是否使用了不回表的索引
         //ObRpcScan index_rpc_scan_;
-        ObProject main_project_;   //存第二次get原表时的输出列
-        ObFilter main_filter_;     //存第二次get原表时filter
-        uint64_t main_tid_;         //原表的tid
-        bool is_use_index_for_storing_for_tostring_;
-        uint64_t index_tid_for_storing_for_tostring_;
-        bool is_use_index_without_storing_for_tostring_;
-        uint64_t index_tid_without_storing_for_tostring_;
+        ObProject main_project_;   ///< 存第二次get原表时的输出列
+        ObFilter main_filter_;     ///< 存第二次get原表时filter
+        uint64_t main_tid_;         ///< 原表的tid
+        bool is_use_index_for_storing_for_tostring_; ///< 不回表物理计划标志位
+        uint64_t index_tid_for_storing_for_tostring_; ///< 不回表使用索引tid
+        bool is_use_index_without_storing_for_tostring_; ///< 回表物理计划标志位
+        uint64_t index_tid_without_storing_for_tostring_; ///< 回表使用索引tid
         //add:e
     };
     inline void ObTableRpcScan::set_phy_plan(ObPhysicalPlan *the_plan)

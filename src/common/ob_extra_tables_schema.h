@@ -53,6 +53,11 @@ namespace oceanbase
       static int first_tablet_entry_schema(TableSchema& table_schema);
       static int all_all_column_schema(TableSchema& table_schema);
       static int all_join_info_schema(TableSchema& table_schema);
+      /**
+       * @brief all_secondary_index_schema: for __all_secondary_index's schema
+       * @param table_schema
+       * @return error code
+       */
       static int all_secondary_index_schema(TableSchema& table_schema); //longfei [create index]
     public:
       // other sys tables

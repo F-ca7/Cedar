@@ -50,13 +50,19 @@ namespace oceanbase
     typedef ObObjType ColumnType;
 
     //add longfei [cons static index] 151120:b
-    // index beat is a type of heart beat, can carry some information between rs and cs
+    /**
+     * @brief The IndexBeat struct
+     * index beat is a type of heart beat, can carry some information between rs and cs
+     */
     struct IndexBeat
     {
-      uint64_t idx_tid_;
-      IndexStatus status_;
-      int64_t hist_width_;
-      ConIdxStage stage_;
+      uint64_t idx_tid_; ///< index table's id
+      IndexStatus status_; ///< index's status
+      int64_t hist_width_; ///< histogram's width
+      ConIdxStage stage_; ///< stage of constructing
+      /**
+       * @brief IndexBeat constructor
+       */
       IndexBeat()
       {
         idx_tid_ = OB_INVALID_ID;
@@ -64,6 +70,9 @@ namespace oceanbase
         hist_width_ = 0;
         stage_ = STAGE_INIT;
       }
+      /**
+       * @brief reset
+       */
       void reset()
       {
         idx_tid_ = OB_INVALID_ID;
@@ -179,8 +188,8 @@ namespace oceanbase
       int64_t max_rowkey_length_;
 
       //longfei [create index]
-      uint64_t original_table_id_;
-      IndexStatus index_status_;
+      uint64_t original_table_id_; ///< original table's id
+      IndexStatus index_status_; ///< index table's status
 
       int64_t merge_write_sstable_version_;
       int64_t schema_version_;

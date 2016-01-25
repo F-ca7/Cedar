@@ -56,7 +56,12 @@ namespace oceanbase
         void set_if_exists(bool if_exists);
         int add_table_name(const common::ObString &tname);
         // longfei [drop index]
+        /**
+         * @brief get_if_exists
+         * @return if_exists_
+         */
         const bool get_if_exists() const;
+
         mergeserver::ObMergerRootRpcProxy* get_rpc_stub() const;
 
         /// execute the insert statement
@@ -71,9 +76,26 @@ namespace oceanbase
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 
         // longfei [drop index]
+        /**
+         * @brief isHasIndexs
+         * @return all_indexs_
+         */
         bool isHasIndexs() const;
+        /**
+         * @brief setHasIndexs
+         * @param hasIndexs
+         */
         void setHasIndexs(bool hasIndexs);
+        /**
+         * @brief is_all_indexs_empty all_indexs_ empty?
+         * @return true or false
+         */
         bool is_all_indexs_empty() const;
+        /**
+         * @brief add_all_indexs add idxname into all_indexs_
+         * @param idxname
+         * @return error code
+         */
         int add_all_indexs(const common::ObString &idxname);
 
 
@@ -91,8 +113,8 @@ namespace oceanbase
         mergeserver::ObMergerRootRpcProxy* rpc_;
 
         // add longfei [drop index] 20151028
-        bool has_indexs_;
-        common::ObStrings all_indexs_; // store all indexs on all tables
+        bool has_indexs_; ///< table has index?
+        common::ObStrings all_indexs_; ///< store all indexs on all tables
     };
 
     inline int ObDropTable::get_next_row(const common::ObRow *&row)

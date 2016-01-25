@@ -371,10 +371,31 @@ namespace oceanbase
       public:
         //longfei secondary index service
         //longfei [drop index]
-        int drop_index(const int64_t timeout, const common::ObServer & root_server,
-                   bool if_exists, const common::ObStrings & tables) const;
+        /**
+         * @brief drop_index: rpc to rs
+         * @param timeout
+         * @param root_server
+         * @param if_exists
+         * @param tables
+         * @return error code
+         */
+        int drop_index(
+            const int64_t timeout,
+            const common::ObServer & root_server,
+            bool if_exists,
+            const common::ObStrings & tables) const;
         //add longfei [cons static index] 151218:b
-        int retry_failed_work(const int64_t timeout, const ObServer &chunk_server, const BlackList list);
+        /**
+         * @brief retry_failed_work: rpc to other cs
+         * @param timeout
+         * @param chunk_server
+         * @param list
+         * @return error code
+         */
+        int retry_failed_work(
+            const int64_t timeout,
+            const ObServer &chunk_server,
+            const BlackList list);
         //add e
         //add maoxx
         int get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum);

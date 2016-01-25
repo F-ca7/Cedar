@@ -2342,9 +2342,6 @@ namespace oceanbase
       TBSYS_LOG(INFO, "start to get tablet/range information for rootserver!");
       if (OB_SUCCESS == ret)
       {
-        //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
-        //disk_manager_.scan(config_->datadir,OB_DEFAULT_MAX_TABLET_SIZE);
-        //index_worker_.schedule();
         if (OB_SUCCESS
             != (ret = disk_manager_.scan(config_->datadir,
                 OB_DEFAULT_MAX_TABLET_SIZE))) // scan the datadir
@@ -2365,7 +2362,6 @@ namespace oceanbase
             ret = index_handle_pool_.schedule();
           }
         }
-        //modify e
       }
       return ret;
     }

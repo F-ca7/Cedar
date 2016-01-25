@@ -61,6 +61,10 @@ namespace oceanbase
       // get cell stream used for merge
       ObScanCellStream *get_ups_scan_cell_stream();
       //add longfei [cons static index] 151205:b
+      /**
+       * @brief get_cs_interactive_cell_stream
+       * @return cs_interactive_cell_stream_
+       */
       ObCsInteractiveCellStream *get_cs_interactive_cell_stream();
       //add e
     private:

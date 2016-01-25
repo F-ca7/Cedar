@@ -71,6 +71,10 @@ namespace oceanbase
       inline bool is_binary_rowkey() const { return NULL != binary_rowkey_info_; }
 
       //add longfei [cons static index] 151207:b
+      /**
+       * @brief set_rowkey_obj_count
+       * @param count
+       */
       void set_rowkey_obj_count(const int64_t count);
       //add e
 

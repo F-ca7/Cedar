@@ -5185,6 +5185,7 @@ namespace oceanbase
     {
       return &id_index_hash_map_;
     }
+
     bool ObSchemaManagerV2::is_index_has_storing(uint64_t table_id)const
     {
       bool ret = false;
@@ -5195,7 +5196,6 @@ namespace oceanbase
       return ret;
     }
 
-    //add wenghaixing [secondary index] 20141105
     int ObSchemaManagerV2::init_index_hash()
     {
       int ret = OB_SUCCESS;
@@ -5217,30 +5217,25 @@ namespace oceanbase
       }
       if(OB_SUCCESS == ret)
       {
-        for(int64_t i = 0;i<table_nums_;i++)
+        for(int64_t i = 0; i < table_nums_; i++)
         {
-          //add wenghaixing [secondary index] 20141105
           if(OB_SUCCESS != (ret = add_index_in_map(table_infos_+i)))
           {
             TBSYS_LOG(WARN, "failed to add index[%ld], err=%d",table_infos_[i].get_table_id() ,ret);
           }
-          //TBSYS_LOG(INFO, "LONGFEI:table_name_= %s,table_id = %d",table_infos_[i].get_table_name(), (int)table_infos_[i].get_table_id());
-          //add e
         }
       }
       if(OB_SUCCESS == ret)
       {
         is_id_index_hash_map_init_ = true;
       }
-      //TBSYS_LOG(INFO,"LONGFEI: is_id_index_hash_map_init_ = %d",is_id_index_hash_map_init_);
       return ret;
     }
-    //add wenghaixing [secondary index static_index_build]20150303
+
     int ObSchemaManagerV2::get_init_index(uint64_t *table_id, int64_t &size) const
     {
       int ret = OB_SUCCESS;
       int64_t i = 0;
-      //uint64_t ref_tid = OB_INVALID_ID;
       IndexList list;
       uint64_t idx_tid = OB_INVALID_ID;
       const ObTableSchema* schema = NULL;
@@ -5248,7 +5243,7 @@ namespace oceanbase
       for( ; iter != id_index_hash_map_.end(); iter++)
       {
         list = iter->second;
-        for(int64_t loop = 0; loop < list.get_count(); loop ++)
+        for(int64_t loop = 0; loop < list.get_count(); loop++)
         {
           list.get_idx_id(loop, idx_tid);
           if(NULL == (schema = get_table_schema(idx_tid)))
@@ -5272,11 +5267,9 @@ namespace oceanbase
       return ret;
     }
 
-   int ObSchemaManagerV2::get_init_index(ObArray<uint64_t>& index_list) const
+    int ObSchemaManagerV2::get_init_index(ObArray<uint64_t>& index_list) const
     {
       int ret = OB_SUCCESS;
-
-      //uint64_t ref_tid = OB_INVALID_ID;
       IndexList list;
       uint64_t idx_tid = OB_INVALID_ID;
       const ObTableSchema* schema = NULL;
@@ -5301,504 +5294,473 @@ namespace oceanbase
       }
       return ret;
     }
-    //add e
-    /*add wenghaixing [secondary index]20141105
-       *将二级索引的信息放入hashmap当中
-       */
-      int ObSchemaManagerV2::add_index_in_map(ObTableSchema *tschema)
-      {
-        int ret = OB_SUCCESS;
-        IndexList il;
-        //TBSYS_LOG(INFO,"LONGFEI:table name = %s,original table id = %d", tschema->get_table_name(), static_cast<int>(tschema->get_original_table_id()));
-        if(NULL == tschema)
-        {
-          TBSYS_LOG(WARN,"NULL pointer of tschema!");
-          ret=OB_ERROR;
-        }
 
-        else if(OB_INVALID_ID != tschema->get_original_table_id())
+    int ObSchemaManagerV2::add_index_in_map(ObTableSchema *tschema)
+    {
+      int ret = OB_SUCCESS;
+      IndexList il;
+      if(NULL == tschema)
+      {
+        TBSYS_LOG(WARN,"NULL pointer of tschema!");
+        ret=OB_ERROR;
+      }
+      else if(OB_INVALID_ID != tschema->get_original_table_id())
+      {
+        uint64_t tid = tschema->get_original_table_id();
+        if(hash::HASH_NOT_EXIST == id_index_hash_map_.get(tid,il))
         {
-          uint64_t tid = tschema->get_original_table_id();
-          if(hash::HASH_NOT_EXIST == id_index_hash_map_.get(tid,il))
+          if(OB_SUCCESS != il.add_index(tschema->get_table_id()))
           {
-            if(OB_SUCCESS != il.add_index(tschema->get_table_id()))
+            TBSYS_LOG(WARN,"add in hash map faile tid[%ld]!",tid);
+            ret = OB_ERROR;
+          }
+          else
+          {
+            id_index_hash_map_.set(tid,il,0);
+          }
+        }
+        else if(hash::HASH_EXIST == id_index_hash_map_.get(tid,il))
+        {
+          if(OB_SUCCESS != il.add_index(tschema->get_table_id()))
+          {
+            TBSYS_LOG(WARN,"index_list is full!");
+            ret = OB_ERROR;
+          }
+          else
+          {
+            id_index_hash_map_.set(tid,il,1);
+          }
+        }
+      }
+      return ret;
+    }
+
+    const int ObSchemaManagerV2::get_index_list(uint64_t table_id, IndexList &out_list) const
+    {
+      int ret = OB_SUCCESS;
+      if(!is_id_index_hash_map_init_)
+      {
+        TBSYS_LOG(ERROR,"index hash is not inited!");
+        ret = OB_ERROR;
+      }
+      else if(-1 == id_index_hash_map_.get(table_id,out_list))
+      {
+        TBSYS_LOG(ERROR,"get index list for drop table err");
+        ret = OB_ERROR;
+      }
+      return ret;
+    }
+
+    bool ObSchemaManagerV2::is_modify_expire_condition(uint64_t table_id, uint64_t cid)const
+    {
+      bool ret = false;
+      //1 is first_tablet_entry, 39 is EXPIRE_CONDITION_ID
+      if(1 == table_id && 39 == cid)
+      {
+        ret = true;
+      }
+      return ret;
+    }
+
+    int ObSchemaManagerV2::get_index_column_num(uint64_t& table_id, int64_t& num) const
+    {
+      int ret = OB_SUCCESS;
+      num = 0;
+      const ObTableSchema* schema = get_table_schema(table_id);
+      IndexList list;
+      int64_t single_index_col_num = 0;
+      if(NULL == schema)
+      {
+        TBSYS_LOG(WARN,"failed to get table schema,table[%ld]",table_id);
+        ret = OB_ERR_SCHEMA_UNSET;
+      }
+      else if(OB_SUCCESS != (ret = get_index_list(table_id,list)))
+      {
+        TBSYS_LOG(WARN, "failed to get index list for cal col num");
+        ret = OB_ERROR;
+      }
+      else
+      {
+        uint64_t index_tid = OB_INVALID_ID;
+        for(int64_t i = 0;i < list.get_count();i++)
+        {
+          single_index_col_num = 0;
+          uint64_t max_index_column_id = OB_INVALID_ID;
+          list.get_idx_id(i,index_tid);
+          max_index_column_id = schema->get_max_column_id();
+          for(uint64_t loop = OB_APP_MIN_COLUMN_ID;loop < max_index_column_id;loop++)
+          {
+            if(NULL != (get_column_schema(index_tid,loop)))
             {
-              TBSYS_LOG(WARN,"add in hash map faile tid[%ld]!",tid);
-              ret = OB_ERROR;
-            }
-            else
-            {
-              id_index_hash_map_.set(tid,il,0);
+              single_index_col_num ++;
             }
           }
-          else if(hash::HASH_EXIST == id_index_hash_map_.get(tid,il))
+          num += single_index_col_num;
+        }
+      }
+      TBSYS_LOG(INFO,"table[%ld] has [%ld] index columns",table_id, num);
+      return ret;
+    }
+
+    //add maoxx
+    int ObSchemaManagerV2::get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const
+    {
+      int ret = OB_SUCCESS;
+      IndexList index_list;
+      uint64_t index_tid = OB_INVALID_ID;
+      if(is_id_index_hash_map_init_)
+      {
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+        {
+          for(int64_t i = 0; i < index_list.get_count(); i++)
           {
-            if(OB_SUCCESS != il.add_index(tschema->get_table_id()))
+            const ObTableSchema *index_table_schema = NULL;
+            index_list.get_idx_id(i, index_tid);
+            if (NULL == (index_table_schema = get_table_schema(index_tid)))
             {
-              TBSYS_LOG(WARN,"index_list is full!");
-              ret = OB_ERROR;
+              ret = OB_ERR_ILLEGAL_ID;
+              TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
             }
             else
             {
-              id_index_hash_map_.set(tid,il,1);
+              IndexStatus status = index_table_schema->get_index_status();
+              if(AVALIBALE == status || WRITE_ONLY == status || INDEX_INIT == status || NOT_AVALIBALE == status)
+              {
+                if(OB_SUCCESS != (ret = modifiable_index_list.add_index(index_tid)))
+                {
+                  TBSYS_LOG(ERROR,"index_list is full,and tid[%ld] index cannot add in", index_tid);
+                }
+              }
             }
-         }
-//	            add wenghaixing [secondary index ] 20141105 test log
-//	            TBSYS_LOG(ERROR,"test,whx::whx::tid[%ld]",tid);
-//	            IndexList l2;
-//	            id_index_hash_map_.get(tid,il);
-//	            uint64_t id2;
-//	            il.get_idx_id(0,id2);
-//	            TBSYS_LOG(ERROR,"test,whx::whx::il_count[%ld],il(0)[%ld]",il.get_count(),id2);
-//	            add e
-       }
-
-          return ret;
+          }
+        }
       }
+      else
+        ret = OB_NOT_INIT;
+      return ret;
+    }
 
-      const int ObSchemaManagerV2::get_index_list(uint64_t table_id, IndexList &out) const
+    bool ObSchemaManagerV2::is_have_modifiable_index(uint64_t table_id) const
+    {
+      bool ret = false;
+      IndexList index_list;
+      uint64_t index_tid = OB_INVALID_ID;
+      if(is_id_index_hash_map_init_)
       {
-        int ret = OB_SUCCESS;
-
-        if(!is_id_index_hash_map_init_)
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
         {
-          TBSYS_LOG(ERROR,"index hash is not inited!");
-          ret = OB_ERROR;
+          for(int64_t i = 0; i < index_list.get_count(); i++)
+          {
+            const ObTableSchema *index_table_schema = NULL;
+            index_list.get_idx_id(i, index_tid);
+            if (NULL == (index_table_schema = get_table_schema(index_tid)))
+            {
+              TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
+            }
+            else
+            {
+              IndexStatus status = index_table_schema->get_index_status();
+              if(AVALIBALE == status || WRITE_ONLY == status || INDEX_INIT == status || NOT_AVALIBALE == status)
+              {
+                ret = true;
+                break;
+              }
+            }
+          }
         }
-        else if(-1 == id_index_hash_map_.get(table_id,out))
-        {
-          TBSYS_LOG(ERROR,"get index list for drop table err");
-          ret = OB_ERROR;
-        }
-
-        /*
-        TBSYS_LOG(INFO,"table_id_:%d",(int)table_id);
-        if(-1 == (ret = id_index_hash_map_.get(table_id,out)))
-        {
-          TBSYS_LOG(ERROR,"get index list for drop table err");
-          ret = OB_ERROR;
-        }
-        if(hash::HASH_NOT_EXIST == ret)
-        {
-          TBSYS_LOG(ERROR,"hash not exist!");
-          ret = OB_SUCCESS;
-        }
-        */
-        return ret;
       }
-      //add e
-      //add wenghaixing [secondary index expire info]20141229
-      bool ObSchemaManagerV2::is_modify_expire_condition(uint64_t table_id, uint64_t cid)const
+      return ret;
+    }
+
+    bool ObSchemaManagerV2::is_have_init_index(uint64_t table_id) const
+    {
+      bool ret = false;
+      IndexList index_list;
+      uint64_t index_tid = OB_INVALID_ID;
+      if(is_id_index_hash_map_init_)
       {
-        bool ret = false;
-        if(1 == table_id&&39 == cid)
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+        {
+          for(int64_t i = 0; i < index_list.get_count(); i++)
+          {
+            const ObTableSchema *index_table_schema = NULL;
+            index_list.get_idx_id(i, index_tid);
+            if (NULL == (index_table_schema = get_table_schema(index_tid)))
+            {
+              TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
+            }
+            else
+            {
+              IndexStatus status = index_table_schema->get_index_status();
+              if(INDEX_INIT == status)
+              {
+                ret = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      return ret;
+    }
+
+    int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const
+    {
+      int ret = OB_SUCCESS;
+      IndexList index_list;
+      if(is_id_index_hash_map_init_)
+      {
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+        {
+          for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
+          {
+            uint64_t tid = OB_INVALID_ID;
+            const ObColumnSchemaV2* index_column_schema = NULL;
+            index_list.get_idx_id(i, tid);
+            index_column_schema = get_column_schema(tid, cid);
+            if(NULL == index_column_schema)
+            {
+              TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]",tid ,cid);
+            }
+            else if(OB_SUCCESS != (ret = hit_index_list.add_index(tid)))
+            {
+              TBSYS_LOG(ERROR,"index_list is full,and tid[%ld] index cannot add in",tid);
+            }
+          }
+        }
+      }
+      else
+        ret = OB_NOT_INIT;
+      return ret;
+    }
+    //add e
+
+    bool ObSchemaManagerV2::is_this_table_avalibale(uint64_t tid) const //判断tid为参数的表是否是可用的索引表
+    {
+      bool ret = false;
+      const ObTableSchema *main_table_schema = NULL;
+      if (NULL == (main_table_schema = get_table_schema(tid)))
+      {
+        //ret = OB_ERR_ILLEGAL_ID;
+        TBSYS_LOG(WARN, "fail to get table schema for table[%ld]", tid);
+      }
+      else
+      {
+        if (main_table_schema->get_index_status() == AVALIBALE)
         {
           ret = true;
         }
-        return ret;
       }
-      //add e
-      //add wenghaixing [secondary index create index fix]20150203
-      int ObSchemaManagerV2::get_index_column_num(uint64_t& table_id, int64_t& num) const
+      return ret;
+    }
+
+    //找到以tid为参数的表的所有可用的索引表，第一主键为cid的索引表，存到数组index_tid_array
+    bool ObSchemaManagerV2::is_cid_in_index(
+        uint64_t cid,
+        uint64_t tid,
+        uint64_t *index_tid_array) const
+    {
+      bool ret = false;
+      IndexList il;
+      uint64_t tmp_tid = OB_INVALID_ID;
+      int32_t array_index = 0;
+      if (is_id_index_hash_map_init_)
       {
-        int ret = OB_SUCCESS;
-        num = 0;
-        const ObTableSchema* schema = get_table_schema(table_id);
-        //IndexHelper index_helper;
-        IndexList list;
-        int64_t single_index_col_num = 0;
-        if(NULL == schema)
+        if (hash::HASH_EXIST == id_index_hash_map_.get(tid, il))
         {
-          TBSYS_LOG(WARN,"failed to get table schema,table[%ld]",table_id);
-          ret = OB_ERR_SCHEMA_UNSET;
-        }
-        else if(OB_SUCCESS != (ret = get_index_list(table_id,list)))
-        {
-          TBSYS_LOG(WARN, "failed to get index list for cal col num");
-          ret = OB_ERROR;
-        }
-        else
-        {
-          uint64_t index_tid = OB_INVALID_ID;
-          for(int64_t i = 0;i < list.get_count();i++)
+          for (int64_t i = 0; i < il.get_count(); i++)
           {
-            single_index_col_num = 0;
-            //const ObTableSchema* index_schema = NULL;
-            uint64_t max_index_column_id = OB_INVALID_ID;
-            list.get_idx_id(i,index_tid);
-            max_index_column_id = schema->get_max_column_id();
-            for(uint64_t loop = OB_APP_MIN_COLUMN_ID;loop < max_index_column_id;loop++)
+            const ObTableSchema *table_schema = NULL;
+            il.get_idx_id(i, tmp_tid);
+            if (NULL == (table_schema = get_table_schema(tmp_tid)))
             {
-              if(NULL != (get_column_schema(index_tid,loop)))
-              {
-                single_index_col_num ++;
-              }
-            }
-            num += single_index_col_num;
-          }
-        }
-        TBSYS_LOG(INFO,"table[%ld] has [%ld] index columns",table_id, num);
-        return ret;
-      }
-      //add e
-
-        //add maoxx
-        int ObSchemaManagerV2::get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const
-        {
-          int ret = OB_SUCCESS;
-          IndexList index_list;
-          uint64_t index_tid = OB_INVALID_ID;
-          if(is_id_index_hash_map_init_)
-          {
-              if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-              {
-                  for(int64_t i = 0; i < index_list.get_count(); i++)
-                  {
-                    const ObTableSchema *index_table_schema = NULL;
-                    index_list.get_idx_id(i, index_tid);
-                    if (NULL == (index_table_schema = get_table_schema(index_tid)))
-                    {
-                      ret = OB_ERR_ILLEGAL_ID;
-                      TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
-                    }
-                    else
-                    {
-                      IndexStatus status = index_table_schema->get_index_status();
-                      if(AVALIBALE == status || WRITE_ONLY == status || INDEX_INIT == status || NOT_AVALIBALE == status)
-                      {
-                          if(OB_SUCCESS != (ret = modifiable_index_list.add_index(index_tid)))
-                          {
-                            TBSYS_LOG(ERROR,"index_list is full,and tid[%ld] index cannot add in", index_tid);
-                          }
-                      }
-                    }
-                  }
-              }
-          }
-          else
-              ret = OB_NOT_INIT;
-          return ret;
-        }
-
-        bool ObSchemaManagerV2::is_have_modifiable_index(uint64_t table_id) const
-        {
-          bool ret = false;
-          IndexList index_list;
-          uint64_t index_tid = OB_INVALID_ID;
-          if(is_id_index_hash_map_init_)
-          {
-              if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-              {
-                  for(int64_t i = 0; i < index_list.get_count(); i++)
-                  {
-                    const ObTableSchema *index_table_schema = NULL;
-                    index_list.get_idx_id(i, index_tid);
-                    if (NULL == (index_table_schema = get_table_schema(index_tid)))
-                    {
-                      TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
-                    }
-                    else
-                    {
-                      IndexStatus status = index_table_schema->get_index_status();
-                      if(AVALIBALE == status || WRITE_ONLY == status || INDEX_INIT == status || NOT_AVALIBALE == status)
-                      {
-                          ret = true;
-                          break;
-                      }
-                    }
-                  }
-              }
-          }
-          return ret;
-        }
-
-        bool ObSchemaManagerV2::is_have_init_index(uint64_t table_id) const
-        {
-          bool ret = false;
-          IndexList index_list;
-          uint64_t index_tid = OB_INVALID_ID;
-          if(is_id_index_hash_map_init_)
-          {
-            if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-            {
-              for(int64_t i = 0; i < index_list.get_count(); i++)
-              {
-                const ObTableSchema *index_table_schema = NULL;
-                index_list.get_idx_id(i, index_tid);
-                if (NULL == (index_table_schema = get_table_schema(index_tid)))
-                {
-                  TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", index_tid);
-                }
-                else
-                {
-                  IndexStatus status = index_table_schema->get_index_status();
-                  if(INDEX_INIT == status)
-                  {
-                    ret = true;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          return ret;
-        }
-
-        int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const
-        {
-            int ret = OB_SUCCESS;
-            IndexList index_list;
-            if(is_id_index_hash_map_init_)
-            {
-                if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-                {
-                  for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
-                  {
-                      uint64_t tid = OB_INVALID_ID;
-                      const ObColumnSchemaV2* index_column_schema = NULL;
-                      index_list.get_idx_id(i, tid);
-                      index_column_schema = get_column_schema(tid, cid);
-                      if(NULL == index_column_schema)
-                      {
-                        TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]",tid ,cid);
-                      }
-                      else if(OB_SUCCESS != (ret = hit_index_list.add_index(tid)))
-                      {
-                        TBSYS_LOG(ERROR,"index_list is full,and tid[%ld] index cannot add in",tid);
-                      }
-                   }
-                }
+              ret = false;
+              TBSYS_LOG(WARN, "fail to get table schema for table[%ld]", tmp_tid);
             }
             else
-                ret = OB_NOT_INIT;
-            return ret;
-        }
-
-      bool ObSchemaManagerV2::is_this_table_avalibale(uint64_t tid) const //判断tid为参数的表是否是可用的索引表
-      {
-        bool ret = false;
-        const ObTableSchema *main_table_schema = NULL;
-        if (NULL == (main_table_schema = get_table_schema(tid)))
-        {
-          //ret = OB_ERR_ILLEGAL_ID;
-          TBSYS_LOG(WARN, "fail to get table schema for table[%ld]", tid);
-        }
-        else
-        {
-          if (main_table_schema->get_index_status() == AVALIBALE)
-          {
-            ret = true;
-          }
-
-        }
-        return ret;
-      }
-
-      bool ObSchemaManagerV2::is_cid_in_index(uint64_t cid, uint64_t tid,
-          uint64_t *index_tid_array) const //找到tid为参数的表的��?有可用的索引表中，第��?主键为cid的索引表，存到数组index_tid_array��?
-      {
-        bool ret = false;
-        IndexList il;
-        uint64_t tmp_tid = OB_INVALID_ID;
-        int32_t array_index = 0;
-        if (is_id_index_hash_map_init_)
-        {
-          if (hash::HASH_EXIST == id_index_hash_map_.get(tid, il))
-          {
-            for (int64_t i = 0; i < il.get_count(); i++)
             {
-              const ObTableSchema *table_schema = NULL;
-              il.get_idx_id(i, tmp_tid);
-              if (NULL == (table_schema = get_table_schema(tmp_tid)))
+              const ObRowkeyInfo *rowkey_info = &table_schema->get_rowkey_info();
+              uint64_t index_first_cid = OB_INVALID_ID;
+              rowkey_info->get_column_id(0, index_first_cid);
+              //查询条件的列id如果和索引表的第一件主键id相等，并且索引表可用，就把这张索引表选出来
+              if (index_first_cid == cid && table_schema->get_index_status() == AVALIBALE)
               {
-                ret = false;
-                TBSYS_LOG(WARN, "fail to get table schema for table[%ld]", tmp_tid);
+                index_tid_array[array_index] = tmp_tid;
+                array_index++;
+                ret = true;
+                // break;
+              }
+              // if(main_table_schema->get_index_helper().status==AVALIBALE)
+              //{
+              //tid_array[i]=tmp_tid;
+              // count=i+1;
+              //}
+            }
+          }
+        }
+      }
+      else
+        ret = false;
+      return ret;
+    }
+    //add:e
+
+    //add maoxx
+    int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const
+    {
+      int ret = OB_SUCCESS;
+      IndexList index_list;
+      column_hit_index_flag = false;
+      if(is_id_index_hash_map_init_)
+      {
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+        {
+          for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
+          {
+            uint64_t tid = OB_INVALID_ID;
+            const ObColumnSchemaV2* index_column_schema = NULL;
+            index_list.get_idx_id(i, tid);
+            index_column_schema = get_column_schema(tid, cid);
+            if(NULL == index_column_schema)
+            {
+              TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]",tid ,cid);
+            }
+            else
+            {
+              column_hit_index_flag = true;
+              break;
+            }
+          }
+        }
+      }
+      else
+        ret = OB_NOT_INIT;
+      return ret;
+    }
+
+    int ObSchemaManagerV2::column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const
+    {
+      int ret = OB_SUCCESS;
+      IndexList index_list;
+      hit_flag = false;
+      if(is_id_index_hash_map_init_)
+      {
+        if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
+        {
+          for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
+          {
+            uint64_t tid = OB_INVALID_ID;
+            const ObColumnSchemaV2* index_column_schema = NULL;
+            index_list.get_idx_id(i, tid);
+            index_column_schema = get_column_schema(tid, cid);
+            if(NULL == index_column_schema)
+            {
+              TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]", tid, cid);
+            }
+            else
+            {
+              const ObTableSchema *index_table_schema = NULL;
+              if (NULL == (index_table_schema = get_table_schema(tid)))
+              {
+                ret = OB_ERR_ILLEGAL_ID;
+                TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", tid);
               }
               else
               {
-                const ObRowkeyInfo *rowkey_info =
-                    &table_schema->get_rowkey_info();
-                uint64_t index_first_cid = OB_INVALID_ID;
-                rowkey_info->get_column_id(0, index_first_cid);
-                //查询条件的列id如果和索引表的第一件主键id相等，并且索引表可用，就把这张索引表选出来
-                if (index_first_cid == cid
-                    && table_schema->get_index_status() == INDEX_INIT)
-                {
-                  index_tid_array[array_index] = tmp_tid;
-                  array_index++;
-                  ret = true;
-                  // break;
-                }
-                // if(main_table_schema->get_index_helper().status==AVALIBALE)
-                //{
-                //tid_array[i]=tmp_tid;
-                // count=i+1;
-                //}
+                ObRowkeyInfo index_ori;
+                index_ori = index_table_schema->get_rowkey_info();
+                if(index_ori.is_rowkey_column(cid))
+                  hit_flag = true;
               }
             }
           }
         }
-        else
-          ret = false;
-        return ret;
       }
-       //add:e
-
-       //add maoxx
-       int ObSchemaManagerV2::column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const
+      else
+        ret = OB_NOT_INIT;
+      return ret;
+    }
+    // add e
+    //add wenghaixing [secondary index.static_index]20151217
+    int ObSchemaManagerV2::get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const
+    {
+      int ret = OB_SUCCESS;
+      uint64_t idx_id = OB_INVALID_ID;
+      const ObTableSchema *index_table_schema = NULL;
+      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+      for (;iter != id_index_hash_map_.end(); ++iter)
+      {
+        IndexList tmp_list=iter->second;
+        for(int64_t i = 0; i< tmp_list.get_count(); i++)
         {
-            int ret = OB_SUCCESS;
-            IndexList index_list;
-            column_hit_index_flag = false;
-            if(is_id_index_hash_map_init_)
-            {
-                if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-                {
-                  for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
-                  {
-                      uint64_t tid = OB_INVALID_ID;
-                      const ObColumnSchemaV2* index_column_schema = NULL;
-                      index_list.get_idx_id(i, tid);
-                      index_column_schema = get_column_schema(tid, cid);
-                      if(NULL == index_column_schema)
-                      {
-                        TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]",tid ,cid);
-                      }
-                      else
-                      {
-                        column_hit_index_flag = true;
-                        break;
-                      }
-                   }
-                }
-            }
-            else
-                ret = OB_NOT_INIT;
-            return ret;
-        }
-
-        int ObSchemaManagerV2::column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const
-        {
-          int ret = OB_SUCCESS;
-          IndexList index_list;
-          hit_flag = false;
-          if(is_id_index_hash_map_init_)
+          tmp_list.get_idx_id(i,idx_id);
+          if (NULL == (index_table_schema = get_table_schema(idx_id)))
           {
-              if(hash::HASH_EXIST == id_index_hash_map_.get(table_id, index_list))
-              {
-                for(int64_t i = 0; i < index_list.get_count() && OB_SUCCESS == ret; i++)
-                {
-                    uint64_t tid = OB_INVALID_ID;
-                    const ObColumnSchemaV2* index_column_schema = NULL;
-                    index_list.get_idx_id(i, tid);
-                    index_column_schema = get_column_schema(tid, cid);
-                    if(NULL == index_column_schema)
-                    {
-                      TBSYS_LOG(DEBUG,"index_column_schema is NULL.tid[%ld],cid[%ld]", tid, cid);
-                    }
-                    else
-                    {
-                      const ObTableSchema *index_table_schema = NULL;
-                      if (NULL == (index_table_schema = get_table_schema(tid)))
-                      {
-                        ret = OB_ERR_ILLEGAL_ID;
-                        TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", tid);
-                      }
-                      else
-                      {
-                          ObRowkeyInfo index_ori;
-                          index_ori = index_table_schema->get_rowkey_info();
-                          if(index_ori.is_rowkey_column(cid))
-                              hit_flag = true;
-                      }
-                    }
-                  }
-              }
+            ret = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN,"fail to get table schema for index table[%lu]", idx_id);
           }
           else
-              ret = OB_NOT_INIT;
-          return ret;
-        }
-        // add e
-        //add wenghaixing [secondary index.static_index]20151217
-        int ObSchemaManagerV2::get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const
-        {
-          int ret = OB_SUCCESS;
-          uint64_t idx_id = OB_INVALID_ID;
-          const ObTableSchema *index_table_schema = NULL;
-          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
-          for (;iter != id_index_hash_map_.end(); ++iter)
           {
-            IndexList tmp_list=iter->second;
-            for(int64_t i = 0; i< tmp_list.get_count(); i++)
+            if(index_table_schema->get_index_status() == NOT_AVALIBALE)
             {
-              tmp_list.get_idx_id(i,idx_id);
-              if (NULL == (index_table_schema = get_table_schema(idx_id)))
-              {
-                ret = OB_SCHEMA_ERROR;
-                TBSYS_LOG(WARN,"fail to get table schema for index table[%lu]", idx_id);
-              }
-              else
-              {
-                if(index_table_schema->get_index_status() == NOT_AVALIBALE)
-                {
-                  if (OB_SUCCESS != (index_id_list.push_back(idx_id)))
-                  {
-                    TBSYS_LOG(WARN, "push index table[%lu] into index_id_list failed", idx_id);
-                  }
-                }
-              }
-            }
-          }
-          return ret;
-        }
-        int ObSchemaManagerV2::get_all_index_tid(ObArray<uint64_t> &index_id_list) const
-        {
-          int ret = OB_SUCCESS;
-          uint64_t idx_id = OB_INVALID_ID;
-          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
-          for (;iter != id_index_hash_map_.end(); ++iter)
-          {
-            IndexList tmp_list=iter->second;
-            for(int64_t i = 0; i< tmp_list.get_count(); i++)
-            {
-              tmp_list.get_idx_id(i,idx_id);
               if (OB_SUCCESS != (index_id_list.push_back(idx_id)))
               {
                 TBSYS_LOG(WARN, "push index table[%lu] into index_id_list failed", idx_id);
               }
             }
           }
-          return ret;
         }
-        int ObSchemaManagerV2::get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const
+      }
+      return ret;
+    }
+    int ObSchemaManagerV2::get_all_index_tid(ObArray<uint64_t> &index_id_list) const
+    {
+      int ret = OB_SUCCESS;
+      uint64_t idx_id = OB_INVALID_ID;
+      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+      for (;iter != id_index_hash_map_.end(); ++iter)
+      {
+        IndexList tmp_list=iter->second;
+        for(int64_t i = 0; i< tmp_list.get_count(); i++)
         {
-          int ret = OB_SUCCESS;
-          uint64_t idx_id = OB_INVALID_ID;
-          const ObTableSchema *main_table_schema = NULL;
-          hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
-          for (;iter != id_index_hash_map_.end(); ++iter)
+          tmp_list.get_idx_id(i,idx_id);
+          if (OB_SUCCESS != (index_id_list.push_back(idx_id)))
           {
-            IndexList tmp_list=iter->second;
-            for(int64_t i = 0; i< tmp_list.get_count(); i++)
+            TBSYS_LOG(WARN, "push index table[%lu] into index_id_list failed", idx_id);
+          }
+        }
+      }
+      return ret;
+    }
+
+    int ObSchemaManagerV2::get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const
+    {
+      int ret = OB_SUCCESS;
+      uint64_t idx_id = OB_INVALID_ID;
+      const ObTableSchema *main_table_schema = NULL;
+      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+      for (;iter != id_index_hash_map_.end(); ++iter)
+      {
+        IndexList tmp_list=iter->second;
+        for(int64_t i = 0; i< tmp_list.get_count(); i++)
+        {
+          tmp_list.get_idx_id(i,idx_id);
+          if (NULL == (main_table_schema = get_table_schema(idx_id)))
+          {
+            ret = OB_ERR_ILLEGAL_ID;
+            TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", idx_id);
+          }
+          else
+          {
+            if(main_table_schema->get_index_status() == AVALIBALE)
             {
-              tmp_list.get_idx_id(i,idx_id);
-              if (NULL == (main_table_schema = get_table_schema(idx_id)))
-              {
-                ret = OB_ERR_ILLEGAL_ID;
-                TBSYS_LOG(WARN,"fail to get table schema for table[%ld]", idx_id);
-              }
-              else
-              {
-                if(main_table_schema->get_index_status() == AVALIBALE)
-                {
-                  index_id_list.push_back(idx_id);
-                }
-              }
+              index_id_list.push_back(idx_id);
             }
           }
-          return ret;
         }
-        //add e
+      }
+      return ret;
+    }
+    //add e
   } // end namespace common
 }   // end namespace oceanbase

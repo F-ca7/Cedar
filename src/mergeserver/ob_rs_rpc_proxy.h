@@ -101,12 +101,12 @@ namespace oceanbase
       // longfei secondary index service
       // longfei [drop index]
       /**
-       * @brief drop_index
+       * @brief drop_index: drop index in  indexs(ObStrings)
        * @param if_exists
        * @param indexs
-       * @return
+       * @return error code
        */
-      int drop_index(bool if_exists, const common::ObStrings & indexs);
+      int drop_index(bool if_exists, const common::ObStrings& indexs);
 
     private:
       // check inner stat

@@ -73,12 +73,14 @@ namespace oceanbase
       protected:
         bool need_scan_;
         bool only_core_tables_;
-        bool index; // longfei [create index] for schema in secondary index core table
+        // longfei [create index] for schema in secondary index core table
+        bool index; ///< flag for get row from res2
         int32_t table_idx_;
         nb_accessor::ObNbAccessor nb_accessor_;
         ObScanHelper* client_proxy_;
         nb_accessor::QueryRes* res_;
-        nb_accessor::QueryRes* res2_; //longfei [create index] for schema in secondary index core table
+        //longfei [create index] for schema in secondary index core table
+        nb_accessor::QueryRes* res2_; ///< for schema in secondary index core table
         ObTableIdName table_id_name_;
     };
   }

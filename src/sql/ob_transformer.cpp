@@ -2199,7 +2199,6 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
     num = filter_array->count();
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
-
       ObSqlExpression *filter = ObSqlExpression::alloc();
       *filter = filter_array->at(i);
 

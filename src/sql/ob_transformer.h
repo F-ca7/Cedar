@@ -129,7 +129,7 @@ namespace oceanbase
 
         // longfei [create index]
         /**
-         * @brief gen_physical_create_index
+         * @brief gen_physical_create_index: 生成create index物理计划
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
@@ -145,7 +145,7 @@ namespace oceanbase
             int32_t* index);
         // longfei [drop index]
         /**
-         * @brief gen_physical_drop_index
+         * @brief gen_physical_drop_index 生成drop index物理计划
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
@@ -204,6 +204,22 @@ namespace oceanbase
             int32_t* index);
 
         //add longfei
+        /**
+         * @brief gen_phy_table_not_back 不回表的查询计划
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param table_op
+         * @param group_agg_pushed_down
+         * @param limit_pushed_down
+         * @param is_use_storing_column
+         * @param index_tid
+         * @param filter_array
+         * @param project_array
+         * @return err code
+         */
         int gen_phy_table_not_back(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -217,6 +233,21 @@ namespace oceanbase
             uint64_t index_tid=OB_INVALID_ID,
             common::Expr_Array *filter_array=NULL,
             common::Expr_Array *project_array=NULL );
+        /**
+         * @brief gen_phy_table_back 回表查询计划
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param table_op
+         * @param group_agg_pushed_down
+         * @param limit_pushed_down
+         * @param index_tid_without_storing
+         * @param filter_array
+         * @param project_array
+         * @return
+         */
         int gen_phy_table_back(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -334,6 +365,14 @@ namespace oceanbase
             ObShowStmt *show_stmt,
             ObPhyOperator *&out_op);
         //add longfei
+        /**
+         * @brief gen_phy_show_index 生成show index物理计划
+         * @param physical_plan
+         * @param err_stat
+         * @param show_stmt
+         * @param out_op
+         * @return err code
+         */
         int gen_phy_show_index(
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,

@@ -58,6 +58,11 @@ namespace oceanbase
         void set_tid_cid(const uint64_t tid, const uint64_t cid);
         const uint64_t get_column_id() const;
         const uint64_t get_table_id() const;
+
+        /**
+         * @brief set_table_id
+         * @param tid
+         */
         void set_table_id(uint64_t tid); // add longfei [secondary index select] 20151102 e
 
         void set_aggr_func(ObItemType aggr_fun, bool is_distinct);

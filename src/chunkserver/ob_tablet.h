@@ -323,6 +323,7 @@ namespace oceanbase
         return ret;
       }
 
+      //add longfei [cons static index] 151202:b
     template <typename Reader>
       int ObTablet::find_loc_idx_sstable(const common::ObNewRange& range,
                                          Reader* sstable[], int32_t &size) const

@@ -666,11 +666,9 @@ namespace oceanbase
         ObDataBuffer &out_buffer)
     {
       common::ObResultCode rc;
-      rc.result_code_ = OB_SUCCESS;
+      int32_t ret = &rc.result_code_ = OB_SUCCESS;
       BlackList list;
       UNUSED(channel_id);
-      // UNUSED(req);
-      //UNUSED(out_buffer);
       UNUSED(version);
       int MY_VERSION = 1;
       if(NULL == chunk_server_)
@@ -690,12 +688,12 @@ namespace oceanbase
           rc.result_code_ = tablet_manager.get_index_handle_pool().push_work(list);
         }
       }
-      if(OB_SUCCESS ==
-         rc.serialize(out_buffer.get_data(),out_buffer.get_capacity(), out_buffer.get_position()))
+      if(OB_SUCCESS == rc.serialize(out_buffer.get_data(),out_buffer.get_capacity(), out_buffer.get_position()))
       {
         chunk_server_->send_response(OB_RE_IDX_CONS_F_RESPONSE, MY_VERSION, out_buffer, req, channel_id);
       }
-      return rc.result_code_;
+
+      return ret;
     }
     //add e
 
@@ -4764,10 +4762,7 @@ namespace oceanbase
           report_tablet_task_.get_next_wait_useconds(), false);
     }
 
-    /**
-      * add longfei [cons static index] 151120:b
-      * construct static data of secondary index
-      */
+    // add longfei [cons static index] 151120:b
     int ObChunkService::handle_index_beat(IndexBeat beat)
     {
       int ret = OB_SUCCESS;
@@ -4796,16 +4791,13 @@ namespace oceanbase
             se_index_task_.set_which_stage(LOCAL_INDEX_STAGE);
             TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]",
                 beat.idx_tid_, beat.hist_width_);
-            if (OB_SUCCESS
-                != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
+            if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
             {
-              TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us",
-                  wait_time);
+              TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
             }
             else
             {
-              TBSYS_LOG(INFO, "launch a new index process after wait %ld us",
-                  wait_time);
+              TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
               se_index_task_.set_scheduled();
             }
           }
@@ -4827,29 +4819,18 @@ namespace oceanbase
         bool new_flag = se_index_task_.check_new_global();
         if(new_flag)
         {
-          /*se_index_task_.reset();
-          se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
-          ObTabletManager& tablet_manager = se_index_task_.get_chunk_service()->chunk_server_->get_tablet_manager();
-          if(OB_SUCCESS != (ret = tablet_manager.get_ready_for_con_index(GLOBAL_INDEX_STAGE)))
-          {
-            TBSYS_LOG(WARN,"get range for global stage failed.ret[%d]",ret);
-          }*/
           if (!se_index_task_.is_scheduled())
           {
-            //if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
+            se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
+            TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]", beat.idx_tid_, beat.hist_width_);
+            if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
             {
-              //se_index_task_.set_hist_width(beat.hist_width_);
-              se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
-              TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]", beat.idx_tid_, beat.hist_width_);
-              if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
-              {
-                TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
-              }
-              else
-              {
-                TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
-                se_index_task_.set_scheduled();
-              }
+              TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
+            }
+            else
+            {
+              TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
+              se_index_task_.set_scheduled();
             }
           }
         }
@@ -4859,7 +4840,6 @@ namespace oceanbase
         //其他所有不予处理的情况
         TBSYS_LOG(INFO,"ignore this index beat which tid is [%ld]",beat.idx_tid_);
       }
-
       if (OB_UNLIKELY(NULL == chunk_server_))
       {
         TBSYS_LOG(ERROR, "shuold not be here, null chunk ");
@@ -4872,25 +4852,25 @@ namespace oceanbase
     }
 
      //add longfei [cons static index] 151120:b
-     void ObChunkService::SeIndexTask::runTimerTask()
-     {
-       int err = OB_SUCCESS;
-       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
-       unset_scheduled();
-       TBSYS_LOG(INFO,"I want to start round to build index!");
-       if(tablet_manager.get_index_handle_pool().can_launch_next_round())
-       {
-         TBSYS_LOG(INFO,"I can launch next round!");
-         // mod longfei [cons static index] 151121:b
-         //err = tablet_manager.get_ready_for_con_index();
-         err = tablet_manager.get_ready_for_con_index(which_stage_);
-         // mod e
-         if(OB_SUCCESS != err)
-         {
-           TBSYS_LOG(INFO,"wait for next round!");
-         }
-       }
-     }
+    void ObChunkService::SeIndexTask::runTimerTask()
+    {
+      int err = OB_SUCCESS;
+      ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+      unset_scheduled();
+      TBSYS_LOG(INFO,"I want to start round to build index!");
+      if(tablet_manager.get_index_handle_pool().can_launch_next_round())
+      {
+        TBSYS_LOG(INFO,"I can launch next round!");
+        // mod longfei [cons static index] 151121:b
+        //err = tablet_manager.get_ready_for_con_index();
+        err = tablet_manager.get_ready_for_con_index(which_stage_);
+        // mod e
+        if(OB_SUCCESS != err)
+        {
+          TBSYS_LOG(INFO,"wait for next round!");
+        }
+      }
+    }
 
      int ObChunkService::SeIndexTask::set_schedule_idx_tid(uint64_t table_id)
      {
@@ -4947,10 +4927,6 @@ namespace oceanbase
      }
 
      //add e
-
-     /**
-      * add longfei e
-      */
 
   } // end namespace chunkserver
 } // end namespace oceanbase

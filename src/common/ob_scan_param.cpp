@@ -432,18 +432,16 @@ namespace oceanbase
         if ((OB_SUCCESS == err)
             && (OB_SUCCESS
                 != (err = buffer_pool_.write_string(fake_range.start_key_,
-                    &(fake_range_.start_key_)))))
+                                                    &(fake_range_.start_key_)))))
         {
-          TBSYS_LOG(WARN,
-              "fail to copy range.start_key_ to local buffer [err:%d]", err);
+          TBSYS_LOG(WARN, "fail to copy range.start_key_ to local buffer [err:%d]", err);
         }
         if ((OB_SUCCESS == err)
             && (OB_SUCCESS
                 != (err = buffer_pool_.write_string(fake_range.end_key_,
-                    &(fake_range_.end_key_)))))
+                                                    &(fake_range_.end_key_)))))
         {
-          TBSYS_LOG(WARN,
-              "fail to copy range.end_key_ to local buffer [err:%d]", err);
+          TBSYS_LOG(WARN, "fail to copy range.end_key_ to local buffer [err:%d]", err);
         }
       }
       return err;

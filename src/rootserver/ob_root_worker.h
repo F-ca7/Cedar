@@ -203,8 +203,36 @@ namespace oceanbase
         int rt_create_table(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
 
         // longfei [create index]
-        int rt_create_index(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int rt_drop_index(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        /**
+         * @brief rt_create_index: rs recieve package OB_CREATE_INDEX
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return error code
+         */
+        int rt_create_index(
+            const int32_t version,
+            common::ObDataBuffer& in_buff,
+            easy_request_t* req,
+            const uint32_t channel_id,
+            common::ObDataBuffer& out_buff);
+        /**
+         * @brief rt_drop_index: rs recieve package OB_DROP_INDEX
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return
+         */
+        int rt_drop_index(
+            const int32_t version,
+            common::ObDataBuffer& in_buff,
+            easy_request_t* req,
+            const uint32_t channel_id,
+            common::ObDataBuffer& out_buff);
 
         //add maoxx
         int rt_get_column_checksum(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);

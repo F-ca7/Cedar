@@ -201,7 +201,7 @@ namespace oceanbase
         OB_CS_COMMON,
         OB_CS_FILE_RECYCLE,
         OB_CS_BLOOM_FILTER,
-        OB_INDEX_HANDLER,        //add longfei [cons static index] 151205:e
+        OB_INDEX_HANDLER, //add longfei [cons static index] 151205:e
 
         // sstable modules
         OB_SSTABLE_AIO,

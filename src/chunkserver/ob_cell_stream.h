@@ -134,6 +134,12 @@ namespace oceanbase
       int rpc_scan_row_data(const common::ObScanParam & param);
 
       //add longfei [cons static index] 151204:b
+      /**
+       * @brief rpc_scan_row_data scan data from another cs, store the data in cur_result_
+       * @param param
+       * @param chunkserver
+       * @return error code
+       */
       int rpc_scan_row_data(const ObScanParam &param, const ObServer &chunkserver);
       //add e
 

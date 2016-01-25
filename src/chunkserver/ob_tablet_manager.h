@@ -107,23 +107,40 @@ namespace oceanbase
         int start_bypass_loader_thread();
         int load_tablets(const int32_t* disk_no_array, const int32_t size);
         void destroy();
+
         // add longfei [cons static index] 151120:b
       public:
+        /**
+         * @brief get_index_handle_pool
+         * @return index_handle_pool_
+         */
         ObIndexHandlePool& get_index_handle_pool();
+        /**
+         * @brief init_index_handle_pool
+         * @return error code
+         */
         int init_index_handle_pool();
         // mod longfei [cons static index]151121:b
         //int get_ready_for_con_index();
+        /**
+         * @brief get_ready_for_con_index
+         * @param which_stage
+         * @return error code
+         */
         int get_ready_for_con_index(common::ConIdxStage which_stage =
             STAGE_INIT);
         // mod e
+        /**
+         * @brief set_beat_tid
+         * @param tid
+         */
         void set_beat_tid(const uint64_t tid);
-        //int get_old_tablet_column_checksum(const ObNewRange new_range, col_checksum& column_checksum);
-        //int send_tablet_column_checksum(const col_checksum column_checksum, const ObNewRange new_range, const int64_t version);
-        //add e
-        //add longfei [cons static index] 151210:b
-        //int report_index_tablets(uint64_t index_tid);
-        //add e
+        /**
+         * @brief retry_failed_work: CS_RPC_CALL retry failed work
+         * @return
+         */
         int retry_failed_work(const BlackList&,const ObServer);
+        //add e
 
       public:
         /**
@@ -330,8 +347,8 @@ namespace oceanbase
 
         ObChunkMerge chunk_merge_;
         // add longfei [cons static index] 151120:b
-        ObIndexHandlePool index_handle_pool_;
-        uint64_t index_beat_tid_;
+        ObIndexHandlePool index_handle_pool_; ///< for secondary index thread manager
+        uint64_t index_beat_tid_; ///< table's id in index beat package
         // add e
         ObCompactSSTableMemThread cache_thread_;
         const ObChunkServerConfig* config_;
