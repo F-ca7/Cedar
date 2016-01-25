@@ -2397,7 +2397,7 @@ bool ObTransformer::handle_index_for_one_table(
       TBSYS_LOG(ERROR, "alloc mem failed");
       ret = OB_ERROR;
     }
-    sec_idx_ser->init(sql_context_->schema_manager_); ///bug1106 ms挂了
+    sec_idx_ser->init(sql_context_->schema_manager_);
     //sec_idx_ser->setSchemaManager(sql_context_->schema_manager_);
     bool is_use_hint = false;    //判断是否使用用户输入的hint
     uint64_t hint_tid = OB_INVALID_ID;     //用户输入的hint中的索引表的tid

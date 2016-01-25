@@ -142,14 +142,10 @@ namespace oceanbase
       /**
        * @brief is_tablet_need_build_static_index ?
        * @param tablet
-       * @param list
        * @param [out] is_need_index
        * @return return code
        */
-      int is_tablet_need_build_static_index(
-          ObTablet* tablet,
-          ObTabletLocationList &list,
-          bool &is_need_index);
+      int is_tablet_need_build_static_index(ObTablet* tablet, bool &is_need_index);
       /**
        * @brief construct_tablet_item
        * @param table_id
@@ -504,6 +500,8 @@ namespace oceanbase
       ObLocalIndexHandler *local_handler_[MAX_WORK_THREAD]; ///< local working thread
       hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> data_multcs_range_hash_; ///< all tablet infomation
       hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> range_hash_; ///< the range need to be construct
+      ObTabletReportInfoList report_info_; ///< for cs report
+      common::ModuleArena report_allocator_; ///< memory allocator
       CharArena allocator_; ///< for rowkey deep-copy
       BlackListArray black_list_array_; ///< failed list
     };
