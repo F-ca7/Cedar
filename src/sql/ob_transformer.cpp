@@ -2389,7 +2389,7 @@ bool ObTransformer::handle_index_for_one_table(
 
   if (OB_SUCCESS == ret)
   {
-    TBSYS_LOG(INFO,"begin judge use index table or not.");
+    //TBSYS_LOG(INFO,"begin judge use index table or not.");
     ObSecondaryIndexServiceImpl sec_idx_ser_impl;
     ObSecondaryIndexService* sec_idx_ser = &sec_idx_ser_impl;
     if (NULL == sec_idx_ser)
@@ -2409,7 +2409,7 @@ bool ObTransformer::handle_index_for_one_table(
     uint64_t index_id = OB_INVALID_ID;       //��?终的: 如果用不回表的索引，索引表的tid
     uint64_t index_id_without_storing = OB_INVALID_ID; //��?终的: 如果用回表的索引，索引表的tid
 
-    TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
+    //TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
     if (stmt->get_query_hint().has_index_hint())
     {
       IndexTableNamePair tmp = stmt->get_query_hint().use_index_array_.at(0);
