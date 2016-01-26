@@ -309,9 +309,7 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
         break;
 
       case ObBasicStmt::T_SHOW_TABLES:
-        //add liumengzhan_show_index [20141208]
       case ObBasicStmt::T_SHOW_INDEX:
-        //add:e
       case ObBasicStmt::T_SHOW_VARIABLES:
       case ObBasicStmt::T_SHOW_COLUMNS:
       case ObBasicStmt::T_SHOW_SCHEMA:
@@ -1923,9 +1921,6 @@ int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysica
       else
       {
         *filter = filter_array->at(i);
-        //add fanqiushi_index_in tianz
-        //sub_query_num = sub_query_num + filter->get_sub_query_num();
-        //add:e
         if (is_use_storing_column == true && is_ailias_table == false)
         {
           ObPostfixExpression& ops = filter->get_decoded_expression_v2();
@@ -2496,7 +2491,6 @@ bool ObTransformer::handle_index_for_one_table(
     else if (is_use_index_without_storing)
     {
       //longfei 暂时不做子查询
-      //add fanqiushi_index_in
       int64_t sub_query_num = 0;
       int64_t num = 0;
       num = filter_array.count();
@@ -5927,11 +5921,9 @@ int ObTransformer::gen_physical_show(ObLogicalPlan *logical_plan, ObPhysicalPlan
     case ObBasicStmt::T_SHOW_TABLES:
       ret = gen_phy_show_tables(physical_plan, err_stat, show_stmt, result_op);
       break;
-      //add liumengzhan_show_index [20141208]
     case ObBasicStmt::T_SHOW_INDEX:
       ret = gen_phy_show_index(physical_plan, err_stat, show_stmt, result_op);
       break;
-      //add:e
     case ObBasicStmt::T_SHOW_COLUMNS:
       ret = gen_phy_show_columns(physical_plan, err_stat, show_stmt, result_op);
       break;

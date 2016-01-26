@@ -301,7 +301,7 @@ int ObRpcScan::create_scan_param(ObSqlScanParam &scan_param)
   int ret = OB_SUCCESS;
   ObNewRange range;
   // until all columns and filters are set, we could know the exact range
-  //modify by fanqiushi_index
+  //modify by longfei
   if(is_use_index_)
   {
     ret=fill_read_param_for_first_scan(scan_param);
@@ -779,7 +779,7 @@ int ObRpcScan::close()
     }
     is_scan_ = false;
   }
-  if (is_get_||is_use_index_)  //modify by fanqiushi_index
+  if (is_get_ || is_use_index_)
   {
     //因为当is_use_index_为true的时候，即使is_get_为false，我也会使用到sql_get_request_。所以这里要把它释放掉
     sql_get_request_->close();
@@ -839,7 +839,7 @@ int ObRpcScan::get_row_desc(const common::ObRowDesc *&row_desc) const
     TBSYS_LOG(ERROR, "not init, tid=%lu, column_num=%ld", base_table_id_, cur_row_desc_.get_column_num());
     ret = OB_NOT_INIT;
   }
-  //modify by fanqiushi_index
+  //modify longfei
   /*else
   {
     row_desc = &cur_row_desc_;
@@ -910,7 +910,7 @@ int ObRpcScan::get_next_row(const common::ObRow *&row)
         TBSYS_LOG(WARN, "not init. read_method_=%d", hint_.read_method_);
         ret = OB_NOT_INIT;
       }
-      //modify fanqiushi_index
+      //modify longfei
       //row = &cur_row_;    //old code
       if(!is_use_index_for_storing_)
       {
@@ -945,7 +945,6 @@ int ObRpcScan::get_next_row(const common::ObRow *&row)
 int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
-  //modify by fanqiushi_index
   if(!is_use_index_)   //如果不使用回表的索引，则按照原来的实现走
   {
     bool can_break = false;
@@ -1152,7 +1151,6 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
     else
       row = &cur_row_;
   }
-  //modify:e
   return ret;
 }
 

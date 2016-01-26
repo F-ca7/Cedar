@@ -1689,3 +1689,4 @@ updateserver/ob_util_interface.h
 updateserver/stress.h
 updateserver/ups_mon.cpp
 updateserver/ups_mon.h
+chunkserver/chunkserver.conf.template

@@ -1381,7 +1381,6 @@ int resolve_show_stmt(
 				show_stmt = new(show_stmt) ObShowStmt(name_pool, ObBasicStmt::T_SHOW_TABLES);
 				sys_table_name.str_value_ = OB_TABLES_SHOW_TABLE_NAME;
 				break;
-      //add liumengzhan_show_index [20141208]
       case T_SHOW_INDEX:
         OB_ASSERT(node->num_child_ == 2);
         show_table_node = node->children_[0];
@@ -1389,7 +1388,6 @@ int resolve_show_stmt(
         show_stmt = new(show_stmt) ObShowStmt(name_pool, ObBasicStmt::T_SHOW_INDEX);
         sys_table_name.str_value_ = OB_INDEX_SHOW_TABLE_NAME;
         break;
-      //add:e
 			case T_SHOW_VARIABLES:
 				OB_ASSERT(node->num_child_ == 1);
 				condition_node = node->children_[0];

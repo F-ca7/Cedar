@@ -50,13 +50,11 @@ namespace oceanbase
          */
         int add_output_column(const ObSqlExpression& expr);
 
-        //add fanqiushi_index
         int add_main_output_column(const ObSqlExpression& expr);
         int cons_second_row_desc(ObRowDesc &row_desc);
          int set_second_row_desc(ObRowDesc *row_desc);
         int add_main_filter(ObSqlExpression* expr);
         int add_index_filter(ObSqlExpression* expr);
-        //add:e
 
         /**
          * 设置table_id

@@ -255,9 +255,7 @@ namespace oceanbase
           break;
         }
         case ObStmt::T_SHOW_TABLES:
-        //add liumengzhan_show_index [20141208]
         case ObStmt::T_SHOW_INDEX:
-        //add:e
         case ObStmt::T_SHOW_VARIABLES:
         case ObStmt::T_SHOW_COLUMNS:
         case ObStmt::T_SHOW_SCHEMA:

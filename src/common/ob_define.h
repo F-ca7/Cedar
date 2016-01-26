@@ -566,9 +566,8 @@ namespace oceanbase
     const char* const OB_ALL_SERVER = "__all_server";
     const char* const OB_ALL_CLIENT = "__all_client";
     const char* const OB_TABLES_SHOW_TABLE_NAME = "__tables_show";
-    //add liumengzhan_show_index [20141208]
     const char* const OB_INDEX_SHOW_TABLE_NAME = "__index_show";
-    //add:e
+
     const char* const OB_VARIABLES_SHOW_TABLE_NAME = "__variables_show";
     const char* const OB_CREATE_TABLE_SHOW_TABLE_NAME = "__create_table_show";
     const char* const OB_TABLE_STATUS_SHOW_TABLE_NAME = "__table_status_show";
@@ -614,9 +613,7 @@ namespace oceanbase
     // VIRTUAL TABLES ID (500, 700), they should not be mutated
 #define IS_VIRTUAL_TABLE(tid) ((tid) > 500 && (tid) < 700)
     static const uint64_t OB_TABLES_SHOW_TID = 501;
-    //add liumengzhan_show_index [20141208]
     static const uint64_t OB_INDEX_SHOW_TID = 502;
-    //add:e
     static const uint64_t OB_COLUMNS_SHOW_TID = 503;
     static const uint64_t OB_VARIABLES_SHOW_TID = 504;
     static const uint64_t OB_TABLE_STATUS_SHOW_TID = 505;

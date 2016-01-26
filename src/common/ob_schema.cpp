@@ -1888,9 +1888,7 @@ namespace oceanbase
         }
 
         int ret = sort_column();
-        //add liuxiao [secondary index static index] 20150615
         ret=init_index_hash();
-        //add e
         if (ret != OB_SUCCESS)
         {
           TBSYS_LOG(ERROR, "sort column failed:ret[%d]", ret);
