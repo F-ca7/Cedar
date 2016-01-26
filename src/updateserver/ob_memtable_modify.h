@@ -167,7 +167,7 @@ namespace oceanbase
                     ret = host->apply(session_, cia, T::get_dml_type());
                     session_.inc_dml_count(T::get_dml_type());
 
-                    if(OB_SUCCESS != (ret = tmp_index_trigger->handle_trigger(sm, host, session_)))
+                    if(OB_SUCCESS == ret && OB_SUCCESS != (ret = tmp_index_trigger->handle_trigger(sm, host, session_)))
                     {
                         TBSYS_LOG(ERROR, "modify index table fail");
                     }

@@ -1291,7 +1291,6 @@ namespace oceanbase
       ObServer next_server;
       ObNewRange wok_range;
       hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> * range_info = NULL;
-      //debug 20150420
       switch (level)
       {
         case LOCAL_INDEX_SST_BUILD_FAILED:

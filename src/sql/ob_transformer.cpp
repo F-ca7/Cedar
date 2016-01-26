@@ -8118,7 +8118,8 @@ int ObTransformer::gen_phy_table_for_update_new(
         }
     }//end for
   // add action flag column
-  /*if (OB_LIKELY(OB_SUCCESS == ret))
+  //modify maoxx 2016/01/26
+  if (OB_LIKELY(OB_SUCCESS == ret))
   {
     ObSqlExpression column_ref;
     column_ref.set_tid_cid(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
@@ -8130,7 +8131,8 @@ int ObTransformer::gen_phy_table_for_update_new(
     {
       TBSYS_LOG(WARN, "failed to add output column, err=%d", ret);
     }
-  }*/
+  }
+  //modify e
 
   if (ret == OB_SUCCESS)
   {

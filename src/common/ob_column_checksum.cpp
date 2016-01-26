@@ -262,20 +262,16 @@ int ObColumnChecksum::equal(const ObColumnChecksum &col, bool &is_equal)
 {
   int ret = OB_SUCCESS;
   is_equal = false;
-  //mod longfei
-//  if (!strlen(checksum_str) || !strlen(col.checksum_str))
-//  {
-//    if (!strlen(checksum_str) && !strlen(col.checksum_str))
-//      is_equal = true;
-//  }
-
-  if (!strlen(checksum_str) && !strlen(col.checksum_str))
+  if (!strlen(checksum_str) || !strlen(col.checksum_str))
+  {
+    if (!strlen(checksum_str) && !strlen(col.checksum_str))
       is_equal = true;
-  else
+  }
+
+  if(strlen(checksum_str) && strlen(col.checksum_str))
   {
     int token_nr_src = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
     Token tokens_src[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
-
     int token_nr_cmp = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
     Token tokens_cmp[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
 
