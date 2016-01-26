@@ -493,11 +493,9 @@ int ObShowSchemaManager::add_show_schema(ObSchemaManagerV2& schema_mgr, int32_t 
     case ObBasicStmt::T_SHOW_TABLES:
       ret = add_show_tables_schema(schema_mgr);
       break;
-    //add liumengzhan_show_index [20141208]
     case ObBasicStmt::T_SHOW_INDEX:
       ret = add_show_index_schema(schema_mgr);
       break;
-    //add:e
     case ObBasicStmt::T_SHOW_VARIABLES:
       ret = add_show_variables_schema(schema_mgr);
       break;

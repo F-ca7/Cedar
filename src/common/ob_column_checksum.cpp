@@ -272,7 +272,6 @@ int ObColumnChecksum::equal(const ObColumnChecksum &col, bool &is_equal)
   {
     int token_nr_src = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
     Token tokens_src[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
-
     int token_nr_cmp = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
     Token tokens_cmp[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
 
@@ -443,6 +442,7 @@ int ObColumnChecksum::equal(const ObColumnChecksum &col, bool &is_equal)
       }
     }
   }
+  //mod e
   return ret;
 }
 
