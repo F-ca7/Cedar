@@ -9,9 +9,11 @@
  * @brief tablet mannager class
  *
  * modified by longfei： according has_fake_range change strategies to take tablet
+ * modified by maoxiaoxiao:add functions to get column checksum, send column checksum and fill tablet histogram_info
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -295,8 +297,32 @@ namespace oceanbase
         int fill_tablet_info(const ObTablet& tablet, common::ObTabletReportInfo& tablet_info);
         int send_tablet_report(const common::ObTabletReportInfoList& tablets, bool has_more);
         //add maoxx
+        /**
+         * @brief get_column_checksum
+         * get column checksum of a tablet in a range
+         * @param new_range
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
         int get_column_checksum(const ObNewRange new_range, ObColumnChecksum &column_checksum);
+
+        /**
+         * @brief send_tablet_column_checksum
+         * send column checksum of a tablet in a range to the system table
+         * @param column_checksum
+         * @param new_range
+         * @param version
+         * @return OB_SUCCESS or other ERROR
+         */
         int send_tablet_column_checksum(const ObColumnChecksum column_checksum, const ObNewRange new_range, const int64_t version);
+
+        /**
+         * @brief fill_tablet_histogram_info
+         * fill tablet histogram information from the given tablet
+         * @param tablet
+         * @param tablet_histogram_info
+         * @return OB_SUCCESS or other ERROR
+         */
         int fill_tablet_histogram_info(const ObTablet& tablet, common::ObTabletHistogramReportInfo& tablet_histogram_info);
         //int send_local_index_info(const common::ObTabletHistogramReportInfoList& tablets, bool has_more);
         //int send_index_info(uint64_t index_tid);

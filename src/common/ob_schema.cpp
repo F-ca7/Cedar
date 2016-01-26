@@ -18,8 +18,12 @@
  * modified by WengHaixing:
  * 1.add a fuction call to find all not available index
  *
+ * modified by maoxiaoxiao:
+ * 1.add functions to get some information about index lists of a table
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -5716,6 +5720,7 @@ namespace oceanbase
       }
       return ret;
     }
+	
     int ObSchemaManagerV2::get_all_index_tid(ObArray<uint64_t> &index_id_list) const
     {
       int ret = OB_SUCCESS;

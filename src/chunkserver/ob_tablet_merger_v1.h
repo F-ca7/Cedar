@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_tablet_merger.h
+* @brief for merging tablets
+*
+* modified by maoxiaoxiao:calculate column checksum of data table and index table during daily merge
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2015_01_21
+*/
+
 /*
  * (C) 2007-2010 Alibaba Group Holding Limited.
  *
@@ -124,10 +141,52 @@ namespace oceanbase
         void reset_for_next_column_group();
 
         //add maoxx
+        /**
+         * @brief is_index_or_with_index
+         * decide if the table is an index table or a data table with index
+         * @param table_id
+         * @return OB_SUCCESS or other ERROR
+         */
         int is_index_or_with_index(const uint64_t table_id);
+
+        /**
+         * @brief cons_column_checksum_row_desc_for_data
+         * construct construct row description for calculating column checksum of data table
+         * @param row_desc
+         * @param tid
+         * @return OB_SUCCESS or other ERROR
+         */
         int cons_column_checksum_row_desc_for_data(ObRowDesc &row_desc, uint64_t tid);
+
+        /**
+         * @brief cons_column_checksum_row_desc_for_index
+         * construct construct row description for calculating column checksum of index table
+         * @param row_desc
+         * @param tid
+         * @param max_data_table_cid
+         * @return OB_SUCCESS or other ERROR
+         */
         int cons_column_checksum_row_desc_for_index(ObRowDesc &row_desc, uint64_t tid, uint64_t &max_data_table_cid);
+
+        /**
+         * @brief calc_tablet_col_checksum_for_data
+         * calculate column checksum of data table
+         * @param row
+         * @param row_desc
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
         int calc_tablet_col_checksum_for_data(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum);
+
+        /**
+         * @brief calc_tablet_col_checksum_for_index
+         * calculate column checksum of index table
+         * @param row
+         * @param row_desc
+         * @param column_checksum
+         * @param max_data_table_cid
+         * @return OB_SUCCESS or other ERROR
+         */
         int calc_tablet_col_checksum_for_index(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum, const uint64_t max_data_table_cid);
         //add e
 
@@ -159,12 +218,12 @@ namespace oceanbase
         ObTabletMergerFilter tablet_merge_filter_;
 
         //add maoxx
-        ObColumnChecksum column_checksum_;
-        bool is_index_;
-        bool is_have_index_;
-        bool is_have_init_index_;
-        ObRowDesc column_checksum_row_desc_;
-        uint64_t max_data_table_cid_;
+        ObColumnChecksum column_checksum_; ///<column checksum
+        bool is_index_; ///<true if the table is index table
+        bool is_have_index_; ///<true if the data table have index
+        bool is_have_init_index_; ///<true if the data table have initialized index
+        ObRowDesc column_checksum_row_desc_; ///<row description for column checksum
+        uint64_t max_data_table_cid_; ///<max column id of data table
         //add e
     };
   } /* chunkserver */

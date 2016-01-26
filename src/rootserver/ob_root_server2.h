@@ -9,13 +9,18 @@
  * @brief root server
  *
  * modified by longfei：add create_index() and drop_indexs()
+ * 
  * modified by wenghaixing: add some function for secondary index construction
  * 1.int get_init_index(const int64_t version, ObArray<uint64_t> *list);  ///< get all int index to list
  * 2.int get_table_from_index(int64_t index_id, uint64_t &table_id);      ///< get original table for index
  * 3.int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);///< write tablet into roottable
  * 4.bool check_static_index_over(); ///< check if static index build over
+ *
+ * modified by maoxiaoxiao:add functions to check column checksum, clean column checksum and get column checksum in root server
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -393,8 +398,31 @@ namespace oceanbase
         int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
 
         //add maoxx
+        /**
+         * @brief check_column_checksum
+         * check column checksum
+         * @param index_table_id
+         * @param column_checksum_flag
+         * @return OB_SUCCESS or other ERROR
+         */
         int check_column_checksum(const int64_t index_table_id, bool &column_checksum_flag);
+
+        /**
+         * @brief clean_column_checksum
+         * clean column checksum
+         * @param current_version
+         * @return OB_SUCCESS or other ERROR
+         */
         int clean_column_checksum(int64_t current_version);
+
+        /**
+         * @brief get_column_checksum
+         * get column checksum
+         * @param range
+         * @param required_version
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
         int get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum);
         //add e
 

@@ -17,8 +17,12 @@
  * modified by WengHaixing:
  * 1.add a fuction call to find all not available index
  *
+ * modified by maoxiaoxiao:
+ * 1.add functions to get some information about index lists of a table
+ * 
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -800,11 +804,59 @@ namespace oceanbase
         static const int64_t MAX_COLUMNS_LIMIT = OB_MAX_TABLE_NUMBER * OB_MAX_COLUMN_NUMBER;
         static const int64_t DEFAULT_MAX_COLUMNS = 16 * OB_MAX_COLUMN_NUMBER;
         //add maoxx
+        /**
+         * @brief get_all_modifiable_index
+         * get a list of modifiable index of a table
+         * @param table_id
+         * @param modifiable_index_list
+         * @return OB_SUCCESS or other ERROR
+         */
         int get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const;
+
+        /**
+         * @brief is_have_modifiable_index
+         * decide if the table has modifiable index
+         * @param table_id
+         * @return true if have or false if not
+         */
         bool is_have_modifiable_index(uint64_t table_id) const;
+
+        /**
+         * @brief is_have_init_index
+         * decide if the table has initialized index
+         * @param table_id
+         * @return true if have or false if not
+         */
         bool is_have_init_index(uint64_t table_id) const;
+
+        /**
+         * @brief column_hit_index
+         * get a list of index of a given table which consist of a given column
+         * @param table_id
+         * @param cid
+         * @param hit_index_list
+         * @return OB_SUCCESS or other ERROR
+         */
         int column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const;
+
+        /**
+         * @brief column_hit_index
+         * decide if the given column hit the index of the given table
+         * @param table_id
+         * @param cid
+         * @param column_hit_index_flag
+         * @return OB_SUCCESS or other ERROR
+         */
         int column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const;
+
+        /**
+         * @brief column_hit_index_and_rowkey
+         * decide if the given column hit the index of the given table and is the rowkey of this index
+         * @param table_id
+         * @param cid
+         * @param hit_flag
+         * @return OB_SUCCESS or other ERROR
+         */
         int column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const;
         //add e
 

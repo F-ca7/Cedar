@@ -9,9 +9,11 @@
  * @brief tablet mannager class
  *
  * modified by longfei： according has_fake_range change strategies to take tablet
+ * modified by maoxiaoxiao:add functions to get column checksum, send column checksum and fill tablet histogram_info
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 

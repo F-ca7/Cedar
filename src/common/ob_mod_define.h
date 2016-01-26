@@ -9,9 +9,11 @@
  * @brief define module
  *
  * modified by longfei： add a module for static index handler
+ * modified by maoxiaoxiao:add a module to report tablet histogram
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -172,7 +174,7 @@ namespace oceanbase
         OB_MS_SQL_GET_REQ_POOL,
         //add maoxx
         OB_STATIC_INDEX_HISTOGRAM,
-        OB_TABLET_HISTOGRAM_REPORT,
+        OB_TABLET_HISTOGRAM_REPORT, ///<module for reporting table histogram information
         //add e
 
         // updateserver modules
@@ -363,7 +365,7 @@ namespace oceanbase
       ADD_MOD(OB_MS_SQL_SCAN_REQ_POOL);
       ADD_MOD(OB_MS_SQL_GET_REQ_POOL);
       //add maoxx
-      ADD_MOD(OB_TABLET_HISTOGRAM_REPORT);
+      ADD_MOD(OB_TABLET_HISTOGRAM_REPORT); ///<add module for reporting table histogram information
       //add e
 
       ADD_MOD(OB_UPS_ENGINE);

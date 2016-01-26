@@ -192,9 +192,7 @@ namespace oceanbase
       }
       else if (NULL == tablet_manager_)
       {
-        //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
         ret = OB_INVALID_ARGUMENT;
-        //modify e
         TBSYS_LOG(ERROR, "tablet_manager pointer is NULL");
       }
       else
@@ -353,12 +351,11 @@ namespace oceanbase
                it != tablet_list.end(); ++it)
           {
             bool is_handled = false;//tablet是否被处理过
-            ObTabletLocationList list;
             if (OB_SUCCESS == (ret = is_tablet_handle(*it, is_handled)))
             {
               if (!is_handled)
               {
-                if (OB_SUCCESS != (ret = is_tablet_need_build_static_index(*it, list, need_index)))
+                if (OB_SUCCESS != (ret =  is_tablet_need_build_static_index(*it, need_index)))
                 {
                   TBSYS_LOG(ERROR, "error in is_need_static_index_tablet,ret[%d]", ret);
                 }
@@ -375,10 +372,7 @@ namespace oceanbase
                   TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]",ret);
                 }
               }
-              else if (OB_SUCCESS
-                       != (ret =
-                           tablet_manager_->get_serving_tablet_image().release_tablet(
-                             *it)))
+              else if (OB_SUCCESS != (ret = tablet_manager_->get_serving_tablet_image().release_tablet(*it)))
               {
                 TBSYS_LOG(WARN, "release tablet array failed, ret = [%d]", ret);
               }
@@ -707,34 +701,21 @@ namespace oceanbase
 
     int ObIndexHandlePool::is_tablet_need_build_static_index(
         ObTablet *tablet,
-        ObTabletLocationList &list,
         bool &is_need_index)
     {
       int ret = OB_SUCCESS;
-      is_need_index = false;
+      is_need_index = true;
       if (NULL == tablet)
       {
         TBSYS_LOG(ERROR, "null pointer for tablet");
         ret = OB_ERROR;
       }
-      else
-      {
-        ObNewRange range = tablet->get_range();
-        if (hash::HASH_EXIST == range_hash_.get(range, list))
-        {
-          is_need_index = true;
-        }
-        else
-        {
-          is_need_index = false;
-        }
-      }
-      if (is_need_index
-          && tablet->get_sstable_id_list().count()
-          == ObTablet::MAX_SSTABLE_PER_TABLET)
+      else if (is_need_index
+          && tablet->get_sstable_id_list().count() == ObTablet::MAX_SSTABLE_PER_TABLET)
       {
         is_need_index = false;
       }
+      TBSYS_LOG(INFO,"TEST::LONGFEI>>>is_need_index[%s]",is_need_index ? "true" : "false");
       return ret;
     }
 
@@ -1310,7 +1291,6 @@ namespace oceanbase
       ObServer next_server;
       ObNewRange wok_range;
       hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> * range_info = NULL;
-      //debug 20150420
       switch (level)
       {
         case LOCAL_INDEX_SST_BUILD_FAILED:

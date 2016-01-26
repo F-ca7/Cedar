@@ -10,10 +10,12 @@
  *
  * modified by longfei：add rpc call for drop index and retry_failed_work
  * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
+ * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author WengHaixing <wenghaixing@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -1136,7 +1138,7 @@ namespace oceanbase
       col_checksum.assign_ptr(col_checksum_tmp, OB_MAX_COL_CHECKSUM_STR_LEN);
       if (OB_SUCCESS != (ret = send_2_return_1(root_server, timeout, OB_GET_COLUMN_CHECKSUM, NEW_VERSION, new_range, version, col_checksum)))
       {
-        TBSYS_LOG(ERROR, " get old tablet column checksumfailed, ret=%d", ret);
+        TBSYS_LOG(ERROR, " get old tablet column checksum failed, ret=%d", ret);
       }
       else
       {

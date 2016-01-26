@@ -9,9 +9,11 @@
  * @brief define schema of core table and system table
  *
  * modified by longfei：add an core table: "__all_secondary_index" for storing secondary index table
+ * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -1525,6 +1527,7 @@ int ObExtraTablesSchema::all_statement_schema(TableSchema & table_schema)
   return ret;
 }
 
+//add maoxx
 int ObExtraTablesSchema::all_index_service_schema(TableSchema &table_schema)
 {
   int ret = OB_SUCCESS;

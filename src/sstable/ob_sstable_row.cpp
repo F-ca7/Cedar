@@ -9,9 +9,11 @@
  * @brief for persistent ssatable single row
  *
  * modified by longfei：add function set_rowkey_obj_count()
+ * modified by maoxiaoxiao:add functions to get obj without const and get row obj
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 

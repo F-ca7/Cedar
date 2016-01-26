@@ -1,9 +1,19 @@
-/*
- * ob_column_checksum.cpp
- *
- *  Created on: 2015年12月16日
- *      Author: maoxiaoxiao
- */
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_column_checksum.h
+* @brief for column checksum of table
+*
+* Created by maoxiaoxiao:operations to column checksum, such as add, compare and so on
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
 
 #ifndef OB_COLUMN_CHECKSUM_CPP
 #define OB_COLUMN_CHECKSUM_CPP
@@ -258,174 +268,177 @@ int ObColumnChecksum::equal(const ObColumnChecksum &col, bool &is_equal)
       is_equal = true;
   }
 
-  int token_nr_src = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
-  Token tokens_src[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
+  if(strlen(checksum_str) && strlen(col.checksum_str))
+  {
+    int token_nr_src = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
+    Token tokens_src[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
 
-  int token_nr_cmp = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
-  Token tokens_cmp[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
+    int token_nr_cmp = OB_MAX_COL_CHECKSUM_COLUMN_COUNT;
+    Token tokens_cmp[OB_MAX_COL_CHECKSUM_COLUMN_COUNT];
 
-  if (OB_SUCCESS != (ret = tokenize(checksum_str, strlen(checksum_str), ',', token_nr_src, tokens_src)))
-  {
-    TBSYS_LOG(ERROR, "failed to parse src column checksum_str[%s]", checksum_str);
-    ret = OB_ERROR;
-  }
-  else if (OB_SUCCESS != (ret = tokenize(col.checksum_str, strlen(col.checksum_str), ',', token_nr_cmp, tokens_cmp)))
-  {
-    TBSYS_LOG(ERROR, "failed to parse compare column checksum_str[%s]", col.checksum_str);
-    ret = OB_ERROR;
-  }
-  else
-  {
-    /*存储src column checksum中所有<cid,checksum>*/
-    std::map<uint64_t, uint64_t> col_sum_src;
-    for (int idx = 0; idx < token_nr_src && OB_SUCCESS == ret; idx++)
+    if (OB_SUCCESS != (ret = tokenize(checksum_str, strlen(checksum_str), ',', token_nr_src, tokens_src)))
     {
-      int attr_nr = 2;
-      Token tokens_attr[2];
-      if (OB_SUCCESS != (ret = tokenize(tokens_src[idx].token, tokens_src[idx].len, ':', attr_nr, tokens_attr)))
+      TBSYS_LOG(ERROR, "failed to parse src column checksum_str[%s]", checksum_str);
+      ret = OB_ERROR;
+    }
+    else if (OB_SUCCESS != (ret = tokenize(col.checksum_str, strlen(col.checksum_str), ',', token_nr_cmp, tokens_cmp)))
+    {
+      TBSYS_LOG(ERROR, "failed to parse compare column checksum_str[%s]", col.checksum_str);
+      ret = OB_ERROR;
+    }
+    else
+    {
+      /*存储src column checksum中所有<cid,checksum>*/
+      std::map<uint64_t, uint64_t> col_sum_src;
+      for (int idx = 0; idx < token_nr_src && OB_SUCCESS == ret; idx++)
       {
-        TBSYS_LOG(ERROR, "fialed to separate cid:checksum[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_src[idx].len), tokens_src[idx].token, checksum_str);
-        ret = OB_ERROR;
-        break;
-      }
-      else if (2 != attr_nr)
-      {
-        TBSYS_LOG(ERROR, "column checksum must be 2 attributes, in manner of <cid:checksum>, column checksum[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_src[idx].len), tokens_src[idx].token, checksum_str);
-        ret = OB_ERROR;
-        break;
-      }
-      else
-      {
-        uint64_t cid = 0;
-        uint64_t checksum = 0;
-        if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[0].token, tokens_attr[0].len, cid)))
+        int attr_nr = 2;
+        Token tokens_attr[2];
+        if (OB_SUCCESS != (ret = tokenize(tokens_src[idx].token, tokens_src[idx].len, ':', attr_nr, tokens_attr)))
         {
-          TBSYS_LOG(ERROR, "fetch column id failed, column id str[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_attr[0].len), tokens_attr[0].token, checksum_str);
+          TBSYS_LOG(ERROR, "fialed to separate cid:checksum[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_src[idx].len), tokens_src[idx].token, checksum_str);
           ret = OB_ERROR;
           break;
         }
-        else if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[1].token, tokens_attr[1].len, checksum)))
+        else if (2 != attr_nr)
         {
-          TBSYS_LOG(ERROR, "fetch checksum failed, checksum str[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_attr[1].len), tokens_attr[1].token, checksum_str);
+          TBSYS_LOG(ERROR, "column checksum must be 2 attributes, in manner of <cid:checksum>, column checksum[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_src[idx].len), tokens_src[idx].token, checksum_str);
           ret = OB_ERROR;
           break;
         }
         else
         {
-          std::map<uint64_t, uint64_t>::iterator iter = col_sum_src.find(cid);
-          if (iter != col_sum_src.end())
+          uint64_t cid = 0;
+          uint64_t checksum = 0;
+          if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[0].token, tokens_attr[0].len, cid)))
           {
-            TBSYS_LOG(ERROR, "column[cid = %lu] already exists in src column checksum_str[%s]", cid, checksum_str);
+            TBSYS_LOG(ERROR, "fetch column id failed, column id str[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_attr[0].len), tokens_attr[0].token, checksum_str);
+            ret = OB_ERROR;
+            break;
+          }
+          else if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[1].token, tokens_attr[1].len, checksum)))
+          {
+            TBSYS_LOG(ERROR, "fetch checksum failed, checksum str[%.*s], src column checksum_str[%s]", static_cast<int>(tokens_attr[1].len), tokens_attr[1].token, checksum_str);
             ret = OB_ERROR;
             break;
           }
           else
           {
-            col_sum_src.insert(std::make_pair(cid, checksum));
+            std::map<uint64_t, uint64_t>::iterator iter = col_sum_src.find(cid);
+            if (iter != col_sum_src.end())
+            {
+              TBSYS_LOG(ERROR, "column[cid = %lu] already exists in src column checksum_str[%s]", cid, checksum_str);
+              ret = OB_ERROR;
+              break;
+            }
+            else
+            {
+              col_sum_src.insert(std::make_pair(cid, checksum));
+            }
           }
         }
       }
-    }
-    /*存储compare column checksum_str中所有<cid, checksum>*/
-    std::map<uint64_t, uint64_t> col_sum_cmp;
-    for (int idx = 0; idx < token_nr_cmp && OB_SUCCESS == ret; idx++)
-    {
-      int attr_nr = 2;
-      Token tokens_attr[2];
-      if (OB_SUCCESS != (ret = tokenize(tokens_cmp[idx].token, tokens_cmp[idx].len, ':', attr_nr, tokens_attr)))
+      /*存储compare column checksum_str中所有<cid, checksum>*/
+      std::map<uint64_t, uint64_t> col_sum_cmp;
+      for (int idx = 0; idx < token_nr_cmp && OB_SUCCESS == ret; idx++)
       {
-        TBSYS_LOG(ERROR, "fialed to separate cid:checksum[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_cmp[idx].len), tokens_cmp[idx].token, col.checksum_str);
-        ret = OB_ERROR;
-        break;
-      }
-      else if (attr_nr != 2)
-      {
-        TBSYS_LOG(ERROR, "column checksum must be 2 attributes, in manner of <cid:checksum>, column checksum[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_cmp[idx].len), tokens_cmp[idx].token, col.checksum_str);
-        ret = OB_ERROR;
-        break;
-      }
-      else
-      {
-        uint64_t cid = 0;
-        uint64_t checksum = 0;
-        if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[0].token, tokens_attr[0].len, cid)))
+        int attr_nr = 2;
+        Token tokens_attr[2];
+        if (OB_SUCCESS != (ret = tokenize(tokens_cmp[idx].token, tokens_cmp[idx].len, ':', attr_nr, tokens_attr)))
         {
-          TBSYS_LOG(ERROR, "fetch column id failed, column id str[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_attr[0].len), tokens_attr[0].token, col.checksum_str);
+          TBSYS_LOG(ERROR, "fialed to separate cid:checksum[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_cmp[idx].len), tokens_cmp[idx].token, col.checksum_str);
           ret = OB_ERROR;
           break;
         }
-        else if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[1].token, tokens_attr[1].len, checksum)))
+        else if (attr_nr != 2)
         {
-          TBSYS_LOG(ERROR, "fetch checksum failed, checksum str[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_attr[1].len), tokens_attr[1].token, col.checksum_str);
+          TBSYS_LOG(ERROR, "column checksum must be 2 attributes, in manner of <cid:checksum>, column checksum[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_cmp[idx].len), tokens_cmp[idx].token, col.checksum_str);
           ret = OB_ERROR;
           break;
         }
         else
         {
-          std::map<uint64_t, uint64_t>::iterator iter = col_sum_cmp.find(cid);
-          if (iter != col_sum_cmp.end())
+          uint64_t cid = 0;
+          uint64_t checksum = 0;
+          if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[0].token, tokens_attr[0].len, cid)))
           {
-            TBSYS_LOG(ERROR, "column[cid = %lu] already exists in compare column checksum_str[%s]", cid, col.checksum_str);
+            TBSYS_LOG(ERROR, "fetch column id failed, column id str[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_attr[0].len), tokens_attr[0].token, col.checksum_str);
+            ret = OB_ERROR;
+            break;
+          }
+          else if (OB_SUCCESS != (ret = transform_str_to_int(tokens_attr[1].token, tokens_attr[1].len, checksum)))
+          {
+            TBSYS_LOG(ERROR, "fetch checksum failed, checksum str[%.*s], compare column checksum_str[%s]", static_cast<int>(tokens_attr[1].len), tokens_attr[1].token, col.checksum_str);
             ret = OB_ERROR;
             break;
           }
           else
           {
-            col_sum_cmp.insert(std::make_pair(cid, checksum));
+            std::map<uint64_t, uint64_t>::iterator iter = col_sum_cmp.find(cid);
+            if (iter != col_sum_cmp.end())
+            {
+              TBSYS_LOG(ERROR, "column[cid = %lu] already exists in compare column checksum_str[%s]", cid, col.checksum_str);
+              ret = OB_ERROR;
+              break;
+            }
+            else
+            {
+              col_sum_cmp.insert(std::make_pair(cid, checksum));
+            }
           }
         }
       }
-    }
-    /*比较校验和是否相等*/
-    is_equal = true;
-    if (OB_SUCCESS == ret)
-    {
-      if (col_sum_cmp.size() <= col_sum_src.size())
+      /*比较校验和是否相等*/
+      is_equal = true;
+      if (OB_SUCCESS == ret)
       {
-        std::map<uint64_t, uint64_t>::iterator iter = col_sum_cmp.begin();
-        while (iter != col_sum_cmp.end())
+        if (col_sum_cmp.size() <= col_sum_src.size())
         {
-          std::map<uint64_t, uint64_t>::iterator iter_temp = col_sum_src.find(iter->first);
-          if (iter_temp != col_sum_src.end())
+          std::map<uint64_t, uint64_t>::iterator iter = col_sum_cmp.begin();
+          while (iter != col_sum_cmp.end())
           {
-            if (iter->second != iter_temp->second)
+            std::map<uint64_t, uint64_t>::iterator iter_temp = col_sum_src.find(iter->first);
+            if (iter_temp != col_sum_src.end())
             {
-              TBSYS_LOG(ERROR, "equal column id[cid = %lu], but not equal checksum, src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
+              if (iter->second != iter_temp->second)
+              {
+                TBSYS_LOG(ERROR, "equal column id[cid = %lu], but not equal checksum, src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
+                is_equal = false;
+                break;
+              }
+            }
+            else
+            {
+              TBSYS_LOG(ERROR, "can't find equal column id[cid = %lu], src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
               is_equal = false;
               break;
             }
+            iter++;
           }
-          else
-          {
-            TBSYS_LOG(ERROR, "can't find equal column id[cid = %lu], src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
-            is_equal = false;
-            break;
-          }
-          iter++;
         }
-      }
-      else
-      {
-        std::map<uint64_t, uint64_t>::iterator iter = col_sum_src.begin();
-        while (iter != col_sum_src.end())
+        else
         {
-          std::map<uint64_t, uint64_t>::iterator iter_temp = col_sum_cmp.find(iter->first);
-          if (iter_temp != col_sum_cmp.end())
+          std::map<uint64_t, uint64_t>::iterator iter = col_sum_src.begin();
+          while (iter != col_sum_src.end())
           {
-            if (iter->second != iter_temp->second)
+            std::map<uint64_t, uint64_t>::iterator iter_temp = col_sum_cmp.find(iter->first);
+            if (iter_temp != col_sum_cmp.end())
             {
-              TBSYS_LOG(ERROR, "equal column id[cid = %lu], but not equal checksum, src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
+              if (iter->second != iter_temp->second)
+              {
+                TBSYS_LOG(ERROR, "equal column id[cid = %lu], but not equal checksum, src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
+                is_equal = false;
+                break;
+              }
+            }
+            else
+            {
+              TBSYS_LOG(ERROR, "can't find equal column id[cid = %lu], src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
               is_equal = false;
               break;
             }
+            iter++;
           }
-          else
-          {
-            TBSYS_LOG(ERROR, "can't find equal column id[cid = %lu], src column checksum_str[%s], compare column checksum_str[%s]", iter->first, checksum_str, col.checksum_str);
-            is_equal = false;
-            break;
-          }
-          iter++;
         }
       }
     }

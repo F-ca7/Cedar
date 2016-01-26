@@ -1,4 +1,21 @@
 /**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_ups_inc_scan.h
+* @brief for operations of update server increment scan
+*
+* modified by maoxiaoxiao:add functions to reset iterator
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -70,6 +87,9 @@ namespace oceanbase
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
         int64_t to_string(char* buf, const int64_t buf_len) const { return snprintf(buf, buf_len, "%s", "inc_get_iter"); }
         //add maoxx
+        /**
+         * @brief reset_iterator
+         */
         void reset_iterator() { last_cell_idx_ = 0;}
         //add e
       private:
@@ -117,6 +137,9 @@ namespace oceanbase
         int close();
         int64_t to_string(char* buf, const int64_t buf_len) const;
         //add maoxx
+        /**
+         * @brief reset_iterator
+         */
         virtual void reset_iterator() { get_iter_.reset_iterator();}
         //add e
       public:

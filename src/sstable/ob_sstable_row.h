@@ -9,9 +9,11 @@
  * @brief for persistent ssatable single row
  *
  * modified by longfei：add function set_rowkey_obj_count()
+ * modified by maoxiaoxiao:add functions to get obj without const and get row obj
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 
@@ -188,7 +190,20 @@ namespace oceanbase
       const common::ObObj* get_obj(const int32_t index) const;
 
       //add maoxx
+      /**
+       * @brief get_obj_without_const
+       * get ObObj without const
+       * @param index
+       * @return &objs_[index]
+       */
       common::ObObj* get_obj_without_const(const int32_t index);
+
+      /**
+       * @brief get_row_obj
+       * get row ObObj
+       * @param index
+       * @return objs_[index]
+       */
       const common::ObObj get_row_obj(const int64_t index) const;
       //add e
 

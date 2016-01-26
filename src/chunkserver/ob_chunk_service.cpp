@@ -666,7 +666,7 @@ namespace oceanbase
         ObDataBuffer &out_buffer)
     {
       common::ObResultCode rc;
-      int32_t ret = &rc.result_code_ = OB_SUCCESS;
+      rc.result_code_ = OB_SUCCESS;
       BlackList list;
       UNUSED(channel_id);
       UNUSED(version);
@@ -693,7 +693,7 @@ namespace oceanbase
         chunk_server_->send_response(OB_RE_IDX_CONS_F_RESPONSE, MY_VERSION, out_buffer, req, channel_id);
       }
 
-      return ret;
+      return rc.result_code_;
     }
     //add e
 

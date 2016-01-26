@@ -9,9 +9,11 @@
  * @brief logical plan --transformer--> physical plan
  *
  * modified by longfei：generate physical plan for create, drop, index in select
+ * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 
@@ -465,11 +467,65 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+
         //add maoxx
+        /**
+         * @brief cons_whole_row_desc_for_delete
+         * construct row description of the data used by the delete statement if the table has index
+         * @param table_id
+         * @param desc
+         * @param desc_ext
+         * @return OB_SUCCESS or other ERROR
+         */
         int cons_whole_row_desc_for_delete(uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+
+        /**
+         * @brief cons_whole_row_desc_for_update
+         * construct row description of the data used by the update statement if the table has index
+         * @param stmt
+         * @param table_id
+         * @param desc
+         * @param desc_ext
+         * @return OB_SUCCESS or other ERROR
+         */
         int cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+
+        /**
+         * @brief cons_whole_row_desc_for_replace
+         * construct row description of the data used by the replace statement if the table has index
+         * @param stmt
+         * @param table_id
+         * @param desc
+         * @param desc_ext
+         * @return OB_SUCCESS or other ERROR
+         */
         int cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext);
+
+        /**
+         * @brief column_in_stmt
+         * decide if the given column is in the sql query statement
+         * @param stmt
+         * @param table_id
+         * @param cid
+         * @param in_stmt_flag
+         * @return OB_SUCCESS or other ERROR
+         */
         int column_in_stmt(const ObStmt* stmt, uint64_t table_id, uint64_t cid, bool &in_stmt_flag);
+
+        /**
+         * @brief gen_phy_table_for_update_new
+         * generate physical table if the table with index has update statements
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param rowkey_info
+         * @param row_desc
+         * @param row_desc_ext
+         * @param table_op
+         * @return OB_SUCCESS or other ERROR
+         */
         int gen_phy_table_for_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
@@ -480,6 +536,21 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+
+        /**
+         * @brief gen_phy_table_for_delete
+         * generate physical table if the table with index has delete statements
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param stmt
+         * @param table_id
+         * @param rowkey_info
+         * @param row_desc
+         * @param row_desc_ext
+         * @param table_op
+         * @return OB_SUCCESS or other ERROR
+         */
         int gen_phy_table_for_delete(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
@@ -490,12 +561,38 @@ namespace oceanbase
             const ObRowDesc &row_desc,
             const ObRowDescExt &row_desc_ext,
             ObPhyOperator*& table_op);
+
+        /**
+         * @brief gen_physical_replace_new
+         * generate physical plan if the table with index has replace statements
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param query_id
+         * @param index
+         * @return OB_SUCCESS or other ERROR
+         */
         int gen_physical_replace_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
             int32_t* index);
+
+        /**
+         * @brief gen_phy_static_data_scan_for_replace
+         * generate physical static data scan if the table with index has replace statements
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param insert_stmt
+         * @param row_desc
+         * @param row_desc_map
+         * @param table_id
+         * @param rowkey_info
+         * @param table_scan
+         * @return OB_SUCCESS or other ERROR
+         */
         int gen_phy_static_data_scan_for_replace(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -506,6 +603,20 @@ namespace oceanbase
             const uint64_t table_id,
             const ObRowkeyInfo &rowkey_info,
             ObTableRpcScan &table_scan);
+
+        /**
+         * @brief gen_phy_values_for_replace
+         * generate physical values if the table with index has replace statements
+         * @param logical_plan
+         * @param physical_plan
+         * @param err_stat
+         * @param insert_stmt
+         * @param row_desc
+         * @param row_desc_ext
+         * @param row_desc_map
+         * @param value_op
+         * @return OB_SUCCESS or other ERROR
+         */
         int gen_phy_values_for_replace(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -516,6 +627,7 @@ namespace oceanbase
             const ObSEArray<int64_t, 64> *row_desc_map,
             ObExprValues& value_op);
         //add e
+
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,

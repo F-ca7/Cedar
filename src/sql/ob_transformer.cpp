@@ -9,9 +9,11 @@
  * @brief logical plan --transformer--> physical plan
  *
  * modified by longfei：generate physical plan for create, drop, index in select
+ * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 
@@ -2389,7 +2391,7 @@ bool ObTransformer::handle_index_for_one_table(
 
   if (OB_SUCCESS == ret)
   {
-    TBSYS_LOG(INFO,"begin judge use index table or not.");
+    //TBSYS_LOG(INFO,"begin judge use index table or not.");
     ObSecondaryIndexServiceImpl sec_idx_ser_impl;
     ObSecondaryIndexService* sec_idx_ser = &sec_idx_ser_impl;
     if (NULL == sec_idx_ser)
@@ -2397,7 +2399,7 @@ bool ObTransformer::handle_index_for_one_table(
       TBSYS_LOG(ERROR, "alloc mem failed");
       ret = OB_ERROR;
     }
-    sec_idx_ser->init(sql_context_->schema_manager_); ///bug1106 ms挂了
+    sec_idx_ser->init(sql_context_->schema_manager_);
     //sec_idx_ser->setSchemaManager(sql_context_->schema_manager_);
     bool is_use_hint = false;    //判断是否使用用户输入的hint
     uint64_t hint_tid = OB_INVALID_ID;     //用户输入的hint中的索引表的tid
@@ -2409,7 +2411,7 @@ bool ObTransformer::handle_index_for_one_table(
     uint64_t index_id = OB_INVALID_ID;       //��?终的: 如果用不回表的索引，索引表的tid
     uint64_t index_id_without_storing = OB_INVALID_ID; //��?终的: 如果用回表的索引，索引表的tid
 
-    TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
+    //TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
     if (stmt->get_query_hint().has_index_hint())
     {
       IndexTableNamePair tmp = stmt->get_query_hint().use_index_array_.at(0);
@@ -8124,7 +8126,8 @@ int ObTransformer::gen_phy_table_for_update_new(
         }
     }//end for
   // add action flag column
-  /*if (OB_LIKELY(OB_SUCCESS == ret))
+  //modify maoxx 2016/01/26
+  if (OB_LIKELY(OB_SUCCESS == ret))
   {
     ObSqlExpression column_ref;
     column_ref.set_tid_cid(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
@@ -8136,7 +8139,8 @@ int ObTransformer::gen_phy_table_for_update_new(
     {
       TBSYS_LOG(WARN, "failed to add output column, err=%d", ret);
     }
-  }*/
+  }
+  //modify e
 
   if (ret == OB_SUCCESS)
   {

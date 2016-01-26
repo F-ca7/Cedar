@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_index_trigger.cpp
+* @brief for operations of index trigger
+*
+* Created by maoxiaoxiao:modify index table with opertions to data table
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 #include "ob_index_trigger.h"
 #include "common/ob_iterator_adaptor.h"
 #include "sql/ob_physical_plan.h"
@@ -325,7 +342,9 @@ namespace oceanbase
             }
             else
             {
-                for(int64_t i = 0; i < need_modify_index_num_; i++)
+                if(2 == sql_type_ || 3 == sql_type_)
+                    ret = pre_data_row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+                for(int64_t i = 0; OB_SUCCESS == ret && i < need_modify_index_num_; i++)
                 {
                     if(OB_SUCCESS != (ret = handle_one_index_table(i, schema_mgr, host, session_ctx)))
                     {
@@ -371,8 +390,6 @@ namespace oceanbase
                 ObObj obj_dml, obj_virtual;;
                 if(OB_SUCCESS == ret && (1 == sql_type_ || (2 == sql_type_ ) || (3 == sql_type_ )))
                 {
-                    if(3 == sql_type_)
-                        pre_data_row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
                     pre_data_row.set_row_desc(pre_data_row_desc_);
                     pre_data_row_store_.reset_iterator();
                     while(OB_SUCCESS == (ret = (pre_data_row_store_.get_next_row(pre_data_row))))

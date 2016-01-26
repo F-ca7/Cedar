@@ -9,9 +9,11 @@
  * @brief all physical operator type
  *
  * modified by longfei：add some operators for secondary index
+ * modified by maoxiaoxiao:add physical operator "index trigger"
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 

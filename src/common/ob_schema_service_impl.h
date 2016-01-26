@@ -10,9 +10,11 @@
  *
  * modified by longfei：add some function for new a core table
  * modified by WengHaixing: add some funcfion for secondary index status/columnchecksum
+ * modified by maoxiaoxiao:add implementations of functions to check column checksum, clean column checksum and get column checksum
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -131,8 +133,36 @@ namespace oceanbase
        */
       int assemble_index_table(const nb_accessor::TableRow* table_row, TableSchema& table_schema);
       //add maoxx
+      /**
+       * @brief check_column_checksum
+       * check column checksum
+       * @param orginal_table_id
+       * @param index_table_id
+       * @param cluster_id
+       * @param current_version
+       * @param column_checksum_flag
+       * @return OB_SUCCESS or other ERROR
+       */
       virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag);
+
+      /**
+       * @brief clean_column_checksum
+       * clean column checksum
+       * @param max_draution_of_version
+       * @param current_version
+       * @return OB_SUCCESS or other ERROR
+       */
       virtual int clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version);
+
+      /**
+       * @brief get_column_checksum
+       * get column checksum
+       * @param range
+       * @param cluster_id
+       * @param required_version
+       * @param column_checksum
+       * @return OB_SUCCESS or other ERROR
+       */
       virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum);
       //add e
 	  //add wenghaixing [secondary index.static_index]20151217

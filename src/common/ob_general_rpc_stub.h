@@ -10,9 +10,12 @@
  *
  * modified by longfei：add rpc call for drop index and retry_failed_work
  * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
+ * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author WengHaixing <wenghaixing@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -398,8 +401,31 @@ namespace oceanbase
             const ObServer &chunk_server,
             const BlackList list);
         //add e
+		
         //add maoxx
+	    /**
+         * @brief get_column_checksum
+         * get column checksum
+         * @param timeout
+         * @param root_server
+         * @param new_range
+         * @param version
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
         int get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum);
+		
+		/**
+         * @brief report_tablets_histogram
+         * report tablets histogram
+         * @param timeout
+         * @param root_server
+         * @param client_server
+         * @param tablets
+         * @param time_stamp
+         * @param has_more
+         * @return OB_SUCCESS or other ERROR
+         */
         int report_tablets_histogram(const int64_t timeout, const ObServer & root_server,
             const ObServer &client_server,  const ObTabletHistogramReportInfoList& tablets,
             const int64_t time_stamp, bool has_more);
