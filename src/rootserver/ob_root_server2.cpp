@@ -1876,7 +1876,7 @@ int ObRootServer2::modify_staging_index()
       tid = staging_index.at(i);
       if (OB_SUCCESS != (ret = check_tablet_version_v2(tid, last_frozen_mem_version, 0, is_merged)))
       {
-        TBSYS_LOG(WARN, "check_tablet_version_v3 failed:version[%ld], tid[%lu], ret[%d]", last_frozen_mem_version, tid, ret);
+        TBSYS_LOG(WARN, "check_tablet_version_v2 failed:version[%ld], tid[%lu], ret[%d]", last_frozen_mem_version, tid, ret);
       }
       else if (true == is_merged)
       {
@@ -1896,7 +1896,6 @@ int ObRootServer2::modify_staging_index()
   {
     OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
   }
-  return ret;
 
   return ret;
 }
@@ -1916,7 +1915,7 @@ int ObRootServer2::check_tablet_version_v2(const uint64_t table_id, const int64_
       if ((chunk_server_count > 0) && (chunk_server_count < min_replica_count))
       {
         TBSYS_LOG(TRACE, "check chunkserver count less than replica num:server[%d], replica[%ld]",
-              chunk_server_count, safe_count);
+            chunk_server_count, safe_count);
         min_replica_count = chunk_server_count;
       }
     }
@@ -1927,13 +1926,13 @@ int ObRootServer2::check_tablet_version_v2(const uint64_t table_id, const int64_
     }
     else
     {
-      err = root_table_->check_tablet_version_merged_v2(table_id, tablet_version, min_replica_count, is_merged);
+      err = root_table_->check_tablet_version_merged_v3(table_id, tablet_version, min_replica_count, is_merged);
     }
   }
   else
   {
     err = OB_ERROR;
-    TBSYS_LOG(WARN, "check_tablet_version_v2 failed. root_table_ = null");
+    TBSYS_LOG(WARN, "check_tablet_version_v3 failed. root_table_ = null");
   }
   return err;
 }
@@ -2571,6 +2570,7 @@ int ObRootServer2::create_empty_tablet_with_range(const int64_t frozen_version,
 // WARN: if safe_count is zero, then use system min(safe replica count , alive chunk server count) as safe_count
 int ObRootServer2::check_tablet_version(const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const
 {
+  /*modify wenghaixing [secondary index.static_index]20160126
   int err = OB_SUCCESS;
   int32_t chunk_server_count = server_manager_.get_alive_server_count(true);
   TBSYS_LOG(TRACE, "check tablet version[required_version=%ld]", tablet_version);
@@ -2602,7 +2602,73 @@ int ObRootServer2::check_tablet_version(const int64_t tablet_version, const int6
   {
     err = OB_ERROR;
     TBSYS_LOG(WARN, "fail to check tablet_version_merged. root_table_ = null");
+  }*/
+  int err = OB_SUCCESS;
+  int32_t chunk_server_count = server_manager_.get_alive_server_count(true);
+  TBSYS_LOG(TRACE, "check tablet version[required_version=%ld]", tablet_version);
+  tbsys::CRLockGuard guard(root_table_rwlock_);
+  if (NULL != root_table_)
+  {
+    int64_t min_replica_count = safe_count;
+    if (0 == safe_count)
+    {
+      min_replica_count = config_.tablet_replicas_num;
+      if ((chunk_server_count > 0) && (chunk_server_count < min_replica_count))
+      {
+        TBSYS_LOG(TRACE, "check chunkserver count less than replica num:server[%d], replica[%ld]",
+              chunk_server_count, safe_count);
+        min_replica_count = chunk_server_count;
+      }
+    }
+    if (root_table_->is_empty())
+    {
+      TBSYS_LOG(WARN, "root table is empty, try it later");
+      is_merged = false;
+    }
+    else
+    {
+      common::ObSchemaManagerV2* out_schema = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+      if (NULL == out_schema)
+      {
+        TBSYS_LOG(WARN, "fail to new schema_manager.");
+        err = OB_ALLOCATE_MEMORY_FAILED;
+      }
+      else if (OB_SUCCESS != ( err = const_cast<ObRootServer2*>(this)->get_schema(false, false, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "fail to get schema. ret=%d", err);
+      }
+      else if (OB_SUCCESS != (err = root_table_->check_tablet_version_merged_v2(tablet_version, min_replica_count, is_merged, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "check_tablet_version_merged_v2() failed. ret=%d", err);
+      }
+      if (out_schema != NULL)
+      {
+        OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, out_schema);
+      }
+    }
+    if(OB_SUCCESS == err)
+    {
+      if(NULL == worker_)
+      {
+        TBSYS_LOG(ERROR, "root_worker pointer is NULL");
+      }
+      else if(is_merged && tablet_version == get_last_frozen_version())
+      {
+        TBSYS_LOG(INFO, "common merged complete,tablet_version[%ld],last frozen version[%ld]",tablet_version,get_last_frozen_version());
+        worker_->get_icu().set_start_version(tablet_version);
+        if(worker_->get_icu().is_start() && !(worker_->get_icu().check_create_index_over()))
+        {
+          is_merged = false;
+        }
+      }
+    }
   }
+  else
+  {
+    err = OB_ERROR;
+    TBSYS_LOG(WARN, "check_tablet_version_v2 failed. root_table_ = null");
+  }
+  return err;
   return err;
 }
 

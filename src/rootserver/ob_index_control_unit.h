@@ -178,6 +178,10 @@ namespace oceanbase
          * @return IndexService.
          */
         ObIndexService &get_service(){return service_;}
+
+        bool check_create_index_over();
+
+
       private:
 
         int64_t version_;                               ///< index tablet version
@@ -194,6 +198,11 @@ namespace oceanbase
         tbsys::CThreadMutex icu_mutex_;                 ///< mutex lock of icu
         mutable tbsys::CThreadMutex designer_mutex_;    ///< mutex lock of designer
     };
+
+    inline bool ObIndexControlUnit::check_create_index_over()
+    {
+      return !job_running_;
+    }
   }
 }
 

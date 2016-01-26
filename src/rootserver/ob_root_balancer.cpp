@@ -3456,7 +3456,29 @@ int ObRootBalancer::check_replica_count_for_import(int64_t tablet_version)
     }
     else
     {
-      ret = root_table_->check_tablet_version_merged(tablet_version, min_replica_count, is_merged);
+      //add wenghaixing, [secondary index static_index_build] 20160126:b
+      common::ObSchemaManagerV2* out_schema = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+      if (NULL == out_schema)
+      {
+        TBSYS_LOG(WARN, "fail to new schema_manager.");
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+      }
+      else if (OB_SUCCESS != ( ret = root_server_->get_schema(false, false, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "fail to get schema. ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = root_table_->check_tablet_version_merged_v2(tablet_version, min_replica_count, is_merged, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "check_tablet_version_merged_v2() failed. ret=%d", ret);
+      }
+      if (out_schema != NULL)
+      {
+        OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, out_schema);
+      }
+      //add:e
+      //del wenghaixing, [secondary index static_index_build] 20160126:b
+      //ret = root_table_->check_tablet_version_merged(tablet_version, min_replica_count, is_merged);
+      //del:e
       if (OB_SUCCESS != ret)
       {
         TBSYS_LOG(WARN, "failed to check_tablet_version_merged, tablet_version=%ld min_replica_count=%ld, ret=%d",

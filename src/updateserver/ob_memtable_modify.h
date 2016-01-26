@@ -114,7 +114,7 @@ namespace oceanbase
         }
         else
         {
-            //add maoxx
+          //add maoxx
             if(T::child_op_->get_type() == sql::PHY_INDEX_TRIGGER)
             {
                 ObIUpsTableMgr* host = &host_;

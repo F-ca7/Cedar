@@ -112,7 +112,8 @@ namespace oceanbase
         int get_root_meta_index(const common::ObTabletInfo &tablet, int32_t &meta_index);
         int get_root_meta(const int32_t meta_index, const_iterator &root_meta);
         const_iterator find_pos_by_range(const common::ObNewRange &range);
-        int check_tablet_version_merged_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged);
+        int check_tablet_version_merged_v2(const int64_t tablet_version, const int64_t safe_count, bool &is_merged, const common::ObSchemaManagerV2 &schema_mgr) const;
+        int check_tablet_version_merged_v3(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged);
         //add e
         int get_table_row_checksum(const int64_t tablet_version, const uint64_t table_id, uint64_t &row_checksum);
 
