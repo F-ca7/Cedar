@@ -2672,7 +2672,6 @@ int ObRootServer2::check_tablet_version(const int64_t tablet_version, const int6
     TBSYS_LOG(WARN, "check_tablet_version_v2 failed. root_table_ = null");
   }
   return err;
-  return err;
 }
 
 void ObRootServer2::dump_migrate_info() const
