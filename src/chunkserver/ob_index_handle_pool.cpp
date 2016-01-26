@@ -192,9 +192,7 @@ namespace oceanbase
       }
       else if (NULL == tablet_manager_)
       {
-        //modify liuxiao [secondary index static_index_build.bug_fix.merge_error]20150604
         ret = OB_INVALID_ARGUMENT;
-        //modify e
         TBSYS_LOG(ERROR, "tablet_manager pointer is NULL");
       }
       else
@@ -1293,7 +1291,6 @@ namespace oceanbase
       ObServer next_server;
       ObNewRange wok_range;
       hash::ObHashMap <ObNewRange, ObTabletLocationList, hash::NoPthreadDefendMode> * range_info = NULL;
-      //debug 20150420
       switch (level)
       {
         case LOCAL_INDEX_SST_BUILD_FAILED:
