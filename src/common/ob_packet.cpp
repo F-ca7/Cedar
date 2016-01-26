@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_packet.cpp
+ * @brief define packet information
+ *
+ * modified by longfei：add some packet using by secondary index
+ * modified by maoxiaoxiao:add some packets using by secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+ 
 #include "ob_packet.h"
 #include "ob_thread_mempool.h"
 #include "utility.h"

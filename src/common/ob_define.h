@@ -9,9 +9,11 @@
  * @brief define constant
  *
  * modified by longfei：add some macros used in secondary index
+ * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 

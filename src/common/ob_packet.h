@@ -9,9 +9,11 @@
  * @brief define packet information
  *
  * modified by longfei：add some packet using by secondary index
+ * modified by maoxiaoxiao:add some packets using by secondary index
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 #ifndef OCEANBASE_PACKET_H_
@@ -480,11 +482,11 @@ namespace oceanbase
       OB_SESSION_END = 10001,
 
       //add maoxx
-      OB_INDEX_JOB = 12000,
-      OB_GET_COLUMN_CHECKSUM = 12005,
-      OB_GET_COLUMN_CHECKSUM_RESPONSE = 12006,
-      OB_REPORT_TABLETS_HISTOGRAMS = 12003,
-      OB_REPORT_TABLETS_HISTOGRAMS_RESPONSE = 12004,
+      OB_INDEX_JOB = 12000, ///<job of constructing index
+      OB_GET_COLUMN_CHECKSUM = 12005, ///<get column checksum
+      OB_GET_COLUMN_CHECKSUM_RESPONSE = 12006, ///<get column checksum response
+      OB_REPORT_TABLETS_HISTOGRAMS = 12003, ///<report tablet histogram information
+      OB_REPORT_TABLETS_HISTOGRAMS_RESPONSE = 12004, ///<report tablet histogram information response
       //add e
 
       //add longfei [cons static index] 151218:b

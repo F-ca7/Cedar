@@ -10,9 +10,11 @@
  *
  * modified by longfei：add rt_create_index() and rt_drop_index()
  * modified by wenghaixing: add icu into root worker
+ * modified by maoxiaoxiao:add functions to get column checksum in root server
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -236,6 +238,16 @@ namespace oceanbase
             common::ObDataBuffer& out_buff);
 
         //add maoxx
+	    /**
+         * @brief rt_get_column_checksum
+         * get column checksum
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return OB_SUCCESS or other ERROR
+         */
         int rt_get_column_checksum(const int32_t version, common::ObDataBuffer& in_buff, easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         //add e
 

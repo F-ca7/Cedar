@@ -9,9 +9,11 @@
  * @brief logical plan --transformer--> physical plan
  *
  * modified by longfei：generate physical plan for create, drop, index in select
+ * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_22
  */
 

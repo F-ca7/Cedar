@@ -10,9 +10,11 @@
  *
  * modified by longfei：add rt_create_index() and rt_drop_index()
  * modified by wenghaixing: add icu into rootworker
+ * modified by maoxiaoxiao:add functions to get column checksum in root server
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 

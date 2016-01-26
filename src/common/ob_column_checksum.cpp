@@ -1,9 +1,19 @@
-/*
- * ob_column_checksum.cpp
- *
- *  Created on: 2015年12月16日
- *      Author: maoxiaoxiao
- */
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_column_checksum.h
+* @brief for column checksum of table
+*
+* Created by maoxiaoxiao:operations to column checksum, such as add, compare and so on
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
 
 #ifndef OB_COLUMN_CHECKSUM_CPP
 #define OB_COLUMN_CHECKSUM_CPP

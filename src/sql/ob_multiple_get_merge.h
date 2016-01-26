@@ -1,4 +1,21 @@
 /**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_multiple_get_merge.h
+* @brief for operations of merging data
+*
+* modified by maoxiaoxiao:add functions to reset iterator
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -34,6 +51,9 @@ namespace oceanbase
         enum ObPhyOperatorType get_type() const{return PHY_MULTIPLE_GET_MERGE;}
         int64_t to_string(char *buf, int64_t buf_len) const;
         //add maoxx
+        /**
+         * @brief reset_iterator
+         */
         void reset_iterator();
         //add e
 

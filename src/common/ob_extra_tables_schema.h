@@ -9,9 +9,11 @@
  * @brief define schema of core table and system table
  *
  * modified by longfei：add an core table: "__all_secondary_index" for storing secondary index table
+ * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -76,8 +78,22 @@ namespace oceanbase
       static int all_server_session_schema(TableSchema &table_schema);
       static int all_statement_schema(TableSchema &table_schema);
       //add maoxx
+      /**
+       * @brief all_index_service_schema
+       * construct schema of system table for index service information
+       * @param table_schema
+       * @return OB_SUCCESS or other ERROR
+       */
       static int all_index_service_schema(TableSchema &table_schema);
-      static int all_column_checksum_info(TableSchema & table_schema);
+
+      static int all_column_checksum_info(TableSchema &table_schema);
+
+      /**
+       * @brief all_column_checksum_stat
+       * construct schema of system table for column checksum information
+       * @param table_schema
+       * @return OB_SUCCESS or other ERROR
+       */
       static int all_column_checksum_stat(TableSchema &table_schema);
       //add e
     private:

@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_index_reporter.cpp
+* @brief for report index histogram info
+*
+* Created by maoxiaoxiao:send local index histogram information and send index tablet information
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 #include "ob_index_reporter.h"
 #include "ob_chunk_server_main.h"
 namespace oceanbase

@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_index_trigger.cpp
+* @brief for operations of index trigger
+*
+* Created by maoxiaoxiao:modify index table with opertions to data table
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 #include "ob_index_trigger.h"
 #include "common/ob_iterator_adaptor.h"
 #include "sql/ob_physical_plan.h"

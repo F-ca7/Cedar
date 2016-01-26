@@ -1,4 +1,21 @@
 /**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_insert_dbsem_filter.h
+* @brief for operations of insert semantic filter
+*
+* modified by maoxiaoxiao:add functions to reset iterator
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -47,6 +64,9 @@ namespace oceanbase
         void set_input_values(uint64_t subquery) {input_values_subquery_ = subquery;}
         enum ObPhyOperatorType get_type() const{return PHY_INSERT_DB_SEM_FILTER;}
         //add maoxx
+        /**
+         * @brief reset_iterator
+         */
         void reset_iterator() { insert_values_.reset_iterator();}
         //add e
 

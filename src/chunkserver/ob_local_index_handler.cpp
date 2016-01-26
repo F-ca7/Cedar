@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_local_index_handler.cpp
+* @brief for partitional index
+*
+* Created by maoxiaoxiao:write partitional index , calculate column checksum of data table and report index histogram info
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 #include "ob_local_index_handler.h"
 #include "ob_index_handle_pool.h"
 #include "ob_disk_manager.h"
@@ -107,7 +124,7 @@ namespace oceanbase
 
       uint64_t index_cid = OB_INVALID_ID;
       const ObTableSchema *table_schema = schema_manager_->get_table_schema(data_tid);
-      const ObTableSchema* index_table_schema = schema_manager_->get_table_schema(index_tid);
+      const ObTableSchema *index_table_schema = schema_manager_->get_table_schema(index_tid);
       const ObRowkeyInfo idx_ori = index_table_schema->get_rowkey_info();
       index_data_row_desc.set_rowkey_cell_count(idx_ori.get_size());
       for(int64_t i = 0; i < idx_ori.get_size(); i++)
@@ -144,7 +161,7 @@ namespace oceanbase
             break;
           }
 		}
-		  */
+      mod e*/
 		if(!idx_ori.is_rowkey_column(j))
         {
             if(OB_SUCCESS != (ret = schema_manager_->column_hit_index(data_tid, j, column_hit_index_flag)))

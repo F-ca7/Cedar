@@ -10,11 +10,14 @@
  *
  * modified by longfei：add some function for new a core table
  * modified by WengHaixing: add some funcfion for secondary index status/columnchecksum
+ * modified by maoxiaoxiao:add implementations of functions to check column checksum, clean column checksum and get column checksum
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
+ 
 #include "ob_schema_service_impl.h"
 #include "ob_extra_tables_schema.h"
 #include "ob_schema_service.h"

@@ -14,10 +14,16 @@
  *
  * modified by WengHaixing:
  * 1.add some function to fit secondary index constrution
+ *
+ * modified by maoxiaoxiao:
+ * 1.add functions to check column checksum, clean column checksum and get column checksum
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
+ 
 #include "ob_schema_service.h"
 #include "common/utility.h"
 #include "common/ob_common_param.h"

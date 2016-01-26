@@ -9,9 +9,11 @@
  * @brief define module
  *
  * modified by longfei： add a module for static index handler
+ * modified by maoxiaoxiao:add a module to report tablet histogram
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
