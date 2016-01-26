@@ -629,7 +629,12 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   int ret = OB_SUCCESS;
   int64_t count = inst_list_.count();
   int64_t last_pos = pos;
-  if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, count)) )
+
+  if( OB_SUCCESS != (ret = group_proc_name_.serialize(buf, buf_len, pos)))
+  {
+    TBSYS_LOG(WARN, "serialize group_proc_name fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, count)) )
   {
     TBSYS_LOG(WARN, "serialize inst count fail");
   }
@@ -782,7 +787,11 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   int ret = OB_SUCCESS;
   int64_t count = 0;
 
-  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &count)) )
+  if( OB_SUCCESS != (ret = group_proc_name_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize group_proc_name fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &count)) )
   {
     TBSYS_LOG(WARN, "deserialize inst count fail");
   }
@@ -919,6 +928,7 @@ int SpBlockInsts::assign(const SpInst *inst)
   }
   rs_ = old_inst->rs_;
   ws_ = old_inst->ws_;
+  group_proc_name_ = old_inst->group_proc_name_;
   return ret;
 }
 
@@ -2127,7 +2137,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
 int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "type [Group]\n");
+  databuff_printf(buf, buf_len, pos, "type [Group] name:%.*s\n", group_proc_name_.length(), group_proc_name_.ptr());
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *inst = inst_list_.at(i);

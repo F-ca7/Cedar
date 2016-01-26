@@ -61,7 +61,7 @@ namespace oceanbase
             break;
             //add zt 20151110:b
           case PHY_PROCEDURE:
-            ret = new_operator(ObUpsProcedure, allocator);
+            ret = new_operator(ObUpsProcedure, allocator, *session_ctx_);
             break;
             //add zt 20151110:e
           default:

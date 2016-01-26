@@ -1073,6 +1073,11 @@ int ObProcedure::optimize()
     exec_list_.push_back(static_item_loop);
 
     SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("neworder"), block_name);
+
+    block_inst->set_name(block_name);
     block_inst->add_inst(item_loop);
 
     exec_list_.push_back(inst_list_.at(4));

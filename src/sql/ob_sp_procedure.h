@@ -390,6 +390,9 @@ namespace oceanbase
       SpBlockInsts() : SpInst(SP_BLOCK_INST) {}
       virtual ~SpBlockInsts();
 
+      const ObString & get_name() const { return group_proc_name_; }
+      void set_name(ObString &name) { group_proc_name_ = name; }
+
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
@@ -409,6 +412,7 @@ namespace oceanbase
       ObSEArray<SpInst *, 32> inst_list_;
       SpVariableSet rs_;
       SpVariableSet ws_;
+      ObString group_proc_name_;
     };
 
     class SpIfCtrlInsts;
