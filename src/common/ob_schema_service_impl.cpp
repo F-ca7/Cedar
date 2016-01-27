@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema_service_impl.cpp
+ * @brief implementation of schema service
+ *
+ * modified by longfei：add some function for new a core table
+ * modified by WengHaixing: add some funcfion for secondary index status/columnchecksum
+ * modified by maoxiaoxiao:add implementations of functions to check column checksum, clean column checksum and get column checksum
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+ 
 #include "ob_schema_service_impl.h"
 #include "ob_extra_tables_schema.h"
 #include "ob_schema_service.h"
@@ -96,8 +116,8 @@ int ObSchemaServiceImpl::add_join_info(ObMutator* mutator, const TableSchema& ta
       value[3].set_int(join_info.right_column_id_);
       rowkey.assign(value, 4);
 
-      //连调需要
-      //rowkey列不需要写入，等郁白在UPS端的修改完成以后可以去掉
+      //杩炶皟闇�瑕�
+      //rowkey鍒椾笉闇�瑕佸啓鍏ワ紝绛夐儊鐧藉湪UPS绔殑淇敼瀹屾垚浠ュ悗鍙互鍘绘帀
       //to be delete start
      // ADD_INT(joininfo_table_name, rowkey, "left_table_id", join_info.left_table_id_);
      // ADD_INT(joininfo_table_name, rowkey, "left_column_id", join_info.left_column_id_);
@@ -491,11 +511,23 @@ int ObSchemaServiceImpl::create_table(const TableSchema& table_schema)
 
   if(OB_SUCCESS == ret)
   {
-    ret = create_table_mutator(table_schema, mutator);
-    if(OB_SUCCESS != ret)
-    {
-      TBSYS_LOG(WARN, "create table mutator fail:ret[%d]", ret);
-    }
+	//mod longfei [create index]
+	if(OB_INVALID_ID == table_schema.original_table_id_)
+	{
+	    ret = create_table_mutator(table_schema, mutator);
+	    if(OB_SUCCESS != ret)
+	    {
+	      TBSYS_LOG(WARN, "create table mutator fail:ret[%d]", ret);
+	    }
+	}
+	else
+	{
+		ret = create_index_mutator(table_schema, mutator);
+	    if(OB_SUCCESS != ret)
+	    {
+	      TBSYS_LOG(WARN, "create index mutator fail:ret[%d]", ret);
+	    }
+	}
   }
 
   if(OB_SUCCESS == ret)
@@ -728,7 +760,22 @@ int ObSchemaServiceImpl::drop_table(const ObString& table_name)
 
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+    // mod longfei [drop index] 20151026
+    // delect index table's schema in __all_secondary_index
+
+    //-------------------old-------------//
+    //ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+
+    //-------------------new-------------//
+    if(is_index_table_or_not(table_name))
+    {
+      ret = nb_accessor_.delete_row(OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey);
+    }
+    else
+    {
+      ret = nb_accessor_.delete_row(FIRST_TABLET_TABLE_NAME, rowkey);
+    }
+    //mod e
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "delete rwo from first tablet table fail:ret[%d]", ret);
@@ -817,6 +864,10 @@ int ObSchemaServiceImpl::init_id_name_map(ObTableIdNameIterator& iterator)
       {
         TBSYS_LOG(WARN, "write string to string buf fail:ret[%d]", ret);
       }
+      else
+      {
+        //TBSYS_LOG(INFO, "get_table_id_name = %.*s", table_id_name->table_name_.length(),table_id_name->table_name_.ptr());
+      }
     }
 
     int err = 0;
@@ -861,6 +912,11 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
   {
     table_name = joininfo_table_name;
   }
+  //longfei [create index]
+  else if (OB_ALL_SECONDARY_INDEX_TID == table_id)
+  {
+    table_name = secondary_index_table_name;
+  }
   else if (!check_inner_stat())
   {
     ret = OB_ERROR;
@@ -898,8 +954,22 @@ int ObSchemaServiceImpl::get_table_id(const ObString& table_name, uint64_t& tabl
 
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+    // mod longfei [drop index] 20151026
+    // search index table's schema in __all_secondary_index
 
+    //----------------old----------------//
+    //ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+
+    //----------------new----------------//
+    if(is_index_table_or_not(table_name))
+    {
+      ret = nb_accessor_.get(res, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey, SC("table_id"));
+    }
+    else
+    {
+      ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_id"));
+    }
+    // mod e
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "get table schema fail:ret[%d]", ret);
@@ -1040,6 +1110,10 @@ int ObSchemaServiceImpl::get_table_schema(const ObString& table_name, TableSchem
   {
     ret = ObExtraTablesSchema::all_join_info_schema(table_schema);
   }
+  else if (table_name == secondary_index_table_name)
+  {
+    ret = ObExtraTablesSchema::all_secondary_index_schema(table_schema); //longfei [create index]
+  }
   else
   {
     if(!check_inner_stat())
@@ -1082,14 +1156,31 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
 
   TableRow* table_row = NULL;
 
+  // mod longfei [create index]
   if(OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
-        ("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
-        ("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
-        ("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
-        ("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
-        ("create_time_column_id")("modify_time_column_id"));
+
+	  if(is_index_table_or_not(table_name))
+	 // if(0)
+	  {
+		  ret = nb_accessor_.get(res, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, rowkey, SC("table_name")("table_id")
+		          ("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
+		          ("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
+		          ("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
+		          ("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
+				  ("original_table_id")("index_status")
+		          ("create_time_column_id")("modify_time_column_id"));
+	  }
+	  // mod e
+	  else
+	  {
+		ret = nb_accessor_.get(res, FIRST_TABLET_TABLE_NAME, rowkey, SC("table_name")("table_id")
+			("table_type")("load_type")("table_def_type")("rowkey_column_num")("replica_num")
+			("max_used_column_id")("create_mem_version")("tablet_max_size")("tablet_block_size")
+			("max_rowkey_length")("compress_func_name")("expire_condition")("is_use_bloomfilter")
+			("is_read_static")("merge_write_sstable_version")("schema_version")("is_pure_update_table")("rowkey_split")
+			("create_time_column_id")("modify_time_column_id"));
+	  }
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "get table schema fail:ret[%d]", ret);
@@ -1101,7 +1192,17 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
     table_row = res->get_only_one_row();
     if(NULL != table_row)
     {
-      ret = assemble_table(table_row, table_schema);
+    	//mod longfei [create index]
+      if(is_index_table_or_not(table_name))
+      //if(0)
+      {
+    	  ret = assemble_index_table(table_row, table_schema);
+      }
+      // mod e
+      else
+      {
+    	  ret = assemble_table(table_row, table_schema);
+      }
       if(OB_SUCCESS != ret)
       {
         TBSYS_LOG(WARN, "assemble table fail:ret[%d]", ret);
@@ -1622,4 +1723,552 @@ int ObSchemaServiceImpl::prepare_privilege_for_table(const TableRow* table_row, 
   ADD_INT(privilege_table_name, rowkey, "priv_replace", priv_replace);
   return ret;
 }
+
+int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, ObMutator* mutator)
+{
+  int ret = OB_SUCCESS;
+
+  ObString table_name;
+  table_name.assign_ptr(const_cast<char*>(table_schema.table_name_), static_cast<int32_t>(strlen(table_schema.table_name_)));
+
+  ObObj table_name_value;
+  table_name_value.set_varchar(table_name);
+
+  ObRowkey rowkey;
+  rowkey.assign(&table_name_value, 1);
+
+  //ADD_VARCHAR(secondary_index_table_name, rowkey, "table_name", table_schema.table_name_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_id", table_schema.table_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_type", table_schema.table_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "load_type", table_schema.load_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "table_def_type", table_schema.table_def_type_);
+  ADD_INT(secondary_index_table_name, rowkey, "rowkey_column_num", table_schema.rowkey_column_num_);
+  ADD_INT(secondary_index_table_name, rowkey, "replica_num", table_schema.replica_num_);
+  ADD_INT(secondary_index_table_name, rowkey, "max_used_column_id", table_schema.max_used_column_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "create_mem_version", table_schema.create_mem_version_);
+  ADD_INT(secondary_index_table_name, rowkey, "tablet_max_size", table_schema.tablet_max_size_);
+  ADD_INT(secondary_index_table_name, rowkey, "tablet_block_size", table_schema.tablet_block_size_);
+  ADD_VARCHAR(secondary_index_table_name, rowkey, "compress_func_name", table_schema.compress_func_name_);
+
+  ADD_INT(secondary_index_table_name, rowkey, "is_use_bloomfilter", table_schema.is_use_bloomfilter_);
+  ADD_INT(secondary_index_table_name, rowkey, "is_pure_update_table", table_schema.is_pure_update_table_);
+  //ADD_INT(secondary_index_table_name, rowkey, "consistency_level", table_schema.consistency_level_);
+  ADD_INT(secondary_index_table_name, rowkey, "is_read_static", table_schema.consistency_level_);
+  ADD_INT(secondary_index_table_name, rowkey, "rowkey_split", table_schema.rowkey_split_);
+  ADD_INT(secondary_index_table_name, rowkey, "max_rowkey_length", table_schema.max_rowkey_length_);
+  ADD_INT(secondary_index_table_name, rowkey, "merge_write_sstable_version", table_schema.merge_write_sstable_version_);
+  ADD_INT(secondary_index_table_name, rowkey, "schema_version", table_schema.schema_version_);
+  ADD_VARCHAR(secondary_index_table_name, rowkey, "expire_condition", table_schema.expire_condition_);
+  //ADD_VARCHAR(secondary_index_table_name, rowkey, "comment_str", table_schema.comment_str_);
+  ADD_INT(secondary_index_table_name, rowkey, "original_table_id", table_schema.original_table_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "index_status", table_schema.index_status_);
+  ADD_INT(secondary_index_table_name, rowkey, "create_time_column_id", table_schema.create_time_column_id_);
+  ADD_INT(secondary_index_table_name, rowkey, "modify_time_column_id", table_schema.modify_time_column_id_);
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = add_column(mutator, table_schema);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "add column to mutator fail:ret[%d]", ret);
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = add_join_info(mutator, table_schema);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "add join info to mutator fail:ret[%d]", ret);
+    }
+  }
+  return ret;
+}
+
+/**
+ * @brief ObSchemaServiceImpl::is_index_table_or_not 判断是否是索引表
+ * @param table_name
+ * @return true or false
+ */
+bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
+{
+
+	int64_t len = 1;
+	bool flag = true;
+  char temp[table_name.length()];
+	len = table_name.to_string(temp,table_name.length());
+	if(len <= 0)
+	{
+		TBSYS_LOG(WARN,"table name can not be empty.");
+		flag = 0;
+	}
+	else if(len < 3)
+	{
+		TBSYS_LOG(WARN,"this is not a index name");
+		flag = 0;
+	}
+	else
+	{
+		if(temp[0] != '_' || temp[1] != '_' || temp[2] != '_')
+		{
+			flag = 0;
+		}
+	}
+	if(flag)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSchema& table_schema)
+{
+  int ret = OB_SUCCESS;
+  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
+  if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
+  {
+    ret = OB_SUCCESS;
+    ASSIGN_VARCHAR_FROM_ROWKEY("table_name", 0, table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+    TBSYS_LOG(WARN, "assemble_table table_name=%s", table_schema.table_name_);
+  }
+  */
+
+  ASSIGN_INT("table_id", table_schema.table_id_, uint64_t);
+  ASSIGN_INT("table_type", table_schema.table_type_, TableSchema::TableType);
+  ASSIGN_INT("load_type", table_schema.load_type_, TableSchema::LoadType);
+  ASSIGN_INT("table_def_type", table_schema.table_def_type_, TableSchema::TableDefType);
+  ASSIGN_INT("rowkey_column_num", table_schema.rowkey_column_num_, int32_t);
+  ASSIGN_INT("replica_num", table_schema.replica_num_, int32_t);
+  ASSIGN_INT("max_used_column_id", table_schema.max_used_column_id_, int64_t);
+  ASSIGN_INT("create_mem_version", table_schema.create_mem_version_, int64_t);
+  ASSIGN_INT("tablet_max_size", table_schema.tablet_max_size_, int64_t);
+  ASSIGN_INT("tablet_block_size", table_schema.tablet_block_size_, int64_t);
+  if (OB_SUCCESS == ret && table_schema.tablet_block_size_ <= 0)
+  {
+    TBSYS_LOG(WARN, "set tablet sstable block size to default value:read[%ld]", table_schema.tablet_block_size_);
+    table_schema.tablet_block_size_ = OB_DEFAULT_SSTABLE_BLOCK_SIZE;
+  }
+  ASSIGN_INT("max_rowkey_length", table_schema.max_rowkey_length_, int64_t);
+  ASSIGN_INT("merge_write_sstable_version", table_schema.merge_write_sstable_version_, int64_t);
+  ASSIGN_INT("schema_version", table_schema.schema_version_, int64_t);
+  ASSIGN_VARCHAR("compress_func_name", table_schema.compress_func_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  ASSIGN_VARCHAR("expire_condition", table_schema.expire_condition_, OB_MAX_EXPIRE_CONDITION_LENGTH);
+  //ASSIGN_VARCHAR("comment_str", table_schema.comment_str_, OB_MAX_TABLE_COMMENT_LENGTH);
+  ASSIGN_INT("is_use_bloomfilter", table_schema.is_use_bloomfilter_, int64_t);
+  ASSIGN_INT("is_pure_update_table", table_schema.is_pure_update_table_, int64_t);
+  ASSIGN_INT("is_read_static", table_schema.consistency_level_, int64_t);
+  //ASSIGN_INT("consistency_level", table_schema.consistency_level_, int64_t);
+  ASSIGN_INT("rowkey_split", table_schema.rowkey_split_, int64_t);
+  ASSIGN_INT("original_table_id", table_schema.original_table_id_, uint64_t);
+  ASSIGN_INT("index_status", table_schema.index_status_,  IndexStatus);
+  ASSIGN_INT("create_time_column_id", table_schema.create_time_column_id_, uint64_t);
+  ASSIGN_INT("modify_time_column_id", table_schema.modify_time_column_id_, uint64_t);
+  TBSYS_LOG(DEBUG, "table schema version is %ld, maxcolid=%lu, compress_fuction=%s, expire_condition=%s",
+      table_schema.schema_version_, table_schema.max_used_column_id_, table_schema.compress_func_name_, table_schema.expire_condition_);
+  return ret;
+}
+
+//add maoxx
+int ObSchemaServiceImpl::check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag)
+{
+    int ret = OB_SUCCESS;
+    QueryRes* res = NULL;
+    TableRow* table_row = NULL;
+    ObNewRange range;
+    int64_t cell_index = 0;//因为只取出column checksum列的数据，所以为0
+    int64_t rowkey_column_num = 4;
+    ObObj start_rowkey[rowkey_column_num];
+    ObObj end_rowkey[rowkey_column_num];
+    ObColumnChecksum original_table_column_checksum;
+    ObColumnChecksum index_table_column_checksum;
+    ObColumnChecksum row_column_checksum;
+
+    ObString tmp_string;
+    char tmp_char[OB_MAX_COL_CHECKSUM_STR_LEN];
+    tmp_string.assign_ptr(tmp_char, OB_MAX_COL_CHECKSUM_STR_LEN);
+
+    original_table_column_checksum.reset();
+    index_table_column_checksum.reset();
+
+    start_rowkey[0].set_int(orginal_table_id);
+    end_rowkey[0].set_int(orginal_table_id);
+    start_rowkey[1].set_int(cluster_id);
+    end_rowkey[1].set_int(cluster_id);
+    start_rowkey[2].set_int(current_version);
+    end_rowkey[2].set_int(current_version);
+    start_rowkey[3].set_min_value();
+    end_rowkey[3].set_max_value();
+
+    range.start_key_.assign(start_rowkey, rowkey_column_num);
+    range.end_key_.assign(end_rowkey, rowkey_column_num);
+    range.border_flag_.inclusive_end();
+    range.border_flag_.inclusive_start();
+
+    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+    {
+      TBSYS_LOG(WARN, "fail to nb scan column checksum info of orginal table %d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "start calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+      while(OB_SUCCESS == (ret = res->next_row()))
+      {
+        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+        {
+          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+          break;
+        }
+        else if(NULL != table_row)
+        {
+          if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+          {
+            TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+            break;
+          }
+          else
+          {
+            row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+            ret = original_table_column_checksum.add(row_column_checksum);
+            row_column_checksum.reset();
+            tmp_string.reset();
+          }
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+          break;
+        }
+      }
+      if (OB_ITER_END != ret)
+      {
+        TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", orginal_table_id);
+      }
+      else
+      {
+          ret = OB_SUCCESS;
+      }
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      start_rowkey[0].set_int(index_table_id);
+      end_rowkey[0].set_int(index_table_id);
+      start_rowkey[1].set_int(cluster_id);
+      end_rowkey[1].set_int(cluster_id);
+      start_rowkey[2].set_int(current_version);
+      end_rowkey[2].set_int(current_version);
+      start_rowkey[3].set_min_value();
+      end_rowkey[3].set_max_value();
+
+      range.start_key_.assign(start_rowkey, rowkey_column_num);
+      range.end_key_.assign(end_rowkey, rowkey_column_num);
+      range.border_flag_.inclusive_end();
+      range.border_flag_.inclusive_start();
+
+      nb_accessor_.release_query_res(res);
+      res = NULL;
+
+      if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+      {
+        TBSYS_LOG(WARN, "fail to nb scan column checksum info of index table %d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "start calculate column checksum of index_table_id:%ld", index_table_id);
+        while(OB_SUCCESS == (ret = res->next_row()))
+        {
+          if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+          {
+            TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+            break;
+          }
+          else if(NULL != table_row)
+          {
+            if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+            {
+              TBSYS_LOG(ERROR, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+              break;
+            }
+            else
+            {
+              row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+              ret = index_table_column_checksum.add(row_column_checksum);
+              row_column_checksum.reset();
+              tmp_string.reset();
+            }
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+            break;
+          }
+        }
+        if (OB_ITER_END != ret)
+        {
+          TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", index_table_id);
+        }
+        else
+        {
+          ret = OB_SUCCESS;
+        }
+      }
+    }
+
+    if (OB_SUCCESS == ret)
+    {
+      bool is_equal = false;
+      if(OB_SUCCESS == (ret = original_table_column_checksum.equal(index_table_column_checksum, is_equal)) && is_equal)
+      {
+        column_checksum_flag = true;
+        TBSYS_LOG(INFO, "this index table column checksum is correct table_id:%ld", index_table_id);
+      }
+      else
+      {
+        column_checksum_flag = false;
+        TBSYS_LOG(WARN, "this index table column checksum is incorrect table_id:%ld", index_table_id);
+      }
+    }
+
+    return ret;
+}
+
+//modify wenghaixing [secondary index.static_index]20160118
+int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version)
+{
+    int ret = OB_SUCCESS;
+    QueryRes* res = NULL;
+    TableRow* table_row = NULL;
+    ObNewRange range;
+    int64_t cell_index = 0;
+    //int64_t version_index  = 2;
+    int64_t filter_version = current_version - max_draution_of_version;
+    range.set_whole_range();
+    ScanConds conds;
+    conds("version", LT, filter_version);
+    TBSYS_LOG(INFO, "clean version less than %ld, conds count = %ld",filter_version, conds.count());
+
+    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("version"), conds)))
+    {
+      TBSYS_LOG(WARN, "failed to scan data to delete from column_checksum ret[%d]" , ret);
+    }
+    else
+    {
+      while(OB_SUCCESS == res->next_row()&& OB_SUCCESS == ret)
+      {
+        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+        {
+          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+          break;
+        }
+        else if(NULL != table_row)
+        {
+          table_row->dump_test();
+          if(OB_SUCCESS != (ret = nb_accessor_.delete_row(OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, table_row->get_cell_info(cell_index)->row_key_)))
+          {
+            TBSYS_LOG(WARN, "failed to delete one row from column cheksum ret[%d]", ret);
+            break;
+          }
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "delete column checksum row is NULL");
+          break;
+        }
+      }
+    }
+    return ret;
+}
+//modify e
+
+int ObSchemaServiceImpl::get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum)
+{
+  int ret = OB_SUCCESS;
+  QueryRes* res = NULL;
+  TableRow* table_row = NULL;
+  ObRowkey rowkey;
+  ObObj rowkey_list[4];
+
+  char range_buf[OB_RANGE_STR_BUFSIZ];
+  range.to_string(range_buf, sizeof(range_buf));
+  int32_t len = static_cast<int32_t>(strlen(range_buf));
+  ObString str_range(0, len, range_buf);
+
+  rowkey_list[0].set_int(range.table_id_);
+  rowkey_list[1].set_int(cluster_id);
+  rowkey_list[2].set_int(required_version);
+  rowkey_list[3].set_varchar(str_range);
+  rowkey.assign(rowkey_list,4);
+
+  char varchar_column_checksum[common::OB_MAX_COL_CHECKSUM_STR_LEN];
+  if(OB_SUCCESS != ( ret = nb_accessor_.get(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, rowkey, SC("column_checksum"))))
+  {
+    TBSYS_LOG(ERROR, "faild to get nb column checksum ret = %d", ret);
+  }
+  else
+  {
+    table_row = res->get_only_one_row();
+    if(NULL != table_row)
+    {
+      ASSIGN_VARCHAR("column_checksum", varchar_column_checksum, common::OB_MAX_COL_CHECKSUM_STR_LEN);
+      len = static_cast<int32_t>(strlen(varchar_column_checksum));
+      column_checksum.write(varchar_column_checksum, len);
+    }
+    else
+    {
+      ret = OB_ENTRY_NOT_EXIST;
+      TBSYS_LOG(WARN, "get table row fail ret = %d", ret);
+    }
+  }
+  memset(range_buf, 0, OB_RANGE_STR_BUFSIZ*sizeof(char));
+  return ret;
+}
+//add e
+
+//add wenghaixing [secondary index.static_index]20151217
+int ObSchemaServiceImpl::get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat)
+{
+  int ret = OB_SUCCESS;
+  stat = INDEX_INIT;
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  else
+  {
+    QueryRes* res = NULL;
+    ObNewRange range;
+    int32_t rowkey_column = 2;
+    ObObj start_rowkey[rowkey_column];
+    ObObj end_rowkey[rowkey_column];
+    start_rowkey[0].set_int(table_id);
+    start_rowkey[1].set_min_value();
+    end_rowkey[0].set_int(table_id);
+    end_rowkey[1].set_max_value();
+    if (OB_SUCCESS == ret)
+    {
+      range.start_key_.assign(start_rowkey, rowkey_column);
+      range.end_key_.assign(end_rowkey, rowkey_column);
+    }
+    if(OB_SUCCESS == ret)
+    {
+      ret = nb_accessor_.scan(res, OB_INDEX_SERVICE_INFO_TABLE_NAME, range, SC("status"));
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "scan __index_process_info fail:ret[%d]", ret);
+      }
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      int64_t count = 0;
+      int32_t st = -1;
+      IndexStatus tmp_stat = INDEX_INIT;
+      TableRow* table_row = NULL;
+      int err = OB_SUCCESS;
+      while(OB_SUCCESS == (err = res->next_row()) && OB_SUCCESS == ret)
+      {
+        res->get_row(&table_row);
+        if (NULL == table_row)
+        {
+          TBSYS_LOG(WARN, "failed to get row from query results");
+          ret = OB_ERROR;
+        }
+        else
+        {
+          count++;
+          ASSIGN_INT("status", st, int32_t);
+          switch (st) {
+            case 0:
+              tmp_stat = NOT_AVALIBALE;
+              break;
+            case 1:
+              tmp_stat = AVALIBALE;
+              break;
+            case 2:
+              tmp_stat = ERROR;
+              break;
+            case 3:
+              tmp_stat = WRITE_ONLY;
+              break;
+            case 4:
+              tmp_stat = INDEX_INIT;
+              break;
+            default:
+              break;
+          }
+          if (ERROR == tmp_stat)
+          {
+            break;
+          }
+        }
+      }//end while
+
+      if (OB_SUCCESS == ret)
+      {
+        if (ERROR == tmp_stat ||
+            (NOT_AVALIBALE == tmp_stat && count == cluster_count))
+        {
+          stat = tmp_stat;
+        }
+        /*else
+        {
+          ret = OB_EAGAIN;//记录数不等于cluster数
+        }*/
+      }
+    }
+
+    nb_accessor_.release_query_res(res);
+    res = NULL;
+  }
+  return ret;
+}
+
+int ObSchemaServiceImpl::get_cluster_count(int64_t &cc)
+{
+  int ret = OB_SUCCESS;
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  else
+  {
+    QueryRes* res = NULL;
+    ObNewRange range;
+    ObObj start_obj, end_obj;
+    start_obj.set_min_value();
+    end_obj.set_max_value();
+    range.start_key_.assign(&start_obj, 1);
+    range.end_key_.assign(&end_obj, 1);
+    if(OB_SUCCESS == ret)
+    {
+      ret = nb_accessor_.scan(res, OB_ALL_CLUSTER, range, SC("cluster_id"));
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "scan __all_cluster fail:ret[%d]", ret);
+      }
+      else
+      {
+        int64_t cluster_count = 0;
+        while(OB_SUCCESS == res->next_row())
+        {
+          cluster_count++;
+        }
+        cc = cluster_count;
+      }
+    }
+
+    nb_accessor_.release_query_res(res);
+    res = NULL;
+  }
+  return ret;
+}
+//add e
 

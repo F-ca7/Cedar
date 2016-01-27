@@ -234,7 +234,6 @@ namespace oceanbase
           }
         }
       }
-
       return pos;
     }
 

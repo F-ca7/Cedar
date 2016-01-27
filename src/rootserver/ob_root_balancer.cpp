@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_root_balancer.cpp
+ * @brief add a function to check if index finished
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -939,8 +956,53 @@ int ObRootBalancer::do_rereplication_by_table(const uint64_t table_id, bool &sca
       }
       else
       {
-        TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
-            root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+        //mod longfei [cons static index] 151227:b
+//        TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
+//            root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+
+        //double check schema
+        //if table is invalid index table, do not print error log, just warn
+        bool b_invalid_tid = true;
+        int err = OB_SUCCESS;
+        common::ObSchemaManagerV2 *schema_mgr = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+        if (NULL == schema_mgr)
+        {
+          TBSYS_LOG(WARN, "fail to new schema_manager.");
+          err = OB_ALLOCATE_MEMORY_FAILED;
+        }
+        else if (OB_SUCCESS != (err = root_server_->get_schema(false, false, *schema_mgr)))
+        {
+          TBSYS_LOG(WARN, "fail to get schema manager. err=%d", err);
+        }
+        else
+        {
+          const ObTableSchema *table_schema = NULL;
+          table_schema = schema_mgr->get_table_schema(table_id);
+          if (NULL == table_schema)
+          {
+            err = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN, "get table schema failed, table_id = [%lu]", table_id);
+          }
+          else if (OB_INVALID_ID != table_schema->get_original_table_id()
+                   && (ERROR == table_schema->get_index_status()
+                       || INDEX_INIT == table_schema->get_index_status()))
+          {
+            b_invalid_tid = false;
+            TBSYS_LOG(WARN, "find unavailiable index table not in root table, ignore it. role[%d], master[%d], table_id[%lu]",
+                root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+          }
+        }
+        //忽略由于schema err导致的invalid_tid: 进入函数之前schema中有table schema信息，进入之后schema中找不到
+        if (OB_SUCCESS != err && b_invalid_tid)
+        {
+          TBSYS_LOG(ERROR, "find table not in root table:role[%d], master[%d], table_id[%lu]",
+              root_server_->get_obi_role().get_role(), root_server_->is_master(), table_id);
+        }
+        if (schema_mgr != NULL)
+        {
+          OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, schema_mgr);
+        }
+        //mod e
       }
     }
     else
@@ -1832,6 +1894,20 @@ namespace oceanbase
     } // end namespace balancer
   } // end namespace rootserver
 } // end namespace oceanbase
+
+//add wenghaixing [secondary index.static_index]20151216
+bool ObRootBalancer::check_create_index_over()
+{
+  if(NULL == root_server_)
+  {
+    return false;
+  }
+  else
+  {
+    return root_server_->check_static_index_over();
+  }
+}
+//add e
 
 void ObRootBalancer::nb_print_shutting_down_progress(char *buf, const int64_t buf_len, int64_t& pos)
 {
@@ -3380,7 +3456,29 @@ int ObRootBalancer::check_replica_count_for_import(int64_t tablet_version)
     }
     else
     {
-      ret = root_table_->check_tablet_version_merged(tablet_version, min_replica_count, is_merged);
+      //add wenghaixing, [secondary index static_index_build] 20160126:b
+      common::ObSchemaManagerV2* out_schema = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+      if (NULL == out_schema)
+      {
+        TBSYS_LOG(WARN, "fail to new schema_manager.");
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+      }
+      else if (OB_SUCCESS != ( ret = root_server_->get_schema(false, false, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "fail to get schema. ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = root_table_->check_tablet_version_merged_v2(tablet_version, min_replica_count, is_merged, *out_schema)))
+      {
+        TBSYS_LOG(WARN, "check_tablet_version_merged_v2() failed. ret=%d", ret);
+      }
+      if (out_schema != NULL)
+      {
+        OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, out_schema);
+      }
+      //add:e
+      //del wenghaixing, [secondary index static_index_build] 20160126:b
+      //ret = root_table_->check_tablet_version_merged(tablet_version, min_replica_count, is_merged);
+      //del:e
       if (OB_SUCCESS != ret)
       {
         TBSYS_LOG(WARN, "failed to check_tablet_version_merged, tablet_version=%ld min_replica_count=%ld, ret=%d",

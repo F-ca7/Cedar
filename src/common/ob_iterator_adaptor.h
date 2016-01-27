@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_iterator_adaptor.h
+* @brief for iteration
+*
+* modified by maoxiaoxiao:add class to iterate through rows in a row store
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 ////===================================================================
  //
  // ob_iterator_adaptor.h common / Oceanbase
@@ -22,6 +39,9 @@
 #include "common/ob_schema.h"
 #include "common/ob_ups_row.h"
 #include "sql/ob_rowkey_phy_operator.h"
+//add maoxx
+#include "common/ob_row_store.h"
+//add e
 
 namespace oceanbase
 {
@@ -131,6 +151,36 @@ namespace oceanbase
         bool deep_copy_;
         bool is_ups_row_;
     };
+
+    //add maoxx
+    /**
+     * @brief The ObRowCellIterAdaptor class
+     * ObRowCellIterAdaptor is designed for
+     * iterating through rows in a row store
+     */
+    class ObRowCellIterAdaptor : public ObIterator
+    {
+        public:
+          ObRowCellIterAdaptor();
+          ~ObRowCellIterAdaptor();
+        public:
+          int next_cell();
+          int get_cell(ObCellInfo** cell);
+          int get_cell(ObCellInfo** cell, bool* is_row_changed);
+          int is_row_finished(bool* is_row_finished);
+        public:
+          void set_row_iter(ObRowStore *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr, ObRowDesc row_desc);
+          void reset();
+        private:
+          ObRowStore *row_iter_;
+          ObRowDesc row_desc_;
+          ObRow index_row_tmp_;
+          int64_t rk_size_;
+          ObCellAdaptor single_row_iter_;
+          bool is_iter_end_;
+          int set_row_iter_ret_;
+    };
+    //add e
   }
 }
 

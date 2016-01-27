@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_show_schema_manager.cpp
+ * @brief schema for show statement
+ *
+ * modified by longfei：
+ * 1.add function: add_show_index_schema()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -83,6 +101,57 @@ int ObShowSchemaManager::add_show_tables_schema(ObSchemaManagerV2& schema_mgr)
   }
   return ret;
 }
+
+
+/**
+ * @brief ObShowSchemaManager::add_show_index_schema: add virtual table __index_show's schema to schema_mgr
+ * @param schema_mgr
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @return
+ */
+int ObShowSchemaManager::add_show_index_schema(ObSchemaManagerV2& schema_mgr)
+{
+  int ret = OB_SUCCESS;
+  TableSchema table_schema;
+  table_schema.init_as_inner_table();
+  strcpy(table_schema.table_name_, OB_INDEX_SHOW_TABLE_NAME);
+  table_schema.table_id_ = OB_INDEX_SHOW_TID;
+  table_schema.rowkey_column_num_ = 1;
+  table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 2;
+  table_schema.max_rowkey_length_ = 128;
+  int column_id = OB_APP_MIN_COLUMN_ID;
+
+  ADD_COLUMN_SCHEMA("index_name", //column_name
+      column_id ++, //column_id
+      1, //rowkey_id
+      ObVarcharType,  //column_type
+      128, //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("status", //column_name
+      column_id ++, //column_id
+      0, //rowkey_id
+      //mod longfei 20150827:b
+      //ObIntType,  //column_type
+      ObVarcharType,
+      //sizeof(int32_t), //column length
+      128,
+      //mod e
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("index_column", //column_name
+      column_id ++, //column_id
+      0, //rowkey_id
+      ObVarcharType,  //column_type
+      128, //column length
+      false); //is nullable
+
+  if (ret == OB_SUCCESS
+    && (ret = schema_mgr.add_new_table_schema(table_schema)) != OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "Add schema of %s faild, ret=%d", OB_INDEX_SHOW_TABLE_NAME, ret);
+  }
+  return ret;
+}
+//add:e
 
 int ObShowSchemaManager::add_show_variables_schema(ObSchemaManagerV2& schema_mgr)
 {
@@ -423,6 +492,9 @@ int ObShowSchemaManager::add_show_schema(ObSchemaManagerV2& schema_mgr, int32_t 
   {
     case ObBasicStmt::T_SHOW_TABLES:
       ret = add_show_tables_schema(schema_mgr);
+      break;
+    case ObBasicStmt::T_SHOW_INDEX:
+      ret = add_show_index_schema(schema_mgr);
       break;
     case ObBasicStmt::T_SHOW_VARIABLES:
       ret = add_show_variables_schema(schema_mgr);

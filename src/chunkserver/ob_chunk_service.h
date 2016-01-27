@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_chunk_service.h
+ * @brief for chunkserver provides services
+ *
+ * modified by longfei：
+ *   1.add se_index_task
+ *   2.init index_handle_pool
+ *   3.deal with index heart beat
+ * future work:
+ *   deal with failed index task
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
@@ -22,6 +44,7 @@
 #include "common/ob_cur_time.h"
 #include "common/ob_ms_list.h"
 #include "sql/ob_sql_read_param.h"
+#include "common/ob_schema_service.h" //longfei [cons static index] 151216
 
 namespace oceanbase
 {
@@ -320,6 +343,29 @@ namespace oceanbase
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
 
+        // add longfei [cons static index] 151120:b
+        /**
+         * @brief cs_recieve_work: 处理其他cs发送过来的构建失败的索引
+         * @param version
+         * @param channel_id
+         * @param req
+         * @param in_buffer
+         * @param out_buffer
+         * @return error code
+         */
+        int cs_recieve_work(
+            const int32_t version,
+            const int32_t channel_id,
+            easy_request_t* req,
+            common::ObDataBuffer& in_buffer,
+            common::ObDataBuffer& out_buffer);
+        /**
+         * @brief handle_index_beat: 处理rs发送过来的心跳包中包含索引的部分
+         * @param beat
+         * @return error code
+         */
+        int handle_index_beat(IndexBeat beat);
+        //add e
 
       private:
         class LeaseChecker : public common::ObTimerTask
@@ -363,6 +409,118 @@ namespace oceanbase
             bool task_scheduled_;
             ObChunkService* service_;
         };
+
+        // add longfei [cons static index] 111520:b
+        /**
+         * @brief The SeIndexTask class
+         * is designed for set timeTask of constructing secondary index
+         */
+        class SeIndexTask : public common::ObTimerTask
+        {
+          public:
+            /**
+             * @brief SeIndexTask constructor
+             * @param service
+             */
+            SeIndexTask(ObChunkService* service)
+              :which_stage_(STAGE_INIT),task_scheduled_(false),service_(service){}
+          public:
+            /**
+             * @brief is_scheduled
+             * @return task_scheduled_
+             */
+            inline bool is_scheduled() const
+            {
+              return task_scheduled_;
+            }
+            /**
+             * @brief set_scheduled
+             */
+            inline void set_scheduled()
+            {
+              task_scheduled_ = true;
+            }
+            /**
+             * @brief unset_scheduled
+             */
+            inline void unset_scheduled()
+            {
+              task_scheduled_ = false;
+            }
+            /**
+             * @brief set_schedule_idx_tid
+             * @param table_id
+             * @return error code
+             */
+            int set_schedule_idx_tid(uint64_t table_id);
+            /**
+             * @brief set_hist_width
+             * @param hist_width
+             */
+            void set_hist_width(int64_t hist_width);
+            /**
+             * @brief get_round_end
+             * @return true or false
+             */
+            bool get_round_end();
+            /**
+             * @brief get_schedule_idx_tid
+             * @return schedule_idx_tid_
+             */
+            uint64_t get_schedule_idx_tid();
+            /**
+             * @brief try_stop_mission
+             * @param index_tid
+             * @return
+             */
+            int try_stop_mission(uint64_t index_tid);
+            bool check_new_global();
+            /**
+             * @brief check_if_in_processing
+             * @param [in] index_tid
+             * @return true or false
+             */
+            bool check_if_in_processing(uint64_t index_tid);
+            /**
+             * @brief runTimerTask 索引定时任务
+             */
+            virtual void runTimerTask();
+          public:
+            // add longfei [cons static index] :b
+            /**
+             * @brief get_which_stage
+             * @return which_stage_
+             */
+            inline int get_which_stage() const
+            {
+              return which_stage_;
+            }
+            /**
+             * @brief set_which_stage: set stage
+             * @param stage
+             */
+            void set_which_stage(common::ConIdxStage stage);
+            /**
+             * @brief reset
+             */
+            void reset();
+            /**
+             * @brief get_chunk_service
+             * @return service_
+             */
+            inline ObChunkService* get_chunk_service()
+            {
+              return service_;
+            }
+            // add e
+
+          private:
+            // add longfei [cons static index] e
+            common::ConIdxStage which_stage_; ///< stage info
+            bool task_scheduled_; ///< is scheduled?
+            ObChunkService* service_; ///< provide chunk service
+        };
+        // add e
 
         class FetchUpsTask : public common::ObTimerTask
         {
@@ -418,6 +576,9 @@ namespace oceanbase
         LeaseChecker lease_checker_;
         StatUpdater  stat_updater_;
         MergeTask    merge_task_;
+        // add longfei [cons static index] 151120:b
+        SeIndexTask se_index_task_; ///< se_index_task_ is aimed to construct static data for secondary index
+        // add e
         FetchUpsTask fetch_ups_task_;
         ObMergerSchemaTask fetch_schema_task_;
         ReportTabletTask report_tablet_task_;

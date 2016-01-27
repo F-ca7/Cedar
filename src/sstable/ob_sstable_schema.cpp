@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sstable_schema.cpp
+ * @brief for persistent schema.
+ *
+ * modified by longfei： debug: index table doesn't have storing column
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -1504,7 +1521,14 @@ namespace oceanbase
 
         for (col_index = 0; col_index < size && OB_SUCCESS == ret; ++col_index)
         {
-          if (rowkey_info.is_rowkey_column(col[col_index].get_id()))
+          //modify longfei [cons static index] 151205:b
+          //因为如果这张表是索引的话，表的列id是不连续的，索引要多加一个判定条件?
+          if (rowkey_info.is_rowkey_column(col[col_index].get_id())
+              || NULL
+                  == (schema.get_column_schema(new_table_id,
+                      col[col_index].get_id())))
+          //if (rowkey_info.is_rowkey_column(col[col_index].get_id()))
+          //mod e
           {
             // ignore rowkey columns;
             continue;
@@ -1520,6 +1544,9 @@ namespace oceanbase
           {
             TBSYS_LOG(ERROR,"add column_def(%u,%u,%u,%u) failed col_index : %ld",column_def.table_id_,
                 column_def.column_group_id_,column_def.column_name_id_,column_def.rowkey_seq_, col_index);
+          }
+          else
+          {
           }
         }
       }

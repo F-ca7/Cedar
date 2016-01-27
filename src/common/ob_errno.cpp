@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_errno.cpp
+ * @brief error code
+ *
+ * modified by longfei：add an error code: OB_INDEX_NOT_EXIST for secondary index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+
+/**
  * (C) 2010-2013 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -318,9 +336,11 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_UNKNOWN_SESSION_ID, "Unknown session ID");
     ADD_ERROR_STR(OB_ERR_PROTOCOL_NOT_RECOGNIZE, "Incorrect protocol");
     ADD_ERROR_STR(OB_ERR_WRITE_AUTH_ERROR, "Write auth packet error");
+    ADD_ERROR_STR(OB_INDEX_NOT_EXIST, "This table don't have index");//add longfei [drop table with index timeout] 151202:b
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");
+    ADD_ERROR_STR(OB_ERR_NULL_POINTER, "some null pointer err occured!");//add wenghaixing [secondary index.static index]20151118
     // Fatal errors and the client should close the connection, -8000 ~ -8999
     ADD_ERROR_STR(OB_ERR_SERVER_IN_INIT, "Server is initializing");
   }

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet.h
+ * @brief Basic data structure for tablet
+ *
+ * modified by longfei：
+ * 1.sstable number of a tablet: 1 --> 2
+ * 2.add member function: find_loc_idx_sstable()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2015_01_19
+ */
+
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -23,6 +42,8 @@
 #include "sstable/ob_disk_path.h"
 #include "sstable/ob_sstable_reader.h"
 #include "compactsstable/ob_compactsstable_mem.h"
+
+using namespace oceanbase::sstable;
 
 namespace oceanbase
 {
@@ -66,7 +87,11 @@ namespace oceanbase
     class ObTablet
     {
       public:
-        static const int64_t MAX_SSTABLE_PER_TABLET = 1;
+        //mod longfei [cons static index] 151121:b
+        //static const int64_t MAX_SSTABLE_PER_TABLET = 1;
+        static const int64_t MAX_SSTABLE_PER_TABLET = 2;
+        //mod e
+
         static const int64_t TABLET_ARRAY_BLOCK_SIZE = 256;
         static const int64_t MAX_COMPACTSSTABLE_PER_TABLET = 8;
       public:
@@ -79,6 +104,28 @@ namespace oceanbase
         template <typename Reader>
           int find_sstable(const common::ObRowkey& key, 
               Reader* sstable[], int32_t &size) const ;
+        //add longfei [cons static index] 151202:b
+        template <typename Reader>
+          int find_loc_idx_sstable(const common::ObNewRange& range,
+                                   Reader* sstable[], int32_t &size) const ;
+        /**
+         * @brief add_local_index_sstable_by_id: 将sstable加入到tablet中
+         * @param sstable_id
+         * @return return code
+         */
+        int add_local_index_sstable_by_id(const sstable::ObSSTableId &sstable_id);
+        /**
+         * @brief delete_local_index_sstableid
+         * @return return code
+         */
+        int delete_local_index_sstableid();
+        /**
+         * @brief load_local_sstable
+         * @param tablet_version
+         * @return return code
+         */
+        int load_local_sstable(const int64_t tablet_version = 0);
+          //add e
 
         int find_sstable(const sstable::ObSSTableId & sstable_id,
             sstable::ObSSTableReader* &reader) const;
@@ -168,8 +215,15 @@ namespace oceanbase
         inline bool is_with_next_brother() const { return with_next_brother_ > 0; }
         inline int32_t get_merge_count() const { return merge_count_; }
         inline void inc_merge_count() { ++merge_count_; }
-        inline int64_t inc_ref() { return __sync_add_and_fetch(&ref_count_, 1); }
-        inline int64_t dec_ref() { return __sync_sub_and_fetch(&ref_count_, 1); }
+        //__sync_add_and_fetch相当于(++i),自动加上线程锁,保证原子性
+        inline int64_t inc_ref()
+        {
+          return __sync_add_and_fetch(&ref_count_, 1);
+        }
+        inline int64_t dec_ref()
+        {
+          return __sync_sub_and_fetch(&ref_count_, 1);
+        }
         inline int32_t get_compactsstable_num() {return compactsstable_num_;}
         int add_compactsstable(compactsstable::ObCompactSSTableMemNode* cache);
         compactsstable::ObCompactSSTableMemNode* get_compactsstable_list();
@@ -269,6 +323,41 @@ namespace oceanbase
         return ret;
       }
 
+      //add longfei [cons static index] 151202:b
+    template <typename Reader>
+      int ObTablet::find_loc_idx_sstable(const common::ObNewRange& range,
+                                         Reader* sstable[], int32_t &size) const
+      {
+        UNUSED(range);
+        UNUSED(size);
+        int ret = OB_SUCCESS;
+        int index = 0;
+        if(OB_SUCCESS != sstable_loaded_)
+          ret = (sstable_loaded_ = const_cast<ObTablet*>(this)->load_sstable());
+        /*
+          if(OB_SUCCESS ==  ret && sstable_reader_list_.count() > 1)
+          {
+            sstable_reader_list_.at(1)->reset();
+            sstable_reader_list_.remove(1);
+            TBSYS_LOG(ERROR,"test::whx sstable_reader_list_.count() = [%ld]",sstable_reader_list_.count());
+          }
+          */
+        if(OB_SUCCESS != (ret  = const_cast<ObTablet*>(this)->load_local_sstable()))
+        {
+          TBSYS_LOG(WARN, "get local sstable load failed[%d]", ret);
+        }
+        else
+        {
+          sstable::SSTableReader* reader = sstable_reader_list_.at(1);
+          sstable[index] = dynamic_cast<Reader*> (reader);
+        }
+        if(1 == sstable_id_list_.count())
+        {
+          ret = OB_TABLET_HAS_NO_LOCAL_SSTABLE;
+          TBSYS_LOG(WARN, "get local sstable load failed[%d]", ret);
+        }
+        return ret;
+      }
   }
 }
 

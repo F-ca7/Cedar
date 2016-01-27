@@ -1,17 +1,21 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_postfix_expression.h
- * @brief    postfix expression
+ * @file ob_postfix_expression.h
+ * @brief postfix expression
+ *
+ * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
- * @version  __DaSE_VERSION
- * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
- */
-/*
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
+ *//*
  * (C) 2007-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,9 +31,6 @@
  *     - 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
  *
  */
-
-
-
 #ifndef OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #define OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #include "ob_item_type.h"
@@ -373,6 +374,23 @@ namespace oceanbase
         // print the postfix expression
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
+      public:
+        // add longfei [secondary index select]
+        /**
+         * @brief get_type_num: get different ObPostExprNodeType's params number
+         * @param idx
+         * @param type
+         * @return error code
+         */
+        int64_t get_type_num(int64_t idx,int64_t type) const;
+        /**
+         * @brief get_expr_by_index
+         * @param index
+         * @return expr_
+         */
+        ObObj& get_expr_by_index(int64_t index);
+        // add e
+
         NEED_SERIALIZE_AND_DESERIALIZE;
       private:
         class ExprUtil
@@ -464,6 +482,19 @@ namespace oceanbase
         static int32_t SYS_FUNCS_ARGS_NUM[SYS_FUNC_NUM];
       public:
         typedef ObSEArray<ObObj, BASIC_SYMBOL_COUNT> ExprArray;
+      public:
+        // add longfei [secondary index select] 20151031 :b
+        // to my opinion, sometimes we need to know what the actually expr_ is, so i add this interface
+        // and i used this in the series of secondary index service functions
+        /**
+         * @brief get_expr
+         * @return expr_
+         */
+        const ExprArray& get_expr() const
+        {
+          return expr_;
+        }
+        // add e
       private:
         ExprArray expr_;
         ObExprObj *stack_;
@@ -473,6 +504,7 @@ namespace oceanbase
         ObPhyOperator *owner_op_;
         ObStringBuf calc_buf_;
     }; // class ObPostfixExpression
+
     inline void ObPostfixExpression::set_int_div_as_double(bool did)
     {
       did_int_div_as_double_ = did;

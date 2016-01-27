@@ -712,7 +712,7 @@ void dump_multi_version_tablet_image(ObMultiVersionTabletImage & image, bool loa
 int dump_tablet(const ObTablet & tablet, const bool dump_sstable)
 {
   // dump sstable info
-  const common::ObSEArray<sstable::ObSSTableId, 1>& sstable_id_list_
+  const common::ObSEArray<sstable::ObSSTableId, 2>& sstable_id_list_
     = tablet.get_sstable_id_list();
   int64_t size = sstable_id_list_.count();
 
@@ -728,7 +728,7 @@ int dump_tablet(const ObTablet & tablet, const bool dump_sstable)
   if (dump_sstable)
   {
     const_cast<ObTablet&>(tablet).load_sstable(tablet.get_data_version());
-    const common::ObSEArray<sstable::SSTableReader*, 1> & sstable_reader_list_
+    const common::ObSEArray<sstable::SSTableReader*, 2> & sstable_reader_list_
       = tablet.get_sstable_reader_list();
     for (int64_t i = 0; i < sstable_reader_list_.count() ; ++i)
     {

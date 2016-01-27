@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_read_param_modifier.cpp
+ * @brief modify read param to fit secondary index construcion's stage
+ *        add a fake range handle
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or 
@@ -170,9 +189,10 @@ namespace oceanbase
       return ret;
     }
 
-    int get_next_param(
-        const ObScanParam &org_scan_param, const ObScanner &prev_scan_result, 
-        ObScanParam *scan_param, ObMemBuf &range_buffer)
+    int get_next_param(const ObScanParam &org_scan_param,
+                       const ObScanner &prev_scan_result,
+                       ObScanParam *scan_param,
+                       ObMemBuf &range_buffer)
     {
       int err = OB_SUCCESS;
       const ObReadParam &org_read_param = org_scan_param;
@@ -286,6 +306,22 @@ namespace oceanbase
           scan_param->set_scan_flag(org_scan_param.get_scan_flag());
         }
       }
+
+      //add wenghaixing [secondary index static_index_build.cs_scan]20151230
+      scan_param->set_fake(org_scan_param.if_need_fake());
+      ObNewRange fake_range;
+      if(scan_param->if_need_fake())
+      {
+        fake_range = *org_scan_param.get_fake_range();
+        scan_param->set_copy_args(false);
+        {
+          err = scan_param->set_fake_range(fake_range);
+        }
+        //modify e
+        //TBSYS_LOG(INFO,"test::whx set fake range [%s]", to_cstring(*scan_param->get_fake_range()));
+      }
+      //TBSYS_LOG(INFO,"test::whx set fake range [%s],range[%s]", to_cstring(*scan_param->get_fake_range()),to_cstring(*(scan_param->get_range())));
+      //add e
       return err;
     }
 

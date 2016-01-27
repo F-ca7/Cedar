@@ -995,5 +995,12 @@ namespace oceanbase
       return ret;
     }
 
+    int ObSqlReadParam::reset_project_and_filter()
+    {
+        project_.reset();
+        filter_.reset();
+        return OB_SUCCESS;
+    }
+
   } /* sql */
 } /* oceanbase */

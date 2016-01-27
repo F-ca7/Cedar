@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "ob_define.h"
+#include <tblog.h>
 
 namespace oceanbase
 {
@@ -35,8 +36,7 @@ namespace oceanbase
             }
             else
             {
-              add_ok = false;
-            }
+              add_ok = false;            }
             return add_ok;
           }
           T* pop()

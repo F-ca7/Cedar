@@ -1,18 +1,24 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_sql_expression.h
- * @brief    sql expression operator
+ * @file ob_sql_expression.h
+ * @brief sql expression class
+ *
+ * modified by longfei：
+ * 1.add function: set_table_id()
  * modified by Qiushi FAN: add some functions to create a new expression
- * @version  __DaSE_VERSION
- * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
  */
-/**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,6 +60,12 @@ namespace oceanbase
         const uint64_t get_column_id() const;
         const uint64_t get_table_id() const;
 
+        /**
+         * @brief set_table_id
+         * @param tid
+         */
+        void set_table_id(uint64_t tid); // add longfei [secondary index select] 20151102 e
+
         void set_aggr_func(ObItemType aggr_fun, bool is_distinct);
         int get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const;
         /**
@@ -71,6 +83,9 @@ namespace oceanbase
          * 获取解码后的表达式
          */
         inline const ObPostfixExpression &get_decoded_expression() const;
+        //add wenghaixing for fix insert bug decimal key 2014/10/11
+        inline  ObPostfixExpression &get_decoded_expression_v2() ;
+        //add e
         inline bool is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const;
         /**
          * 根据表达式语义对row的值进行计算
@@ -167,6 +182,13 @@ namespace oceanbase
       return table_id_;
     }
 
+    // add longfei [secondary index select] 20151102 :b
+    inline void ObSqlExpression::set_table_id(uint64_t tid)
+    {
+            table_id_ = tid;
+    }
+    // add e
+
     inline int ObSqlExpression::get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const
     {
       int ret = OB_SUCCESS;
@@ -192,6 +214,11 @@ namespace oceanbase
     }
 
     inline const ObPostfixExpression &ObSqlExpression::get_decoded_expression() const
+    {
+      return post_expr_;
+    }
+
+    inline ObPostfixExpression &ObSqlExpression::get_decoded_expression_v2()
     {
       return post_expr_;
     }

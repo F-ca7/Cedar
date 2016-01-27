@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_aio_buffer_mgr.cpp
+ * @brief add a reset function
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -517,6 +534,10 @@ namespace oceanbase
       void add_stat(const ObIOStat& stat);
       const char* get_thread_aio_stat_str();
 
+      //add wenghaixing [secondary index static_index_build]20150804
+      void reset();
+      //add e
+
     private:
       struct ObThreadAIOBufferMgrItem
       {
@@ -526,6 +547,16 @@ namespace oceanbase
         {
 
         }
+
+        //add longfei [cons static index] 151216:b
+        void reset()
+        {
+          sstable_id_ = common::OB_INVALID_ID;
+          table_id_ = common::OB_INVALID_ID;
+          column_group_id_ = common::OB_INVALID_ID;
+          aio_buf_mgr_ = NULL;
+        }
+        //add e
 
         uint64_t sstable_id_;
         uint64_t table_id_;

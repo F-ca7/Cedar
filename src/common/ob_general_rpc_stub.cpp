@@ -1,4 +1,25 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_general_rpc_stub.cpp
+ * @brief for rpc among chunk server, update server and root server.
+ *
+ * modified by longfei：add rpc call for drop index and retry_failed_work
+ * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
+ * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author WengHaixing <wenghaixing@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -46,12 +67,44 @@ namespace oceanbase
     {
     }
 
-    int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
+    //modify wenghaixing [secondary index.static_index]20160118
+    /*int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
         const ObServer & merge_server, const bool is_merger, int32_t & status, const char* server_version) const
     {
       return send_3_return_1(root_server, timeout, OB_SERVER_REGISTER,
                              DEFAULT_VERSION, merge_server, is_merger, server_version, status);
+    }*/
+    int ObGeneralRpcStub::register_server(const int64_t timeout, const ObServer & root_server,
+                                          const ObServer & chunk_server, const bool is_merger,
+                                          int32_t & status, int64_t &cluster_id,
+                                          const char* server_version) const
+    {
+      int ret = OB_SUCCESS;
+      int64_t pos = 0;
+      ObDataBuffer data_buffer;
+      ObResultCode rc;
+
+      if (OB_SUCCESS != (ret = get_rpc_buffer(data_buffer)))
+      {
+        TBSYS_LOG(WARN, "get_rpc_buffer failed with rpc call, ret =%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = send_param_3(data_buffer, root_server, timeout,
+                                                 OB_SERVER_REGISTER, DEFAULT_VERSION,
+                                                 chunk_server, is_merger, server_version)))
+      {
+        TBSYS_LOG(WARN, "send param to register server fail, ret: [%d]", ret);
+      }
+      else if (OB_SUCCESS != (ret = deserialize_result_1(data_buffer, pos, rc, status)))
+      {
+        TBSYS_LOG(ERROR, "deserialize server register result fail, ret: [%d]", ret);
+      }
+      else if (OB_SUCCESS != deserialize_result(data_buffer, pos, cluster_id)) /* succ though */
+      {
+        TBSYS_LOG(WARN, "deserialize cluster_id fail, maybe rootserver has low version.");
+      }
+      return ret;
     }
+    //modify e
 
     int ObGeneralRpcStub::register_merge_server(const int64_t timeout,
                                                 const common::ObServer & root_server,
@@ -132,6 +185,10 @@ namespace oceanbase
         const uint64_t root_table_id, const uint64_t table_id,
         const ObRowkey & row_key, ObScanner & scanner) const
     {
+      TBSYS_LOG(DEBUG,">>>timeout[%ld],table_id[%ld],rs[%s],rowkey[%s]",timeout,
+                table_id,
+                to_cstring(root_server),
+                to_cstring(row_key));
       ObCellInfo cell;
       // cell info not root table id
       UNUSED(root_table_id);
@@ -1038,6 +1095,73 @@ namespace oceanbase
       }
       return ret;
     }
+
+    int ObGeneralRpcStub::drop_index(const int64_t timeout, const common::ObServer & root_server,
+        bool if_exists, const common::ObStrings &indexs) const
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ObString temp;
+      ret = indexs.get_string(0,temp);
+      ret = send_2_return_0(root_server, timeout, OB_DROP_INDEX, DEFAULT_VERSION,
+          result_code, if_exists, indexs);
+
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_2_return_0 failed: ret[%d],result_code is %.*s", ret, result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+
+    //add longfei [cons static index] 151218:b
+    int ObGeneralRpcStub::retry_failed_work(const int64_t timeout, const ObServer &chunk_server, const BlackList list)
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ret = send_1_return_0(chunk_server, timeout, OB_RE_IDX_CONS_F, DEFAULT_VERSION,
+                            result_code, list);
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_1_return_0 failed: ret[%d]", ret);
+        TBSYS_LOG(USER_ERROR, "%.*s", result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+    //add e
+
+    //add maoxx
+    int ObGeneralRpcStub::get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum)
+    {
+      int ret = OB_SUCCESS;
+      ObString col_checksum;
+      char col_checksum_tmp[OB_MAX_COL_CHECKSUM_STR_LEN];
+      col_checksum.assign_ptr(col_checksum_tmp, OB_MAX_COL_CHECKSUM_STR_LEN);
+      if (OB_SUCCESS != (ret = send_2_return_1(root_server, timeout, OB_GET_COLUMN_CHECKSUM, NEW_VERSION, new_range, version, col_checksum)))
+      {
+        TBSYS_LOG(ERROR, " get old tablet column checksum failed, ret=%d", ret);
+      }
+      else
+      {
+        column_checksum.deepcopy(col_checksum.ptr());
+      }
+      return ret;
+    }
+
+    int ObGeneralRpcStub::report_tablets_histogram(
+        const int64_t timeout, const ObServer & root_server,
+        const ObServer &client_server, const ObTabletHistogramReportInfoList& tablets,
+        int64_t time_stamp, bool has_more)
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(has_more);
+      if (OB_SUCCESS != (ret = send_3_return_0(root_server, timeout, OB_REPORT_TABLETS_HISTOGRAMS, DEFAULT_VERSION + 1,
+              client_server, tablets, time_stamp)))
+      {
+        TBSYS_LOG(WARN, "send report tablets histogram message failed, ret=%d", ret);
+      }
+      return ret;
+    }
+    //add e
 
   } // end namespace chunkserver
 } // end namespace oceanbase

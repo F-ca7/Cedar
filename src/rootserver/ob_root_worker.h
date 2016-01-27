@@ -6,7 +6,13 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_worker.h
- * @brief ObRootWorker
+ * @brief root server worker
+ *
+ * modified by longfei：add rt_create_index() and rt_drop_index()
+ * modified by wenghaixing: add icu into root worker
+ * modified by maoxiaoxiao:add functions to get column checksum in root server
+ *
+ * modified by guojinwei,chujiajia,pangtianze,zhangcd:
  * support multiple clusters for HA by adding or modifying
  *   some functions, member variables
  *
@@ -15,13 +21,14 @@
  *   3.add the majority_count setting in rootserver.
  *
  * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia  <52151500014@ecnu.edu.cn>
  *         pangtianze <pangtianze@ecnu.com>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
- */
-/*===============================================================
+ * @date 2016_01_21
+ *//*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
  *
@@ -58,7 +65,9 @@
 #include "rootserver/ob_root_server_config.h"
 #include "rootserver/ob_root_inner_table_task.h"
 #include "rootserver/ob_check_rselection.h"
-
+//add wenghaixing [secondary index.static index]20151117
+#include "rootserver/ob_index_control_unit.h"
+//add e
 namespace oceanbase
 {
   namespace common
@@ -116,6 +125,9 @@ namespace oceanbase
         int submit_delete_tablets_task(const common::ObTabletReportInfoList& delete_list);
         int schedule_after_restart_task(const int64_t delay,bool repeate = false);
         int submit_restart_task();
+        //add wenghaixing [secondary index.static_index]20151118
+        int submit_job(ObPacket pc);
+        //add e
         int set_io_thread_count(int io_thread_num);
         ObRootLogManager* get_log_manager();
         common::ObRoleMgr* get_role_manager();
@@ -132,7 +144,10 @@ namespace oceanbase
         int64_t get_network_timeout();
         common::ObServer get_rs_master();
         common::ThreadSpecificBuffer* get_thread_buffer();
-        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        //add wenghaixing [secondary index.static_index]20151130
+        ObIndexControlUnit& get_icu();
+        //add e
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
         /**
          * @brief get rs election lease
          * @return the rs election lease
@@ -192,9 +207,7 @@ namespace oceanbase
          * @return OB_SUCCESS if success
          */
         int reelect_master_rootserver();
-        // add:e
-        
-      private:
+        // add:e      private:
         int start_as_master();
         int start_as_slave();
         template <class Queue>
@@ -245,12 +258,16 @@ namespace oceanbase
         int rt_dump_cs_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_fetch_stats(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_check_tablet_merged(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add wenghaixing [secondary index.static_index]20151118
+        int rt_handle_index_job(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        int rt_report_index_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        inline ObIndexControlUnit* get_index_control_unit(){return &icu_;}
+        //add e
         int rt_split_tablet(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rs_check_root_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_ping(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_slave_quit(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
-        int rt_update_server_report_freeze(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id,
-            common::ObDataBuffer& out_buff);
+        int rt_update_server_report_freeze(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id,            common::ObDataBuffer& out_buff);
 
         int rt_slave_register(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_renew_lease(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -289,6 +306,52 @@ namespace oceanbase
         int rt_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_execute_sql(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_handle_trigger_event(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        
+        //add longfei [create index]
+        /**
+         * @brief rt_create_index: rs recieve package OB_CREATE_INDEX
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return error code
+         */
+        int rt_create_index(
+            const int32_t version,
+            common::ObDataBuffer& in_buff,
+            onev_request_e* req,
+            const uint32_t channel_id,
+            common::ObDataBuffer& out_buff);
+        /**
+         * @brief rt_drop_index: rs recieve package OB_DROP_INDEX
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return
+         */
+        int rt_drop_index(
+            const int32_t version,
+            common::ObDataBuffer& in_buff,
+            onev_request_e* req,
+            const uint32_t channel_id,
+            common::ObDataBuffer& out_buff);
+
+        //add maoxx
+	    /**
+         * @brief rt_get_column_checksum
+         * get column checksum
+         * @param version
+         * @param in_buff
+         * @param req
+         * @param channel_id
+         * @param out_buff
+         * @return OB_SUCCESS or other ERROR
+         */
+        int rt_get_column_checksum(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add e
         int rt_set_config(const int32_t version,
             common::ObDataBuffer& in_buff, onev_request_e* req,
             const uint32_t channel_id, common::ObDataBuffer& out_buff);
@@ -381,6 +444,9 @@ namespace oceanbase
         ObRootSetAutoElectFlagTask set_auto_elect_flag_task_;
         // add:e
         ObTimer timer_;
+        //add wenghaixing[secondary index.static index]20151117
+        ObIndexControlUnit icu_;
+        //add e
     };
 
     inline ObRootServer2& ObRootWorker::get_root_server()
@@ -405,6 +471,11 @@ namespace oceanbase
     inline ObGeneralRpcStub& ObRootWorker::get_general_rpc_stub()
     {
       return general_rpc_stub_;
+    }
+    //add wenghaixing [secondary index.static_index]20151130
+    inline ObIndexControlUnit& ObRootWorker::get_icu()
+    {
+      return icu_;
     }
 
   }

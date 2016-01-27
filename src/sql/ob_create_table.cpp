@@ -59,7 +59,7 @@ int ObCreateTable::open()
   }
   else if (OB_SUCCESS != (ret = local_context_.rs_rpc_proxy_->create_table(if_not_exists_, table_schema_)))
   {
-    TBSYS_LOG(WARN, "failed to create table, err=%d", ret);
+    TBSYS_LOG(WARN, "failed to create table[%s], err=%d", table_schema_.table_name_, ret);
   }
   else
   {

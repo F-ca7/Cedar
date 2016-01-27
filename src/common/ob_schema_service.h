@@ -1,4 +1,30 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_schema_service.h
+ * @brief 表单schema相关数据结构。创建，删除，获取schema描述结构接口
+ *
+ * modified by longfei：
+ * 1.add two more member variables in TableSchema(struct) and their serialize() series function
+ * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
+ *
+ * modified by WengHaixing:
+ * 1.add some function to fit secondary index constrution
+ *
+ * modified by maoxiaoxiao:
+ * 1.add functions to check column checksum, clean column checksum and get column checksum
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -18,7 +44,7 @@
 #ifndef _OB_SCHEMA_SERVICE_H
 #define _OB_SCHEMA_SERVICE_H
 
-#include "common/ob_define.h"
+#include "ob_define.h"
 #include "ob_object.h"
 #include "ob_string.h"
 #include "ob_array.h"
@@ -29,6 +55,42 @@ namespace oceanbase
   namespace common
   {
     typedef ObObjType ColumnType;
+
+    //add longfei [cons static index] 151120:b
+    /**
+     * @brief The IndexBeat struct
+     * index beat is a type of heart beat, can carry some information between rs and cs
+     */
+    struct IndexBeat
+    {
+      uint64_t idx_tid_; ///< index table's id
+      IndexStatus status_; ///< index's status
+      int64_t hist_width_; ///< histogram's width
+      ConIdxStage stage_; ///< stage of constructing
+      /**
+       * @brief IndexBeat constructor
+       */
+      IndexBeat()
+      {
+        idx_tid_ = OB_INVALID_ID;
+        status_ = ERROR;
+        hist_width_ = 0;
+        stage_ = STAGE_INIT;
+      }
+      /**
+       * @brief reset
+       */
+      void reset()
+      {
+        idx_tid_ = OB_INVALID_ID;
+        status_ = ERROR;
+        hist_width_ = 0;
+        stage_ = STAGE_INIT;
+      }
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    };
+    //add e
+
     /* 表单join关系描述，对应于__all_join_info内部表 */
     struct JoinInfo
     {
@@ -131,6 +193,11 @@ namespace oceanbase
       int64_t tablet_block_size_;
       int64_t tablet_max_size_;
       int64_t max_rowkey_length_;
+
+      //longfei [create index]
+      uint64_t original_table_id_; ///< original table's id
+      IndexStatus index_status_; ///< index table's status
+
       int64_t merge_write_sstable_version_;
       int64_t schema_version_;
       uint64_t create_time_column_id_;
@@ -155,6 +222,11 @@ namespace oceanbase
            tablet_block_size_(OB_DEFAULT_SSTABLE_BLOCK_SIZE),
           tablet_max_size_(OB_DEFAULT_MAX_TABLET_SIZE),
           max_rowkey_length_(0),
+
+          //longfei [create index]
+          original_table_id_(OB_INVALID_ID),
+          index_status_(ERROR),
+
           merge_write_sstable_version_(DEFAULT_SSTABLE_VERSION),
           schema_version_(0),
           create_time_column_id_(OB_CREATE_TIME_COLUMN_ID),
@@ -351,6 +423,43 @@ namespace oceanbase
         virtual int get_max_used_table_id(uint64_t &max_used_tid) = 0;
         virtual int modify_table_id(TableSchema& table_schema, const int64_t new_table_id) = 0;
         virtual int set_max_used_table_id(const uint64_t max_used_tid) = 0;
+      //add maoxx
+      /**
+       * @brief check_column_checksum
+       * check column checksum
+       * @param orginal_table_id
+       * @param index_table_id
+       * @param cluster_id
+       * @param current_version
+       * @param column_checksum_flag
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag) = 0;
+
+      /**
+       * @brief clean_column_checksum
+       * clean column checksum
+       * @param max_draution_of_version
+       * @param current_version
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version) = 0;
+
+      /**
+       * @brief get_column_checksum
+       * get column checksum
+       * @param range
+       * @param cluster_id
+       * @param required_version
+       * @param column_checksum
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum) = 0;
+      //add e    
+      //add wenghaixing [secondary index.static_index]20151217
+      virtual int get_cluster_count(int64_t &cc) = 0;
+      virtual int get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat) = 0;
+      //add e
     };
 
   }

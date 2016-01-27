@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rpc_proxy.cpp
+ * @brief for rpc among chunk server, update server and root server.
+ *
+ * modified by longfei： add function cs_cs_scan()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -25,6 +42,9 @@
 #include "common/ob_schema_manager.h"
 #include "common/ob_statistics.h"
 #include "common/ob_common_stat.h"
+//add longfei
+#include "ob_chunk_server_stat.h"
+//add e
 
 namespace oceanbase
 {
@@ -1134,6 +1154,79 @@ namespace oceanbase
     {
       return ups_scan_(sql_rpc_stub_, scan_param, scanner, common::MERGE_SERVER, timeout);
     }
+
+    //add longfei [cons static index] 151204:b
+    int ObMergerRpcProxy::cs_cs_scan(const ObScanParam &scan_param, ObServer chunkserver, ObScanner &scanner, const ObServerType server_type, const int64_t time_out)
+    {
+      return cs_scan_(rpc_stub_, scan_param, chunkserver, scanner, server_type, time_out);
+    }
+
+    template<class T, class RpcT>
+    int ObMergerRpcProxy::cs_scan_(RpcT *rpc_stub, const ObScanParam & scan_param, const ObServer chunkserver,
+      T & scanner, const ObServerType server_type, const int64_t time_out )
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(server_type);
+      int64_t start_time = tbsys::CTimeUtil::getTime();
+      if (!check_inner_stat())
+      {
+        TBSYS_LOG(ERROR, "%s", "check inner stat failed");
+        ret = OB_INNER_STAT_ERROR;
+      }
+      else if (!check_scan_param(scan_param))
+      {
+        TBSYS_LOG(ERROR, "%s", "check scan param failed");
+        ret = OB_INPUT_PARAM_ERROR;
+      }
+      else
+      {
+        ret = cs_cs_scan_(rpc_stub, scan_param, chunkserver, scanner, time_out);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "scan from another cs failed:ret[%d]", ret);
+        }
+      }
+      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_COUNT);
+      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_TIME, tbsys::CTimeUtil::getTime() - start_time);
+
+      return ret;
+    }
+
+    template<class T, class RpcT>
+    int ObMergerRpcProxy::cs_cs_scan_(RpcT *rpc_stub, const ObScanParam & scan_param, const ObServer chunkserver, T & scanner,
+        const int64_t time_out)
+    {
+      int ret = OB_SUCCESS;
+      int64_t end_time = rpc_timeout_ + tbsys::CTimeUtil::getTime();
+      for (int64_t i = 0; tbsys::CTimeUtil::getTime() < end_time; ++i)
+      {
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "get another chunk server failed:ret[%d]", ret);
+          break;
+        }
+        ret = rpc_stub->scan((time_out > 0) ? time_out : rpc_timeout_, chunkserver, scan_param, scanner);
+        if(scan_param.if_need_fake())
+        {
+        }
+        if (false == check_need_retry_cs(ret))
+        {
+          break;
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "cs to cs scan fail. retry. ret=%d, i=%ld, rpc_timeout_=%ld cs[%s]",
+                    ret, i, rpc_timeout_, to_cstring(chunkserver));
+          usleep(static_cast <useconds_t>(RETRY_INTERVAL_TIME * (i + 1)));
+        }
+      }
+      if (OB_INVALID_START_VERSION == ret)
+      {
+        OB_STAT_INC(CHUNKSERVER, FAIL_CS_VERSION_COUNT);
+      }
+      return ret;
+    }
+    //add e
 
   } // end namespace chunkserver
 } // end namespace oceanbase

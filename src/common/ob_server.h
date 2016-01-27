@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file observer.h
+ * @brief add two hash functin for observer hasing
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
 
 /*
  *   (C) 2007-2010 Taobao Inc.
@@ -106,6 +123,10 @@ namespace oceanbase
         int parse_from_cstring(const char* ip_str);   // copy from 0.5
         // add:e
 
+        //add wenghaixing [secondary index.static_index]20151217
+        int64_t hash() const;   // for ob_hashtable.h
+        uint32_t murmurhash2(const uint32_t hash) const;
+        //add e
         NEED_SERIALIZE_AND_DESERIALIZE;
 
       private:
@@ -116,6 +137,12 @@ namespace oceanbase
           uint32_t v6_[4];
         } ip;
     };
+    //add wenghaixing [secondary index.static_index]20151217
+    inline int64_t ObServer::hash() const
+    {
+      return this->murmurhash2(0);
+    }
+    //add e
   } // end namespace common
 } // end namespace oceanbase
 
