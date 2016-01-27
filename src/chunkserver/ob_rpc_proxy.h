@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rpc_proxy.h
+ * @brief for rpc among chunk server, update server and root server.
+ *
+ * modified by longfei： add function cs_cs_scan() && cs_scan_() ...
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -175,6 +192,23 @@ namespace oceanbase
                            const common::ObServerType server_type = common::MERGE_SERVER,
                            const int64_t time_out = 0);
 
+      // add longfei [cons static index] 151204
+      /**
+       * @brief cs_cs_scan scan data from chunk server
+       * @param scan_param
+       * @param chunkserver
+       * @param [out] scanner
+       * @param server_type
+       * @param time_out
+       * @return error code
+       */
+      virtual int cs_cs_scan(const common::ObScanParam & scan_param,
+                             common::ObServer chunkserver,
+                             common::ObScanner & scanner,
+                             const common::ObServerType server_type = common::MERGE_SERVER,
+                             const int64_t time_out = 0);
+      //add e
+
       // get data from update server
       // param  @get_param get param
       //        @scanner return result
@@ -248,6 +282,22 @@ namespace oceanbase
                          const common::ObServerType server_type,
                          const int64_t time_out = 0);
 
+      //add longfei [cons static index] 151204:b
+      template<class T, class RpcT>
+      int cs_scan_(RpcT *rpc_stub,
+                   const common::ObScanParam & scan_param,
+                   const common::ObServer chunkserver,
+                   T & scanner,
+                   const common::ObServerType server_type = common::MERGE_SERVER,
+                   const int64_t time_out = 0);
+      template<class T, class RpcT>
+      int cs_cs_scan_(RpcT *rpc_stub,
+                          const common::ObScanParam & scan_param,
+                          const common::ObServer chunkserver,
+                          T & scanner,
+                          const int64_t time_out = 0);
+      //add e
+
       // find master update server from server list
       void update_ups_info(const common::ObUpsList & list);
 
@@ -281,6 +331,15 @@ namespace oceanbase
 
       // check if need retry ups when got a error code
       inline bool check_need_retry_ups(const int rc);
+
+      //add longfei [cons static index] 151204
+      /**
+       * @brief check_need_retry_cs
+       * @param rc
+       * @return true for need or false for not need
+       */
+      inline bool check_need_retry_cs(const int rc);
+      //add e
 
       /// max len
       static const int64_t MAX_RANGE_LEN = 128;
@@ -329,6 +388,18 @@ namespace oceanbase
       }
       return need_retry;
     }
+
+    //add longfei [cons static index] 151202:b
+    inline bool ObMergerRpcProxy::check_need_retry_cs(const int rc)
+    {
+      bool need_retry = false;
+      if(OB_RESPONSE_TIME_OUT == rc)
+      {
+        need_retry =true;
+      }
+      return need_retry;
+    }
+    //add e
   }
 }
 

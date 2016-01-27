@@ -197,6 +197,37 @@ namespace oceanbase
       return ret;
     }
 
+    int ObTableMemScan::add_main_output_column(const ObSqlExpression& expr)
+    {
+        //todo
+        UNUSED(expr);
+        return OB_SUCCESS;
+    }
+    int ObTableMemScan::add_main_filter(ObSqlExpression* expr)
+    {
+        //todo
+        UNUSED(expr);
+        return OB_SUCCESS;
+    }
+    int ObTableMemScan::add_index_filter(ObSqlExpression* expr)
+    {
+        //todo
+        UNUSED(expr);
+        return OB_SUCCESS;
+    }
+    int ObTableMemScan::cons_second_row_desc(ObRowDesc &row_desc)
+    {
+        //todo
+        UNUSED(row_desc);
+        return OB_SUCCESS;
+    }
+    int ObTableMemScan::set_second_row_desc(ObRowDesc *row_desc)
+    {
+        //todo
+        UNUSED(row_desc);
+        return OB_SUCCESS;
+    }
+
     int ObTableMemScan::set_table(const uint64_t table_id, const uint64_t base_table_id)
     {
       int ret = OB_SUCCESS;

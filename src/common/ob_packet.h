@@ -1,24 +1,30 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_packet.h
- * @brief packet 
+ * @brief define packet information
+ *
+ * modified by longfei：add some packets using by secondary index
+ * modified by maoxiaoxiao:add some packets using by secondary index
+ * modified by guojinwei,chujiajia,zhangcd and liubozhong:
  * support multiple clusters for HA by adding or modifying
  *   some functions, member variables
  * 1. add the packet_code OB_RS_GET_ALL_CLUSTERS_INFO, used in set majority_count
- * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag 
+ * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag
+ *
  * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
+ * @date 2016_01_21
  */
-
 #ifndef OCEANBASE_PACKET_H_
 #define OCEANBASE_PACKET_H_
 
@@ -299,7 +305,20 @@ namespace oceanbase
       OB_SET_SLAVE_CLUSTER_OBI_ROLE_RESPONSE = 553,
       // add:e
 
-      // trigger event
+      //[Merge Conflicts] 
+      /* OB_CREATE_INDEX = (550 --> 560)
+       * ...
+       * OB_DROP_INDEX_RESPONSE = (553 --> 563)
+       * by longfei 20160127
+       */
+
+      // index schema service
+      // longfei [create index]
+      OB_CREATE_INDEX = 560,
+      OB_CREATE_INDEX_RESPONSE = 561,
+      //longfei [drop index]
+      OB_DROP_INDEX = 562,
+      OB_DROP_INDEX_RESPONSE = 563,      // trigger event
       OB_HANDLE_TRIGGER_EVENT = 600,
       OB_HANDLE_TRIGGER_EVENT_RESPONSE = 601,
 
@@ -516,6 +535,21 @@ namespace oceanbase
       OB_SESSION_NEXT_REQUEST = 9999,
       OB_SESSION_NEXT_RESPONSE = 10000,
       OB_SESSION_END = 10001,
+
+      //add maoxx
+      OB_INDEX_JOB = 12000, ///<job of constructing index
+      OB_GET_COLUMN_CHECKSUM = 12005, ///<get column checksum
+      OB_GET_COLUMN_CHECKSUM_RESPONSE = 12006, ///<get column checksum response
+      OB_REPORT_TABLETS_HISTOGRAMS = 12003, ///<report tablet histogram information
+      OB_REPORT_TABLETS_HISTOGRAMS_RESPONSE = 12004, ///<report tablet histogram information response
+      //add e
+
+      //add longfei [cons static index] 151218:b
+      OB_RE_IDX_CONS_F = 12007,///< retry index consturct flag for which failed
+      OB_RE_IDX_CONS_F_RESPONSE = 12008,///< response
+      OB_GET_INIT_INDEX = 12009,
+      OB_GET_INIT_INDEX_RESPONSE = 12010,
+      //add e
 
       OB_PACKET_NUM, // do not fill value
     };

@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_aio_buffer_mgr.cpp
+ * @brief add a reset function
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -2402,6 +2421,19 @@ namespace oceanbase
 
       return buffer;
     }
+
+    //add wenghaixing [secondary index static_index_build]20150804
+    void ObThreadAIOBufferMgrArray::reset()
+    {
+      for(int64_t i = 0; i < item_count_; i++)
+      {
+        item_array_[i].reset();
+      }
+      item_count_ = 0;
+      alloc_.reuse();
+      thread_aio_stat_.reset();
+    }
+    //add e
 
     int wait_aio_buffer()
     {

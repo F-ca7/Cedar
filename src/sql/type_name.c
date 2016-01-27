@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file type_name.c
+ * @brief get type name
+ *
+ * modified by longfei：add some case
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
 #include "ob_item_type.h"
 const char* get_type_name(int type)
 {
@@ -141,6 +158,8 @@ const char* get_type_name(int type)
 	case T_CONSISTENT_MODE : return "T_CONSISTENT_MODE";
 	case T_DROP_TABLE : return "T_DROP_TABLE";
 	case T_TABLE_LIST : return "T_TABLE_LIST";
+	case T_DROP_INDEX : return "T_DROP_INDEX";
+	case T_INDEX_LIST : return "T_INDEX_LIST";
 	case T_ALTER_TABLE : return "T_ALTER_TABLE";
 	case T_ALTER_ACTION_LIST : return "T_ALTER_ACTION_LIST";
 	case T_TABLE_RENAME : return "T_TABLE_RENAME";
@@ -194,10 +213,20 @@ const char* get_type_name(int type)
 	case T_HINT_OPTION_LIST : return "T_HINT_OPTION_LIST";
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
+	case T_UNKOWN_HINT: return "T_UNKOWN_HINT"; //add longfei
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
-	case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
+	
+  case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
+  case T_USE_INDEX : return "T_USE_INDEX"; //add longfei
 	case T_KILL : return "T_KILL";
 	case T_MAX : return "T_MAX";
+
+	// add [secondaryindex reconstruct] longfei [create index]
+	case T_CREATE_INDEX : return "T_CREATE_INDEX";
+	case T_INDEX_ELEMENT_LIST : return "T_INDEX_ELEMENT_LIST";
+	case T_INDEX_STORING_LIST : return "T_INDEX_STORING_LIST";
+	case T_INDEX_OPTION_LIST : return "T_INDEX_OPTION_LIST";
+	// add e
 	default:return "Unknown";
 	}
 }

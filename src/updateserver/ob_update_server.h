@@ -6,18 +6,20 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_update_server.h
- * @brief ObUpdateServer
- *     modify by guojinwei, liubozhong, zhangcd: support multiple
+ * @brief add a function to get init index in ups schema
+ *
+ * modified by Wenghaixing add a function to get init index in ups schema
+ * modify by guojinwei, liubozhong, zhangcd: support multiple
  *     clusters for HA by adding or modifying some functions,
  *     member variables
  *
  * @version __DaSE_VERSION
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
- */
-/*
+ * @date  2016_01_24
+ *//*
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -611,7 +613,11 @@ namespace oceanbase
                            onev_request_e* req, const uint32_t channel_id);
         int ups_get_config(const int32_t version, onev_request_e* req,
                            const uint32_t channel_id, common::ObDataBuffer& out_buff);
-
+        //add wenghaixing [secondary index.static_index]20151118
+        int ups_get_init_index(const int32_t version, common::ObDataBuffer& in_buff,
+                               onev_request_e
+* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add e
 
         int ups_handle_fake_write_for_keep_alive();
 

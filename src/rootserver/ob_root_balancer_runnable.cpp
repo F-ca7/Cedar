@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file   ob_root_balancer_runnable.cpp
+ * @brief  modified by wenghaixing:
+ *         now it will not balance while secondary index is being constructed
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -57,7 +76,17 @@ void ObRootBalancerRunnable::run(tbsys::CThread *thread, void *arg)
   {
     if (is_master() || role_mgr_.get_role() == ObRoleMgr::STANDALONE)
     {
-      balancer_.do_balance_or_load();
+      //modify by wenghaixing [secondary index static_index] 20151216
+      //balancer_.do_balance_or_load();
+      if(balancer_.check_create_index_over())
+      {
+        balancer_.do_balance_or_load();
+      }
+      else
+      {
+         TBSYS_LOG(INFO, "is building index, do not balance");
+      }
+      //modify e
     }
     else
     {

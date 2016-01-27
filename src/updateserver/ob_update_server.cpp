@@ -6,18 +6,20 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_update_server.cpp
- * @brief ObUpdateServer
- *     modify by guojinwei, liubozhong, zhangcd: support multiple
+ * @brief update server
+ *
+ * modified by Wenghaixing: add a function to get init index in ups schema
+ * modify by guojinwei, liubozhong, zhangcd: support multiple
  *     clusters for HA by adding or modifying some functions,
  *     member variables
  *
  * @version __DaSE_VERSION
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
- */
-/*
+ * @date 2016_01_24
+ *//*
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1697,6 +1699,7 @@ namespace oceanbase
       case OB_SQL_SCAN_REQUEST:
       case OB_SET_CONFIG:
       case OB_GET_CONFIG:
+      case OB_GET_INIT_INDEX:   //add wenghaixing[secondary index.static_index]20151118
         ps = read_thread_queue_.push(req, read_task_queue_size_, false,
                                      (NORMAL_PRI == priority)
                                      ? PriorityPacketQueueThread::NORMAL_PRIV
@@ -2091,6 +2094,11 @@ namespace oceanbase
               case OB_GET_CONFIG:
                 return_code = ups_get_config(version, req, channel_id, thread_buff);
                 break;
+              //add wenghaixing [secondary index.static_index]20151118
+              case OB_GET_INIT_INDEX:
+                return_code = ups_get_init_index(version, *in_buf, req, channel_id, thread_buff);
+                break;
+              //add e
               case OB_UPS_ASYNC_UPDATE_SCHEMA:
                 return_code = do_async_update_whole_schema();
                 break;
@@ -6709,6 +6717,71 @@ namespace oceanbase
 
       return ret;
     }
+
+    //add wenghaixing [secondary index.static_index]20151118
+    int ObUpdateServer::ups_get_init_index(const int32_t version, ObDataBuffer &in_buff, onev_request_e
+ *req,
+                                           const uint32_t channel_id, ObDataBuffer &out_buff)
+    {
+      int ret = OB_SUCCESS;
+      if (version != MY_VERSION)
+      {
+        ret = OB_ERROR_FUNC_VERSION;
+      }
+      int proc_ret = OB_SUCCESS;
+      int64_t major_version = 0;
+      CommonSchemaManagerWrapper sm;
+      if (OB_SUCCESS != (proc_ret = serialization::decode_i64(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position(), &major_version)))
+      {
+        TBSYS_LOG(WARN, "decode major_version fail ret=%d", proc_ret);
+      }
+      else
+      {
+        proc_ret = table_mgr_.get_schema(major_version, sm);
+      }
+      TBSYS_LOG(INFO, "get_schema ret=%d major_version=%lu src=%s",
+                  proc_ret, major_version, NULL == req ? NULL :
+                  get_peer_ip(req));
+      if(NULL == sm.schema_mgr_impl_)
+      {
+        TBSYS_LOG(ERROR, "should not be here, null pointer");
+        ret = OB_INVALID_ARGUMENT;
+      }
+      if(OB_SUCCESS == ret)
+      {
+        ObArray<uint64_t> list;
+        if(OB_SUCCESS != (ret = sm.schema_mgr_impl_->get_init_index(list)))
+        {
+          TBSYS_LOG(WARN, "failed to get init index tid");
+        }
+        common::ObResultCode result_msg;
+        result_msg.result_code_ = ret;
+        if(OB_SUCCESS != (ret = result_msg.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to encode result buffer, ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = serialization::encode_i64(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position(), list.count())))
+        {
+          TBSYS_LOG(WARN, "failed to encode list count,ret[%d]", ret);
+        }
+        else
+        {
+          uint64_t index_id = OB_INVALID_ID;
+          for(int64_t i = 0; i < list.count(); i++)
+          {
+            list.at(i,index_id);
+            if(OB_SUCCESS != (ret = serialization::encode_i64(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position(), (int64_t)index_id)))
+            {
+              TBSYS_LOG(WARN, "failed to encode index id ,i =[%ld], index = [%ld]", i, index_id);
+              break;
+            }
+          }
+        }
+      }
+      ret = send_response(OB_GET_INIT_INDEX_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      return ret;
+    }
+    //add e
 
     int ObUpdateServer::low_priv_speed_control_(const int64_t scanner_size)
     {

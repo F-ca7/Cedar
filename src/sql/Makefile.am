@@ -29,9 +29,11 @@ sql_parser_sources=                                    \
   ob_basic_stmt.h                                      \
   ob_column_def.h                                      \
   ob_create_table_stmt.h      ob_create_table_stmt.cpp \
+  ob_create_index_stmt.h      ob_create_index_stmt.cpp \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \
+  ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
   ob_execute_stmt.h           ob_execute_stmt.cpp      \
   ob_explain_stmt.h           ob_explain_stmt.cpp      \
@@ -84,11 +86,13 @@ operators_sources=                                                       \
   ob_delete.h                        ob_delete.cpp                       \
   ob_double_children_phy_operator.h  ob_double_children_phy_operator.cpp \
   ob_drop_table.h                    ob_drop_table.cpp                   \
+  ob_drop_index.h	             ob_drop_index.cpp			 \
   ob_execute.h                       ob_execute.cpp                      \
   ob_explain.h                       ob_explain.cpp                      \
   ob_filter.h                        ob_filter.cpp                       \
   ob_groupby.h                       ob_groupby.cpp                      \
   ob_in_memory_sort.h                ob_in_memory_sort.cpp               \
+  ob_index_trigger.h                 ob_index_trigger.cpp                \
   ob_insert.h                        ob_insert.cpp                       \
   ob_join.h                          ob_join.cpp                         \
   ob_limit.h                         ob_limit.cpp                        \

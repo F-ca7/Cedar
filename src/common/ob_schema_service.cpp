@@ -1,3 +1,29 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_schema_service.cpp
+ * @brief 表单schema相关数据结构。创建，删除，获取schema描述结构接口
+ *
+ * modified by longfei：
+ * 1.add two more member variables in TableSchema(struct) and their serialize() series function
+ * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
+ *
+ * modified by WengHaixing:
+ * 1.add some function to fit secondary index constrution
+ *
+ * modified by maoxiaoxiao:
+ * 1.add functions to check column checksum, clean column checksum and get column checksum
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+ 
 #include "ob_schema_service.h"
 #include "common/utility.h"
 #include "common/ob_common_param.h"
@@ -285,6 +311,15 @@ DEFINE_SERIALIZE(TableSchema)
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, max_rowkey_length_)))
   {
   }
+
+  // longfei [create index]
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, original_table_id_)))
+  {
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, index_status_)))
+  {
+  }
+
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, merge_write_sstable_version_)))
   {
   }
@@ -410,6 +445,17 @@ DEFINE_DESERIALIZE(TableSchema)
   {
     TBSYS_LOG(WARN, "deserialize error here");
   }
+
+  // longfei [create index]
+  else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&original_table_id_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else if (OB_SUCCESS != (ret = serialization::decode_vi32(buf, data_len, pos, reinterpret_cast<int32_t*>(&index_status_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+
   else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, &merge_write_sstable_version_)))
   {
     TBSYS_LOG(WARN, "deserialize error here");
@@ -647,3 +693,345 @@ DEFINE_DESERIALIZE(AlterTableSchema)
   }
   return ret;
 }
+
+//add longfei [cons static index] 151120:b
+DEFINE_SERIALIZE(IndexBeat)
+{
+  int ret=OB_SUCCESS;
+  if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, idx_tid_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, hist_width_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, status_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, stage_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+
+  return ret;
+}
+
+DEFINE_DESERIALIZE(IndexBeat)
+{
+  int ret = OB_SUCCESS;
+  int32_t status;
+  int32_t stage;
+  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&idx_tid_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&hist_width_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&status))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&stage))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else
+  {
+    if(0 == status)
+    {
+      status_ = NOT_AVALIBALE;
+    }
+    else if(1 == status)
+    {
+      status_ = AVALIBALE;
+    }
+    else if(3 == status)
+    {
+      status_ = WRITE_ONLY;
+    }
+    else if(4 == status)
+    {
+      status_ = INDEX_INIT;
+    }
+    else
+    {
+      status_ = ERROR;
+    }
+
+    if (0 == stage)
+    {
+      stage_ = LOCAL_INDEX_STAGE;
+    }
+    else if (1 == stage)
+    {
+      stage_ = GLOBAL_INDEX_STAGE;
+    }
+  }
+  return ret;
+}
+// add e
+
+////add maoxx
+//int ObSchemaService::check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag)
+//{
+//    int ret = OB_SUCCESS;
+//    QueryRes* res = NULL;
+//    TableRow* table_row = NULL;
+//    ObNewRange range;
+//    int64_t cell_index = 0;//因为只取出column checksum列的数据，所以为0
+//    int64_t rowkey_column_num = 4;
+//    ObObj start_rowkey[rowkey_column_num];
+//    ObObj end_rowkey[rowkey_column_num];
+//    ObColumnChecksum original_table_column_checksum;
+//    ObColumnChecksum index_table_column_checksum;
+//    ObColumnChecksum row_column_checksum;
+
+//    ObString tmp_string;
+//    char tmp_char[OB_MAX_COL_CHECKSUM_STR_LEN];
+//    tmp_string.assign_ptr(tmp_char, OB_MAX_COL_CHECKSUM_STR_LEN);
+
+//    original_table_column_checksum.reset();
+//    index_table_column_checksum.reset();
+
+//    start_rowkey[0].set_int(orginal_table_id);
+//    end_rowkey[0].set_int(orginal_table_id);
+//    start_rowkey[1].set_int(cluster_id);
+//    end_rowkey[1].set_int(cluster_id);
+//    start_rowkey[2].set_int(current_version);
+//    end_rowkey[2].set_int(current_version);
+//    start_rowkey[3].set_min_value();
+//    end_rowkey[3].set_max_value();
+
+//    range.start_key_.assign(start_rowkey, rowkey_column_num);
+//    range.end_key_.assign(end_rowkey, rowkey_column_num);
+//    range.border_flag_.inclusive_end();
+//    range.border_flag_.inclusive_start();
+
+//    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+//    {
+//      TBSYS_LOG(WARN, "fail to nb scan column checksum info of orginal table %d", ret);
+//    }
+//    else
+//    {
+//      TBSYS_LOG(INFO, "start calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+//      while(OB_SUCCESS == (ret = res->next_row()))
+//      {
+//        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+//        {
+//          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+//          break;
+//        }
+//        else if(NULL != table_row)
+//        {
+//          if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+//          {
+//            TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+//            break;
+//          }
+//          else
+//          {
+//            row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+//            ret = original_table_column_checksum.sum(row_column_checksum);
+//            row_column_checksum.reset();
+//            tmp_string.reset();
+//          }
+//        }
+//        else
+//        {
+//          ret = OB_ERROR;
+//          TBSYS_LOG(ERROR, "failed calculate column checksum of orginal_table_id:%ld", orginal_table_id);
+//          break;
+//        }
+//      }
+//      if (OB_ITER_END != ret)
+//      {
+//        TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", orginal_table_id);
+//      }
+//      else
+//      {
+//          ret = OB_SUCCESS;
+//      }
+//    }
+
+//    if(OB_SUCCESS == ret)
+//    {
+//      start_rowkey[0].set_int(index_table_id);
+//      end_rowkey[0].set_int(index_table_id);
+//      start_rowkey[1].set_int(cluster_id);
+//      end_rowkey[1].set_int(cluster_id);
+//      start_rowkey[2].set_int(current_version);
+//      end_rowkey[2].set_int(current_version);
+//      start_rowkey[3].set_min_value();
+//      end_rowkey[3].set_max_value();
+
+//      range.start_key_.assign(start_rowkey, rowkey_column_num);
+//      range.end_key_.assign(end_rowkey, rowkey_column_num);
+//      range.border_flag_.inclusive_end();
+//      range.border_flag_.inclusive_start();
+
+//      nb_accessor_.release_query_res(res);
+//      res = NULL;
+
+//      if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("column_checksum"))))
+//      {
+//        TBSYS_LOG(WARN, "fail to nb scan column checksum info of index table %d", ret);
+//      }
+//      else
+//      {
+//        TBSYS_LOG(INFO, "start calculate column checksum of index_table_id:%ld", index_table_id);
+//        while(OB_SUCCESS == (ret = res->next_row()))
+//        {
+//          if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+//          {
+//            TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+//            break;
+//          }
+//          else if(NULL != table_row)
+//          {
+//            if(OB_SUCCESS != (ret = table_row->get_cell_info(cell_index)->value_.get_varchar(tmp_string)))
+//            {
+//              TBSYS_LOG(ERROR, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+//              break;
+//            }
+//            else
+//            {
+//              row_column_checksum.deepcopy(tmp_string.ptr(),(int32_t)tmp_string.length());
+//              ret = index_table_column_checksum.sum(row_column_checksum);
+//              row_column_checksum.reset();
+//              tmp_string.reset();
+//            }
+//          }
+//          else
+//          {
+//            ret = OB_ERROR;
+//            TBSYS_LOG(WARN, "failed calculate column checksum of index_table_id:%ld", index_table_id);
+//            break;
+//          }
+//        }
+//        if (OB_ITER_END != ret)
+//        {
+//          TBSYS_LOG(WARN, "failed to get index table column checksum tabe_id:%ld", index_table_id);
+//        }
+//        else
+//        {
+//          ret = OB_SUCCESS;
+//        }
+//      }
+//    }
+
+//    if (OB_SUCCESS == ret)
+//    {
+//      if(original_table_column_checksum.compare(index_table_column_checksum))
+//      {
+//        column_checksum_flag = true;
+//        TBSYS_LOG(INFO, "this index table column checksum is correct table_id:%ld", index_table_id);
+//      }
+//      else
+//      {
+//        column_checksum_flag = false;
+//        TBSYS_LOG(WARN, "this index table column checksum is incorrect table_id:%ld", index_table_id);
+//      }
+//    }
+
+//    return ret;
+//}
+
+//int ObSchemaServiceImpl::clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version)
+//{
+//    int ret = OB_SUCCESS;
+//    QueryRes* res = NULL;
+//    TableRow* table_row = NULL;
+//    ObNewRange range;
+//    int64_t cell_index = 0;
+
+//    range.set_whole_range();
+
+//    TBSYS_LOG(INFO, "clean version less than %ld", current_version - max_draution_of_version);
+
+//    if(OB_SUCCESS != (ret = nb_accessor_.scan(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, range, SC("version"), ScanConds("version", LT, current_version - max_draution_of_version))))
+//    {
+//      TBSYS_LOG(WARN, "failed to scan data to delete from column_checksum ret[%d]" , ret);
+//    }
+//    else
+//    {
+//      while(OB_SUCCESS == res->next_row())
+//      {
+//        if(OB_SUCCESS != (ret = res->get_row(&table_row)))
+//        {
+//          TBSYS_LOG(ERROR, "failed to get next row of column checksum");
+//          break;
+//        }
+//        else if(NULL != table_row)
+//        {
+//          if(OB_SUCCESS != (ret = nb_accessor_.delete_row(OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, table_row->get_cell_info(cell_index)->row_key_)))
+//          {
+//            TBSYS_LOG(WARN, "failed to delete one row from column cheksum ret[%d]", ret);
+//            break;
+//          }
+//        }
+//        else
+//        {
+//          ret = OB_ERROR;
+//          TBSYS_LOG(WARN, "delete column checksum row is NULL");
+//          break;
+//        }
+//      }
+//      if (OB_ITER_END != ret)
+//      {
+//        TBSYS_LOG(WARN, "failed to get table column checksum");
+//      }
+//      else
+//      {
+//        ret = OB_SUCCESS;
+//      }
+//    }
+//    return ret;
+//}
+
+//int ObSchemaServiceImpl::get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum)
+//{
+//  int ret = OB_SUCCESS;
+//  QueryRes* res = NULL;
+//  TableRow* table_row = NULL;
+//  ObRowkey rowkey;
+//  ObObj rowkey_list[4];
+
+//  char range_buf[OB_RANGE_STR_BUFSIZ];
+//  range.to_string(range_buf, sizeof(range_buf));
+//  int32_t len = static_cast<int32_t>(strlen(range_buf));
+//  ObString str_range(0, len, range_buf);
+
+//  rowkey_list[0].set_int(range.table_id_);
+//  rowkey_list[1].set_int(cluster_id);
+//  rowkey_list[2].set_int(required_version);
+//  rowkey_list[3].set_varchar(str_range);
+//  rowkey.assign(rowkey_list,4);
+
+//  char varchar_column_checksum[common::OB_MAX_COL_CHECKSUM_STR_LEN];
+//  if(OB_SUCCESS != ( ret = nb_accessor_.get(res, OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME, rowkey, SC("column_checksum"))))
+//  {
+//    TBSYS_LOG(ERROR, "faild to get nb column checksum ret = %d", ret);
+//  }
+//  else
+//  {
+//    table_row = res->get_only_one_row();
+//    if(NULL != table_row)
+//    {
+//      ASSIGN_VARCHAR("column_checksum", varchar_column_checksum, common::OB_MAX_COL_CHECKSUM_STR_LEN);
+//      len = static_cast<int32_t>(strlen(varchar_column_checksum));
+//      column_checksum.write(varchar_column_checksum, len);
+//    }
+//    else
+//    {
+//      ret = OB_ENTRY_NOT_EXIST;
+//      TBSYS_LOG(WARN, "get table row fail ret = %d", ret);
+//    }
+//  }
+//  memset(range_buf, 0, OB_RANGE_STR_BUFSIZ*sizeof(char));
+//  return ret;
+//}
+////add e

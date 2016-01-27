@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_manager.h
+ * @brief tablet mannager class
+ *
+ * modified by longfei： according has_fake_range change strategies to take tablet
+ * modified by maoxiaoxiao:add functions to get column checksum, send column checksum and fill tablet histogram_info
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -40,6 +59,9 @@
 #include "ob_multi_tablet_merger.h"
 #include "ob_bypass_sstable_loader.h"
 #include "ob_file_recycle.h"
+// add longfei [cons static index] 151120:b
+#include "ob_index_handle_pool.h"
+// add e
 
 namespace oceanbase
 {
@@ -55,6 +77,7 @@ namespace oceanbase
     class ObTabletReportInfoList;
     class ObScanner;
     class ObServer;
+    enum ConIdxStage;
   }
   namespace chunkserver
   {
@@ -64,6 +87,10 @@ namespace oceanbase
     {
       public:
         static const int32_t MAX_COMMAND_LENGTH = 1024*2;
+        //add longfei [cons static index] 151207:b
+        static const int32_t MAX_GET_COLUMN_CHECKSUM_TIMEOUT = 5000000;
+        static const int32_t MAX_SEND_COLUMN_CHECKSUM_TIMEOUT = 3000000;
+        //add e
       private:
         DISALLOW_COPY_AND_ASSIGN(ObTabletManager);
 
@@ -82,6 +109,40 @@ namespace oceanbase
         int start_bypass_loader_thread();
         int load_tablets(const int32_t* disk_no_array, const int32_t size);
         void destroy();
+
+        // add longfei [cons static index] 151120:b
+      public:
+        /**
+         * @brief get_index_handle_pool
+         * @return index_handle_pool_
+         */
+        ObIndexHandlePool& get_index_handle_pool();
+        /**
+         * @brief init_index_handle_pool
+         * @return error code
+         */
+        int init_index_handle_pool();
+        // mod longfei [cons static index]151121:b
+        //int get_ready_for_con_index();
+        /**
+         * @brief get_ready_for_con_index
+         * @param which_stage
+         * @return error code
+         */
+        int get_ready_for_con_index(common::ConIdxStage which_stage =
+            STAGE_INIT);
+        // mod e
+        /**
+         * @brief set_beat_tid
+         * @param tid
+         */
+        void set_beat_tid(const uint64_t tid);
+        /**
+         * @brief retry_failed_work: CS_RPC_CALL retry failed work
+         * @return
+         */
+        int retry_failed_work(const BlackList&,const ObServer);
+        //add e
 
       public:
         /**
@@ -235,6 +296,38 @@ namespace oceanbase
 
         int fill_tablet_info(const ObTablet& tablet, common::ObTabletReportInfo& tablet_info);
         int send_tablet_report(const common::ObTabletReportInfoList& tablets, bool has_more);
+        //add maoxx
+        /**
+         * @brief get_column_checksum
+         * get column checksum of a tablet in a range
+         * @param new_range
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
+        int get_column_checksum(const ObNewRange new_range, ObColumnChecksum &column_checksum);
+
+        /**
+         * @brief send_tablet_column_checksum
+         * send column checksum of a tablet in a range to the system table
+         * @param column_checksum
+         * @param new_range
+         * @param version
+         * @return OB_SUCCESS or other ERROR
+         */
+        int send_tablet_column_checksum(const ObColumnChecksum column_checksum, const ObNewRange new_range, const int64_t version);
+
+        /**
+         * @brief fill_tablet_histogram_info
+         * fill tablet histogram information from the given tablet
+         * @param tablet
+         * @param tablet_histogram_info
+         * @return OB_SUCCESS or other ERROR
+         */
+        int fill_tablet_histogram_info(const ObTablet& tablet, common::ObTabletHistogramReportInfo& tablet_histogram_info);
+        //int send_local_index_info(const common::ObTabletHistogramReportInfoList& tablets, bool has_more);
+        //int send_index_info(uint64_t index_tid);
+        //add e
+
 
       public:
         // allocate new sstable file sequence, call after load_tablets();
@@ -279,6 +372,10 @@ namespace oceanbase
         ObSwitchCacheUtility switch_cache_utility_;
 
         ObChunkMerge chunk_merge_;
+        // add longfei [cons static index] 151120:b
+        ObIndexHandlePool index_handle_pool_; ///< for secondary index thread manager
+        uint64_t index_beat_tid_; ///< table's id in index beat package
+        // add e
         ObCompactSSTableMemThread cache_thread_;
         const ObChunkServerConfig* config_;
         ObBypassSSTableLoader bypass_sstable_loader_;

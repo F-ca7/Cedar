@@ -36,7 +36,6 @@ namespace oceanbase
     private:
       static const int32_t PER_BITMAPWORD_BITS = 32;
       static const int32_t MAX_BITMAPWORD = (N - 1) / PER_BITMAPWORD_BITS + 1;
-
       BitSetWord bitset_words_[MAX_BITMAPWORD];
     };
 

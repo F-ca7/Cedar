@@ -49,6 +49,10 @@
 #include "ob_table_rpc_scan.h"
 #include "ob_get_cur_time_phy_operator.h"
 
+//add wenghaixing [secondary index drop index]20141223
+#include "ob_drop_index_stmt.h"
+//add e
+
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 
@@ -1173,6 +1177,35 @@ int ObSql::do_privilege_check(const ObString & username, const ObPrivilege **pp_
           }
           break;
         }
+      //add wenghaixing [secondary index drop index]20141223
+      case ObBasicStmt::T_DROP_INDEX:
+        {
+          OB_STAT_INC(SQL, SQL_DROP_TABLE_COUNT);
+          ObDropIndexStmt *drop_index_stmt = dynamic_cast<ObDropIndexStmt*>(stmt);
+          if (OB_UNLIKELY(NULL == drop_index_stmt))
+          {
+            err = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(ERROR, "dynamic cast failed,err=%d", err);
+          }
+          else
+          {
+            int64_t i = 0;
+            for (i = 0;i < drop_index_stmt->get_table_count();++i)
+            {
+              ObPrivilege::TablePrivilege table_privilege;
+              // drop table 不是全局权限
+              table_privilege.table_id_ = drop_index_stmt->get_table_id(i);
+              OB_ASSERT(true == table_privilege.privileges_.add_member(OB_PRIV_DROP));
+              err = table_privileges.push_back(table_privilege);
+              if (OB_UNLIKELY(OB_SUCCESS != err))
+              {
+                TBSYS_LOG(WARN, "push table_privilege to array failed, err=%d", err);
+              }
+            }
+          }
+          break;
+        }
+          //add e
       case ObBasicStmt::T_SHOW_GRANTS:
         {
           ObShowStmt *show_grant_stmt = dynamic_cast<ObShowStmt*>(stmt);

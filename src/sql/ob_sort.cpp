@@ -1,18 +1,24 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_sort.cpp
- * @brief    sort operator
+ * @file ob_sort.cpp
+ * @brief sort operator
+ *
+ * modified by longfei：
+ * 1.check first in do_sort();
  * modified by Qiushi FAN: add some functions to get an array form child
- * @version  __DaSE_VERSION
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
+ * @date 2016_01_22
  */
-/**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -155,7 +161,15 @@ int ObSort::do_sort()
     while(OB_SUCCESS == ret
         && OB_SUCCESS == (ret = child_op_->get_next_row(input_row)))
     {
-      if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      //mod longfei 151229:b
+      if (NULL == input_row)
+      {
+        ret = OB_ERR_NULL_POINTER;
+        TBSYS_LOG(ERROR, "null pointer, err=%d", ret);
+      }
+      //if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      else if (OB_SUCCESS != (ret = in_mem_sort_.add_row(*input_row)))
+      //mod e
       {
         TBSYS_LOG(WARN, "failed to add row, err=%d", ret);
       }

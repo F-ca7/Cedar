@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_string.h
+ * @brief ob's string
+ *
+ * modified by longfei：add function add_string()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 #ifndef OCEANBASE_COMMON_OB_STRING_H_
 #define OCEANBASE_COMMON_OB_STRING_H_
 
@@ -168,6 +185,30 @@ namespace oceanbase
             data_length_ = 0;
           }
         }
+
+        //add longfei 20151114 :b
+        /**
+         * @brief add_string add a string to Obstring
+         * @param str
+         * @param length
+         * @return success or fail
+         */
+        inline int add_string(const char* str, const obstr_size_t length)
+        {
+          int ret = OB_SUCCESS;
+          if (data_length_ + length > buffer_size_)
+          {
+            TBSYS_LOG(ERROR, "cannot add string into Obstring");
+            ret = OB_ERROR;
+          }
+          char *head = ptr_;
+          ptr_ += data_length_;
+          memcpy(ptr_, str, length);
+          ptr_ = head;
+          data_length_ += length;
+          return ret;
+        }
+        // add e
 
         /*
          * attach myself to other's buff, so you can read through me, but not write

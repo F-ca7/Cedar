@@ -6,18 +6,22 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_rpc_stub.h
+ * @brief add some function with rpc for secondary index construction
  * @brief ObRootRpcStub
  *        support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *        add some remote process control function to the ObRootRpcStub class.
  *
+ * Modified by Wenghaixing
+ *
  * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
- */
-#ifndef OCEANBASE_ROOT_RPC_STUB_H_
+ * @date  2016_01_24
+ */#ifndef OCEANBASE_ROOT_RPC_STUB_H_
 #define OCEANBASE_ROOT_RPC_STUB_H_
 
 #include "common/ob_fetch_runnable.h"
@@ -36,6 +40,7 @@
 #include "common/ob_new_scanner.h"
 #include "sql/ob_sql_scan_param.h"
 #include "ob_daily_merge_checker.h"
+#include "common/ob_schema_service.h"
 
 namespace oceanbase
 {
@@ -99,6 +104,16 @@ namespace oceanbase
                                     const int64_t frozen_mem_version,
                                     const int64_t schema_version,
                                     const int64_t config_version);
+
+        //add wenghaixing [secondary index.static_index]20151130
+        virtual int heartbeat_to_cs_with_index(const ObServer &cs,
+                                               const int64_t lease_time,
+                                               const int64_t frozen_mem_version,
+                                               const int64_t schema_version,
+                                               const int64_t config_version,
+                                               const IndexBeat &beat);
+        //add e
+
         virtual int heartbeat_to_ms(const common::ObServer& ms,
                                     const int64_t lease_time,
                                     const int64_t frozen_mem_version,
@@ -127,6 +142,9 @@ namespace oceanbase
             const int64_t cluster_id, ObDataSourceProxyList& proxy_list, int64_t timeout);
         virtual int fetch_slave_cluster_list(const common::ObServer& ms, const common::ObServer& master_rs,
             common::ObServer* slave_cluster_rs, int64_t& rs_count, int64_t timeout);
+        //add wenghaixing [secondary index.static_index]20151118
+        virtual int get_init_index_from_ups(const ObServer ups, const int64_t timeout, const int64_t data_version, ObArray<uint64_t> *list);
+        //add e
         virtual int import(const common::ObServer& rs, const common::ObString& table_name,
             const uint64_t table_id, const common::ObString& uri, const int64_t start_time, const int64_t timeout);
         virtual int kill_import(const common::ObServer& rs, const common::ObString& table_name,

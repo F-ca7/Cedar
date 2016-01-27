@@ -1,4 +1,25 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_general_rpc_stub.h
+ * @brief for rpc among chunk server, update server and root server.
+ *
+ * modified by longfei：add rpc call for drop index and retry_failed_work
+ * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
+ * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author WengHaixing <wenghaixing@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -17,11 +38,17 @@
 
 #include "ob_server.h"
 #include "ob_rpc_stub.h"
-#include "common/location/ob_tablet_location_list.h"
+#include "location/ob_tablet_location_list.h"
 #include "sql/ob_physical_plan.h"
 #include "sql/ob_ups_result.h"
-#include "common/ob_transaction.h"
-#include "common/ob_data_source_desc.h"
+#include "ob_transaction.h"
+#include "ob_data_source_desc.h"
+//add maoxx
+#include "ob_column_checksum.h"
+#include "ob_tablet_histogram_report_info.h"
+//add e
+#include "ob_index_black_list.h" //add longfei
+
 namespace oceanbase
 {
   namespace sql
@@ -64,8 +91,13 @@ namespace oceanbase
         //        @root_server root server addr
         //        @merge_server merge server addr
         //        @is_merger merge server status
+        //modify wenghaixing [secondary index.static_index]20160118
+        //int register_server(const int64_t timeout, const common::ObServer & root_server,
+            //const common::ObServer & server, const bool is_merger, int32_t &status, const char* server_version) const;
         int register_server(const int64_t timeout, const common::ObServer & root_server,
-            const common::ObServer & server, const bool is_merger, int32_t &status, const char* server_version) const;
+                            const common::ObServer & chunk_server, const bool is_merger,
+                            int32_t &status, int64_t &cluster_id, const char* server_version) const;
+        //modify e
 
         // register to root server as a merge server by rpc call
         // param  @timeout  action timeout
@@ -340,6 +372,64 @@ namespace oceanbase
         int get_ups_log_seq(const common::ObServer &ups, const int64_t timeout, int64_t & log_seq) const;
         int set_obi_role(const ObServer &rs, const int64_t timeout, const ObiRole &obi_role) const;
         int set_master_rs_vip_port_to_cluster(const ObServer &rs, const int64_t timeout, const char *new_master_ip, const int32_t new_master_port) const; 
+      public:
+        //longfei secondary index service
+        //longfei [drop index]
+        /**
+         * @brief drop_index: rpc to rs
+         * @param timeout
+         * @param root_server
+         * @param if_exists
+         * @param tables
+         * @return error code
+         */
+        int drop_index(
+            const int64_t timeout,
+            const common::ObServer & root_server,
+            bool if_exists,
+            const common::ObStrings & tables) const;
+        //add longfei [cons static index] 151218:b
+        /**
+         * @brief retry_failed_work: rpc to other cs
+         * @param timeout
+         * @param chunk_server
+         * @param list
+         * @return error code
+         */
+        int retry_failed_work(
+            const int64_t timeout,
+            const ObServer &chunk_server,
+            const BlackList list);
+        //add e
+		
+        //add maoxx
+	    /**
+         * @brief get_column_checksum
+         * get column checksum
+         * @param timeout
+         * @param root_server
+         * @param new_range
+         * @param version
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
+        int get_column_checksum(const int64_t timeout, const ObServer &root_server, const ObNewRange new_range, const int64_t version, ObColumnChecksum &column_checksum);
+		
+		/**
+         * @brief report_tablets_histogram
+         * report tablets histogram
+         * @param timeout
+         * @param root_server
+         * @param client_server
+         * @param tablets
+         * @param time_stamp
+         * @param has_more
+         * @return OB_SUCCESS or other ERROR
+         */
+        int report_tablets_histogram(const int64_t timeout, const ObServer & root_server,
+            const ObServer &client_server,  const ObTabletHistogramReportInfoList& tablets,
+            const int64_t time_stamp, bool has_more);
+        //add e
 
       protected:
         // default cmd version

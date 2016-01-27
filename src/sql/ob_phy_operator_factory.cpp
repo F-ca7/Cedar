@@ -1,18 +1,22 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * @file     ob_phy_operator_factory.cpp
- * @brief    physical operator factory
- * modified by Qiushi FAN: insert a new operator ObSemiLeftJoin.
- * @version  __DaSE_VERSION
- * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
- */
-/**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_phy_operator_factory.cpp
+* @brief for space management of physical operators
+*
+* modified by maoxiaoxiao:add physical operator "index trigger"
+* modified by Qiushi FAN: insert a new operator ObSemiLeftJoin.
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @author   Qiushi FAN <qsfan@ecnu.cn>
+* @date 2016_01_21
+*/
+/* (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -47,6 +51,10 @@
 #include "ob_row_count.h"
 #include "ob_when_filter.h"
 #include "ob_dual_table_scan.h"
+//add maoxx
+#include "ob_index_trigger.h"
+//add e
+
 //add fanqiushi [semi_join] [0.1] 20150829:b
 #include "ob_semi_left_join.h"
 //add:e
@@ -115,6 +123,11 @@ ObPhyOperator *ObPhyOperatorFactory::get_one(ObPhyOperatorType phy_operator_type
       //ret = pool_multiple_scan_merge_.alloc();
       ret = tc_rp_alloc(ObMultipleScanMerge);
       break;
+    //add maoxx
+    case PHY_INDEX_TRIGGER:
+      ret = tc_rp_alloc(ObIndexTrigger);
+      break;
+    //add e
     //CASE_CLAUSE(PHY_PROJECT, ObProject);
     CASE_CLAUSE(PHY_LIMIT, ObLimit);
     //CASE_CLAUSE(PHY_FILTER, ObFilter);
@@ -193,6 +206,11 @@ void ObPhyOperatorFactory::release_one(ObPhyOperator *opt)
         //pool_multiple_scan_merge_.free(dynamic_cast<ObMultipleScanMerge*>(opt));
         tc_rp_free(dynamic_cast<ObMultipleScanMerge*>(opt));
         break;
+      //add maoxx
+      case PHY_INDEX_TRIGGER:
+        tc_rp_free(dynamic_cast<ObIndexTrigger*>(opt));
+        break;
+      //add e
       default:
         opt->~ObPhyOperator();
         break;

@@ -50,6 +50,12 @@ namespace oceanbase
          */
         int add_output_column(const ObSqlExpression& expr);
 
+        int add_main_output_column(const ObSqlExpression& expr);
+        int cons_second_row_desc(ObRowDesc &row_desc);
+         int set_second_row_desc(ObRowDesc *row_desc);
+        int add_main_filter(ObSqlExpression* expr);
+        int add_index_filter(ObSqlExpression* expr);
+
         /**
          * 设置table_id
          * @note 只有基本表被重命名的情况才会使两个不相同id，其实两者相同时base_table_id可以给个默认值。
