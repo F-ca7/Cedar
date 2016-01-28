@@ -50,9 +50,9 @@ pub_source =                                                                \
   ob_root_rpc_stub.h                   ob_root_rpc_stub.cpp                 \
   ob_root_server2.h                    ob_root_server2.cpp                  \
   ob_root_stat_key.h                   ob_root_stat_key.cpp                 \
-  ob_root_table2.h                     ob_root_table2.cpp                   \ 
+  ob_root_table2.h                     ob_root_table2.cpp                   \
   ob_root_ups_provider.h               ob_root_ups_provider.cpp             \
-  ob_root_util.h                       ob_root_util.cpp                     \  
+  ob_root_util.h                       ob_root_util.cpp                     \
   ob_election_node.h                   ob_election_node.cpp                 \
   ob_check_rselection.h                ob_check_rselection.cpp              \
   ob_root_worker.h                     ob_root_worker.cpp                   \

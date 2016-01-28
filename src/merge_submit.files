@@ -1691,3 +1691,4 @@ updateserver/ups_mon.cpp
 updateserver/ups_mon.h
 chunkserver/chunkserver.conf.template
 chunkserver/Makefile.am
+rootserver/Makefile.am

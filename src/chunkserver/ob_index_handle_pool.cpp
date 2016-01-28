@@ -388,7 +388,7 @@ namespace oceanbase
           //add wenghaixing [realse schema while function end!] 20160128
           else
           {
-            shcema_mgr = null;
+            schema_mgr = NULL;
           }
           //add e
         }
