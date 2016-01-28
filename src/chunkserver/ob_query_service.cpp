@@ -6,14 +6,14 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_query_service.cpp
- * @brief modify scan query procedure to fit secondary index construction's global stage
+ * @brief for query(get or scan), do merge, join,
+ * group by, order by, limit, topn operation and so on.
  *
- * Modify by Wenghaixing
+ * modify by Wenghaixing: modify scan query procedure to fit secondary index construction's global stage
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 /**

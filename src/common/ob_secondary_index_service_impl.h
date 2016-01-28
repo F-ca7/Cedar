@@ -49,7 +49,7 @@ namespace oceanbase
       /**
        * @brief init
        * @param schema_manager_
-       * @return
+       * @return err code
        */
       virtual int init(const ObSchemaManagerV2* schema_manager_);
       /**
@@ -71,7 +71,7 @@ namespace oceanbase
        * @brief find_cid: 获得表达式中列的cid
        * @param sql_expr
        * @param cid
-       * @return
+       * @return err code
        */
       virtual int find_cid(
           sql::ObSqlExpression& sql_expr,
@@ -80,7 +80,7 @@ namespace oceanbase
        * @brief change_tid: 获得表达式中记录列的tid的ObObj在ObObj数组里的下标
        * @param sql_expr
        * @param array_index
-       * @return
+       * @return err code
        */
       virtual int change_tid(
           sql::ObSqlExpression* sql_expr,
@@ -89,7 +89,7 @@ namespace oceanbase
        * @brief get_cid: 获得表达式中列的cid，如果表达式中有多个列，则报错
        * @param sql_expr
        * @param cid
-       * @return
+       * @return err code
        */
       virtual int get_cid(
           sql::ObSqlExpression* sql_expr,
@@ -98,7 +98,7 @@ namespace oceanbase
        * @brief is_have_main_cid: 如果表达式中有主表的第一主键，或者表达式中有超过两列的，返回true
        * @param sql_expr
        * @param main_column_id
-       * @return
+       * @return err code
        */
       virtual bool is_have_main_cid(
           sql::ObSqlExpression& sql_expr,
@@ -108,7 +108,7 @@ namespace oceanbase
        * @param index_tid
        * @param expr_
        * @param sm_v2
-       * @return
+       * @return err code
        */
       virtual bool is_all_expr_cid_in_indextable(
           uint64_t index_tid,
@@ -118,7 +118,7 @@ namespace oceanbase
        * @brief get_all_cloumn: 获得表达式中所有列的存tid的ObObj在ObObj数组里的下标
        * @param sql_expr
        * @param column_index
-       * @return
+       * @return err code
        */
       virtual int get_all_cloumn(
           sql::ObSqlExpression& sql_expr,
@@ -130,7 +130,7 @@ namespace oceanbase
        * @param index_tid
        * @param main_tid
        * @param sm_v2
-       * @return
+       * @return err code
        */
       virtual bool is_this_expr_can_use_index(
           sql::ObSqlExpression& sql_expr,
@@ -141,7 +141,7 @@ namespace oceanbase
       /**
        * @brief is_this_table_avalibale: 判断tid为参数的表是否是可用的索引表
        * @param tid
-       * @return
+       * @return err code
        */
       virtual bool is_this_table_avalibale(uint64_t tid);
       /**
@@ -149,7 +149,7 @@ namespace oceanbase
        * @param index_tid
        * @param filter_array
        * @param project_array
-       * @return
+       * @return err code
        */
       virtual bool is_index_table_has_all_cid_V2(
           uint64_t index_tid,
@@ -192,7 +192,7 @@ namespace oceanbase
        * @brief if_rowkey_in_expr
        * @param filter_array
        * @param main_tid
-       * @return
+       * @return err code
        */
       virtual bool if_rowkey_in_expr(
           Expr_Array *filter_array,
@@ -215,7 +215,7 @@ namespace oceanbase
        * @param filter_array
        * @param project_array
        * @param index_table_id
-       * @return
+       * @return err code
        */
       virtual bool is_can_use_hint_for_storing_V2(
           Expr_Array *filter_array,
@@ -225,7 +225,7 @@ namespace oceanbase
        * @brief is_can_use_hint_index_V2
        * @param filter_array
        * @param index_table_id
-       * @return
+       * @return err code
        */
       virtual bool is_can_use_hint_index_V2(
           Expr_Array *filter_array,

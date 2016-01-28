@@ -6,10 +6,10 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_index_interactive_agent.h
- * @brief for define rpc interface between chunkserver like this :) cs <== rpc ==> cs
+ * @brief define rpc interface between chunkserver like this :) cs <== rpc ==> cs
  *
- * Created by longfei：  interactive agent is for the global stage of construct static index,
- *  get the datas of the range when those datas in other chunkserver.
+ * Created by longfei：  interactive agent is for the global stage of constructing static index,
+ *  get the data of the range when those datas in other chunkserver.
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -73,14 +73,14 @@ namespace oceanbase
       /**
        * @brief get_next_row
        * @param [out] row
-       * @return
+       * @return err code
        */
       virtual int get_next_row(const ObRow *&row);
       /**
        * @brief to_string Not implemented
        * @param buf
        * @param buf_len
-       * @return
+       * @return err code
        */
       virtual int64_t to_string(char* buf, const int64_t buf_len) const;
       /**
@@ -117,7 +117,7 @@ namespace oceanbase
        * @param scan_param
        * @param cs_stream
        * @param hash
-       * @return
+       * @return err code
        */
       int start_agent(
           ObScanParam &scan_param,
@@ -137,19 +137,19 @@ namespace oceanbase
       /**
        * @brief get_cell
        * @param cell
-       * @return
+       * @return err code
        */
       int get_cell(common::ObCellInfo** cell);
       /**
        * @brief get_cell
        * @param cell
        * @param is_row_changed
-       * @return
+       * @return err code
        */
       int get_cell(common::ObCellInfo** cell, bool* is_row_changed);
       /**
        * @brief next_cell
-       * @return
+       * @return err code
        */
       int next_cell();
 

@@ -10,7 +10,7 @@
  *
  * modified by longfei：
  * 1.provide some other way to access tablet
- * 2.delect the second sstable of tablet
+ * 2.delete the second sstable of tablet
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -178,7 +178,7 @@ namespace oceanbase
       public:
         //add longfei [cons static index] 151220:b
         /**
-         * @brief delete_local_index_sstable: 删除局部索引的sstable，遍历所有的tablet，逐个检查并删除
+         * @brief delete_local_index_sstable: Traverse all tablet, remove local sstable
          * @return ret code
          */
         const int delete_local_index_sstable() const;

@@ -109,7 +109,7 @@ namespace oceanbase
           int find_loc_idx_sstable(const common::ObNewRange& range,
                                    Reader* sstable[], int32_t &size) const ;
         /**
-         * @brief add_local_index_sstable_by_id: 将sstable加入到tablet中
+         * @brief add_local_index_sstable_by_id
          * @param sstable_id
          * @return return code
          */

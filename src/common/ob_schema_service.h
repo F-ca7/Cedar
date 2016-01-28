@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file  ob_schema_service.h
- * @brief 表单schema相关数据结构。创建，删除，获取schema描述结构接口
+ * @brief schema service
  *
  * modified by longfei：
  * 1.add two more member variables in TableSchema(struct) and their serialize() series function

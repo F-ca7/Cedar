@@ -148,11 +148,11 @@ namespace oceanbase
 
     private:
       ObNewRange *handle_range_; ///< global stage handle range
-      RangeServerHash* range_server_hash_; ///< 指向pool中的data_multcs_range_hash_
+      RangeServerHash* range_server_hash_; ///< pointer to data_multcs_range_hash_
       uint64_t table_id_; ///< the table id of the global range
-      ObGetCellStreamWrapper ms_wrapper_; ///< 假装这里有一个mergeserver，用来与其他的CS通信
-      ObIndexInteractiveAgent interactive_agent_;///< 物理算子
-      ObIndexLocalAgent local_agent_;///< 物理算子
+      ObGetCellStreamWrapper ms_wrapper_; ///< wrap ms to communicate with other cs
+      ObIndexInteractiveAgent interactive_agent_;///< Physical Operators
+      ObIndexLocalAgent local_agent_;///< Physical Operators
       common::ObColumnChecksum cc; ///< column checksum
       common::ObColumnChecksum column_checksum_; ///< column_checksum_
       sql::ObSort sort_; ///< sort operator

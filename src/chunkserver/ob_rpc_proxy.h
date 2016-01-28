@@ -8,7 +8,7 @@
  * @file ob_rpc_proxy.h
  * @brief for rpc among chunk server, update server and root server.
  *
- * modified by longfei： add function cs_cs_scan() && cs_scan_() ...
+ * modified by longfei： add function cs_cs_scan(), cs_scan_() and some templates
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>

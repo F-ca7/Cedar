@@ -67,7 +67,7 @@ namespace oceanbase
        * @brief create_new_sstable
        * @param table_id
        * @param disk
-       * @return
+       * @return err code
        */
       int create_new_sstable(uint64_t table_id, int32_t disk);
       /**
@@ -75,7 +75,7 @@ namespace oceanbase
        * @param table_id
        * @param common_schema
        * @param [out] sstable_schema
-       * @return
+       * @return err code
        */
       int fill_sstable_schema(
           const uint64_t table_id,
@@ -181,9 +181,9 @@ namespace oceanbase
       }
 
     private:
-      ObIndexHandlePool *handle_pool_; ///< 为handler分配空间使用
+      ObIndexHandlePool *handle_pool_; ///< allocating space for the handler
       common::ObMergerSchemaManager* manager_; ///< schema manager
-      const common::ObSchemaManagerV2* current_schema_manager_; ///< 当前版本的schema_manager_
+      const common::ObSchemaManagerV2* current_schema_manager_; ///< current schema_manager_
       common::ObNewRange new_range_; ///< data in this range is what we need to construct
       ObTabletManager* tablet_manager_; ///< for tablet manager
       ObSSTableId sstable_id_; ///< new sstable we create

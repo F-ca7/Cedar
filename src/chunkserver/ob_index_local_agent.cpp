@@ -8,7 +8,7 @@
  * @file ob_index_local_agent.cpp
  * @brief get range data in cs itself
  *
- * Created by longfei： an operator with no children,for scan data on cs itself
+ * Created by longfei：an operator with no children,for scan data on cs itself
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>

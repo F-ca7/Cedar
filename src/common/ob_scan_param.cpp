@@ -8,7 +8,7 @@
  * @file ob_scan_param.cpp
  * @brief parameters for scan operator
  *
- * modified by longfei：add member variables fake_range_, need_fake_range_... and some function about it
+ * modified by longfei：add member variables fake_range_, need_fake_range_ and some function about those member
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -59,7 +59,6 @@ namespace oceanbase
       is_binary_rowkey_format_ = false;
     }
 
-    // ObScanParam
     ObScanParam::ObScanParam() : table_id_(OB_INVALID_ID),
     table_name_(), range_(),/*add longfei*/ fake_range_(), need_fake_range_(false),/*add e*/ scan_size_(0),
       scan_flag_(), schema_manager_(NULL), is_binary_rowkey_format_(false)
@@ -900,7 +899,6 @@ namespace oceanbase
       }
 
       //add longfei 151230 
-	  //序列化need_fake_range_和fake_range_
       if (OB_SUCCESS == ret)
       {
         int32_t tmp = need_fake_range_ ? 1 : 0;
@@ -999,8 +997,8 @@ namespace oceanbase
         get_rowkey_info_from_sm(schema_manager_, range_.table_id_, table_name_, rowkey_info);
       }
 
-      //add longfei 反序列化
-      //首先反串行化need_fake_range_
+      //add longfei decode
+      //1.decode need_fake_range_
       int32_t bl = 0;
       int64_t tid = OB_INVALID_ID;
       if (OB_SUCCESS == ret)
@@ -1019,7 +1017,7 @@ namespace oceanbase
       {
         fake_range_.table_id_ = (uint64_t)tid;
       }
-      //其次反串行化fake_range
+      //2.decode fake_range
       if (OB_SUCCESS == ret)
       {
         // border flag
@@ -1179,7 +1177,7 @@ namespace oceanbase
       total_size += obj.get_serialize_size();
 
       //add longfei 计算序列化大小
-      //添加了两个int32，和一个range的序列化大小
+      //Added two int32, and a range of serialization size
       total_size += sizeof(int32_t);
       total_size += sizeof(int64_t);
       // scan range

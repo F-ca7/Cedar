@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_cs_interactive_scan.cpp
- * @brief ob_cs_interactive_scan.cpp base node for ObIndexLocalAgent and ObIndexInteractiveAgent
+ * @brief father operator of ObIndexLocalAgent and ObIndexInteractiveAgent
  *
  * Created by longfei：scan agent for construct static index
  *

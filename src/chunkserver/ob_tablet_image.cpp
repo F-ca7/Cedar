@@ -8,7 +8,10 @@
  * @file ob_tablet_image.cpp
  * @brief ObTabletImage
  *
- * modified by longfei：provide some other way to access tablet
+ * modified by longfei：
+ * 1.provide some other way to access tablet
+ * 2.delete the second sstable of tablet
+ *
  * modified by liubozhong: support multiple clusters for HA by adding or modifying
  * some functions, member variables
  *

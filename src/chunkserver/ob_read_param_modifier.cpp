@@ -6,15 +6,14 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_read_param_modifier.cpp
- * @brief modify read param to fit secondary index construcion's stage
+ * @brief for modify scan param or get param.
+ *
+ * modified by Wenghaixing：modify read param to fit secondary index construcion's stage
  *        add a fake range handle
  *
- * Modified by Wenghaixing
- *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 /**

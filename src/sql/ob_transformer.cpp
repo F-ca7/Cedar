@@ -5520,10 +5520,10 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
     switch (idx_tschema->get_index_status())
     {
     case 0:
-      status_obj.set_varchar(tmp.make_string("NOT AVALIBLE"));
+      status_obj.set_varchar(tmp.make_string("NOT AVALIABLE"));
       break;
     case 1:
-      status_obj.set_varchar(tmp.make_string("AVALIBLE"));
+      status_obj.set_varchar(tmp.make_string("AVALIABLE"));
       break;
     case 2:
       status_obj.set_varchar(tmp.make_string("ERROR"));

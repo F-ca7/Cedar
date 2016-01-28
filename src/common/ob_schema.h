@@ -95,7 +95,7 @@ namespace oceanbase
          }
        }
 
-      //modify wenghaixing [secondary index upd]
+       //modify wenghaixing [secondary index upd]
        inline int add_index(uint64_t tid)
        {
          int ret = OB_ERROR;
@@ -643,7 +643,7 @@ namespace oceanbase
          */
         int get_index_column_num(uint64_t& table_id,int64_t &num) const;
         /**
-         * @brief add_index_in_map: 将二级索引的信息放入hashmap当中
+         * @brief add_index_in_map: put info into hash map
          * @param tschema
          * @return error code
          */

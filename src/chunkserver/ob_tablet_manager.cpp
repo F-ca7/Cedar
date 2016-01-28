@@ -1521,9 +1521,6 @@ namespace oceanbase
           {
             TBSYS_LOG(WARN, "find_loc_idx_sstable err=%d, size=%d", err, size);
           }
-          else
-          {
-          }
         }
       }
       if(OB_SUCCESS == err)

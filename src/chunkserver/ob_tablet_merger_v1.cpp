@@ -1563,95 +1563,95 @@ namespace oceanbase
     //add maoxx
     int ObTabletMergerV1::is_index_or_with_index(const uint64_t table_id)
     {
-        int ret = OB_SUCCESS;
-        common::ObMergerSchemaManager* merger_schema_manager = get_global_sstable_schema_manager();
-        const ObSchemaManagerV2* schema_manager = NULL;
-        const ObTableSchema* table_schema = NULL;
-        const ObTableSchema* data_table_schema = NULL;
-        IndexList index_list;
-        if(NULL == merger_schema_manager)
+      int ret = OB_SUCCESS;
+      common::ObMergerSchemaManager* merger_schema_manager = get_global_sstable_schema_manager();
+      const ObSchemaManagerV2* schema_manager = NULL;
+      const ObTableSchema* table_schema = NULL;
+      const ObTableSchema* data_table_schema = NULL;
+      IndexList index_list;
+      if(NULL == merger_schema_manager)
+      {
+        TBSYS_LOG(ERROR,"get merge schema manager error,ret=%d", ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        schema_manager = merger_schema_manager->get_schema(table_id);
+      }
+      if(NULL == schema_manager)
+      {
+        TBSYS_LOG(ERROR,"get schema manager v2 error,table_id:%ld,ret=%d", table_id, ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        table_schema = schema_manager->get_table_schema(table_id);
+      }
+      if(table_schema == NULL)
+      {
+        TBSYS_LOG(ERROR,"get_table_schema error,table_id:%ld,ret=%d",table_id,ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        if(OB_INVALID_ID != table_schema->get_original_table_id())
         {
-          TBSYS_LOG(ERROR,"get merge schema manager error,ret=%d", ret);
-          ret = OB_SCHEMA_ERROR;
-        }
-        else
-        {
-          schema_manager = merger_schema_manager->get_schema(table_id);
-        }
-        if(NULL == schema_manager)
-        {
-          TBSYS_LOG(ERROR,"get schema manager v2 error,table_id:%ld,ret=%d", table_id, ret);
-          ret = OB_SCHEMA_ERROR;
-        }
-        else
-        {
-          table_schema = schema_manager->get_table_schema(table_id);
-        }
-        if(table_schema == NULL)
-        {
-          TBSYS_LOG(ERROR,"get_table_schema error,table_id:%ld,ret=%d",table_id,ret);
-          ret = OB_SCHEMA_ERROR;
-        }
-        else
-        {
-          if(OB_INVALID_ID != table_schema->get_original_table_id())
-          {
-            //有对应数据表的是索引表
-            is_index_ = true;
-            is_have_index_ = false;
+          //有对应数据表的是索引表
+          is_index_ = true;
+          is_have_index_ = false;
 
-            data_table_schema = schema_manager->get_table_schema(table_schema->get_original_table_id());
-            if(NULL != data_table_schema)
-            {
-              int64_t index_table_rowkey_count = table_schema->get_rowkey_info().get_size();
-              int64_t data_table_rowkey_count = data_table_schema->get_rowkey_info().get_size();
-              int64_t index_column_num = index_table_rowkey_count - (int64_t)data_table_rowkey_count;
-              if(index_column_num < 0)
-              {
-                ret = OB_ERROR;
-                TBSYS_LOG(WARN,"index_column_num is not right = %ld", index_column_num);
-              }
-            }
-            else
+          data_table_schema = schema_manager->get_table_schema(table_schema->get_original_table_id());
+          if(NULL != data_table_schema)
+          {
+            int64_t index_table_rowkey_count = table_schema->get_rowkey_info().get_size();
+            int64_t data_table_rowkey_count = data_table_schema->get_rowkey_info().get_size();
+            int64_t index_column_num = index_table_rowkey_count - (int64_t)data_table_rowkey_count;
+            if(index_column_num < 0)
             {
               ret = OB_ERROR;
-              TBSYS_LOG(WARN,"data_table is null! table_id:%ld", table_schema->get_original_table_id());
+              TBSYS_LOG(WARN,"index_column_num is not right = %ld", index_column_num);
             }
           }
-          else if(OB_SUCCESS != (ret = schema_manager->get_index_list(table_id, index_list)))
-          {
-            TBSYS_LOG(ERROR,"failed to get index list ret = %d", ret);
-          }
-          else if(index_list.get_count() > 0)
-          {
-            //是数据表,判断索引表数量，大于0就是有索引表的
-            is_index_ = false;
-            is_have_index_ = true;
-            is_have_init_index_ = schema_manager->is_have_init_index(table_id);
-          }
           else
           {
-            //既不是索引表，也不是有索引表的数据表
-              is_index_ = false;
-              is_have_index_ = false;
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN,"data_table is null! table_id:%ld", table_schema->get_original_table_id());
           }
         }
-
-        //add wenghaixing [realse schema while function end!] 20160128:b
-        if(NULL != schema_manager)
+        else if(OB_SUCCESS != (ret = schema_manager->get_index_list(table_id, index_list)))
         {
-          if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
-          {
-            TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
-          }
-
-          else
-          {
-            schema_manager = NULL;
-          }
+          TBSYS_LOG(ERROR,"failed to get index list ret = %d", ret);
         }
-        //add e
-        return ret;
+        else if(index_list.get_count() > 0)
+        {
+          //是数据表,判断索引表数量，大于0就是有索引表的
+          is_index_ = false;
+          is_have_index_ = true;
+          is_have_init_index_ = schema_manager->is_have_init_index(table_id);
+        }
+        else
+        {
+          //既不是索引表，也不是有索引表的数据表
+          is_index_ = false;
+          is_have_index_ = false;
+        }
+      }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
+      return ret;
     }
 
     int ObTabletMergerV1::cons_column_checksum_row_desc_for_data(ObRowDesc &row_desc, uint64_t tid)

@@ -96,7 +96,7 @@ namespace oceanbase
 
     /**
      * @brief The ObIndexHandlePool class
-     * thread pool for constructing index
+     * is designed for thread pool for constructing index
      */
     class ObIndexHandlePool: public tbsys::CDefaultRunnable
     {
@@ -105,15 +105,18 @@ namespace oceanbase
        * @brief ObIndexHandlePool constructor
        */
       ObIndexHandlePool();
+      /**
+       * @brief ~ObIndexHandlePool destructor
+       */
       ~ObIndexHandlePool(){}
       /**
-       * @brief init 初始化工作线程
+       * @brief init: Initialization working thread
        * @param manager
-       * @return
+       * @return err code
        */
       int init(ObTabletManager *manager);
       /**
-       * @brief schedule 根据阶段进行HandlePool的调度算法
+       * @brief schedule: Conduct HandlerPool scheduling algorithm based on stage
        * @return return code
        */
       int schedule();
@@ -123,24 +126,24 @@ namespace oceanbase
        */
       int start_round();
       /**
-       * @brief set_config_param: 创建两个hashmap,用来保存rs切分的range
-       * @return
+       * @brief set_config_param: Create two hashmap, to save rs segmentation of range
+       * @return err code
        */
       int set_config_param();
       /**
-       * @brief create_work_thread: 调用tbsys::CDefaultRunnable的start函数来启动多个线程
+       * @brief create_work_thread: Call tbsys::CDefault Runnable's start function to start multiple threads
        * @param max_work_thread_num
        * @return return code
        */
       int create_work_thread(const int64_t max_work_thread_num);
       /**
-       * @brief fetch_tablet_info 取回tablet或者range信息
+       * @brief fetch_tablet_info: Retrieve tablet or range information
        * @param which_stage
        * @return return code
        */
       int fetch_tablet_info(common::ConIdxStage which_stage = STAGE_INIT);
       /**
-       * @brief is_tablet_need_build_static_index ?
+       * @brief is_tablet_need_build_static_index
        * @param tablet
        * @param [out] is_need_index
        * @return return code
@@ -280,7 +283,7 @@ namespace oceanbase
         return schedule_idx_tid_;
       }
       /**
-       * @brief if_is_building_index 判断是否有在建索引
+       * @brief if_is_building_index: Determine whether there is under construction index
        * @return true or false
        */
       inline bool if_is_building_index()
@@ -354,7 +357,7 @@ namespace oceanbase
       const static int8_t TABLET_RELEASE = 2;
     private:
       /**
-       * @brief create_all_index_handlers: 为每一个handler(完成索引构建的类)分配空间
+       * @brief create_all_index_handlers: Allocates space for each handler
        * @return ret
        */
       int create_all_index_handlers();
@@ -385,7 +388,7 @@ namespace oceanbase
        * @param tablet
        * @param range
        * @param [out] err
-       * @return
+       * @return err code
        */
       int get_tablets_ranges(
           TabletRecord* &tablet,
@@ -426,7 +429,7 @@ namespace oceanbase
        * @param is_local_index
        * @param [out] tablet
        * @param [out] range
-       * @return
+       * @return err code
        */
       bool check_if_tablet_range_failed(
           bool is_local_index,
@@ -437,7 +440,7 @@ namespace oceanbase
        * @param level
        * @param tablet
        * @param range
-       * @return
+       * @return err code
        */
       int retry_failed_work(
           ErrNo level,
@@ -470,8 +473,8 @@ namespace oceanbase
       common::ObTabletHistogramReportInfoList *static_index_report_infolist; ///< collect histogram report info
       volatile bool inited_; ///< is inited?
       int64_t thread_num_; ///< thread number
-      uint64_t process_idx_tid_; ///< 当前处理的索引表id
-      uint64_t schedule_idx_tid_; ///< 计划即将处理的索引表tid
+      uint64_t process_idx_tid_; ///< The current process id of the index table
+      uint64_t schedule_idx_tid_; ///< Plan to be processed
       int64_t tablet_index_; ///< index of tablet_array_
       int64_t range_index_; ///< index of range_array_
       int64_t hist_width_; ///< histogram's width
@@ -493,8 +496,8 @@ namespace oceanbase
       pthread_mutex_t mutex_; ///< mutex
       pthread_mutex_t stage_mutex_; ///< stage mutex
       pthread_mutex_t tablet_range_mutex_; ///< tablet range mutex for increse counter
-      ObArray<TabletRecord> tablet_array_;///< tablet_array存的是本cs上原数据表的所有的tablet
-      ObArray<RangeRecord> range_array_;///< 本cs上存的tablet(第一副本)的range,实际上要做的range
+      ObArray<TabletRecord> tablet_array_;///< tablet_array stored all the tablet data
+      ObArray<RangeRecord> range_array_;///<  the range is actually to be doing
       //ObIndexHandler *handler_[MAX_WORK_THREAD];
       ObGlobalIndexHandler *global_handler_[MAX_WORK_THREAD]; ///< global working thread
       ObLocalIndexHandler *local_handler_[MAX_WORK_THREAD]; ///< local working thread

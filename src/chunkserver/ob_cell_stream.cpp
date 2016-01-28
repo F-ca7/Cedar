@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_cell_stream.cpp
- * @brief ob_cell_stream.cpp define rpc interface between chunk server and update server.
+ * @brief define rpc interface between chunk server and update server.
  *
  * modified by longfei： overloading rpc_scan_row_data() function
  *

@@ -59,7 +59,6 @@ namespace oceanbase
         virtual int find_cid(sql::ObSqlExpression& sql_expr, uint64_t &cid) = 0;
         virtual int change_tid(sql::ObSqlExpression* sql_expr, uint64_t& array_index) = 0;
         virtual int get_cid(sql::ObSqlExpression* sql_expr, uint64_t& cid) = 0;
-        //virtual ObObj& get_expr_by_index(sql::ObSqlExpression* sql_expr, int64_t index) = 0;
         virtual bool is_have_main_cid(sql::ObSqlExpression& sql_expr, uint64_t main_column_id) = 0;
         virtual bool is_all_expr_cid_in_indextable(uint64_t index_tid, const sql::ObPostfixExpression& expr_, const ObSchemaManagerV2 *sm_v2) = 0;
         virtual int get_all_cloumn(sql::ObSqlExpression& sql_expr,ObArray<uint64_t> &column_index) = 0;

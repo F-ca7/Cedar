@@ -50,22 +50,25 @@ namespace oceanbase
        * @brief BlackList constructor
        */
       BlackList();
+      /**
+       * @brief ~BlackList destructor
+       */
       ~BlackList();
       /**
        * @brief init
-       * @return
+       * @return err code
        */
       int init();
       /**
        * @brief add_in_black_list
        * @param range
        * @param server
-       * @return
+       * @return err code
        */
       int add_in_black_list(ObNewRange &range, ObServer &server);
       /**
        * @brief is_all_repli_failed
-       * @return
+       * @return err code
        */
       bool is_all_repli_failed();
       /**
@@ -82,7 +85,7 @@ namespace oceanbase
        * @brief get_server
        * @param i
        * @param server
-       * @return
+       * @return err code
        */
       int get_server(int i, ObServer &server);
       /**
@@ -99,13 +102,13 @@ namespace oceanbase
        * @brief write_list
        * @param range
        * @param list
-       * @return
+       * @return err code
        */
       int write_list(ObNewRange &range, ObTabletLocationList &list);
       /**
        * @brief next_replic_server
        * @param server
-       * @return
+       * @return err code
        */
       int next_replic_server(ObServer &server);
       /**
@@ -118,7 +121,7 @@ namespace oceanbase
       }
       /**
        * @brief get_work_send
-       * @return
+       * @return err code
        */
       int8_t get_work_send()
       {

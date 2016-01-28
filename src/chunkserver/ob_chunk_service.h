@@ -345,7 +345,7 @@ namespace oceanbase
 
         // add longfei [cons static index] 151120:b
         /**
-         * @brief cs_recieve_work: 处理其他cs发送过来的构建失败的索引
+         * @brief cs_recieve_work: Processing failed index other cs sent over
          * @param version
          * @param channel_id
          * @param req
@@ -360,7 +360,7 @@ namespace oceanbase
             common::ObDataBuffer& in_buffer,
             common::ObDataBuffer& out_buffer);
         /**
-         * @brief handle_index_beat: 处理rs发送过来的心跳包中包含索引的部分
+         * @brief handle_index_beat: handle index heartbeat from rs
          * @param beat
          * @return error code
          */
@@ -471,9 +471,13 @@ namespace oceanbase
             /**
              * @brief try_stop_mission
              * @param index_tid
-             * @return
+             * @return error code
              */
             int try_stop_mission(uint64_t index_tid);
+            /**
+             * @brief check_new_global
+             * @return true for new or false for old
+             */
             bool check_new_global();
             /**
              * @brief check_if_in_processing
@@ -482,7 +486,7 @@ namespace oceanbase
              */
             bool check_if_in_processing(uint64_t index_tid);
             /**
-             * @brief runTimerTask 索引定时任务
+             * @brief runTimerTask base function in tbsys
              */
             virtual void runTimerTask();
           public:

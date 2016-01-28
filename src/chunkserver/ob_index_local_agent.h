@@ -8,8 +8,8 @@
  * @file ob_index_local_agent.h
  * @brief get range data in cs itself
  *
- * Created by longfei： local agent is for the global stage of construct static index,
- *  get the datas of the range when those datas in myself.
+ * Created by longfei： local agent is for the global stage of constructing static index,
+ *  get the data of the range when those datas in myself.
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -65,17 +65,17 @@ namespace oceanbase
       virtual void reuse();
       /**
        * @brief open
-       * @return
+       * @return err code
        */
       virtual int open();
       /**
        * @brief close
-       * @return
+       * @return err code
        */
       virtual int close();
       /**
        * @brief get_type
-       * @return
+       * @return err code
        */
       virtual ObPhyOperatorType get_type() const
       {
@@ -84,13 +84,13 @@ namespace oceanbase
       /**
        * @brief get_next_row
        * @param row [out]
-       * @return
+       * @return err code
        */
       virtual int get_next_row(const ObRow *&row);
       /**
        * @brief get_row_desc
        * @param row_desc [out]
-       * @return
+       * @return err code
        */
       virtual int get_row_desc(const ObRowDesc *&row_desc) const;
       /**

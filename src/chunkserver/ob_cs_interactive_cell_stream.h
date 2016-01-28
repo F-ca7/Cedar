@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_cs_interactive_cell_stream.h
- * @brief ob_cs_interactive_cell_stream.h for define rpc interface between chunk like this :) cs <== rpc ==> cs
+ * @brief define rpc interface between chunk like this :) cs <== rpc ==> cs
  *
  * Created by longfei：provide cell stream for operator ObCsInteractiveAgent
  *
@@ -27,7 +27,7 @@ namespace oceanbase
   {
     /**
      * @brief The ObCsInteractiveCellStream class
-     * for get data in other cs
+     * is designed for get data in other cs
      */
     class ObCsInteractiveCellStream: public ObCellStream
     {
@@ -62,7 +62,7 @@ namespace oceanbase
        * @brief get_data_version
        * get the current scan data version, this function must
        * be called after next_cell()
-       * @return int64_t return data version
+       * @return data version
        */
       virtual int64_t get_data_version() const;
       /**
@@ -92,19 +92,19 @@ namespace oceanbase
       }
     private:
       /**
-       * @brief check_finish_scan
+       * @brief check_finish_scan:
        * check whether finish scan, if finished return server's servering tablet range
        * @param param current scan param
        * @return error code
        */
       int check_finish_scan(const common::ObScanParam & param);
       /**
-       * @brief get_next_cell 从cur_result_中将结果取出来返回给上一层
+       * @brief get_next_cell: get next cell from cur_result_
        * @return error code
        */
       int get_next_cell(void);
       /**
-       * @brief scan_row_data 真正的扫描cell将结果存在cur_result_中
+       * @brief scan_row_data: store result in cur_result_
        * @return error code
        */
       int scan_row_data();
@@ -119,8 +119,8 @@ namespace oceanbase
       common::ObMemBuf range_buffer_; ///< for modify param range
       const common::ObScanParam * scan_param_; ///<  orignal scan param
       common::ObScanParam cur_scan_param_; ///< current scan param
-      ObTabletLocationList chunkserver_; ///<  选择需要发送的CS
-      int64_t cur_rep_index_; ///< 当前副本的索引
+      ObTabletLocationList chunkserver_; ///<  Choose CS to be sent
+      int64_t cur_rep_index_; ///< Index of the current copy
       ObServer self_; ///< this cs itself
     };
 
