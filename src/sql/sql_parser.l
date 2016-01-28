@@ -685,8 +685,7 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
     return SEMI_JOIN;
     //  add  :e
 }
-<hint>WEAK  {
-  return WEAK;
+<hint>WEAK  {  return WEAK;
 }
 <hint>STRONG  {
   return STRONG;
@@ -731,9 +730,7 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
   return NAME;
   //add e
 }
-<hint>. {}
-
-{comment} { /* ignore */ }
+<hint>. {}{comment} { /* ignore */ }
 
 [-+&~|^/%*(),.;!] { return yytext[0];}
 

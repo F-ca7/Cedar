@@ -260,9 +260,7 @@ typedef enum ObItemType
   T_USE_INDEX,// add longfei
   T_UNKOWN_HINT,// add longfei
   T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
-  T_KILL,
-
-  T_MAX,
+  T_KILL,  T_MAX,
 
 } ObItemType;
 

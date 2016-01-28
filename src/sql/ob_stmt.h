@@ -27,7 +27,8 @@
 #include "parse_node.h"
 
 namespace oceanbase
-{  namespace sql
+{ 
+  namespace sql
   {
     using namespace common;
     //add longfei [Index Hint]
@@ -51,8 +52,7 @@ namespace oceanbase
     //add e
 
      // add by yusj[SEMI_JOIN] 20150819
-     struct   ObSemiTableList
-     {
+     struct ObSemiTableList     {
      	common::ObString join_left_table_name_;
      	common::ObString join_left_column_name;
      	common::ObString join_right_table_name_;
@@ -73,11 +73,10 @@ namespace oceanbase
      		join_right_column_name.assign_buffer(right_col_buf, OB_MAX_TABLE_NAME_LENGTH);
      	}
      private:
-      char left_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
-      char right_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
-      char left_col_buf[OB_MAX_TABLE_NAME_LENGTH];
-      char right_col_buf[OB_MAX_TABLE_NAME_LENGTH];
-     };
+     	char left_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+     	char right_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+ 		char left_col_buf[OB_MAX_TABLE_NAME_LENGTH];
+ 		char right_col_buf[OB_MAX_TABLE_NAME_LENGTH];     };
      //add e
   }
 
@@ -106,8 +105,7 @@ namespace oceanbase
     };
   }
 
-
-  namespace sql
+>>>>>>> Temporary merge branch 2  namespace sql
   {
     struct ObQueryHint
     {
@@ -127,8 +125,7 @@ namespace oceanbase
       bool hotspot_;
       common::ObConsistencyLevel read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_; // add by longfei [Index Hint]
-      common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
-    };
+      common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819    };
     
     struct TableItem
     {

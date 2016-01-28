@@ -1,4 +1,4 @@
-/**
+
  * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or

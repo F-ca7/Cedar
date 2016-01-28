@@ -217,8 +217,7 @@ const char* get_type_name(int type)
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
 	
   case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
-  case T_USE_INDEX : return "T_USE_INDEX"; //add longfei
-	case T_KILL : return "T_KILL";
+  case T_USE_INDEX : return "T_USE_INDEX"; //add longfei	case T_KILL : return "T_KILL";
 	case T_MAX : return "T_MAX";
 
 	// add [secondaryindex reconstruct] longfei [create index]
