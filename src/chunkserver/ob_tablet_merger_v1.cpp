@@ -1636,6 +1636,21 @@ namespace oceanbase
               is_have_index_ = false;
           }
         }
+
+        //add wenghaixing [realse schema while function end!] 20160128:b
+        if(NULL != schema_manager)
+        {
+          if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+          {
+            TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+          }
+
+          else
+          {
+            schema_manager = NULL;
+          }
+        }
+        //add e
         return ret;
     }
 
@@ -1696,6 +1711,20 @@ namespace oceanbase
           }
         }
       }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
       return ret;
     }
 
@@ -1765,6 +1794,20 @@ namespace oceanbase
           }
         }
       }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
       return ret;
     }
 

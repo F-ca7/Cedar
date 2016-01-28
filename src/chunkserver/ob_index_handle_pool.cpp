@@ -385,6 +385,12 @@ namespace oceanbase
           {
             TBSYS_LOG(ERROR, "failed to release schema ret[%d]", ret);
           }
+          //add wenghaixing [realse schema while function end!] 20160128
+          else
+          {
+            shcema_mgr = null;
+          }
+          //add e
         }
         if(OB_SUCCESS == ret)
         {
@@ -501,6 +507,20 @@ namespace oceanbase
             scanner.reset();
           }
         }while(true);
+
+        //add wenghaixing [realse schema while function end!] 20160128
+        if(NULL != schema)
+        {
+          if (OB_SUCCESS != (ret = schema_mgr_->release_schema(schema)))
+          {
+            TBSYS_LOG(ERROR, "failed to release schema ret[%d]", ret);
+          }
+          else
+          {
+            schema = NULL;
+          }
+        }
+        //add e
 
         hash::ObHashMap<ObNewRange, ObTabletLocationList,hash::NoPthreadDefendMode>::const_iterator iter = range_hash_.begin();
         RangeRecord record;

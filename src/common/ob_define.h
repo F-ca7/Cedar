@@ -638,15 +638,18 @@ namespace oceanbase
     static const uint64_t OB_ALL_SERVER_SESSION_TID = 510;
     static const uint64_t OB_ALL_STATEMENT_TID = 511;
     //add longfei [merge] 20160127
-    static const uint64_t OB_INDEX_SHOW_TID = 512; 
+    static const uint64_t OB_INDEX_SHOW_TID = 512;
     //add e
 
     //add maoxx
     static const uint64_t OB_ALL_COLUMN_CHECKSUM_INFO_TID = 801;
-	static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;
+    static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;
     //add e
 
-#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
+    //mod longfei [debug] 20160127:b
+//#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
+#define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
+    //mod e
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////

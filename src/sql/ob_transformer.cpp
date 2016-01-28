@@ -5439,7 +5439,12 @@ int ObTransformer::gen_phy_show_tables(ObPhysicalPlan *physical_plan, ErrStat& e
     value.set_varchar(val);
     val_row.set_row_desc(row_desc);
 
-    if (it->get_table_id() >= OB_TABLES_SHOW_TID && it->get_table_id() <= OB_SERVER_STATUS_SHOW_TID)
+    //mod longfei [debug] 20160127:b
+    //if (it->get_table_id() >= OB_TABLES_SHOW_TID && it->get_table_id() <= OB_SERVER_STATUS_SHOW_TID)
+    if ((it->get_table_id() >= OB_TABLES_SHOW_TID
+        && it->get_table_id() <= OB_SERVER_STATUS_SHOW_TID)
+        || it->get_table_id() == OB_INDEX_SHOW_TID)
+    //mod e
     {
       /* skip local show tables */
       continue;
@@ -5487,7 +5492,7 @@ int ObTransformer::gen_phy_show_index(ObPhysicalPlan *physical_plan, ErrStat& er
   if (show_stmt->get_column_size() != 3)
   {
     ret = OB_ERR_COLUMN_SIZE;
-    TRANS_LOG("wrong columns' number of %s", OB_INDEX_SHOW_TABLE_NAME);
+    TRANS_LOG("wrong columns' number[%d] of %s", show_stmt->get_column_size(), OB_INDEX_SHOW_TABLE_NAME);
   }
   else
   {

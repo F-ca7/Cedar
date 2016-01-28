@@ -102,13 +102,6 @@ int ObShowSchemaManager::add_show_tables_schema(ObSchemaManagerV2& schema_mgr)
   return ret;
 }
 
-
-/**
- * @brief ObShowSchemaManager::add_show_index_schema: add virtual table __index_show's schema to schema_mgr
- * @param schema_mgr
- * @author longfei <longfei@stu.ecnu.edu.cn>
- * @return
- */
 int ObShowSchemaManager::add_show_index_schema(ObSchemaManagerV2& schema_mgr)
 {
   int ret = OB_SUCCESS;

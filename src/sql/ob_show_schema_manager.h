@@ -58,7 +58,7 @@ namespace oceanbase
          * @brief ObShowSchemaManager::add_show_index_schema: add virtual table __index_show's schema to schema_mgr
          * @param schema_mgr
          * @author longfei <longfei@stu.ecnu.edu.cn>
-         * @return
+         * @return error code
          */
         static int add_show_index_schema(common::ObSchemaManagerV2& schema_mgr);
         //add:e

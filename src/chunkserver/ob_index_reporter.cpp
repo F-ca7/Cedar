@@ -359,7 +359,10 @@ namespace oceanbase
             err = OB_CS_EAGAIN;
           }
 
-          if(OB_SUCCESS == err)
+          //mod wenghaixing [realse schema while function end!] 20160128:b
+          //if(OB_SUCCESS == err)
+          if(NULL != schema_manager)
+          //mod e
           {
             if(OB_SUCCESS != (err = merger_schema_manager->release_schema(schema_manager)))
             {
@@ -367,7 +370,7 @@ namespace oceanbase
             }
             else
             {
-
+              schema_manager = NULL; //add wenghaixing [realse schema while function end!] 20160128:e
             }
           }
 
