@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sstable_row.h
+ * @brief for persistent ssatable single row
+ *
+ * modified by longfei：add function set_rowkey_obj_count()
+ * modified by maoxiaoxiao:add functions to get obj without const and get row obj
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -52,6 +71,14 @@ namespace oceanbase
 
 
       inline bool is_binary_rowkey() const { return NULL != binary_rowkey_info_; }
+
+      //add longfei [cons static index] 151207:b
+      /**
+       * @brief set_rowkey_obj_count
+       * @param count
+       */
+      void set_rowkey_obj_count(const int64_t count);
+      //add e
 
       /**
        * return how many objects(columns) in the row, maximum count is 
@@ -161,6 +188,24 @@ namespace oceanbase
        *         NULL.
        */
       const common::ObObj* get_obj(const int32_t index) const;
+
+      //add maoxx
+      /**
+       * @brief get_obj_without_const
+       * get ObObj without const
+       * @param index
+       * @return &objs_[index]
+       */
+      common::ObObj* get_obj_without_const(const int32_t index);
+
+      /**
+       * @brief get_row_obj
+       * get row ObObj
+       * @param index
+       * @return objs_[index]
+       */
+      const common::ObObj get_row_obj(const int64_t index) const;
+      //add e
 
       /**
        * get objs array of row 

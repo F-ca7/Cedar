@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_scan.h
+ * @brief for scanning tablet
+ *
+ * modified by longfei：
+ * make function build_sstable_scan_param() public
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -87,6 +105,18 @@ namespace oceanbase
         {
           scan_context_ = scan_context;
         }
+        // add longfei [cons static index] 151130:b
+        /**
+         * @brief ObTabletScan::build_sstable_scan_param_pub make build_sstable_scan_param() public
+         * @param basic_columns
+         * @param sql_scan_param
+         * @param sstable_scan_param
+         * @return
+         */
+        int build_sstable_scan_param_pub(ObArray<uint64_t> &basic_columns,
+            const ObSqlScanParam &sql_scan_param,
+            sstable::ObSSTableScanParam &sstable_scan_param) const;
+        // add e
 
       private:
         // disallow copy

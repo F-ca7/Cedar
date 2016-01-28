@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_ddl_operator.cpp
+ * @brief for operations of table in rootserver
+ *
+ * modified by Wenghaixing:modify main procedure of create table, only when table is not index or index switch is on ,
+ *                         root server will create tablet for table
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
 #include "ob_root_ddl_operator.h"
 #include "ob_root_server2.h"
 #include "common/ob_range.h"
@@ -50,7 +68,11 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
       }
     }
   }
-  if (OB_SUCCESS == ret)
+  //modify wenghaixing [secondary index.static_index]20160119
+  if ((OB_SUCCESS == ret && OB_INVALID_ID == table_schema.original_table_id_)
+          || (OB_SUCCESS == ret && OB_INVALID_ID != table_schema.original_table_id_ && root_server_->get_config().index_immediate_effect))
+  //if (OB_SUCCESS == ret)
+  //modify e
   {
     // step 3. select cs for create empty tablet
     ret = create_empty_tablet(table_schema);
@@ -516,4 +538,3 @@ int ObRootDDLOperator::modify_table_id(common::TableSchema &table_schema, const 
   }
   return ret;
 }
-

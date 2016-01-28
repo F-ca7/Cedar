@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file dml_build_plan.h
+ * @brief resolve some dml operation
+ *
+ * modified by longfei：
+ * 1.generate inner index table name
+ * 2.resolve user's hint for using secondary index in select
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -23,6 +42,9 @@
 #include "common/ob_vector.h"
 #include <stdint.h>
 
+//add wenghaixing [secondary index create fix]20141226
+#include "common/ob_strings.h"
+//add e
 /*
   * Expressions from different scope have different limitations,
   * we need a flage to distinguish where they are from.
@@ -75,6 +97,21 @@ extern int resolve_table_columns(
     oceanbase::sql::ObStmt* stmt,
     oceanbase::sql::TableItem& table_item,
     int64_t num_columns = -1);
+// add longfei 20151105
+/**
+ * @brief generate_inner_index_table_name
+ * @param index_name
+ * @param original_table_name
+ * @param out_buff
+ * @param str_len
+ * @return
+ */
+extern int generate_inner_index_table_name(
+    ObString& index_name,
+    ObString& original_table_name,
+    char *out_buff,
+    int64_t& str_len);
+// add e
 
 #endif //DML_BUILD_PLAN_H_
 

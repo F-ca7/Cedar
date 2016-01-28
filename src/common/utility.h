@@ -111,6 +111,7 @@ namespace oceanbase
         const char del, int32_t *array, int32_t& size);
     int32_t hex_to_str(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
     int32_t str_to_hex(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
+
     int64_t lower_align(int64_t input, int64_t align);
     int64_t upper_align(int64_t input, int64_t align);
     bool is2n(int64_t input);

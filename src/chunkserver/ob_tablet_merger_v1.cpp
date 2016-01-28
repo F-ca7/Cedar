@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_tablet_merger.cpp
+* @brief for merging tablets
+*
+* modified by maoxiaoxiao：calculate column checksum of data table and index table during daily merge
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
 /*
  * (C) 2007-2010 Alibaba Group Holding Limited.
  *
@@ -183,7 +200,13 @@ namespace oceanbase
       ms_wrapper_(*(ObChunkServerMain::get_instance()->get_chunk_server().get_rpc_proxy()),
                   ObChunkServerMain::get_instance()->get_chunk_server().get_config().merge_timeout),
       merge_join_agent_(cs_proxy_)
-    {}
+    {
+      //add maoxx
+      memset(column_checksum_.get_str(), 0, common::OB_MAX_COL_CHECKSUM_STR_LEN);
+      column_checksum_row_desc_.reset();
+      max_data_table_cid_ = OB_INVALID_ID;
+      //add e
+    }
 
     int ObTabletMergerV1::init()
     {
@@ -250,6 +273,38 @@ namespace oceanbase
           row_.get_obj(i)->dump(TBSYS_LOG_LEVEL_ERROR);
         }
       }
+      //add maoxx
+      if(OB_SUCCESS == ret)
+      {
+        ObColumnChecksum row_column_checksum;
+        row_column_checksum.reset();
+
+        if(!is_index_ && is_have_index_)
+        {
+          //如果是有索引表的数据表
+          if(OB_SUCCESS != (ret = calc_tablet_col_checksum_for_data(row_, column_checksum_row_desc_, row_column_checksum.get_str())))
+          {
+            TBSYS_LOG(ERROR,"calc column_checksum error,ret[%d]",ret);
+          }
+          else if(OB_SUCCESS != (ret = column_checksum_.add(row_column_checksum)))
+          {
+            TBSYS_LOG(ERROR,"sum column_checksum error,ret[%d]",ret);
+          }
+        }
+        else if(is_index_)
+        {
+          //如果是索引表
+          if(OB_SUCCESS != (ret = calc_tablet_col_checksum_for_index(row_, column_checksum_row_desc_, row_column_checksum.get_str(), max_data_table_cid_)))
+          {
+            TBSYS_LOG(ERROR,"calc column_checksum error,ret[%d]",ret);
+          }
+          else if(OB_SUCCESS != (ret = column_checksum_.add(row_column_checksum)))
+          {
+            TBSYS_LOG(ERROR,"sum column_checksum error,ret[%d]",ret);
+          }
+        }
+      }
+      //add e
       return ret;
     }
 
@@ -308,6 +363,12 @@ namespace oceanbase
 
       sstable_schema_.reset();
       tablet_array_.clear();
+
+      //add maoxx
+      column_checksum_.reset();
+      column_checksum_row_desc_.reset();
+      max_data_table_cid_ = OB_INVALID_ID;
+      //add e
       return reset_local_proxy();
     }
 
@@ -620,6 +681,29 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "convert table schema to sstable schema failed, table=%ld",
             tablet->get_range().table_id_);
       }
+      //add maoxx
+      else if(OB_SUCCESS != (ret = is_index_or_with_index(tablet->get_range().table_id_)))
+      {
+        TBSYS_LOG(ERROR,"failed set flag for get old col checksum ret=%d",ret);
+      }
+      else
+      {
+        if(!is_index_ && is_have_index_)
+        {
+          if(OB_SUCCESS != (ret = cons_column_checksum_row_desc_for_data(column_checksum_row_desc_, tablet->get_range().table_id_)))
+          {
+            TBSYS_LOG(ERROR,"failed to create row desc for cal col checksum,ret[%d]",ret);
+          }
+        }
+        else if(is_index_)
+        {
+          if(OB_SUCCESS != (ret = cons_column_checksum_row_desc_for_index(column_checksum_row_desc_, tablet->get_range().table_id_, max_data_table_cid_)))
+          {
+            TBSYS_LOG(ERROR,"failed to create row desc for cal col checksum,ret[%d]",ret);
+          }
+        }
+      }
+      //add e
 
       if (OB_SUCCESS == ret)
       {
@@ -789,7 +873,13 @@ namespace oceanbase
               && (ret = finish_sstable(is_tablet_unchanged, new_tablet))!= OB_SUCCESS)
           {
             TBSYS_LOG(ERROR,"close sstable failed [%d]",ret);
+          }         
+          //add maoxx
+          else
+          {
+            column_checksum_.reset();
           }
+          //add e
 
           // not split, break
           if (OB_SUCCESS == ret && !is_first_column_group_splited)
@@ -1232,6 +1322,24 @@ namespace oceanbase
         {
           if (is_tablet_unchanged)
           {
+            //add maoxx
+              if((is_index_) || (!is_index_ && is_have_index_ && !is_have_init_index_))
+              {
+                //是索引表或有有建索引表的数据表
+                //如果没有增量数据则需要从rs取旧的校验和回来
+                //如果有增量的话，finish tablet的时候就已经发送
+                //左边条件：如果是索引表，任何情况都去拉
+                //右边条件：如果是数据表，如果有索引且没有init状态的索引表，那么有旧的列校验和可用
+                if(OB_SUCCESS != (ret = this->manager_.get_column_checksum(tablet->get_range(), column_checksum_)))
+                {
+                  TBSYS_LOG(ERROR,"merge v1 start get ccchecksum failed ret=%d  table_id=%ld", ret, tablet->get_range().table_id_);
+                }
+                else if(OB_SUCCESS != (ret = manager_.send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
+                {
+                  TBSYS_LOG(ERROR,"merge v1 start send ccchecksum failed ret=%d table_id=%ld", ret, tablet->get_range().table_id_);
+                }
+              }
+            //add e
             tablet->set_disk_no(old_tablet_->get_disk_no());
             row_checksum = old_tablet_->get_row_checksum();
             ret = create_hard_link_sstable(sstable_size);
@@ -1243,6 +1351,24 @@ namespace oceanbase
           }
           else
           {
+            //add maoxx
+              //如果表有增量，就把新算的列校验和发送系统表
+              if(is_index_ || (!is_index_ && is_have_index_))
+              {
+                if(NULL == column_checksum_.get_str())
+                {
+                  ret = OB_ERROR;
+                  TBSYS_LOG(ERROR,"column checksum is null");
+                }
+                else
+                {
+                  if(OB_SUCCESS != (ret = manager_.send_tablet_column_checksum(column_checksum_, new_range_, frozen_version_)))
+                  {
+                    TBSYS_LOG(ERROR,"merge v1 start send ccchecksum failed ret=%d table_id=%ld", ret, tablet->get_range().table_id_);
+                  }
+                }
+              }
+            //add e
             trailer = &writer_.get_trailer();
             tablet->set_disk_no( (sstable_id_.sstable_file_id_) & DISK_NO_MASK);
           }
@@ -1433,5 +1559,384 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add maoxx
+    int ObTabletMergerV1::is_index_or_with_index(const uint64_t table_id)
+    {
+      int ret = OB_SUCCESS;
+      common::ObMergerSchemaManager* merger_schema_manager = get_global_sstable_schema_manager();
+      const ObSchemaManagerV2* schema_manager = NULL;
+      const ObTableSchema* table_schema = NULL;
+      const ObTableSchema* data_table_schema = NULL;
+      IndexList index_list;
+      if(NULL == merger_schema_manager)
+      {
+        TBSYS_LOG(ERROR,"get merge schema manager error,ret=%d", ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        schema_manager = merger_schema_manager->get_schema(table_id);
+      }
+      if(NULL == schema_manager)
+      {
+        TBSYS_LOG(ERROR,"get schema manager v2 error,table_id:%ld,ret=%d", table_id, ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        table_schema = schema_manager->get_table_schema(table_id);
+      }
+      if(table_schema == NULL)
+      {
+        TBSYS_LOG(ERROR,"get_table_schema error,table_id:%ld,ret=%d",table_id,ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        if(OB_INVALID_ID != table_schema->get_original_table_id())
+        {
+          //有对应数据表的是索引表
+          is_index_ = true;
+          is_have_index_ = false;
+
+          data_table_schema = schema_manager->get_table_schema(table_schema->get_original_table_id());
+          if(NULL != data_table_schema)
+          {
+            int64_t index_table_rowkey_count = table_schema->get_rowkey_info().get_size();
+            int64_t data_table_rowkey_count = data_table_schema->get_rowkey_info().get_size();
+            int64_t index_column_num = index_table_rowkey_count - (int64_t)data_table_rowkey_count;
+            if(index_column_num < 0)
+            {
+              ret = OB_ERROR;
+              TBSYS_LOG(WARN,"index_column_num is not right = %ld", index_column_num);
+            }
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN,"data_table is null! table_id:%ld", table_schema->get_original_table_id());
+          }
+        }
+        else if(OB_SUCCESS != (ret = schema_manager->get_index_list(table_id, index_list)))
+        {
+          TBSYS_LOG(ERROR,"failed to get index list ret = %d", ret);
+        }
+        else if(index_list.get_count() > 0)
+        {
+          //是数据表,判断索引表数量，大于0就是有索引表的
+          is_index_ = false;
+          is_have_index_ = true;
+          is_have_init_index_ = schema_manager->is_have_init_index(table_id);
+        }
+        else
+        {
+          //既不是索引表，也不是有索引表的数据表
+          is_index_ = false;
+          is_have_index_ = false;
+        }
+      }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
+      return ret;
+    }
+
+    int ObTabletMergerV1::cons_column_checksum_row_desc_for_data(ObRowDesc &row_desc, uint64_t tid)
+    {
+      //该函数只用于处理数据表
+      //构造数据表的需要计算列校验和的row desc
+      //index_desc保存索引表中的列
+      int ret = OB_SUCCESS;
+      bool column_hit_index_flag = false;
+      common::ObMergerSchemaManager* merger_schema_manager = get_global_sstable_schema_manager();
+      const ObSchemaManagerV2 *schema_manager = NULL;
+      const ObTableSchema* table_schema = NULL;
+      const ObSSTableSchemaColumnDef* col_def = NULL;
+      if(NULL == merger_schema_manager)
+      {
+        TBSYS_LOG(ERROR,"get merge_schema error");
+        ret = OB_SCHEMA_ERROR;
+      }
+      else if(NULL == (schema_manager = merger_schema_manager->get_schema(tid)))
+      {
+        TBSYS_LOG(ERROR,"get schema manager v2 error,ret=%d",ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        table_schema = schema_manager->get_table_schema(tid);
+      }
+      if(OB_SUCCESS != ret || table_schema == NULL)
+      {
+        TBSYS_LOG(ERROR,"get table schema error,ret=%d", ret);
+        ret = OB_SCHEMA_ERROR;
+      }
+      else
+      {
+        int64_t column_count = sstable_schema_.get_column_count();//count保存原表列个数
+        for(int64_t i = 0; i < column_count; i++)
+        {
+          if(NULL == (col_def = sstable_schema_.get_column_def((int)i)))
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "failed to get column def of table[%ld], i[%ld],ret[%d]", tid, i, ret);
+            break;
+          }
+          //遍历原表的所有列，并只保留在索引表中有的列
+          if(OB_SUCCESS != (ret = schema_manager->column_hit_index(tid, col_def->column_name_id_, column_hit_index_flag)))
+          {
+            TBSYS_LOG(ERROR,"failed to check if hint index,ret=%d", ret);
+            break;
+          }
+          else if(column_hit_index_flag)
+          {
+            if(OB_SUCCESS != (ret = row_desc.add_column_desc(tid, i)))
+            {
+              TBSYS_LOG(WARN, "failed to set column index_desc table_id[%ld], ret[%d]", tid, ret);
+              break;
+            }
+          }
+        }
+      }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
+      return ret;
+    }
+
+    int ObTabletMergerV1::cons_column_checksum_row_desc_for_index(ObRowDesc &row_desc, uint64_t tid, uint64_t &max_data_table_cid)
+    {
+      //用于处理索引表
+      //rowkey_desc保存原表主键
+      //index_desc保存除了原表主键的索引表中的列
+      //由于是obsstaberow不是obrow，无法用列id定位某一个obj，所以使用i表示，i从0开始
+      int ret = OB_SUCCESS;
+      common::ObMergerSchemaManager* merger_schema_manager = get_global_sstable_schema_manager();
+      const ObSchemaManagerV2 *schema_manager = NULL;
+      const ObTableSchema* index_schema;
+      const ObTableSchema* data_schema;
+      const ObSSTableSchemaColumnDef* col_def = NULL;
+      int64_t column_count = 0;
+      uint64_t data_tid = OB_INVALID_ID;
+
+      if(NULL == merger_schema_manager)
+      {
+        TBSYS_LOG(ERROR, "merge_schema is null ");
+        ret = OB_ERROR;
+      }
+      else if(NULL == (schema_manager = merger_schema_manager->get_schema(tid)))
+      {
+        TBSYS_LOG(ERROR, "schemav2 is null ");
+        ret = OB_ERROR;
+      }
+      else
+      {
+        index_schema = schema_manager->get_table_schema(tid);
+        if(NULL == index_schema)
+        {
+          TBSYS_LOG(ERROR, "failed to get index_schema");
+          ret = OB_ERROR;
+        }
+        else if(OB_INVALID_ID == (data_tid = index_schema->get_original_table_id()))
+        {
+          TBSYS_LOG(ERROR, "failed to get data_table_id");
+          ret = OB_ERROR;
+        }
+        else if(NULL == (data_schema = schema_manager->get_table_schema(data_tid)))
+        {
+          TBSYS_LOG(ERROR, "failed to get data_table_schema");
+          ret = OB_ERROR;
+        }
+        else
+        {
+          max_data_table_cid = data_schema->get_max_column_id();
+          column_count = sstable_schema_.get_column_count();
+          for(int64_t i = 0; i < column_count; i++)
+          {
+            if(NULL == (col_def = sstable_schema_.get_column_def((int)i)))
+            {
+              TBSYS_LOG(WARN, "failed to get column def of table[%ld], i[%ld],ret[%d]", tid, i, ret);
+              ret = OB_ERROR;
+              break;
+            }
+            else
+            {
+              if(OB_SUCCESS != (ret = row_desc.add_column_desc(tid, i)))
+              {
+                TBSYS_LOG(WARN, "failed to set column rowkey_desc table_id[%ld], ret[%d]", tid, ret);
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      //add wenghaixing [realse schema while function end!] 20160128:b
+      if(NULL != schema_manager)
+      {
+        if(OB_SUCCESS != (ret = merger_schema_manager->release_schema(schema_manager)))
+        {
+          TBSYS_LOG(ERROR, "release schema failed, ret = %d", ret);
+        }
+        else
+        {
+          schema_manager = NULL;
+        }
+      }
+      //add e
+      return ret;
+    }
+
+    int ObTabletMergerV1::calc_tablet_col_checksum_for_data(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum)
+    {
+      //用于计算原表的列校验和
+      //row_desc保存了主键列和在索引表中的列（index列或storing 列）
+      int ret = OB_SUCCESS;
+      int64_t column_count = row_desc.get_column_num();
+      const ObRowDesc::Desc *const_row_desc = row_desc.get_cells_desc_array(column_count);
+      int pos = 0,len = 0;
+      const ObObj* obj = NULL;
+      ObBatchChecksum bc;
+      const ObSSTableSchemaColumnDef* col_def = NULL;
+      for(int64_t i = 0; i < column_count; i++)
+      {
+        obj = row.get_obj((int)const_row_desc[i].column_id_);
+        bc.reset();
+        if(obj == NULL)
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(ERROR, "get sstable row obj error,ret=%d", ret);
+          break;
+        }
+        else if(NULL == (col_def = sstable_schema_.get_column_def((int)const_row_desc[i].column_id_)))
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "failed to get column def in cal col checksum");
+          break;
+        }
+        else
+        {
+          obj->checksum(bc);
+        }
+        uint64_t column_id = col_def->column_name_id_;
+        len = snprintf(column_checksum + pos, OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%ld", column_id);
+        if(len < 0)
+        {
+          TBSYS_LOG(ERROR,"write column checksum error");
+          ret = OB_ERROR;
+          break;
+        }
+        else
+        {
+          pos += len;
+          column_checksum[pos++] = ':';
+          if(pos < OB_MAX_COL_CHECKSUM_STR_LEN - 1)
+          {
+            len = snprintf(column_checksum + pos, OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%lu", bc.calc());
+            pos += len;
+          }
+          if(i != (column_count - 1))
+          {
+            column_checksum[pos++] = ',';
+          }
+          else
+          {
+            column_checksum[pos++] = '\0';
+          }
+        }
+      }
+      return ret;
+    }
+
+    int ObTabletMergerV1::calc_tablet_col_checksum_for_index(const sstable::ObSSTableRow& row, ObRowDesc row_desc, char *column_checksum, const uint64_t max_data_table_cid)
+    {
+      //用于计算索引表的列校验和
+      //row_desc保存了在索引表中的列（原表主键列,index列或storing 列）
+      int ret = OB_SUCCESS;
+      int64_t column_count = row_desc.get_column_num();
+      const ObRowDesc::Desc *const_row_desc = row_desc.get_cells_desc_array(column_count);
+      int pos = 0,len = 0;
+      const ObObj* obj = NULL;
+      ObBatchChecksum bc;
+      const ObSSTableSchemaColumnDef* col_def = NULL;
+
+        for(int64_t i = 0; i < column_count; i++)
+        {
+          obj = row.get_obj((int)const_row_desc[i].column_id_);
+          bc.reset();
+          if(obj == NULL)
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(ERROR, "get sstable row obj error,ret=%d", ret);
+            break;
+          }
+          else if(NULL == (col_def = sstable_schema_.get_column_def((int)const_row_desc[i].column_id_)))
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "failed to get column def in cal col checksum");
+            break;
+          }
+          else
+          {
+            obj->checksum(bc);
+          }
+          uint64_t column_id = col_def->column_name_id_;
+          if(column_id > max_data_table_cid)
+          {
+            continue;
+          }
+          len = snprintf(column_checksum + pos, OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%ld", column_id);
+          if(len < 0)
+          {
+            TBSYS_LOG(ERROR,"write column checksum error");
+            ret = OB_ERROR;
+            break;
+          }
+          else
+          {
+            pos += len;
+            column_checksum[pos++] = ':';
+            if(pos < OB_MAX_COL_CHECKSUM_STR_LEN - 1)
+            {
+              len = snprintf(column_checksum + pos, OB_MAX_COL_CHECKSUM_STR_LEN - 1 - pos, "%lu", bc.calc());
+              pos += len;
+            }
+            if(i != (column_count-1))
+            {
+              column_checksum[pos++] = ',';
+            }
+            else
+            {
+              column_checksum[pos++] = '\0';
+            }
+          }
+        }
+      return ret;
+    }
+    //add e
   } /* chunkserver */
 } /* oceanbase */

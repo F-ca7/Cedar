@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_ddl_operator.h
+ * @brief for operations of table in rootserver
+ *
+ * modified by Wenghaixing:add some fuction for secondary index construction
+ *
+ * @version __DaSE_VERSION
+ * @author Wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -47,6 +64,9 @@ namespace oceanbase
       int modify_table_id(common::TableSchema &table_schema, const int64_t new_table_id);
       // update max used table id
       int update_max_table_id(const uint64_t table_id);
+      //add wenghaixing [secondary index.static_index]20151217
+      tbsys::CThreadMutex &get_ddl_lock(){return mutex_lock_;}
+      //add e
     private:
       bool check_inner_stat(void) const;
       // read max table id and modify table schema

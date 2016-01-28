@@ -1,3 +1,31 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema.cpp
+ * @brief schema message for oceanbase
+ *
+ * modified by longfei：
+ * 1.add member variables original_table_id_, index_status_ into TableSchema(class)
+ * 2.modified DEFINE_SERIALIZE(ObTableSchema) and DEFINE_DESERIALIZE(ObTableSchema) for new member mentioned above
+ * 3.create an hash map to log the (tid <--> indexList)
+ * 4.add Judgment Rule for using secondary index in select
+ *
+ * modified by WengHaixing:
+ * 1.add a fuction call to find all not available index
+ *
+ * modified by maoxiaoxiao:
+ * 1.add functions to get some information about index lists of a table
+ * 
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -50,6 +78,63 @@ namespace oceanbase
     const int64_t OB_SCHEMA_VERSION_FOUR = 4;
     const int64_t OB_SCHEMA_VERSION_FOUR_FIRST = 401;
     const int64_t OB_SCHEMA_VERSION_FOUR_SECOND = 402;
+
+
+    //add wenghaixing [secondary index]
+    struct IndexList
+    {
+       uint64_t index_tid[OB_MAX_INDEX_NUMS];
+       int64_t offset;
+    public:
+       IndexList()
+       {
+         offset=0;
+         for(int64_t i=0;i<OB_MAX_INDEX_NUMS;i++)
+         {
+           index_tid[i]=OB_INVALID_ID;
+         }
+       }
+
+       //modify wenghaixing [secondary index upd]
+       inline int add_index(uint64_t tid)
+       {
+         int ret = OB_ERROR;
+         bool exist = false;
+         for(int64_t i = 0;i<offset;i++)
+         {
+           if(index_tid[i] == tid)
+           {
+             exist = true;
+             ret = OB_SUCCESS;
+           }
+         }
+         if(!exist && offset < OB_MAX_INDEX_NUMS)
+         {
+           offset++;
+           index_tid[offset-1]=tid;
+           ret = OB_SUCCESS;
+         }
+         else if(!exist)
+         {
+           TBSYS_LOG(WARN,"the index num of list is full!");
+         }
+
+         return ret;
+       }
+       //modify e
+
+       inline int64_t get_count()
+       {
+         return offset;
+       }
+
+       inline void get_idx_id(int64_t i,uint64_t &idx_id)
+       {
+         idx_id = index_tid[i];
+       }
+
+    };
+    //add e
 
     struct TableSchema;
     //these classes are so close in logical, so I put them together to make client have a easy life
@@ -283,6 +368,17 @@ namespace oceanbase
 
         uint64_t get_create_time_column_id() const;
         uint64_t get_modify_time_column_id() const;
+        //longfei [create index]
+        /**
+         * @brief get_original_table_id
+         * @return original_table_id_
+         */
+        uint64_t get_original_table_id() const;
+        /**
+         * @brief get_index_status
+         * @return index_status_
+         */
+        IndexStatus get_index_status() const;
 
         void set_table_id(const uint64_t id);
         void set_max_column_id(const uint64_t id);
@@ -321,6 +417,19 @@ namespace oceanbase
 
         void set_create_time_column(uint64_t id);
         void set_modify_time_column(uint64_t id);
+
+        //longfei [create index]
+        /**
+         * @brief set_original_table_id
+         * @param id
+         */
+        void set_original_table_id(uint64_t id);
+        /**
+         * @brief set_index_status
+         * @param status
+         */
+        void set_index_status(IndexStatus status);
+
         ObConsistencyLevel get_consistency_level() const;
         void set_consistency_level(int64_t consistency_level);
 
@@ -363,12 +472,18 @@ namespace oceanbase
         int64_t internal_ups_scan_size_;
         int64_t merge_write_sstable_version_;
         int64_t replica_count_;
+
+        // longfei [create index]
+        uint64_t original_table_id_; ///< index table's original table
+        IndexStatus index_status_; ///< index status
+
         int64_t reserved_[TABLE_SCHEMA_RESERVED_NUM];
         int64_t version_;
         int64_t schema_version_;
         //in mem
         uint64_t create_time_column_id_;
         uint64_t modify_time_column_id_;
+
     };
 
     class ObSchemaSortByIdHelper;
@@ -513,6 +628,107 @@ namespace oceanbase
         //rongxuan.lc@taobao.com
         int add_new_table_schema(const ObArray<TableSchema>& schema_array);
 
+      //longfei [create index]
+      public:
+        /**
+         * @brief get_id_index_hash
+         * @return id_index_hash_map_
+         */
+        const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  get_id_index_hash() const;
+        /**
+         * @brief get_index_column_num
+         * @param table_id
+         * @param num
+         * @return error code
+         */
+        int get_index_column_num(uint64_t& table_id,int64_t &num) const;
+        /**
+         * @brief add_index_in_map: put info into hash map
+         * @param tschema
+         * @return error code
+         */
+        int add_index_in_map(ObTableSchema *tschema);
+        /**
+         * @brief init_index_hash
+         * @return error code
+         */
+        int init_index_hash();
+        /**
+         * @brief get_index_list
+         * @param table_id
+         * @param [out] out_list
+         * @return error code
+         */
+        const int get_index_list(uint64_t table_id,IndexList& out_list) const;
+        /**
+         * @brief is_modify_expire_condition
+         * @param table_id
+         * @param cid
+         * @return
+         */
+        bool is_modify_expire_condition(uint64_t table_id,uint64_t cid)const;
+        /**
+         * @brief get_init_index: 找出所有状态为init的索引表
+         * @param table_id
+         * @param size
+         * @return error code
+         */
+        int get_init_index(uint64_t* table_id, int64_t& size) const;
+        /**
+         * @brief get_init_index: 找出所有状态为init的索引表
+         * @param [out] index_list
+         * @return
+         */
+        int get_init_index(ObArray<uint64_t>& index_list) const;
+        /**
+         * @brief is_index_has_storing
+         * @param table_id
+         * @return true: has storing or false: do not have
+         */
+        bool is_index_has_storing(uint64_t table_id) const;
+
+        volatile bool isIsIdIndexHashMapInit() const {
+          return is_id_index_hash_map_init_;
+        }
+
+      ///longfei [secondary index select]
+      public:
+        /**
+         * @brief is_this_table_avalibale 判断tid为参数的表是否是可用的索引表
+         * @param tid
+         * @return error code
+         */
+        bool is_this_table_avalibale(uint64_t tid) const;
+        /**
+         * @brief is_cid_in_index: 找到以tid为参数的表的所有可用的索引表，第一主键为cid的索引表，存到数组index_tid_array
+         * @param cid
+         * @param tid
+         * @param index_tid_array
+         * @return
+         */
+        bool is_cid_in_index(
+            uint64_t cid,
+            uint64_t tid,
+            uint64_t *index_tid_array) const;
+        /**
+         * @brief get_all_index_tid
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_index_tid(ObArray<uint64_t> &index_id_list) const;
+        /**
+         * @brief get_all_notav_index_tid
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const;
+        /**
+         * @brief get_all_avaiable_index_list
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
+
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);
         bool parse_one_table(const char* section_name, tbsys::CConfig& config, ObTableSchema& schema);
@@ -586,7 +802,63 @@ namespace oceanbase
         bool check_table_expire_condition() const;
         bool check_compress_name() const;
         static const int64_t MAX_COLUMNS_LIMIT = OB_MAX_TABLE_NUMBER * OB_MAX_COLUMN_NUMBER;
-        static const int64_t DEFAULT_MAX_COLUMNS = 16 * OB_MAX_COLUMN_NUMBER;;
+        static const int64_t DEFAULT_MAX_COLUMNS = 16 * OB_MAX_COLUMN_NUMBER;
+        //add maoxx
+        /**
+         * @brief get_all_modifiable_index
+         * get a list of modifiable index of a table
+         * @param table_id
+         * @param modifiable_index_list
+         * @return OB_SUCCESS or other ERROR
+         */
+        int get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const;
+
+        /**
+         * @brief is_have_modifiable_index
+         * decide if the table has modifiable index
+         * @param table_id
+         * @return true if have or false if not
+         */
+        bool is_have_modifiable_index(uint64_t table_id) const;
+
+        /**
+         * @brief is_have_init_index
+         * decide if the table has initialized index
+         * @param table_id
+         * @return true if have or false if not
+         */
+        bool is_have_init_index(uint64_t table_id) const;
+
+        /**
+         * @brief column_hit_index
+         * get a list of index of a given table which consist of a given column
+         * @param table_id
+         * @param cid
+         * @param hit_index_list
+         * @return OB_SUCCESS or other ERROR
+         */
+        int column_hit_index(uint64_t table_id, uint64_t cid, IndexList &hit_index_list) const;
+
+        /**
+         * @brief column_hit_index
+         * decide if the given column hit the index of the given table
+         * @param table_id
+         * @param cid
+         * @param column_hit_index_flag
+         * @return OB_SUCCESS or other ERROR
+         */
+        int column_hit_index(uint64_t table_id, uint64_t cid, bool &column_hit_index_flag) const;
+
+        /**
+         * @brief column_hit_index_and_rowkey
+         * decide if the given column hit the index of the given table and is the rowkey of this index
+         * @param table_id
+         * @param cid
+         * @param hit_flag
+         * @return OB_SUCCESS or other ERROR
+         */
+        int column_hit_index_and_rowkey(uint64_t table_id, uint64_t cid, bool &hit_flag) const;
+        //add e
 
       private:
         int replace_system_variable(char* expire_condition, const int64_t buf_size) const;
@@ -602,6 +874,8 @@ namespace oceanbase
         uint64_t  max_table_id_;
         int64_t   column_nums_;
         int64_t   table_nums_;
+        //longfei [create index]
+        volatile bool is_id_index_hash_map_init_; ///< is id_index_hash_map init?
 
         char app_name_[OB_MAX_APP_NAME_LENGTH];
 
@@ -614,6 +888,9 @@ namespace oceanbase
         volatile bool hash_sorted_;       //after deserialize,will rebuild the hash maps
         hash::ObHashMap<ObColumnNameKey,ObColumnInfo,hash::NoPthreadDefendMode> column_hash_map_;
         hash::ObHashMap<ObColumnIdKey,ObColumnInfo,hash::NoPthreadDefendMode> id_hash_map_;
+
+        //longfei [create index]
+        hash::ObHashMap<uint64_t, IndexList,hash::NoPthreadDefendMode> id_index_hash_map_; ///< <table_id,index_list> hash map
 
         int64_t column_group_nums_;
         ObColumnGroupHelper column_groups_[OB_MAX_COLUMN_GROUP_NUMBER * OB_MAX_TABLE_NUMBER];

@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_phy_operator_type.cpp
+ * @brief all physical operator type
+ *
+ * modified by longfei:add some operators for secondary index
+ * modified by maoxiaoxiao:add physical operator "index trigger"
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+/**
  * (C) 2010-2013 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -95,6 +113,7 @@ namespace oceanbase
         DEF_OP(PHY_ADD_PROJECT);
         DEF_OP(PHY_KILL_SESSION);
         DEF_OP(PHY_UPS_MODIFY_WITH_DML_TYPE);
+        DEF_OP(PHY_INDEX_TRIGGER);//add maoxx
         default:
           break;
       }

@@ -50,9 +50,9 @@ pub_source =                                                                \
   ob_root_rpc_stub.h                   ob_root_rpc_stub.cpp                 \
   ob_root_server2.h                    ob_root_server2.cpp                  \
   ob_root_stat_key.h                   ob_root_stat_key.cpp                 \
-  ob_root_table2.h                     ob_root_table2.cpp                   \ 
+  ob_root_table2.h                     ob_root_table2.cpp                   \
   ob_root_ups_provider.h               ob_root_ups_provider.cpp             \
-  ob_root_util.h                       ob_root_util.cpp                     \  
+  ob_root_util.h                       ob_root_util.cpp                     \
   ob_election_node.h                   ob_election_node.cpp                 \
   ob_check_rselection.h                ob_check_rselection.cpp              \
   ob_root_worker.h                     ob_root_worker.cpp                   \
@@ -72,7 +72,11 @@ pub_source =                                                                \
 	ob_root_table_operation.h            ob_root_table_operation.cpp          \
 	ob_root_timer_task.h                 ob_root_timer_task.cpp               \
 	ob_root_reload_config.h              ob_root_reload_config.cpp            \
-  ob_data_source_mgr.h                 ob_data_source_mgr.cpp
+  ob_data_source_mgr.h                 ob_data_source_mgr.cpp               \
+  ob_index_control_unit.h              ob_index_control_unit.cpp	          \
+  ob_index_cs_handler.h	               ob_index_cs_handler.cpp	            \
+  ob_index_designer.h	                 ob_index_designer.cpp	              \
+  ob_index_service.h	ob_index_service.cpp
 
 
 noinst_LIBRARIES = librootserver.a

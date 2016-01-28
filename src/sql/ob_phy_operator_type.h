@@ -1,18 +1,26 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_phy_operator_type.h
- * @brief    insert a new operator type : OB_LEFT_SEMI_JOIN.
- * @version  __DaSE_VERSION
- * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
- */
-/**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * @file ob_phy_operator_type.h
+ * @brief all physical operator type
  *
+ * modified by longfei：add some operators for secondary index
+ * modified by maoxiaoxiao:add physical operator "index trigger"
+ * modified by Qiushi FAN: insert a new operator type : OB_LEFT_SEMI_JOIN.
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
+ */
+
+/*
+ * (C) 2010-2012 Alibaba Group Holding Limited.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -101,6 +109,11 @@ namespace oceanbase
       //add fanqiushi [semi_join] [0.1] 20150829:b
       PHY_SEMI_LEFT_JOIN,
       //add:e
+
+      PHY_INDEX_TRIGGER, //add maoxx
+      PHY_DROP_INDEX, //add longfei [secondary index drop index]
+      PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
+      PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
 
       PHY_END /* end of phy operator type */
     };

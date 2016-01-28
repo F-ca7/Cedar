@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_cell_stream.h
+ * @brief define rpc interface between chunk server and update server.
+ *
+ * modified by longfei： overloading rpc_scan_row_data() function
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or 
@@ -115,6 +132,16 @@ namespace oceanbase
 
       // one rpc call for scan the row data from server
       int rpc_scan_row_data(const common::ObScanParam & param);
+
+      //add longfei [cons static index] 151204:b
+      /**
+       * @brief rpc_scan_row_data scan data from another cs, store the data in cur_result_
+       * @param param
+       * @param chunkserver
+       * @return error code
+       */
+      int rpc_scan_row_data(const ObScanParam &param, const ObServer &chunkserver);
+      //add e
 
       // one rpc call for get cell data from server
       int rpc_get_cell_data(const common::ObGetParam & param);

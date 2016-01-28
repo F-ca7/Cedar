@@ -204,6 +204,8 @@ common_sources=				                                                  \
   ob_schema_service.h              ob_schema_service.cpp                \
   ob_schema_service_impl.h         ob_schema_service_impl.cpp           \
   ob_schema_table.h                ob_schema_table.cpp                  \
+  ob_secondary_index_service.h \
+  ob_secondary_index_service_impl.h  ob_secondary_index_service_impl.cpp \
   ob_seq_queue.h                   ob_seq_queue.cpp                     \
   ob_server.h                      ob_server.cpp                        \
   ob_server_ext.h                  ob_server_ext.cpp                    \
@@ -309,7 +311,11 @@ common_sources=				                                                  \
 	ob_fifo_stream.h									 ob_fifo_stream.cpp \
 	ob_multi_wakeup.h									 ob_multi_wakeup.cpp \
 	ob_global_factory.h\
-  ob_errno.h ob_errno.cpp
+  ob_errno.h ob_errno.cpp\
+  ob_column_checksum.h               ob_column_checksum.cpp\
+	ob_index_black_list.h              ob_index_black_list.cpp\
+  ob_tablet_histogram_report_info.h  ob_tablet_histogram_report_info.cpp\
+  ob_tablet_histogram.h              ob_tablet_histogram.cpp
 
 
 location_sources=                                                                             \

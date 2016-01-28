@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_id_name.cpp
+ * @brief get all the table schema in the database
+ *
+ * modified by longfei：get "__all_secondary_index"
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_table_id_name.h"
 #include "utility.h"
 
@@ -6,8 +22,8 @@ using namespace common;
 using namespace nb_accessor;
 
 ObTableIdNameIterator::ObTableIdNameIterator()
-   :need_scan_(false), only_core_tables_(true),
-   table_idx_(-1), client_proxy_(NULL), res_(NULL)
+   :need_scan_(false), only_core_tables_(true), index(false),
+   table_idx_(-1), client_proxy_(NULL), res_(NULL),res2_(NULL)
 {
 }
 
@@ -39,9 +55,17 @@ bool ObTableIdNameIterator::check_inner_stat()
         TBSYS_LOG(WARN, "nb accessor scan fail:ret[%d]", err);
         ret = false;
       }
+      //add longfei [craete index]
+      if(OB_SUCCESS != (err = nb_accessor_.scan(res2_, OB_ALL_SECONDAYR_INDEX_TABLE_NAME, range, SC("table_name")("table_id"))))
+      {
+        TBSYS_LOG(WARN, "nb accessor scan fail in secondary index:ret[%d]", err);
+        ret = false;
+      }
+      //add e
       else
       {
         TBSYS_LOG(DEBUG, "scan first_tablet_table success. scanner row count =%ld", res_->get_scanner()->get_row_num());
+        TBSYS_LOG(DEBUG, "scan all_secondary_index success. scanner row count =%ld", res2_->get_scanner()->get_row_num());
         need_scan_ = false;
       }
     }
@@ -95,9 +119,10 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 3)
+      if (table_idx_ < CORE_TABLE_COUNT) //longfei [create index]
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
+        // and __all_secondary_index
       }
       else
       {
@@ -108,9 +133,10 @@ int ObTableIdNameIterator::next()
     {
       ++table_idx_;
       TBSYS_LOG(DEBUG, "table_idx=%d", table_idx_);
-      if (table_idx_ < 3)
+      if (table_idx_ < CORE_TABLE_COUNT) //longfei [create index]
       {
         // we have three basic tables: __first_tablet_entry, __all_all_column, __all_all_join
+        // and __all_secondary_index
       }
       else if (NULL == res_)
       {
@@ -124,6 +150,20 @@ int ObTableIdNameIterator::next()
         {
           TBSYS_LOG(WARN, "next row fail:ret[%d]", ret);
         }
+        // add longfei [create index]
+        //TBSYS_LOG(ERROR,"LONGFEI:the return value of res_->next_row() is %d",ret);
+
+        if(OB_ITER_END == ret)
+        {
+          ret = res2_->next_row();
+          index = true;
+        }
+        if(OB_SUCCESS != ret && OB_ITER_END != ret)
+        {
+          TBSYS_LOG(WARN, "next row fail:ret[%d]", ret);
+        }
+
+        // add e
       }
     }
   }
@@ -138,7 +178,7 @@ int ObTableIdNameIterator::get(ObTableIdName** table_info)
     ret = OB_ERR_UNEXPECTED;
     TBSYS_LOG(ERROR, "get failed");
   }
-  else if (table_idx_ < 3)
+  else if (table_idx_ < CORE_TABLE_COUNT)
   {
     ret = internal_get(table_info);
   }
@@ -151,7 +191,7 @@ int ObTableIdNameIterator::get(ObTableIdName** table_info)
     }
     else
     {
-      ret = normal_get(table_info);
+      ret = normal_get(table_info, index);
     }
   }
   if (OB_SUCCESS == ret)
@@ -186,6 +226,12 @@ int ObTableIdNameIterator::internal_get(ObTableIdName** table_info)
       table_id_name_.table_id_ = OB_ALL_JOIN_INFO_TID;
       *table_info = &table_id_name_;
       break;
+    case 3: //longfei [create index]
+      table_id_name_.table_name_.assign_ptr(const_cast<char*>(OB_ALL_SECONDAYR_INDEX_TABLE_NAME),
+          static_cast<int32_t>(strlen(OB_ALL_SECONDAYR_INDEX_TABLE_NAME)));
+      table_id_name_.table_id_ = OB_ALL_SECONDARY_INDEX_TID;
+      *table_info = &table_id_name_;
+      break;
     default:
       ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(ERROR, "unexpected branch");
@@ -194,7 +240,7 @@ int ObTableIdNameIterator::internal_get(ObTableIdName** table_info)
   return ret;
 }
 
-int ObTableIdNameIterator::normal_get(ObTableIdName** table_id_name)
+int ObTableIdNameIterator::normal_get(ObTableIdName** table_id_name, bool index)
 {
   int ret = OB_SUCCESS;
 
@@ -205,14 +251,26 @@ int ObTableIdNameIterator::normal_get(ObTableIdName** table_id_name)
     TBSYS_LOG(ERROR, "results is NULL");
   }
 
-  if(OB_SUCCESS == ret)
+  if(OB_SUCCESS == ret && !index)
   {
     ret = res_->get_row(&table_row);
+    //TBSYS_LOG(ERROR,"LONGFEI:the ret of get row is %d",ret);
     if(OB_SUCCESS != ret && OB_ITER_END != ret)
     {
       TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
     }
   }
+  //add longfei [create index]
+  if(OB_SUCCESS == ret && index)
+  {
+    ret = res2_->get_row(&table_row);
+    //TBSYS_LOG(ERROR,"LONGFEI:the ret of get row is %d",ret);
+    if(OB_SUCCESS != ret && OB_ITER_END != ret)
+    {
+      TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
+    }
+  }
+  //add e
 
   ObCellInfo* cell_info = NULL;
   if(OB_SUCCESS == ret)
@@ -273,5 +331,12 @@ void ObTableIdNameIterator::destroy()
     nb_accessor_.release_query_res(res_);
     res_ = NULL;
   }
+  // add longfei [create index]
+  if(NULL != res2_)
+  {
+    nb_accessor_.release_query_res(res2_);
+    res2_ = NULL;
+  }
+  // add e
 }
 

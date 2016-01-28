@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mod_define.cpp
+ * @brief define module
+ *
+ * modified by longfei： add a module for static index handler
+ * modified by maoxiaoxiao:add a module to report tablet histogram
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 #include "ob_mod_define.h"
 using namespace oceanbase;
 using namespace oceanbase::common;

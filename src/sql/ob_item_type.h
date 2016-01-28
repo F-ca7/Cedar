@@ -5,12 +5,16 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_item_type.h
- * @brief    define ObItemType
+ * @file ob_item_type.h
+ * @brief all items
+ *
+ * modified by longfei：add items for secondary index
  * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
- * @version  __DaSE_VERSION
- * @author   yu shengjuan <51141500090@ecnu.cn>
- * @date     2015_08_19
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author yu shengjuan <51141500090@ecnu.cn>
+ * @date 2016_01_22
  */
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
@@ -161,8 +165,12 @@ typedef enum ObItemType
   T_WHEN,
 
   T_CREATE_TABLE,
+  T_CREATE_INDEX, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_TABLE_ELEMENT_LIST,
+  T_INDEX_ELEMENT_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
+  T_INDEX_STORING_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150921:e
   T_TABLE_OPTION_LIST,
+  T_INDEX_OPTION_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_PRIMARY_KEY,
   T_COLUMN_DEFINITION,
   T_COLUMN_ATTRIBUTES,
@@ -185,6 +193,8 @@ typedef enum ObItemType
   T_CONSISTENT_MODE,
   T_DROP_TABLE,
   T_TABLE_LIST,
+  T_DROP_INDEX, // add longfei [drop index] 20151024:e
+  T_INDEX_LIST, // add longfei [drop index] 20151024:e
 
   T_ALTER_TABLE,
   T_ALTER_ACTION_LIST,
@@ -205,6 +215,9 @@ typedef enum ObItemType
   T_SERVER_ADDRESS,
 
   T_SHOW_TABLES,
+  // add longfei [show index] 20151019
+  T_SHOW_INDEX,
+  // add e
   T_SHOW_VARIABLES,
   T_SHOW_COLUMNS,
   T_SHOW_SCHEMA,
@@ -245,9 +258,10 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
+  T_USE_INDEX,// add longfei
+  T_UNKOWN_HINT,// add longfei
   T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
   T_KILL,
-
   T_MAX,
 
 } ObItemType;

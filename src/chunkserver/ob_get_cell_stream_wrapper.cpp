@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_get_cell_stream_wrapper.cpp
+ * @brief for concealing ObMergerRpcProxy initialization details from chunkserver
+ *
+ * modified by longfei：add Member variable cs_interactive_cell_stream_
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or 
@@ -27,6 +44,9 @@ namespace oceanbase
         ObMergerRpcProxy& rpc_proxy, const int64_t time_out)
     : get_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out), 
       scan_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out)
+    //add longfei [cons static index] 151205:b
+    ,cs_interactive_cell_stream_(&rpc_proxy, CHUNK_SERVER, time_out)
+    //add e
     {
     }
     
@@ -44,5 +64,12 @@ namespace oceanbase
     {
       return &scan_cell_stream_;
     }
+
+    //add longfei [cons static index] 151205:b
+    ObCsInteractiveCellStream *ObGetCellStreamWrapper::get_cs_interactive_cell_stream()
+    {
+      return &cs_interactive_cell_stream_;
+    }
+    //add e
   } // end namespace chunkserver
 } // end namespace oceanbase

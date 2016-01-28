@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_cell_stream.cpp
+ * @brief define rpc interface between chunk server and update server.
+ *
+ * modified by longfei： overloading rpc_scan_row_data() function
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or 
@@ -150,6 +167,39 @@ namespace oceanbase
       return ret;
     }
     
+    //add longfei [cons static index] 151204:b
+    int ObCellStream::rpc_scan_row_data(const ObScanParam &param, const ObServer &chunkserver)
+    {
+      int ret = OB_SUCCESS;
+      int64_t timeout = timeout_time_ > 0 ? (timeout_time_ - tbsys::CTimeUtil::getTime()) : time_out_;
+      ret = rpc_proxy_->cs_cs_scan(param, chunkserver, cur_result_, server_type_, timeout);
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "scan server data failed:ret[%d]", ret);
+      }
+      else
+      {
+        if (first_rpc_)
+        {
+          FILL_TRACE_LOG(
+              "rpc ups scan, timeout=%ld, size=%ld, " "cell_num=%ld, row_num=%ld, ret=%d",
+              timeout, cur_result_.get_size(), cur_result_.get_cell_num(),
+              cur_result_.get_row_num(), ret);
+        }
+        ret = check_scanner_result(cur_result_);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "check scanner result failed:ret[%d]", ret);
+        }
+        else
+        {
+          first_rpc_ = false;
+        }
+      }
+      return ret;
+    }
+    // add e
+
     int ObCellStream::rpc_get_cell_data(const common::ObGetParam & param)
     {
       int ret = OB_SUCCESS;

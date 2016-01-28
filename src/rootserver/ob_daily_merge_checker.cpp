@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_daily_merge_checker.cpp
+ * @brief for daily merge check
+ *
+ * modified by Wenghaixing:modify some fuction,so that when check daily merge, it will modify secondary index stat
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -341,6 +358,78 @@ void ObDailyMergeChecker::run(tbsys::CThread * thread, void * arg)
           root_server_->last_frozen_time_ = 0;
           // checkpointing after done merge
           root_server_->make_checkpointing();
+          //add wenghaixing [secondary index.static_index]201512/17
+          int err = OB_SUCCESS;
+          ObArray<uint64_t> index_list;
+          ObSchemaManagerV2* out_schema = OB_NEW(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER);
+          if(NULL == out_schema)
+          {
+            err = OB_ALLOCATE_MEMORY_FAILED;
+            TBSYS_LOG(WARN, "allocate for schema manager v2 failed,ret = %d", err);
+          }
+          else if(OB_SUCCESS != (err = root_server_->get_schema(false, false, *out_schema)))
+          {
+            TBSYS_LOG(WARN,"failed to get schema to get index schema");
+          }
+          else if(OB_SUCCESS != (err = out_schema->get_all_avaiable_index_list(index_list)))
+          {
+            TBSYS_LOG(WARN,"failed to get index list");
+          }
+          else
+          {
+            //if column checksum not eqal, put stat into error of info table
+            for(int64_t i=0;i < index_list.count();i++)
+            {
+              TBSYS_LOG(INFO, "check index table tid:%ld", index_list.at(i));
+              if(OB_SUCCESS != (err = root_server_->check_column_checksum(index_list.at(i))))
+              {
+                TBSYS_LOG(WARN, "col checksum of org_table and index_table do not match index_table_id:%ld", index_list.at(i));
+                if(OB_SUCCESS != (err = root_server_->modify_index_process_info(index_list.at(i), ERROR)))
+                {
+                  TBSYS_LOG(WARN, "failed to change idx table status:%ld", index_list.at(i));
+                }
+              }
+            }
+          }
+          if (out_schema != NULL)
+          {
+            OB_DELETE(ObSchemaManagerV2, ObModIds::OB_RS_SCHEMA_MANAGER, out_schema);
+          }
+          //clean old checksum table data
+          if(root_server_->get_last_frozen_version() > 3)
+          {
+            int clean_ret = OB_SUCCESS;
+              if(OB_SUCCESS != (clean_ret = root_server_->clean_old_checksum(root_server_->get_last_frozen_version() - 1)))
+              {
+                TBSYS_LOG(WARN, "clean __all_cchecksum_info failed  %d", clean_ret);
+              }
+              else
+              {
+                TBSYS_LOG(INFO, "clean __all_cchecksum_info success");
+              }
+          }
+          if (root_server_->get_obi_role().get_role() == ObiRole::MASTER)
+          {
+            if (OB_SUCCESS != root_server_->modify_index_stat_amd())
+            {
+              TBSYS_LOG(WARN, "fail to modify index status after merge done. ret=%d", err);
+            }
+          }
+          //add e
+        }
+      }
+      //add wenghaixing [secondary index.static_index]20151217
+      else if (root_server_->get_obi_role().get_role() == ObiRole::MASTER && root_server_->is_master() && (root_server_->last_frozen_time_ == 0))
+      {
+        //init -> not_available
+        if (OB_SUCCESS != (err = root_server_->modify_init_index()))
+        {
+          TBSYS_LOG(WARN, "fail to modify init index status. ret=%d", err);
+        }
+        //not_available -> available, ignore ret above
+        if (OB_SUCCESS != (err = root_server_->modify_staging_index()))
+        {
+          TBSYS_LOG(WARN, "fail to modify staging index status. ret=%d", err);
         }
       }
     }

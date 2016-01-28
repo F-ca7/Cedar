@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sstable_row.cpp
+ * @brief for persistent ssatable single row
+ *
+ * modified by longfei：add function set_rowkey_obj_count()
+ * modified by maoxiaoxiao:add functions to get obj without const and get row obj
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -55,6 +74,13 @@ namespace oceanbase
       }
       string_buf_.clear();
     }
+
+    //add longfei [cons static index] 151207:b
+    void ObSSTableRow::set_rowkey_obj_count(const int64_t count)
+    {
+      rowkey_obj_count_ = count;
+    }
+    //add e
 
     int ObSSTableRow::set_obj_count(const int64_t obj_count,
                                     const bool sparse_format)
@@ -141,6 +167,37 @@ namespace oceanbase
 
       return obj;
     }
+
+    //add maoxx
+    ObObj* ObSSTableRow::get_obj_without_const(const int32_t index)
+    {
+      ObObj* obj = NULL;
+      if (index >= 0 && index < obj_count_)
+      {
+        obj = &objs_[index];
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "invalid param, index=%d", index);
+      }
+      return obj;
+    }
+
+    const ObObj ObSSTableRow::get_row_obj(const int64_t index) const
+    {
+      ObObj obj;
+      if (index >= 0 && index < obj_count_)
+      {
+        obj = objs_[index];
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "invalid param, index=%ld", index);
+      }
+      return obj;
+    }
+    //add e
+
 
     const ObObj* ObSSTableRow::get_row_objs(int64_t& obj_count)
     {

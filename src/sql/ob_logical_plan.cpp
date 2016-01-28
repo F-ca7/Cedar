@@ -255,6 +255,7 @@ namespace oceanbase
           break;
         }
         case ObStmt::T_SHOW_TABLES:
+        case ObStmt::T_SHOW_INDEX:
         case ObStmt::T_SHOW_VARIABLES:
         case ObStmt::T_SHOW_COLUMNS:
         case ObStmt::T_SHOW_SCHEMA:

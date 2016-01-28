@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_show_schema_manager.h
+ * @brief schema for show statement
+ *
+ * modified by longfei：
+ * 1.add function: add_show_index_schema()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -36,11 +54,20 @@ namespace oceanbase
         static int add_show_schemas(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_schema(common::ObSchemaManagerV2& schema_mgr, int32_t stmt_type);
         static int add_show_tables_schema(common::ObSchemaManagerV2& schema_mgr);
+        /**
+         * @brief ObShowSchemaManager::add_show_index_schema: add virtual table __index_show's schema to schema_mgr
+         * @param schema_mgr
+         * @author longfei <longfei@stu.ecnu.edu.cn>
+         * @return error code
+         */
+        static int add_show_index_schema(common::ObSchemaManagerV2& schema_mgr);
+        //add:e
         static int add_show_variables_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_columns_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_create_table_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_parameters_schema(common::ObSchemaManagerV2& schema_mgr);
         static int add_show_table_status_schema(common::ObSchemaManagerV2& schema_mgr);
+
 
       private:        
         static common::ObSchemaManagerV2 *show_schema_mgr_;

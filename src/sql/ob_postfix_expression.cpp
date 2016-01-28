@@ -1,15 +1,22 @@
 /**
  * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file     ob_postfix_expression.cpp
- * @brief    add some functions to craete a new expression
- * @version  __DaSE_VERSION
- * @author   Qiushi FAN <qsfan@ecnu.cn>
- * @date     2015_12_30
+ * @file ob_postfix_expression.cpp
+ * @brief postfix expression
+ *
+ * modified by longfei：add interface: get_expr()
+ * modified by Qiushi FAN: add some functions to craete a new expression
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
  */
+
 /*
  * (C) 2007-2011 Taobao Inc.
  *
@@ -50,6 +57,17 @@ namespace oceanbase
 {
   namespace sql
   {
+    //add longfei
+    ObObj& ObPostfixExpression::get_expr_by_index(int64_t index)
+    {
+      //int64_t index;
+      if(expr_.count() <= index){
+        index = expr_.count()-1;
+      }
+      return expr_.at(index);
+    }
+    //add:e
+
     bool ObPostfixExpression::ExprUtil::is_column_idx(const ObObj &obj)
     {
       int64_t val = 0;
@@ -3153,6 +3171,46 @@ namespace oceanbase
         }
       } // end while
       return pos;
+    }
+
+    int64_t ObPostfixExpression::get_type_num(int64_t idx,int64_t type) const
+    {
+      int64_t num = 0;
+      int ret = OB_SUCCESS;
+      if(type == BEGIN_TYPE)
+      {
+        num = 0;
+      }
+      else if (type == OP)
+      {
+        num = 3;
+        int64_t op_type = 0;
+        if (OB_SUCCESS != (ret = expr_[idx+1].get_int(op_type)))
+        {
+          TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
+        }
+        else if (T_FUN_SYS == op_type)
+        {
+          ++num;
+        }
+      }
+      else if (type == COLUMN_IDX || type == T_OP_ROW)
+      {
+        num = 3;
+      }
+      else if (type == CONST_OBJ )
+      {
+        num = 2;
+      }
+      else if (type == END || type == UPS_TIME_OP)
+      {
+        num = 1;
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "Unkown type %ld", type);
+      }
+      return num;
     }
 
   } /* sql */

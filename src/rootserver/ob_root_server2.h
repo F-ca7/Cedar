@@ -6,16 +6,31 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_server2.h
- * @brief ObRootServer
- *        support multiple clusters for HA by adding or modifying
+ * @brief root server
+ *
+ * modified by longfei：add create_index() and drop_indexs()
+ * 
+ * modified by wenghaixing: add some function for secondary index construction
+ * 1.int get_init_index(const int64_t version, ObArray<uint64_t> *list);  ///< get all int index to list
+ * 2.int get_table_from_index(int64_t index_id, uint64_t &table_id);      ///< get original table for index
+ * 3.int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);///< write tablet into roottable
+ * 4.bool check_static_index_over(); ///< check if static index build over
+ *
+ * modified by maoxiaoxiao:add functions to check column checksum, clean column checksum and get column checksum in root server
+ *
+ * modified by guojinwei,chujiajia and zhangcd:
+ *         support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *
  * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
+ * @date 2016_01_21
  */
+
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -82,6 +97,9 @@
 #include "common/ob_election_role_mgr.h"
 #include "common/ob_cluster_mgr.h"
 // add:e
+//add wenghaixing [secondary index.static_index]20151211
+#include "common/ob_tablet_histogram_report_info.h"
+//add e
 
 class ObBalanceTest;
 class ObBalanceTest_test_n_to_2_Test;
@@ -276,6 +294,12 @@ namespace oceanbase
         int find_statement_table_key(const common::ObGetParam& get_param, common::ObScanner& scanner);
         int find_root_table_range(const common::ObScanParam& scan_param, common::ObScanner& scanner);
         virtual int report_tablets(const common::ObServer& server, const common::ObTabletReportInfoList& tablets, const int64_t time_stamp);
+        //add wenghaixing [secondary index.static_index]20151118
+        int get_init_index(const int64_t version, ObArray<uint64_t> *list);
+        int get_table_from_index(int64_t index_id, uint64_t &table_id);
+        int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);
+        bool check_static_index_over();
+        //add e
         int receive_hb(const common::ObServer& server, const int32_t sql_port, const bool is_listen_ms, const common::ObRole role);
         common::ObServer get_update_server_info(bool use_inner_port) const;
         int add_range_for_load_data(const common::ObList<common::ObNewRange*> &range);
@@ -303,6 +327,25 @@ namespace oceanbase
         bool is_master() const;
         common::ObFirstTabletEntryMeta* get_first_meta();
         void dump_root_table() const;
+        //add wenghaixing [secondary index.static index]20151207
+        void dump_root_table(const int32_t index) const;
+       // int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+       // int get_meta_index(const common::ObTabletInfo &tablet_info, int32_t &meta_index);
+        tbsys::CRWLock& get_root_table_lock(){return root_table_rwlock_;}
+        ObRootTable2* get_root_table(){return root_table_;}
+        tbsys::CThreadMutex& get_root_table_build_lock(){return root_table_build_mutex_;}
+        tbsys::CThreadMutex& get_ddl_lock(){return ddl_tool_.get_ddl_lock();}
+        int modify_index_stat(const uint64_t index_tid, const IndexStatus stat);
+        int modify_index_stat(const ObArray<uint64_t> &index_tid_list, const IndexStatus stat);
+        int modify_index_stat_amd();//after merge done
+        int modify_init_index();
+        int modify_staging_index();
+        int check_tablet_version_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const;
+        int clean_old_checksum(int64_t current_version);
+        int check_column_checksum(const int64_t index_table_id);
+        int modify_index_process_info(const uint64_t index_tid, const IndexStatus stat);
+        int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+        //add e
         bool check_root_table(const common::ObServer &expect_cs) const;
         int dump_cs_tablet_info(const common::ObServer & cs, int64_t &tablet_num) const;
         void dump_unusual_tablets() const;
@@ -415,6 +458,71 @@ namespace oceanbase
         int remove_current_rs_from_slaves_array();
         int parse_string_to_ips(const char *str, std::vector<ObServer>& slave_array);
         // add:e
+        // longfei [create index]
+        //secodary index service
+        /**
+         * @brief create_index: sql api
+         * @param if_not_exists
+         * @param tschema
+         * @return error code
+         */
+        int create_index(const bool if_not_exists, const common::TableSchema &tschema);
+        /**
+         * @brief drop_indexs: sql api
+         * @param if_exists
+         * @param indexs
+         * @return error code
+         */
+        int drop_indexs(const bool if_exists, const common::ObStrings &indexs);
+        /**
+         * @brief drop_one_index: drop index from inner and syn schema
+         * @param if_exists
+         * @param table_name
+         * @param refresh
+         * @return
+         */
+        int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
+
+        //add maoxx
+        /**
+         * @brief check_column_checksum
+         * check column checksum
+         * @param index_table_id
+         * @param column_checksum_flag
+         * @return OB_SUCCESS or other ERROR
+         */
+        int check_column_checksum(const int64_t index_table_id, bool &column_checksum_flag);
+
+        /**
+         * @brief clean_column_checksum
+         * clean column checksum
+         * @param current_version
+         * @return OB_SUCCESS or other ERROR
+         */
+        int clean_column_checksum(int64_t current_version);
+
+        /**
+         * @brief get_column_checksum
+         * get column checksum
+         * @param range
+         * @param required_version
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
+        int get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum);
+        //add e
+
+        //add longfei [cons static index] 151216:b
+        /**
+         * @brief get_local_schema
+         * @return schema_manager_for_cache_
+         */
+        inline ObSchemaManagerV2* get_local_schema() const
+        {
+          return schema_manager_for_cache_;;
+        }
+        //add e
+
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();
         bool is_bypass_process();

@@ -67,6 +67,9 @@ namespace oceanbase
       virtual int assign(const ObSqlReadParam* other);
       VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
 
+
+      int reset_project_and_filter();
+
     protected:
       // RESERVE_PARAM_FIELD
       int serialize_reserve_param(char * buf, const int64_t buf_len, int64_t & pos) const;

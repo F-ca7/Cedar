@@ -6,17 +6,21 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_rpc_stub.cpp
- * @brief ObRootRpcStub
- *        support multiple clusters for HA by adding or modifying
- *        some functions, member variables
- *        add some remote process control function to the ObRootRpcStub class.
+ * @brief for rpc among servers
+ *
+ * modified by Wenghaixing:add some function with rpc for secondary index construction
+ * modified by guojinwei:add some remote process control function to the ObRootRpcStub class.
+ *                       ObRootRpcStub support multiple clusters for HA by adding or modifying
+ *                       some functions, member variables
  *
  * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
+ * @date  2016_01_24
  */
+
 #include "rootserver/ob_root_worker.h"
 #include "rootserver/ob_root_rpc_stub.h"
 #include "rootserver/ob_root_admin_cmd.h"
@@ -110,7 +114,7 @@ int ObRootRpcStub::slave_register(const ObServer& master, const ObServer& slave_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// è®¾ç½®å¤‡rsçš„è§’è‰²çš„è¿œç¨‹è°ƒç”¨
+// ÉèÖÃ±¸rsµÄ½ÇÉ«µÄÔ¶³Ìµ÷ÓÃ
 int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRole &role, const int64_t timeout)
 {
   int err = OB_SUCCESS;
@@ -166,7 +170,7 @@ int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRo
 // add:e
 
 // add by zcd [multi_cluster] 20150416:b
-// bootstrapå‘½ä»¤çš„è¿œç¨‹è°ƒç”¨
+// bootstrapÃüÁîµÄÔ¶³Ìµ÷ÓÃ
 int ObRootRpcStub::boot_strap(const common::ObServer& server)
 {
   int ret = OB_SUCCESS;
@@ -284,7 +288,7 @@ int ObRootRpcStub::get_row_checksum(const common::ObServer& server, const int64_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// è¿œç¨‹è®¾ç½®å…¶ä»–serverçš„configä¿¡æ¯çš„è°ƒç”¨è¿‡ç¨‹
+// Ô¶³ÌÉèÖÃÆäËûserverµÄconfigÐÅÏ¢µÄµ÷ÓÃ¹ý³Ì
 int ObRootRpcStub::set_config(const common::ObServer& server, const ObString& config_str, int64_t timeout_us)
 {
   int ret = OB_SUCCESS;
@@ -706,6 +710,54 @@ int ObRootRpcStub::heartbeat_to_cs(const common::ObServer& cs, const int64_t lea
   }
   return ret;
 }
+
+//add wenghaixing [secondary index.static_index]20151130
+int ObRootRpcStub::heartbeat_to_cs_with_index(const ObServer &cs, const int64_t lease_time, const int64_t frozen_mem_version,
+                                              const int64_t schema_version, const int64_t config_version, const IndexBeat &beat)
+{
+  int ret = OB_SUCCESS;
+  static const int MY_VERSION = 3;
+  ObDataBuffer msgbuf;
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = common::serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), lease_time)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = common::serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), frozen_mem_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = common::serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), schema_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = common::serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), config_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize config_version, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = beat.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize index heartbeat, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->post_request(cs, OB_REQUIRE_HEARTBEAT, MY_VERSION, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    // success
+  }
+  return ret;
+}
+//add e
 
 int ObRootRpcStub::heartbeat_to_ms(const common::ObServer& ms, const int64_t lease_time, const int64_t frozen_mem_version,
     const int64_t schema_version, const common::ObiRole &role, const int64_t privilege_version, const int64_t config_version)
@@ -1858,6 +1910,75 @@ int ObRootRpcStub::fetch_slave_cluster_list(const common::ObServer& ms,
 
   return ret;
 }
+
+//add wenghaixing [secondary index.static_index]20151118
+int ObRootRpcStub::get_init_index_from_ups(const ObServer ups, const int64_t timeout, const int64_t data_version, ObArray<uint64_t> *list)
+{
+    int ret = OB_SUCCESS;
+    ObDataBuffer msgbuf;
+    if(NULL == client_mgr_ || NULL == list)
+    {
+      TBSYS_LOG(WARN, "should not be here, point is null");
+      ret = OB_ERR_NULL_POINTER;
+    }
+    else if(OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+    {
+      TBSYS_LOG(WARN, "failed to get thread buffer,ret[%d]", ret);
+    }
+    else if(OB_SUCCESS != (ret = serialization::encode_i64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), data_version)))
+    {
+      TBSYS_LOG(WARN, "encode dataversion failed,ret[%d]", ret);
+    }
+    else if(OB_SUCCESS != (ret = client_mgr_->send_request(ups, OB_GET_INIT_INDEX, DEFAULT_VERSION, timeout, msgbuf)))
+    {
+      TBSYS_LOG(WARN, "failed to send request, err = %d", ret);
+    }
+    else
+    {
+      ObResultCode result_code;
+      int64_t pos = 0;
+      int64_t size = 0;
+      uint64_t index_id = OB_INVALID_ID;
+      if (OB_SUCCESS != (ret = result_code.deserialize(msgbuf.get_data(), msgbuf.get_capacity(), pos)))
+      {
+        TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+      }
+      else if (OB_SUCCESS != result_code.result_code_)
+      {
+        TBSYS_LOG(WARN, "failed to sql scan, err=%d", result_code.result_code_);
+        ret = result_code.result_code_;
+      }
+      else if(OB_SUCCESS != (ret = serialization::decode_i64(msgbuf.get_data(), msgbuf.get_capacity(), pos, &size)))
+      {
+        TBSYS_LOG(WARN, "decode list count failed!ret[%d]", ret);
+      }
+      else
+      {
+        for(int64_t i = 0; i< size; i++)
+        {
+          if(OB_SUCCESS != (ret = serialization::decode_i64(msgbuf.get_data(), msgbuf.get_capacity(), pos, reinterpret_cast<int64_t *>(&index_id))))
+          {
+            TBSYS_LOG(WARN, "failed to decode index id, ret[%d]", ret);
+            break;
+          }
+          else
+          {
+            list->push_back(index_id);
+          }
+        }
+      }
+    }
+    if(OB_SUCCESS == ret)
+    {
+      TBSYS_LOG(INFO, "fetch init index from ups[%s] ok, index list count[%ld],dataversion[%ld]", to_cstring(ups), list->count(), data_version);
+    }
+    else
+    {
+      TBSYS_LOG(WARN, "fetch init index from ups[%s] failed, ret[%d], version[%ld]",to_cstring(ups), ret, data_version);
+    }
+    return ret;
+}
+//add e
 
 int ObRootRpcStub::fill_slave_cluster_list(ObNewScanner& scanner, const ObServer& master_rs,
     ObServer* slave_cluster_rs, int64_t& rs_count)
