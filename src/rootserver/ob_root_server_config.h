@@ -14,14 +14,11 @@
  *        set_auto_elect_flag_delay, which represent the delay
  *        time of set auto_elect_falg after rootserver start.
  *
- *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @author
- *   Chu Jiajia  <52151500014@ecnu.edu.cn>
- *   zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @author chujiajia <52151500014@ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date   2016_01_24
  */
 
 /**

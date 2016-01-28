@@ -6,15 +6,15 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file  ob_root_table2.cpp
- * @brief add some function for root table to handle tablet & tablet meta
+ * @brief for root table
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:add some function for root table to handle tablet & tablet meta
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
+
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *

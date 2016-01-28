@@ -5,7 +5,7 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file ob_table_id_name.cpp
+ * @file ob_table_id_name.h
  * @brief get all the table schema in the database
  *
  * modified by longfei：get "__all_secondary_index"

@@ -292,7 +292,7 @@ namespace oceanbase
        */
       int deep_copy(Allocator &allocator, const ObTabletHistogram &other);
 
-      NEED_SERIALIZE_AND_DESERIALIZE;//反序列化时必须给allocator_赋值!!!
+      NEED_SERIALIZE_AND_DESERIALIZE;
 
     public:
       static const int64_t MAX_SAMPLE_BUCKET = 256;

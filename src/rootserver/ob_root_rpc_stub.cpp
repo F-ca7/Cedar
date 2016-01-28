@@ -6,22 +6,22 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_rpc_stub.cpp
- * @brief add some function with rpc for secondary index construction
- * @brief ObRootRpcStub
- *        support multiple clusters for HA by adding or modifying
- *        some functions, member variables
- *        add some remote process control function to the ObRootRpcStub class.
+ * @brief for rpc among servers
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:add some function with rpc for secondary index construction
+ * modified by guojinwei:add some remote process control function to the ObRootRpcStub class.
+ *                       ObRootRpcStub support multiple clusters for HA by adding or modifying
+ *                       some functions, member variables
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date  2016_01_24
- */#include "rootserver/ob_root_worker.h"
+ */
+
+#include "rootserver/ob_root_worker.h"
 #include "rootserver/ob_root_rpc_stub.h"
 #include "rootserver/ob_root_admin_cmd.h"
 #include "common/ob_schema.h"

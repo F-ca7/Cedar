@@ -5,17 +5,15 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file  ob_root_server_config.h
- * @brief Modified by Wenghaixing: add two config for rootserver
+ * @file  ob_root_server_config.cpp
+ * @brief config for rootserver
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:add two config for rootserver
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
-
 
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.

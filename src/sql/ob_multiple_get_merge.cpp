@@ -201,18 +201,18 @@ int64_t ObMultipleGetMerge::to_string(char *buf, int64_t buf_len) const
 //add maoxx
 void ObMultipleGetMerge::reset_iterator()
 {
-    ObMemSSTableScan* sscan = NULL;
-    if(get_child(0) != NULL&&get_child(0)->get_type() == PHY_MEM_SSTABLE_SCAN)
-    {
-      sscan = static_cast<ObMemSSTableScan*>(get_child(0));
-      sscan->reset_iterator();
-    }
-    ObIncScan* inscan = NULL;
-    if(NULL != get_child(1) && get_child(1)->get_type() == PHY_INC_SCAN)
-    {
-      inscan = static_cast<ObIncScan*>(get_child(1));
-      inscan->reset_iterator();
-    }
+  ObMemSSTableScan* sscan = NULL;
+  if(get_child(0) != NULL&&get_child(0)->get_type() == PHY_MEM_SSTABLE_SCAN)
+  {
+    sscan = static_cast<ObMemSSTableScan*>(get_child(0));
+    sscan->reset_iterator();
+  }
+  ObIncScan* inscan = NULL;
+  if(NULL != get_child(1) && get_child(1)->get_type() == PHY_INC_SCAN)
+  {
+    inscan = static_cast<ObIncScan*>(get_child(1));
+    inscan->reset_iterator();
+  }
 }
 //add e
 

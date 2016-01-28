@@ -6,15 +6,13 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file   ob_root_balancer_runnable.cpp
- * @brief  modified by wenghaixing:
- *         now it will not balance while secondary index is being constructed
+ * @brief  for running data balance
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:now it will not balance while secondary index is being constructed
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 /**

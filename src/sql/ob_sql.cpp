@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql.cpp
+ * @brief sql language
+ *
+ * modified by longfei：add drop index
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -49,7 +66,7 @@
 #include "ob_table_rpc_scan.h"
 #include "ob_get_cur_time_phy_operator.h"
 
-//add wenghaixing [secondary index drop index]20141223
+//add longfei [secondary index drop index]
 #include "ob_drop_index_stmt.h"
 //add e
 
@@ -1177,7 +1194,7 @@ int ObSql::do_privilege_check(const ObString & username, const ObPrivilege **pp_
           }
           break;
         }
-      //add wenghaixing [secondary index drop index]20141223
+      //add longfei [secondary index drop index]
       case ObBasicStmt::T_DROP_INDEX:
         {
           OB_STAT_INC(SQL, SQL_DROP_TABLE_COUNT);
@@ -1205,7 +1222,7 @@ int ObSql::do_privilege_check(const ObString & username, const ObPrivilege **pp_
           }
           break;
         }
-          //add e
+      //add e
       case ObBasicStmt::T_SHOW_GRANTS:
         {
           ObShowStmt *show_grant_stmt = dynamic_cast<ObShowStmt*>(stmt);

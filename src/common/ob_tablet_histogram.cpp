@@ -51,7 +51,8 @@ namespace oceanbase {
         TBSYS_LOG(WARN, "array index out of range.");
         ret = OB_ARRAY_OUT_OF_RANGE;
       }
-      else {
+      else
+      {
         return_sample = samples_ + sample_index;
       }
       return ret;
@@ -65,7 +66,8 @@ namespace oceanbase {
         TBSYS_LOG(WARN, "array index out of range.");
         ret = OB_ARRAY_OUT_OF_RANGE;
       }
-      else {
+      else
+      {
         return_sample = samples_ + sample_index;
       }
       return ret;
@@ -82,7 +84,8 @@ namespace oceanbase {
         ret = OB_ARRAY_OUT_OF_RANGE;
         TBSYS_LOG(WARN, "too many sample in one histogram, max is %ld, now is %ld.", MAX_SAMPLE_BUCKET, sample_helper_.get_array_index());
       }
-      else if (!sample_helper_.push_back(index_sample)) {
+      else if (!sample_helper_.push_back(index_sample))
+      {
         ret = OB_ARRAY_OUT_OF_RANGE;
         TBSYS_LOG(WARN, "can not push index_sample into sample_list_");
       }
@@ -102,7 +105,8 @@ namespace oceanbase {
         ret = OB_NOT_INIT;
         TBSYS_LOG(WARN, "allocator_ is null.");
       }
-      else if (sample_helper_.get_array_index() >= MAX_SAMPLE_BUCKET){
+      else if (sample_helper_.get_array_index() >= MAX_SAMPLE_BUCKET)
+      {
         ret = OB_ARRAY_OUT_OF_RANGE;
         TBSYS_LOG(WARN, "too many sample in one histogram, max is %ld, now is %ld.", MAX_SAMPLE_BUCKET, sample_helper_.get_array_index());
       }
@@ -110,7 +114,8 @@ namespace oceanbase {
       {
         TBSYS_LOG(WARN, "deep copy index sample failed!");
       }
-      else if (!sample_helper_.push_back(inner_sample)) {
+      else if (!sample_helper_.push_back(inner_sample))
+      {
         ret = OB_ARRAY_OUT_OF_RANGE;
         TBSYS_LOG(WARN, "can not push index_sample into sample_list_");
       }
@@ -138,7 +143,8 @@ namespace oceanbase {
           TBSYS_LOG(WARN, "sample is NULL");
           break;
         }
-        else if (OB_SUCCESS != (ret = add_sample_with_deep_copy(*sample))) {
+        else if (OB_SUCCESS != (ret = add_sample_with_deep_copy(*sample)))
+        {
           TBSYS_LOG(WARN, "add sample failed");
           break;
         }
@@ -169,7 +175,8 @@ namespace oceanbase {
           TBSYS_LOG(WARN, "sample is NULL");
           break;
         }
-        else if (OB_SUCCESS != (ret = add_sample_with_deep_copy(allocator, *sample))) {
+        else if (OB_SUCCESS != (ret = add_sample_with_deep_copy(allocator, *sample)))
+        {
           TBSYS_LOG(WARN, "add sample failed");
           break;
         }
@@ -374,7 +381,7 @@ namespace oceanbase {
             TBSYS_LOG(WARN, "fail to deserialize ObStaticIndexSample.");
             break;
           }
-          else if (OB_SUCCESS != (ret = add_sample(sample)))//浅拷贝
+          else if (OB_SUCCESS != (ret = add_sample(sample)))//shallow copy
           {
             TBSYS_LOG(WARN, "fail to add sample into histogram.");
             break;
