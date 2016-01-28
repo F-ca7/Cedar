@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_cs_interactive_scan.h
- * @brief ob_cs_interactive_scan.h base node for ObIndexLocalAgent and ObIndexInteractiveAgent
+ * @brief father operator of ObIndexLocalAgent and ObIndexInteractiveAgent
  *
  * Created by longfei：scan agent for construct static index
  *
@@ -27,7 +27,7 @@ namespace oceanbase
   {
     /**
      * @brief The ObCsInteractiveScan class
-     * scan operator to get data in a special range
+     * is designed for scan operator to get data in a special range
      */
     class ObCsInteractiveScan: public ObDoubleChildrenPhyOperator
     {
@@ -44,7 +44,7 @@ namespace oceanbase
       /**
        * @brief get_next_row
        * @param row
-       * @return
+       * @return err code
        */
       virtual int get_next_row(const common::ObRow *&row);
       /**
@@ -57,7 +57,7 @@ namespace oceanbase
        * @brief to_string Not implemented
        * @param buf
        * @param buf_len
-       * @return
+       * @return err code
        */
       virtual int64_t to_string(char *buf,const int64_t buf_len) const;
 

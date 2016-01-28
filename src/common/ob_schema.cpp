@@ -501,12 +501,12 @@ namespace oceanbase
     void ObColumnSchemaV2::print_info() const
     {
       //mod longfei [] 160121:b
-//      TBSYS_LOG(INFO,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
-//      TBSYS_LOG(INFO,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
-//          join_info_.correlated_column_);
+      //TBSYS_LOG(INFO,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
+      //TBSYS_LOG(INFO,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
+      //          join_info_.correlated_column_);
       TBSYS_LOG(DEBUG,"COLUMN:(%lu,%lu,%lu:%s)",table_id_,column_group_id_,column_id_,name_);
       TBSYS_LOG(DEBUG,"JOIN  :(%lu,%lu,%lu)",join_info_.join_table_,join_info_.left_column_count_,
-          join_info_.correlated_column_);
+                join_info_.correlated_column_);
       //mod e
     }
 
@@ -879,6 +879,7 @@ namespace oceanbase
     replica_count_(2),
     //longfei [create index]
     original_table_id_(OB_INVALID_ID),
+
     version_(OB_SCHEMA_VERSION_FOUR_SECOND),
     schema_version_(0),
     create_time_column_id_(OB_INVALID_ID),
@@ -1384,7 +1385,7 @@ namespace oceanbase
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos, replica_count_);
       }
 
-      // longfei [create index]
+      //add longfei [create index]
       if (OB_SUCCESS == ret)
       {
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos, original_table_id_);
@@ -1393,6 +1394,7 @@ namespace oceanbase
       {
         ret = serialization::encode_vi32(buf, buf_len, tmp_pos, index_status_);
       }
+      //add e
 
       if (OB_SUCCESS == ret)
       {
@@ -1685,7 +1687,7 @@ namespace oceanbase
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, &replica_count_);
       }
 
-      //longfei [create index]
+      //add longfei [create index]
       if (OB_SUCCESS == ret)
       {
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, reinterpret_cast<int64_t *>(&original_table_id_));
@@ -1694,6 +1696,7 @@ namespace oceanbase
       {
         ret = serialization::decode_vi32(buf, data_len, tmp_pos, reinterpret_cast<int32_t *>(&index_status_));
       }
+      //add e
 
       if (OB_SUCCESS == ret)
       {
@@ -1796,9 +1799,10 @@ namespace oceanbase
       len += serialization::encoded_length_vi64(internal_ups_scan_size_);
       len += serialization::encoded_length_vi64(merge_write_sstable_version_);
       len += serialization::encoded_length_vi64(replica_count_);
-      // longfei [create index]
+      //add longfei [create index]
       len += serialization::encoded_length_vi64(original_table_id_);
       len += serialization::encoded_length_vi32(index_status_);
+      //add e
 
       len += serialization::encoded_length_vi64(version_);
       if (OB_SCHEMA_VERSION_FOUR_SECOND <= version_)
@@ -2154,10 +2158,8 @@ namespace oceanbase
           if (parse_ok && sort_column() != OB_SUCCESS)
           {
             TBSYS_LOG(ERROR,"sort column failed");
-            parse_ok = false;
-
-            //longfei [create index]
-            init_index_hash();
+            parse_ok = false;            
+            init_index_hash();//add longfei [create index] e
           }
 
           TBSYS_LOG(DEBUG,"config:%p",&config);
@@ -3298,7 +3300,6 @@ namespace oceanbase
         table_infos_[table_nums_++] = table;
         if ((OB_INVALID_ID == max_table_id_) || (table.get_table_id() > max_table_id_))
           max_table_id_ = table.get_table_id();
-       // TBSYS_LOG(ERROR,"LONGFEI:add new table into table info, table name = %s",table.get_table_name());
       }
       return ret;
     }
@@ -3566,7 +3567,6 @@ namespace oceanbase
         }
       }
       int64_t right_column_count = schema_manager.get_column_count();
-      //鍒ゆ柇鍙宠〃鏂板鐨勫垪銆傚悓鏍峰column_id鏈夎姹�
       for (int64_t i = 0; i < right_column_count; i++)
       {
         const ObColumnSchemaV2 *right_column = schema_manager.get_column_schema((int32_t)i);
@@ -4652,7 +4652,6 @@ namespace oceanbase
         TableSchema *tschema = (TableSchema*)(&schema_array.at(i));
         ObTableSchema old_tschema;
         old_tschema.set_table_id(tschema->table_id_);
-       // TBSYS_LOG(INFO,"LONGFEI:table_id_= %d,old_tschema->table_id = %d",(int)tschema->table_id_, (int)old_tschema.get_table_id());
         old_tschema.set_max_column_id(tschema->max_used_column_id_);
         old_tschema.set_table_name(tschema->table_name_);
         ObTableSchema::TableType table_type = ObTableSchema::INVALID;
@@ -5183,9 +5182,7 @@ namespace oceanbase
       return ret;
     }
 
-    /**
-     * longfei [create index]
-     */
+    //add longfei [create index]
     const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  ObSchemaManagerV2::get_id_index_hash() const
     {
       return &id_index_hash_map_;
@@ -5406,6 +5403,7 @@ namespace oceanbase
       TBSYS_LOG(INFO,"table[%ld] has [%ld] index columns",table_id, num);
       return ret;
     }
+    //add e
 
     //add maoxx
     int ObSchemaManagerV2::get_all_modifiable_index(uint64_t table_id, IndexList &modifiable_index_list) const
@@ -5686,6 +5684,7 @@ namespace oceanbase
       return ret;
     }
     // add e
+
     //add wenghaixing [secondary index.static_index]20151217
     int ObSchemaManagerV2::get_all_notav_index_tid(ObArray<uint64_t> &index_id_list) const
     {

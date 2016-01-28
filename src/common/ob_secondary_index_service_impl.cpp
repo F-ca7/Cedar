@@ -62,7 +62,6 @@ int ObSecondaryIndexServiceImpl::find_cid(
     uint64_t &cid)
 {
   int ret = OB_SUCCESS;
-  //bool return_ret = false;
   int64_t type = 0;
   const sql::ObPostfixExpression& pf_expr = sql_expr.get_decoded_expression();
   const ExprArray& expr_ = pf_expr.get_expr();
@@ -75,7 +74,6 @@ int ObSecondaryIndexServiceImpl::find_cid(
   {
     if (OB_SUCCESS != (ret = expr_[idx].get_int(type)))
     {
-      //return_ret=true;
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
@@ -224,17 +222,16 @@ int ObSecondaryIndexServiceImpl::get_cid(
 
 //判断该表达式的所有列是否都在索引表index_tid中
 bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
-    uint64_t index_tid, const sql::ObPostfixExpression& pf_expr,
+    uint64_t index_tid,
+    const sql::ObPostfixExpression& pf_expr,
     const ObSchemaManagerV2 *sm_v2)
 {
   bool return_ret = true;
   int ret = OB_SUCCESS;
-  //bool return_ret = false;
   int64_t type = 0;
   const ExprArray& expr_ = pf_expr.get_expr();
   int64_t count = expr_.count();
   int64_t idx = 0;
-  //int32_t column_count=0;
   int64_t tmp_cid = OB_INVALID_ID;
   int64_t tid = OB_INVALID_ID;
   while (idx < count)
@@ -689,8 +686,8 @@ bool ObSecondaryIndexServiceImpl::if_rowkey_in_expr(
   {
     const ObRowkeyInfo *rowkey_info = &mian_table_schema->get_rowkey_info();
     uint64_t main_cid = OB_INVALID_ID;
-    rowkey_info->get_column_id(0, main_cid); //获得原表的第��?主键的column id,存到main_cid里�??
-    return_ret = is_wherecondition_have_main_cid_V2(filter_array, main_cid); //判断where条件中是否有原表的第��?主键，如果有，则不用索引
+    rowkey_info->get_column_id(0, main_cid);
+    return_ret = is_wherecondition_have_main_cid_V2(filter_array, main_cid);
 
   }
   return return_ret;
@@ -716,12 +713,12 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
   {
     const ObRowkeyInfo *rowkey_info = &mian_table_schema->get_rowkey_info();
     uint64_t main_cid = OB_INVALID_ID;
-    rowkey_info->get_column_id(0, main_cid); //获得原表的第一主键的column id,存到main_cid里�??
-    if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid)) //判断where条件中是否有原表的第一主键，如果有，则不用索引
+    rowkey_info->get_column_id(0, main_cid);
+    if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid))
     {
       int64_t c_num = filter_array->count();
       int32_t i = 0;
-      for (; ret == OB_SUCCESS && i < c_num; i++)    //对where条件中的��?有表达式依次处理
+      for (; ret == OB_SUCCESS && i < c_num; i++)
       {
         ObSqlExpression c_filter = filter_array->at(i);
         //判断该表达式能否使用不回表的索引
@@ -763,7 +760,7 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
                 index_table_schema->get_table_id());
       cond_has_main_cid = false;
     }
-    // 判断where条件的表达式中是否包含索引表的第��?主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
+    // 判断where条件的表达式中是否包含索引表的第一主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
     else if (!is_wherecondition_have_main_cid_V2(filter_array, index_key_cid))
     {
       cond_has_main_cid = false;
@@ -776,12 +773,12 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_for_storing_V2(
 
   if (cond_has_main_cid)
   {
-    // 如果where条件中包含索引表的第��?主键再判断这些表达式中的列和select的输出列是不是都在索引表��?
+    // 如果where条件中包含索引表的第一主键再判断这些表达式中的列和select的输出列是不是都在索引表冗余列中
     can_use_hint_for_storing = is_index_table_has_all_cid_V2(
                                  index_table_id,
                                  filter_array, project_array);
   }
-  // 如果对于where条件不能使用主键索引的情况则认为不能使用索引表的storing��?
+  // 如果对于where条件不能使用主键索引的情况则认为不能使用索引表的storing列
   else
   {
     can_use_hint_for_storing = false;
@@ -815,7 +812,7 @@ bool ObSecondaryIndexServiceImpl::is_can_use_hint_index_V2(
                 index_table_schema->get_table_id());
       cond_has_main_cid = false;
     }
-    // 判断where条件的表达式中是否包含索引表的第��?主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
+    // 判断where条件的表达式中是否包含索引表的第一主键，每个表达式都只有一列且其中有一列是索引表的第一主键时返回true
     else if (!is_wherecondition_have_main_cid_V2(filter_array, index_key_cid))
     {
       cond_has_main_cid = false;

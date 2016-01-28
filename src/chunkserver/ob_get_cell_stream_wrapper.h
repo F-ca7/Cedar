@@ -71,7 +71,7 @@ namespace oceanbase
       ObGetCellStream get_cell_stream_;
       ObScanCellStream scan_cell_stream_;
       //add longfei [cons static index] 151205:b
-      ObCsInteractiveCellStream cs_interactive_cell_stream_;
+      ObCsInteractiveCellStream cs_interactive_cell_stream_; ///< for a cs get cell from other cs
       //add e
     };
   }

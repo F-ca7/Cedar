@@ -116,8 +116,6 @@ int ObSchemaServiceImpl::add_join_info(ObMutator* mutator, const TableSchema& ta
       value[3].set_int(join_info.right_column_id_);
       rowkey.assign(value, 4);
 
-      //杩炶皟闇�瑕�
-      //rowkey鍒椾笉闇�瑕佸啓鍏ワ紝绛夐儊鐧藉湪UPS绔殑淇敼瀹屾垚浠ュ悗鍙互鍘绘帀
       //to be delete start
      // ADD_INT(joininfo_table_name, rowkey, "left_table_id", join_info.left_table_id_);
      // ADD_INT(joininfo_table_name, rowkey, "left_column_id", join_info.left_column_id_);
@@ -1372,7 +1370,7 @@ int ObSchemaServiceImpl::set_max_used_table_id(const uint64_t max_used_tid)
     snprintf(buf, sizeof(buf), "%lu", max_used_tid);
     value.assign(buf, static_cast<int32_t>(strlen(buf)));
     KV new_value("value", value);
-    /// TODO should using add 1 operator
+    // TODO should using add 1 operator
     if (OB_SUCCESS != (ret = nb_accessor_.update(OB_ALL_SYS_STAT_TABLE_NAME, rowkey, new_value)))
     {
       TBSYS_LOG(WARN, "failed to update the row, err=%d", ret);
