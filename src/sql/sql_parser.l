@@ -162,6 +162,31 @@ sqnewline     {quote}{whitespace}{quote}
 
 
 %%
+PROCEDURE			{ return PROCEDURE; }
+DECLARE				{ return DECLARE; }
+ELSEIF				{ return ELSEIF; }
+OUT					{ return OUT; }
+INOUT				{ return INOUT; }
+WHILE				{ return WHILE; }
+LOOP				{ return LOOP; }
+EXIT 				{ return EXIT; }
+CONTINUE			{ return CONTINUE; }
+DO					{ return DO; }
+CALL				{ return CALL; }
+
+
+CURSOR            { return CURSOR; }
+OPEN              { return OPEN; }
+FETCH             { return FETCH; }
+CLOSE             { return CLOSE; }
+NEXT               { return NEXT; }
+PRIOR              { return PRIOR; }
+FIRST              {return FIRST;}
+LAST               {return LAST; }
+ABSOLUTE           {return ABSOLUTE; }
+RELATIVE          {return RELATIVE; }
+
+
 ADD               { return ADD; }
 ALTER             { return ALTER; }
 AND               { return AND; }

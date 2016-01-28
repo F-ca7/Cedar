@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mysql_server.cpp
+ * @brief when root server first start create some system table
+ *
+ * modified by zhujun：add create __all_procedure table schema
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -413,6 +429,21 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create table for __all_statement, err=%d", ret);
     }
   }
+
+   //add by zhujun 2015-3-11:b
+   // create table __all_procedure
+    if (OB_SUCCESS == ret)
+    {
+      if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_procedure_schema(table_schema)))
+      {
+        TBSYS_LOG(WARN, "failed to get schema for __all_procedure, err=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+      {
+        TBSYS_LOG(WARN, "failed to create empty tablet for __all_procedure, err=%d", ret);
+      }
+    }
+	//add:e
   return ret;
 }
 

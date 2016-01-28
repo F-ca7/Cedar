@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief oceanbase constant define
+ *
+ * modified by zhujun：add procedure related constant
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 /*
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -539,6 +555,10 @@ namespace oceanbase
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
 
+    //add zhujun [2015-6-1]
+    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
+    //add:e
+
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
     const char* const OB_QUERY_TIMEOUT_PARAM = "ob_query_timeout";
@@ -579,6 +599,7 @@ namespace oceanbase
     static const uint64_t OB_ALL_SERVER_STAT_TID = 509;
     static const uint64_t OB_ALL_SERVER_SESSION_TID = 510;
     static const uint64_t OB_ALL_STATEMENT_TID = 511;
+    static const uint64_t OB_ALL_PROCEDURE_TID = 512;//add by zhujun
 #define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //

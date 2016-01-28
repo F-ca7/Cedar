@@ -39,7 +39,6 @@ namespace oceanbase
 
       NEED_SERIALIZE_AND_DESERIALIZE;
     };
-
     class ObInMemorySort: public ObSortHelper
     {
       public:

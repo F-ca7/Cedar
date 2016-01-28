@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_extra_tables_schema.h
+ * @brief create procedure system table
+ *
+ * modified by zhujun：add procedure related system table '__all_procedure' schema
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -52,6 +68,9 @@ namespace oceanbase
       static int all_server_stat_schema(TableSchema &table_schema);
       static int all_server_session_schema(TableSchema &table_schema);
       static int all_statement_schema(TableSchema &table_schema);
+      //add zhujun[2015-3-11]:b
+      static int all_procedure_schema(TableSchema &table_schema);
+      //add:e
     private:
       ObExtraTablesSchema();
     };

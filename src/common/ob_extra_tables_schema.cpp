@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_extra_tables_schema.cpp
+ * @brief create procedure system table
+ *
+ * modified by zhujun：add procedure related system table '__all_procedure' schema
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -768,6 +784,36 @@ int ObExtraTablesSchema::all_user_schema(TableSchema &table_schema)
   return ret;
 }
 
+//add by zhujun 2015-3-11:b
+int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
+{
+	int ret = OB_SUCCESS;
+
+	table_schema.init_as_inner_table();
+	strcpy(table_schema.table_name_, OB_ALL_PROCEDURE_TABLE_NAME);
+	table_schema.table_id_ = OB_ALL_PROCEDURE_TID;
+	table_schema.rowkey_column_num_ = 1;
+	table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 3;
+	table_schema.max_rowkey_length_ = 128;
+
+	int column_id = OB_APP_MIN_COLUMN_ID;
+
+	ADD_COLUMN_SCHEMA("proc_name", //column_name
+		column_id ++, //column_id
+		1, //rowkey_id
+		ObVarcharType,  //column_type
+		128, //column length
+		false); //is nullable
+	ADD_COLUMN_SCHEMA("source", //column_name
+		column_id ++, //column_id
+		0, //rowkey_id
+		ObVarcharType,  //column_type
+		102400, //column length
+		false); //is nullable
+
+	return ret;
+}
+//add:e
 int ObExtraTablesSchema::all_table_privilege_schema(TableSchema &table_schema)
 {
   // hard code

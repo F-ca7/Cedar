@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_executor.cpp
+ * @brief keep after procedure execute,affect row right
+ *
+ * modified by zhujun：add a variable into session
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -180,6 +196,44 @@ int ObUpsExecutor::open()
             TBSYS_LOG(WARN, "updateserver warning: %s", warn_msg);
           }
         }
+
+
+        //add by zz 2015/2/3:b
+		//在session中存一个变量维护一个影响行数
+		ObString affect=ObString::make_string("affect_row_num");
+		if(session->variable_exists(affect))
+		{
+            ObObj old_val;
+            int64_t old_value=0;
+            ObObj new_val;
+            if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)//取出旧值
+            {
+                 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
+            }
+            else if((ret=old_val.get_int(old_value))!=OB_SUCCESS)
+            {
+                TBSYS_LOG(WARN, "old_val get_int ERROR");
+            }
+            new_val.set_int(old_value+local_result_.get_affected_rows());
+            if((ret=session->replace_variable(affect,new_val))!=OB_SUCCESS)
+            {
+                TBSYS_LOG(WARN, "replace_variable affect ERROR");
+            }
+		}
+		else
+		{
+			ObObj new_value_obj;
+			new_value_obj.set_int(local_result_.get_affected_rows());
+			if((ret=session->replace_variable(affect,new_value_obj))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "init replace_variable affect ERROR");
+			}
+			else
+			{
+				TBSYS_LOG(INFO, "init set affect_row success var_name=%s",affect.ptr());
+			}
+		}
+		//add:e
       }
     }
   }

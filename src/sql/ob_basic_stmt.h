@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_basic_stmt.h
+ * @brief basic statement class
+ *
+ * modified by zhujun：add procedure related StmtType
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -28,6 +44,24 @@ namespace oceanbase
     public:
       enum StmtType
       {
+	    //zhounan unmark:b
+     	T_CURSOR_DECLARE,
+    	T_CURSOR_FETCH,
+		T_CURSOR_FETCH_INTO,
+     	T_CURSOR_FETCH_PRIOR,
+		T_CURSOR_FETCH_PRIOR_INTO,
+      	T_CURSOR_FETCH_FIRST,
+		T_CURSOR_FETCH_FIRST_INTO,
+      	T_CURSOR_FETCH_LAST,
+		T_CURSOR_FETCH_LAST_INTO,
+      	T_CURSOR_FETCH_RELATIVE,
+		T_CURSOR_FETCH_RELATIVE_INTO,
+      	T_CURSOR_FETCH_ABSOLUTE,
+		T_CURSOR_FETCH_ABS_INTO,
+      	T_CURSOR_FETCH_FROMTO,
+     	T_CURSOR_OPEN,
+     	T_CURSOR_CLOSE,
+		//add:e
         T_NONE,
         T_SELECT,
         T_INSERT,
@@ -72,6 +106,24 @@ namespace oceanbase
         T_KILL,
         T_ALTER_SYSTEM,
         T_CHANGE_OBI,
+		//add by zhujun:b
+        //code_coverage_zhujun
+		T_PROCEDURE,
+		T_PROCEDURE_CREATE,
+		T_PROCEDURE_DROP,
+		T_PROCEDURE_DECLARE,
+		T_PROCEDURE_ASSGIN,
+		T_PROCEDURE_WHILE,
+		T_PROCEDURE_LOOP,
+		T_PROCEDURE_CASE,
+		T_PROCEDURE_CASEWHEN,
+		T_PROCEDURE_IF,
+		T_PROCEDURE_ELSEIF,
+		T_PROCEDURE_ELSE,
+		T_PROCEDURE_EXEC,
+		T_PROCEDURE_SELECT_INTO
+		//code_coverage_zhujun
+		//add:e
       };
 
       ObBasicStmt()
