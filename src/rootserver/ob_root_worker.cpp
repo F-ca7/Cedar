@@ -7046,7 +7046,12 @@ int ObRootWorker::rt_change_table_id(const int32_t version, common::ObDataBuffer
     }
 
     //add longfei [create index] 20151017
-    int ObRootWorker::rt_create_index(const int32_t version, common::ObDataBuffer& in_buff,        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    int ObRootWorker::rt_create_index(
+        const int32_t version,
+        common::ObDataBuffer& in_buff,
+        onev_request_e* req,
+        const uint32_t channel_id,
+        common::ObDataBuffer& out_buff)
     {
         int ret = OB_SUCCESS;
         static const int MY_VERSION = 1;

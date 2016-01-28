@@ -15,7 +15,8 @@
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
  * @date 2016_01_22
- */#ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
+ */
+#ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
 
 #ifdef __cplusplus
@@ -260,7 +261,8 @@ typedef enum ObItemType
   T_USE_INDEX,// add longfei
   T_UNKOWN_HINT,// add longfei
   T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
-  T_KILL,  T_MAX,
+  T_KILL,
+  T_MAX,
 
 } ObItemType;
 

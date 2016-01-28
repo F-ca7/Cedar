@@ -191,7 +191,8 @@ namespace oceanbase
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
-    const int OB_CS_TIMEOUT = -1002;         // 超时    const int OB_CS_TABLET_NOT_EXIST = -1008; // tablet not exist
+    const int OB_CS_TIMEOUT = -1002;         // 超时
+    const int OB_CS_TABLET_NOT_EXIST = -1008; // tablet not exist
     const int OB_CS_EMPTY_TABLET = -1009;     // tablet has no data.
     const int OB_CS_EAGAIN = -1010;           //重试
 
@@ -230,7 +231,8 @@ namespace oceanbase
     //add e
 
     //error code for update server -2001 ---- -3000
-    const int OB_UPS_TRANS_RUNNING = -2001;     // 事务正在执行    const int OB_FREEZE_MEMTABLE_TWICE = -2002; // memtable has been frozen
+    const int OB_UPS_TRANS_RUNNING = -2001;     // 事务正在执行
+    const int OB_FREEZE_MEMTABLE_TWICE = -2002; // memtable has been frozen
     const int OB_DROP_MEMTABLE_TWICE = -2003;   // memtable has been dropped
     const int OB_INVALID_START_VERSION = -2004; // memtable start version invalid
     const int OB_UPS_NOT_EXIST = -2005;         // not exist
@@ -636,7 +638,7 @@ namespace oceanbase
     static const uint64_t OB_ALL_STATEMENT_TID = 511;
     //add longfei [merge] 20160127
     static const uint64_t OB_INDEX_SHOW_TID = 512;
-    //
+    //add e
     //add maoxx
     static const uint64_t OB_ALL_COLUMN_CHECKSUM_INFO_TID = 801;
     static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;

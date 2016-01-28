@@ -24,7 +24,10 @@
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2016_01_21
- */#ifndef OCEANBASE_PACKET_H_#define OCEANBASE_PACKET_H_
+ */
+
+#ifndef OCEANBASE_PACKET_H_
+#define OCEANBASE_PACKET_H_
 
 #include "onev_struct.h"
 #include "ob_record_header.h" // for ObRecordHeader

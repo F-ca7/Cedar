@@ -18,7 +18,7 @@
 *
 */
 
-/* (C) 2010-2012 Alibaba Group Holding Limited. *
+/* (C) 2010-2012 Alibaba Group Holding Limited.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -59,7 +59,9 @@
 //add fanqiushi [semi_join] [0.1] 20150829:b
 #include "ob_semi_left_join.h"
 //add:e
-using namespace oceanbase;using namespace sql;
+
+using namespace oceanbase;
+using namespace sql;
 
 #define CASE_CLAUSE(OP_TYPE, OP) \
     case OP_TYPE: \
