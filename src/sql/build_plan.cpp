@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
@@ -10,12 +10,14 @@
  *
  * modified by longfei：
  * 1.add resolve function of create, drop and show index
+ * modified by zhujun：add build procedure logic plan method
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21
  */
-
+ 
 #include "sql_parser.tab.h"
 #include "build_plan.h"
 #include "dml_build_plan.h"
@@ -43,6 +45,24 @@
 #include "ob_alter_table_stmt.h"
 #include "ob_alter_sys_cnf_stmt.h"
 #include "ob_kill_stmt.h"
+//zhounan unmark:b
+#include "ob_cursor_fetch_stmt.h"
+#include "ob_cursor_fetch_into_stmt.h"
+#include "ob_cursor_fetch_prior_stmt.h"
+#include "ob_cursor_fetch_prior_into_stmt.h"
+#include "ob_cursor_fetch_first_stmt.h"
+#include "ob_cursor_fetch_first_into_stmt.h"
+#include "ob_cursor_fetch_last_stmt.h"
+#include "ob_cursor_fetch_last_into_stmt.h"
+#include "ob_cursor_fetch_relative_stmt.h"
+#include "ob_cursor_fetch_relative_into_stmt.h"
+#include "ob_cursor_fetch_absolute_stmt.h"
+#include "ob_cursor_fetch_abs_into_stmt.h"
+#include "ob_cursor_fetch_fromto_stmt.h"
+#include "ob_cursor_declare_stmt.h"
+#include "ob_cursor_open_stmt.h"
+#include "ob_cursor_close_stmt.h"
+//add:e
 #include "parse_malloc.h"
 #include "common/ob_define.h"
 #include "common/ob_array.h"
@@ -58,8 +78,30 @@
 //longfei [drop index]
 #include "ob_drop_index_stmt.h"
 
+//add by zhujun:b
+#include "ob_procedure_create_stmt.h"
+#include "ob_procedure_drop_stmt.h"
+#include "ob_procedure_stmt.h"
+#include "ob_procedure_execute_stmt.h"
+#include "ob_procedure_if_stmt.h"
+#include "ob_procedure_elseif_stmt.h"
+#include "ob_procedure_else_stmt.h"
+#include "ob_procedure_declare_stmt.h"
+#include "ob_procedure_assgin_stmt.h"
+#include "ob_procedure_while_stmt.h"
+#include "ob_procedure_case_stmt.h"
+#include "ob_procedure_casewhen_stmt.h"
+#include "ob_procedure_select_into_stmt.h"
+#include "ob_transformer.h"
+#include "ob_deallocate.h"
+#include "ob_cursor_close.h"
+#include "ob_result_set.h"
+#include "ob_physical_plan.h"
+#include <vector>
+//add:e
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
+using namespace std;
 
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node);
 int resolve_explain_stmt(
@@ -120,6 +162,72 @@ int resolve_deallocate_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
 		uint64_t& query_id);
+//zhounan unmark:b
+int resolve_cursor_declare_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_open_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_prior_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_prior_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_first_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_first_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_last_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_last_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_relative_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_relative_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_absolute_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_absolute_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_fetch_fromto_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_cursor_close_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+//add:e
 int resolve_alter_sys_cnf_stmt(
 		ResultPlan* result_plan,
 		ParseNode* node,
@@ -133,6 +241,72 @@ int resolve_change_obi(
 		ParseNode* node,
 		uint64_t& query_id);
 
+//add by zhujun:b
+//code_coverage_zhujun
+int resolve_procedure_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_procedure_create_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_procedure_drop_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_procedure_execute_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+int resolve_procedure_declare_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt *ps_stmt);
+int resolve_procedure_assgin_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+    ObProcedureStmt *ps_stmt);
+int resolve_procedure_if_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt);
+int resolve_procedure_elseif_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt);
+int resolve_procedure_else_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt);
+int resolve_procedure_while_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt);
+int resolve_procedure_case_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt);
+int resolve_procedure_casewhen_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	uint64_t case_value,
+	ObProcedureStmt* ps_stmt
+	);
+int resolve_procedure_select_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+//code_coverage_zhujun
+//add:e
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node)
 {
 	int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -2070,6 +2244,2478 @@ int resolve_kill_stmt(
 	}
 	return ret;
 }
+//zhounan unmark:b
+int resolve_cursor_declare_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_DECLARE && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorDeclareStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+        PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+        stmt->set_cursor_name(name);
+      }
+    }
+    if (ret == OB_SUCCESS)
+    {
+      uint64_t sub_query_id = OB_INVALID_ID; 
+      ret = resolve_select_stmt(result_plan, node->children_[1], sub_query_id);
+      if (ret == OB_SUCCESS)
+      stmt->set_declare_query_id(sub_query_id);
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_open_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_OPEN && node->num_child_ == 1); int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorOpenStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && (node->type_ == T_CURSOR_FETCH||node->type_ == T_CURSOR_FETCH_NEXT) && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+
+
+int resolve_cursor_fetch_first_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_FIRST_INTO && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchFirstIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_first_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+
+int resolve_cursor_fetch_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && (node->type_ == T_CURSOR_FETCH_INTO||node->type_ == T_CURSOR_FETCH_NEXT_INTO) && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_prior_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_PRIOR && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchPriorStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_prior_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_PRIOR_INTO && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchPriorIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_prior_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_first_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_FIRST && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchFirstStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+	    stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_last_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_LAST && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchLastStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_last_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_LAST_INTO && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchLastIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_last_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+
+
+int resolve_cursor_fetch_relative_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_RELATIVE && node->num_child_ == 3);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchRelativeStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+      OB_ASSERT(node->children_[1]);
+      if (node->children_[1]->value_ == 0)
+      {
+    	 stmt->set_is_next(0);
+      }
+      else
+      {
+       	stmt->set_is_next(1);
+      }
+      OB_ASSERT(node->children_[2]);
+      stmt->set_fetch_count(node->children_[2]->value_);
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_relative_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_RELATIVE_INTO && node->num_child_ == 3);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchRelativeIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		/*resolve fetch relative into argument list*/
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		//resolve fetch relative into's fetch
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_relative_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_absolute_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_ABSOLUTE && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchAbsoluteStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+      OB_ASSERT(node->children_[1]);
+      stmt->set_fetch_count(node->children_[1]->value_);
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_absolute_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_ABS_INTO && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorFetchAbsIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+	if (ret == OB_SUCCESS)
+	{
+		ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+		/*resolve fetch abs into argument list*/
+		if(node->children_[1]!=NULL)
+		{
+			ParseNode* arguments=node->children_[1];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_variable_name is %s  get is %s",name.ptr(),stmt->get_variable((int64_t)i).ptr());
+				}
+			}
+		}
+		//resolve fetch abs into's fetch stmt
+		if(node->children_[0]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_cursor_fetch_absolute_stmt(result_plan, node->children_[0], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_cursor_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+	}
+  }
+  return ret;
+}
+
+int resolve_cursor_fetch_fromto_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_FETCH_FROMTO && node->num_child_ == 3);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObFetchFromtoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+      OB_ASSERT(node->children_[1]);
+      stmt->set_count_f(node->children_[1]->value_);
+      OB_ASSERT(node->children_[2]);
+      stmt->set_count_t(node->children_[2]->value_);
+    }
+  }
+  return ret;
+}
+
+int resolve_cursor_close_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id
+)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_CURSOR_CLOSE && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObCursorCloseStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(WARN, "fail to prepare resolve stmt. ret=%d", ret);
+  }
+  else
+  {
+    ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if (ret == OB_SUCCESS)
+    {
+      OB_ASSERT(node->children_[0]);
+      ObString name;
+      if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
+      {
+    	PARSER_LOG("Can not malloc space for stmt name");
+      }
+      else
+      {
+    	stmt->set_cursor_name(name);
+      }
+    }
+  }
+  return ret;
+}
+//add:e
+
+//add by zhujun:b
+//code_coverage_zhujun
+int resolve_procedure_select_into_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_SELECT_INTO && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureSelectIntoStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    	/*resolve select into argument list*/
+		if(node->children_[0]!=NULL)
+		{
+			ParseNode* arguments=node->children_[0];
+			for (int32_t i = 0;i < arguments->num_child_; i++)
+			{
+				ObString name;
+				if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+				}
+				else if ((ret = stmt->add_variable(name)) != OB_SUCCESS)
+				{
+					PARSER_LOG("Add Using variable failed");
+				}
+			}
+		}
+		//resolve select into stmt's select stmt
+		if(node->children_[1]!=NULL)
+		{
+			uint64_t sub_query_id = OB_INVALID_ID;
+
+			if((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "resolve_select_stmt error");
+			}
+			else if((ret=stmt->set_declare_id(sub_query_id))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(WARN, "set_declare_id error");
+			}
+
+		}
+    }
+  }
+  return ret;
+}
+
+int resolve_procedure_declare_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_DECLARE && node->num_child_ == 3);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureDeclareStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    	/*resolve declare parameter*/
+		if(node->children_[0]!=NULL)
+		{
+			ParseNode* var_node=node->children_[0];
+			OB_ASSERT(var_node->type_==T_ARGUMENT_LIST);
+
+			for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
+			{
+				ObVariableDef* var=(ObVariableDef*)malloc(sizeof(ObVariableDef));
+				/*parameter type*/
+				switch(node->children_[1]->type_)//declare type
+				{
+				case T_TYPE_INTEGER:
+					TBSYS_LOG(INFO, "variable %d data type is ObIntType",i);
+					var->variable_type_=ObIntType;
+					break;
+				case T_TYPE_FLOAT:
+					TBSYS_LOG(INFO, "variable %d data type is ObFloatType",i);
+					var->variable_type_=ObFloatType;
+					break;
+				case T_TYPE_DOUBLE:
+					TBSYS_LOG(INFO, "variable %d data type is ObDoubleType",i);
+					var->variable_type_=ObDoubleType;
+					break;
+				case T_TYPE_DECIMAL:
+					TBSYS_LOG(INFO, "variable %d data type is ObDecimalType",i);
+					var->variable_type_=ObDecimalType;
+					break;
+				case T_TYPE_BOOLEAN:
+					TBSYS_LOG(INFO, "variable %d data type is ObBoolType",i);
+					var->variable_type_=ObBoolType;
+					break;
+				case T_TYPE_DATETIME:
+					TBSYS_LOG(INFO, "variable %d data type is ObDateTimeType",i);
+					var->variable_type_=ObDateTimeType;
+					break;
+				case T_TYPE_VARCHAR:
+					TBSYS_LOG(INFO, "variable %d data type is ObVarcharType",i);
+					var->variable_type_=ObVarcharType;
+					break;
+				default:
+					TBSYS_LOG(WARN, "variable %d data type is ObNullType",i);
+					var->variable_type_=ObNullType;
+					break;
+				}
+
+				if(node->children_[2]!=NULL)//default value node
+				{
+					var->default_value_=new ObObj();
+					//set type
+					var->default_value_->set_type(var->variable_type_);
+					//set default value
+					if((ret = resolve_const_value(result_plan, node->children_[2], *var->default_value_))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(WARN, "resolve_procedure_declare_stmt resolve_const_value error");
+					}
+					else
+					{
+						var->is_default_=true;
+
+						//node->children_[2]->str_value_;1233123123123.1111121312
+						if(node->children_[1]->type_==T_TYPE_DECIMAL)
+						{
+							int64_t leftint=node->children_[1]->children_[0]->value_;
+
+							int64_t rightint=node->children_[1]->children_[1]->value_;
+
+							int64_t preint=rightint-leftint;
+
+							char *p=(char*)node->children_[2]->str_value_;
+							int32_t index=0;
+
+							for(;*p!='.';)
+							{
+								p++;
+								index++;
+							}
+							if(preint<index)
+							{
+								ret=OB_ERR_ILLEGAL_VALUE;
+								TBSYS_LOG(USER_ERROR, "decimal range error");
+							}
+							TBSYS_LOG(INFO, "preint=%ld,leftint=%ld,rightint=%ld,index=%d",preint,leftint,rightint,index);
+						}
+
+
+
+					}
+
+				}
+				else
+				{
+					var->is_default_=false;
+					TBSYS_LOG(INFO, "resolve_procedure_declare_stmt default_expr_id_ null ");
+				}
+				if(ret==OB_SUCCESS)
+				{
+					var->variable_name_=new ObString();
+					if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->str_value_), *var->variable_name_))!=OB_SUCCESS)
+					{
+						PARSER_LOG("Can not malloc space for variable name");
+					}
+					else if((ret=stmt->add_proc_var(*var))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(WARN, "add_proc_param have ERROR!");
+					}
+					else if((ret=ps_stmt->add_declare_var(*var->variable_name_))!=OB_SUCCESS)//add declare var
+					{
+						TBSYS_LOG(WARN, "add_declare_var have ERROR!");
+					}
+				}
+			}
+
+		}
+    }
+  }
+  return ret;
+}
+
+
+int resolve_procedure_assgin_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+    ObProcedureStmt *ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_ASSGIN && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureAssginStmt *stmt = NULL;
+  TBSYS_LOG(INFO, "enter resolve_procedure_assgin_stmt");
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    	/*resolve assign parameter*/
+		if(node->children_[0]!=NULL)
+		{
+			ParseNode* var_node=node->children_[0];
+			OB_ASSERT(var_node->type_==T_VAR_VAL_LIST);
+			for (int32_t i = 0; ret == OB_SUCCESS && i < var_node->num_child_; i++)
+			{
+				ObVariableSetVal var_val;
+				uint64_t expr_id;
+				if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,var_node->children_[i]->children_[1],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "resolve_procedure_assgin_stmt resolve_independ_expr error");
+				}
+				else
+				{
+					var_val.var_expr_id_=expr_id;
+					if((ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->children_[0]->str_value_), var_val.variable_name_))!=OB_SUCCESS)
+					{
+						PARSER_LOG("Can not malloc space for variable name");
+					}
+					else if((ret=stmt->add_var_val(var_val))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(WARN, "add_proc_param have ERROR!");
+					}
+
+					int find=OB_ERROR;
+					for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
+					{
+						ObString declare_var=ps_stmt->get_declare_var(j);
+						if(var_val.variable_name_.compare(declare_var)==0)//find equal
+						{
+							find=OB_SUCCESS;
+							break;
+						}
+						else
+						{
+							TBSYS_LOG(INFO, "Declare scope Param1 %.*s  Param2 %.*s",var_val.variable_name_.length(),var_val.variable_name_.ptr(),declare_var.length(),declare_var.ptr());
+						}
+					}
+
+					for (int64_t j = 0;  j < ps_stmt->get_param_size(); j++)
+					{
+						ObParamDef* def=ps_stmt->get_param(j);
+						ObString param_var=*def->param_name_;
+						if(var_val.variable_name_.compare(param_var)==0)
+						{
+							find=OB_SUCCESS;
+							break;
+						}
+						else
+						{
+							TBSYS_LOG(ERROR, "Paramter scope Param1 %.*s  Param2 %.*s",var_val.variable_name_.length(),var_val.variable_name_.ptr(),param_var.length(),param_var.ptr());
+						}
+					}
+
+					if(find==OB_ERROR)
+					{
+						ret=-5044;
+						//TBSYS_LOG(USER_ERROR,"params size:%ld",ps_stmt->get_param_size());
+						TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare",var_val.variable_name_.length(),var_val.variable_name_.ptr());
+						break;
+					}
+
+
+				}
+			}
+
+		}
+    }
+  }
+  return ret;
+}
+int resolve_procedure_case_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_CASE && node->num_child_ == 3);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureCaseStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_case_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	/*获取case的表达式节点*/
+    	uint64_t expr_id;
+    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_independ_expr error");
+    	}
+    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "set_expr_id error");
+    	}
+    	else
+    	{
+			//case when list
+    		if(node->children_[1]!=NULL)
+    		{
+				ParseNode* casewhen_node = node->children_[1];/*case when node*/
+
+				//foreach cae when node's child node
+				for (int32_t i = 0; ret == OB_SUCCESS && i < casewhen_node->num_child_; i++)
+				{
+					uint64_t casewhen_query_id = OB_INVALID_ID;
+					if((ret=resolve_procedure_casewhen_stmt(result_plan, casewhen_node->children_[i], casewhen_query_id,expr_id,ps_stmt))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt error!");
+						break;
+					}
+					else if(ret==OB_SUCCESS&&(ret=stmt->add_case_when_stmt(casewhen_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "add_case_when_stmt error!");
+						break;
+					}
+				}
+    		}
+    		if(ret==OB_SUCCESS)
+    		{
+				//check exist else
+				if(node->children_[2]!=NULL&&node->children_[2]->children_[0]!=NULL)
+				{
+					OB_ASSERT(node->children_[2]->children_[0]->type_ == T_PROCEDURE_ELSE);
+					OB_ASSERT(node->children_[2]->type_ == T_PROCEDURE_ELSE);
+					uint64_t else_query_id = OB_INVALID_ID;
+					ParseNode* else_node = node->children_[2];
+
+					if((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id,ps_stmt))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "resolve_procedure_else_stmt error!");
+					}
+					else
+					{
+						stmt->set_else_stmt(else_query_id);
+						stmt->set_have_else(true);
+					}
+				}
+				else
+				{
+					ret=stmt->set_have_else(false);
+				}
+    		}
+    	}
+    }
+  }
+  return ret;
+}
+#define CREATE_RAW_EXPR(expr, type_name, result_plan)    \
+({    \
+  ObLogicalPlan* logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_); \
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);  \
+  expr = (type_name*)parse_malloc(sizeof(type_name), name_pool);   \
+  if (expr != NULL) \
+  { \
+    expr = new(expr) type_name();   \
+    if (OB_SUCCESS != logical_plan->add_raw_expr(expr))    \
+    { \
+      expr = NULL;  /* no memory leak, bulk dealloc */ \
+    } \
+  } \
+  if (expr == NULL)  \
+  { \
+    result_plan->err_stat_.err_code_ = OB_ERR_PARSER_MALLOC_FAILED; \
+    TBSYS_LOG(WARN, "out of memory"); \
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,  \
+        "Fail to malloc new raw expression"); \
+  } \
+  expr; \
+})
+int resolve_procedure_casewhen_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	uint64_t case_value,
+	ObProcedureStmt* ps_stmt
+	)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_CASE_WHEN && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureCaseWhenStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	uint64_t expr_id;
+
+    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+    	}
+    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS||stmt->set_case_value_expr(case_value)!=OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+    	}
+    	else
+    	{
+    		ObLogicalPlan* logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+    		ObRawExpr* sub_expr1 = logical_plan->get_expr(case_value)->get_expr();
+    		ObRawExpr* sub_expr2 = logical_plan->get_expr(expr_id)->get_expr();
+
+    		if(sub_expr1->get_result_type() != sub_expr2->get_result_type())
+    		{
+    			TBSYS_LOG(WARN, "sub_expr1 result type NOT EQ sub_expr2,sub_expr1 result type:%d sub_expr2 result type:%d",sub_expr1->get_result_type(),sub_expr2->get_result_type());
+    			TBSYS_LOG(INFO, "sub_expr1 expr type:%d sub_expr2 expr type:%d",sub_expr1->get_expr_type(),sub_expr2->get_expr_type());
+    		}
+    		ObBinaryOpRawExpr *b_expr = NULL;
+    		if (CREATE_RAW_EXPR(b_expr, ObBinaryOpRawExpr, result_plan) != NULL)
+    		{
+				b_expr->set_expr_type(T_OP_EQ);
+				b_expr->set_result_type(ObBoolType);
+				b_expr->set_op_exprs(sub_expr1, sub_expr2);
+				expr_id = logical_plan->generate_expr_id();
+				ObRawExpr* expr=b_expr;
+				//build compare_expr
+
+				ObSqlRawExpr* sql_expr = (ObSqlRawExpr*)parse_malloc(sizeof(ObSqlRawExpr), result_plan->name_pool_);
+				if (sql_expr == NULL)
+				{
+				  ret = OB_ERR_PARSER_MALLOC_FAILED;
+				  TBSYS_LOG(WARN, "out of memory");
+				  snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+					"Can not malloc space for ObSqlRawExpr");
+				}
+				if (ret == OB_SUCCESS)
+				{
+				  sql_expr = new(sql_expr) ObSqlRawExpr();
+				  ret = logical_plan->add_expr(sql_expr);
+				  if (ret != OB_SUCCESS)
+					snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+						"Add ObSqlRawExpr error");
+				}
+				if (ret == OB_SUCCESS)
+				{
+				  uint64_t compare_expr_id = logical_plan->generate_expr_id();
+				  sql_expr->set_expr_id(compare_expr_id);
+
+				  if (ret == OB_SUCCESS)
+				  {
+					if (expr->get_expr_type() == T_REF_COLUMN)
+					{
+					  ObBinaryRefRawExpr *col_expr = dynamic_cast<ObBinaryRefRawExpr*>(expr);
+					  sql_expr->set_table_id(col_expr->get_first_ref_id());
+					  sql_expr->set_column_id(col_expr->get_second_ref_id());
+					}
+					else
+					{
+					  sql_expr->set_table_id(OB_INVALID_ID);
+					  sql_expr->set_column_id(logical_plan->generate_column_id());
+					}
+					sql_expr->set_expr(expr);
+				  }
+
+				  stmt->set_compare_expr_id(compare_expr_id);
+				}
+    		}
+    		else
+    		{
+    			ret=OB_ERR_GEN_PLAN;
+    		}
+			//when then
+			ParseNode* vector_node = node->children_[1];
+
+			for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+			{
+				uint64_t sub_query_id = OB_INVALID_ID;
+
+				switch(vector_node->children_[i]->type_)
+				{
+					case T_SELECT:
+						TBSYS_LOG(INFO, "type = T_SELECT");
+						ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_DELETE:
+						TBSYS_LOG(INFO, "type = T_DELETE");
+						ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_INSERT:
+						TBSYS_LOG(INFO, "type = T_INSERT");
+						ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_UPDATE:
+						TBSYS_LOG(INFO, "type = T_UPDATE");
+						ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_PROCEDURE_IF:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+						ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_DECLARE:
+						//TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+						//ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						ret=OB_ERR_PARSE_SQL;
+						break;
+					case T_PROCEDURE_ASSGIN:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_WHILE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+						ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_CASE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+						ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_SELECT_INTO:
+						TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+						ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_DECLARE:
+						TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+						ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_OPEN:
+						TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+						ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_CLOSE:
+						TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+						ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+						ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_NEXT_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+											ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_PRIOR_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+						ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_FIRST_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+						ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_LAST_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+						ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_ABS_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+						ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_RELATIVE_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+						ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					default:
+						ret=OB_ERR_PARSE_SQL;
+						TBSYS_LOG(INFO, "type = ERROR");
+						break;
+				}
+				if(ret==OB_SUCCESS)
+				{
+					if((ret=stmt->add_then_stmt(sub_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "add_then_stmt error!");
+						break;
+					}
+				}
+				else
+				{
+					TBSYS_LOG(ERROR, "resolve_stmt error!");
+					break;
+				}
+			}
+    	}
+    }
+  }
+  return ret;
+}
+
+
+
+int resolve_procedure_if_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_IF && node->num_child_ == 4);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureIfStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_if_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	//get if expr node
+    	uint64_t expr_id;
+    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_procedure_if_stmt resolve_independ_expr error");
+    	}
+    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_procedure_if_stmt set_expr_id error");
+    	}
+    	else
+    	{
+    		//check exist if then node
+    		if(node->children_[1]!=NULL)
+    		{
+
+				ParseNode* then_node = node->children_[1];
+				//visit if's elseif node
+				for (int32_t i = 0; ret == OB_SUCCESS && i < then_node->num_child_; i++)
+				{
+					uint64_t then_query_id = OB_INVALID_ID;
+					switch(then_node->children_[i]->type_)
+					{
+						case T_SELECT:
+							TBSYS_LOG(INFO, "type = T_SELECT");
+							ret = resolve_select_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_DELETE:
+							TBSYS_LOG(INFO, "type = T_DELETE");
+							ret = resolve_delete_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_INSERT:
+							TBSYS_LOG(INFO, "type = T_INSERT");
+							ret = resolve_insert_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_UPDATE:
+							TBSYS_LOG(INFO, "type = T_UPDATE");
+							ret = resolve_update_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_PROCEDURE_IF:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+							ret = resolve_procedure_if_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+							break;
+						case T_PROCEDURE_DECLARE:
+							//TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+							//ret = resolve_procedure_declare_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+							ret=OB_ERR_PARSE_SQL;
+							break;
+						case T_PROCEDURE_ASSGIN:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+							ret = resolve_procedure_assgin_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+							break;
+						case T_PROCEDURE_WHILE:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+							ret = resolve_procedure_while_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+							break;
+						case T_PROCEDURE_CASE:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+							ret = resolve_procedure_case_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+							break;
+						case T_SELECT_INTO:
+													TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+													ret = resolve_procedure_select_into_stmt(result_plan, then_node->children_[i], then_query_id);
+													break;
+						case T_CURSOR_DECLARE:
+							TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+							ret = resolve_cursor_declare_stmt(result_plan,then_node->children_[i], then_query_id);
+							break;
+						case T_CURSOR_OPEN:
+							TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+							ret = resolve_cursor_open_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_CURSOR_CLOSE:
+							TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+							ret = resolve_cursor_close_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_CURSOR_FETCH_INTO:
+							TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+							ret = resolve_cursor_fetch_into_stmt(result_plan, then_node->children_[i], then_query_id);
+							break;
+						case T_CURSOR_FETCH_NEXT_INTO:
+													TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+													ret = resolve_cursor_fetch_into_stmt(result_plan, then_node->children_[i], then_query_id);
+													break;
+						case T_CURSOR_FETCH_PRIOR_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+												ret = resolve_cursor_fetch_prior_into_stmt(result_plan, then_node->children_[i], then_query_id);
+												break;
+						case T_CURSOR_FETCH_FIRST_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+												ret = resolve_cursor_fetch_first_into_stmt(result_plan, then_node->children_[i], then_query_id);
+												break;
+						case T_CURSOR_FETCH_LAST_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+												ret = resolve_cursor_fetch_last_into_stmt(result_plan, then_node->children_[i], then_query_id);
+												break;
+						case T_CURSOR_FETCH_ABS_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+												ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, then_node->children_[i], then_query_id);
+												break;
+						case T_CURSOR_FETCH_RELATIVE_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+												ret = resolve_cursor_fetch_relative_into_stmt(result_plan, then_node->children_[i], then_query_id);
+												break;
+						default:
+							ret=OB_ERR_PARSE_SQL;
+							TBSYS_LOG(INFO, "type = ERROR");
+							break;
+					}
+					if(ret==OB_SUCCESS)
+					{
+						if((ret=stmt->add_then_stmt(then_query_id))!=OB_SUCCESS)
+						{
+							TBSYS_LOG(ERROR, "foreach if then children_[1] error!");
+							break;
+						}
+					}
+					else
+					{
+						TBSYS_LOG(ERROR, "resolve_stmt error");
+						break;
+					}
+				}
+    		}
+    		if(ret==OB_SUCCESS)
+    		{
+				//check exist else if
+				if(node->children_[2]!=NULL)
+				{
+					ParseNode* elseif_node = node->children_[2];
+
+					//visit if node's elseif node
+					for (int32_t i = 0; ret == OB_SUCCESS && i < elseif_node->num_child_; i++)
+					{
+						uint64_t elseif_query_id = OB_INVALID_ID;
+						if((ret=resolve_procedure_elseif_stmt(result_plan, elseif_node->children_[i], elseif_query_id,ps_stmt))!=OB_SUCCESS)
+						{
+							TBSYS_LOG(ERROR, "resolve_procedure_elseif_stmt error!");
+						}
+						else if(ret==OB_SUCCESS&&(ret=stmt->add_else_if_stmt(elseif_query_id))!=OB_SUCCESS)
+						{
+							TBSYS_LOG(ERROR, "foreach else if children_[2] error!");
+							break;
+						}
+					}
+					if(ret==OB_SUCCESS)
+					{
+						ret=stmt->set_have_elseif(true);
+					}
+				}
+				else if((ret=stmt->set_have_elseif(false))!=OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "set_have_elseif  error!");
+				}
+
+				//check exist else
+				if(node->children_[3]!=NULL&&node->children_[3]->children_[0]!=NULL)
+				{
+					OB_ASSERT(node->children_[3]->children_[0]->type_ == T_PROCEDURE_ELSE);
+					OB_ASSERT(node->children_[3]->type_ == T_PROCEDURE_ELSE);
+					uint64_t else_query_id = OB_INVALID_ID;
+					//ParseNode* else_node = node->children_[3]->children_[0];
+					ParseNode* else_node = node->children_[3];
+
+					if((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id,ps_stmt))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "resolve_procedure_else_stmt error!");
+					}
+					else if((ret=stmt->set_else_stmt(else_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "set_else_stmt(else_query_id) error!");
+					}
+					else
+					{
+						ret=stmt->set_have_else(true);
+					}
+				}
+				else if((ret=stmt->set_have_else(false))!=OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "set_have_else  error!");
+				}
+    		}
+    	}
+    }
+  }
+  return ret;
+}
+
+int resolve_procedure_elseif_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_ELSEIF && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureElseIfStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_elseif_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	uint64_t expr_id;
+
+    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+    	}
+    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+    	}
+    	else
+    	{
+			ParseNode* vector_node = node->children_[1];
+
+			for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+			{
+				uint64_t sub_query_id = OB_INVALID_ID;
+
+				switch(vector_node->children_[i]->type_)
+				{
+					case T_SELECT:
+						TBSYS_LOG(INFO, "type = T_SELECT");
+						ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_DELETE:
+						TBSYS_LOG(INFO, "type = T_DELETE");
+						ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_INSERT:
+						TBSYS_LOG(INFO, "type = T_INSERT");
+						ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_UPDATE:
+						TBSYS_LOG(INFO, "type = T_UPDATE");
+						ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_PROCEDURE_IF:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+						ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_DECLARE:
+						//TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+						//ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						ret=OB_ERR_PARSE_SQL;
+						break;
+					case T_PROCEDURE_ASSGIN:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_WHILE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+						ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_CASE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+						ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_SELECT_INTO:
+												TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+												ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+					case T_CURSOR_DECLARE:
+						TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+						ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_OPEN:
+						TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+						ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_CLOSE:
+											TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+											ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+						ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_NEXT_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+											ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_PRIOR_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+											ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_FIRST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+											ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_LAST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+											ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_ABS_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+											ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_RELATIVE_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+											ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					default:
+						ret=OB_ERR_PARSE_SQL;
+						TBSYS_LOG(INFO, "type = ERROR");
+						break;
+				}
+				if(ret==OB_SUCCESS)
+				{
+					if((ret=stmt->add_elseif_then_stmt(sub_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "foreach else if children_[1] error!");
+						break;
+					}
+				}
+				else
+				{
+					TBSYS_LOG(ERROR, "resolve_stmt error");
+					break;
+				}
+			}
+    	}
+    }
+  }
+  return ret;
+}
+
+
+int resolve_procedure_while_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_WHILE && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureWhileStmt *stmt = NULL;
+  TBSYS_LOG(INFO, "enter resolve_procedure_while_stmt");
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_while_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	uint64_t expr_id;
+
+    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+    	}
+    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    	{
+    		TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+    	}
+    	else
+    	{
+			ParseNode* vector_node = node->children_[1];
+
+			TBSYS_LOG(INFO, "while then num_child_=%d",vector_node->num_child_);
+			//search right tree node
+			for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+			{
+				uint64_t sub_query_id = OB_INVALID_ID;
+
+				switch(vector_node->children_[i]->type_)
+				{
+					case T_SELECT:
+						TBSYS_LOG(INFO, "type = T_SELECT");
+						ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_DELETE:
+						TBSYS_LOG(INFO, "type = T_DELETE");
+						ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_INSERT:
+						TBSYS_LOG(INFO, "type = T_INSERT");
+						ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_UPDATE:
+						TBSYS_LOG(INFO, "type = T_UPDATE");
+						ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_PROCEDURE_IF:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+						ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_DECLARE:
+						//TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+						//ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						ret=OB_ERR_PARSE_SQL;
+						break;
+					case T_PROCEDURE_ASSGIN:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_WHILE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+						ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_CASE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+						ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_SELECT_INTO:
+												TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+												ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+					case T_CURSOR_DECLARE:
+						TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+						ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_OPEN:
+						TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+						ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_CLOSE:
+											TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+											ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+						ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_NEXT_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+											ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_PRIOR_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+											ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_FIRST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+											ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_LAST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+											ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_ABS_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+											ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_RELATIVE_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+											ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					default:
+						ret=OB_ERR_PARSE_SQL;
+						TBSYS_LOG(INFO, "type = ERROR");
+						break;
+				}
+				if(ret==OB_SUCCESS)
+				{
+					if((ret=stmt->add_then_stmt(sub_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(WARN, "foreach else if children_[1] error!");
+						break;
+					}
+
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "add_then_stmt stmt_id=%ld",sub_query_id);
+					break;
+				}
+			}
+    	}
+    }
+  }
+  return ret;
+}
+
+int resolve_procedure_else_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+	ObProcedureStmt* ps_stmt)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_ELSE && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureElseStmt *stmt = NULL;
+  TBSYS_LOG(INFO, "enter resolve_procedure_else_stmt");
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(ERROR, "resolve_procedure_else_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+    if (ret == OB_SUCCESS)
+    {
+    	if(node->children_[0]!=NULL)
+    	{
+			ParseNode* vector_node = node->children_[0];
+			TBSYS_LOG(INFO, "vector_node->num_child_=%d",vector_node->num_child_);
+			//search right tree node
+			for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+			{
+				uint64_t sub_query_id = OB_INVALID_ID;
+				switch(vector_node->children_[i]->type_)
+				{
+					case T_SELECT:
+						TBSYS_LOG(INFO, "type = T_SELECT");
+						ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_DELETE:
+						TBSYS_LOG(INFO, "type = T_DELETE");
+						ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_INSERT:
+						TBSYS_LOG(INFO, "type = T_INSERT");
+						ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_UPDATE:
+						TBSYS_LOG(INFO, "type = T_UPDATE");
+						ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_PROCEDURE_IF:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+						ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_DECLARE:
+						//TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+						//ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						ret=OB_ERR_PARSE_SQL;
+						break;
+					case T_PROCEDURE_ASSGIN:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+						ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_WHILE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+						ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_PROCEDURE_CASE:
+						TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+						ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+						break;
+					case T_SELECT_INTO:
+						TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+						ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_DECLARE:
+						TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+						ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_OPEN:
+						TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+						ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_CLOSE:
+											TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+											ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_INTO:
+						TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+						ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+						break;
+					case T_CURSOR_FETCH_NEXT_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+											ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_PRIOR_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+											ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_FIRST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+											ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_LAST_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+											ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_ABS_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+											ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					case T_CURSOR_FETCH_RELATIVE_INTO:
+											TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+											ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+											break;
+					default:
+						ret=OB_ERR_PARSE_SQL;
+						TBSYS_LOG(INFO, "type = ERROR");
+						break;
+				}
+				if(ret==OB_SUCCESS)
+				{
+					if((ret=stmt->add_else_stmt(sub_query_id))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "foreach else if children_[0] error!");
+						break;
+					}
+				}
+				else
+				{
+					TBSYS_LOG(ERROR, "resolve_stmt error!");
+					break;
+				}
+			}
+    	}
+    }
+  }
+  return ret;
+}
+
+//20160101 zhujun
+std::string& replace_all_distinct(std::string&   str,const   std::string&   old_value,const   std::string&   new_value)
+{
+    for(std::string::size_type   pos(0);   pos!=std::string::npos;   pos+=new_value.length())   {
+        if(   (pos=str.find(old_value,pos))!=std::string::npos   )
+            str.replace(pos,old_value.length(),new_value);
+        else   break;
+    }
+    return   str;
+}
+char *rand_str(char *str)
+{
+	memset(str, '\0', sizeof(str));
+	char BASE[]={'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+	str[0]='@';
+    int i;
+    for(i=1;i<7;++i) {
+    	if(i!=6)
+    	{
+    		str[i]=BASE[rand()%26];
+    	}
+    	else
+    	{
+    		str[i]='_';
+    	}
+    }
+    return str;
+}
+
+
+int resolve_procedure_create_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_CREATE && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureCreateStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(WARN, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+	  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+	  ObString proc_name;
+	  OB_ASSERT(node->children_[0]->children_[0]);
+	  if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
+	  {
+	       PARSER_LOG("Can not malloc space for stmt name");
+	  }
+	  else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+	  {
+		  TBSYS_LOG(WARN, "set_proc_name have ERROR!");
+	  }
+	  else
+	  {
+		  uint64_t proc_query_id = OB_INVALID_ID;
+		  if((ret = resolve_procedure_stmt(result_plan, node, proc_query_id))!=OB_SUCCESS)
+		  {
+			  TBSYS_LOG(WARN, "resolve_procedure_stmt have ERROR!");
+		  }
+		  else
+		  {
+			  ret=stmt->set_proc_id(proc_query_id);
+		  }
+	  }
+	  if(ret==OB_SUCCESS)
+	  {
+		  //rebuild code
+		  ParseResult parse_result;
+		  uint64_t insert_query_id = OB_INVALID_ID;
+		  std::string temp_input_sql = std::string(result_plan->input_sql_);
+
+		  temp_input_sql = replace_all_distinct(temp_input_sql,"'","\\'");
+
+		  char rd[8];
+		  rand_str(rd);
+		  std::string new_str = std::string(rd);
+		  temp_input_sql = replace_all_distinct(temp_input_sql,"@",new_str);
+
+		  std::string s1 = std::string("insert into __all_procedure values('")
+		  	  	  	  	  + std::string(node->children_[0]->children_[0]->str_value_)
+		  	  	  	  	  + std::string("','")
+		  	  	  	  	  + temp_input_sql
+		  	  	  	  	  + std::string("')");
+
+		  TBSYS_LOG(INFO, "rebuild sql : %s", s1.c_str());
+		  ObString insertstmt = ObString::make_string(s1.c_str());
+
+		  parse_result.malloc_pool_=result_plan->name_pool_;
+		  if (OB_SUCCESS != (ret = parse_init(&parse_result)))
+		  {
+			  TBSYS_LOG(WARN, "parser init err");
+			  ret = OB_ERR_PARSER_INIT;
+		  }
+		  if (parse_sql(&parse_result, insertstmt.ptr(), static_cast<size_t>(insertstmt.length())) != 0
+				|| NULL == parse_result.result_tree_)
+		  {
+			  TBSYS_LOG(WARN, "parser procedure insert sql err, sql is %*s",insertstmt.length(),insertstmt.ptr());
+			  ret=OB_ERR_PARSE_SQL;
+		  }
+		  else if((ret = resolve_insert_stmt(result_plan, parse_result.result_tree_->children_[0], insert_query_id))!=OB_SUCCESS)
+		  {
+			  TBSYS_LOG(WARN, "resolve_insert_stmt err");
+		  }
+		  else
+		  {
+			  ret=stmt->set_proc_insert_id(insert_query_id);
+		  }
+	  }
+
+  }
+  return ret;
+}
+
+
+int resolve_procedure_drop_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  //OB_ASSERT(node && node->type_ == T_PROCEDURE_DROP && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureDropStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+	  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+	  ObString proc_name;
+	  OB_ASSERT(node->children_[0]);
+	  if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
+	  {
+	       PARSER_LOG("Can not malloc space for stmt name");
+	  }
+	  else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+	  {
+		  TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
+	  }
+	  else
+	  {
+
+		  //build delete logic plan to delete procedure
+		  ParseResult parse_result;
+		  uint64_t delete_query_id = OB_INVALID_ID;
+		  std::string proc_delete_sql="delete from __all_procedure where proc_name='{1}'";
+		  size_t pos_1 = proc_delete_sql.find("{1}");
+
+		  proc_delete_sql.replace(pos_1,3,node->children_[0]->str_value_);
+
+		  TBSYS_LOG(INFO, "proc_delete_sql is %s",proc_delete_sql.c_str());
+
+		  ObString deletestmt=ObString::make_string(proc_delete_sql.c_str());
+		  parse_result.malloc_pool_=result_plan->name_pool_;
+		  if (0 != (ret = parse_init(&parse_result)))
+		  {
+			  TBSYS_LOG(WARN, "parser init err");
+			  ret = OB_ERR_PARSER_INIT;
+		  }
+		  if (parse_sql(&parse_result, deletestmt.ptr(), static_cast<size_t>(deletestmt.length())) != 0
+				|| NULL == parse_result.result_tree_)
+		  {
+			  TBSYS_LOG(WARN, "parser prco delete sql err");
+		  }
+		  else if((ret = resolve_delete_stmt(result_plan, parse_result.result_tree_->children_[0], delete_query_id))!=OB_SUCCESS)
+		  {
+			  TBSYS_LOG(WARN, "resolve_delete_stmt err");
+		  }
+		  else
+		  {
+			  ret=stmt->set_proc_delete_id(delete_query_id);
+		  }
+	  }
+	  if(node->num_child_==2)//use if exists
+	  {
+		  stmt->set_if_exists(true);
+	  }
+	  else
+	  {
+		  stmt->set_if_exists(false);
+	  }
+
+
+  }
+  return ret;
+}
+
+int resolve_procedure_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_CREATE && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+	  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+	  ObString proc_name;
+	  OB_ASSERT(node->children_[0]->children_[0]);
+	  if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
+	  {
+	       PARSER_LOG("Can not malloc space for stmt name");
+	  }
+	  else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+	  {
+		  TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
+	  }
+	  else
+	  {
+		  	//resolve procedure parameter
+		    if(node->children_[0]->children_[1]!=NULL)
+		    {
+		    	ParseNode* param_node=node->children_[0]->children_[1];
+		    	OB_ASSERT(param_node->type_==T_PARAM_LIST);
+		    	for (int32_t i = 0; ret == OB_SUCCESS && i < param_node->num_child_; i++)
+		    	{
+		    		ObParamDef* param=(ObParamDef *)malloc(sizeof(ObParamDef));
+		    		//out parameter type
+		    		switch(param_node->children_[i]->type_)
+		    		{
+		    		case T_PARAM_DEFINITION:
+		    			TBSYS_LOG(INFO, "param %d out type is DEFAULT_TYPE",i);
+		    			param->out_type_=DEFAULT_TYPE;
+		    			break;
+		    		case T_IN_PARAM_DEFINITION:
+		    			TBSYS_LOG(INFO, "param %d out type is IN_TYPE",i);
+		    			param->out_type_=IN_TYPE;
+		    			break;
+		    		case T_OUT_PARAM_DEFINITION:
+		    			TBSYS_LOG(INFO, "param %d out type is OUT_TYPE",i);
+		    			param->out_type_=OUT_TYPE;
+		    			break;
+		    		case T_INOUT_PARAM_DEFINITION:
+		    			TBSYS_LOG(INFO, "param %d out type is INOUT_TYPE",i);
+		    			param->out_type_=INOUT_TYPE;
+		    			break;
+		    		default:
+		    			break;
+		    		}
+		    		//parameter type
+		    		switch(param_node->children_[i]->children_[1]->type_)
+		    		{
+		    		case T_TYPE_INTEGER:
+		    			TBSYS_LOG(INFO, "param %d data type is ObIntType",i);
+		    			param->param_type_=ObIntType;
+		    			break;
+		    		case T_TYPE_FLOAT:
+		    			TBSYS_LOG(INFO, "param %d data type is ObFloatType",i);
+		    			param->param_type_=ObFloatType;
+		    			break;
+		    		case T_TYPE_DOUBLE:
+		    			TBSYS_LOG(INFO, "param %d data type is ObDoubleType",i);
+		    			param->param_type_=ObDoubleType;
+		    			break;
+		    		case T_TYPE_DECIMAL:
+		    			TBSYS_LOG(INFO, "param %d data type is ObDecimalType",i);
+		    			param->param_type_=ObDecimalType;
+		    			break;
+		    		case T_TYPE_BOOLEAN:
+		    			TBSYS_LOG(INFO, "param %d data type is ObBoolType",i);
+		    			param->param_type_=ObBoolType;
+		    			break;
+		    		case T_TYPE_DATETIME:
+		    			TBSYS_LOG(INFO, "param %d data type is ObDateTimeType",i);
+		    			param->param_type_=ObDateTimeType;
+		    			break;
+		    		case T_TYPE_VARCHAR:
+		    			TBSYS_LOG(INFO, "param %d data type is ObVarcharType",i);
+		    			param->param_type_=ObVarcharType;
+		    			break;
+		    		default:
+		    			TBSYS_LOG(WARN, "param %d data type is ObNullType",i);
+		    			param->param_type_=ObNullType;
+		    			break;
+		    		}
+		    		param->param_name_=new ObString();
+		    		if((ret=ob_write_string(*name_pool, ObString::make_string(param_node->children_[i]->children_[0]->str_value_), *param->param_name_))!=OB_SUCCESS)
+		    		{
+		    			PARSER_LOG("Can not malloc space for param name");
+		    		}
+		    		if((ret=stmt->add_proc_param(*param))!=OB_SUCCESS)
+		    		{
+		    			TBSYS_LOG(ERROR, "add_proc_param have ERROR!");
+		    		}
+		    		else
+		    		{
+		    			TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param->param_name_->length(),param->param_name_->ptr(),stmt->get_param_size());
+		    		}
+		    	}
+
+		    }
+		  	if(node->children_[1]!=NULL)
+		  	{
+				ParseNode* vector_node = node->children_[1];
+				//search right tree node
+				for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+				{
+					uint64_t sub_query_id = OB_INVALID_ID;
+					switch(vector_node->children_[i]->type_)
+					{
+						case T_SELECT:
+							TBSYS_LOG(INFO, "type = T_SELECT");
+							ret = resolve_select_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_DELETE:
+							TBSYS_LOG(INFO, "type = T_DELETE");
+							ret = resolve_delete_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_INSERT:
+							TBSYS_LOG(INFO, "type = T_INSERT");
+							ret = resolve_insert_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_UPDATE:
+							TBSYS_LOG(INFO, "type = T_UPDATE");
+							ret = resolve_update_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_PROCEDURE_IF:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_IF");
+							ret = resolve_procedure_if_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+							break;
+						case T_PROCEDURE_DECLARE:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_DECLARE");
+							ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+							//ret=OB_ERR_PARSE_SQL;
+							break;
+						case T_PROCEDURE_ASSGIN:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_ASSGIN");
+							ret = resolve_procedure_assgin_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+							break;
+						case T_PROCEDURE_WHILE:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
+							ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+							break;
+						case T_PROCEDURE_CASE:
+							TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
+							ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+							break;
+						case T_SELECT_INTO:
+							TBSYS_LOG(INFO, "type = T_SELECT_INTO");
+							ret = resolve_procedure_select_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_CURSOR_DECLARE:
+							TBSYS_LOG(INFO, "type = T_CURSOR_DECLARE");
+							ret = resolve_cursor_declare_stmt(result_plan,vector_node->children_[i], sub_query_id);
+							break;
+						case T_CURSOR_OPEN:
+							TBSYS_LOG(INFO, "type = T_CURSOR_OPEN");
+							ret = resolve_cursor_open_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							break;
+						case T_CURSOR_CLOSE:
+												TBSYS_LOG(INFO, "type = T_CURSOR_CLOSE");
+												ret = resolve_cursor_close_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						case T_CURSOR_FETCH_INTO:
+							                    TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_INTO");
+							                    ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+							                    break;
+						case T_CURSOR_FETCH_NEXT_INTO:
+													                    TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_NEXT_INTO");
+													                    ret = resolve_cursor_fetch_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+													                    break;
+						case T_CURSOR_FETCH_PRIOR_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_PRIOR_INTO");
+												ret = resolve_cursor_fetch_prior_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						case T_CURSOR_FETCH_FIRST_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_FIRST_INTO");
+												ret = resolve_cursor_fetch_first_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						case T_CURSOR_FETCH_LAST_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_LAST_INTO");
+												ret = resolve_cursor_fetch_last_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						case T_CURSOR_FETCH_ABS_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_ABS_INTO");
+												ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						case T_CURSOR_FETCH_RELATIVE_INTO:
+												TBSYS_LOG(INFO, "type = T_CURSOR_FETCH_RELATIVE_INTO");
+												ret = resolve_cursor_fetch_relative_into_stmt(result_plan, vector_node->children_[i], sub_query_id);
+												break;
+						default:
+							ret=OB_ERR_PARSE_SQL;
+							TBSYS_LOG(INFO, "type = ERROR");
+							break;
+					}
+					if(ret==OB_SUCCESS)
+					{
+						if((ret=stmt->add_stmt(sub_query_id))!=OB_SUCCESS)
+						{
+							TBSYS_LOG(ERROR, "foreach else if children_[0] error!");
+							break;
+						}
+					}
+					else
+					{
+						TBSYS_LOG(ERROR, "resolve_stmt error");
+						break;
+					}
+				}
+		   }
+	  }
+  }
+  return ret;
+}
+
+int resolve_procedure_execute_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 2);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureExecuteStmt *stmt = NULL;
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+	  TBSYS_LOG(INFO, "prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+	  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+	  ObString proc_name;
+	  if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
+	  {
+	       PARSER_LOG("Can not malloc space for stmt name");
+	  }
+	  else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+	  {
+		  TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
+	  }
+	  else
+	  {
+		  ParseNode *arguments = node->children_[1];
+		  if(arguments!=NULL)
+		  {
+			  for (int32_t i = 0;i < arguments->num_child_; i++)
+			  {
+					uint64_t expr_id;
+
+					if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,arguments->children_[i],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+					}
+					else
+					{
+						stmt->add_param_expr(expr_id);
+					}
+					if(arguments->children_[i]->type_==T_TEMP_VARIABLE)
+					{
+						ObString name;
+						if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+						{
+							PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+						}
+						else if ((ret = stmt->add_variable_name(name)) != OB_SUCCESS)
+						{
+							PARSER_LOG("Add Using variable failed");
+						}
+					}
+					//add by zhujun 2015-8-4 put a null string into parameters only stay
+					else
+					{
+						ObString name;
+						std::string new_name = std::string(arguments->children_[i]->str_value_);
+						if(!strcmp(new_name.substr(0,1).c_str(), "@"))
+						{
+								std::string temp_name = std::string(arguments->children_[i]->str_value_).substr(1,strlen(arguments->children_[i]->str_value_) - 1);
+								ob_write_string(*name_pool, ObString::make_string(temp_name.c_str()), name);
+
+								stmt->add_variable_name(name);
+								TBSYS_LOG(INFO,"new: %.*s",name.length(),name.ptr());
+						}
+						else
+						{
+								name=ObString::make_string("null");
+								stmt->add_variable_name(name);
+						}
+					}
+
+
+			  }
+		  }
+		  if(ret==OB_SUCCESS)
+		  {
+			  //build logic plan use procedure source sql
+			  ParseResult parse_result;
+
+			  uint64_t proc_query_id = OB_INVALID_ID;
+			  ObString procstmt=ObString::make_string(result_plan->source_sql_);
+			  parse_result.malloc_pool_=result_plan->name_pool_;
+			  if (OB_SUCCESS != (ret = parse_init(&parse_result)))
+			  {
+				  TBSYS_LOG(WARN, "parser init err");
+				  ret = OB_ERR_PARSER_INIT;
+			  }
+			  else if (parse_sql(&parse_result, procstmt.ptr(), static_cast<size_t>(procstmt.length())) != 0
+					|| NULL == parse_result.result_tree_)
+			  {
+				  TBSYS_LOG(WARN, "parse procedure sql error.ret=%d",ret);
+				  TBSYS_LOG(WARN, "failed to parse sql=%.*s err=%s", procstmt.length(), procstmt.ptr(), parse_result.error_msg_);
+				  ret=OB_ERR_PARSE_SQL;
+
+			  }
+			  else if((ret = resolve_procedure_stmt(result_plan, parse_result.result_tree_->children_[0], proc_query_id))!=OB_SUCCESS)
+			  {
+				  TBSYS_LOG(WARN, "resolve_procedure_stmt error");
+			  }
+			  else
+			  {
+				  stmt->set_proc_stmt_id(proc_query_id);
+				  parse_free(parse_result.result_tree_);
+				  /*
+				  destroy_tree(parse_result.result_tree_);
+				  parse_terminate(&parse_result);
+				  */
+
+			  }
+		  }
+	  }
+  }
+
+  return ret;
+}
+//code_coverage_zhujun
+//add:e
+
 
 ////////////////////////////////////////////////////////////////
 int resolve(ResultPlan* result_plan, ParseNode* node)
@@ -2232,6 +4878,99 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_revoke_stmt(result_plan, node, query_id);
 			break;
 		}
+		//zhounan unmark:b
+      case T_CURSOR_DECLARE:
+      {
+        ret = resolve_cursor_declare_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_OPEN:
+      {
+        ret = resolve_cursor_open_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH:
+      {
+        ret = resolve_cursor_fetch_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_NEXT:
+            {
+              ret = resolve_cursor_fetch_stmt(result_plan, node, query_id);
+              break;
+            }
+      case T_CURSOR_FETCH_INTO:
+      {
+        ret = resolve_cursor_fetch_into_stmt(result_plan, node, query_id);
+        break;
+            }
+      case T_CURSOR_FETCH_NEXT_INTO:
+            {
+              ret = resolve_cursor_fetch_into_stmt(result_plan, node, query_id);
+              break;
+                  }
+      case T_CURSOR_FETCH_PRIOR:
+      {
+        ret = resolve_cursor_fetch_prior_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_PRIOR_INTO:
+      {
+        ret = resolve_cursor_fetch_prior_into_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_FIRST:
+      {
+        ret = resolve_cursor_fetch_first_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_FIRST_INTO:
+      {
+        ret = resolve_cursor_fetch_first_into_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_LAST:
+      {
+        ret = resolve_cursor_fetch_last_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_LAST_INTO:
+      {
+        ret = resolve_cursor_fetch_last_into_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_RELATIVE:
+      {
+        ret = resolve_cursor_fetch_relative_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_RELATIVE_INTO:
+      {
+        ret = resolve_cursor_fetch_relative_into_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_FETCH_ABSOLUTE:
+      {
+        ret = resolve_cursor_fetch_absolute_stmt(result_plan, node, query_id);
+         break;
+      }
+      case T_CURSOR_FETCH_ABS_INTO:
+      {
+        ret = resolve_cursor_fetch_absolute_into_stmt(result_plan, node, query_id);
+         break;
+      }
+      case T_CURSOR_FETCH_FROMTO:
+      {
+        ret = resolve_cursor_fetch_fromto_stmt(result_plan, node, query_id);
+        break;
+      }
+      case T_CURSOR_CLOSE:
+      {
+        ret = resolve_cursor_close_stmt(result_plan, node, query_id);
+
+    	break;
+      }
+	  //add:e
 		case T_PREPARE:
 		{
 			ret = resolve_prepare_stmt(result_plan, node, query_id);
@@ -2247,6 +4986,26 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_execute_stmt(result_plan, node, query_id);
 			break;
 		}
+		 //add by zhujun:b
+      //code_coverage_zhujun
+      case T_PROCEDURE_CREATE:
+      {
+         ret = resolve_procedure_create_stmt(result_plan, node, query_id);
+         break;
+      }
+      case T_PROCEDURE_DROP:
+		{
+		   ret = resolve_procedure_drop_stmt(result_plan, node, query_id);
+		   break;
+		}
+      case T_PROCEDURE_EXEC:
+      {
+		 ret = resolve_procedure_execute_stmt(result_plan, node, query_id);
+
+		 break;
+      }
+      //code_coverage_zhujun
+	  //add:e
 		case T_DEALLOCATE:
 		{
 			ret = resolve_deallocate_stmt(result_plan, node, query_id);

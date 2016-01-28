@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mysql_server.cpp
+ * @brief process mysql client request
+ *
+ * modified by zhujun：after procedure execute return affect row
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 #include "onev_io.h"
 #include "ob_mysql_server.h"
 #include "ob_mysql_state.h"
@@ -1879,6 +1895,7 @@ namespace oceanbase
         number = packet->get_packet_header().seq_;
         if (OB_SUCCESS != (ret = result->open()))
         {
+
           ObString err_msg = ob_get_err_msg();
           if (OB_ERR_WHEN_UNSATISFIED != ret)
           {
@@ -1892,6 +1909,16 @@ namespace oceanbase
             {
               result->set_message("Unknown thread id");
             }
+			//zhounan unmark:b
+            else if (ret == OB_READ_NOTHING)
+	        {
+	         result->set_message("open error: cursor has been opened");
+	        }
+            else if (ret == OB_NOT_INIT)
+	        {
+	         result->set_message("cursor error: can not find cursor plan");
+	        }
+			//add:e
           }
 
           if (OB_SUCCESS != (err = send_error_packet(packet, result)))
@@ -1906,6 +1933,30 @@ namespace oceanbase
         }
         else
         {
+			//add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
+			ObObj val;
+			int64_t value=0;
+			ObString affect=ObString::make_string("affect_row_num");
+			if(session->variable_exists(affect))
+			{
+				if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)//取出值
+				{
+					 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
+				}
+				else if((ret=val.get_int(value))!=OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "val get_int ERROR");
+				}
+				else
+				{
+					result->set_affected_rows(value);
+					TBSYS_LOG(INFO, "set_affected_rows num=%ld",value);
+				}
+				session->remove_variable(affect);
+			}
+
+		  TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
+		  //add:e
           // the server status must be got after the plan opened
           uint16_t server_status = 0;
           if (session->get_autocommit())
@@ -1919,6 +1970,14 @@ namespace oceanbase
 
           FILL_TRACE_LOG("open");
           bool select = result->is_with_rows();
+          if(select)
+          {
+        	  TBSYS_LOG(INFO, "result->is_with_rows() is true");
+          }
+          else
+          {
+        	  TBSYS_LOG(INFO, "result->is_with_rows() is false");
+          }
           if (select)
           {
             ret = send_result_set(req, result, type, server_status, session->get_charset());
@@ -2865,6 +2924,47 @@ namespace oceanbase
         onev_addr_e addr = get_onev_addr(req);
         ObMySQLRow row;
         int64_t row_num = 0;
+        //cursor sql should return single row zhounan unmark
+        if((result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH) ||(result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH_PRIOR  )||(result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH_FIRST  )||(result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH_LAST  )||(result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH_RELATIVE )||(result->get_stmt_type()==ObBasicStmt::T_CURSOR_FETCH_ABSOLUTE ))
+        {
+           if(OB_SUCCESS == ret&& OB_SUCCESS == (ret = result->next_row(row)))
+ 	       {
+	          row_num++;
+              row.set_protocol_type(type);
+              ObMySQLRowPacket rpacket(&row);
+              rpacket.set_seq(static_cast<uint8_t>(number+1));
+              ret = process_single_packet(buff, buff_pos, req, &rpacket);
+              if (OB_SUCCESS != ret)
+              {
+                TBSYS_LOG(ERROR, "process row packet failed, dest is %s ret is %d",
+               	inet_ntoa_r(addr), ret);
+              }
+          else
+          {
+            TBSYS_LOG(DEBUG, "process row succ, dest is %s, seq=%d row_num=%ld",
+           	inet_ntoa_r(addr), number, row_num);
+          }
+        }
+	   if(ret == OB_ITER_END)
+	   {
+		   result->set_errcode(ret);
+		   buff->last = buff->pos + buff_pos;
+	       req->opacket = reinterpret_cast<void*>(buff);
+	       int sret = send_raw_packet(req);
+	       if (OB_SUCCESS != sret)
+	       {
+	         TBSYS_LOG(ERROR, "send raw packet(dest is %s) failed ret is %d", inet_ntoa_r(addr), sret);	        
+	         ret = sret;
+	       }
+	   }
+       else
+       { 
+	      ret = OB_SUCCESS;
+	   }
+     }
+     else
+     {
+	 //add:e
         while (OB_SUCCESS == ret
                && OB_SUCCESS == (ret = result->next_row(row)))
         {
@@ -2917,13 +3017,24 @@ namespace oceanbase
               TBSYS_LOG(WARN, "Session killed peer is %s", get_peer_ip(req));
               result->set_message("Query execution was interrupted");
             }
+			//zhounan unmark:b
+            else if (ret == OB_INVALID_ROW_KEY)
+	    {
+	      result->set_message("fetch error: your row number is wrong");
+	    }
+            else if (ret == OB_READ_NOTHING)
+	    {
+	      result->set_message("fetch error: cursor is not opened");
+	    }
+		//add:e
             TBSYS_LOG(WARN, "failed to get next row, err=%d", ret);
           }
         }
         else
         {
           ret = OB_SUCCESS;
-        }
+        }//zhounan unmark
+       }
       }
       return ret;
     }

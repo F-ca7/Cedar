@@ -115,7 +115,42 @@ namespace oceanbase
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
       PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
 
-      PHY_END /* end of phy operator type */
+	  //zhounan unmark:b
+      PHY_CURSOR_DECLARE,
+      PHY_CURSOR_FETCH,
+	  PHY_CURSOR_FETCH_INTO,
+      PHY_CURSOR_FETCH_PRIOR,
+	  PHY_CURSOR_FETCH_PRIOR_INTO,
+      PHY_CURSOR_FETCH_FIRST,
+	  PHY_CURSOR_FETCH_FIRST_INTO,
+      PHY_CURSOR_FETCH_LAST,
+	  PHY_CURSOR_FETCH_LAST_INTO,
+      PHY_CURSOR_FETCH_RELATIVE,
+	  PHY_CURSOR_FETCH_RELATIVE_INTO,
+      PHY_CURSOR_FETCH_ABSOLUTE,
+	  PHY_CURSOR_FETCH_ABS_INTO,
+      PHY_CURSOR_FETCH_FROMTO,
+      PHY_CURSOR_OPEN,
+      PHY_CURSOR_CLOSE,
+      PHY_CURSOR,
+	  //add:e
+	  //add by zhujun:b
+	  PHY_PROCEDURE,
+	  PHY_PROCEDURE_CREATE,
+	  PHY_PROCEDURE_DROP,
+	  PHY_PROCEDURE_DECLARE,
+	  PHY_PROCEDURE_ASSGIN,
+	  PHY_PROCEDURE_EXEC,
+	  PHY_PROCEDURE_IF,
+	  PHY_PROCEDURE_CASE,
+	  PHY_PROCEDURE_CASE_WHEN,
+	  PHY_PROCEDURE_ELSEIF,
+	  PHY_PROCEDURE_WHILE,
+	  PHY_PROCEDURE_ELSE,
+	  PHY_PROCEDURE_SELECT_INTO,
+	  //add:e
+      PHY_END, /* end of phy operator type */
+
     };
 
     void ob_print_phy_operator_stat();

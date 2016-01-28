@@ -9,9 +9,11 @@
  * @brief sql language
  *
  * modified by longfei：add drop index
+ * modified by zhujun：add logic process procedure call
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_22
  */
 
@@ -65,6 +67,7 @@
 #include "ob_ups_executor.h"
 #include "ob_table_rpc_scan.h"
 #include "ob_get_cur_time_phy_operator.h"
+#include "ob_physical_plan.h"
 
 //add longfei [secondary index drop index]
 #include "ob_drop_index_stmt.h"
@@ -272,6 +275,21 @@ int ObSql::generate_logical_plan(const common::ObString &stmt, ObSqlContext & co
         schema_checker->set_schema(*context.schema_manager_);
         result_plan.schema_checker_ = schema_checker;
         result_plan.plan_tree_ = NULL;
+        //add by zhujun[2015-6-1]:b
+		std::string input=std::string(stmt.ptr());
+		std::string sub_input=input.substr(0,stmt.length());
+		result_plan.input_sql_=sub_input.c_str();
+        std::string sub_proc_input= "";
+        if(result.proc_sql_.length()>0)
+        {
+			std::string proc_input=std::string(result.proc_sql_.ptr());
+			sub_proc_input=proc_input.substr(0,proc_input.length()-1);
+			result_plan.source_sql_=sub_proc_input.c_str();
+
+			//TBSYS_LOG(INFO, "zz:result_plan.input_sql_ is %s",result_plan.input_sql_);
+			//TBSYS_LOG(INFO, "zz:result_plan.source_sql_ is %s",result_plan.source_sql_);
+        }
+        //add:e
         // generate logical plan
         ret = resolve(&result_plan, parse_result.result_tree_);
         PFILL_ITEM_END(sql_to_logicalplan);
@@ -680,6 +698,10 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
   // SET NAMES latin1/gb2312/utf8/etc...
   const char *set_names = (const char *)"SET NAMES ";
   int64_t set_names_len = strlen(set_names);
+  //add by zz 2014-12-16 prepare call procedure:b
+  const char *call_procedure = (const char *)"CALL";
+  int64_t call_procedure_len = strlen(call_procedure);
+  //add:e
   const char *set_session_transaction_isolation = (const char *)"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
   int64_t set_session_transaction_isolation_len = strlen(set_session_transaction_isolation);
 
@@ -865,6 +887,122 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
       op->set_row_desc(row_desc);
     }
   }
+  //add by zhujun[2015-6-1]:b
+  else if (stmt.length() >= call_procedure_len && 0 == strncasecmp(stmt.ptr(), call_procedure, call_procedure_len))
+  {
+	  TBSYS_LOG(INFO, "zz:process special procedure stmt");
+      if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+      {
+
+      }
+      else
+      {
+    	  //delete extra space
+    	  std::string proc_stmt=std::string(stmt.ptr());
+    	  size_t begin = 0,erro=-1;
+    	  begin=proc_stmt.find("",begin);
+    	  while(begin!=erro)
+    	  {
+    		  begin = proc_stmt.find(" ",begin);
+			  if(begin!=erro)
+			  {
+				  proc_stmt.replace(begin, 1, "");
+			  }
+    	  }
+    	  begin=0;
+		  while(begin!=erro)
+		  {
+			  begin = proc_stmt.find("\r",begin);
+			  if(begin!=erro)
+			  {
+				  proc_stmt.replace(begin, 1, "");
+			  }
+		  }
+		  begin=0;
+		  while(begin!=erro)
+		  {
+			  begin = proc_stmt.find("\n",begin);
+			  if(begin!=erro)
+			  {
+				  proc_stmt.replace(begin, 1, "");
+			  }
+		  }
+
+    	  size_t pos_end=0;
+    	  pos_end=proc_stmt.find("(",pos_end);
+    	  if(pos_end<=4)
+    	  {
+    		  TBSYS_LOG(INFO, "zz:get procedure name failed");
+    	  }
+    	  //substrcat the procedure name
+    	  std::string proc_name=proc_stmt.substr(4,pos_end-4);
+
+    	  std::string proc_sql="select source from __all_procedure where proc_name='{1}';";
+    	  size_t pos = proc_sql.find("{1}");
+    	  proc_sql.replace(pos,3,proc_name.c_str());
+
+    	  TBSYS_LOG(INFO, "select sql:%s",proc_sql.c_str());
+
+    	  //build sql to get procedure source sql
+    	  ObString get_proc_sql=ObString::make_string(proc_sql.c_str());
+    	  ObResultSet proc_result;
+    	 do{
+
+    	  if (OB_UNLIKELY(no_enough_memory()))
+    		  {
+    			  TBSYS_LOG(WARN, "no memory to get procedure source");
+    			  ret = OB_ALLOCATE_MEMORY_FAILED;
+    		  }
+    		  else if((ret=proc_result.init())!=OB_SUCCESS)
+			  {
+				  TBSYS_LOG(WARN, "ObResultSet init failed");
+			  }
+			  else if((ret=direct_execute(get_proc_sql,proc_result,context))!=OB_SUCCESS)//execute query
+			  {
+				  TBSYS_LOG(WARN, "direct_execute failed");
+			  }
+			  else if((ret=proc_result.open())!=OB_SUCCESS)
+			  {
+				  TBSYS_LOG(WARN, "result open failed ret=%d",ret);
+			  }
+
+			  else
+			  {
+				  uint64_t table_id = OB_INVALID_ID;
+				  uint64_t column_id = OB_INVALID_ID;
+				  const common::ObObj *proc_cell = NULL;
+				  const common::ObRow *row;
+				  ObString source_str;
+				  if(!proc_result.is_with_rows())
+				  {
+					  TBSYS_LOG(WARN, "result without row");
+				  }
+				  else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
+				  {
+					  TBSYS_LOG(WARN, "get_next_row failed");
+					  TBSYS_LOG(USER_ERROR, "Procedure %s don't exist", proc_name.c_str());
+
+				  }
+				  else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))
+				  {
+					  TBSYS_LOG(WARN, "raw_get_cell 0 failed");
+				  }
+				  else if(OB_SUCCESS !=(ret=proc_cell->get_varchar(source_str)))
+				  {
+					  TBSYS_LOG(WARN, "get_varchar failed");
+				  }
+				  else
+				  {
+					  result.proc_sql_=ObString::make_string(source_str.ptr());
+					  TBSYS_LOG(INFO, "zz:source is %s",source_str.ptr());
+					  proc_result.close();
+				  }
+			  }
+    	  }while(ret!=OB_SUCCESS&&ret!=OB_ALLOCATE_MEMORY_FAILED&&ret!=OB_ITER_END);
+    	  ret = OB_NOT_SUPPORTED;
+      }
+  }
+  //add:e
   else
   {
     ret = OB_NOT_SUPPORTED;
@@ -874,6 +1012,7 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
   {
     if (NULL != phy_plan)
     {
+      phy_plan->clear();
       phy_plan->~ObPhysicalPlan(); // will destruct op automatically
     }
   }

@@ -89,6 +89,88 @@ namespace oceanbase
         void *trans_malloc(const size_t nbyte);
         void trans_free(void* p);
 
+        //add by zhujun 2014-12-05:b
+        //code_coverage_zhujun
+        int gen_physical_procedure(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_create(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_drop(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_execute(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_if(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_elseif(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_else(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_declare(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_assgin(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_while(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_case(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_casewhen(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        int gen_physical_procedure_select_into(
+			ObLogicalPlan *logical_plan,
+			ObPhysicalPlan *physical_plan,
+			ErrStat& err_stat,
+			const uint64_t& query_id,
+			int32_t* index);
+        //code_coverage_zhujun
+		//add:e
         int generate_physical_plan(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,
@@ -426,6 +508,113 @@ namespace oceanbase
             ErrStat& err_stat,
             ObShowStmt *show_stmt,
             ObPhyOperator *&out_op);
+	   //zhounan unmark:b
+       int gen_physical_cursor_declare(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+       int gen_physical_cursor_fetch(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+       int gen_physical_cursor_fetch_into(
+			   ObLogicalPlan *logical_plan,
+			   ObPhysicalPlan *physical_plan,
+			   ErrStat& err_stat,
+			   const uint64_t& query_id,
+			   int32_t* index);
+       int gen_physical_cursor_fetch_prior(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+	       ErrStat& err_stat,
+	       const uint64_t& query_id,
+	       int32_t* index);
+       int gen_physical_cursor_fetch_prior_into(
+       	       ObLogicalPlan *logical_plan,
+       	       ObPhysicalPlan *physical_plan,
+       	       ErrStat& err_stat,
+       	       const uint64_t& query_id,
+       	       int32_t* index);
+       int gen_physical_cursor_fetch_first(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+       int gen_physical_cursor_fetch_first_into(
+      			   ObLogicalPlan *logical_plan,
+      			   ObPhysicalPlan *physical_plan,
+      			   ErrStat& err_stat,
+      			   const uint64_t& query_id,
+      			   int32_t* index);
+       int gen_physical_cursor_fetch_last(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+
+       int gen_physical_cursor_fetch_last_into(
+             			   ObLogicalPlan *logical_plan,
+             			   ObPhysicalPlan *physical_plan,
+             			   ErrStat& err_stat,
+             			   const uint64_t& query_id,
+             			   int32_t* index);
+
+       int gen_physical_cursor_fetch_relative(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+		 int32_t* index);
+
+       int gen_physical_cursor_fetch_relative_into(
+       	    ObLogicalPlan *logical_plan,
+       	    ObPhysicalPlan *physical_plan,
+       	    ErrStat& err_stat,
+       	    const uint64_t& query_id,
+			int32_t* index);
+
+       int gen_physical_cursor_fetch_absolute(
+	    ObLogicalPlan *logical_plan,
+	    ObPhysicalPlan *physical_plan,
+	    ErrStat& err_stat,
+	    const uint64_t& query_id,
+	    int32_t* index);
+
+       int gen_physical_cursor_fetch_absolute_into(
+                    			   ObLogicalPlan *logical_plan,
+                    			   ObPhysicalPlan *physical_plan,
+                    			   ErrStat& err_stat,
+                    			   const uint64_t& query_id,
+                    			   int32_t* index);
+
+       int gen_physical_cursor_fetch_fromto(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+	       ErrStat& err_stat,
+	       const uint64_t& query_id,
+	       int32_t* index);
+       int gen_physical_cursor_open(
+	       ObLogicalPlan *logical_plan,
+	       ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+			
+       int gen_physical_cursor_close(
+	    ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index);
+
+//e:add by zhounan
+
         int gen_phy_show_processlist(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

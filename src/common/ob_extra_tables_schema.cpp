@@ -10,10 +10,12 @@
  *
  * modified by longfei：add an core table: "__all_secondary_index" for storing secondary index table
  * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
+ * modified by zhujun：add procedure related system table '__all_procedure' schema
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -989,6 +991,36 @@ int ObExtraTablesSchema::all_user_schema(TableSchema &table_schema)
   return ret;
 }
 
+//add by zhujun 2015-3-11:b
+int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
+{
+	int ret = OB_SUCCESS;
+
+	table_schema.init_as_inner_table();
+	strcpy(table_schema.table_name_, OB_ALL_PROCEDURE_TABLE_NAME);
+	table_schema.table_id_ = OB_ALL_PROCEDURE_TID;
+	table_schema.rowkey_column_num_ = 1;
+	table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 3;
+	table_schema.max_rowkey_length_ = 128;
+
+	int column_id = OB_APP_MIN_COLUMN_ID;
+
+	ADD_COLUMN_SCHEMA("proc_name", //column_name
+		column_id ++, //column_id
+		1, //rowkey_id
+		ObVarcharType,  //column_type
+		128, //column length
+		false); //is nullable
+	ADD_COLUMN_SCHEMA("source", //column_name
+		column_id ++, //column_id
+		0, //rowkey_id
+		ObVarcharType,  //column_type
+		102400, //column length
+		false); //is nullable
+
+	return ret;
+}
+//add:e
 int ObExtraTablesSchema::all_table_privilege_schema(TableSchema &table_schema)
 {
   // hard code

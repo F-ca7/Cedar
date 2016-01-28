@@ -10,10 +10,12 @@
  *
  * modified by longfei：add an core table: "__all_secondary_index" for storing secondary index table
  * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
+ * modified by zhujun：add procedure related system table '__all_procedure' schema
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -96,6 +98,10 @@ namespace oceanbase
        */
       static int all_column_checksum_stat(TableSchema &table_schema);
       //add e
+	  
+	  //add zhujun[2015-3-11]:b
+      static int all_procedure_schema(TableSchema &table_schema);
+      //add:e
     private:
       ObExtraTablesSchema();
     };

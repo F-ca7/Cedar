@@ -12,12 +12,14 @@
  * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
  * modified by fanqiushi: add some functions to create an phsical plan for semijoin
  * modified by wangjiahao: add method to generate physical plan for update_more
+ * modified by zhujun: add method to generate physical plan for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @author zhujun<51141500091@ecnu.edu.cn>
  * @date 2016_01_22
  */
 
@@ -123,6 +125,41 @@
 //add maoxx
 #include "ob_index_trigger.h"
 //add e
+//zhounan unmark:b
+#include "ob_cursor_declare_stmt.h"
+#include "ob_cursor.h"
+#include "ob_cursor_fetch_stmt.h"
+#include "ob_cursor_fetch_into_stmt.h"
+#include "ob_cursor_fetch_fromto_stmt.h"
+#include "ob_cursor_fetch_first_stmt.h"
+#include "ob_cursor_fetch_first_into_stmt.h"
+#include "ob_cursor_fetch_last_stmt.h"
+#include "ob_cursor_fetch_last_into_stmt.h"
+#include "ob_cursor_fetch_relative_stmt.h"
+#include "ob_cursor_fetch_relative_into_stmt.h"
+#include "ob_cursor_fetch_absolute_stmt.h"
+#include "ob_cursor_fetch_abs_into_stmt.h"
+#include "ob_cursor_open_stmt.h"
+#include "ob_cursor_close_stmt.h"
+#include "ob_cursor_fetch_prior_stmt.h"
+#include "ob_cursor_fetch_prior_into_stmt.h"
+#include "ob_cursor_fetch.h"
+#include "ob_cursor_fetch_into.h"
+#include "ob_cursor_declare.h"
+#include "ob_cursor_fetch_prior.h"
+#include "ob_cursor_fetch_prior_into.h"
+#include "ob_cursor_fetch_fromto.h"
+#include "ob_cursor_fetch_first.h"
+#include "ob_cursor_fetch_first_into.h"
+#include "ob_cursor_fetch_last.h"
+#include "ob_cursor_fetch_last_into.h"
+#include "ob_cursor_fetch_relative.h"
+#include "ob_cursor_fetch_relative_into.h"
+#include "ob_cursor_fetch_absolute.h"
+#include "ob_cursor_fetch_abs_into.h"
+#include "ob_cursor_open.h"
+#include "ob_cursor_close.h"
+//add:e
 #include <vector>
 #include "ob_fill_values.h"
 #include "ob_semi_left_join.h"
@@ -141,6 +178,36 @@
 #include "common/ob_secondary_index_service_impl.h"
 // add e
 
+//add by zhujun:b
+//code_coverage_zhujun
+#include "ob_procedure_stmt.h"
+#include "ob_procedure.h"
+#include "ob_procedure_create_stmt.h"
+#include "ob_procedure_create.h"
+#include "ob_procedure_drop_stmt.h"
+#include "ob_procedure_drop.h"
+#include "ob_procedure_execute_stmt.h"
+#include "ob_procedure_execute.h"
+#include "ob_procedure_declare_stmt.h"
+#include "ob_procedure_declare.h"
+#include "ob_procedure_if_stmt.h"
+#include "ob_procedure_if.h"
+#include "ob_procedure_elseif_stmt.h"
+#include "ob_procedure_elseif.h"
+#include "ob_procedure_else_stmt.h"
+#include "ob_procedure_else.h"
+#include "ob_procedure_assgin_stmt.h"
+#include "ob_procedure_assgin.h"
+#include "ob_procedure_while_stmt.h"
+#include "ob_procedure_while.h"
+#include "ob_procedure_case_stmt.h"
+#include "ob_procedure_case.h"
+#include "ob_procedure_casewhen_stmt.h"
+#include "ob_procedure_casewhen.h"
+#include "ob_procedure_select_into_stmt.h"
+#include "ob_procedure_select_into.h"
+//code_coverage_zhujun
+//add:e
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 typedef int ObMySQLSessionKey;
@@ -330,6 +397,56 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
       case ObBasicStmt::T_PREPARE:
         ret = gen_physical_prepare(logical_plan, physical_plan, err_stat, query_id, index);
         break;
+	//zhounan unmark:b
+        case ObBasicStmt::T_CURSOR_DECLARE:
+          ret = gen_physical_cursor_declare(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+	    case ObBasicStmt::T_CURSOR_OPEN:
+          ret = gen_physical_cursor_open(logical_plan, physical_plan, err_stat, query_id, index);
+	      break;
+	    case ObBasicStmt::T_CURSOR_FETCH:
+          ret = gen_physical_cursor_fetch(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_INTO:
+	      ret = gen_physical_cursor_fetch_into(logical_plan, physical_plan, err_stat, query_id, index);
+	      break;
+        case ObBasicStmt::T_CURSOR_FETCH_PRIOR:
+          ret = gen_physical_cursor_fetch_prior(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_PRIOR_INTO:
+		  ret = gen_physical_cursor_fetch_prior_into(logical_plan, physical_plan, err_stat, query_id, index);
+		  break;
+        case ObBasicStmt::T_CURSOR_FETCH_FIRST:
+          ret = gen_physical_cursor_fetch_first(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_FIRST_INTO:
+          ret = gen_physical_cursor_fetch_first_into(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_LAST:
+          ret = gen_physical_cursor_fetch_last(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_LAST_INTO:
+          ret = gen_physical_cursor_fetch_last_into(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_RELATIVE:
+          ret = gen_physical_cursor_fetch_relative(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_RELATIVE_INTO:
+          ret = gen_physical_cursor_fetch_relative_into(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_ABSOLUTE:
+          ret = gen_physical_cursor_fetch_absolute(logical_plan, physical_plan, err_stat, query_id,index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_ABS_INTO:
+          ret = gen_physical_cursor_fetch_absolute_into(logical_plan, physical_plan, err_stat, query_id, index);
+          break;
+        case ObBasicStmt::T_CURSOR_FETCH_FROMTO:
+	      ret = gen_physical_cursor_fetch_fromto(logical_plan, physical_plan, err_stat, query_id, index);
+	      break;
+        case ObBasicStmt::T_CURSOR_CLOSE:
+         ret = gen_physical_cursor_close(logical_plan, physical_plan, err_stat, query_id, index);
+         break;
+		 //add:e
       case ObBasicStmt::T_VARIABLE_SET:
         ret = gen_physical_variable_set(logical_plan, physical_plan, err_stat, query_id, index);
         break;
@@ -363,6 +480,37 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
       case ObBasicStmt::T_CHANGE_OBI:
         ret = gen_physical_change_obi_stmt(logical_plan, physical_plan, err_stat, query_id, index);
         break;
+	//add by zhujun:b
+        //code_coverage_zhujun
+        case ObBasicStmt::T_PROCEDURE_CREATE:
+        	ret=gen_physical_procedure_create(logical_plan, physical_plan, err_stat, query_id, index);
+        	break;
+        case ObBasicStmt::T_PROCEDURE_DROP:
+			ret=gen_physical_procedure_drop(logical_plan, physical_plan, err_stat, query_id, index);
+			break;
+        case ObBasicStmt::T_PROCEDURE_EXEC:
+			ret=gen_physical_procedure_execute(logical_plan, physical_plan, err_stat, query_id, index);
+			break;
+        case ObBasicStmt::T_PROCEDURE_IF:
+			ret=gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, index);
+			break;
+        case ObBasicStmt::T_PROCEDURE_DECLARE:
+        	ret=gen_physical_procedure_declare(logical_plan, physical_plan, err_stat, query_id, index);
+        		break;
+        case ObBasicStmt::T_PROCEDURE_ASSGIN:
+			ret=gen_physical_procedure_assgin(logical_plan, physical_plan, err_stat, query_id, index);
+				break;
+        case ObBasicStmt::T_PROCEDURE_WHILE:
+			ret=gen_physical_procedure_while(logical_plan, physical_plan, err_stat, query_id, index);
+				break;
+        case ObBasicStmt::T_PROCEDURE_CASE:
+			ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
+				break;
+        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
+        	ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, query_id, index);
+        	break;          
+        //code_coverage_zhujun
+		//add:e
       default:
         ret = OB_NOT_SUPPORTED;
         TRANS_LOG("Unknown logical plan, stmt_type=%d", stmt->get_stmt_type());
@@ -513,6 +661,989 @@ int ObTransformer::add_phy_query(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
     TRANS_LOG("Add query of physical plan failed");
   return ret;
 }
+//add by zhujun:b
+//code_coverage_zhujun
+int ObTransformer::gen_physical_procedure(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedure*result_op = NULL;
+	ObProcedureStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedure, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		 if(result_op->set_proc_name(stmt->get_proc_name())!=OB_SUCCESS)
+		 {
+			 TBSYS_LOG(WARN, "result_op set proc_name error");
+		 }
+		 else
+		 {
+			 TBSYS_LOG(INFO, "result_op set proc_name %.*s",stmt->get_proc_name().length(),stmt->get_proc_name().ptr());
+			 for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
+			 {
+				 if((ret=result_op->add_param(*stmt->get_param(i)))!=OB_SUCCESS)
+				 {
+					 TBSYS_LOG(WARN, "result_op set params error");
+				 }
+				 else
+				 {
+					 TBSYS_LOG(INFO, "result_op set params %.*s",stmt->get_param(i)->param_name_->length(),stmt->get_param(i)->param_name_->ptr());
+				 }
+			 }
+			 //复制声明的变量
+			 for(int64_t i=0;i<stmt->get_declare_var_size();++i)
+			 {
+				 if((ret=result_op->add_declare_var(stmt->get_declare_var(i)))!=OB_SUCCESS)
+				 {
+					 TBSYS_LOG(WARN, "result_op add_declare_var error");
+					 break;
+				 }
+				 else
+				 {
+					 TBSYS_LOG(INFO, "result_op add_declare_var %.*s",stmt->get_declare_var(i).length(),stmt->get_declare_var(i).ptr());
+				 }
+			 }
+
+			 TBSYS_LOG(INFO, "procedure block stmt size =%ld",stmt->get_stmt_size());
+			 for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_stmt_size(); i++)
+			 {
+				uint64_t stmt_id=stmt->get_stmt(i);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+				}
+			 }
+		 }
+
+		 TBSYS_LOG(INFO, "procedure Operator parameter size: %ld declare variable size = %ld",result_op->get_param_num(),result_op->get_declare_var_num());
+	}
+	return ret;
+
+ }
+
+int ObTransformer::gen_physical_procedure_create(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureCreate*result_op = NULL;
+	ObProcedureCreateStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	//add execute insert operator
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureCreate, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		 if((ret=result_op->set_proc_name(stmt->get_proc_name()))!=OB_SUCCESS)
+		 {
+			 TBSYS_LOG(WARN, "result_op set proc_name error");
+		 }
+		 else
+		 {
+			 /*重新生成一个操作符*/
+			 int32_t idx = OB_INVALID_INDEX;
+			 ObPhyOperator* proc_op = NULL;
+			 if ((ret = gen_physical_procedure(logical_plan,physical_plan,err_stat,stmt->get_proc_id(),&idx)) != OB_SUCCESS)
+			 {
+				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+			 }
+			 else if ((proc_op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *proc_op)) != OB_SUCCESS)
+			 {
+				 ret = OB_ERR_ILLEGAL_INDEX;
+				 TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+			 }
+			 else
+			 {
+				 /*生成存储过程插入数据表的insert操作符*/
+				 int32_t insert_idx = OB_INVALID_INDEX;
+				 ObPhyOperator* insert_op = NULL;
+				 /*这里应该过滤一些类型的语句*/
+				 if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
+				 {
+					 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+				 }
+				 else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
+				 {
+					 ret = OB_ERR_ILLEGAL_INDEX;
+					 TBSYS_LOG(ERROR,"Set child of insert failed");
+				 }
+			 }
+		 }
+	}
+	return ret;
+
+ }
+
+int ObTransformer::gen_physical_procedure_drop(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureDrop*result_op = NULL;
+	ObProcedureDropStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureDrop, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		 if((ret=result_op->set_proc_name(stmt->get_proc_name()))!=OB_SUCCESS)
+		 {
+			 TBSYS_LOG(WARN, "result_op set proc_name error");
+		 }
+		 else
+		 {
+			 int32_t delete_idx = OB_INVALID_INDEX;
+			 ObPhyOperator* delete_op = NULL;
+			 /*这里应该过滤一些类型的语句*/
+			 if ((ret = gen_physical_delete_new(logical_plan,physical_plan,err_stat,stmt->get_proc_delete_id(),&delete_idx)) != OB_SUCCESS)
+			 {
+				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+			 }
+			 else if ((delete_op = physical_plan->get_phy_query(delete_idx)) == NULL|| (ret = result_op->set_delete_op(*delete_op)) != OB_SUCCESS)
+			 {
+				 ret = OB_ERR_ILLEGAL_INDEX;
+				 TBSYS_LOG(ERROR,"Set child of delete failed");
+			 }
+
+		 }
+		 //设置标志位
+		 result_op->set_if_exists(stmt->if_exists());
+	}
+	return ret;
+
+ }
+
+int ObTransformer::gen_physical_procedure_execute(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureExecute*result_op = NULL;
+	ObProcedureExecuteStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureExecute, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		 if((ret=result_op->set_proc_name(stmt->get_proc_name()))!=OB_SUCCESS)
+		 {
+			 TBSYS_LOG(WARN, "result_op set proc_name error");
+		 }
+		 else
+		 {
+			ObSQLSessionInfo *session_info = NULL;
+			if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+			{
+				ret = OB_NOT_INIT;
+				TBSYS_LOG(WARN,"Session info is not initiated");
+			}
+			if (ret == OB_SUCCESS)
+			{
+				uint64_t stmt_id = OB_INVALID_ID;
+				if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
+				{
+					TBSYS_LOG(WARN,"Can not find stmt %.*s from session_info", stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
+					/*重新生成该存储过程的物理计划*/
+					int32_t idx = OB_INVALID_INDEX;
+					ObPhyOperator* proc_op = NULL;
+					if(stmt->get_proc_stmt_id()!=common::OB_INVALID_ID)
+					{
+						if ((ret = gen_physical_procedure(logical_plan,physical_plan,err_stat,stmt->get_proc_stmt_id(),&idx)) != OB_SUCCESS)
+						{
+							TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+						}
+						else if ((proc_op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *proc_op)) != OB_SUCCESS)
+						{
+							ret = OB_ERR_ILLEGAL_INDEX;
+							TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+						}
+						else
+						{
+							TBSYS_LOG(INFO,"rebuild procedure operator success! %s",to_cstring(*proc_op));
+						}
+					}
+					else
+					{
+						ret = OB_ERR_ILLEGAL_ID;
+					}
+				}
+				else
+				{
+					result_op->set_stmt_id(stmt_id);
+					TBSYS_LOG(INFO,"plan_exists set_stmt_id=%ld",stmt_id);
+				}
+			}
+			ObProcedureStmt *proc_stmt = NULL;
+			if((ret=get_stmt(logical_plan, err_stat, stmt->get_proc_stmt_id(), proc_stmt))!=OB_SUCCESS)
+			{
+				TBSYS_LOG(ERROR,"Can not find stmt ,stmt_id=%lu",stmt->get_proc_stmt_id());
+			}
+			else if(stmt->get_param_size()!=proc_stmt->get_param_size())
+			{
+				//TOTO check the parameters input equal defination
+				ret=OB_ERR_PARAM_SIZE;
+				TBSYS_LOG(ERROR,"Incorrect number of arguments");
+			}
+			else
+			{
+				TBSYS_LOG(INFO,"argument size =%ld",stmt->get_param_size());
+				for (int64_t i = 0;i < stmt->get_param_size(); i++)
+				{
+					uint64_t expr_id = stmt->get_param_expr(i);
+					ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+					ObSqlExpression *expr=ObSqlExpression::alloc();
+					if (OB_UNLIKELY(raw_expr == NULL))
+					{
+						ret = OB_ERR_ILLEGAL_ID;
+						TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+					}
+					else if ((ret = raw_expr->fill_sql_expression(
+														 *expr,
+														 this,
+														 logical_plan,
+														 physical_plan)
+														 ) != OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+					}
+					else
+					{
+						ret=result_op->add_param_expr(*expr);
+					}
+					  /*
+					  ObString var_name = stmt->get_variable_name(i);
+					  TBSYS_LOG(INFO,"i=%ld name= %s",i,var_name.ptr());
+					  if (session_info->variable_exists(var_name))
+					  {
+						 if ( (ret = result_op->add_param_name(var_name)) != OB_SUCCESS)
+						 {
+							 TBSYS_LOG(WARN,"add variable %.*s failed", var_name.length(), var_name.ptr());
+						 }
+						 else
+						 {
+							 TBSYS_LOG(INFO,"add_param_name %s",var_name.ptr());
+						 }
+					  }
+					  else
+					  {
+						  ret = OB_ERR_VARIABLE_UNKNOWN;
+						  TBSYS_LOG(ERROR,"Variable %.*s Unknown", var_name.length(), var_name.ptr());
+					  }
+				     */
+				}
+
+				//add by zhujun 2015-7-10
+				for (int64_t i = 0;i < stmt->get_variable_size(); i++)
+				{
+					result_op->add_param_name(stmt->get_variable_name(i));
+					TBSYS_LOG(INFO,"add_param_name %.*s",stmt->get_variable_name(i).length(),stmt->get_variable_name(i).ptr());
+				}
+
+			}
+		 }
+	}
+	return ret;
+
+ }
+
+
+int ObTransformer::gen_physical_procedure_case(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureCase*result_op = NULL;
+	ObProcedureCaseStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureCase, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		/*获取表达式的值*/
+		uint64_t expr_id = stmt->get_expr_id();
+		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+		ObSqlExpression *expr=ObSqlExpression::alloc();
+		if (OB_UNLIKELY(raw_expr == NULL))
+		{
+			ret = OB_ERR_ILLEGAL_ID;
+			TBSYS_LOG(WARN,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+		}
+		else if ((ret = raw_expr->fill_sql_expression(
+											 *expr,
+											 this,
+											 logical_plan,
+											 physical_plan)
+											 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else
+		{
+			ret = result_op->set_expr(*expr);
+		}
+		if (ret == OB_SUCCESS)
+		{
+			TBSYS_LOG(INFO, "case when stmt size= %ld",stmt->get_case_when_stmt_size());
+			//-----------------------------case when 语句的物理计划生成---------------------------
+			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_case_when_stmt_size(); i++)
+			{
+				uint64_t stmt_id=stmt->get_case_when_stmt(i);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = gen_physical_procedure_casewhen(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "gen_physical_procedure_casewhen wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(WARN,"Set child of Prepare Operator failed");
+				}
+			}
+			//----------------------------------else 语句的物理计划生成--------------------------
+			if(ret==OB_SUCCESS&&stmt->have_else())
+			{
+				uint64_t stmt_id=stmt->get_else_stmt();
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*生成else语法的物理执行计划*/
+				if ((ret = gen_physical_procedure_else(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "gen_physical_procedure_case wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_else_op(*op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(WARN,"Set child of Prepare Operator failed");
+				}
+				else if((ret=result_op->set_have_else(true))!=OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "set_have_else wrong!");
+				}
+			}
+		}
+
+	}
+	return ret;
+
+ }
+
+
+int ObTransformer::gen_physical_procedure_casewhen(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureCaseWhen*result_op = NULL;
+	ObProcedureCaseWhenStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureCaseWhen, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		/*获取表达式的值*/
+		uint64_t expr_id = stmt->get_expr_id();
+		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+		ObSqlExpression *expr=ObSqlExpression::alloc();
+
+		/*case 表达式的值*/
+		uint64_t case_expr_id = stmt->get_case_value_expr();
+		ObSqlRawExpr *case_raw_expr = logical_plan->get_expr(case_expr_id);
+		ObSqlExpression *case_expr=ObSqlExpression::alloc();
+
+		uint64_t compare_expr_id = stmt->get_compare_expr_id();
+		ObSqlRawExpr *compare_raw_expr = logical_plan->get_expr(compare_expr_id);
+		ObSqlExpression *compare_expr=ObSqlExpression::alloc();
+		if (OB_UNLIKELY(raw_expr == NULL))
+		{
+			ret = OB_ERR_ILLEGAL_ID;
+			TBSYS_LOG(WARN,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+		}
+		else if ((ret = raw_expr->fill_sql_expression(
+											 *expr,
+											 this,
+											 logical_plan,
+											 physical_plan)
+											 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else if ((ret = case_raw_expr->fill_sql_expression(
+													 *case_expr,
+													 this,
+													 logical_plan,
+													 physical_plan)
+													 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else if ((ret = compare_raw_expr->fill_sql_expression(
+															 *compare_expr,
+															 this,
+															 logical_plan,
+															 physical_plan)
+															 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else
+		{
+			ret = result_op->set_expr(*expr);
+			ret = result_op->set_case_expr(*case_expr);
+			ret=result_op->set_compare_expr(*compare_expr);
+		}
+		if (ret == OB_SUCCESS)
+		{
+			TBSYS_LOG(INFO, "when then stmt size=%ld",stmt->get_then_stmt_size());
+			//-----------------------------else if then 语句的物理计划生成---------------------------
+			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+			{
+				uint64_t stmt_id=stmt->get_then_stmt(i);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(WARN,"Set child of Prepare Operator failed");
+				}
+			}
+		}
+
+	}
+	return ret;
+ }
+
+
+int ObTransformer::gen_physical_procedure_if(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureIf*result_op = NULL;
+	ObProcedureIfStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureIf, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		/*获取表达式的值*/
+		uint64_t expr_id = stmt->get_expr_id();
+		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+		ObSqlExpression *expr=ObSqlExpression::alloc();
+		if (OB_UNLIKELY(raw_expr == NULL))
+		{
+			ret = OB_ERR_ILLEGAL_ID;
+			TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+		}
+		else if ((ret = raw_expr->fill_sql_expression(
+											 *expr,
+											 this,
+											 logical_plan,
+											 physical_plan)
+											 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else
+		{
+			ret = result_op->set_expr(*expr);
+		}
+
+		if (ret == OB_SUCCESS)
+		{
+			TBSYS_LOG(INFO, "if then stmt size= %ld",stmt->get_then_stmt_size());
+			//-----------------------------if then 语句的物理计划生成---------------------------
+			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+			{
+				uint64_t stmt_id=stmt->get_then_stmt(i);
+				TBSYS_LOG(INFO, "foreach then stmt i=%ld stmt_id=%ld ret=%d",i,stmt_id,ret);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+				}
+			}
+			//----------------------------------else if 语句的物理计划生成--------------------------
+			if(stmt->have_elseif())
+			{
+				TBSYS_LOG(INFO, "else if stmt size= %ld",stmt->get_elseif_stmt_size());
+				for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_elseif_stmt_size(); i++)
+				{
+					uint64_t stmt_id=stmt->get_elseif_stmt(i);
+					int32_t idx = OB_INVALID_INDEX;
+					ObPhyOperator* op = NULL;
+					/*循环生成elseif语句的物理执行计划*/
+					if ((ret = gen_physical_procedure_elseif(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "gen_physical_procedure_elseif wrong!");
+					}
+					else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->add_elseif_op(*op)) != OB_SUCCESS)
+					{
+						ret = OB_ERR_ILLEGAL_INDEX;
+						TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+					}
+					else if((ret=result_op->set_have_elseif(true))!=OB_SUCCESS)
+					{
+						TBSYS_LOG(ERROR, "set_have_elseif wrong!");
+					}
+				}
+			}
+			//----------------------------------else 语句的物理计划生成--------------------------
+			if(stmt->have_else())
+			{
+				uint64_t stmt_id=stmt->get_else_stmt();
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*生成else语法的物理执行计划*/
+				if ((ret = gen_physical_procedure_else(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "gen_physical_procedure_else wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_else_op(*op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+				}
+				else if((ret=result_op->set_have_else(true))!=OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "set_have_else wrong!");
+				}
+			}
+		}
+
+	}
+	return ret;
+
+ }
+
+
+
+int ObTransformer::gen_physical_procedure_elseif(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureElseIf*result_op = NULL;
+	ObProcedureElseIfStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureElseIf, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		/*获取表达式的值*/
+		uint64_t expr_id = stmt->get_expr_id();
+		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+		ObSqlExpression *expr=ObSqlExpression::alloc();
+		if (OB_UNLIKELY(raw_expr == NULL))
+		{
+			ret = OB_ERR_ILLEGAL_ID;
+			TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+		}
+		else if ((ret = raw_expr->fill_sql_expression(
+											 *expr,
+											 this,
+											 logical_plan,
+											 physical_plan)
+											 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else
+		{
+			ret = result_op->set_expr(*expr);
+			TBSYS_LOG(INFO,"set else if expr success!");
+		}
+
+		if (ret == OB_SUCCESS)
+		{
+			TBSYS_LOG(INFO, "else if then stmt size=%ld",stmt->get_then_stmt_size());
+			//-----------------------------else if then 语句的物理计划生成---------------------------
+			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+			{
+				uint64_t stmt_id=stmt->get_then_stmt(i);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+				}
+			}
+		}
+
+	}
+	return ret;
+
+ }
+
+int ObTransformer::gen_physical_procedure_while(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureWhile*result_op = NULL;
+	ObProcedureWhileStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureWhile, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		/*获取表达式的值*/
+		uint64_t expr_id = stmt->get_expr_id();
+		ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+		ObSqlExpression *expr=ObSqlExpression::alloc();
+		if (OB_UNLIKELY(raw_expr == NULL))
+		{
+			ret = OB_ERR_ILLEGAL_ID;
+			TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+		}
+		else if ((ret = raw_expr->fill_sql_expression(
+											 *expr,
+											 this,
+											 logical_plan,
+											 physical_plan)
+											 ) != OB_SUCCESS)
+		{
+			TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+		}
+		else
+		{
+			ret = result_op->set_expr(*expr);
+			TBSYS_LOG(INFO,"set while expr success!");
+		}
+
+		if (ret == OB_SUCCESS)
+		{
+			TBSYS_LOG(INFO, "while then stmt size=%ld",stmt->get_then_stmt_size());
+			//-----------------------------while then 语句的物理计划生成---------------------------
+			for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+			{
+				uint64_t stmt_id=stmt->get_then_stmt(i);
+				int32_t idx = OB_INVALID_INDEX;
+				ObPhyOperator* op = NULL;
+				/*这里应该过滤一些类型的语句*/
+				if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+				{
+					TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+				}
+				else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+				{
+					ret = OB_ERR_ILLEGAL_INDEX;
+					TBSYS_LOG(ERROR,"Set child of Prepare Operator failed");
+				}
+				else
+				{
+					TBSYS_LOG(INFO, "while generate_physical_plan success! stmt_id=%ld set_child i=%ld",stmt_id,i);
+				}
+			}
+		}
+
+	}
+	return ret;
+
+ }
+
+
+int ObTransformer::gen_physical_procedure_else(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureElse*result_op = NULL;
+	ObProcedureElseStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureElse, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		 for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_else_stmt_size(); i++)
+		 {
+			uint64_t stmt_id=stmt->get_else_stmt(i);
+			int32_t idx = OB_INVALID_INDEX;
+			ObPhyOperator* op = NULL;
+			/*这里应该过滤一些类型的语句*/
+			if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt_id,&idx)) != OB_SUCCESS)
+			{
+				TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+			}
+			else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child((int32_t)i, *op)) != OB_SUCCESS)
+			{
+				ret = OB_ERR_ILLEGAL_INDEX;
+				TRANS_LOG("Set child of Prepare Operator failed");
+			}
+		 }
+	}
+	return ret;
+
+ }
+
+
+
+int ObTransformer::gen_physical_procedure_declare(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureDeclare*result_op = NULL;
+	ObProcedureDeclareStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个ExecuteStmt语句和逻辑执行计划树
+
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureDeclare, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+		{
+			 ObVariableDef var=stmt->get_variable(i);
+			 if((ret = result_op->add_proc_var(var)) != OB_SUCCESS)
+			 {
+				 TRANS_LOG("add ObVariableDef failed, ret=%d", ret);
+			 }
+		}
+	}
+	return ret;
+
+ }
+
+int ObTransformer::gen_physical_procedure_select_into(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureSelectInto*result_op = NULL;
+	ObProcedureSelectIntoStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);
+
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureSelectInto, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+		{
+			 ObString var=stmt->get_variable(i);
+			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+			 {
+				 TRANS_LOG("add variable failed, ret=%d", ret);
+			 }
+		}
+
+		int32_t idx = OB_INVALID_INDEX;
+		ObPhyOperator* op = NULL;
+		if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt->get_declare_id(),&idx)) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+		}
+		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+		{
+			ret = OB_ERR_ILLEGAL_INDEX;
+			TRANS_LOG("Set child of Prepare Operator failed");
+		}
+
+	}
+	return ret;
+
+ }
+int ObTransformer::gen_physical_procedure_assgin(
+		  ObLogicalPlan *logical_plan,
+		  ObPhysicalPlan *physical_plan,
+		  ErrStat& err_stat,
+		  const uint64_t& query_id,
+		  int32_t* index)
+ {
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	ObProcedureAssgin*result_op = NULL;
+	ObProcedureAssginStmt *stmt = NULL;
+	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个ExecuteStmt语句和逻辑执行计划树
+	TBSYS_LOG(INFO,"enter gen_physical_procedure_assgin");
+	if (ret == OB_SUCCESS)
+	{
+	   CREATE_PHY_OPERRATOR(result_op, ObProcedureAssgin, physical_plan, err_stat);
+	   if (ret == OB_SUCCESS)
+	   {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	   }
+	}
+	if (ret == OB_SUCCESS)
+	{
+		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_var_val_size(); i++)
+		{
+			ObVariableSetVal var_val=stmt->get_var_val(i);
+
+			//TODO var_val-.variable_name_ 判断这个变量是否被定义了
+
+			 /*获取表达式的值*/
+			uint64_t expr_id = var_val.var_expr_id_;
+			ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+			ObSqlExpression *expr=ObSqlExpression::alloc();
+			expr->set_owner_op(result_op);
+			if (OB_UNLIKELY(raw_expr == NULL))
+			{
+				ret = OB_ERR_ILLEGAL_ID;
+				TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+			}
+			else if ((ret = raw_expr->fill_sql_expression(
+												 *expr,
+												 this,
+												 logical_plan,
+												 physical_plan)
+												 ) != OB_SUCCESS)
+			{
+				TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+			}
+			else
+			{
+				var_val.var_value_=*expr;
+			}
+			if((ret = result_op->add_var_val(var_val)) != OB_SUCCESS)
+			{
+				TRANS_LOG("add ObVariableDef failed, ret=%d", ret);
+			}
+
+		}
+	}
+	return ret;
+
+ }
+//code_coverage_zhujun
+//add:e
 
 int ObTransformer::gen_physical_select(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, const uint64_t& query_id, int32_t* index)
 {
@@ -4157,6 +5288,757 @@ bool ObTransformer::check_join_column(const int32_t column_index, const char* co
   }
   return parse_ok;
 }
+//zhounan unmark:b
+int ObTransformer::gen_physical_cursor_declare(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  ObCursorDeclare*result_op = NULL;
+  ObCursorDeclareStmt *stmt = NULL;
+  /* get declare statement */
+	   get_stmt(logical_plan, err_stat, query_id, stmt);//鎷垮埌鏁翠釜Declare璇彞鍜岄�昏緫鎵ц璁″垝鏍�
+	   /* add declare operator */
+	   if (ret == OB_SUCCESS)
+	   {
+	     CREATE_PHY_OPERRATOR(result_op, ObCursorDeclare, physical_plan, err_stat);
+	     if (ret == OB_SUCCESS)
+	     {
+	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	     }
+	   }
+	   ObCursor *cursor_op = NULL;
+	   CREATE_PHY_OPERRATOR(cursor_op, ObCursor, physical_plan, err_stat);
+	   ret = result_op->set_child(0,*cursor_op);
+	   if (ret == OB_SUCCESS)
+	   {
+	     ObPhyOperator* op = NULL;
+	     ObString cursor_name;
+	     int32_t idx = OB_INVALID_INDEX;
+	     if ((ret = ob_write_string(*mem_pool_, stmt->get_cursor_name(), cursor_name)) != OB_SUCCESS)//鎷垮埌cursor_name
+	     {
+	       TRANS_LOG("Add prepare plan for stmt %.*s faild",
+	       stmt->get_cursor_name().length(), stmt->get_cursor_name().ptr());
+	     }
+	     else
+	     {
+	    	 char filename_buf_[512];
+	    	 ObString filename;
+
+	    	 if (cursor_name.length() >= 64)
+		   	  {
+		   	    TBSYS_LOG(ERROR, "cursor name is too long, filename=%.*s", filename.length(), filename.ptr());
+		   	     ret = OB_ERR_ILLEGAL_INDEX;
+		   	  }
+	          else
+	          {
+	    	    time_t tt = time(NULL);
+	    	    uint64_t si = sql_context_->session_info_->get_session_id();
+	    	    int64_t pos = snprintf(filename_buf_, 512,"%s%ld%s%ld","data/cursor/", tt, cursor_name.ptr(),si);
+	            filename.assign_ptr(filename_buf_, static_cast<int32_t>(pos));
+
+	       cursor_op->set_run_filename(filename);
+	       result_op->set_cursor_name(cursor_name);//瀛榗ursor name
+	       if ((ret = generate_physical_plan(
+	                           logical_plan,
+	                           physical_plan,
+	                           err_stat,
+	                           stmt->get_declare_query_id(),
+	                           &idx)) != OB_SUCCESS)
+	       {
+	         TBSYS_LOG(WARN, "Create physical plan for query statement failed, err=%d", ret);
+	       }
+	       else if ((op = physical_plan->get_phy_query(idx)) == NULL
+	         || (ret = cursor_op->set_child(0, *op)) != OB_SUCCESS)
+	       {
+	         ret = OB_ERR_ILLEGAL_INDEX;
+	         TRANS_LOG("Set child of Prepare Operator failed");
+	       }
+	     }
+	    }
+	   }
+	   return ret;
+}
+
+int ObTransformer::gen_physical_cursor_open(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+int &ret = err_stat.err_code_ = OB_SUCCESS;
+ ObCursorOpen *result_op = NULL;
+ ObCursorOpenStmt *stmt = NULL;
+ /* get open statement */
+ get_stmt(logical_plan, err_stat, query_id, stmt);
+ /* generate operator */
+ if (ret == OB_SUCCESS)
+ {
+   CREATE_PHY_OPERRATOR(result_op, ObCursorOpen, physical_plan, err_stat);
+   if (ret == OB_SUCCESS)
+   {
+     ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+   }
+ }
+ ObSQLSessionInfo *session_info = NULL;
+ if (ret == OB_SUCCESS
+   && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+ {
+   ret = OB_NOT_INIT;
+   TRANS_LOG("Session info is not initiated");
+ }
+
+ if (ret == OB_SUCCESS)
+ {
+     result_op->set_cursor_name(stmt->get_cursor_name());
+ }
+ return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObCursorFetch *result_op = NULL;
+	  ObCursorFetchStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetch, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	  }
+	  return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch_prior(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchPrior *result_op = NULL;
+	  ObFetchPriorStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchPrior, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	  }
+	  return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch_prior_into(
+      ObLogicalPlan *logical_plan,
+      ObPhysicalPlan *physical_plan,
+      ErrStat& err_stat,
+      const uint64_t& query_id,
+      int32_t* index)
+  {
+  	int &ret = err_stat.err_code_ = OB_SUCCESS;
+  	  ObCursorFetchPriorInto *result_op = NULL;
+  	  ObCursorFetchPriorIntoStmt *stmt = NULL;
+  	TBSYS_LOG(INFO, "enter gen_physical_cursor_fetch_prior_into");
+  	  /* get fetch statement */
+  	  get_stmt(logical_plan, err_stat, query_id, stmt);
+  	  /* generate operator */
+  	  if (ret == OB_SUCCESS)
+  	  {
+  	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchPriorInto, physical_plan, err_stat);
+  	    if (ret == OB_SUCCESS)
+  	    {
+  	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+  	    }
+  	  }
+  	  if (ret == OB_SUCCESS)
+  	  {
+
+  		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+		{
+			 ObString var=stmt->get_variable(i);
+			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+			 {
+				 TRANS_LOG("add variable failed, ret=%d", ret);
+			 }
+		}
+
+		int32_t idx = OB_INVALID_INDEX;
+		ObPhyOperator* op = NULL;
+		/*
+		if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx,root_query_id)) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+		}
+		*/
+		if ((ret = gen_physical_cursor_fetch_prior(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+		}
+		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+		{
+			ret = OB_ERR_ILLEGAL_INDEX;
+			TRANS_LOG("Set child of Prepare Operator failed");
+		}
+
+
+  	  }
+  	  return ret;
+  }
+
+int ObTransformer::gen_physical_cursor_fetch_first(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchFirst *result_op = NULL;
+	  ObFetchFirstStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchFirst, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	  }
+	  return ret;
+}
+int ObTransformer::gen_physical_cursor_fetch_last(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchLast *result_op = NULL;
+	  ObFetchLastStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchLast, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+
+	  }
+	  return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch_relative(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchRelative *result_op = NULL;
+	  ObFetchRelativeStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchRelative, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	      result_op->set_is_next(stmt->get_is_next());
+	      result_op->set_fetch_count(stmt->get_fetch_count());
+
+	  }
+	  return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch_absolute(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchAbsolute *result_op = NULL;
+	  ObFetchAbsoluteStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchAbsolute, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	      result_op->set_fetch_count(stmt->get_fetch_count());
+
+
+	  }
+	  return ret;
+}
+
+int ObTransformer::gen_physical_cursor_fetch_fromto(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObFetchFromto *result_op = NULL;
+	  ObFetchFromtoStmt *stmt = NULL;
+	  /* get fetch statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObFetchFromto, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+
+	      result_op->set_count_f(stmt->get_count_f());
+	      result_op->set_count_t(stmt->get_count_t());
+	      result_op->set_count(0);
+
+	  }
+
+	  return ret;
+}
+int ObTransformer::gen_physical_cursor_close(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+	int &ret = err_stat.err_code_ = OB_SUCCESS;
+	  ObCursorClose *result_op = NULL;
+	  ObCursorCloseStmt *stmt = NULL;
+	  /* get close statement */
+	  get_stmt(logical_plan, err_stat, query_id, stmt);
+	  /* generate operator */
+	  if (ret == OB_SUCCESS)
+	  {
+	    CREATE_PHY_OPERRATOR(result_op, ObCursorClose, physical_plan, err_stat);
+	    if (ret == OB_SUCCESS)
+	    {
+	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+	    }
+	  }
+
+	  ObSQLSessionInfo *session_info = NULL;
+	  if (ret == OB_SUCCESS
+	    && (sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
+	  {
+	    ret = OB_NOT_INIT;
+	    TRANS_LOG("Session info is not initiated");
+	  }
+
+	  if (ret == OB_SUCCESS)
+	  {
+		 result_op->set_cursor_name(stmt->get_cursor_name());
+	  }
+	  return ret;
+}
+
+ int ObTransformer::gen_physical_cursor_fetch_into(
+      ObLogicalPlan *logical_plan,
+      ObPhysicalPlan *physical_plan,
+      ErrStat& err_stat,
+      const uint64_t& query_id,
+      int32_t* index)
+  {
+  	int &ret = err_stat.err_code_ = OB_SUCCESS;
+  	  ObCursorFetchInto *result_op = NULL;
+  	  ObCursorFetchIntoStmt *stmt = NULL;
+  	TBSYS_LOG(INFO, "enter gen_physical_cursor_fetch_into");
+  	  /* get fetch statement */
+  	  get_stmt(logical_plan, err_stat, query_id, stmt);
+  	  /* generate operator */
+  	  if (ret == OB_SUCCESS)
+  	  {
+  	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchInto, physical_plan, err_stat);
+  	    if (ret == OB_SUCCESS)
+  	    {
+  	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+  	    }
+  	  }
+  	  if (ret == OB_SUCCESS)
+  	  {
+
+  		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+		{
+			 ObString var=stmt->get_variable(i);
+			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+			 {
+				 TRANS_LOG("add variable failed, ret=%d", ret);
+			 }
+		}
+
+		int32_t idx = OB_INVALID_INDEX;
+		ObPhyOperator* op = NULL;
+		/*
+		if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx,root_query_id)) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+		}
+		*/
+		if ((ret = gen_physical_cursor_fetch(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+		{
+			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+		}
+		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+		{
+			ret = OB_ERR_ILLEGAL_INDEX;
+			TRANS_LOG("Set child of Prepare Operator failed");
+		}
+
+
+  	  }
+  	  return ret;
+  }
+
+
+ int ObTransformer::gen_physical_cursor_fetch_first_into(
+       ObLogicalPlan *logical_plan,
+       ObPhysicalPlan *physical_plan,
+       ErrStat& err_stat,
+       const uint64_t& query_id,
+       int32_t* index)
+   {
+   	int &ret = err_stat.err_code_ = OB_SUCCESS;
+   	  ObCursorFetchFirstInto *result_op = NULL;
+   	  ObCursorFetchFirstIntoStmt *stmt = NULL;
+   	TBSYS_LOG(INFO, "enter gen_physical_cursor_first_into");
+   	  /* get fetch statement */
+   	  get_stmt(logical_plan, err_stat, query_id, stmt);
+   	  /* generate operator */
+   	  if (ret == OB_SUCCESS)
+   	  {
+   	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchFirstInto, physical_plan, err_stat);
+   	    if (ret == OB_SUCCESS)
+   	    {
+   	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+   	    }
+   	  }
+   	  if (ret == OB_SUCCESS)
+   	  {
+
+   		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+ 		{
+ 			 ObString var=stmt->get_variable(i);
+ 			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+ 			 {
+ 				 TRANS_LOG("add variable failed, ret=%d", ret);
+ 			 }
+ 		}
+
+ 		int32_t idx = OB_INVALID_INDEX;
+ 		ObPhyOperator* op = NULL;
+ 		/*if ((ret = generate_physical_plan(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx,root_query_id)) != OB_SUCCESS)
+ 		{
+ 			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+ 		}*/
+ 		if ((ret = gen_physical_cursor_fetch_first(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+ 		{
+ 		 	TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+ 		}
+ 		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+ 		{
+ 			ret = OB_ERR_ILLEGAL_INDEX;
+ 			TRANS_LOG("Set child of Prepare Operator failed");
+ 		}
+
+
+   	  }
+   	  return ret;
+   }
+
+
+
+
+
+ int ObTransformer::gen_physical_cursor_fetch_last_into(
+        ObLogicalPlan *logical_plan,
+        ObPhysicalPlan *physical_plan,
+        ErrStat& err_stat,
+        const uint64_t& query_id,
+        int32_t* index)
+    {
+    	int &ret = err_stat.err_code_ = OB_SUCCESS;
+    	  ObCursorFetchLastInto *result_op = NULL;
+    	  ObCursorFetchLastIntoStmt *stmt = NULL;
+    	TBSYS_LOG(INFO, "enter gen_physical_cursor_last_into");
+    	  /* get fetch statement */
+    	  get_stmt(logical_plan, err_stat, query_id, stmt);
+    	  /* generate operator */
+    	  if (ret == OB_SUCCESS)
+    	  {
+    	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchLastInto, physical_plan, err_stat);
+    	    if (ret == OB_SUCCESS)
+    	    {
+    	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+    	    }
+    	  }
+    	  if (ret == OB_SUCCESS)
+    	  {
+
+    		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+  		{
+  			 ObString var=stmt->get_variable(i);
+  			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+  			 {
+  				 TRANS_LOG("add variable failed, ret=%d", ret);
+  			 }
+  		}
+
+  		int32_t idx = OB_INVALID_INDEX;
+  		ObPhyOperator* op = NULL;
+  		if ((ret = gen_physical_cursor_fetch_last(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+  		{
+  			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+  		}
+  		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+  		{
+  			ret = OB_ERR_ILLEGAL_INDEX;
+  			TRANS_LOG("Set child of Prepare Operator failed");
+  		}
+
+
+    	  }
+    	  return ret;
+    }
+
+
+
+ int ObTransformer::gen_physical_cursor_fetch_relative_into(
+          ObLogicalPlan *logical_plan,
+          ObPhysicalPlan *physical_plan,
+          ErrStat& err_stat,
+          const uint64_t& query_id,
+          int32_t* index)
+      {
+      	int &ret = err_stat.err_code_ = OB_SUCCESS;
+      	  ObCursorFetchRelativeInto *result_op = NULL;
+      	  ObCursorFetchRelativeIntoStmt *stmt = NULL;
+      	TBSYS_LOG(INFO, "enter gen_physical_cursor_relative_into");
+      	  /* get fetch statement */
+      	  get_stmt(logical_plan, err_stat, query_id, stmt);
+      	  /* generate operator */
+      	  if (ret == OB_SUCCESS)
+      	  {
+      	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchRelativeInto, physical_plan, err_stat);
+      	    if (ret == OB_SUCCESS)
+      	    {
+      	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+      	    }
+      	  }
+      	  if (ret == OB_SUCCESS)
+      	  {
+
+      		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+    		{
+    			 ObString var=stmt->get_variable(i);
+    			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+    			 {
+    				 TRANS_LOG("add variable failed, ret=%d", ret);
+    			 }
+    		}
+
+    		int32_t idx = OB_INVALID_INDEX;
+    		ObPhyOperator* op = NULL;
+    		if ((ret = gen_physical_cursor_fetch_relative(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+    		{
+    			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+    		}
+    		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+    		{
+    			ret = OB_ERR_ILLEGAL_INDEX;
+    			TRANS_LOG("Set child of Prepare Operator failed");
+    		}
+
+
+      	  }
+      	  return ret;
+      }
+
+
+
+
+ int ObTransformer::gen_physical_cursor_fetch_absolute_into(
+         ObLogicalPlan *logical_plan,
+         ObPhysicalPlan *physical_plan,
+         ErrStat& err_stat,
+         const uint64_t& query_id,
+         int32_t* index)
+     {
+     	int &ret = err_stat.err_code_ = OB_SUCCESS;
+     	  ObCursorFetchAbsInto *result_op = NULL;
+     	  ObCursorFetchAbsIntoStmt *stmt = NULL;
+     	TBSYS_LOG(INFO, "enter gen_physical_cursor_absolute_into");
+     	  /* get fetch statement */
+     	  get_stmt(logical_plan, err_stat, query_id, stmt);
+     	  /* generate operator */
+     	  if (ret == OB_SUCCESS)
+     	  {
+     	    CREATE_PHY_OPERRATOR(result_op, ObCursorFetchAbsInto, physical_plan, err_stat);
+     	    if (ret == OB_SUCCESS)
+     	    {
+     	      ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+     	    }
+     	  }
+     	  if (ret == OB_SUCCESS)
+     	  {
+
+     		for (int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_variable_size(); i++)
+   		{
+   			 ObString var=stmt->get_variable(i);
+   			 if((ret = result_op->add_variable(var)) != OB_SUCCESS)
+   			 {
+   				 TRANS_LOG("add variable failed, ret=%d", ret);
+   			 }
+   		}
+
+   		int32_t idx = OB_INVALID_INDEX;
+   		ObPhyOperator* op = NULL;
+   		if ((ret = gen_physical_cursor_fetch_absolute(logical_plan,physical_plan,err_stat,stmt->get_cursor_id(),&idx)) != OB_SUCCESS)
+   		{
+   			TBSYS_LOG(WARN, "generate_physical_plan wrong!");
+   		}
+   		else if ((op = physical_plan->get_phy_query(idx)) == NULL|| (ret = result_op->set_child(0, *op)) != OB_SUCCESS)
+   		{
+   			ret = OB_ERR_ILLEGAL_INDEX;
+   			TRANS_LOG("Set child of Prepare Operator failed");
+   		}
+
+
+     	  }
+     	  return ret;
+     }
+//add:e
+
+
 
 bool ObTransformer::parse_join_info(const ObString &join_info_str, TableSchema &table_schema)
 {

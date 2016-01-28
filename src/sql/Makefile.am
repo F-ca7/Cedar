@@ -22,6 +22,39 @@ endif
 #        tools/flex -osql_parser.lex.c $<
 
 sql_parser_sources=                                    \
+  ob_cursor_declare_stmt.cpp         ob_cursor_declare_stmt.h	\
+  ob_cursor_fetch_prior_stmt.cpp     ob_cursor_fetch_prior_stmt.h  \
+  ob_cursor_fetch_relative_stmt.cpp  ob_cursor_fetch_relative_stmt.h  \
+  ob_cursor_fetch_absolute_stmt.cpp  ob_cursor_fetch_absolute_stmt.h  \
+  ob_cursor_fetch_first_stmt.cpp     ob_cursor_fetch_first_stmt.h  \
+  ob_cursor_fetch_last_stmt.cpp      ob_cursor_fetch_last_stmt.h  \
+  ob_cursor_fetch_stmt.h             ob_cursor_fetch_stmt.cpp\
+  ob_cursor_fetch_into_stmt.h        ob_cursor_fetch_into_stmt.cpp\
+  ob_cursor_open_stmt.h              ob_cursor_open_stmt.cpp\
+  ob_cursor_close_stmt.h             ob_cursor_close_stmt.cpp\
+  ob_cursor_fetch_fromto_stmt.h      ob_cursor_fetch_fromto_stmt.cpp\
+  ob_cursor_fetch.h 	             ob_cursor_fetch.cpp\
+  ob_cursor_fetch_into.h             ob_cursor_fetch_into.cpp\
+  ob_cursor_fetch_prior_into_stmt.h  ob_cursor_fetch_prior_into_stmt.cpp\
+  ob_cursor_fetch_prior_into.h       ob_cursor_fetch_prior_into.cpp\
+  ob_cursor_fetch_first_into_stmt.h  ob_cursor_fetch_first_into_stmt.cpp\
+  ob_cursor_fetch_first_into.h       ob_cursor_fetch_first_into.cpp\
+  ob_cursor_fetch_last_into_stmt.h   ob_cursor_fetch_last_into_stmt.cpp\
+  ob_cursor_fetch_last_into.h        ob_cursor_fetch_last_into.cpp\
+  ob_cursor_fetch_abs_into_stmt.h ob_cursor_fetch_abs_into_stmt.cpp\
+  ob_cursor_fetch_abs_into.h      ob_cursor_fetch_abs_into.cpp\
+  ob_cursor_fetch_fromto.h            ob_cursor_fetch_fromto.cpp\
+  ob_cursor_fetch_first.h             ob_cursor_fetch_first.cpp\
+  ob_cursor_fetch_last.h              ob_cursor_fetch_last.cpp\
+  ob_cursor_fetch_relative.h          ob_cursor_fetch_relative.cpp\
+  ob_cursor_fetch_relative_into_stmt.h ob_cursor_fetch_relative_into_stmt.cpp\
+  ob_cursor_fetch_relative_into.h      ob_cursor_fetch_relative_into.cpp\
+  ob_cursor_fetch_absolute.h          ob_cursor_fetch_absolute.cpp\
+  ob_cursor_open.h                   ob_cursor_open.cpp\
+  ob_cursor_declare.cpp              ob_cursor_declare.h\
+  ob_cursor_fetch_prior.cpp           ob_cursor_fetch_prior.h\
+  ob_cursor_close.cpp                ob_cursor_close.h\
+  ob_cursor.cpp                      ob_cursor.h\
   build_plan.h                build_plan.cpp           \
   dml_build_plan.h            dml_build_plan.cpp       \
   ob_alter_table_stmt.h       ob_alter_table_stmt.cpp  \
@@ -36,6 +69,32 @@ sql_parser_sources=                                    \
   ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
   ob_execute_stmt.h           ob_execute_stmt.cpp      \
+  ob_procedure_stmt.h         ob_procedure_stmt.cpp   \
+  ob_procedure.h              ob_procedure.cpp         \
+  ob_procedure_create_stmt.h  ob_procedure_create_stmt.cpp\
+  ob_procedure_create.h       ob_procedure_create.cpp  \
+  ob_procedure_drop_stmt.h    ob_procedure_drop_stmt.cpp \
+  ob_procedure_drop.h         ob_procedure_drop.cpp \
+  ob_procedure_case_stmt.h    ob_procedure_case_stmt.cpp\
+  ob_procedure_case.h         ob_procedure_case.cpp    \
+  ob_procedure_casewhen_stmt.h ob_procedure_casewhen_stmt.cpp\
+  ob_procedure_casewhen.h     ob_procedure_casewhen.cpp\
+  ob_procedure_declare_stmt.h ob_procedure_declare_stmt.cpp\
+  ob_procedure_declare.h      ob_procedure_declare.cpp \
+  ob_procedure_assgin_stmt.h  ob_procedure_assgin_stmt.cpp\
+  ob_procedure_assgin.h       ob_procedure_assgin.cpp\
+  ob_procedure_while_stmt.h   ob_procedure_while_stmt.cpp\
+  ob_procedure_while.h        ob_procedure_while.cpp\
+  ob_procedure_if_stmt.h      ob_procedure_if_stmt.cpp \
+  ob_procedure_if.h           ob_procedure_if.cpp      \
+  ob_procedure_elseif_stmt.h  ob_procedure_elseif_stmt.cpp\
+  ob_procedure_elseif.h       ob_procedure_elseif.cpp  \
+  ob_procedure_else_stmt.h    ob_procedure_else_stmt.cpp\
+  ob_procedure_else.h         ob_procedure_else.cpp    \
+  ob_procedure_execute_stmt.h ob_procedure_execute_stmt.cpp\
+  ob_procedure_execute.h      ob_procedure_execute.cpp \
+  ob_procedure_select_into_stmt.h  ob_procedure_select_into_stmt.cpp\
+  ob_procedure_select_into.h  ob_procedure_select_into.cpp\
   ob_explain_stmt.h           ob_explain_stmt.cpp      \
   ob_insert_stmt.h            ob_insert_stmt.cpp       \
   ob_item_type.h                                       \
@@ -75,6 +134,17 @@ sql_parser_sources=                                    \
 	ob_change_obi_stmt.h ob_change_obi_stmt.cpp
 
 operators_sources=                                                       \
+  ob_cursor_fetch.h 		     ob_cursor_fetch.cpp\
+  ob_cursor_fetch_first.h             ob_cursor_fetch_first.cpp\
+  ob_cursor_fetch_last.h              ob_cursor_fetch_last.cpp\
+  ob_cursor_fetch_fromto.h            ob_cursor_fetch_fromto.cpp\
+  ob_cursor_fetch_relative.h          ob_cursor_fetch_relative.cpp\
+  ob_cursor_fetch_absolute.h          ob_cursor_fetch_absolute.cpp\
+  ob_cursor_open.h                   ob_cursor_open.cpp\
+  ob_cursor_declare.cpp              ob_cursor_declare.h\
+  ob_cursor_fetch_prior.cpp           ob_cursor_fetch_prior.h\
+  ob_cursor_close.cpp                ob_cursor_close.h\
+  ob_cursor.cpp                      ob_cursor.h\
   ob_add_project.h                   ob_add_project.cpp                  \
   ob_aggregate_function.h            ob_aggregate_function.cpp           \
   ob_alter_sys_cnf.h                 ob_alter_sys_cnf.cpp                \
@@ -93,6 +163,8 @@ operators_sources=                                                       \
   ob_groupby.h                       ob_groupby.cpp                      \
   ob_in_memory_sort.h                ob_in_memory_sort.cpp               \
   ob_index_trigger.h                 ob_index_trigger.cpp                \
+  ob_in_memory_cursor.h              ob_in_memory_cursor.cpp             \
+  ob_merge_cursor.h                  ob_merge_cursor.cpp                 \
   ob_insert.h                        ob_insert.cpp                       \
   ob_join.h                          ob_join.cpp                         \
   ob_limit.h                         ob_limit.cpp                        \
@@ -119,6 +191,7 @@ operators_sources=                                                       \
   ob_single_child_phy_operator.h     ob_single_child_phy_operator.cpp    \
   ob_sort.h                          ob_sort.cpp                         \
   ob_sort_helper.h                                                       \
+  ob_cursor_helper.h                                                     \
   ob_sql.h                           ob_sql.cpp                          \
   ob_sql_context.h                                                       \
   ob_sql_expression.h                ob_sql_expression.cpp               \

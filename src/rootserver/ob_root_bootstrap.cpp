@@ -13,11 +13,13 @@
  * modified by guojinwei,zhangcd: support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *        modify the construction function of class ObBootstrap.
- * 
+ * modified by zhujun：add create __all_procedure table schema 
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21
  */
 
@@ -479,6 +481,21 @@ int ObBootstrap::bootstrap_sys_tables(void)
     }
   }
   //add e
+  
+  //add by zhujun 2015-3-11:b
+  // create table __all_procedure
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_procedure_schema(table_schema)))
+    {
+       TBSYS_LOG(WARN, "failed to get schema for __all_procedure, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create empty tablet for __all_procedure, err=%d", ret);
+    }
+  }
+  //add:e
   return ret;
 }
 

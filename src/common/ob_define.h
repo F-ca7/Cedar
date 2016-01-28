@@ -12,11 +12,13 @@
  * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  * modified by guojinwei:support multiple clusters for HA by adding or modifying
  * some functions, member variables
+ * modified by zhujun：add procedure related constant
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21
  */
 /*
@@ -595,6 +597,10 @@ namespace oceanbase
     const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
 
+    //add zhujun [2015-6-1]
+    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
+    //add:e
+
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
     const char* const OB_QUERY_TIMEOUT_PARAM = "ob_query_timeout";
@@ -643,7 +649,7 @@ namespace oceanbase
     static const uint64_t OB_ALL_COLUMN_CHECKSUM_INFO_TID = 801;
     static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;
     //add e
-
+	static const uint64_t OB_ALL_PROCEDURE_TID = 513;//add by zhujun
     //mod longfei [debug] 20160127:b
 //#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
 #define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
