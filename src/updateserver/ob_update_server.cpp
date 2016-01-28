@@ -14,7 +14,7 @@
  *     member variables
  *
  * @version __DaSE_VERSION
- * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>

@@ -6,14 +6,13 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file  ob_root_balancer.h
- * @brief add a function to check if index finished
+ * @brief for data balance
  *
- * Created by Wenghaixing
+ * modified by Wenghaixing:add a function to check if index finished
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 /**

@@ -6,14 +6,13 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_ddl_operator.h
- * @brief add some fuction for secondary index construction
+ * @brief for operations of table in rootserver
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:add some fuction for secondary index construction
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author Wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 /*

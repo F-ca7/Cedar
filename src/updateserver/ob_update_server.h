@@ -6,15 +6,15 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_update_server.h
- * @brief add a function to get init index in ups schema
+ * @brief update server
  *
- * modified by Wenghaixing add a function to get init index in ups schema
+ * modified by Wenghaixing: add a function to get init index in ups schema
  * modify by guojinwei, liubozhong, zhangcd: support multiple
  *     clusters for HA by adding or modifying some functions,
  *     member variables
  *
  * @version __DaSE_VERSION
- * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_index_service.cpp
+ * @brief ObIndexService provide interface of inner system table, with scan / update
+ *        generally use it to modify index info
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
 #include "ob_index_service.h"
 #include "ob_root_worker.h"
 #include "common/ob_schema_service_impl.cpp"

@@ -6,16 +6,14 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_daily_merge_checker.cpp
- * @brief modify some fuction,so that when check daily merge, it will modify secondary index stat
+ * @brief for daily merge check
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:modify some fuction,so that when check daily merge, it will modify secondary index stat
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
-
 
 /*
  * Copyright (C) 2007-2012 Taobao Inc.

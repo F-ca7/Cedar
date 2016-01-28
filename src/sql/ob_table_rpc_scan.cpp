@@ -69,7 +69,7 @@ namespace oceanbase
       has_rpc_(false), has_scalar_agg_(false), has_group_(false),
       has_group_columns_sort_(false), has_limit_(false), is_skip_empty_row_(true),
       read_method_(ObSqlReadStrategy::USE_SCAN),
-      is_use_index_rpc_scan_(false),is_use_index_for_storing(false),is_use_index_for_storing_for_tostring_(false),
+      is_use_index_rpc_scan_(false),is_use_index_for_storing_(false),is_use_index_for_storing_for_tostring_(false),
       index_tid_for_storing_for_tostring_(OB_INVALID_ID),is_use_index_without_storing_for_tostring_(false),
       index_tid_without_storing_for_tostring_(OB_INVALID_ID)
     {
@@ -131,7 +131,7 @@ namespace oceanbase
       read_method_ = ObSqlReadStrategy::USE_SCAN;
       //add longfei
       is_use_index_rpc_scan_=false;
-      is_use_index_for_storing=false;
+      is_use_index_for_storing_=false;
       is_use_index_for_storing_for_tostring_=false;
       index_tid_for_storing_for_tostring_=OB_INVALID_ID;
       is_use_index_without_storing_for_tostring_=false;
@@ -178,7 +178,7 @@ namespace oceanbase
       is_skip_empty_row_ = true;
       //add longfei
       is_use_index_rpc_scan_=false;
-      is_use_index_for_storing=false;
+      is_use_index_for_storing_=false;
       is_use_index_for_storing_for_tostring_=false;
       index_tid_for_storing_for_tostring_=OB_INVALID_ID;
       is_use_index_without_storing_for_tostring_=false;
@@ -383,7 +383,7 @@ namespace oceanbase
 
     void ObTableRpcScan::set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc)
     {
-      is_use_index_for_storing = true;
+      is_use_index_for_storing_ = true;
       rpc_scan_.set_is_use_index_for_storing(tid, row_desc);
     }
 

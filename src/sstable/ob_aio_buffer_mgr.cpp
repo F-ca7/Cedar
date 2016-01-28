@@ -6,16 +6,14 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_aio_buffer_mgr.cpp
- * @brief add a reset function
+ * @brief for manage aio buffer
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:add a reset function
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
-
 
 /**
  * (C) 2010-2011 Taobao Inc.

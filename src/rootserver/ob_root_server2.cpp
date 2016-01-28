@@ -8153,12 +8153,6 @@ int ObRootServer2::get_ms(ObServer& ms_server)
   return ret;
 }
 // for sql api longfei
-/**
- * @brief ObRootServer2::create_index
- * @param if_not_exists
- * @param tschema
- * @return
- */
 int ObRootServer2::create_index(bool if_not_exists, const common::TableSchema &tschema)
 {
   int ret = OB_SUCCESS;

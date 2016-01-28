@@ -185,16 +185,16 @@ namespace oceanbase
 
     const ObObj ObSSTableRow::get_row_obj(const int64_t index) const
     {
-        ObObj obj;
-        if (index >= 0 && index < obj_count_)
-        {
-          obj = objs_[index];
-        }
-        else
-        {
-          TBSYS_LOG(WARN, "invalid param, index=%ld", index);
-        }
-        return obj;
+      ObObj obj;
+      if (index >= 0 && index < obj_count_)
+      {
+        obj = objs_[index];
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "invalid param, index=%ld", index);
+      }
+      return obj;
     }
     //add e
 

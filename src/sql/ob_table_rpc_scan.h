@@ -111,7 +111,7 @@ namespace oceanbase
         /**
          * @brief add_index_filter 使用索引时的过滤列
          * @param expr
-         * @return
+         * @return err code
          */
         int add_index_filter(ObSqlExpression* expr);
         /**
@@ -223,7 +223,7 @@ namespace oceanbase
         int32_t read_method_;
         //add longfei
         bool is_use_index_rpc_scan_;  ///< 判断是否使用了回表的索引
-        bool is_use_index_for_storing; ///< 判断是否使用了不回表的索引
+        bool is_use_index_for_storing_; ///< 判断是否使用了不回表的索引
         //ObRpcScan index_rpc_scan_;
         ObProject main_project_;   ///< 存第二次get原表时的输出列
         ObFilter main_filter_;     ///< 存第二次get原表时filter

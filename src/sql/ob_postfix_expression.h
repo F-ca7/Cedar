@@ -15,7 +15,9 @@
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @date 2016_01_22
- *//*
+ */
+
+/*
  * (C) 2007-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify

@@ -2227,10 +2227,7 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
   return ret;
 }
 
-/**
- * add longfei [secondary index select] 20151101
- * for secondary index use select
- */
+//add longfei [secondary index select] 20151101
 int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
     ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, bool is_use_storing_column, uint64_t index_tid, Expr_Array *filter_array,
     Expr_Array *project_array)
@@ -2318,7 +2315,7 @@ int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysica
       {
         table_rpc_scan_op->set_is_use_index_for_storing(source_tid, desc_for_storing);
       }
-      /// determin request type: scan/get
+      //determin request type: scan/get
       if (OB_SUCCESS == ret)
       {
         const ObTableSchema *table_schema = NULL;
@@ -2404,12 +2401,12 @@ int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysica
       }
     }
     // add output columns
-    num = project_array->count();  //���ɲ�ѯ�������������У�����ʽ��tidΪ��������tid
+    num = project_array->count();
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
 
       ObSqlExpression output_expr = project_array->at(i);
-      if (is_use_storing_column)   //���������У����е�tid�ĳ���������tid
+      if (is_use_storing_column)
       {
         if (is_ailias_table == false)
         {
@@ -2505,7 +2502,7 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
         table_rpc_scan_op->set_main_rowkey_info(main_table_schema->get_rowkey_info());
       }
 
-      /// determin request type: scan/get
+      //determin request type: scan/get
       if (OB_SUCCESS == ret)
       {
         const ObTableSchema *table_schema = NULL;
@@ -2699,18 +2696,6 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
   return ret;
 }
 
-/**
- * @brief handle_index_for_one_table: Query Optimization for using secondaryIndex
- * @param logical_plan
- * @param physical_plan
- * @param err_stat
- * @param stmt
- * @param table_id
- * @param table_op
- * @param group_agg_pushed_down
- * @param limit_pushed_down
- * @return ture : use index or false : can't use index
- */
 bool ObTransformer::handle_index_for_one_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
@@ -2860,13 +2845,13 @@ bool ObTransformer::handle_index_for_one_table(
     //sec_idx_ser->setSchemaManager(sql_context_->schema_manager_);
     bool is_use_hint = false;    //判断是否使用用户输入的hint
     uint64_t hint_tid = OB_INVALID_ID;     //用户输入的hint中的索引表的tid
-    bool use_hint_for_storing = false;     //判断hint中的索引表能否使用不回表的索��?
+    bool use_hint_for_storing = false;     //判断hint中的索引表能否使用不回表的索引
     bool use_hint_without_storing = false;  //判断hint中的索引表能否使用回表的索引
 
-    bool is_use_storing_column = false;   //��?终的: 判断是否使用不回表的索引的变��?
-    bool is_use_index_without_storing = false;  //��?终的: 判断是否使用回表的索引的变量
-    uint64_t index_id = OB_INVALID_ID;       //��?终的: 如果用不回表的索引，索引表的tid
-    uint64_t index_id_without_storing = OB_INVALID_ID; //��?终的: 如果用回表的索引，索引表的tid
+    bool is_use_storing_column = false;   //判断是否使用不回表的索引
+    bool is_use_index_without_storing = false;  //判断是否使用回表的索引的变量
+    uint64_t index_id = OB_INVALID_ID;       //如果用不回表的索引，索引表的tid
+    uint64_t index_id_without_storing = OB_INVALID_ID; //如果用回表的索引，索引表的tid
 
     //TBSYS_LOG(INFO,"has_index_hint = %s", stmt->get_query_hint().has_index_hint() ? "yes" : "no");
     if (stmt->get_query_hint().has_index_hint())
@@ -2927,7 +2912,7 @@ bool ObTransformer::handle_index_for_one_table(
         }
       }
     }
-    else   //如果用户使用了hint，根据传进来的参数判断是使用回表的还是不回表的索��?
+    else   //如果用户使用了hint，根据传进来的参数判断是使用回表的还是不回表的索引
     {
       if (use_hint_for_storing)
       {
@@ -2995,10 +2980,6 @@ bool ObTransformer::handle_index_for_one_table(
   return return_ret;
 }
 //add:e
-/**
- * longfei
- * add e
- */
 
 int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id, ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down)
 {
@@ -3008,7 +2989,6 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
   ObPhyOperator* tmp_table_op = NULL;
   handle_index_ret = handle_index_for_one_table(logical_plan, physical_plan, err_stat, stmt, table_id, tmp_table_op, group_agg_pushed_down, limit_pushed_down);
   //add:e
-  //TBSYS_LOG(INFO, "in gen_phy_table() func && handle_index_ret is %s", handle_index_ret ? "true" : "false");
   if (!handle_index_ret)
   {
     TableItem* table_item = NULL;
@@ -3040,7 +3020,6 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
         else
         {
           // no hint
-          // 澶勭悊琛ㄧ殑涓�鑷存�х骇鍒紝鐢变簬闇�瑕佸拰041鍏煎锛岀洰鍓嶄笉鐢╟onsistency_level锛屼娇鐢╥s_merge_dynamic_data
           //hint.read_consistency_ = table_schema->get_consistency_level();
           if (table_schema->is_merge_dynamic_data())
           {
@@ -3091,7 +3070,7 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
           TRANS_LOG("ObTableRpcScan set table faild");
         }
 
-        /// determin request type: scan/get
+        //determin request type: scan/get
         if (ret == OB_SUCCESS)
         {
           int32_t bit_index = stmt->get_table_bit_index(table_item->table_id_);
@@ -4385,9 +4364,7 @@ bool ObTransformer::parse_join_info(const ObString &join_info_str, TableSchema &
   return parse_ok;
 }
 
-/**
- * longfei [create index]
- */
+//add longfei [create index]
 int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, const uint64_t& query_id, int32_t* index)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
@@ -5128,7 +5105,7 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
   return ret;
 }
 
-/// TODO: not allocate column group id
+//TODO: not allocate column group id
 int ObTransformer::allocate_column_id(TableSchema & table_schema)
 {
   int ret = OB_SUCCESS;
@@ -6188,9 +6165,7 @@ int ObTransformer::gen_phy_show_grants(ObPhysicalPlan *physical_plan, ErrStat& e
     else
     {
       ret = OB_SUCCESS;
-      //鍏ㄥ眬鏉冮檺濡傛灉鏈夛紝鍒欐樉绀轰竴琛�
       const ObBitSet<> &privileges = user.privileges_;
-      // 娌℃湁鍏ㄥ眬鏉冮檺
       if (privileges.is_empty())
       {
       }
@@ -6240,7 +6215,6 @@ int ObTransformer::gen_phy_show_grants(ObPhysicalPlan *physical_plan, ErrStat& e
         }
       }
     }
-    //鏄剧ず灞�閮ㄦ潈闄�
     if (OB_SUCCESS == ret)
     {
       uint64_t user_id = user.user_id_;
@@ -6263,8 +6237,6 @@ int ObTransformer::gen_phy_show_grants(ObPhysicalPlan *physical_plan, ErrStat& e
             table_schema = schema_manager->get_table_schema(user_id_table_id.table_id_);
             if (NULL == table_schema)
             {
-              //鍑虹幇杩欑鎯呭喌鐨勫師鍥犲彲鑳芥槸鍒殑浼氳瘽閫氳繃鍚屼竴涓敤鎴锋柊寤轰簡涓�寮犳柊琛紝鏉冮檺淇℃伅宸茬粡鏇存柊鍒颁簡鏈湴锛屼絾鏄痵chema淇℃伅杩樻病鏈夋洿鏂板埌鏈湴
-              //涓嶅皢鍏朵綔涓轰竴绉嶉敊璇紝鐩墠浠呬粎涓嶆樉绀鸿繖寮犺〃鐨勬潈闄愪俊鎭嵆鍙�
               TBSYS_LOG(WARN, "table id=%lu not exist in schema manager", user_id_table_id.table_id_);
             }
             else
@@ -7217,14 +7189,14 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
   //add maoxx
   if (OB_LIKELY(ret == OB_SUCCESS))
   {
-      if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(insert_stmt->get_table_id(), modifiable_index_list)))
-      {
-          TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", insert_stmt->get_table_id());
-      }
-      else if(modifiable_index_list.get_count() > 0)
-      {
-        need_modify_index_flag = true;
-      }
+    if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(insert_stmt->get_table_id(), modifiable_index_list)))
+    {
+      TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", insert_stmt->get_table_id());
+    }
+    else if(modifiable_index_list.get_count() > 0)
+    {
+      need_modify_index_flag = true;
+    }
   }
   //add e
   if (OB_LIKELY(ret == OB_SUCCESS))
@@ -7411,95 +7383,95 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
       //add maoxx
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
-           if (need_modify_index_flag)
-           {
-               if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
-               {
-                   ret = OB_ALLOCATE_MEMORY_FAILED;
-                   TRANS_LOG("Failed to create phy operator index_trigger");
-               }
-               else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *insert_sem)))
-               {
-                   TRANS_LOG("Failed to set child, err=%d", ret);
-               }
-               else if (NULL != index_trigger)
-               {
-                 int sql_type = 0;
-                 index_trigger->set_sql_type(sql_type);
-                 index_trigger->set_data_tid(insert_stmt->get_table_id());
-                 index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
-                 index_trigger->set_post_data_row_desc(row_desc);
-                 for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
-                 {
-                     const ObTableSchema* index_schema = NULL;
-                     uint64_t index_tid = OB_INVALID_ID;
-                     uint64_t index_cid = OB_INVALID_ID;
-                     modifiable_index_list.get_idx_id(i, index_tid);
-                     if(OB_INVALID_ID != index_tid)
-                     {
-                         index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
-                     }
-                     if(NULL == index_schema)
-                     {
-                       TBSYS_LOG(WARN,"get index schema failed!");
-                       ret = OB_SCHEMA_ERROR;
-                       break;
-                     }
-                     else
-                     {
-                         const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
-                         ObRowDesc idx_ins;
-                         idx_ins.reset();
-                         idx_ins.set_rowkey_cell_count(idx_ori.get_size());
-                         for(int64_t j = 0; j < idx_ori.get_size(); j++)
-                         {
-                             if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
-                             {
-                                 TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-                                 ret = OB_ERROR;
-                                 break;
-                             }
-                             else
-                             {
-                                 if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                 {
-                                     TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                                 }
-                             }
-                         }
-                         for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
-                         {
-                             const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
-                             if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
-                             {
+        if (need_modify_index_flag)
+        {
+          if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
+          {
+            ret = OB_ALLOCATE_MEMORY_FAILED;
+            TRANS_LOG("Failed to create phy operator index_trigger");
+          }
+          else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *insert_sem)))
+          {
+            TRANS_LOG("Failed to set child, err=%d", ret);
+          }
+          else if (NULL != index_trigger)
+          {
+            int sql_type = 0;
+            index_trigger->set_sql_type(sql_type);
+            index_trigger->set_data_tid(insert_stmt->get_table_id());
+            index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
+            index_trigger->set_post_data_row_desc(row_desc);
+            for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
+            {
+              const ObTableSchema* index_schema = NULL;
+              uint64_t index_tid = OB_INVALID_ID;
+              uint64_t index_cid = OB_INVALID_ID;
+              modifiable_index_list.get_idx_id(i, index_tid);
+              if(OB_INVALID_ID != index_tid)
+              {
+                index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
+              }
+              if(NULL == index_schema)
+              {
+                TBSYS_LOG(WARN,"get index schema failed!");
+                ret = OB_SCHEMA_ERROR;
+                break;
+              }
+              else
+              {
+                const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
+                ObRowDesc idx_ins;
+                idx_ins.reset();
+                idx_ins.set_rowkey_cell_count(idx_ori.get_size());
+                for(int64_t j = 0; j < idx_ori.get_size(); j++)
+                {
+                  if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
+                  {
+                    TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+                    ret = OB_ERROR;
+                    break;
+                  }
+                  else
+                  {
+                    if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
+                    {
+                      TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
+                    }
+                  }
+                }
+                for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
+                {
+                  const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
+                  if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
+                  {
 
-                             }
-                             else
-                             {
-                                 index_cid = idx_ocs->get_id();
-                                 if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                 {
-                                     TBSYS_LOG(ERROR,"error in add_column_desc");
-                                     break;
-                                 }
-                             }
-                         }
-                         /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                  }
+                  else
+                  {
+                    index_cid = idx_ocs->get_id();
+                    if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
+                    {
+                      TBSYS_LOG(ERROR,"error in add_column_desc");
+                      break;
+                    }
+                  }
+                }
+                /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                          {
                            if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                            {
                              TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                            }
                          }*/
-                         if(OB_SUCCESS == ret && OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins)))
-                         {
-                             TBSYS_LOG(ERROR,"construct row desc error");
-                             ret = OB_ERROR;
-                         }
-                     }
-                 }
-               }
-           }
+                if(OB_SUCCESS == ret && OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins)))
+                {
+                  TBSYS_LOG(ERROR,"construct row desc error");
+                  ret = OB_ERROR;
+                }
+              }
+            }
+          }
+        }
       }
       //add e
       ObWhenFilter *when_filter_op = NULL;
@@ -7524,21 +7496,22 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
         //modify maoxx
         else
         {
-            if(need_modify_index_flag)
+          if(need_modify_index_flag)
+          {
+            if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
             {
-                if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
-                {
-                    TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                }
+              TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
             }
-            else
+          }
+          else
+          {
+            if (OB_SUCCESS != (ret = ups_modify->set_child(0, *insert_sem)))
             {
-                if (OB_SUCCESS != (ret = ups_modify->set_child(0, *insert_sem)))
-                {
-                    TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                }
+              TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
             }
+          }
         }
+        //modify e
       }
     }
     else
@@ -7947,9 +7920,9 @@ int ObTransformer::gen_phy_table_for_delete(
     TRANS_LOG("Fail to get table schema for table[%ld]", table_id);
   }
   else if ((ret = physical_plan->add_base_table_version(
-                                    table_id,
-                                    table_schema->get_schema_version()
-                                    )) != OB_SUCCESS)
+              table_id,
+              table_schema->get_schema_version()
+              )) != OB_SUCCESS)
   {
     TRANS_LOG("Add base table version failed, table_id=%ld, ret=%d", table_id, ret);
   }
@@ -8064,17 +8037,17 @@ int ObTransformer::gen_phy_table_for_delete(
       uint64_t rowkey_cid = OB_INVALID_ID;
       if(OB_SUCCESS != (rowkey_info.get_column_id(i, rowkey_cid)))
       {
-          TBSYS_LOG(WARN,"cannot get rowkey id for get param values,ret[%d]",ret);
-          break;
+        TBSYS_LOG(WARN,"cannot get rowkey id for get param values,ret[%d]",ret);
+        break;
       }
       else
       {
         ObBinaryRefRawExpr col_expr(table_id, rowkey_cid, T_REF_COLUMN);
         ObSqlRawExpr col_raw_expr(
-          common::OB_INVALID_ID,
-          table_id,
-          rowkey_cid,
-          &col_expr);
+              common::OB_INVALID_ID,
+              table_id,
+              rowkey_cid,
+              &col_expr);
         ObSqlExpression output_expr;
         if ((ret = col_raw_expr.fill_sql_expression(
                output_expr,
@@ -8092,39 +8065,39 @@ int ObTransformer::gen_phy_table_for_delete(
         int64_t rowkey_idx = 0;
         if(OB_SUCCESS != (ret = rowkey_info.get_index(rowkey_cid, rowkey_idx, rowkey)))
         {
-            TBSYS_LOG(WARN,"failed to find index for rowkey_column");
-            break;
+          TBSYS_LOG(WARN,"failed to find index for rowkey_column");
+          break;
         }
         else if (OB_SUCCESS != (ret = col_expr2.set_value_and_type(rowkey_objs[rowkey_idx])))
+        {
+          TBSYS_LOG(WARN, "failed to set value, err=%d", ret);
+          break;
+        }
+        else
+        {
+          switch (type_objs[i])
           {
-            TBSYS_LOG(WARN, "failed to set value, err=%d", ret);
+          case ObPostfixExpression::PARAM_IDX:
+            col_expr2.set_expr_type(T_QUESTIONMARK);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          case ObPostfixExpression::SYSTEM_VAR:
+            col_expr2.set_expr_type(T_SYSTEM_VARIABLE);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          case ObPostfixExpression::TEMP_VAR:
+            col_expr2.set_expr_type(T_TEMP_VARIABLE);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          default:
             break;
           }
-          else
-          {
-            switch (type_objs[i])
-            {
-              case ObPostfixExpression::PARAM_IDX:
-                col_expr2.set_expr_type(T_QUESTIONMARK);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              case ObPostfixExpression::SYSTEM_VAR:
-                col_expr2.set_expr_type(T_SYSTEM_VARIABLE);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              case ObPostfixExpression::TEMP_VAR:
-                col_expr2.set_expr_type(T_TEMP_VARIABLE);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              default:
-                break;
-            }
-          }
+        }
         ObSqlRawExpr col_raw_expr2(
-          common::OB_INVALID_ID,
-          table_id,
-          rowkey_cid,
-          &col_expr2);
+              common::OB_INVALID_ID,
+              table_id,
+              rowkey_cid,
+              &col_expr2);
         ObSqlExpression output_expr2;
         if ((ret = col_raw_expr2.fill_sql_expression(
                output_expr2,
@@ -8143,62 +8116,62 @@ int ObTransformer::gen_phy_table_for_delete(
       }
     } // end for
   }
-    for (uint64_t cid = OB_APP_MIN_COLUMN_ID; ret == OB_SUCCESS && cid <= table_schema->get_max_column_id(); cid++)
+  for (uint64_t cid = OB_APP_MIN_COLUMN_ID; ret == OB_SUCCESS && cid <= table_schema->get_max_column_id(); cid++)
+  {
+    bool output_flag = false;
+    if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index_and_rowkey(table_id, cid, output_flag)))
     {
-        bool output_flag = false;
-        if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index_and_rowkey(table_id, cid, output_flag)))
+      TBSYS_LOG(WARN,"failed to check if column hit index table[%ld],cid[%ld]",table_id, cid);
+      break;
+    }
+    if(OB_SUCCESS == ret && !rowkey_info.is_rowkey_column(cid) && output_flag)
+    {
+      if (table_schema->get_table_id() == table_item->table_id_)
+      {
+        ObBinaryRefRawExpr col_expr(table_id, cid, T_REF_COLUMN);
+        ObSqlRawExpr col_raw_expr(
+              common::OB_INVALID_ID,
+              table_id,
+              cid,
+              &col_expr);
+        ObSqlExpression output_expr;
+        if ((ret = col_raw_expr.fill_sql_expression(
+               output_expr,
+               this,
+               logical_plan,
+               physical_plan)) != OB_SUCCESS
+            || (ret = table_rpc_scan_op->add_output_column(output_expr)) != OB_SUCCESS)
         {
-          TBSYS_LOG(WARN,"failed to check if column hit index table[%ld],cid[%ld]",table_id, cid);
+          TRANS_LOG("Add table output columns faild");
           break;
         }
-        if(OB_SUCCESS == ret && !rowkey_info.is_rowkey_column(cid) && output_flag)
+        // for IncScan
+        ObConstRawExpr col_expr2;
+        ObObj null_obj;
+        col_expr2.set_value_and_type(null_obj);
+        ObSqlRawExpr col_raw_expr2(
+              common::OB_INVALID_ID,
+              table_id,
+              cid,
+              &col_expr2);
+        ObSqlExpression output_expr2;
+        if ((ret = col_raw_expr2.fill_sql_expression(
+               output_expr2,
+               this,
+               logical_plan,
+               physical_plan)) != OB_SUCCESS)
         {
-            if (table_schema->get_table_id() == table_item->table_id_)
-            {
-                ObBinaryRefRawExpr col_expr(table_id, cid, T_REF_COLUMN);
-                ObSqlRawExpr col_raw_expr(
-                            common::OB_INVALID_ID,
-                            table_id,
-                            cid,
-                            &col_expr);
-                ObSqlExpression output_expr;
-                if ((ret = col_raw_expr.fill_sql_expression(
-                         output_expr,
-                         this,
-                         logical_plan,
-                         physical_plan)) != OB_SUCCESS
-                        || (ret = table_rpc_scan_op->add_output_column(output_expr)) != OB_SUCCESS)
-                {
-                    TRANS_LOG("Add table output columns faild");
-                    break;
-                }
-                // for IncScan
-                ObConstRawExpr col_expr2;
-                ObObj null_obj;
-                col_expr2.set_value_and_type(null_obj);
-                ObSqlRawExpr col_raw_expr2(
-                  common::OB_INVALID_ID,
-                  table_id,
-                  cid,
-                  &col_expr2);
-                ObSqlExpression output_expr2;
-                if ((ret = col_raw_expr2.fill_sql_expression(
-                       output_expr2,
-                       this,
-                       logical_plan,
-                       physical_plan)) != OB_SUCCESS)
-                {
-                  TRANS_LOG("Add table output columns failed");
-                  break;
-                }
-                else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
-                {
-                  TRANS_LOG("Failed to add cell into get param, err=%d", ret);
-                  break;
-                }
-            }
+          TRANS_LOG("Add table output columns failed");
+          break;
         }
-    }//end for
+        else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
+        {
+          TRANS_LOG("Failed to add cell into get param, err=%d", ret);
+          break;
+        }
+      }
+    }
+  }//end for
   // add action flag column
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
@@ -8332,9 +8305,9 @@ int ObTransformer::gen_phy_table_for_update_new(
     TRANS_LOG("Fail to get table schema for table[%ld]", table_id);
   }
   else if ((ret = physical_plan->add_base_table_version(
-                                    table_id,
-                                    table_schema->get_schema_version()
-                                    )) != OB_SUCCESS)
+              table_id,
+              table_schema->get_schema_version()
+              )) != OB_SUCCESS)
   {
     TRANS_LOG("Add base table version failed, table_id=%ld, ret=%d", table_id, ret);
   }
@@ -8449,17 +8422,17 @@ int ObTransformer::gen_phy_table_for_update_new(
       uint64_t rowkey_cid = OB_INVALID_ID;
       if(OB_SUCCESS != (rowkey_info.get_column_id(i, rowkey_cid)))
       {
-          TBSYS_LOG(WARN,"cannot get rowkey id for get param values,ret[%d]",ret);
-          break;
+        TBSYS_LOG(WARN,"cannot get rowkey id for get param values,ret[%d]",ret);
+        break;
       }
       else
       {
         ObBinaryRefRawExpr col_expr(table_id, rowkey_cid, T_REF_COLUMN);
         ObSqlRawExpr col_raw_expr(
-          common::OB_INVALID_ID,
-          table_id,
-          rowkey_cid,
-          &col_expr);
+              common::OB_INVALID_ID,
+              table_id,
+              rowkey_cid,
+              &col_expr);
         ObSqlExpression output_expr;
         if ((ret = col_raw_expr.fill_sql_expression(
                output_expr,
@@ -8477,39 +8450,39 @@ int ObTransformer::gen_phy_table_for_update_new(
         int64_t rowkey_idx = 0;
         if(OB_SUCCESS != (ret = rowkey_info.get_index(rowkey_cid, rowkey_idx, rowkey)))
         {
-            TBSYS_LOG(WARN,"failed to find index for rowkey_column");
-            break;
+          TBSYS_LOG(WARN,"failed to find index for rowkey_column");
+          break;
         }
         else if (OB_SUCCESS != (ret = col_expr2.set_value_and_type(rowkey_objs[rowkey_idx])))
+        {
+          TBSYS_LOG(WARN, "failed to set value, err=%d", ret);
+          break;
+        }
+        else
+        {
+          switch (type_objs[i])
           {
-            TBSYS_LOG(WARN, "failed to set value, err=%d", ret);
+          case ObPostfixExpression::PARAM_IDX:
+            col_expr2.set_expr_type(T_QUESTIONMARK);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          case ObPostfixExpression::SYSTEM_VAR:
+            col_expr2.set_expr_type(T_SYSTEM_VARIABLE);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          case ObPostfixExpression::TEMP_VAR:
+            col_expr2.set_expr_type(T_TEMP_VARIABLE);
+            col_expr2.set_result_type(ObVarcharType);
+            break;
+          default:
             break;
           }
-          else
-          {
-            switch (type_objs[i])
-            {
-              case ObPostfixExpression::PARAM_IDX:
-                col_expr2.set_expr_type(T_QUESTIONMARK);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              case ObPostfixExpression::SYSTEM_VAR:
-                col_expr2.set_expr_type(T_SYSTEM_VARIABLE);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              case ObPostfixExpression::TEMP_VAR:
-                col_expr2.set_expr_type(T_TEMP_VARIABLE);
-                col_expr2.set_result_type(ObVarcharType);
-                break;
-              default:
-                break;
-            }
-          }
+        }
         ObSqlRawExpr col_raw_expr2(
-          common::OB_INVALID_ID,
-          table_id,
-          rowkey_cid,
-          &col_expr2);
+              common::OB_INVALID_ID,
+              table_id,
+              rowkey_cid,
+              &col_expr2);
         ObSqlExpression output_expr2;
         if ((ret = col_raw_expr2.fill_sql_expression(
                output_expr2,
@@ -8528,68 +8501,68 @@ int ObTransformer::gen_phy_table_for_update_new(
       }
     } // end for
   }
-    for (uint64_t cid = OB_APP_MIN_COLUMN_ID; ret == OB_SUCCESS && cid <= table_schema->get_max_column_id(); cid++)
+  for (uint64_t cid = OB_APP_MIN_COLUMN_ID; ret == OB_SUCCESS && cid <= table_schema->get_max_column_id(); cid++)
+  {
+    bool column_hit_index_flag = false;
+    bool column_in_update_stmt_flag = false;
+    if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, cid, column_hit_index_flag)))
     {
-        bool column_hit_index_flag = false;
-        bool column_in_update_stmt_flag = false;
-        if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, cid, column_hit_index_flag)))
+      TBSYS_LOG(WARN,"failed to check if column hit index table[%ld],cid[%ld]",table_id, cid);
+      break;
+    }
+    else if(ObBasicStmt::T_UPDATE == stmt->get_stmt_type() && OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, cid, column_in_update_stmt_flag)))
+    {
+      TBSYS_LOG(WARN,"failed to check if column hit update stmt[%ld],cid[%ld]",table_id, cid);
+      break;
+    }
+    if(OB_SUCCESS == ret && !rowkey_info.is_rowkey_column(cid) && (column_hit_index_flag || column_in_update_stmt_flag))
+    {
+      if (table_schema->get_table_id() == table_item->table_id_)
+      {
+        ObBinaryRefRawExpr col_expr(table_id, cid, T_REF_COLUMN);
+        ObSqlRawExpr col_raw_expr(
+              common::OB_INVALID_ID,
+              table_id,
+              cid,
+              &col_expr);
+        ObSqlExpression output_expr;
+        if ((ret = col_raw_expr.fill_sql_expression(
+               output_expr,
+               this,
+               logical_plan,
+               physical_plan)) != OB_SUCCESS
+            || (ret = table_rpc_scan_op->add_output_column(output_expr)) != OB_SUCCESS)
         {
-          TBSYS_LOG(WARN,"failed to check if column hit index table[%ld],cid[%ld]",table_id, cid);
+          TRANS_LOG("Add table output columns faild");
           break;
         }
-        else if(ObBasicStmt::T_UPDATE == stmt->get_stmt_type() && OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, cid, column_in_update_stmt_flag)))
+        // for IncScan
+        ObConstRawExpr col_expr2;
+        ObObj null_obj;
+        col_expr2.set_value_and_type(null_obj);
+        ObSqlRawExpr col_raw_expr2(
+              common::OB_INVALID_ID,
+              table_id,
+              cid,
+              &col_expr2);
+        ObSqlExpression output_expr2;
+        if ((ret = col_raw_expr2.fill_sql_expression(
+               output_expr2,
+               this,
+               logical_plan,
+               physical_plan)) != OB_SUCCESS)
         {
-          TBSYS_LOG(WARN,"failed to check if column hit update stmt[%ld],cid[%ld]",table_id, cid);
+          TRANS_LOG("Add table output columns failed");
           break;
         }
-        if(OB_SUCCESS == ret && !rowkey_info.is_rowkey_column(cid) && (column_hit_index_flag || column_in_update_stmt_flag))
+        else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
         {
-            if (table_schema->get_table_id() == table_item->table_id_)
-            {
-                ObBinaryRefRawExpr col_expr(table_id, cid, T_REF_COLUMN);
-                ObSqlRawExpr col_raw_expr(
-                            common::OB_INVALID_ID,
-                            table_id,
-                            cid,
-                            &col_expr);
-                ObSqlExpression output_expr;
-                if ((ret = col_raw_expr.fill_sql_expression(
-                         output_expr,
-                         this,
-                         logical_plan,
-                         physical_plan)) != OB_SUCCESS
-                        || (ret = table_rpc_scan_op->add_output_column(output_expr)) != OB_SUCCESS)
-                {
-                    TRANS_LOG("Add table output columns faild");
-                    break;
-                }
-                // for IncScan
-                ObConstRawExpr col_expr2;
-                ObObj null_obj;
-                col_expr2.set_value_and_type(null_obj);
-                ObSqlRawExpr col_raw_expr2(
-                  common::OB_INVALID_ID,
-                  table_id,
-                  cid,
-                  &col_expr2);
-                ObSqlExpression output_expr2;
-                if ((ret = col_raw_expr2.fill_sql_expression(
-                       output_expr2,
-                       this,
-                       logical_plan,
-                       physical_plan)) != OB_SUCCESS)
-                {
-                  TRANS_LOG("Add table output columns failed");
-                  break;
-                }
-                else if (OB_SUCCESS != (ret = get_param_values->add_value(output_expr2)))
-                {
-                  TRANS_LOG("Failed to add cell into get param, err=%d", ret);
-                  break;
-                }
-            }
+          TRANS_LOG("Failed to add cell into get param, err=%d", ret);
+          break;
         }
-    }//end for
+      }
+    }
+  }//end for
   // add action flag column
   //modify maoxx 2016/01/26
   if (OB_LIKELY(OB_SUCCESS == ret))
@@ -9165,9 +9138,9 @@ int ObTransformer::column_in_stmt(const ObStmt *stmt, uint64_t table_id, uint64_
     {
       if(NULL == (column_item = stmt->get_column_item(i)))
       {
-          ret = OB_INVALID_ARGUMENT;
-          TBSYS_LOG(WARN, "stmt pointer cannot be NULL, i = %d, ret = %d", i, ret);
-          break;
+        ret = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(WARN, "stmt pointer cannot be NULL, i = %d, ret = %d", i, ret);
+        break;
       }
       else if(table_id != column_item->table_id_)
       {
@@ -9419,121 +9392,121 @@ int ObTransformer::gen_physical_update_new(
   //add maoxx
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
-      if(column_hit_index_flag)
+    if(column_hit_index_flag)
+    {
+      if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
       {
-          if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+        TRANS_LOG("Failed to create phy operator index_trigger");
+      }
+      else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *project_op)))
+      {
+        TRANS_LOG("Failed to set child, err=%d", ret);
+      }
+      else if (NULL != index_trigger)
+      {
+        int sql_type = 2;
+        index_trigger->set_sql_type(sql_type);
+        index_trigger->set_data_tid(update_stmt->get_update_table_id());
+        index_trigger->set_need_modify_index_num(hit_index_list.get_count());
+        index_trigger->set_post_data_row_desc(row_desc);
+        for(int64_t i = 0; i < hit_index_list.get_count(); i++)
+        {
+          const ObTableSchema* index_schema = NULL;
+          uint64_t index_tid = OB_INVALID_ID;
+          uint64_t index_cid = OB_INVALID_ID;
+          hit_index_list.get_idx_id(i, index_tid);
+          if(OB_INVALID_ID != index_tid)
           {
-              ret = OB_ALLOCATE_MEMORY_FAILED;
-              TRANS_LOG("Failed to create phy operator index_trigger");
-          }
-          else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *project_op)))
-          {
-              TRANS_LOG("Failed to set child, err=%d", ret);
-          }
-          else if (NULL != index_trigger)
-          {
-              int sql_type = 2;
-              index_trigger->set_sql_type(sql_type);
-              index_trigger->set_data_tid(update_stmt->get_update_table_id());
-              index_trigger->set_need_modify_index_num(hit_index_list.get_count());
-              index_trigger->set_post_data_row_desc(row_desc);
-              for(int64_t i = 0; i < hit_index_list.get_count(); i++)
+            index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
+            if(NULL == index_schema)
+            {
+              TBSYS_LOG(WARN,"get index schema failed!");
+              ret = OB_SCHEMA_ERROR;
+              break;
+            }
+            else
+            {
+              const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
+              ObRowDesc idx_del,idx_ins;
+              idx_del.reset();
+              idx_ins.reset();
+              idx_del.set_rowkey_cell_count(idx_ori.get_size());
+              idx_ins.set_rowkey_cell_count(idx_ori.get_size());
+              for(int64_t j = 0; j < idx_ori.get_size(); j++)
               {
-                  const ObTableSchema* index_schema = NULL;
-                  uint64_t index_tid = OB_INVALID_ID;
-                  uint64_t index_cid = OB_INVALID_ID;
-                  hit_index_list.get_idx_id(i, index_tid);
-                  if(OB_INVALID_ID != index_tid)
+                if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
+                {
+                  TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+                  ret = OB_ERROR;
+                  break;
+                }
+                else
+                {
+                  if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
                   {
-                      index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
-                      if(NULL == index_schema)
-                      {
-                        TBSYS_LOG(WARN,"get index schema failed!");
-                        ret = OB_SCHEMA_ERROR;
-                        break;
-                      }
-                      else
-                      {
-                          const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
-                          ObRowDesc idx_del,idx_ins;
-                          idx_del.reset();
-                          idx_ins.reset();
-                          idx_del.set_rowkey_cell_count(idx_ori.get_size());
-                          idx_ins.set_rowkey_cell_count(idx_ori.get_size());
-                          for(int64_t j = 0; j < idx_ori.get_size(); j++)
-                          {
-                              if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
-                              {
-                                TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-                                ret = OB_ERROR;
-                                break;
-                              }
-                              else
-                              {
-                                  if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
-                                  {
-                                    TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                                  }
-                                  else if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                  {
-                                    TBSYS_LOG(WARN,"idx_upd.add_column_desc occur an error,ret[%d]",ret);
-                                  }
-                              }
-                          }
-                          if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid,OB_ACTION_FLAG_COLUMN_ID)))
-                          {
-                            TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                          }
-                          else
-                          {
-                              for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
-                              {
-                                const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
-                                if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
-                                {
+                    TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
+                  }
+                  else if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
+                  {
+                    TBSYS_LOG(WARN,"idx_upd.add_column_desc occur an error,ret[%d]",ret);
+                  }
+                }
+              }
+              if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid,OB_ACTION_FLAG_COLUMN_ID)))
+              {
+                TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
+              }
+              else
+              {
+                for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
+                {
+                  const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
+                  if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
+                  {
 
-                                }
-                                else
-                                {
-                                  index_cid = idx_ocs->get_id();
-                                  if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                  {
-                                    TBSYS_LOG(ERROR,"error in add_column_desc");
-                                    break;
-                                  }
-                                }
-                               }//end for
-                              /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                  }
+                  else
+                  {
+                    index_cid = idx_ocs->get_id();
+                    if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
+                    {
+                      TBSYS_LOG(ERROR,"error in add_column_desc");
+                      break;
+                    }
+                  }
+                }//end for
+                /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                               {
                                   if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                                   {
                                       TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                                   }
                               }*/
-                          }
-                          if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
-                          {
-                            TBSYS_LOG(ERROR,"construct row desc error");
-                            ret = OB_ERROR;
-                          }
-                      }
-                  }
-              }//end for
-              if(OB_SUCCESS == ret)
-              {
-                row_desc.reset();
-                row_desc_ext.reset();
-                if(OB_SUCCESS == (ret = cons_whole_row_desc_for_update(update_stmt, table_id, row_desc, row_desc_ext)))
-                {
-                  index_trigger->set_pre_data_row_desc(row_desc);
-                }
-                else
-                {
-                  TBSYS_LOG(ERROR,"cons whole row desc error!");
-                  ret = OB_INVALID_ARGUMENT;
-                }
               }
-              /*if(OB_SUCCESS == ret)
+              if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
+              {
+                TBSYS_LOG(ERROR,"construct row desc error");
+                ret = OB_ERROR;
+              }
+            }
+          }
+        }//end for
+        if(OB_SUCCESS == ret)
+        {
+          row_desc.reset();
+          row_desc_ext.reset();
+          if(OB_SUCCESS == (ret = cons_whole_row_desc_for_update(update_stmt, table_id, row_desc, row_desc_ext)))
+          {
+            index_trigger->set_pre_data_row_desc(row_desc);
+          }
+          else
+          {
+            TBSYS_LOG(ERROR,"cons whole row desc error!");
+            ret = OB_INVALID_ARGUMENT;
+          }
+        }
+        /*if(OB_SUCCESS == ret)
               {
                 int64_t index_num = 0;
                 IndexList modifiable_index_list;
@@ -9600,53 +9573,53 @@ int ObTransformer::gen_physical_update_new(
                       }
                   }
               }*/
-          }
       }
+    }
   }
   ObWhenFilter *when_filter_op = NULL;
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
-      if (update_stmt->get_when_expr_size() > 0)
-      {
-        if ((ret = gen_phy_when(logical_plan,
+    if (update_stmt->get_when_expr_size() > 0)
+    {
+      if ((ret = gen_phy_when(logical_plan,
                               inner_plan,
                               err_stat,
                               query_id,
                               *project_op,
                               when_filter_op
                               )) != OB_SUCCESS)
-        {
-        }
-        else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-        }
-      }
-      else
       {
-          if(!column_hit_index_flag)
-          {
-              /*if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index_num(table_id, modifiable_index_list)))
+      }
+      else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
+      {
+        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+      }
+    }
+    else
+    {
+      if(!column_hit_index_flag)
+      {
+        /*if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index_num(table_id, modifiable_index_list)))
               {
                 TRANS_LOG("get all modifiable index_num failed, err=%d", ret);
               }
               else
               {
                 project_op->set_index_num(modifiable_index_list.get_count());*/
-                if (OB_SUCCESS != (ret = ups_modify->set_child(0, *project_op)))
-                {
-                  TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                }
-              //}
-           }
-           else
-           {
-              if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
-              {
-                TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-              }
-           }
+        if (OB_SUCCESS != (ret = ups_modify->set_child(0, *project_op)))
+        {
+          TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+        }
+        //}
       }
+      else
+      {
+        if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
+        {
+          TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+        }
+      }
+    }
   }
   //add e
   if (OB_LIKELY(OB_SUCCESS == ret))
@@ -9666,19 +9639,19 @@ int ObTransformer::gen_physical_update_new(
     //modify maoxx
     else
     {
-        if (OB_SUCCESS != (ret = gen_phy_table_for_update_new(logical_plan, inner_plan, err_stat,
-                                                                update_stmt, table_id, *rowkey_info,
-                                                                row_desc, row_desc_ext, table_op)))
-        {
-        }
-        else if (OB_SUCCESS != (ret = project_op->set_child(0, *table_op)))
-        {
-          TRANS_LOG("Failed to set child, err=%d", ret);
-        }
-        if(OB_SUCCESS == ret && PHY_FILTER == table_op->get_type())
-        {
-          index_trigger->set_cond_flag(true);
-        }
+      if (OB_SUCCESS != (ret = gen_phy_table_for_update_new(logical_plan, inner_plan, err_stat,
+                                                            update_stmt, table_id, *rowkey_info,
+                                                            row_desc, row_desc_ext, table_op)))
+      {
+      }
+      else if (OB_SUCCESS != (ret = project_op->set_child(0, *table_op)))
+      {
+        TRANS_LOG("Failed to set child, err=%d", ret);
+      }
+      if(OB_SUCCESS == ret && PHY_FILTER == table_op->get_type())
+      {
+        index_trigger->set_cond_flag(true);
+      }
     }
     //modify e
   }
@@ -9749,14 +9722,14 @@ int ObTransformer::gen_physical_delete_new(
   //add maoxx
   if (OB_LIKELY(ret == OB_SUCCESS))
   {
-      if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(delete_stmt->get_delete_table_id(), modifiable_index_list)))
-      {
-          TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", delete_stmt->get_delete_table_id());
-      }
-      else if(modifiable_index_list.get_count() > 0)
-      {
-        need_modify_index_flag = true;
-      }
+    if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(delete_stmt->get_delete_table_id(), modifiable_index_list)))
+    {
+      TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", delete_stmt->get_delete_table_id());
+    }
+    else if(modifiable_index_list.get_count() > 0)
+    {
+      need_modify_index_flag = true;
+    }
   }
   //add e
   ObWhenFilter *when_filter_op = NULL;
@@ -9790,73 +9763,73 @@ int ObTransformer::gen_physical_delete_new(
       }
       else if (NULL != index_trigger)
       {
-          int sql_type = 1;
-          index_trigger->set_sql_type(sql_type);
-          index_trigger->set_data_tid(delete_stmt->get_delete_table_id());
-          index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
-          for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
+        int sql_type = 1;
+        index_trigger->set_sql_type(sql_type);
+        index_trigger->set_data_tid(delete_stmt->get_delete_table_id());
+        index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
+        for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
+        {
+          const ObTableSchema* index_schema = NULL;
+          uint64_t index_tid = OB_INVALID_ID;
+          uint64_t index_cid = OB_INVALID_ID;
+          modifiable_index_list.get_idx_id(i, index_tid);
+          if(OB_INVALID_ID != index_tid)
           {
-              const ObTableSchema* index_schema = NULL;
-              uint64_t index_tid = OB_INVALID_ID;
-              uint64_t index_cid = OB_INVALID_ID;
-              modifiable_index_list.get_idx_id(i, index_tid);
-              if(OB_INVALID_ID != index_tid)
+            index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
+            if(NULL == index_schema)
+            {
+              TBSYS_LOG(WARN,"get index schema failed!");
+              ret = OB_SCHEMA_ERROR;
+              break;
+            }
+            else
+            {
+              const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
+              ObRowDesc idx_del;
+              idx_del.reset();
+              idx_del.set_rowkey_cell_count(idx_ori.get_size());
+              for(int64_t j = 0; j < idx_ori.get_size(); j++)
               {
-                  index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
-                  if(NULL == index_schema)
+                if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
+                {
+                  TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+                  ret = OB_ERROR;
+                  break;
+                }
+                else
+                {
+                  if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
                   {
-                      TBSYS_LOG(WARN,"get index schema failed!");
-                      ret = OB_SCHEMA_ERROR;
-                      break;
+                    TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
                   }
-                  else
-                  {
-                      const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
-                      ObRowDesc idx_del;
-                      idx_del.reset();
-                      idx_del.set_rowkey_cell_count(idx_ori.get_size());
-                      for(int64_t j = 0; j < idx_ori.get_size(); j++)
-                      {
-                          if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
-                          {
-                              TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-                              ret = OB_ERROR;
-                              break;
-                          }
-                          else
-                          {
-                              if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
-                              {
-                                  TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                              }
-                          }
-                      }//end for
-                      if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, OB_ACTION_FLAG_COLUMN_ID)))
-                      {
-                          TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                      }
-                      if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))))
-                      {
-                          TBSYS_LOG(ERROR,"construct row desc error");
-                          ret = OB_ERROR;
-                      }
-                  }
-              }
-          }//end for
-          if(OB_SUCCESS == ret)
-          {
-              row_desc.reset();
-              row_desc_ext.reset();
-              if(OB_SUCCESS == (ret = cons_whole_row_desc_for_delete(table_id, row_desc, row_desc_ext)))
+                }
+              }//end for
+              if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, OB_ACTION_FLAG_COLUMN_ID)))
               {
-                  index_trigger->set_pre_data_row_desc(row_desc);
+                TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
               }
-              else
+              if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))))
               {
-                  TBSYS_LOG(ERROR,"cons whole row desc error!");
-                  ret = OB_INVALID_ARGUMENT;
+                TBSYS_LOG(ERROR,"construct row desc error");
+                ret = OB_ERROR;
               }
+            }
           }
+        }//end for
+        if(OB_SUCCESS == ret)
+        {
+          row_desc.reset();
+          row_desc_ext.reset();
+          if(OB_SUCCESS == (ret = cons_whole_row_desc_for_delete(table_id, row_desc, row_desc_ext)))
+          {
+            index_trigger->set_pre_data_row_desc(row_desc);
+          }
+          else
+          {
+            TBSYS_LOG(ERROR,"cons whole row desc error!");
+            ret = OB_INVALID_ARGUMENT;
+          }
+        }
       }
     }
     //add e
@@ -9930,16 +9903,17 @@ int ObTransformer::gen_physical_delete_new(
     //modify maoxx
     else
     {
-        if (OB_SUCCESS != (ret = gen_phy_table_for_delete(logical_plan, inner_plan, err_stat,
-                                                          delete_stmt, table_id, *rowkey_info,
-                                                          row_desc, row_desc_ext, table_op)))
-        {
-        }
-        else if (OB_SUCCESS != (ret = project_op->set_child(0, *table_op)))
-        {
-          TRANS_LOG("Failed to set child, err=%d", ret);
-        }
+      if (OB_SUCCESS != (ret = gen_phy_table_for_delete(logical_plan, inner_plan, err_stat,
+                                                        delete_stmt, table_id, *rowkey_info,
+                                                        row_desc, row_desc_ext, table_op)))
+      {
+      }
+      else if (OB_SUCCESS != (ret = project_op->set_child(0, *table_op)))
+      {
+        TRANS_LOG("Failed to set child, err=%d", ret);
+      }
     }
+    //modify e
   }
   if (ret == OB_SUCCESS)
   {
@@ -9959,460 +9933,460 @@ int ObTransformer::gen_physical_replace_new(
     const uint64_t& query_id,
     int32_t* index)
 {
-    int &ret = err_stat.err_code_ = OB_SUCCESS;
-    ObInsertStmt *insert_stmt = NULL;
-    ObPhysicalPlan* inner_plan = NULL;
-    ObUpsModifyWithDmlType *ups_modify = NULL;
-    ObSEArray<int64_t, 64> row_desc_map;
-    ObRowDesc row_desc;
-    ObRowDescExt row_desc_ext;
-    ObRowDesc row_desc_for_static_data;
-    ObRowDescExt row_desc_ext_for_static_data;
-    const ObRowkeyInfo *rowkey_info = NULL;
-    bool need_modify_index_flag = false;
-    IndexList modifiable_index_list;
-    ObIndexTrigger *index_trigger = NULL;
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  ObInsertStmt *insert_stmt = NULL;
+  ObPhysicalPlan* inner_plan = NULL;
+  ObUpsModifyWithDmlType *ups_modify = NULL;
+  ObSEArray<int64_t, 64> row_desc_map;
+  ObRowDesc row_desc;
+  ObRowDescExt row_desc_ext;
+  ObRowDesc row_desc_for_static_data;
+  ObRowDescExt row_desc_ext_for_static_data;
+  const ObRowkeyInfo *rowkey_info = NULL;
+  bool need_modify_index_flag = false;
+  IndexList modifiable_index_list;
+  ObIndexTrigger *index_trigger = NULL;
 
-    if (OB_SUCCESS != (ret = wrap_ups_executor(physical_plan, query_id, inner_plan, index, err_stat)))
+  if (OB_SUCCESS != (ret = wrap_ups_executor(physical_plan, query_id, inner_plan, index, err_stat)))
+  {
+    TBSYS_LOG(WARN, "err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = get_stmt(logical_plan, err_stat, query_id, insert_stmt)))
+  {
+    TRANS_LOG("Fail to get statement");
+  }
+  else if (NULL == CREATE_PHY_OPERRATOR(ups_modify, ObUpsModifyWithDmlType, inner_plan, err_stat))
+  {
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(
+                            ups_modify,
+                            physical_plan == inner_plan ? index : NULL,
+                            physical_plan != inner_plan)))
+  {
+    TRANS_LOG("Failed to add phy query, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = cons_row_desc(insert_stmt->get_table_id(), insert_stmt, row_desc_ext, row_desc, rowkey_info, row_desc_map, err_stat)))
+  {
+    TRANS_LOG("Failed to cons row desc, err=%d", ret);
+  }
+  else
+  {
+    ups_modify->set_dml_type(OB_DML_REPLACE);
+    uint64_t tid = insert_stmt->get_table_id();
+    uint64_t cid = OB_INVALID_ID;
+    for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_info->get_size(); ++i)
     {
-      TBSYS_LOG(WARN, "err=%d", ret);
-    }
-    else if (OB_SUCCESS != (ret = get_stmt(logical_plan, err_stat, query_id, insert_stmt)))
-    {
-      TRANS_LOG("Fail to get statement");
-    }
-    else if (NULL == CREATE_PHY_OPERRATOR(ups_modify, ObUpsModifyWithDmlType, inner_plan, err_stat))
-    {
-      ret = OB_ALLOCATE_MEMORY_FAILED;
-    }
-    else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(
-                                                  ups_modify,
-                                                  physical_plan == inner_plan ? index : NULL,
-                                                  physical_plan != inner_plan)))
-    {
-      TRANS_LOG("Failed to add phy query, err=%d", ret);
-    }
-    else if (OB_SUCCESS != (ret = cons_row_desc(insert_stmt->get_table_id(), insert_stmt, row_desc_ext, row_desc, rowkey_info, row_desc_map, err_stat)))
-    {
-      TRANS_LOG("Failed to cons row desc, err=%d", ret);
-    }
-    else
-    {
-        ups_modify->set_dml_type(OB_DML_REPLACE);
-        uint64_t tid = insert_stmt->get_table_id();
-        uint64_t cid = OB_INVALID_ID;
-        for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_info->get_size(); ++i)
-        {
-          if (OB_SUCCESS != (ret = rowkey_info->get_column_id(i, cid)))
-          {
-            TBSYS_LOG(USER_ERROR, "primary key can not be empty");
-            ret = OB_ERR_INSERT_NULL_ROWKEY;
-            break;
-          }
-          else if (OB_INVALID_INDEX == row_desc.get_idx(tid, cid))
-          {
-            TBSYS_LOG(USER_ERROR, "primary key can not be empty");
-            ret = OB_ERR_INSERT_NULL_ROWKEY;
-            break;
-          }
-        }//end for
+      if (OB_SUCCESS != (ret = rowkey_info->get_column_id(i, cid)))
+      {
+        TBSYS_LOG(USER_ERROR, "primary key can not be empty");
+        ret = OB_ERR_INSERT_NULL_ROWKEY;
+        break;
+      }
+      else if (OB_INVALID_INDEX == row_desc.get_idx(tid, cid))
+      {
+        TBSYS_LOG(USER_ERROR, "primary key can not be empty");
+        ret = OB_ERR_INSERT_NULL_ROWKEY;
+        break;
+      }
+    }//end for
 
-        if (OB_LIKELY(OB_SUCCESS == ret))
-        {
-          ObObj data_type;
-          for (int i = 0; i < row_desc_ext.get_column_num(); ++i)
-          {
-            if (OB_SUCCESS != (ret = row_desc_ext.get_by_idx(i, tid, cid, data_type)))
-            {
-              TBSYS_LOG(ERROR, "failed to get type, err=%d", ret);
-              ret = OB_ERR_UNEXPECTED;
-              break;
-            }
-            else if (ObCreateTimeType == data_type.get_type()
-                     || ObModifyTimeType == data_type.get_type())
-            {
-              ret = OB_ERR_CREAT_MODIFY_TIME_COLUMN;
-              TRANS_LOG("Column of type ObCreateTimeType/ObModifyTimeType can not be inserted");
-              break;
-            }
-          }//end for
-        }
-    }
-    FILL_TRACE_LOG("cons_row_desc");
-    if (OB_LIKELY(ret == OB_SUCCESS))
-    {
-        if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(insert_stmt->get_table_id(), modifiable_index_list)))
-        {
-            TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", insert_stmt->get_table_id());
-        }
-        else if(modifiable_index_list.get_count() > 0)
-        {
-          need_modify_index_flag = true;
-        }
-    }
     if (OB_LIKELY(OB_SUCCESS == ret))
     {
-        if (need_modify_index_flag)   //replace table with index
+      ObObj data_type;
+      for (int i = 0; i < row_desc_ext.get_column_num(); ++i)
+      {
+        if (OB_SUCCESS != (ret = row_desc_ext.get_by_idx(i, tid, cid, data_type)))
         {
-            ObTableRpcScan *table_scan = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
+          TBSYS_LOG(ERROR, "failed to get type, err=%d", ret);
+          ret = OB_ERR_UNEXPECTED;
+          break;
+        }
+        else if (ObCreateTimeType == data_type.get_type()
+                 || ObModifyTimeType == data_type.get_type())
+        {
+          ret = OB_ERR_CREAT_MODIFY_TIME_COLUMN;
+          TRANS_LOG("Column of type ObCreateTimeType/ObModifyTimeType can not be inserted");
+          break;
+        }
+      }//end for
+    }
+  }
+  FILL_TRACE_LOG("cons_row_desc");
+  if (OB_LIKELY(ret == OB_SUCCESS))
+  {
+    if(OB_SUCCESS != (ret = sql_context_->schema_manager_->get_all_modifiable_index(insert_stmt->get_table_id(), modifiable_index_list)))
+    {
+      TBSYS_LOG(WARN,"failed to query if column hit index!table_id[%ld]", insert_stmt->get_table_id());
+    }
+    else if(modifiable_index_list.get_count() > 0)
+    {
+      need_modify_index_flag = true;
+    }
+  }
+  if (OB_LIKELY(OB_SUCCESS == ret))
+  {
+    if (need_modify_index_flag)   //replace table with index
+    {
+      ObTableRpcScan *table_scan = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        ObRpcScanHint hint;
+        hint.read_method_ = ObSqlReadStrategy::USE_GET;
+        hint.is_get_skip_empty_row_ = false;
+        hint.read_consistency_ = FROZEN;
+        const ObTableSchema *table_schema = NULL;
+        int64_t table_id = insert_stmt->get_table_id();
+        CREATE_PHY_OPERRATOR(table_scan, ObTableRpcScan, inner_plan, err_stat);
+        if (OB_UNLIKELY(OB_SUCCESS != ret))
+        {
+        }
+        else if(OB_SUCCESS != (ret = cons_whole_row_desc_for_replace(insert_stmt, insert_stmt->get_table_id(), row_desc_for_static_data, row_desc_ext_for_static_data)))
+        {
+          TRANS_LOG("fail to cons row desc for static data, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = table_scan->set_table(table_id, table_id)))
+        {
+          TRANS_LOG("failed to set table id, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = table_scan->init(sql_context_, &hint)))
+        {
+          TRANS_LOG("failed to init table scan, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = gen_phy_static_data_scan_for_replace(logical_plan, inner_plan, err_stat,
+                                                                           insert_stmt, row_desc_for_static_data, row_desc_map,
+                                                                           table_id, *rowkey_info, *table_scan)))
+        {
+          TRANS_LOG("err=%d", ret);
+        }
+        else if (NULL == (table_schema = sql_context_->schema_manager_->get_table_schema(table_id)))
+        {
+          ret = OB_ERR_ILLEGAL_ID;
+          TRANS_LOG("Fail to get table schema for table[%ld]", table_id);
+        }
+        else if ((ret = physical_plan->add_base_table_version(
+                    table_id,
+                    table_schema->get_schema_version()
+                    )) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add base table version failed, table_id=%ld, ret=%d", table_id, ret);
+        }
+        else
+        {
+          table_scan->set_rowkey_cell_count(row_desc.get_rowkey_cell_count());
+          table_scan->set_cache_bloom_filter(true);
+        }
+      }
+      ObValues *tmp_table = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(tmp_table, ObValues, inner_plan, err_stat);
+        if (OB_UNLIKELY(OB_SUCCESS != ret))
+        {
+        }
+        else if (OB_SUCCESS != (ret = tmp_table->set_child(0, *table_scan)))
+        {
+          TBSYS_LOG(WARN, "failed to set child, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(tmp_table)))
+        {
+          TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
+        }
+      }
+      ObMemSSTableScan *static_data = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(static_data, ObMemSSTableScan, inner_plan, err_stat);
+        if (OB_LIKELY(OB_SUCCESS == ret))
+        {
+          static_data->set_tmp_table(tmp_table->get_id());
+        }
+      }
+      ObIncScan *inc_scan = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(inc_scan, ObIncScan, inner_plan, err_stat);
+        if (OB_LIKELY(OB_SUCCESS == ret))
+        {
+          inc_scan->set_scan_type(ObIncScan::ST_MGET);
+          inc_scan->set_write_lock_flag();
+        }
+      }
+      ObMultipleGetMerge *fuse_op = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(fuse_op, ObMultipleGetMerge, inner_plan, err_stat);
+        if (OB_UNLIKELY(OB_SUCCESS != ret))
+        {
+        }
+        else if ((ret = fuse_op->set_child(0, *static_data)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Set child of fuse_op operator failed, err=%d", ret);
+        }
+        else if ((ret = fuse_op->set_child(1, *inc_scan)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Set child of fuse_op operator failed, err=%d", ret);
+        }
+        else
+        {
+          fuse_op->set_is_ups_row(false);
+        }
+      }
+      ObExprValues *input_values = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(input_values, ObExprValues, inner_plan, err_stat);
+        if (OB_UNLIKELY(OB_SUCCESS != ret))
+        {
+        }
+        else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(input_values)))
+        {
+          TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
+        }
+        else if ((ret = input_values->set_row_desc(row_desc_for_static_data, row_desc_ext_for_static_data)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Set descriptor of value operator failed, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
+                                                                 row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
+        {
+          TRANS_LOG("Failed to generate values, err=%d", ret);
+        }
+        else
+        {
+          input_values->set_check_rowkey_duplicate(true);
+        }
+      }
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
+        {
+          ret = OB_ALLOCATE_MEMORY_FAILED;
+          TRANS_LOG("Failed to create phy operator index_trigger");
+        }
+        else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *fuse_op)))
+        {
+          TRANS_LOG("Failed to set child, err=%d", ret);
+        }
+        else if (NULL != index_trigger)
+        {
+          int sql_type = 3;
+          index_trigger->set_sql_type(sql_type);
+          index_trigger->set_data_tid(insert_stmt->get_table_id());
+          index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
+          index_trigger->set_pre_data_row_desc(row_desc_for_static_data);
+          index_trigger->set_post_data_row_desc(row_desc_for_static_data);
+          //index_trigger->set_replace_values_id(input_values->get_id());
+          inc_scan->set_values(input_values->get_id(), false);
+          input_values->open();
+          const ObRow *row;
+          while(OB_SUCCESS == (ret = input_values->get_next_row(row)))
+          {
+            index_trigger->add_post_data_row(*row);
+          }
+          if(OB_ITER_END == ret)
+            ret = OB_SUCCESS;
+          for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
+          {
+            const ObTableSchema* index_schema = NULL;
+            uint64_t index_tid = OB_INVALID_ID;
+            uint64_t index_cid = OB_INVALID_ID;
+            modifiable_index_list.get_idx_id(i, index_tid);
+            if(OB_INVALID_ID != index_tid)
             {
-              ObRpcScanHint hint;
-              hint.read_method_ = ObSqlReadStrategy::USE_GET;
-              hint.is_get_skip_empty_row_ = false;
-              hint.read_consistency_ = FROZEN;
-              const ObTableSchema *table_schema = NULL;
-              int64_t table_id = insert_stmt->get_table_id();
-              CREATE_PHY_OPERRATOR(table_scan, ObTableRpcScan, inner_plan, err_stat);
-              if (OB_UNLIKELY(OB_SUCCESS != ret))
+              index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
+              if(NULL == index_schema)
               {
-              }
-              else if(OB_SUCCESS != (ret = cons_whole_row_desc_for_replace(insert_stmt, insert_stmt->get_table_id(), row_desc_for_static_data, row_desc_ext_for_static_data)))
-              {
-                TRANS_LOG("fail to cons row desc for static data, err=%d", ret);
-              }
-              else if (OB_SUCCESS != (ret = table_scan->set_table(table_id, table_id)))
-              {
-                TRANS_LOG("failed to set table id, err=%d", ret);
-              }
-              else if (OB_SUCCESS != (ret = table_scan->init(sql_context_, &hint)))
-              {
-                TRANS_LOG("failed to init table scan, err=%d", ret);
-              }
-              else if (OB_SUCCESS != (ret = gen_phy_static_data_scan_for_replace(logical_plan, inner_plan, err_stat,
-                                                                     insert_stmt, row_desc_for_static_data, row_desc_map,
-                                                                     table_id, *rowkey_info, *table_scan)))
-              {
-                TRANS_LOG("err=%d", ret);
-              }
-              else if (NULL == (table_schema = sql_context_->schema_manager_->get_table_schema(table_id)))
-              {
-                ret = OB_ERR_ILLEGAL_ID;
-                TRANS_LOG("Fail to get table schema for table[%ld]", table_id);
-              }
-              else if ((ret = physical_plan->add_base_table_version(
-                                                table_id,
-                                                table_schema->get_schema_version()
-                                                )) != OB_SUCCESS)
-              {
-                TRANS_LOG("Add base table version failed, table_id=%ld, ret=%d", table_id, ret);
+                TBSYS_LOG(WARN,"get index schema failed!");
+                ret = OB_SCHEMA_ERROR;
+                break;
               }
               else
               {
-                table_scan->set_rowkey_cell_count(row_desc.get_rowkey_cell_count());
-                table_scan->set_cache_bloom_filter(true);
-              }
-            }
-            ObValues *tmp_table = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-              CREATE_PHY_OPERRATOR(tmp_table, ObValues, inner_plan, err_stat);
-              if (OB_UNLIKELY(OB_SUCCESS != ret))
-              {
-              }
-              else if (OB_SUCCESS != (ret = tmp_table->set_child(0, *table_scan)))
-              {
-                TBSYS_LOG(WARN, "failed to set child, err=%d", ret);
-              }
-              else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(tmp_table)))
-              {
-                TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
-              }
-            }
-            ObMemSSTableScan *static_data = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-              CREATE_PHY_OPERRATOR(static_data, ObMemSSTableScan, inner_plan, err_stat);
-              if (OB_LIKELY(OB_SUCCESS == ret))
-              {
-                static_data->set_tmp_table(tmp_table->get_id());
-              }
-            }
-            ObIncScan *inc_scan = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-              CREATE_PHY_OPERRATOR(inc_scan, ObIncScan, inner_plan, err_stat);
-              if (OB_LIKELY(OB_SUCCESS == ret))
-              {
-                inc_scan->set_scan_type(ObIncScan::ST_MGET);
-                inc_scan->set_write_lock_flag();
-              }
-            }
-            ObMultipleGetMerge *fuse_op = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-              CREATE_PHY_OPERRATOR(fuse_op, ObMultipleGetMerge, inner_plan, err_stat);
-              if (OB_UNLIKELY(OB_SUCCESS != ret))
-              {
-              }
-              else if ((ret = fuse_op->set_child(0, *static_data)) != OB_SUCCESS)
-              {
-                TRANS_LOG("Set child of fuse_op operator failed, err=%d", ret);
-              }
-              else if ((ret = fuse_op->set_child(1, *inc_scan)) != OB_SUCCESS)
-              {
-                TRANS_LOG("Set child of fuse_op operator failed, err=%d", ret);
-              }
-              else
-              {
-                fuse_op->set_is_ups_row(false);
-              }
-            }
-            ObExprValues *input_values = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-              CREATE_PHY_OPERRATOR(input_values, ObExprValues, inner_plan, err_stat);
-              if (OB_UNLIKELY(OB_SUCCESS != ret))
-              {
-              }
-              else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(input_values)))
-              {
-                TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
-              }
-              else if ((ret = input_values->set_row_desc(row_desc_for_static_data, row_desc_ext_for_static_data)) != OB_SUCCESS)
-              {
-                TRANS_LOG("Set descriptor of value operator failed, err=%d", ret);
-              }
-              else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                           row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
-              {
-                TRANS_LOG("Failed to generate values, err=%d", ret);
-              }
-              else
-              {
-                input_values->set_check_rowkey_duplicate(true);
-              }
-            }
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-                if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
+                const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
+                ObRowDesc idx_del,idx_ins;
+                idx_del.reset();
+                idx_ins.reset();
+                idx_del.set_rowkey_cell_count(idx_ori.get_size());
+                idx_ins.set_rowkey_cell_count(idx_ori.get_size());
+                for(int64_t j = 0; j < idx_ori.get_size(); j++)
                 {
-                    ret = OB_ALLOCATE_MEMORY_FAILED;
-                    TRANS_LOG("Failed to create phy operator index_trigger");
-                }
-                else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *fuse_op)))
-                {
-                    TRANS_LOG("Failed to set child, err=%d", ret);
-                }
-                else if (NULL != index_trigger)
-                {
-                    int sql_type = 3;
-                    index_trigger->set_sql_type(sql_type);
-                    index_trigger->set_data_tid(insert_stmt->get_table_id());
-                    index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
-                    index_trigger->set_pre_data_row_desc(row_desc_for_static_data);
-                    index_trigger->set_post_data_row_desc(row_desc_for_static_data);
-                    //index_trigger->set_replace_values_id(input_values->get_id());
-                    inc_scan->set_values(input_values->get_id(), false);
-                    input_values->open();
-                    const ObRow *row;
-                    while(OB_SUCCESS == (ret = input_values->get_next_row(row)))
+                  if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
+                  {
+                    TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+                    ret = OB_ERROR;
+                    break;
+                  }
+                  else
+                  {
+                    if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
                     {
-                        index_trigger->add_post_data_row(*row);
+                      TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
                     }
-                    if(OB_ITER_END == ret)
-                        ret = OB_SUCCESS;
-                    for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
+                    else if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
                     {
-                        const ObTableSchema* index_schema = NULL;
-                        uint64_t index_tid = OB_INVALID_ID;
-                        uint64_t index_cid = OB_INVALID_ID;
-                        modifiable_index_list.get_idx_id(i, index_tid);
-                        if(OB_INVALID_ID != index_tid)
-                        {
-                            index_schema = sql_context_->schema_manager_->get_table_schema(index_tid);
-                            if(NULL == index_schema)
-                            {
-                                TBSYS_LOG(WARN,"get index schema failed!");
-                                ret = OB_SCHEMA_ERROR;
-                                break;
-                            }
-                            else
-                            {
-                                const ObRowkeyInfo idx_ori = index_schema->get_rowkey_info();
-                                ObRowDesc idx_del,idx_ins;
-                                idx_del.reset();
-                                idx_ins.reset();
-                                idx_del.set_rowkey_cell_count(idx_ori.get_size());
-                                idx_ins.set_rowkey_cell_count(idx_ori.get_size());
-                                for(int64_t j = 0; j < idx_ori.get_size(); j++)
-                                {
-                                    if(OB_SUCCESS != (ret = idx_ori.get_column_id(j, index_cid)))
-                                    {
-                                        TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-                                        ret = OB_ERROR;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                         if(OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid, index_cid)))
-                                         {
-                                             TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                                         }
-                                         else if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                         {
-                                             TBSYS_LOG(WARN,"idx_upd.add_column_desc occur an error,ret[%d]",ret);
-                                         }
-                                    }
-                                }
-                                if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid,OB_ACTION_FLAG_COLUMN_ID)))
-                                {
-                                    TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
-                                }
-                                else
-                                {
-                                    for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
-                                    {
-                                        const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
-                                        if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
-                                        {
+                      TBSYS_LOG(WARN,"idx_upd.add_column_desc occur an error,ret[%d]",ret);
+                    }
+                  }
+                }
+                if(OB_SUCCESS == ret && OB_SUCCESS != (ret = idx_del.add_column_desc(index_tid,OB_ACTION_FLAG_COLUMN_ID)))
+                {
+                  TBSYS_LOG(WARN,"idx_del.add_column_desc occur an error,ret[%d]",ret);
+                }
+                else
+                {
+                  for (int64_t k = OB_APP_MIN_COLUMN_ID; k <= (int64_t)(index_schema->get_max_column_id()); k++)
+                  {
+                    const ObColumnSchemaV2* idx_ocs = sql_context_->schema_manager_->get_column_schema(index_tid, k);
+                    if(idx_ori.is_rowkey_column(k) || NULL == idx_ocs)
+                    {
 
-                                        }
-                                        else
-                                        {
-                                            index_cid = idx_ocs->get_id();
-                                            if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
-                                            {
-                                                TBSYS_LOG(ERROR,"error in add_column_desc");
-                                                break;
-                                            }
-                                        }
-                                    }//end for
-                                    /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
+                    }
+                    else
+                    {
+                      index_cid = idx_ocs->get_id();
+                      if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, index_cid)))
+                      {
+                        TBSYS_LOG(ERROR,"error in add_column_desc");
+                        break;
+                      }
+                    }
+                  }//end for
+                  /*if(OB_SUCCESS == ret && sql_context_->schema_manager_->is_index_has_storing(index_tid))
                                     {
                                         if(OB_SUCCESS != (ret = idx_ins.add_column_desc(index_tid, OB_INDEX_VIRTUAL_COLUMN_ID)))
                                         {
                                             TBSYS_LOG(WARN, "add index vitual column failed,ret = %d", ret);
                                         }
                                     }*/
-                                }
-                                if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
-                                {
-                                    TBSYS_LOG(ERROR,"construct row desc error");
-                                    ret = OB_ERROR;
-                                }
-                            }
-                        }
-                    }//end for
                 }
-            }
-            ObWhenFilter *when_filter_op = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-                if (insert_stmt->get_when_expr_size() > 0)
+                if(OB_SUCCESS == ret && (OB_SUCCESS != (ret = index_trigger->add_row_desc_del(i, idx_del))||OB_SUCCESS != (ret = index_trigger->add_row_desc_ins(i, idx_ins))))
                 {
-                    if ((ret = gen_phy_when(logical_plan,
-                                            inner_plan,
-                                            err_stat,
-                                            query_id,
-                                            *input_values,
-                                            when_filter_op
-                                            )) != OB_SUCCESS)
-                    {
-                    }
-                    else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
-                    {
-                        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                    }
+                  TBSYS_LOG(ERROR,"construct row desc error");
+                  ret = OB_ERROR;
                 }
-                else
-                {
-                    if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
-                    {
-                        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                    }
-                }
-            }
-        }
-        else   //replace table without index
-        {
-            ObExprValues *value_op = NULL;
-            if (ret == OB_SUCCESS)
-            {
-                if (OB_LIKELY(insert_stmt->get_insert_query_id() == OB_INVALID_ID))
-                {
-                    CREATE_PHY_OPERRATOR(value_op, ObExprValues, inner_plan, err_stat);
-                    if (OB_SUCCESS != ret)
-                    {
-
-                    }
-                    else if ((ret = value_op->set_row_desc(row_desc, row_desc_ext)) != OB_SUCCESS)
-                    {
-                      TRANS_LOG("Set descriptor of value operator failed");
-                    }
-                    else if (OB_SUCCESS != (ret = gen_phy_values(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                                 row_desc, row_desc_ext, &row_desc_map, *value_op)))
-                    {
-                      TRANS_LOG("Failed to gen expr values, err=%d", ret);
-                    }
-                    else
-                    {
-                      value_op->set_do_eval_when_serialize(true);
-                    }
-                    FILL_TRACE_LOG("gen_phy_values");
-                }
-                else
-                {
-                    // replace ... select
-                    TRANS_LOG("REPLACE INTO ... SELECT is not supported yet");
-                    ret = OB_NOT_SUPPORTED;
-                }
-            }
-            ObWhenFilter *when_filter_op = NULL;
-            if (OB_LIKELY(OB_SUCCESS == ret))
-            {
-                if (insert_stmt->get_when_expr_size() > 0)
-                {
-                    if ((ret = gen_phy_when(logical_plan,
-                                            inner_plan,
-                                            err_stat,
-                                            query_id,
-                                            *value_op,
-                                            when_filter_op
-                                            )) != OB_SUCCESS)
-                    {
-                    }
-                    else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
-                    {
-                        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                    }
-                }
-                else
-                {
-                    if (OB_SUCCESS != (ret = ups_modify->set_child(0, *value_op)))
-                    {
-                        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-                    }
-                }
-            }
-            if (OB_SUCCESS == ret)
-            {
-              // record table's schema version
-              uint64_t tid = insert_stmt->get_table_id();
-              const ObTableSchema *table_schema = NULL;
-              if (NULL == (table_schema = sql_context_->schema_manager_->get_table_schema(tid)))
-              {
-                ret = OB_ERR_ILLEGAL_ID;
-                TRANS_LOG("fail to get table schema for table[%ld]", tid);
-              }
-              else if ((ret = physical_plan->add_base_table_version(
-                          tid,
-                          table_schema->get_schema_version()
-                          )) != OB_SUCCESS)
-              {
-                TRANS_LOG("Failed to add table version into physical_plan, err=%d", ret);
               }
             }
+          }//end for
         }
-        if (OB_SUCCESS == ret)
+      }
+      ObWhenFilter *when_filter_op = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        if (insert_stmt->get_when_expr_size() > 0)
         {
-          if ((ret = merge_tables_version(*physical_plan, *inner_plan)) != OB_SUCCESS)
+          if ((ret = gen_phy_when(logical_plan,
+                                  inner_plan,
+                                  err_stat,
+                                  query_id,
+                                  *input_values,
+                                  when_filter_op
+                                  )) != OB_SUCCESS)
           {
-            TRANS_LOG("Failed to add base tables version, err=%d", ret);
+          }
+          else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
           }
         }
+        else
+        {
+          if (OB_SUCCESS != (ret = ups_modify->set_child(0, *index_trigger)))
+          {
+            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+          }
+        }
+      }
     }
-    return ret;
+    else   //replace table without index
+    {
+      ObExprValues *value_op = NULL;
+      if (ret == OB_SUCCESS)
+      {
+        if (OB_LIKELY(insert_stmt->get_insert_query_id() == OB_INVALID_ID))
+        {
+          CREATE_PHY_OPERRATOR(value_op, ObExprValues, inner_plan, err_stat);
+          if (OB_SUCCESS != ret)
+          {
+
+          }
+          else if ((ret = value_op->set_row_desc(row_desc, row_desc_ext)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Set descriptor of value operator failed");
+          }
+          else if (OB_SUCCESS != (ret = gen_phy_values(logical_plan, inner_plan, err_stat, insert_stmt,
+                                                       row_desc, row_desc_ext, &row_desc_map, *value_op)))
+          {
+            TRANS_LOG("Failed to gen expr values, err=%d", ret);
+          }
+          else
+          {
+            value_op->set_do_eval_when_serialize(true);
+          }
+          FILL_TRACE_LOG("gen_phy_values");
+        }
+        else
+        {
+          // replace ... select
+          TRANS_LOG("REPLACE INTO ... SELECT is not supported yet");
+          ret = OB_NOT_SUPPORTED;
+        }
+      }
+      ObWhenFilter *when_filter_op = NULL;
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        if (insert_stmt->get_when_expr_size() > 0)
+        {
+          if ((ret = gen_phy_when(logical_plan,
+                                  inner_plan,
+                                  err_stat,
+                                  query_id,
+                                  *value_op,
+                                  when_filter_op
+                                  )) != OB_SUCCESS)
+          {
+          }
+          else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+          }
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = ups_modify->set_child(0, *value_op)))
+          {
+            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+          }
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // record table's schema version
+        uint64_t tid = insert_stmt->get_table_id();
+        const ObTableSchema *table_schema = NULL;
+        if (NULL == (table_schema = sql_context_->schema_manager_->get_table_schema(tid)))
+        {
+          ret = OB_ERR_ILLEGAL_ID;
+          TRANS_LOG("fail to get table schema for table[%ld]", tid);
+        }
+        else if ((ret = physical_plan->add_base_table_version(
+                    tid,
+                    table_schema->get_schema_version()
+                    )) != OB_SUCCESS)
+        {
+          TRANS_LOG("Failed to add table version into physical_plan, err=%d", ret);
+        }
+      }
+    }
+    if (OB_SUCCESS == ret)
+    {
+      if ((ret = merge_tables_version(*physical_plan, *inner_plan)) != OB_SUCCESS)
+      {
+        TRANS_LOG("Failed to add base tables version, err=%d", ret);
+      }
+    }
+  }
+  return ret;
 }
 //add e
 
@@ -11378,311 +11352,311 @@ int ObTransformer::gen_phy_when(
 //add maoxx
 int ObTransformer::cons_whole_row_desc_for_delete(uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext)
 {
-    int ret = OB_SUCCESS;
-    const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
-    ObRowkeyInfo ori;
-    uint64_t cid = OB_INVALID_ID;
-    uint64_t max_column_id = OB_INVALID_ID;
-    ObObj obj_type;
-    if(NULL == table_schema)
+  int ret = OB_SUCCESS;
+  const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
+  ObRowkeyInfo ori;
+  uint64_t cid = OB_INVALID_ID;
+  uint64_t max_column_id = OB_INVALID_ID;
+  ObObj obj_type;
+  if(NULL == table_schema)
+  {
+    TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
+    ret = OB_SCHEMA_ERROR;
+  }
+  else
+  {
+    ori = table_schema->get_rowkey_info();
+    desc.set_rowkey_cell_count(ori.get_size());
+    for(int64_t i = 0; i < ori.get_size(); i++)
     {
-      TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
-      ret = OB_SCHEMA_ERROR;
+      const ObColumnSchemaV2* ocs = NULL;
+      if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
+      {
+        TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+        ret = OB_SCHEMA_ERROR;
+        break;
+      }
+      else
+      {
+        ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
+        if(NULL == ocs)
+        {
+          TBSYS_LOG(WARN,"NULL Pointer of column schmea");
+          ret = OB_SCHEMA_ERROR;
+          break;
+        }
+        if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc!");
+          ret = OB_ERROR;
+          break;
+        }
+        else
+        {
+          obj_type.set_type(ocs->get_type());
+        }
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc_ext!");
+          ret = OB_ERROR;
+          break;
+        }
+      }
     }
-    else
+    max_column_id = table_schema->get_max_column_id();
+    for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
     {
-        ori = table_schema->get_rowkey_info();
-        desc.set_rowkey_cell_count(ori.get_size());
-        for(int64_t i = 0; i < ori.get_size(); i++)
+      bool hit_flag = false;
+      const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
+      if(NULL == ocs)
+      {
+        TBSYS_LOG(WARN,"get column schema error!");
+        ret = OB_SCHEMA_ERROR;
+      }
+      else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index_and_rowkey(table_id, (uint64_t)j, hit_flag)))
+      {
+        TBSYS_LOG(WARN, "failed to check if column hit index");
+        ret = OB_ERROR;
+      }
+      else if(!ori.is_rowkey_column(j) && hit_flag)
+      {
+        if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
         {
-          const ObColumnSchemaV2* ocs = NULL;
-          if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
-          {
-            TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-            ret = OB_SCHEMA_ERROR;
-            break;
-          }
-          else
-          {
-            ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
-            if(NULL == ocs)
-            {
-              TBSYS_LOG(WARN,"NULL Pointer of column schmea");
-              ret = OB_SCHEMA_ERROR;
-              break;
-            }
-            if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc!");
-              ret = OB_ERROR;
-              break;
-            }
-            else
-            {
-              obj_type.set_type(ocs->get_type());
-            }
-            if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc_ext!");
-              ret = OB_ERROR;
-              break;
-            }
-          }
+          TBSYS_LOG(WARN,"failed to add column desc!");
+          ret = OB_ERROR;
         }
-        max_column_id = table_schema->get_max_column_id();
-        for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
+        else
         {
-          bool hit_flag = false;
-          const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
-          if(NULL == ocs)
-          {
-            TBSYS_LOG(WARN,"get column schema error!");
-            ret = OB_SCHEMA_ERROR;
-          }
-          else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index_and_rowkey(table_id, (uint64_t)j, hit_flag)))
-          {
-            TBSYS_LOG(WARN, "failed to check if column hit index");
-            ret = OB_ERROR;
-          }
-          else if(!ori.is_rowkey_column(j) && hit_flag)
-          {
-            if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc!");
-              ret = OB_ERROR;
-            }
-            else
-            {
-              obj_type.set_type(ocs->get_type());
-            }
-            if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc_ext!");
-              ret = OB_ERROR;
-              break;
-            }
-          }
+          obj_type.set_type(ocs->get_type());
         }
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc_ext!");
+          ret = OB_ERROR;
+          break;
+        }
+      }
     }
-    return ret;
+  }
+  return ret;
 }
 
 int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext)
 {
-    int ret = OB_SUCCESS;
-    const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
-    ObRowkeyInfo ori;
-    uint64_t cid = OB_INVALID_ID;
-    uint64_t max_column_id = OB_INVALID_ID;
-    ObObj obj_type;
-    if(NULL == table_schema)
+  int ret = OB_SUCCESS;
+  const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
+  ObRowkeyInfo ori;
+  uint64_t cid = OB_INVALID_ID;
+  uint64_t max_column_id = OB_INVALID_ID;
+  ObObj obj_type;
+  if(NULL == table_schema)
+  {
+    TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
+    ret = OB_SCHEMA_ERROR;
+  }
+  else
+  {
+    ori = table_schema->get_rowkey_info();
+    desc.set_rowkey_cell_count(ori.get_size());
+    for(int64_t i = 0; i < ori.get_size(); i++)
     {
-      TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
-      ret = OB_SCHEMA_ERROR;
-    }
-    else
-    {
-        ori = table_schema->get_rowkey_info();
-        desc.set_rowkey_cell_count(ori.get_size());
-        for(int64_t i = 0; i < ori.get_size(); i++)
+      const ObColumnSchemaV2* ocs = NULL;
+      if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
+      {
+        TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+        ret = OB_SCHEMA_ERROR;
+        break;
+      }
+      else
+      {
+        ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
+        if(NULL == ocs)
         {
-          const ObColumnSchemaV2* ocs = NULL;
-          if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
+          TBSYS_LOG(WARN,"NULL Pointer of column schmea");
+          ret = OB_SCHEMA_ERROR;
+          break;
+        }
+        if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc!");
+          ret = OB_ERROR;
+          break;
+        }
+        else
+        {
+          obj_type.set_type(ocs->get_type());
+        }
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc_ext!");
+          ret = OB_ERROR;
+          break;
+        }
+      }
+    }
+    max_column_id = table_schema->get_max_column_id();
+    for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
+    {
+      bool column_hit_index_flag = false;
+      const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
+      if(NULL == ocs)
+      {
+        TBSYS_LOG(WARN,"get column schema error!");
+        ret = OB_SCHEMA_ERROR;
+      }
+      else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, (uint64_t)j, column_hit_index_flag)))
+      {
+        TBSYS_LOG(WARN, "failed to check if column hit index");
+        ret = OB_ERROR;
+      }
+      else if(!ori.is_rowkey_column(j) && !column_hit_index_flag)
+      {
+        uint64_t set_cid = OB_INVALID_ID;
+        for(int32_t set_cid_idx = 0; set_cid_idx < stmt->get_column_size(); set_cid_idx++)
+        {
+          const ColumnItem* set_column_item = stmt->get_column_item(set_cid_idx);
+          set_cid = set_column_item->column_id_;
+          if((int64_t)set_cid == j)
           {
-            TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-            ret = OB_SCHEMA_ERROR;
-            break;
-          }
-          else
-          {
-            ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
-            if(NULL == ocs)
+            ret = desc.add_column_desc(table_id, j);
+            obj_type.set_type(ocs->get_type());
+            if(OB_SUCCESS == ret)
             {
-              TBSYS_LOG(WARN,"NULL Pointer of column schmea");
-              ret = OB_SCHEMA_ERROR;
-              break;
-            }
-            if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc!");
-              ret = OB_ERROR;
-              break;
-            }
-            else
-            {
-              obj_type.set_type(ocs->get_type());
-            }
-            if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc_ext!");
-              ret = OB_ERROR;
-              break;
+              desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type);
             }
           }
         }
-        max_column_id = table_schema->get_max_column_id();
-        for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
+      }
+      else if(!ori.is_rowkey_column(j) && column_hit_index_flag)
+      {
+        if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
         {
-          bool column_hit_index_flag = false;
-          const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
-          if(NULL == ocs)
-          {
-            TBSYS_LOG(WARN,"get column schema error!");
-            ret = OB_SCHEMA_ERROR;
-          }
-          else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, (uint64_t)j, column_hit_index_flag)))
-          {
-            TBSYS_LOG(WARN, "failed to check if column hit index");
-            ret = OB_ERROR;
-          }
-          else if(!ori.is_rowkey_column(j) && !column_hit_index_flag)
-          {
-              uint64_t set_cid = OB_INVALID_ID;
-              for(int32_t set_cid_idx = 0; set_cid_idx < stmt->get_column_size(); set_cid_idx++)
-              {
-                const ColumnItem* set_column_item = stmt->get_column_item(set_cid_idx);
-                set_cid = set_column_item->column_id_;
-                if((int64_t)set_cid == j)
-                {
-                  ret = desc.add_column_desc(table_id, j);
-                  obj_type.set_type(ocs->get_type());
-                  if(OB_SUCCESS == ret)
-                  {
-                    desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type);
-                  }
-                }
-              }
-          }
-          else if(!ori.is_rowkey_column(j) && column_hit_index_flag)
-          {
-            if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc!");
-              ret = OB_ERROR;
-            }
-            else
-            {
-              obj_type.set_type(ocs->get_type());
-            }
-            if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
-            {
-              TBSYS_LOG(WARN,"failed to add column desc_ext!");
-              ret = OB_ERROR;
-              break;
-            }
-          }
+          TBSYS_LOG(WARN,"failed to add column desc!");
+          ret = OB_ERROR;
         }
+        else
+        {
+          obj_type.set_type(ocs->get_type());
+        }
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc_ext!");
+          ret = OB_ERROR;
+          break;
+        }
+      }
     }
-    return ret;
+  }
+  return ret;
 }
 
 int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext)
 {
-    int ret = OB_SUCCESS;
-    const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
-    ObRowkeyInfo ori;
-    uint64_t max_column_id = OB_INVALID_ID;
-    ObObj obj_type;
-    if(NULL == table_schema)
+  int ret = OB_SUCCESS;
+  const ObTableSchema *table_schema = sql_context_->schema_manager_->get_table_schema(table_id);
+  ObRowkeyInfo ori;
+  uint64_t max_column_id = OB_INVALID_ID;
+  ObObj obj_type;
+  if(NULL == table_schema)
+  {
+    TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
+    ret = OB_SCHEMA_ERROR;
+  }
+  else
+  {
+    uint64_t cid = OB_INVALID_ID;
+    ori = table_schema->get_rowkey_info();
+    desc.set_rowkey_cell_count(ori.get_size());
+    for(int64_t i = 0; i < ori.get_size(); i++)
     {
-      TBSYS_LOG(ERROR,"Table_Schema pointer is NULL");
-      ret = OB_SCHEMA_ERROR;
-    }
-    else
-    {
-        uint64_t cid = OB_INVALID_ID;
-        ori = table_schema->get_rowkey_info();
-        desc.set_rowkey_cell_count(ori.get_size());
-        for(int64_t i = 0; i < ori.get_size(); i++)
+      const ObColumnSchemaV2* ocs = NULL;
+      if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
+      {
+        TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
+        ret = OB_SCHEMA_ERROR;
+        break;
+      }
+      else
+      {
+        bool column_in_stmt_flag = false;
+        ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
+        if(NULL == ocs)
         {
-          const ObColumnSchemaV2* ocs = NULL;
-          if(OB_SUCCESS != (ret = ori.get_column_id(i, cid)))
+          TBSYS_LOG(ERROR,"NULL Pointer of column schmea");
+          break;
+        }
+        else if(OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, cid, column_in_stmt_flag)))
+        {
+          TBSYS_LOG(WARN, "is coloumn in stmt failed,ret = %d, table_id = %ld, cid = %ld", ret, table_id, cid);
+          ret = OB_ERROR;
+          break;
+        }
+        else if(column_in_stmt_flag)
+        {
+          if (OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
           {
-            TBSYS_LOG(WARN,"get_column_id for rowkey failed!");
-            ret = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN,"failed to add row desc, err=%d", ret);
+            ret = OB_ERROR;
             break;
           }
           else
           {
-              bool column_in_stmt_flag = false;
-              ocs = sql_context_->schema_manager_->get_column_schema(table_id, cid);
-              if(NULL == ocs)
-              {
-                TBSYS_LOG(ERROR,"NULL Pointer of column schmea");
-                break;
-              }
-              else if(OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, cid, column_in_stmt_flag)))
-              {
-                TBSYS_LOG(WARN, "is coloumn in stmt failed,ret = %d, table_id = %ld, cid = %ld", ret, table_id, cid);
-                ret = OB_ERROR;
-                break;
-              }
-              else if(column_in_stmt_flag)
-              {
-                  if (OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
-                  {
-                    TBSYS_LOG(WARN,"failed to add row desc, err=%d", ret);
-                    ret = OB_ERROR;
-                    break;
-                  }
-                  else
-                  {
-                      obj_type.set_type(ocs->get_type());
-                      if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, cid, obj_type)))
-                      {
-                        TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
-                        ret = OB_ERROR;
-                        break;
-                      }
-                  }
-              }
-          }
-        }//end for
-        max_column_id = table_schema->get_max_column_id();
-        for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
-        {
-          bool column_hit_index_flag = false;
-          bool column_in_stmt_flag = false;
-          const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
-          if(NULL == ocs)
-          {
-            TBSYS_LOG(WARN,"get column schema error!");
-            ret = OB_SCHEMA_ERROR;
-            break;
-          }
-          else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, (uint64_t)j, column_hit_index_flag)))
-          {
-            TBSYS_LOG(WARN, "failed to check if column hit index");
-            ret = OB_ERROR;
-            break;
-          }
-          else if(OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, j, column_in_stmt_flag)))
-          {
-            TBSYS_LOG(WARN, "is coloumn in stmt failed,ret = %d, table_id = %ld, cid = %ld", ret, table_id, j);
-            ret = OB_ERROR;
-            break;
-          }
-          else if(!ori.is_rowkey_column(j) && (column_hit_index_flag || column_in_stmt_flag))
-          {
-            if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
+            obj_type.set_type(ocs->get_type());
+            if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, cid, obj_type)))
             {
-              TBSYS_LOG(WARN,"failed to add column desc!");
+              TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
               ret = OB_ERROR;
               break;
             }
-            else
-            {
-              obj_type.set_type(ocs->get_type());
-              if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, j, obj_type)))
-              {
-                TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
-                ret = OB_ERROR;
-                break;
-              }
-            }
           }
         }
+      }
+    }//end for
+    max_column_id = table_schema->get_max_column_id();
+    for (int64_t j = OB_APP_MIN_COLUMN_ID; j <= (int64_t)max_column_id;  j++)
+    {
+      bool column_hit_index_flag = false;
+      bool column_in_stmt_flag = false;
+      const ObColumnSchemaV2* ocs = sql_context_->schema_manager_->get_column_schema(table_id, j);
+      if(NULL == ocs)
+      {
+        TBSYS_LOG(WARN,"get column schema error!");
+        ret = OB_SCHEMA_ERROR;
+        break;
+      }
+      else if(OB_SUCCESS != (ret = sql_context_->schema_manager_->column_hit_index(table_id, (uint64_t)j, column_hit_index_flag)))
+      {
+        TBSYS_LOG(WARN, "failed to check if column hit index");
+        ret = OB_ERROR;
+        break;
+      }
+      else if(OB_SUCCESS != (ret = column_in_stmt(stmt, table_id, j, column_in_stmt_flag)))
+      {
+        TBSYS_LOG(WARN, "is coloumn in stmt failed,ret = %d, table_id = %ld, cid = %ld", ret, table_id, j);
+        ret = OB_ERROR;
+        break;
+      }
+      else if(!ori.is_rowkey_column(j) && (column_hit_index_flag || column_in_stmt_flag))
+      {
+        if(OB_SUCCESS != (ret = desc.add_column_desc(table_id, j)))
+        {
+          TBSYS_LOG(WARN,"failed to add column desc!");
+          ret = OB_ERROR;
+          break;
+        }
+        else
+        {
+          obj_type.set_type(ocs->get_type());
+          if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, j, obj_type)))
+          {
+            TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
+            ret = OB_ERROR;
+            break;
+          }
+        }
+      }
     }
-    return ret;
+  }
+  return ret;
 }
 //add e

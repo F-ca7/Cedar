@@ -134,13 +134,13 @@ namespace oceanbase
 
         // longfei [create index]
         /**
-         * @brief gen_physical_create_index: 生成create index物理计划
+         * @brief gen_physical_create_index: generate physical plan for create index
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
          * @param query_id
          * @param index
-         * @return
+         * @return err code
          */
         int gen_physical_create_index(
             ObLogicalPlan *logical_plan,
@@ -150,14 +150,14 @@ namespace oceanbase
             int32_t* index);
         // longfei [drop index]
         /**
-         * @brief gen_physical_drop_index 生成drop index物理计划
+         * @brief gen_physical_drop_index generate physical plan for drop index
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
          * @param query_id
          * @param index
          * @author longfei <longfei@stu.ecnu.edu.cn>
-         * @return
+         * @return err code
          */
         int gen_physical_drop_index(
             ObLogicalPlan *logical_plan,
@@ -210,7 +210,7 @@ namespace oceanbase
 
         //add longfei
         /**
-         * @brief gen_phy_table_not_back 不回表的查询计划
+         * @brief gen_phy_table_not_back
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
@@ -239,7 +239,7 @@ namespace oceanbase
             common::Expr_Array *filter_array=NULL,
             common::Expr_Array *project_array=NULL );
         /**
-         * @brief gen_phy_table_back 回表查询计划
+         * @brief gen_phy_table_back
          * @param logical_plan
          * @param physical_plan
          * @param err_stat
@@ -251,7 +251,7 @@ namespace oceanbase
          * @param index_tid_without_storing
          * @param filter_array
          * @param project_array
-         * @return
+         * @return err code
          */
         int gen_phy_table_back(
             ObLogicalPlan *logical_plan,
@@ -388,7 +388,7 @@ namespace oceanbase
             ObPhyOperator *&out_op);
         //add longfei
         /**
-         * @brief gen_phy_show_index 生成show index物理计划
+         * @brief gen_phy_show_index generate physical plan for show index
          * @param physical_plan
          * @param err_stat
          * @param show_stmt

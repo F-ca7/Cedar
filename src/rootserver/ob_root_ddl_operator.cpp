@@ -6,15 +6,14 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_ddl_operator.cpp
- * @brief modify main procedure of create table, only when table is not index or index switch is on ,root server
- *        will create tablet for table
+ * @brief for operations of table in rootserver
  *
- * Modified by Wenghaixing
+ * modified by Wenghaixing:modify main procedure of create table, only when table is not index or index switch is on ,
+ *                         root server will create tablet for table
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 #include "ob_root_ddl_operator.h"

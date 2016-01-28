@@ -13,9 +13,8 @@
  * Created by Wenghaixing
  *
  * @version __DaSE_VERSION
- * @author
- *   Weng Haixing <wenghaixing@ecnu.cn>
- * @date  20160124
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
  */
 
 
