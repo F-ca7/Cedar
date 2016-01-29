@@ -980,7 +980,7 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
 				  else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
 				  {
 					  TBSYS_LOG(WARN, "get_next_row failed");
-					  TBSYS_LOG(USER_ERROR, "Procedure %s don't exist", proc_name.c_str());
+					  TBSYS_LOG(USER_ERROR, "Procedure %s doesn't exist", proc_name.c_str());
 
 				  }
 				  else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))

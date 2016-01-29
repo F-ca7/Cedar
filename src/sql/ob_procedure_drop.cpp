@@ -130,7 +130,7 @@ int ObProcedureDrop::open()
                     else
 					{
 						ret=-5019;
-						TBSYS_LOG(USER_ERROR, "procedure %.*s don't exists",proc_name_.length(),proc_name_.ptr());
+						TBSYS_LOG(USER_ERROR, "procedure %.*s doesn't exist",proc_name_.length(),proc_name_.ptr());
 					}
 				}
 
@@ -138,7 +138,7 @@ int ObProcedureDrop::open()
 			else
 			{
 				ret=-5019;
-				TBSYS_LOG(USER_ERROR, "procedure %.*s don't exists",proc_name_.length(),proc_name_.ptr());
+				TBSYS_LOG(USER_ERROR, "procedure %.*s doesn't exist",proc_name_.length(),proc_name_.ptr());
 			}
 		}
 
