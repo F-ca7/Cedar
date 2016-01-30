@@ -8666,6 +8666,12 @@ int ObRootServer2::is_clusters_ready_for_election()
   {
     TBSYS_LOG(INFO, "System will reelect master cluster. cluster_num=%ld, success_num=%ld", cluster_num, success_num);
   }
+  // debug by guojinwei [multi_cluster] 20160128:b
+  else if (OB_SINGLE_CLUSTER == cluster_num)
+  {
+    TBSYS_LOG(INFO, "System will reelect master cluster because it is a single cluster.");
+  }
+  // debug:e
   else
   {
     ret = OB_NEED_RETRY;

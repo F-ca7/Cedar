@@ -485,6 +485,10 @@ namespace oceanbase
     const int64_t OB_COMMIT_POINT_SYNC = 1;
     // add:e
 
+    // add by guojinwei [multi_cluster] 20160128:b
+    const int64_t OB_SINGLE_CLUSTER = 1;
+    const int64_t OB_THREE_CLUSTER = 3;
+    // add:e
 
     const int64_t OB_MAX_UPS_LEASE_DURATION_US = INT64_MAX;
 
