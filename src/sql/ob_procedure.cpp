@@ -1061,8 +1061,6 @@ int ObProcedure::optimize()
 
     static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(0LL));
     static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(1LL));
-//    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(2LL));
-//    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(3LL));
 
     SpInstList item_static_inst_list;
     item_loop->optimize(item_static_inst_list);
@@ -1092,6 +1090,49 @@ int ObProcedure::optimize()
 
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(12));
+  }
+  else if( proc_name_.compare("neworder6") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+
+    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(2));
+
+    SpLoopInst *static_item_loop = create_inst<SpLoopInst>(NULL);
+    static_item_loop->assign_template(item_loop);
+    SpMultiInsts* static_item_loop_body = static_item_loop->get_body_block();
+
+    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(0LL));
+    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(1LL));
+
+    SpInstList item_static_inst_list;
+    item_loop->optimize(item_static_inst_list);
+    for(int64_t i = 0 ; i < item_static_inst_list.count(); ++i)
+    {
+      static_item_loop_body->add_inst(item_static_inst_list.at(i));
+    }
+    exec_list_.push_back(static_item_loop);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("neworder"), block_name);
+
+    block_inst->set_name(block_name);
+    block_inst->add_inst(item_loop);
+
+    exec_list_.push_back(inst_list_.at(3));
+    exec_list_.push_back(inst_list_.at(5));
+
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(10));
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(11));
   }
   else if( proc_name_.compare("ins_loop") == 0 )
   {

@@ -339,6 +339,9 @@ namespace oceanbase
       SQL_DELETE_COUNT,
       SQL_DELETE_TIME,
 
+      SQL_PROC_COUNT,
+      SQL_PROC_TIME,
+
       SQL_QUERY_BYTES,
 
       SQL_COMMIT_COUNT,

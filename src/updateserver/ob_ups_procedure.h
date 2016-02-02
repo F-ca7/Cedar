@@ -20,9 +20,17 @@ namespace oceanbase
           table_id_(table_id), column_count_(column_count), lock_flag_(flag), static_data_id_(static_data_id)
         {
           row_desc_.reset();
+
+          version_range_.border_flag_.set_inclusive_start();
+          version_range_.border_flag_.set_max_value();
+          version_range_.start_version_.major_ = version_major;
+          version_range_.start_version_.minor_ = version_minor;
+          version_range_.start_version_.is_final_minor_ = is_final_minor;
         }
 
         //query structure
+        ObObj keys_[4];
+
         uint64_t table_id_;
         uint64_t key_column_ids_[4];
         uint64_t column_ids_[16];
@@ -32,15 +40,41 @@ namespace oceanbase
         ObVersionRange version_range_;
         ObRowDesc row_desc_;
         int64_t static_data_id_;
+
+        static const int32_t version_major = 2;
+        static const int16_t version_minor = 0;
+        static const int16_t is_final_minor = 0;
+    };
+
+    struct SelectItemParam : BasicParam
+    {
+        ObObj &o_i_id_;
+
+        SelectItemParam() : BasicParam(3004, 4, LF_NONE, 0), o_i_id_(keys_[0])
+        {
+          uint64_t temp_ids[] = {16, 18, 17, 19};
+          for(int64_t i = 0; i < column_count_; ++i)
+            column_ids_[i] = temp_ids[i];
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(table_id_, 16);
+          row_desc_.add_column_desc(table_id_, 18);
+          row_desc_.add_column_desc(table_id_, 17);
+          row_desc_.add_column_desc(table_id_, 19);
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+        }
     };
 
     struct SelectStockParam : BasicParam
     {
         //runtime parameters
-        ObObj o_i_id_;
-        ObObj ol_supply_w_id_;
+        ObObj& ol_supply_w_id_;
+        ObObj& o_i_id_;
 
-        SelectStockParam() : BasicParam(3008, 14, LF_WRITE, 1)
+        SelectStockParam() : BasicParam(3008, 14, LF_WRITE, 1), ol_supply_w_id_(keys_[0]), o_i_id_(keys_[1])
         {
           uint64_t temp_ids[] = {16, 17, 18, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
 
@@ -61,20 +95,14 @@ namespace oceanbase
 
           row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
           row_desc_.set_rowkey_cell_count(2);
-
-          version_range_.border_flag_.set_inclusive_start();
-          version_range_.border_flag_.set_max_value();
-          version_range_.start_version_.major_ = 2;
-          version_range_.start_version_.minor_ = 0;
-          version_range_.start_version_.is_final_minor_ = 0;
         }
     };
 
 
     struct UpdateStockParam : BasicParam
     {
-        ObObj o_i_id_;
-        ObObj ol_supply_w_id_;
+        ObObj &ol_supply_w_id_;
+        ObObj &o_i_id_;
 
         ObObj s_quantity_;
         ObObj o_quantity_;
@@ -82,7 +110,7 @@ namespace oceanbase
 
         ObRowDesc write_desc_;
 
-        UpdateStockParam() : BasicParam(3008, 6, LF_WRITE, 2)
+        UpdateStockParam() : BasicParam(3008, 6, LF_WRITE, 2), ol_supply_w_id_(keys_[0]), o_i_id_(keys_[1])
         {
           uint64_t temp_ids[] = {16, 17, 18, 19, 20, 21};
 
@@ -102,21 +130,15 @@ namespace oceanbase
           row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
           write_desc_.set_rowkey_cell_count(2);
           row_desc_.set_rowkey_cell_count(2);
-
-          version_range_.border_flag_.set_inclusive_start();
-          version_range_.border_flag_.set_max_value();
-          version_range_.start_version_.major_ = 2;
-          version_range_.start_version_.minor_ = 0;
-          version_range_.start_version_.is_final_minor_ = 0;
         }
     };
 
     struct SelectDistrictParam : BasicParam
     {
-        ObObj d_w_id_;
-        ObObj d_id_;
+        ObObj &d_w_id_;
+        ObObj &d_id_;
 
-        SelectDistrictParam() : BasicParam(3002, 4, LF_WRITE, 3)
+        SelectDistrictParam() : BasicParam(3002, 4, LF_WRITE, 3), d_w_id_(keys_[0]), d_id_(keys_[1])
         {
           uint64_t column_ids[] = {16, 17, 20, 19};
 
@@ -133,23 +155,17 @@ namespace oceanbase
 
           row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
           row_desc_.set_rowkey_cell_count(2);
-
-          version_range_.border_flag_.set_inclusive_start();
-          version_range_.border_flag_.set_max_value();
-          version_range_.start_version_.major_ = 2;
-          version_range_.start_version_.minor_ = 0;
-          version_range_.start_version_.is_final_minor_ = 0;
         }
 
     };
 
     struct UpdateDistrictParam : BasicParam
     {
-        ObObj d_w_id_;
-        ObObj d_id_;
+        ObObj &d_w_id_;
+        ObObj &d_id_;
 
         ObRowDesc write_desc_;
-        UpdateDistrictParam() : BasicParam(3002, 3, LF_WRITE, 4)
+        UpdateDistrictParam() : BasicParam(3002, 3, LF_WRITE, 4), d_w_id_(keys_[0]), d_id_(keys_[1])
         {
           uint64_t column_ids[] = {16, 17, 20};
 
@@ -173,11 +189,6 @@ namespace oceanbase
           write_desc_.add_column_desc(table_id_, 17);
           write_desc_.add_column_desc(table_id_, 20);
           write_desc_.set_rowkey_cell_count(2);
-
-          version_range_.border_flag_.set_inclusive_start();
-          version_range_.border_flag_.set_max_value();
-          version_range_.start_version_.major_ = 2;
-          version_range_.start_version_.minor_ = 0;
         }
     };
 
@@ -266,6 +277,13 @@ namespace oceanbase
 
         int prepare(BasicParam &param);
 
+        int close();
+
+        int select_item(SelectItemParam &param,
+                        double &i_price,
+                        ObString &i_name,
+                        ObString &i_data);
+
         int select_stock(SelectStockParam &stock_param,
                          /*get fields*/int &s_quantity,
                          ObString &data, ObString s_dist[]);
@@ -314,6 +332,7 @@ namespace oceanbase
         char guard_buf_[sizeof(ITableEntity::Guard)];
         TableList table_list_;
         ObCellAdaptor cia_;
+        ObStringBuf str_buf_;
     };
 
     class SpUpsLoopInst;

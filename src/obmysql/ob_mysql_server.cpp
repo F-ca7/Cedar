@@ -3191,6 +3191,7 @@ namespace oceanbase
         int64_t consumed_time)
     {
       // we don't need to use atomic operation to update these statistics
+
       static int64_t total_mutate_count = 0;
       static int64_t total_mutate_elapsed = 0;
       static int64_t total_select_count = 0;
@@ -3238,6 +3239,11 @@ namespace oceanbase
             ++total_mutate_count;
             total_mutate_elapsed += consumed_time;
             break;
+          case ObBasicStmt::T_PROCEDURE:
+            OB_STAT_INC(OBMYSQL, SQL_PROC_COUNT);
+            OB_STAT_INC(OBMYSQL, SQL_PROC_TIME, consumed_time);
+//            ++total_mutate_count;
+//            total_mutate_elapsed += consumed_time;
           default:
             break;
         }

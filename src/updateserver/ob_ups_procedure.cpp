@@ -15,6 +15,7 @@ int ObUpsNewOrder::execute(int w_id, int d_id, int c_id, int item_ids[], double 
   int s_remote_cnt_increment = 0;
   double ol_amount = 0, total_amount = 0, i_price = 0, d_tax = 0;
   int o_quantity = 0, ol_supply_w_id = 0, s_quantity = 0;
+  ObString i_name, i_data;
   ObString ol_dist_info, s_data;
   ObString s_dist_info[10];
   double ol_amounts[MAX_ITEM_COUNT];
@@ -22,39 +23,53 @@ int ObUpsNewOrder::execute(int w_id, int d_id, int c_id, int item_ids[], double 
 
   SelectStockParam select_stock_param;
   UpdateStockParam update_stock_param;
+  SelectItemParam  select_item_param;
 
-  UNUSED(d_next_o_id);
-  UNUSED(o_id);
-  UNUSED(d_tax);
-  UNUSED(c_id);
-  UNUSED(o_all_local);
-  UNUSED(w_id);
-  UNUSED(d_id);
-  UNUSED(item_ids);
+//  UNUSED(d_next_o_id);
+//  UNUSED(o_id);
+//  UNUSED(d_tax);
+//  UNUSED(c_id);
+//  UNUSED(o_all_local);
+//  UNUSED(w_id);
+//  UNUSED(d_id);
+//  UNUSED(item_ids);
+//  UNUSED(i_prices);
+//  UNUSED(supplier_w_ids);
+//  UNUSED(order_quantities);
+//  UNUSED(o_ol_cnt);
+//  UNUSED(o_all_local);
+//  UNUSED(s_data);
+//  UNUSED(select_stock_param);
+//  UNUSED(update_stock_param);
   UNUSED(i_prices);
-  UNUSED(supplier_w_ids);
-  UNUSED(order_quantities);
-  UNUSED(o_ol_cnt);
-  UNUSED(o_all_local);
-  UNUSED(s_data);
-  UNUSED(select_stock_param);
-  UNUSED(update_stock_param);
 
   for(int itr = 0; itr < o_ol_cnt && OB_SUCCESS == ret; ++itr)
   {
     ol_i_id = item_ids[itr];
     ol_supply_w_id = supplier_w_ids[itr];
     o_quantity = order_quantities[itr];
-    i_price = i_prices[itr];
+//    i_price = i_prices[itr];
+
+    //commit a select_item sql
+    select_item_param.o_i_id_.set_int(ol_i_id);
+    int64_t start_item_ts = tbsys::CTimeUtil::getTime();
+    if( OB_SUCCESS != (ret = select_item(select_item_param, i_price, i_name, i_data)))
+    {
+      TBSYS_LOG(TRACE, "failed to select item");
+      break;
+    }
+    OB_STAT_INC(UPDATESERVER, UPS_PROC_LOOP, tbsys::CTimeUtil::getTime() - start_item_ts);
 
     //commit a select_stock sql
     select_stock_param.o_i_id_.set_int(ol_i_id);
     select_stock_param.ol_supply_w_id_.set_int(ol_supply_w_id);
+    int64_t start_ts = tbsys::CTimeUtil::getTime();
     if( OB_SUCCESS != (ret = select_stock(select_stock_param, s_quantity, s_data, s_dist_info)) )
     {
-      TBSYS_LOG(WARN, "failed to select stock");
+      TBSYS_LOG(TRACE, "failed to select stock");
       break;
     }
+    OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
 
     if( s_quantity - o_quantity >= 10 )
     {
@@ -75,124 +90,135 @@ int ObUpsNewOrder::execute(int w_id, int d_id, int c_id, int item_ids[], double 
     }
 
     //commit a update_stock sql
-//    update_stock_param.o_i_id_.set_int(ol_i_id);
-//    update_stock_param.ol_supply_w_id_.set_int(ol_supply_w_id);
+    update_stock_param.o_i_id_.set_int(ol_i_id);
+    update_stock_param.ol_supply_w_id_.set_int(ol_supply_w_id);
 
-//    update_stock_param.s_quantity_.set_int(s_quantity);
-//    update_stock_param.o_quantity_.set_double((double)o_quantity);
-//    update_stock_param.s_remote_cnt_increment_.set_int(s_remote_cnt_increment);
-//    if( OB_SUCCESS != (ret = update_stock(update_stock_param)) )
-//    {
-//      TBSYS_LOG(WARN, "failed to update stock");
-//      break;
-//    }
+    update_stock_param.s_quantity_.set_int(s_quantity);
+    update_stock_param.o_quantity_.set_double((double)o_quantity);
+    update_stock_param.s_remote_cnt_increment_.set_int(s_remote_cnt_increment);
+
+    int64_t upd_stock_ts = tbsys::CTimeUtil::getTime();
+    if( OB_SUCCESS != ret) {}
+    else if( OB_SUCCESS != (ret = update_stock(update_stock_param)) )
+    {
+      TBSYS_LOG(TRACE, "failed to update stock");
+      break;
+    }
+    OB_STAT_INC(UPDATESERVER, UPS_PROC_D, tbsys::CTimeUtil::getTime() - upd_stock_ts);
 
     ol_amount = o_quantity * i_price;
     total_amount = total_amount + ol_amount;
 
-    ol_dist_info = s_dist_info[d_id];
+    ol_dist_info = s_dist_info[d_id - 1];
 
     ol_amounts[itr] = ol_amount;
     ol_dist_infos[itr] = ol_dist_info;
+
+//    TBSYS_LOG(INFO, "ol_dist_infos[%d] %p, ol_dist_info %p, s_dist_info[%d] %p", itr, ol_dist_infos[itr].ptr(),
+//              ol_dist_info.ptr(), d_id, s_dist_info[d_id].ptr());
   }
 
-//  SelectDistrictParam select_dist_param;
-//  UpdateDistrictParam update_dist_param;
-//  select_dist_param.d_w_id_.set_int(w_id);
-//  select_dist_param.d_id_.set_int(d_id);
-//  //commit a select district;
-//  if( OB_SUCCESS != ret ) {}
-//  else if( OB_SUCCESS != (ret = select_district(select_dist_param, d_next_o_id, d_tax)))
-//  {
-//    TBSYS_LOG(WARN, "failed to select district");
-//  }
-//  else
-//  {
-//    TBSYS_LOG(TRACE, "d_next_o_id: %d, d_tax: %lf", d_next_o_id, d_tax);
-//  }
+  int64_t district_start_ts = tbsys::CTimeUtil::getTime();
+  SelectDistrictParam select_dist_param;
+  UpdateDistrictParam update_dist_param;
+  select_dist_param.d_w_id_.set_int(w_id);
+  select_dist_param.d_id_.set_int(d_id);
+  //commit a select district;
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = select_district(select_dist_param, d_next_o_id, d_tax)))
+  {
+    TBSYS_LOG(TRACE, "failed to select district");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "d_next_o_id: %d, d_tax: %lf", d_next_o_id, d_tax);
+  }
 
-//  //commit a update district;
-//  update_dist_param.d_w_id_.set_int(w_id);
-//  update_dist_param.d_id_.set_int(d_id);
-//  if( OB_SUCCESS != ret ) {}
-//  else if( OB_SUCCESS != (ret = update_district(update_dist_param)))
-//  {
-//    TBSYS_LOG(WARN, "failed to update district");
-//  }
-//  else
-//  {
-//    TBSYS_LOG(TRACE, "update district successfully");
-//  }
+  //commit a update district;
+  update_dist_param.d_w_id_.set_int(w_id);
+  update_dist_param.d_id_.set_int(d_id);
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = update_district(update_dist_param)))
+  {
+    TBSYS_LOG(TRACE, "failed to update district");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "update district successfully");
+  }
 
-//  o_id = d_next_o_id;
+  o_id = d_next_o_id;
 
-//  //commit a replace oorder
-//  InsertOOrderParam insert_oorder_param;
-//  InsertNewOrderParam insert_neworder_param;
-//  InsertOrderLineParam insert_orderline_param;
+  //commit a replace oorder
+  InsertOOrderParam insert_oorder_param;
+  InsertNewOrderParam insert_neworder_param;
+  InsertOrderLineParam insert_orderline_param;
 
-//  insert_oorder_param.o_id.set_int(o_id);
-//  insert_oorder_param.o_d_id.set_int(d_id);
-//  insert_oorder_param.o_w_id.set_int(w_id);
-//  insert_oorder_param.o_c_id.set_int(c_id);
-//  insert_oorder_param.o_entry_d.set_int(tbsys::CTimeUtil::getTime());
-//  insert_oorder_param.o_ol_cnt.set_int(o_ol_cnt);
-//  insert_oorder_param.o_all_local.set_int(o_all_local);
-//  if( OB_SUCCESS != ret ) {}
-//  else if( OB_SUCCESS != (ret = insert_oorder(insert_oorder_param)))
-//  {
-//    TBSYS_LOG(WARN, "failed to insert oorder");
-//  }
-//  else
-//  {
-//    TBSYS_LOG(TRACE, "insert oorder successfully");
-//  }
+  insert_oorder_param.o_id.set_int(o_id);
+  insert_oorder_param.o_d_id.set_int(d_id);
+  insert_oorder_param.o_w_id.set_int(w_id);
+  insert_oorder_param.o_c_id.set_int(c_id);
+  insert_oorder_param.o_entry_d.set_int(tbsys::CTimeUtil::getTime());
+  insert_oorder_param.o_ol_cnt.set_int(o_ol_cnt);
+  insert_oorder_param.o_all_local.set_int(o_all_local);
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = insert_oorder(insert_oorder_param)))
+  {
+    TBSYS_LOG(TRACE, "failed to insert oorder");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "insert oorder successfully");
+  }
 
-//  //commit a replace new_order
-//  insert_neworder_param.no_o_id_.set_int(o_id);
-//  insert_neworder_param.no_d_id_.set_int(d_id);
-//  insert_neworder_param.no_w_id_.set_int(w_id);
+  //commit a replace new_order
+  insert_neworder_param.no_o_id_.set_int(o_id);
+  insert_neworder_param.no_d_id_.set_int(d_id);
+  insert_neworder_param.no_w_id_.set_int(w_id);
 
-//  if( OB_SUCCESS != ret ) {}
-//  else if( OB_SUCCESS != (ret = insert_neworder(insert_neworder_param)))
-//  {
-//    TBSYS_LOG(WARN, "failed to insert neworder");
-//  }
-//  else
-//  {
-//    TBSYS_LOG(TRACE, "insert neworder successfully");
-//  }
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = insert_neworder(insert_neworder_param)))
+  {
+    TBSYS_LOG(TRACE, "failed to insert neworder");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "insert neworder successfully");
+  }
 
-//  for(int itr = 0; itr < o_ol_cnt && OB_SUCCESS == ret; ++itr)
-//  {
-//    //commit a replace order_line
-//    insert_orderline_param.ol_o_id_.set_int(o_id);
-//    insert_orderline_param.ol_d_id_.set_int(d_id);
-//    insert_orderline_param.ol_w_id_.set_int(w_id);
-//    insert_orderline_param.ol_number_.set_int(itr+1);
-//    insert_orderline_param.ol_i_id_.set_int(item_ids[itr]);
-//    insert_orderline_param.ol_supply_w_id_.set_int(supplier_w_ids[itr]);
-//    insert_orderline_param.ol_quantity_.set_int(order_quantities[itr]);
-//    insert_orderline_param.ol_amount_.set_double(ol_amounts[itr]);
-//    insert_orderline_param.ol_dist_info_.set_varchar(ol_dist_infos[itr]);
-//    if( OB_SUCCESS != ret ) {}
-//    else if( OB_SUCCESS != (ret = insert_orderline(insert_orderline_param)))
-//    {
-//      TBSYS_LOG(WARN, "failed to insert orderline");
-//      break;
-//    }
-//    else
-//    {
-//      TBSYS_LOG(TRACE, "insert orderline successfully");
-//    }
-//  }
+  OB_STAT_INC(UPDATESERVER, UPS_PROC_IF, tbsys::CTimeUtil::getTime() - district_start_ts);
+
+  int64_t orderline_start_ts = tbsys::CTimeUtil::getTime();
+  for(int itr = 0; itr < o_ol_cnt && OB_SUCCESS == ret; ++itr)
+  {
+    //commit a replace order_line
+    insert_orderline_param.ol_o_id_.set_int(o_id);
+    insert_orderline_param.ol_d_id_.set_int(d_id);
+    insert_orderline_param.ol_w_id_.set_int(w_id);
+    insert_orderline_param.ol_number_.set_int(itr+1);
+    insert_orderline_param.ol_i_id_.set_int(item_ids[itr]);
+    insert_orderline_param.ol_supply_w_id_.set_int(supplier_w_ids[itr]);
+    insert_orderline_param.ol_quantity_.set_int(order_quantities[itr]);
+    insert_orderline_param.ol_amount_.set_double(ol_amounts[itr]);
+    insert_orderline_param.ol_dist_info_.set_varchar(ol_dist_infos[itr]);
+    if( OB_SUCCESS != ret ) {}
+    else if( OB_SUCCESS != (ret = insert_orderline(insert_orderline_param)))
+    {
+      TBSYS_LOG(TRACE, "failed to insert orderline");
+      break;
+    }
+    else
+    {
+      TBSYS_LOG(TRACE, "insert orderline successfully");
+    }
+  }
+  OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - orderline_start_ts);
   return ret;
 }
 
 int ObUpsNewOrder::prepare(BasicParam &param)
 {
   int ret = OB_SUCCESS;
-  int64_t start_ts = tbsys::CTimeUtil::getTime();
   ObUpdateServerMain *ups_main = ObUpdateServerMain::get_instance();
   bool is_final_mirror = false;
   uint64_t max_version = 0;
@@ -212,9 +238,154 @@ int ObUpsNewOrder::prepare(BasicParam &param)
                                              is_final_mirror,
                                              param.table_id_);
 
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_E, tbsys::CTimeUtil::getTime() - start_ts);
   return ret;
 }
+
+int ObUpsNewOrder::close()
+{
+  if( NULL != guard_ )
+  {
+    guard_->~Guard();
+    guard_ = NULL;
+  }
+  return OB_SUCCESS;
+}
+
+int ObUpsNewOrder::select_item(SelectItemParam &param, double &i_price, ObString &i_name, ObString &i_data)
+{
+  int ret = OB_SUCCESS;
+  prepare(param);
+
+  BaseSessionCtx *session_ctx = proc_->get_session_ctx();
+  ITableEntity *table_entity;
+
+  common::ObRow get_row;
+  const common::ObRowkey *get_row_key;
+  const common::ObRow *inc_row;
+
+  ColumnFilter *get_column_filter = ITableEntity::get_tsi_columnfilter();
+
+  get_column_filter->clear();
+  for(int64_t i = 0; i < param.column_count_; ++i)
+  {
+    get_column_filter->add_column(param.column_ids_[i]);
+  }
+
+  get_row.set_row_desc(param.row_desc_);
+
+  get_row.set_cell(param.table_id_, param.key_column_ids_[0], param.o_i_id_);
+
+  get_row.get_rowkey(get_row_key);
+
+  OB_ASSERT(table_list_.size() == 1);
+  table_entity = *(table_list_.begin());
+
+  ITableIterator *table_itr = NULL;
+  ObRowIterAdaptor *table_row_iter = NULL;
+
+  table_itr = table_entity->alloc_iterator(table_mgr_->get_table_mgr()->get_resource_pool(), *guard_);
+  table_row_iter = table_entity->alloc_row_iter_adaptor(table_mgr_->get_table_mgr()->get_resource_pool(), *guard_);
+
+  if( OB_SUCCESS != (ret = table_entity->get(*session_ctx,
+                                             param.table_id_,
+                                             *get_row_key,
+                                             get_column_filter,
+                                             param.lock_flag_,
+                                             table_itr)) )
+  {
+    TBSYS_LOG(TRACE, "failed to read index");
+  }
+  else
+  {
+    table_row_iter->set_cell_iter(table_itr, param.row_desc_, false);
+  }
+
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = table_row_iter->open()))
+  {
+    TBSYS_LOG(WARN, "failed to open iter");
+  }
+  else if( OB_SUCCESS != (ret = table_row_iter->get_next_row(inc_row)))
+  {
+    TBSYS_LOG(WARN, "failed to get next row");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "inc_row: %s", to_cstring(*inc_row));
+  }
+
+//  ObRowStore *row_store = NULL;
+//  proc_->get_static_data_by_id(param.static_data_id_, row_store);
+//  common::ObRow static_row;
+//  static_row.set_row_desc(param.row_desc_);
+
+//  if( OB_SUCCESS != ret ) {}
+//  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
+//  {
+//    TBSYS_LOG(WARN, "failed to get static row from store");
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
+//  }
+
+  bool is_row_empty = false;
+  common::ObRow result_row;
+  result_row.set_row_desc(param.row_desc_);
+  result_row.reset(false, ObRow::DEFAULT_NOP);
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
+                            *inc_row, result_row, is_row_empty, true)))
+  {
+    TBSYS_LOG(WARN, "failed to fuse inc row");
+  }
+//  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
+//                            static_row, result_row, is_row_empty, true)))
+//  {
+//    TBSYS_LOG(WARN, "failed to fuse static row");
+//  }
+  else
+  {
+    TBSYS_LOG(TRACE, "merge row: %s", to_cstring(result_row));
+  }
+
+  const ObObj *cell;
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = result_row.get_cell(param.table_id_, 18, cell)) )
+  {
+    TBSYS_LOG(WARN, "failed to get i_price");
+  }
+  else
+  {
+    cell->get_double(i_price);
+    TBSYS_LOG(TRACE, "i_price: %lf", i_price);
+  }
+
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = result_row.get_cell(param.table_id_, 17, cell)))
+  {
+    TBSYS_LOG(WARN, "failed to get i_name");
+  }
+  else
+  {
+    cell->get_varchar(i_name);
+    TBSYS_LOG(TRACE, "i_name: %.*s", i_name.length(), i_name.ptr());
+  }
+
+  if( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = result_row.get_cell(param.table_id_, 19, cell)))
+  {
+    TBSYS_LOG(WARN, "failed to get i_data");
+  }
+  else
+  {
+    cell->get_varchar(i_data);
+    TBSYS_LOG(TRACE, "i_data: %.*s", i_data.length(), i_data.ptr());
+  }
+  close();
+  return ret;
+}
+
 
 //select s_quantity, s_data, s_dist_01, s_dist_02, s_dist_03, s_dist_04,
 //      s_dist_05, s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10
@@ -258,15 +429,11 @@ int ObUpsNewOrder::select_stock(SelectStockParam &stock_param,
 
   table_itr = table_entity->alloc_iterator(table_mgr_->get_table_mgr()->get_resource_pool(), *guard_);
 
-  int64_t start_ts = tbsys::CTimeUtil::getTime();
   table_row_iter = table_entity->alloc_row_iter_adaptor(table_mgr_->get_table_mgr()->get_resource_pool(), *guard_);
 
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_D, tbsys::CTimeUtil::getTime() - start_ts);  //creating info
-
-  int64_t start_get_ts = tbsys::CTimeUtil::getTime();
   if( OB_SUCCESS != (ret = table_entity->get(*session_ctx, stock_param.table_id_, *get_row_key, get_column_filter, stock_param.lock_flag_, table_itr)) )
   {
-    TBSYS_LOG(WARN, "failed to read index");
+    TBSYS_LOG(TRACE, "failed to read index");
   }
 
   table_row_iter->set_cell_iter(table_itr, stock_param.row_desc_, false);
@@ -274,11 +441,11 @@ int ObUpsNewOrder::select_stock(SelectStockParam &stock_param,
   if( OB_SUCCESS != ret ) {}
   else if( OB_SUCCESS != (ret = table_row_iter->open()) )
   {
-    TBSYS_LOG(WARN, "failed to open iter");
+    TBSYS_LOG(TRACE, "failed to open iter");
   }
   else if( OB_SUCCESS != (ret = table_row_iter->get_next_row(inc_row)))
   {
-    TBSYS_LOG(WARN, "failed to get next row");
+    TBSYS_LOG(TRACE, "failed to get next row");
   }
   else
   {
@@ -286,19 +453,19 @@ int ObUpsNewOrder::select_stock(SelectStockParam &stock_param,
   }
 
   /*********Read the Static Data*************/
-  ObRowStore *stock_row_store = NULL;
-  proc_->get_static_data_by_id(stock_param.static_data_id_, stock_row_store);
-  common::ObRow static_row;
-  static_row.set_row_desc(stock_param.row_desc_);
-  if( OB_SUCCESS != ret ) {}
-  else if( OB_SUCCESS != (ret = stock_row_store->get_next_row(static_row)) )
-  {
-    TBSYS_LOG(WARN, "failed to get static row from store");
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "static_row: %s", to_cstring(static_row));
-  }
+//  ObRowStore *stock_row_store = NULL;
+//  proc_->get_static_data_by_id(stock_param.static_data_id_, stock_row_store);
+//  common::ObRow static_row;
+//  static_row.set_row_desc(stock_param.row_desc_);
+//  if( OB_SUCCESS != ret ) {}
+//  else if( OB_SUCCESS != (ret = stock_row_store->get_next_row(static_row)) )
+//  {
+//    TBSYS_LOG(WARN, "failed to get static row from store");
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "static_row: %s", to_cstring(static_row));
+//  }
 
   /********Merge the Incremental and Static********/
   bool is_row_empty = false;
@@ -310,17 +477,15 @@ int ObUpsNewOrder::select_stock(SelectStockParam &stock_param,
   {
     TBSYS_LOG(WARN, "failed to fuse inc row");
   }
-  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(static_row, result_row, is_row_empty, true)))
-  {
-    TBSYS_LOG(WARN, "failed to fuse static row");
-  }
+//  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(static_row, result_row, is_row_empty, true)))
+//  {
+//    TBSYS_LOG(WARN, "failed to fuse static row");
+//  }
   else
   {
    TBSYS_LOG(TRACE, "merge result: %s", to_cstring(result_row));
   }
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_get_ts);
 
-  int64_t start_ass_ts = tbsys::CTimeUtil::getTime();
   /********Project input row********/
   const ObObj *cell;
   double s_tmp = 0;
@@ -357,12 +522,16 @@ int ObUpsNewOrder::select_stock(SelectStockParam &stock_param,
     else
     {
       cell->get_varchar(s_dist[i]);
+//      void *old_ptr = s_dist[i].ptr();
+      ob_write_string(str_buf_, s_dist[i], s_dist[i]);
+//      TBSYS_LOG(INFO, "s_dist[%d] %p -> %p", i, old_ptr, s_dist[i].ptr());
       TBSYS_LOG(TRACE, "s_dist_%d: %.*s", i, s_dist[i].length(), s_dist[i].ptr());
     }
   }
 
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_IF, tbsys::CTimeUtil::getTime() - start_ass_ts);
   /********Write back to the MemTable*******/
+
+  close();
   return ret;
 }
 
@@ -409,7 +578,7 @@ int ObUpsNewOrder::update_stock(UpdateStockParam &param)
                                              param.lock_flag_,
                                              table_itr)) )
   {
-    TBSYS_LOG(WARN, "failed to read index");
+    TBSYS_LOG(TRACE, "failed to read index");
   }
   else
   {
@@ -430,20 +599,20 @@ int ObUpsNewOrder::update_stock(UpdateStockParam &param)
     TBSYS_LOG(TRACE, "inc_row: %s", to_cstring(*inc_row));
   }
 
-  ObRowStore *row_store = NULL;
-  proc_->get_static_data_by_id(param.static_data_id_, row_store);
-  common::ObRow static_row;
-  static_row.set_row_desc(param.row_desc_);
+//  ObRowStore *row_store = NULL;
+//  proc_->get_static_data_by_id(param.static_data_id_, row_store);
+//  common::ObRow static_row;
+//  static_row.set_row_desc(param.row_desc_);
 
-  if( OB_SUCCESS != ret ) {}
-  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
-  {
-    TBSYS_LOG(WARN, "failed to get static row from store");
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
-  }
+//  if( OB_SUCCESS != ret ) {}
+//  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
+//  {
+//    TBSYS_LOG(WARN, "failed to get static row from store");
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
+//  }
 
   bool is_row_empty = false;
   common::ObRow result_row;
@@ -455,11 +624,11 @@ int ObUpsNewOrder::update_stock(UpdateStockParam &param)
   {
     TBSYS_LOG(WARN, "failed to fuse inc row");
   }
-  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
-                            static_row, result_row, is_row_empty, true)))
-  {
-    TBSYS_LOG(WARN, "failed to fuse static row");
-  }
+//  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
+//                            static_row, result_row, is_row_empty, true)))
+//  {
+//    TBSYS_LOG(WARN, "failed to fuse static row");
+//  }
   else
   {
     TBSYS_LOG(TRACE, "merge row: %s", to_cstring(result_row));
@@ -491,8 +660,9 @@ int ObUpsNewOrder::update_stock(UpdateStockParam &param)
   if( OB_SUCCESS != ret ) {}
   else if( OB_SUCCESS != (ret = write_row(dynamic_cast<RWSessionCtx&>(*session_ctx),result_row, param.write_desc_)) )
   {
-    TBSYS_LOG(WARN, "failed to write row");
+    TBSYS_LOG(TRACE, "failed to write row");
   }
+  close();
   return ret;
 }
 
@@ -539,7 +709,7 @@ int ObUpsNewOrder::select_district(SelectDistrictParam &param, int &d_next_o_id,
                                              param.lock_flag_,
                                              table_itr)) )
   {
-    TBSYS_LOG(WARN, "failed to read index");
+    TBSYS_LOG(TRACE, "failed to read index");
   }
   else
   {
@@ -560,20 +730,20 @@ int ObUpsNewOrder::select_district(SelectDistrictParam &param, int &d_next_o_id,
     TBSYS_LOG(TRACE, "inc_row: %s", to_cstring(*inc_row));
   }
 
-  ObRowStore *row_store = NULL;
-  proc_->get_static_data_by_id(param.static_data_id_, row_store);
-  common::ObRow static_row;
-  static_row.set_row_desc(param.row_desc_);
+//  ObRowStore *row_store = NULL;
+//  proc_->get_static_data_by_id(param.static_data_id_, row_store);
+//  common::ObRow static_row;
+//  static_row.set_row_desc(param.row_desc_);
 
-  if( OB_SUCCESS != ret ) {}
-  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
-  {
-    TBSYS_LOG(WARN, "failed to get static row from store");
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
-  }
+//  if( OB_SUCCESS != ret ) {}
+//  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
+//  {
+//    TBSYS_LOG(WARN, "failed to get static row from store");
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
+//  }
 
   bool is_row_empty = false;
   common::ObRow result_row;
@@ -585,11 +755,11 @@ int ObUpsNewOrder::select_district(SelectDistrictParam &param, int &d_next_o_id,
   {
     TBSYS_LOG(WARN, "failed to fuse inc row");
   }
-  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
-                            static_row, result_row, is_row_empty, true)))
-  {
-    TBSYS_LOG(WARN, "failed to fuse static row");
-  }
+//  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
+//                            static_row, result_row, is_row_empty, true)))
+//  {
+//    TBSYS_LOG(WARN, "failed to fuse static row");
+//  }
   else
   {
     TBSYS_LOG(TRACE, "merge row: %s", to_cstring(result_row));
@@ -619,6 +789,7 @@ int ObUpsNewOrder::select_district(SelectDistrictParam &param, int &d_next_o_id,
     cell->get_double(d_tax);
     TBSYS_LOG(TRACE, "d_tax: %lf", d_tax);
   }
+  close();
   return ret;
 }
 
@@ -665,7 +836,7 @@ int ObUpsNewOrder::update_district(UpdateDistrictParam &param)
                                              param.lock_flag_,
                                              table_itr)) )
   {
-    TBSYS_LOG(WARN, "failed to read index");
+    TBSYS_LOG(TRACE, "failed to read index");
   }
   else
   {
@@ -686,20 +857,20 @@ int ObUpsNewOrder::update_district(UpdateDistrictParam &param)
     TBSYS_LOG(TRACE, "inc_row: %s", to_cstring(*inc_row));
   }
 
-  ObRowStore *row_store = NULL;
-  proc_->get_static_data_by_id(param.static_data_id_, row_store);
-  common::ObRow static_row;
-  static_row.set_row_desc(param.row_desc_);
+//  ObRowStore *row_store = NULL;
+//  proc_->get_static_data_by_id(param.static_data_id_, row_store);
+//  common::ObRow static_row;
+//  static_row.set_row_desc(param.row_desc_);
 
-  if( OB_SUCCESS != ret ) {}
-  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
-  {
-    TBSYS_LOG(WARN, "failed to get static row from store");
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
-  }
+//  if( OB_SUCCESS != ret ) {}
+//  else if (OB_SUCCESS != (ret = row_store->get_next_row(static_row)))
+//  {
+//    TBSYS_LOG(WARN, "failed to get static row from store");
+//  }
+//  else
+//  {
+//    TBSYS_LOG(TRACE, "static row: %s", to_cstring(static_row));
+//  }
 
   bool is_row_empty = false;
   common::ObRow result_row;
@@ -711,11 +882,11 @@ int ObUpsNewOrder::update_district(UpdateDistrictParam &param)
   {
     TBSYS_LOG(WARN, "failed to fuse inc row");
   }
-  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
-                            static_row, result_row, is_row_empty, true)))
-  {
-    TBSYS_LOG(WARN, "failed to fuse static row");
-  }
+//  else if( OB_SUCCESS != (ret = common::ObRowFuse::fuse_row(
+//                            static_row, result_row, is_row_empty, true)))
+//  {
+//    TBSYS_LOG(WARN, "failed to fuse static row");
+//  }
   else
   {
     TBSYS_LOG(TRACE, "merge row: %s", to_cstring(result_row));
@@ -741,6 +912,7 @@ int ObUpsNewOrder::update_district(UpdateDistrictParam &param)
   {
     TBSYS_LOG(WARN, "failed to write row");
   }
+  close();
   return ret;
 }
 
@@ -1384,8 +1556,8 @@ int ObUpsProcedure::open()
     {
       this->read_variable(ObString::make_string("__item_ids"), i, val);
       val->get_int(tmp); item_ids[i] = (int)tmp;
-      this->read_variable(ObString::make_string("__i_prices"), i, val);
-      val->get_double(i_prices[i]);
+//      this->read_variable(ObString::make_string("__i_prices"), i, val);
+//      val->get_double(i_prices[i]);
       this->read_variable(ObString::make_string("__supplier_wids"), i, val);
       val->get_int(tmp); supplier_w_ids[i] = (int)tmp;
       this->read_variable(ObString::make_string("__order_quantities"), i, val);
@@ -1604,7 +1776,7 @@ int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value,
     }
     else
     {
-      //TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+      TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
       ret = OB_ERR_ILLEGAL_INDEX;
     }
   }

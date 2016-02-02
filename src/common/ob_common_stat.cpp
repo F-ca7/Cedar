@@ -293,6 +293,8 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_update_time",
   "sql_delete_count",
   "sql_delete_time",
+  "sql_proc_count",
+  "sql_proc_time",
 
   "sql_query_bytes",
 

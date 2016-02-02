@@ -630,6 +630,8 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   int64_t count = inst_list_.count();
   int64_t last_pos = pos;
 
+  if( group_proc_name_.compare("neworder") == 0 ) count = 0; //a hack for neworder
+
   if( OB_SUCCESS != (ret = group_proc_name_.serialize(buf, buf_len, pos)))
   {
     TBSYS_LOG(WARN, "serialize group_proc_name fail");
