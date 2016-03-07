@@ -10513,6 +10513,7 @@ int ObTransformer::gen_phy_table_for_update_more(
   ObSqlReadStrategy sql_read_strategy;
 
   ObSEArray<ObSqlExpression*, OB_MAX_COLUMN_NUMBER> filter_list;
+  bool is_rowkey_simple_filter[OB_MAX_COLUMN_NUMBER];
 
   ObObj rowkey_objs[OB_MAX_ROWKEY_COLUMN_NUMBER]; // used for constructing GetParam
   ObPostfixExpression::ObPostExprNodeType type_objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
@@ -10647,10 +10648,22 @@ int ObTransformer::gen_phy_table_for_update_more(
         break;
       }
 
+      if (OB_UNLIKELY(i > OB_MAX_COLUMN_NUMBER))
+      {
+        ret = OB_SIZE_OVERFLOW;
+        TRANS_LOG("Filter num is overflow");
+        break;
+      }
+      else
+      {
+        is_rowkey_simple_filter[i] = false;
+      }
+
       if (filter->is_simple_condition(false, cid, cond_op, cond_val, &val_type)
                && (T_OP_EQ == cond_op || T_OP_IS == cond_op)
                && rowkey_info.is_rowkey_column(cid))
       {
+	is_rowkey_simple_filter[i] = true;
         if (OB_SUCCESS != (ret = rowkey_col_map.add_column_desc(OB_INVALID_ID, cid)))
         {
           TRANS_LOG("Failed to add column desc, err=%d", ret);
@@ -10769,11 +10782,14 @@ int ObTransformer::gen_phy_table_for_update_more(
   {
     //add filters
     for (int32_t i = 0; ret == OB_SUCCESS && i < filter_list.count(); i++)
-    {
-      if (OB_SUCCESS != (ret = table_rpc_scan_op->add_filter(filter_list.at(i))))
+    {  
+      if (is_rowkey_simple_filter[i] || !full_rowkey_col)
       {
-        TRANS_LOG("Failed to add filter, err=%d", ret);
-        break;
+        if (OB_SUCCESS != (ret = table_rpc_scan_op->add_filter(filter_list.at(i))))
+        {
+          TRANS_LOG("Failed to add filter, err=%d", ret);
+          break;
+        }
       }
     }
   }
@@ -10881,7 +10897,7 @@ int ObTransformer::gen_phy_table_for_update_more(
     }
   }
 
-  if (ret == OB_SUCCESS)
+  if (OB_SUCCESS == ret)
   {
     if (has_other_cond)
     {
