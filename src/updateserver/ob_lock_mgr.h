@@ -105,6 +105,28 @@ namespace oceanbase
         CallbackMgr callback_mgr_;
     };
 
+    // add by guojinwei [repeatable read] 20160307:b
+    class RRLockInfo : public ILockInfo // Repeatable read lock info
+    {
+      static const int64_t LOCK_WAIT_TIME = 10L * 1000L; // 10ms
+      public:
+        RRLockInfo(RWSessionCtx &session_ctx);
+        ~RRLockInfo();
+      public:
+        int on_trans_begin();
+        int on_read_begin(const TEKey &key, TEValue &value);
+        int on_write_begin(const TEKey &key, TEValue &value);
+        void on_trans_end();
+        void on_precommit_end();
+      public:
+        int cb_func(const bool rollback, void *data, BaseSessionCtx &session);
+      private:
+        RWSessionCtx &session_ctx_;
+        RowExclusiveUnlocker row_exclusive_unlocker_;
+        CallbackMgr callback_mgr_;
+    };
+    // add:e
+
     class LockMgr
     {
       public:
