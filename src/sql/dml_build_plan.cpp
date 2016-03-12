@@ -2164,7 +2164,11 @@ int resolve_table_columns(
             }
             sql_expr = new(sql_expr) ObSqlRawExpr();
             sql_expr->set_expr_id(logical_plan->generate_expr_id());
-            sql_expr->set_table_id(OB_INVALID_ID);
+            //testb longfei
+            //sql_expr->set_table_id(OB_INVALID_ID);
+            TBSYS_LOG(WARN,"test::longfei>>>GENERATED_TABLE 2016-03-09 22:08:08");
+            sql_expr->set_table_id(10001);
+            //teste
             sql_expr->set_column_id(logical_plan->generate_column_id());
             sql_expr->set_expr(expr);
             ObBitSet<> tables_set;
@@ -2258,7 +2262,10 @@ int resolve_table_columns(
             }
             sql_expr = new(sql_expr) ObSqlRawExpr();
             sql_expr->set_expr_id(logical_plan->generate_expr_id());
-            sql_expr->set_table_id(OB_INVALID_ID);
+            //testb longfei
+            //sql_expr->set_table_id(OB_INVALID_ID);
+            sql_expr->set_table_id(10001);
+            //teste
             sql_expr->set_column_id(logical_plan->generate_column_id());
             sql_expr->set_expr(expr);
             ObBitSet<> tables_set;

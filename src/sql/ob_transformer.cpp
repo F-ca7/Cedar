@@ -3842,9 +3842,7 @@ bool ObTransformer::handle_index_for_one_table(
   ObArray<uint64_t> alias_exprs;
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   bool return_ret = false;
-  //add BUG
   bool is_gen_table = false;
-  //add:e
   TableItem* table_item = NULL;
   ObBitSet<> table_bitset;
   int32_t num = 0;
@@ -3883,6 +3881,7 @@ bool ObTransformer::handle_index_for_one_table(
 
     //add filter
     num = stmt->get_condition_size();
+    TBSYS_LOG(WARN,"test::longfei>>>condition num = %d",num);
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       ObSqlRawExpr *cnd_expr = logical_plan->get_expr(stmt->get_condition_id(i));
@@ -3903,6 +3902,7 @@ bool ObTransformer::handle_index_for_one_table(
         }
         else
         {
+          TBSYS_LOG(WARN,"test::longfei>>>filter[%d] is %s", i, to_cstring(*filter));
           filter_array.push_back(*filter);
         }
       }
@@ -3910,6 +3910,7 @@ bool ObTransformer::handle_index_for_one_table(
 
     // add output columns
     num = stmt->get_column_size();
+    TBSYS_LOG(WARN,"test::longfei>>>column num = %d",num);
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       const ColumnItem *col_item = stmt->get_column_item(i);
@@ -3925,6 +3926,7 @@ bool ObTransformer::handle_index_for_one_table(
         }
         else
         {
+          TBSYS_LOG(WARN,"test::longfei>>>project1[%d] is %s", i, to_cstring(output_expr));
           project_array.push_back(output_expr);
         }
       }
@@ -3932,10 +3934,13 @@ bool ObTransformer::handle_index_for_one_table(
     ObSelectStmt *select_stmt = dynamic_cast<ObSelectStmt*>(stmt);
     if(NULL == select_stmt)
     {
+      TBSYS_LOG(WARN, "  select_item=NULL");
+      ret = OB_ERROR;
     }
-    if (ret == OB_SUCCESS && select_stmt)
+    if (ret == OB_SUCCESS)
     {
       num = select_stmt->get_select_item_size();
+      TBSYS_LOG(WARN,"test::longfei>>>select num = %d",num);
       for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
       {
         const SelectItem& select_item = select_stmt->get_select_item(i);
@@ -3952,6 +3957,7 @@ bool ObTransformer::handle_index_for_one_table(
             }
             else
             {
+              TBSYS_LOG(WARN,"test::longfei>>>project2[%d] is %s", i, to_cstring(output_expr));
               project_array.push_back(output_expr);
             }
             alias_exprs.push_back(select_item.expr_id_);
@@ -3961,6 +3967,10 @@ bool ObTransformer::handle_index_for_one_table(
       }
     }
   }
+
+  //testb longfei
+  OB_ASSERT(0);
+  //teste
 
   if (OB_SUCCESS == ret)
   {
@@ -4118,9 +4128,17 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
   //add longfei
   bool handle_index_ret = false;
   ObPhyOperator* tmp_table_op = NULL;
-  handle_index_ret = handle_index_for_one_table(logical_plan, physical_plan, err_stat, stmt, table_id, tmp_table_op, group_agg_pushed_down, limit_pushed_down);
-  //add:e
+  handle_index_ret = handle_index_for_one_table(
+                       logical_plan,
+                       physical_plan,
+                       err_stat, stmt,
+                       table_id,
+                       tmp_table_op,
+                       group_agg_pushed_down,
+                       limit_pushed_down);
+  TBSYS_LOG(WARN, "test::longfei>>>return value of handle_index_for_one_table[%s]",handle_index_ret ? "true" : "false");
   if (!handle_index_ret)
+  //add:e
   {
     TableItem* table_item = NULL;
     ObSqlReadStrategy sql_read_strategy;
