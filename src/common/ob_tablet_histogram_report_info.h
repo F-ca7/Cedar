@@ -107,7 +107,16 @@ namespace oceanbase
         int ret = OB_SUCCESS;
         tbsys::CWLockGuard guard(lock);
         if (!tablet_list.push_back(tablet))
+        {
           ret = OB_ARRAY_OUT_OF_RANGE;
+        }
+        //debugb longfei 2016-03-18 11:38:53
+        else
+        {
+          //输出tablet的信息
+//          TBSYS_LOG(WARN,"debug::longfei>>>add tablet[%s] into tablet_list!", to_cstring(tablet.tablet_info.range_));
+        }
+        //debuge
 
         return ret;
       }

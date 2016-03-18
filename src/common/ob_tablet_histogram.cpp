@@ -81,6 +81,16 @@ namespace oceanbase {
       int ret = OB_SUCCESS;
       if (sample_helper_.get_array_index() >= MAX_SAMPLE_BUCKET)
       {
+        //debugb longfei 2016-03-18 13:19:23
+        //打印sample_helper_信息
+//        for (int64_t i = 0; i < sample_helper_.get_array_index(); i++)
+//        {
+//          TBSYS_LOG(WARN, "debug::longfei>>>sample_helper_[%ld].range is [%s], row_count is [%ld]",
+//                    i,
+//                    to_cstring(sample_helper_.at(i)->range),
+//                    sample_helper_.at(i)->row_count);
+//        }
+        //debuge
         ret = OB_ARRAY_OUT_OF_RANGE;
         TBSYS_LOG(WARN, "too many sample in one histogram, max is %ld, now is %ld.", MAX_SAMPLE_BUCKET, sample_helper_.get_array_index());
       }
@@ -365,6 +375,9 @@ namespace oceanbase {
         if (ret == OB_SUCCESS)
         {
           ret = serialization::decode_vi64(buf, data_len, pos, &size);
+          //debugb longfei 2016-03-18 11:58:50
+//          TBSYS_LOG(WARN, "debug::longfei>>>decode size[%ld]",size);
+          //debuge
         }
       }
       if (ret == OB_SUCCESS && size > 0)
@@ -376,6 +389,13 @@ namespace oceanbase {
           sample.range.start_key_.assign(ptr, OB_MAX_ROWKEY_COLUMN_NUMBER);
           sample.range.end_key_.assign(ptr + OB_MAX_ROWKEY_COLUMN_NUMBER, OB_MAX_ROWKEY_COLUMN_NUMBER);
           ret = sample.deserialize(buf, data_len, pos);
+          //debugb longfei 2016-03-18 12:06:39
+          if (i == 0)
+          {
+            //第一次清空一下sample_helper_
+            sample_helper_.clear();
+          }
+          //debuge
           if (OB_SUCCESS != ret)
           {
             TBSYS_LOG(WARN, "fail to deserialize ObStaticIndexSample.");

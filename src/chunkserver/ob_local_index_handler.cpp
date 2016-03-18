@@ -424,11 +424,20 @@ namespace oceanbase
       int64_t trailer_offset = 0;
 
       ///计算采样频率
+      //debugb longfei 2016-03-18 14:39:35
+      TBSYS_LOG(WARN, "debug::longfei>>>table_row_count[%ld],sample_rate[%ld]", tablet_row_count, sample_rate);
+      //debuge
+      const int64_t MAX_SAMPLE_BUCKET = 256; //add longfei 2016-03-18 14:53:14 :e
+
+      sample_rate = (sample_rate > MAX_SAMPLE_BUCKET) ? MAX_SAMPLE_BUCKET : sample_rate;//add longfei 2016-03-18 18:32:52 :e
       if(0 == tablet_row_count % sample_rate)
+      {
         sample_rate = tablet_row_count/sample_rate;
+      }
       else
+      {
         sample_rate = tablet_row_count/sample_rate + 1;
-      ///
+      }
 
       if(OB_SUCCESS != (ret = create_new_sstable(index_tid, disk_no)))
       {

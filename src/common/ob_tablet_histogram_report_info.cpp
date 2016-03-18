@@ -90,7 +90,9 @@ namespace oceanbase
       int64_t size = 0;
       ObTabletHistogramReportInfo tablet;
       ret = serialization::decode_vi64(buf, data_len, pos, &size);
-      TBSYS_LOG(DEBUG, "test::liumz, deserialize size=%ld", size);
+      //debugb longfei 2016-03-18 11:56:55
+//      TBSYS_LOG(WARN, "debug::longfei>>>deserialize size=%ld", size);
+      //debuge
 
       if (ret == OB_SUCCESS && size > 0)
       {
