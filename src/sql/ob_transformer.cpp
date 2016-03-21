@@ -3359,8 +3359,18 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
 }
 
 //add longfei [secondary index select] 20151101
-int ObTransformer::gen_phy_table_not_back(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObStmt *stmt, uint64_t table_id,
-    ObPhyOperator*& table_op, bool* group_agg_pushed_down, bool* limit_pushed_down, bool is_use_storing_column, uint64_t index_tid, Expr_Array *filter_array,
+int ObTransformer::gen_phy_table_not_back(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    ObStmt *stmt,
+    uint64_t table_id,
+    ObPhyOperator*& table_op,
+    bool* group_agg_pushed_down,
+    bool* limit_pushed_down,
+    bool is_use_storing_column,
+    uint64_t index_tid,
+    Expr_Array *filter_array,
     Expr_Array *project_array)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
@@ -3968,10 +3978,6 @@ bool ObTransformer::handle_index_for_one_table(
     }
   }
 
-  //testb longfei
-  OB_ASSERT(0);
-  //teste
-
   if (OB_SUCCESS == ret)
   {
     //TBSYS_LOG(INFO,"begin judge use index table or not.");
@@ -4073,8 +4079,18 @@ bool ObTransformer::handle_index_for_one_table(
     bool limit_down = false;
     if (is_use_storing_column)
     {
-      ret = gen_phy_table_not_back(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down, is_use_storing_column, index_id,
-          &filter_array, &project_array);
+      ret = gen_phy_table_not_back(
+              logical_plan,
+              physical_plan,
+              err_stat, stmt,
+              table_id,
+              table_op,
+              &group_down,
+              &limit_down,
+              is_use_storing_column,
+              index_id,
+              &filter_array,
+              &project_array);
     }
     else if (is_use_index_without_storing)
     {
@@ -4089,9 +4105,18 @@ bool ObTransformer::handle_index_for_one_table(
       }
       if (sub_query_num == 0)
       {
-        ret = gen_phy_table_back(logical_plan, physical_plan, err_stat, stmt, table_id, table_op, &group_down, &limit_down,
-        //is_use_storing_column,
-            index_id_without_storing, &filter_array, &project_array);
+        ret = gen_phy_table_back(
+                logical_plan,
+                physical_plan,
+                err_stat, stmt,
+                table_id,
+                table_op,
+                &group_down,
+                &limit_down,
+                //is_use_storing_column,
+                index_id_without_storing,
+                &filter_array,
+                &project_array);
       }
       else
         return_ret = false;

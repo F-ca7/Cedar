@@ -235,10 +235,10 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
   int64_t tmp_cid = OB_INVALID_ID;
   int64_t tid = OB_INVALID_ID;
   //testb longfei 2016-03-12 14:22:03
-  for (int64_t i = 0; i < count; i++)
-  {
-    TBSYS_LOG(WARN, "test::longfei>>>expr_[%ld] is [%s]", i, to_cstring(expr_.at(i)));
-  }
+//  for (int64_t i = 0; i < count; i++)
+//  {
+//    TBSYS_LOG(WARN, "test::longfei>>>expr_[%ld] is [%s]", i, to_cstring(expr_.at(i)));
+//  }
   //teste
   while (idx < count)
   {
