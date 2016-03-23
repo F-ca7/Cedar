@@ -242,7 +242,7 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
   //teste
   while (idx < count)
   {
-    TBSYS_LOG(WARN, "test::longfei>>>idx[%ld]", idx);
+    //TBSYS_LOG(WARN, "test::longfei>>>idx[%ld]", idx);
     if (OB_SUCCESS != (ret = expr_[idx].get_int(type)))
     {
       return_ret = false;
@@ -636,7 +636,7 @@ bool ObSecondaryIndexServiceImpl::is_expr_can_use_storing_V2(
   }
   if (OB_SUCCESS == find_cid(c_filter, expr_cid)) //获得表达式中存的列的column id:expr_cid。如果表达式中有多列，返回ret不等于OB_SUCCESS
   {
-    TBSYS_LOG(WARN, "test::longfei>>>expr_cid[%ld]", expr_cid);
+    //TBSYS_LOG(WARN, "test::longfei>>>expr_cid[%ld]", expr_cid);
     if (schema_manager_->is_cid_in_index(expr_cid, mian_tid, index_tid_array)) //根据原表的tid，找到该表的��?有的第一主键为expr_cid的索引表，存到index_tid_array里面
     {
       for (int32_t i = 0; i < OB_MAX_INDEX_NUMS; i++)  //对每��?张符合条件的索引��?
@@ -722,7 +722,7 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
   else
   {
     const ObRowkeyInfo *rowkey_info = &mian_table_schema->get_rowkey_info();
-    TBSYS_LOG(WARN,"test::longfei>>>main_name[%s]",mian_table_schema->get_table_name());
+    //TBSYS_LOG(WARN,"test::longfei>>>main_name[%s]",mian_table_schema->get_table_name());
     uint64_t main_cid = OB_INVALID_ID;//第一主键column id
     rowkey_info->get_column_id(0, main_cid);
     if (!is_wherecondition_have_main_cid_V2(filter_array, main_cid))
@@ -737,7 +737,7 @@ bool ObSecondaryIndexServiceImpl::decide_is_use_storing_or_not_V2(
                                        project_array))
         {
           index_table_id = index_tid;
-          TBSYS_LOG(WARN, "test::longfei>>>not back to original table, index_tid[%ld]",index_table_id);
+          //TBSYS_LOG(WARN, "test::longfei>>>not back to original table, index_tid[%ld]",index_table_id);
           return_ret = true;
           break;
         }

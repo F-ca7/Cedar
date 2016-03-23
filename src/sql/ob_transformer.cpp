@@ -217,6 +217,7 @@ typedef int ObMySQLSessionKey;
     TBSYS_LOG(WARN, __VA_ARGS__);                                       \
   } while(0)
 
+//为一个物理操作符申请空间
 #define CREATE_PHY_OPERRATOR(op, type_name, physical_plan, err_stat)    \
   ({                                                                    \
   op = (type_name*)trans_malloc(sizeof(type_name));   \
@@ -3406,7 +3407,9 @@ int ObTransformer::gen_phy_table_not_back(
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(INFO,"source_tid = %d, table name = %.*s",(int)source_tid, table_item->table_name_.length(), table_item->table_name_.ptr());    if (table_item->type_ == TableItem::ALIAS_TABLE)
+    TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+              (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
+    if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
       is_ailias_table = true;
     }
@@ -3416,6 +3419,8 @@ int ObTransformer::gen_phy_table_not_back(
     }
   }
 
+  TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+            (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
   if (ret == OB_SUCCESS)
   {
     switch (table_item->type_)
@@ -3837,7 +3842,8 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
   return ret;
 }
 
-bool ObTransformer::handle_index_for_one_table(
+bool ObTransformer::
+handle_index_for_one_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
     ErrStat& err_stat,
@@ -3891,7 +3897,7 @@ bool ObTransformer::handle_index_for_one_table(
 
     //add filter
     num = stmt->get_condition_size();
-    TBSYS_LOG(WARN,"test::longfei>>>condition num = %d",num);
+    //TBSYS_LOG(WARN,"test::longfei>>>condition num = %d",num);
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       ObSqlRawExpr *cnd_expr = logical_plan->get_expr(stmt->get_condition_id(i));
@@ -3912,15 +3918,24 @@ bool ObTransformer::handle_index_for_one_table(
         }
         else
         {
-          TBSYS_LOG(WARN,"test::longfei>>>filter[%d] is %s", i, to_cstring(*filter));
-          filter_array.push_back(*filter);
+          //TBSYS_LOG(WARN,"test::longfei>>>filter[%d] is %s", i, to_cstring(*filter));
+          if(OB_SUCCESS != (ret = filter_array.push_back(*filter)))
+          {
+            TBSYS_LOG(ERROR, "OBArray push back failed");
+            ret = OB_ERROR;
+          }
+          //add longfei 2016-03-23 15:24:28:b
+          //fixbug 释放filter指针指向的内存空间
+          //TBSYS_LOG(WARN, "debug::longfei>>>free filter memory, count[%ld], filter[%s]", filter_array.count(), to_cstring(*filter));
+          ObSqlExpression::free(filter);
+          //adde
         }
       }
     }
 
     // add output columns
     num = stmt->get_column_size();
-    TBSYS_LOG(WARN,"test::longfei>>>column num = %d",num);
+    //TBSYS_LOG(WARN,"test::longfei>>>column num = %d",num);
     for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
     {
       const ColumnItem *col_item = stmt->get_column_item(i);
@@ -3936,7 +3951,7 @@ bool ObTransformer::handle_index_for_one_table(
         }
         else
         {
-          TBSYS_LOG(WARN,"test::longfei>>>project1[%d] is %s", i, to_cstring(output_expr));
+          //TBSYS_LOG(WARN,"test::longfei>>>project1[%d] is %s", i, to_cstring(output_expr));
           project_array.push_back(output_expr);
         }
       }
@@ -3950,7 +3965,7 @@ bool ObTransformer::handle_index_for_one_table(
     if (ret == OB_SUCCESS)
     {
       num = select_stmt->get_select_item_size();
-      TBSYS_LOG(WARN,"test::longfei>>>select num = %d",num);
+      //TBSYS_LOG(WARN,"test::longfei>>>select num = %d",num);
       for (int32_t i = 0; ret == OB_SUCCESS && i < num; i++)
       {
         const SelectItem& select_item = select_stmt->get_select_item(i);
@@ -3967,7 +3982,7 @@ bool ObTransformer::handle_index_for_one_table(
             }
             else
             {
-              TBSYS_LOG(WARN,"test::longfei>>>project2[%d] is %s", i, to_cstring(output_expr));
+              //TBSYS_LOG(WARN,"test::longfei>>>project2[%d] is %s", i, to_cstring(output_expr));
               project_array.push_back(output_expr);
             }
             alias_exprs.push_back(select_item.expr_id_);
@@ -4141,7 +4156,9 @@ bool ObTransformer::handle_index_for_one_table(
   }
   //add BUG
   if (OB_SUCCESS != ret && is_gen_table == true)
+  {
     ret = OB_SUCCESS;
+  }
   //add:e
   return return_ret;
 }
@@ -4161,7 +4178,7 @@ int ObTransformer::gen_phy_table(ObLogicalPlan *logical_plan, ObPhysicalPlan *ph
                        tmp_table_op,
                        group_agg_pushed_down,
                        limit_pushed_down);
-  TBSYS_LOG(WARN, "test::longfei>>>return value of handle_index_for_one_table[%s]",handle_index_ret ? "true" : "false");
+  //TBSYS_LOG(WARN, "test::longfei>>>return value of handle_index_for_one_table[%s]",handle_index_ret ? "true" : "false");
   if (!handle_index_ret)
   //add:e
   {
