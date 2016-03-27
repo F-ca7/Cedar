@@ -355,6 +355,17 @@ int ObRpcScan::fill_read_param(ObSqlReadParam &dest_param)
   int ret = OB_SUCCESS;
   ObObj val;
   OB_ASSERT(NULL != session_info_);
+  // add by guojinwei [repeatable read] 20160311:b
+  if ( NULL != session_info_)
+  {
+    dest_param.set_trans_id(session_info_->get_trans_id());
+  }
+  else
+  {
+    ObTransID trans_id;
+    dest_param.set_trans_id(trans_id);
+  }
+  // add:e
   if (OB_SUCCESS == ret)
   {
     dest_param.set_is_result_cached(true);

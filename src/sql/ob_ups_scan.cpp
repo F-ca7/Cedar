@@ -199,6 +199,12 @@ void ObUpsScan::set_version_range(const ObVersionRange &version_range)
 {
   cur_scan_param_.set_version_range(version_range);
 }
+// add by guojinwei [repeatable read] 20160312:b
+void ObUpsScan::set_trans_id(const ObTransID &trans_id)
+{
+  cur_scan_param_.set_trans_id(trans_id);
+}
+// add:e
 
 int ObUpsScan::set_child(int32_t child_idx, ObPhyOperator &child_operator)
 {

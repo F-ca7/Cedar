@@ -51,6 +51,10 @@
 #include "mergeserver/ob_frozen_data_cache.h"
 #include "sql/ob_sql_read_strategy.h"
 #include "mergeserver/ob_insert_cache.h"
+// add by guojinwei [repeatable read] 20160310:b
+#include "common/ob_transaction.h"
+// add:e
+
 
 namespace oceanbase
 {

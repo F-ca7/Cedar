@@ -131,6 +131,9 @@ namespace oceanbase
       descriptor_ = INVALID_SESSION_ID;
       ups_.reset();
       start_time_us_ = 0;
+      // add by guojinwei [repeatable read] 20160310:b
+      isolation_level_ = READ_COMMITED;
+      // add:e
     }
 
     bool ObTransID::is_valid() const
@@ -141,8 +144,12 @@ namespace oceanbase
     int64_t ObTransID::to_string(char* buf, int64_t len) const
     {
       int64_t pos = 0;
-      databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld)",
-                      descriptor_, ups_.to_cstring(), start_time_us_);
+      // modify by guojinwei [repeatable read] 20160310:b
+      //databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld)",
+      //                descriptor_, ups_.to_cstring(), start_time_us_);
+      databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld,isolation=%x)",
+                      descriptor_, ups_.to_cstring(), start_time_us_, isolation_level_);
+      // modify:e
       return pos;
     }
 
@@ -158,6 +165,12 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      else if (OB_SUCCESS != (err = serialization::encode_i32(buf, buf_len, new_pos, isolation_level_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      // add:e
       else if (OB_SUCCESS != (err = ups_.serialize(buf, buf_len, new_pos)))
       {
         TBSYS_LOG(ERROR, "ups.serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
@@ -181,6 +194,12 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      else if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, &isolation_level_)))
+      {
+        TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+      }
+      // add:e
       else if (OB_SUCCESS != (err = ups_.deserialize(buf, data_len, new_pos)))
       {
         TBSYS_LOG(ERROR, "ups.deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -196,6 +215,9 @@ namespace oceanbase
     {
       return serialization::encoded_length_i32(descriptor_)
         + serialization::encoded_length_i64(start_time_us_)
+      // add by guojinwei [repeatable read] 20160310:b
+        + serialization::encoded_length_i32(isolation_level_)
+      // add:e
         + ups_.get_serialize_size();
     }
 

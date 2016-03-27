@@ -57,7 +57,10 @@ namespace oceanbase
     struct ObTransID
     {
       const static uint32_t INVALID_SESSION_ID = 0;
-      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0) {}
+      // modify by guojinwei [repeatable read] 20160310:b
+      //ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0) {}
+      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0), isolation_level_(READ_COMMITED) {}
+      // modify:e
       ~ObTransID() {}
       void reset();
       bool is_valid()const;
@@ -66,6 +69,9 @@ namespace oceanbase
       uint32_t descriptor_;
       common::ObServer ups_;
       int64_t start_time_us_;
+      // add by guojinwei [repeatalbe read] 20160310:b
+      int32_t isolation_level_;
+      // add:e
     };
 
     struct ObEndTransReq

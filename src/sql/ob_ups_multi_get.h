@@ -21,6 +21,9 @@
 #include "common/ob_sql_ups_rpc_proxy.h"
 #include "ob_rowkey_phy_operator.h"
 #include "common/ob_row.h"
+// add by guojinwei [repeatable read] 20160312:b
+#include "common/ob_transaction.h"
+// add:e
 
 namespace oceanbase
 {

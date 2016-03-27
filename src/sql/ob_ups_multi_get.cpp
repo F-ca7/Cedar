@@ -225,6 +225,9 @@ int ObUpsMultiGet::next_get_param()
   cur_get_param_.reset();
   cur_get_param_.set_version_range(get_param_->get_version_range());
   cur_get_param_.set_is_read_consistency(get_param_->get_is_read_consistency());
+  // add by guojinwei [repeatable read] 20160312:b
+  cur_get_param_.set_trans_id(get_param_->get_trans_id());
+  // add:e
 
   ObGetParam::ObRowIndex row_idx;
 

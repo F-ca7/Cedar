@@ -21,6 +21,9 @@
 #include "common/ob_sql_ups_rpc_proxy.h"
 #include "common/ob_scan_param.h"
 #include "common/ob_range.h"
+// add by guojinwei [repeatable read] 20160312:b
+#include "common/ob_transaction.h"
+// add:e
 
 
 namespace oceanbase
@@ -63,6 +66,9 @@ namespace oceanbase
          */
         virtual int set_range(const ObNewRange &range);
         void set_version_range(const ObVersionRange &version_range);
+        // add by guojinwei [repeatable read] 20160312:b
+        void set_trans_id(const ObTransID & trans_id);
+        // add:e
 
         bool is_result_empty() const;
 
