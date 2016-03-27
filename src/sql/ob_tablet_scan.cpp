@@ -147,6 +147,9 @@ int ObTabletScan::need_incremental_data(
     else
     {
       op_ups_scan->set_is_read_consistency(sql_scan_param_->get_is_read_consistency());
+      // add by guojinwei [repeatable read] 20160312:b
+      op_ups_scan->set_trans_id(sql_scan_param_->get_trans_id());
+      // add:e
     }
   }
 

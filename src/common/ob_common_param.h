@@ -5,6 +5,9 @@
 #include "ob_object.h"
 #include "ob_range.h"
 #include "ob_rowkey.h"
+// add by guojinwei [repeatable read] 20160311:b
+#include "ob_transaction.h"
+// add:e
 
 namespace oceanbase
 {
@@ -67,6 +70,10 @@ namespace oceanbase
 
       void set_is_read_consistency(const bool cons);
       bool get_is_read_consistency()const;
+      // add by guojinwei [repeatable read] 20160311:b
+      void set_trans_id(const ObTransID& trans_id);
+      ObTransID get_trans_id(void) const;
+      // add:e
 
       void reset(void);
 
@@ -83,6 +90,9 @@ namespace oceanbase
       int8_t is_read_master_;
       int8_t is_result_cached_;
       ObVersionRange version_range_;
+      // add by guojinwei [repeatalbe read] 20160311:b
+      ObTransID trans_id_;
+      // add:e
     };
 
     struct ScanFlag

@@ -122,6 +122,9 @@ int ObMsSqlSubGetRequest::get_next_param_(ObSqlGetParam & get_param)const
   if (OB_SUCCESS == err)
   {
     get_param.set_table_id(pget_param_->get_renamed_table_id(), pget_param_->get_table_id());
+    // add by guojinwei [repeatable read] 20160311:b
+    get_param.set_trans_id(pget_param_->get_trans_id());
+    // add:e
   }
   if ((OB_SUCCESS == err) && (received_row_count_ >= row_idx_in_org_param_.size()))
   {

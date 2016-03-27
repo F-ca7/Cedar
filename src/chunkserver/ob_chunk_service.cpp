@@ -1231,6 +1231,11 @@ namespace oceanbase
         }
         //add e
       }
+      // add by guojinwei [repeatable read] 20160311:b
+      char buf_tmp[1024] = "";
+      sql_read_param_ptr->get_trans_id().to_string(buf_tmp, 1024);
+      TBSYS_LOG(INFO, "trans id = %s", buf_tmp);
+      // add:e
 
       if (OB_SUCCESS == rc.result_code_)
       {
