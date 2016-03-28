@@ -33,6 +33,12 @@ namespace oceanbase
         virtual int slave_register(const common::ObServer& master, const common::ObServer& slave_addr, common::ObFetchParam& fetch_param, const int64_t timeout);
         virtual int set_obi_role(const common::ObServer& ups, const common::ObiRole& role, const int64_t timeout_us);
         virtual int switch_schema(const common::ObServer& server, const common::ObSchemaManagerV2& schema_manager, const int64_t timeout_us);
+
+        //add by wangdonghui 20160122 :b
+        virtual int update_cache(const common::ObServer& server, const common::ObString & proc_name, const common::ObString & proc_source_code, const int64_t timeout_us);
+        virtual int delete_cache(const common::ObServer& server, const common::ObString & proc_name, const int64_t timeout_us);
+        //add :e
+
         virtual int migrate_tablet(const common::ObServer& src_cs, const common::ObDataSourceDesc& desc, const int64_t timeout_us);
         virtual int create_tablet(const common::ObServer& cs, const common::ObNewRange& range, const int64_t mem_version, const int64_t timeout_us);
         virtual int delete_tablets(const common::ObServer& cs, const common::ObTabletReportInfoList &tablets, const int64_t timeout_us);

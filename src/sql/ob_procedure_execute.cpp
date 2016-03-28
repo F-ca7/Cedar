@@ -120,12 +120,14 @@ int ObProcedureExecute::open()
 
 //  ObPhysicalPlan *physical_plan = inner_result_set_.get_physical_plan();
   ObResultSet *result_set = &inner_result_set_;
-  if (stmt_id_ == OB_INVALID_ID)
-  {
-    TBSYS_LOG(WARN, "procedure is not prepared");
-    ret = OB_ENTRY_NOT_EXIST;
-  }
-  else
+  //delete by wangdonghui 20160303 :b
+//  if (stmt_id_ == OB_INVALID_ID)
+//  {
+//    TBSYS_LOG(WARN, "procedure is not prepared");
+//    ret = OB_ENTRY_NOT_EXIST;
+//  }
+//  else
+  //delete :e
   {
     ObPhyOperator *tmp_op = result_set->get_physical_plan()->get_main_query();
 //    TBSYS_LOG(INFO,"get main query success");

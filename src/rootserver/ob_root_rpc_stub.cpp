@@ -244,6 +244,105 @@ int ObRootRpcStub::switch_schema(const common::ObServer& server, const common::O
   return ret;
 }
 
+//add by wangdonghui 20160122 :b
+int ObRootRpcStub::update_cache(const common::ObServer& server, const common::ObString& proc_name, const common::ObString & proc_source_code, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(INFO, "before rpc ms %s: proc name %s, proc source code %s, timeout: %ld", to_cstring(server),
+            proc_name.ptr(), proc_source_code.ptr(), timeout_us);
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_name.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc name, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_source_code.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc source code, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_UPDATE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to update cache, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send update cache, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160305 :b
+int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::ObString& proc_name, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(INFO, "before rpc ms %s: proc name %s timeout: %ld", to_cstring(server),
+            proc_name.ptr(), timeout_us);
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_name.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc name, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_DELETE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to update cache, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send update cache, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
+
 int ObRootRpcStub::migrate_tablet(const common::ObServer& dest_server, const common::ObDataSourceDesc& desc, const int64_t timeout_us)
 {
   const int32_t MIGRATE_TABLET_VERSION = 3;

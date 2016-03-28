@@ -3878,15 +3878,28 @@ int resolve_procedure_create_stmt(
     {
       ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
       ObString proc_name;
+      ObString proc_source_code;
       OB_ASSERT(node->children_[0]->children_[0]);
       if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->children_[0]->str_value_), proc_name)) != OB_SUCCESS)
       {
         PARSER_LOG("Can not malloc space for stmt name");
       }
+      //add by wangdonghui 20160121 :b
+      else if ((ret = ob_write_string(*name_pool, ObString::make_string(result_plan->input_sql_), proc_source_code)) != OB_SUCCESS)
+      {
+        PARSER_LOG("Can not malloc space for stmt source code");
+      }
+      //add :e
       else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "set_proc_name have ERROR!");
       }
+      //add by wangdonghui 20160121 :b
+      else if((ret = stmt->set_proc_source_code(proc_source_code))!=OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "set_proc_source_code have ERROR!");
+      }
+      //add :e
       else
       {
         uint64_t proc_query_id = OB_INVALID_ID;
@@ -3900,82 +3913,84 @@ int resolve_procedure_create_stmt(
           ret=stmt->set_proc_id(proc_query_id); //logical plan for proc function
         }
       }
-      if(ret==OB_SUCCESS)
-      {
-        /*为存储过程创建一个把存储过程源码插入到表的语句*/
-        //modified by wangdonghui 20151223 因为修改了__all_procedure表的字段，重写insert
-        ParseResult parse_result;
-        uint64_t insert_query_id = OB_INVALID_ID;
-        std::string proc_insert_sql="insert into __all_procedure values('{1}','{2}','{3}','{4}')";
+      //delete by wangdonghui 20160128 :b
+//      if(ret==OB_SUCCESS)
+//      {
+//        /*为存储过程创建一个把存储过程源码插入到表的语句*/
+//        //modified by wangdonghui 20151223 因为修改了__all_procedure表的字段，重写insert
+//        ParseResult parse_result;
+//        uint64_t insert_query_id = OB_INVALID_ID;
+//        std::string proc_insert_sql="insert into __all_procedure values('{1}','{2}','{3}','{4}')";
 
-        size_t pos_1 = proc_insert_sql.find("{1}");
-        //proc_insert_sql.replace(pos_1,3,proc_name.ptr());
-        proc_insert_sql.replace(pos_1,3,node->children_[0]->children_[0]->str_value_); //proc name
+//        size_t pos_1 = proc_insert_sql.find("{1}");
+//        //proc_insert_sql.replace(pos_1,3,proc_name.ptr());
+//        proc_insert_sql.replace(pos_1,3,node->children_[0]->children_[0]->str_value_); //proc name
 
 
-        size_t pos_2 = proc_insert_sql.find("{2}");
-        //把'替换为\'
-        TBSYS_LOG(INFO, "input sql:%s length:%lu",result_plan->input_sql_, strlen(result_plan->input_sql_));
-        char *p=new char[strlen(result_plan->input_sql_)+1000];
+//        size_t pos_2 = proc_insert_sql.find("{2}");
+//        //把'替换为\'
+//        TBSYS_LOG(INFO, "input sql:%s length:%lu",result_plan->input_sql_, strlen(result_plan->input_sql_));
+//        char *p=new char[strlen(result_plan->input_sql_)+1000];
 
-        int j=0;
-        for(uint32_t i=0;i<strlen(result_plan->input_sql_);i++)
-        {
-          if(result_plan->input_sql_[i]=='\'')
-          {
-            p[j]='\\';
-            p[j+1]=result_plan->input_sql_[i];
-            j+=2;
-          }
-          else
-          {
-            p[j]=result_plan->input_sql_[i];
-            j++;
-          }
-        }
-        for(uint32_t i=j;i<strlen(p);i++)
-        {
-          p[i]='\0';
-        }
-        //add some char after @
-        replaceArray(p, "@", "@__"); //is the way to solve the variable name conflict bug?
+//        int j=0;
+//        for(uint32_t i=0;i<strlen(result_plan->input_sql_);i++)
+//        {
+//          if(result_plan->input_sql_[i]=='\'')
+//          {
+//            p[j]='\\';
+//            p[j+1]=result_plan->input_sql_[i];
+//            j+=2;
+//          }
+//          else
+//          {
+//            p[j]=result_plan->input_sql_[i];
+//            j++;
+//          }
+//        }
+//        for(uint32_t i=j;i<strlen(p);i++)
+//        {
+//          p[i]='\0';
+//        }
+//        //add some char after @
+//        replaceArray(p, "@", "@__"); //is the way to solve the variable name conflict bug?
 
-        TBSYS_LOG(TRACE, "p:%s j:%d length:%lu",p,j,strlen(p));
+//        TBSYS_LOG(TRACE, "p:%s j:%d length:%lu",p,j,strlen(p));
 
-        proc_insert_sql.replace(pos_2,3,p);
+//        proc_insert_sql.replace(pos_2,3,p);
 
-        size_t pos_3 = proc_insert_sql.find("{3}");
-        proc_insert_sql.replace(pos_3,3,"procedure");
+//        size_t pos_3 = proc_insert_sql.find("{3}");
+//        proc_insert_sql.replace(pos_3,3,"procedure");
 
-        size_t pos_4 = proc_insert_sql.find("{4}");
-        proc_insert_sql.replace(pos_4,3,"");
+//        size_t pos_4 = proc_insert_sql.find("{4}");
+//        proc_insert_sql.replace(pos_4,3,"");
 
-        ObString insertstmt=ObString::make_string(proc_insert_sql.c_str());
-        parse_result.malloc_pool_=result_plan->name_pool_;
+//        ObString insertstmt=ObString::make_string(proc_insert_sql.c_str());
+//        parse_result.malloc_pool_=result_plan->name_pool_;
 
-        TBSYS_LOG(INFO, "the insert stmt is %s", insertstmt.ptr());
+//        TBSYS_LOG(INFO, "the insert stmt is %s", insertstmt.ptr());
 
-        if (OB_SUCCESS != (ret = parse_init(&parse_result)))
-        {
-          TBSYS_LOG(WARN, "parser init err");
-          ret = OB_ERR_PARSER_INIT;
-        }
-        if (parse_sql(&parse_result, insertstmt.ptr(), static_cast<size_t>(insertstmt.length())) != 0
-                        || NULL == parse_result.result_tree_)
-        {
-          TBSYS_LOG(WARN, "parser procedure insert sql err, sql is %*s",insertstmt.length(),insertstmt.ptr());
-          ret=OB_ERR_PARSE_SQL;
-        }
-        else if((ret = resolve_insert_stmt(result_plan, parse_result.result_tree_->children_[0], insert_query_id))!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "resolve_insert_stmt err");
-        }
-        else
-        {
-          ret=stmt->set_proc_insert_id(insert_query_id);
-        }
-        delete p;
-      }
+//        if (OB_SUCCESS != (ret = parse_init(&parse_result)))
+//        {
+//          TBSYS_LOG(WARN, "parser init err");
+//          ret = OB_ERR_PARSER_INIT;
+//        }
+//        if (parse_sql(&parse_result, insertstmt.ptr(), static_cast<size_t>(insertstmt.length())) != 0
+//                        || NULL == parse_result.result_tree_)
+//        {
+//          TBSYS_LOG(WARN, "parser procedure insert sql err, sql is %*s",insertstmt.length(),insertstmt.ptr());
+//          ret=OB_ERR_PARSE_SQL;
+//        }
+//        else if((ret = resolve_insert_stmt(result_plan, parse_result.result_tree_->children_[0], insert_query_id))!=OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "resolve_insert_stmt err");
+//        }
+//        else
+//        {
+//          ret=stmt->set_proc_insert_id(insert_query_id);
+//        }
+//        delete p;
+//      }
+      //delete :e
     }
   }
   else
@@ -4204,7 +4219,8 @@ int resolve_procedure_proc_block_stmt(
   int ret = OB_SUCCESS;
   for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
   {
-    uint64_t sub_query_id = OB_INVALID_ID;
+    uint64_t sub_query_id = OB_INVALID_ID;  
+    TBSYS_LOG(TRACE, "resovle stmt[%d] type[%d]", i, vector_node->children_[i]->type_);
     switch(vector_node->children_[i]->type_)
     {
       //sql

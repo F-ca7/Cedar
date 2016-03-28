@@ -145,3 +145,51 @@ int ObMsSQLProxy::cleanup_sql_env(ObSqlContext &context, ObSQLResultSet &rs)
   context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
   return ret;
 }
+
+//add by zt 20160321 modified by wangdonghui
+int ObMsSQLProxy::init_sql_env_for_cache(ObSqlContext &context, int64_t &schema_version,
+                                         ObSQLResultSet &rs, ObSQLSessionInfo &session)
+{
+  int ret = OB_SUCCESS;
+  ObString name = ObString::make_string(OB_READ_CONSISTENCY);
+  ObObj type;
+  type.set_type(ObIntType);
+  ObObj value;
+  value.set_int(WEAK);
+  ObResultSet &result = rs.get_result_set();
+  schema_version = schema_mgr_->get_latest_version();
+  context.schema_manager_ = schema_mgr_->get_user_schema(schema_version); // reference count
+  if (OB_SUCCESS != (ret = result.init()))
+  {
+    TBSYS_LOG(ERROR, "init result set error, ret = [%d]", ret);
+  }
+  else if (NULL == context.schema_manager_)
+  {
+    TBSYS_LOG(INFO, "table schema not ready, schema_version=%ld", schema_version);
+    ret = OB_ERROR;
+  }
+  else if (NULL == context.schema_manager_)
+  {
+    TBSYS_LOG(WARN, "fail to get user schema. schema_version=%ld", schema_version);
+    ret = OB_ERROR;
+  }
+  else
+  {
+    session.set_version_provider(ms_service_);
+    session.set_config_provider(&ms_service_->get_config());
+    context.session_info_ = &session;
+    context.session_info_->set_current_result_set(&result);
+
+    context.cache_proxy_ = cache_proxy_;    // thread safe singleton
+    context.async_rpc_ = async_rpc_;        // thread safe singleton
+    context.merger_rpc_proxy_ = rpc_proxy_; // thread safe singleton
+    context.rs_rpc_proxy_ = root_rpc_;      // thread safe singleton
+    context.merge_service_ = ms_service_;
+    context.disable_privilege_check_ = true;
+    // reuse memory pool for parser
+    context.session_info_->get_parser_mem_pool().reuse();
+    context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+  }
+  return ret;
+}
+//end

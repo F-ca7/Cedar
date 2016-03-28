@@ -1934,7 +1934,8 @@ namespace oceanbase
         }
         else
         {
-			//add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
+            //delete by wangdonghui 20160128 :b
+//			//add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
 //			ObObj val;
 //			int64_t value=0;
 //			ObString affect=ObString::make_string("affect_row_num");
@@ -1957,7 +1958,8 @@ namespace oceanbase
 //			}
 
 //		  TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
-		  //add:e
+//		  //add:e
+          //delete :e
           // the server status must be got after the plan opened
           uint16_t server_status = 0;
           if (session->get_autocommit())

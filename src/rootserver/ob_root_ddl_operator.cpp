@@ -132,6 +132,42 @@ bool ObRootDDLOperator::insert_schema_table(const TableSchema & table_schema)
   return succ;
 }
 
+//add by wangdonghui 20160125 :b
+bool ObRootDDLOperator::insert_procedure_table(const common::ObString & proc_name, const common::ObString & proc_source_code)
+{
+  bool succ = false;
+  int ret = schema_client_->create_procedure(proc_name, proc_source_code);
+  if (ret != OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "insert new procedure failed:ret[%d]", ret);
+  }
+  else
+  {
+    succ = true;
+  }
+  return succ;
+}
+//add :e
+
+//add by wangdonghui 20160225 [drop procedure] :b
+bool ObRootDDLOperator::delete_procedure(const common::ObString & proc_name)
+{
+  bool succ = false;
+  tbsys::CThreadGuard lock(&mutex_lock_);
+  int ret = schema_client_->drop_procedure(proc_name);
+  if (ret != OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "delete procedure failed:proc_name[%.*s], ret[%d]",
+        proc_name.length(), proc_name.ptr(), ret);
+  }
+  else
+  {
+    succ = true;
+  }
+  return succ;
+}
+//add :e
+
 int ObRootDDLOperator::allocate_table_id(TableSchema & table_schema)
 {
   int ret = OB_SUCCESS;
@@ -516,4 +552,47 @@ int ObRootDDLOperator::modify_table_id(common::TableSchema &table_schema, const 
   }
   return ret;
 }
+//add by wangdonghui 20160125 :b
+int ObRootDDLOperator::create_procedure(const common::ObString & proc_name, const common::ObString & proc_sourcr_code)
+{
+  int ret = OB_SUCCESS;
+  // insert procedure to table __all_procedure
+  if (true != insert_procedure_table(proc_name, proc_sourcr_code))
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(ERROR, "update __all_procedure failed: proc_name[%s]", proc_name.ptr());
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "update __all_procedure failed: proc_name[%s]", proc_name.ptr());
+  }
+  return ret;
+}
+//add :e
 
+//add by wangdonghui 20160225 [drop procedure] :b
+int ObRootDDLOperator::drop_procedure(const common::ObString & proc_name)
+{
+  int ret = OB_SUCCESS;
+  if (!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat failed");
+  }
+  else
+  {
+    if (delete_procedure(proc_name) != true)
+    {
+      ret = OB_ERROR;
+      TBSYS_LOG(WARN, "delete procedure from failed:proc_name[%.*s], ret[%d]",
+          proc_name.length(), proc_name.ptr(), ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "delete procedure succ:proc_name[%.*s]",
+          proc_name.length(), proc_name.ptr());
+    }
+  }
+  return ret;
+}
+//add :e

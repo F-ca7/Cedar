@@ -60,6 +60,9 @@
 #include "rootserver/ob_root_operation_helper.h"
 #include "rootserver/ob_root_timer_task.h"
 
+//add by wangdonghui 20160229 [physical plan cahce management] :b
+#include "common/ob_name_code_map.h"
+//add :e
 class ObBalanceTest;
 class ObBalanceTest_test_n_to_2_Test;
 class ObBalanceTest_test_timeout_Test;
@@ -149,6 +152,14 @@ namespace oceanbase
         int slave_boot_strap();
         int start_notify_switch_schema();
         int notify_switch_schema(bool only_core_tables, bool force_update = false);
+
+        //add by wangdonghui 20160122 :b
+        int notify_update_cache(const common::ObString & proc_name, const common::ObString & proc_source_code);
+        //add :e
+
+        //add by wangdonghui 20160305 :b
+        int notify_delete_cache(const common::ObString & proc_name);
+        //add :e
         void set_privilege_version(const int64_t privilege_version);
         // commit update inner table task
         void commit_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
@@ -212,6 +223,9 @@ namespace oceanbase
            const int64_t occupy_size, const uint64_t crc_sum, const uint64_t row_checksum, const int64_t row_count);
         /// if (force_update = true && get_only_core_tables = false) then read new schema from inner table
         int get_schema(const bool froce_update, bool get_only_core_tables, common::ObSchemaManagerV2& out_schema);
+        //add by wangdonghui 20160307 :b
+        int get_procedure(common::ObNameCodeMap& namecodemap);
+        //add :e
         int64_t get_schema_version() const;
         const ObRootServerConfig& get_config() const;
         ObConfigManager* get_config_mgr();
@@ -301,6 +315,11 @@ namespace oceanbase
         int refresh_new_schema(int64_t & table_count);
         int switch_ini_schema();
         int renew_user_schema(int64_t & table_count);
+
+        //add by wangdonghui 20160307 :b
+        int renew_procedure_info();
+        int refresh_new_procedure();
+        //add :e
         int renew_core_schema(void);
         void dump_schema_manager();
         void dump_migrate_info() const; // for monitor
@@ -315,6 +334,18 @@ namespace oceanbase
         int create_table(const bool if_not_exists, const common::TableSchema &tschema);
         int alter_table(common::AlterTableSchema &tschema);
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
+
+        //add by wangdonghui 20160121 :b
+        int create_procedure(const bool if_exists, const common::ObString &proc_name, const common::ObString &proc_source_code);
+        //add :e
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        int drop_procedure(bool if_exists, const common::ObString &proc_name);
+        //add :e
+
+        //add by wangdonghui 20160304 :b
+        common::ObNameCodeMap* get_name_code_map();
+        //add :e
         int64_t get_last_frozen_version() const;
 
         //for bypass process begin
@@ -344,6 +375,10 @@ namespace oceanbase
         //for bypass process end
         /// check the table exist according the local schema manager
         int check_table_exist(const common::ObString & table_name, bool & exist);
+
+        //add by wangdonghui 20160122 :b
+        int check_procedure_exist(const common::ObString & proc_name, bool & exist);
+        //add :e
         int delete_dropped_tables(int64_t & table_count);
         void after_switch_to_master();
         int after_restart();
@@ -463,8 +498,15 @@ namespace oceanbase
         int drop_one_table(const bool if_exists, const common::ObString & table_name, bool & refresh);
         /// force sync schema to all servers include ms\cs\master ups
         int force_sync_schema_all_servers(const common::ObSchemaManagerV2 &schema);
+
+        //add by wangdonghui 20160123 :b
+        int force_sync_cahce_all_servers(const common::ObString proc_name, const common::ObString proc_source_code);
+        int force_delete_cahce_all_servers(const common::ObString proc_name);
+        //add :e
         int force_heartbeat_all_servers(void);
         int get_ms(common::ObServer& ms_server);
+
+
       private:
         static const int MIN_BALANCE_TOLERANCE = 1;
 
@@ -537,6 +579,10 @@ namespace oceanbase
         ObRootOperationHelper operation_helper_;
         ObRootOperationDuty operation_duty_;
         common::ObTimer timer_;
+
+        //add by wangdonghui [procedure physical plan cache management] 20160229:b
+        common::ObNameCodeMap *name_code_map_;
+        //add :e
     };
   }
 }

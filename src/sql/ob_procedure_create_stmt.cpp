@@ -11,7 +11,18 @@ void ObProcedureCreateStmt::print(FILE* fp, int32_t level, int32_t index) {
 		print_indentation(fp, level);
 		fprintf(fp, "<ObProcedureCreateStmt %d End>\n", index);
 }
+//add by wangdonghui 20160121 :b
+int ObProcedureCreateStmt::set_proc_source_code(ObString &proc_source_code)
+{
+    proc_source_code_ = proc_source_code;
+    return OB_SUCCESS;
+}
 
+ObString& ObProcedureCreateStmt::get_proc_source_code()
+{
+    return proc_source_code_;
+}
+//add :e
 int ObProcedureCreateStmt::set_proc_name(ObString &proc_name)
 {
 	proc_name_=proc_name;

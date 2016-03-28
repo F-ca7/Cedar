@@ -4,6 +4,10 @@
 #include "ob_sql_session_info.h"
 #include "common/dlist.h"
 
+//add by wangdonghui 20160225 [drop procedure]:b
+#include "sql/ob_sql_context.h"
+//add :e
+
 namespace oceanbase
 {
 	namespace sql
@@ -14,6 +18,9 @@ namespace oceanbase
 		public:
 			ObProcedureDrop();
 			virtual ~ObProcedureDrop();
+            //add by wangdonghui 20160225 [drop procedure init] :b
+            void set_rpc_stub(mergeserver::ObMergerRootRpcProxy* rpc);
+            //add :e
 			virtual void reset();
 			virtual void reuse();
 			virtual int open();
@@ -27,9 +34,9 @@ namespace oceanbase
 			virtual int get_next_row(const common::ObRow *&row);
 
 			int set_proc_name(ObString &proc_name);/*设置存储过程名*/
-
-			int set_delete_op(ObPhyOperator &delete_op);
-
+            //delete by wangdonghui [drop procedure] 20160225 :b
+            //int set_delete_op(ObPhyOperator &delete_op);
+            //delete :e
 			void set_if_exists(bool flag);
 			bool if_exists();
 		private:
@@ -40,12 +47,22 @@ namespace oceanbase
 
 		private:
 			ObString proc_name_;
-
-			ObPhyOperator *delete_op_;
+            //delete by wangdonghui 20160225[drop procedure] :b
+            //ObPhyOperator *delete_op_;
+            //delete :e
 			bool  if_exists_;/*标识是否是if exists语法*/
+            //add by wangdonghui 20160225 [drop procedure] :b
+            mergeserver::ObMergerRootRpcProxy* rpc_;
+            //add :e
 
 		};
 
+        //add by wangdonghui [drop procedure] 20160225 :b
+        inline void ObProcedureDrop::set_rpc_stub(mergeserver::ObMergerRootRpcProxy* rpc)
+        {
+          rpc_ = rpc;
+        }
+        //add :e
 
 
 	}
