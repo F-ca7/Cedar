@@ -645,7 +645,7 @@ int SpMsInstExecStrategy::execute_block(SpBlockInsts *inst)
 /*=================================================
  *           ObProcedure Definition
 ===================================================*/
-ObProcedure::ObProcedure()
+ObProcedure::ObProcedure() : long_trans_(false)
 {
 //  child_num_ = 0;
 }
@@ -925,10 +925,12 @@ int ObProcedure::optimize()
     exec_list_.push_back(inst_list_.at(8));
 
     static_cast<SpIfCtrlInsts*>(inst_list_.at(13))->optimize(exec_list_);
-//    exec_list_.remove(exec_list_.count() - 1);
-//    inst_list_.remove(inst_list_.count() - 1);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("payment"), block_name);
 
     SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->set_name(block_name);
     block_inst->add_inst(inst_list_.at(9));
     block_inst->add_inst(inst_list_.at(10));
     block_inst->add_inst(inst_list_.at(11));
@@ -964,12 +966,69 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(1));
     exec_list_.push_back(block_inst);
   }
-  else if( proc_name_.compare("neworder") == 0 )
+  else if( proc_name_.compare("order3") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(3));
+    exec_list_.push_back(inst_list_.at(5));
+
+    SpLoopInst *ol_loop = static_cast<SpLoopInst*>(inst_list_.at(10));
+
+    SpLoopInst *ol_static_data_loop = create_inst<SpLoopInst>(NULL);
+    SpMultiInsts* ol_static_data_loop_body = ol_static_data_loop->get_body_block();
+
+    ol_static_data_loop->assign_template(ol_loop);
+
+    ol_static_data_loop_body->add_inst(ol_loop->get_body_block()->get_inst(0LL));
+    ol_static_data_loop_body->add_inst(ol_loop->get_body_block()->get_inst(1LL));
+
+    SpInstList ol_static_inst_list;
+    ol_loop->optimize(ol_static_inst_list);
+
+    for(int64_t i = 0; i < ol_static_inst_list.count(); ++i)
+    {
+      ol_static_data_loop_body->add_inst(ol_static_inst_list.at(i));
+    }
+    exec_list_.push_back(ol_static_data_loop);
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(7));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(ol_loop);
+
+    exec_list_.push_back(block_inst);
+    exec_list_.push_back(inst_list_.at(11));
+  }
+  else if( proc_name_.compare("order4") == 0 )
   {
     exec_list_.push_back(inst_list_.at(0));
     exec_list_.push_back(inst_list_.at(1));
     exec_list_.push_back(inst_list_.at(2));
     exec_list_.push_back(inst_list_.at(4));
+
+    SpLoopInst *ol_loop = static_cast<SpLoopInst*>(inst_list_.at(9));
+
+    SpLoopInst *ol_static_data_loop = create_inst<SpLoopInst>(NULL);
+    SpMultiInsts* ol_static_data_loop_body = ol_static_data_loop->get_body_block();
+
+    ol_static_data_loop->assign_template(ol_loop);
+
+    ol_static_data_loop_body->add_inst(ol_loop->get_body_block()->get_inst(0LL));
+    ol_static_data_loop_body->add_inst(ol_loop->get_body_block()->get_inst(1LL));
+
+    SpInstList ol_static_inst_list;
+    ol_loop->optimize(ol_static_inst_list);
+
+    for(int64_t i = 0; i < ol_static_inst_list.count(); ++i)
+    {
+      ol_static_data_loop_body->add_inst(ol_static_inst_list.at(i));
+    }
+    exec_list_.push_back(ol_static_data_loop);
 
     SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
     block_inst->add_inst(inst_list_.at(3));
@@ -977,121 +1036,14 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(6));
     block_inst->add_inst(inst_list_.at(7));
     block_inst->add_inst(inst_list_.at(8));
-
-//    SpInstList loop_base_list;
-    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(9));
-    item_loop->optimize(exec_list_);
-    item_loop->add_itr_local_inst(0LL);
-    item_loop->add_itr_local_inst(1LL);
-    item_loop->add_itr_local_inst(2LL);
-
-    block_inst->add_inst(item_loop);
+    block_inst->add_inst(ol_loop);
 
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(10));
   }
-  else if( proc_name_.compare("neworder_2") == 0 )
-  {
-    exec_list_.push_back(inst_list_.at(0));
-    exec_list_.push_back(inst_list_.at(1));
-
-    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(2));
-    item_loop->optimize(exec_list_);
-    item_loop->add_itr_local_inst(0LL);
-    item_loop->add_itr_local_inst(1LL);
-    item_loop->add_itr_local_inst(2LL);
-
-    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
-    block_inst->add_inst(item_loop);
-
-    exec_list_.push_back(inst_list_.at(3));
-    exec_list_.push_back(inst_list_.at(5));
-
-    block_inst->add_inst(inst_list_.at(4));
-    block_inst->add_inst(inst_list_.at(6));
-    block_inst->add_inst(inst_list_.at(7));
-    block_inst->add_inst(inst_list_.at(8));
-    block_inst->add_inst(inst_list_.at(9));
-    block_inst->add_inst(inst_list_.at(10));
-
-    exec_list_.push_back(block_inst);
-    exec_list_.push_back(inst_list_.at(11));
-  }
-  else if( proc_name_.compare("neworder3") == 0 )
-  {
-    exec_list_.push_back(inst_list_.at(0));
-    exec_list_.push_back(inst_list_.at(1));
-    exec_list_.push_back(inst_list_.at(2));
-
-    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(3));
-
-    item_loop->optimize(exec_list_);
-    item_loop->add_itr_local_inst(0LL);
-    item_loop->add_itr_local_inst(1LL);
-    item_loop->add_itr_local_inst(2LL);
-    item_loop->add_itr_local_inst(3LL);
-
-    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
-    block_inst->add_inst(item_loop);
-
-    exec_list_.push_back(inst_list_.at(4));
-    exec_list_.push_back(inst_list_.at(6));
-
-    block_inst->add_inst(inst_list_.at(5));
-    block_inst->add_inst(inst_list_.at(7));
-    block_inst->add_inst(inst_list_.at(8));
-    block_inst->add_inst(inst_list_.at(9));
-    block_inst->add_inst(inst_list_.at(10));
-    block_inst->add_inst(inst_list_.at(11));
-
-    exec_list_.push_back(block_inst);
-    exec_list_.push_back(inst_list_.at(12));
-  }
-  else if( proc_name_.compare("neworder4") == 0 )
-  {
-    exec_list_.push_back(inst_list_.at(0));
-    exec_list_.push_back(inst_list_.at(1));
-    exec_list_.push_back(inst_list_.at(2));
-
-    SpLoopInst *item_loop = static_cast<SpLoopInst*>(inst_list_.at(3));
-
-    SpLoopInst *static_item_loop = create_inst<SpLoopInst>(NULL);
-    static_item_loop->assign_template(item_loop);
-    SpMultiInsts* static_item_loop_body = static_item_loop->get_body_block();
-
-    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(0LL));
-    static_item_loop_body->add_inst(item_loop->get_body_block()->get_inst(1LL));
-
-    SpInstList item_static_inst_list;
-    item_loop->optimize(item_static_inst_list);
-    for(int64_t i = 0 ; i < item_static_inst_list.count(); ++i)
-    {
-      static_item_loop_body->add_inst(item_static_inst_list.at(i));
-    }
-    exec_list_.push_back(static_item_loop);
-
-    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
-
-    ObString block_name;
-    ob_write_string(arena_, ObString::make_string("neworder"), block_name);
-
-    block_inst->set_name(block_name);
-    block_inst->add_inst(item_loop);
-
-    exec_list_.push_back(inst_list_.at(4));
-    exec_list_.push_back(inst_list_.at(6));
-
-    block_inst->add_inst(inst_list_.at(5));
-    block_inst->add_inst(inst_list_.at(7));
-    block_inst->add_inst(inst_list_.at(8));
-    block_inst->add_inst(inst_list_.at(9));
-    block_inst->add_inst(inst_list_.at(10));
-    block_inst->add_inst(inst_list_.at(11));
-
-    exec_list_.push_back(block_inst);
-    exec_list_.push_back(inst_list_.at(12));
-  }
-  else if( proc_name_.compare("neworder6") == 0 )
+  else if( proc_name_.compare("neworder6") == 0 ||
+           proc_name_.compare("order5") == 0 ||
+           proc_name_.compare("order6") == 0 )
   {
     exec_list_.push_back(inst_list_.at(0));
     exec_list_.push_back(inst_list_.at(1));
@@ -1116,7 +1068,8 @@ int ObProcedure::optimize()
     SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
 
     ObString block_name;
-    ob_write_string(arena_, ObString::make_string("neworder"), block_name);
+    //ob_write_string(arena_, ObString::make_string("neworder"), block_name);
+    ob_write_string(arena_, proc_name_, block_name);
 
     block_inst->set_name(block_name);
     block_inst->add_inst(item_loop);
@@ -1133,6 +1086,17 @@ int ObProcedure::optimize()
 
     exec_list_.push_back(block_inst);
     exec_list_.push_back(inst_list_.at(11));
+  }
+  else if( proc_name_.compare("small1") == 0 ||
+           proc_name_.compare("small2") == 0 ||
+           proc_name_.compare("small3") == 0 ||
+           proc_name_.compare("small4") == 0 ||
+           proc_name_.compare("small5") == 0 ||
+           proc_name_.compare("small6") == 0 ||
+           proc_name_.compare("small7") == 0 ||
+           proc_name_.compare("small8") == 0)
+  {
+    exec_list_.push_back(inst_list_.at(0));
   }
   else if( proc_name_.compare("ins_loop") == 0 )
   {
@@ -1159,11 +1123,18 @@ int ObProcedure::optimize()
   else
   {
     special_proc = false;
+    int t_node_rpc = 0;
     exec_list_.reserve(inst_list_.count());
     for(int64_t i = 0; i < inst_list_.count(); ++i)
     {
       exec_list_.push_back(inst_list_.at(i));
+      if( inst_list_.at(i)->get_type() == SP_D_INST  ||
+          inst_list_.at(i)->get_type() == SP_DE_INST )
+      {
+        t_node_rpc ++;
+      }
     }
+    if( t_node_rpc > 1 ) long_trans_ = true;
   }
   deter_exec_mode();
   if (special_proc)
@@ -1194,6 +1165,10 @@ int ObProcedure::open()
   else
   {
     pc_ = 0;
+
+    bool autoCommit = my_phy_plan_->get_result_set()->get_session()->get_autocommit();
+    if( long_trans_  && autoCommit) my_phy_plan_->get_result_set()->get_session()->set_autocommit(false);
+
     for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
       ret = strategy.execute_inst(exec_list_.at(pc_));
@@ -1203,6 +1178,12 @@ int ObProcedure::open()
       {
         TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
       }
+    }
+
+    if( long_trans_ && autoCommit) my_phy_plan_->get_result_set()->get_session()->set_autocommit(true);
+    if( long_trans_ )
+    {
+       end_trans(OB_SUCCESS != ret);
     }
   }
   set_exec_strategy(NULL);
@@ -1617,4 +1598,44 @@ int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
     pos += inst->to_string(buf + pos, buf_len -pos);
   }
   return pos;
+}
+
+int ObProcedure::end_trans(bool rollback)
+{
+  int ret = OB_SUCCESS;
+  ObEndTransReq req;
+  req.rollback_ = rollback;
+  req.trans_id_ = my_phy_plan_->get_result_set()->get_session()->get_trans_id(); // get trans id at runtime to support prepare commit/rollback
+  if (!req.trans_id_.is_valid())
+  {
+    TBSYS_LOG(WARN, "not in transaction");
+  }
+  else if (OB_SUCCESS != (ret = rpc_->ups_end_trans(req)))
+  {
+    TBSYS_LOG(WARN, "failed to end ups transaction, err=%d trans=%s",
+              ret, to_cstring(req));
+    if (OB_TRANS_ROLLBACKED == ret)
+    {
+      TBSYS_LOG(USER_ERROR, "transaction is rolled back");
+    }
+    // reset transaction id
+    ObTransID invalid_trans;
+    my_phy_plan_->get_result_set()->get_session()->set_trans_id(invalid_trans);
+  }
+  else
+  {
+    // reset transaction id
+    ObTransID invalid_trans;
+    my_phy_plan_->get_result_set()->get_session()->set_trans_id(invalid_trans);
+  }
+  if (!req.rollback_)
+  {
+    OB_STAT_INC(OBMYSQL, SQL_COMMIT_COUNT);
+  }
+  else
+  {
+    OB_STAT_INC(OBMYSQL, SQL_ROLLBACK_COUNT);
+  }
+  FILL_TRACE_LOG("trans_id=%s err=%d", to_cstring(req.trans_id_), ret);
+  return ret;
 }

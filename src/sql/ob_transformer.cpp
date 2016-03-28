@@ -3531,6 +3531,7 @@ int ObTransformer::gen_phy_table(
       if (stmt->get_query_hint().read_consistency_ != NO_CONSISTENCY)
       {
         hint.read_consistency_ = stmt->get_query_hint().read_consistency_;
+//        hint.read_consistency_ = FROZEN; //add by zt for test cache
       }
       else
       {

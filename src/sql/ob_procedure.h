@@ -108,6 +108,7 @@ namespace oceanbase
       DECLARE_PHY_OPERATOR_ASSIGN;
       int set_inst_op();
 
+      int end_trans(bool rollback);
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
@@ -122,10 +123,10 @@ namespace oceanbase
 
       SpInstList exec_list_;
 
-
       mergeserver::ObMergerRpcProxy *rpc_;
 
       ObArray<StaticData> static_store_;
+      bool long_trans_;
     }; 
   }
 }
