@@ -866,6 +866,9 @@ int ObTransformer::gen_physical_procedure_create(
     CREATE_PHY_OPERRATOR(result_op, ObProcedureCreate, physical_plan, err_stat);
     if (ret == OB_SUCCESS)
     {
+      //add by wangdonghui add sqlcontext for rpc 20160120 :b
+      result_op->set_sql_context(*sql_context_);
+      //:e
       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
     }
   }
@@ -875,6 +878,12 @@ int ObTransformer::gen_physical_procedure_create(
     {
       TBSYS_LOG(WARN, "result_op set proc_name error");
     }
+    //add by wangdonghui 20160121 :b
+    else if((ret = result_op->set_proc_source_code(stmt->get_proc_source_code())) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "result_op set proc_source_code error");
+    }
+    //add :e
     else
     {
       /*重新生成一个操作符*/
@@ -890,22 +899,25 @@ int ObTransformer::gen_physical_procedure_create(
         ret = OB_ERR_ILLEGAL_INDEX;
         TBSYS_LOG(WARN,"add proc_op into proc_create fail");
       }
-      else
-      {
-        /*生成存储过程插入数据表的insert操作符*/
-        int32_t insert_idx = OB_INVALID_INDEX;
-        ObPhyOperator* insert_op = NULL;
-        /*这里应该过滤一些类型的语句*/
-        if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "generate proc save plan fail");
-        }
-        else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
-        {
-          ret = OB_ERR_ILLEGAL_INDEX;
-          TBSYS_LOG(WARN,"add proc_save_op into proc_create fail");
-        }
-      }
+
+      //delete by wangdonghui 20160128 :b
+//      else
+//      {
+//        /*生成存储过程插入数据表的insert操作符*/
+//        int32_t insert_idx = OB_INVALID_INDEX;
+//        ObPhyOperator* insert_op = NULL;
+//        /*这里应该过滤一些类型的语句*/
+//        if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "generate proc save plan fail");
+//        }
+//        else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
+//        {
+//          ret = OB_ERR_ILLEGAL_INDEX;
+//          TBSYS_LOG(WARN,"add proc_save_op into proc_create fail");
+//        }
+//      }
+      //delete :e
     }
   }
   return ret;
@@ -928,6 +940,9 @@ int ObTransformer::gen_physical_procedure_drop(
 	   CREATE_PHY_OPERRATOR(result_op, ObProcedureDrop, physical_plan, err_stat);
 	   if (ret == OB_SUCCESS)
 	   {
+           //add by wangdonghui 20160226 [drop procedure] :b
+           result_op->set_rpc_stub(sql_context_->rs_rpc_proxy_);
+           //add :e
 	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
 	   }
 	}
@@ -940,17 +955,17 @@ int ObTransformer::gen_physical_procedure_drop(
 		 else
 		 {
 			 int32_t delete_idx = OB_INVALID_INDEX;
-			 ObPhyOperator* delete_op = NULL;
+//			 ObPhyOperator* delete_op = NULL;
 			 /*这里应该过滤一些类型的语句*/
 			 if ((ret = gen_physical_delete_new(logical_plan,physical_plan,err_stat,stmt->get_proc_delete_id(),&delete_idx)) != OB_SUCCESS)
 			 {
 				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
 			 }
-			 else if ((delete_op = physical_plan->get_phy_query(delete_idx)) == NULL|| (ret = result_op->set_delete_op(*delete_op)) != OB_SUCCESS)
-			 {
-				 ret = OB_ERR_ILLEGAL_INDEX;
-				 TBSYS_LOG(ERROR,"Set child of delete failed");
-			 }
+//			 else if ((delete_op = physical_plan->get_phy_query(delete_idx)) == NULL|| (ret = result_op->set_delete_op(*delete_op)) != OB_SUCCESS)
+//			 {
+//				 ret = OB_ERR_ILLEGAL_INDEX;
+//				 TBSYS_LOG(ERROR,"Set child of delete failed");
+//			 }
 
 		 }
 		 //设置标志位
@@ -992,52 +1007,77 @@ int ObTransformer::gen_physical_procedure_execute(
       }
       else
       {
-        uint64_t stmt_id = OB_INVALID_ID;
-        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
-        {
-          TBSYS_LOG(WARN, "plan does not generated and cached in session");
-          ret = OB_ENTRY_NOT_EXIST;
-        }
-        else
-        {
-          ObResultSet *result_set = session_info->get_plan(stmt_id);
-
-          //copy the physical plan from the prepared one
-          //following the code from ObSql::copy_plan_from_store
-          //          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-          //          ObSql::copy_physical_plan(new_plan, result_set->get_physical_plan(), sql_context_);
-
-          ObResultSet &new_result_set = result_op->get_procedure_result_set();
-          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-          new_plan->set_result_set(&new_result_set);
-          if (NULL == new_plan)
+          //modified by wangdonghui 20160302 [pl manage] :b
+//        uint64_t stmt_id = OB_INVALID_ID;
+//        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
+//        {
+//          TBSYS_LOG(WARN, "plan does not generated and cached in session");
+//          ret = OB_ENTRY_NOT_EXIST;
+//        }
+//        else
+//        {
+//          ObResultSet *result_set = session_info->get_plan(stmt_id);
+          ObSQLResultSet *sql_result_set;
+          ObResultSet *result_set = NULL;
+          int hash_ret;
+          if( hash::HASH_EXIST != (hash_ret = (sql_context_->merge_service_->
+                             get_merge_server()->get_physical_plan_manager().get_name_cache_map()->get(proc_name, sql_result_set)
+                             )))
           {
-            TBSYS_LOG(ERROR, "can not alloc mem for ObPhysicalPlan");
-            ret = OB_ERR_UNEXPECTED;
+
+              TBSYS_LOG(WARN, "failed to get cached result_set, ret=%d", hash_ret);
+              ret = OB_ERROR;
           }
           else
           {
-            TBSYS_LOG(DEBUG, "copy from store ob_malloc plan is %p store plan %p", new_plan, result_set->get_physical_plan());
-            //        phy_plan->set_result_set();
-            ret = ObSql::copy_physical_plan(*new_plan, *(result_set->get_physical_plan()), sql_context_);//phy_plan->assign(value->plan_);
-            if (OB_SUCCESS != ret)
-            {
-              new_plan->clear();
-              ObPhysicalPlan::free(new_plan);
-              TBSYS_LOG(ERROR, "Copy Physical plan from ObPsStoreItem to Current ResultSet failed ret=%d", ret);
-            }
-            else
-            {
-              TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
-              new_result_set.from_prepared(*result_set);
-              new_result_set.change_phy_plan(new_plan, true);
-              new_result_set.set_session(sql_context_->session_info_);
-
-              new_result_set.set_plan_from_assign(true);
-            }
+            TBSYS_LOG(INFO, "get procedure cache \n%s", to_cstring(*(sql_result_set->get_result_set().get_physical_plan())));
+            result_set = &(sql_result_set)->get_result_set();
           }
-          result_op->set_stmt_id(stmt_id);
-        }
+          if (NULL == result_set)
+          {
+            TBSYS_LOG(WARN, "plan does not generated and cached in physical plan manager");
+            ret = OB_ENTRY_NOT_EXIST;
+          }
+          else
+          {
+              //modified :e
+
+              //copy the physical plan from the prepared one
+              //following the code from ObSql::copy_plan_from_store
+              //          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
+              //          ObSql::copy_physical_plan(new_plan, result_set->get_physical_plan(), sql_context_);
+
+              ObResultSet &new_result_set = result_op->get_procedure_result_set();
+              ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
+              new_plan->set_result_set(&new_result_set);
+              if (NULL == new_plan)
+              {
+                TBSYS_LOG(ERROR, "can not alloc mem for ObPhysicalPlan");
+                ret = OB_ERR_UNEXPECTED;
+              }
+              else
+              {
+                TBSYS_LOG(DEBUG, "copy from store ob_malloc plan is %p store plan %p", new_plan, result_set->get_physical_plan());
+                //        phy_plan->set_result_set();
+                ret = ObSql::copy_physical_plan(*new_plan, *(result_set->get_physical_plan()), sql_context_);//phy_plan->assign(value->plan_);
+                if (OB_SUCCESS != ret)
+                {
+                  new_plan->clear();
+                  ObPhysicalPlan::free(new_plan);
+                  TBSYS_LOG(ERROR, "Copy Physical plan from ObPsStoreItem to Current ResultSet failed ret=%d", ret);
+                }
+                else
+                {
+                  TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
+                  new_result_set.from_prepared(*result_set);
+                  new_result_set.change_phy_plan(new_plan, true);
+                  new_result_set.set_session(sql_context_->session_info_);
+
+                  new_result_set.set_plan_from_assign(true);
+                }
+              }
+             // result_op->set_stmt_id(stmt_id);
+          }
       }
       if( OB_SUCCESS == ret ) //save paramters into the execute_operators
       {

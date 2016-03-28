@@ -161,18 +161,19 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
                     result.set_stmt_type(stmt_type);
                     result.set_inner_stmt_type(stmt_type);
 
+                    //delete by wangdonghui 20160303 :b
                     //add zt 20151117:b bad degin
                     //perhaps we can do it in the fill_result_set
-                    if( stmt_type == ObBasicStmt::T_PROCEDURE_EXEC )
-                    {
-                        //check the whether the procedure exist in the session, if not, try to build the plan from source code
-                        make_procedure_cache_check(logic_plan->get_main_stmt(), context);
-                    }
+//                    if( stmt_type == ObBasicStmt::T_PROCEDURE_EXEC )
+//                    {
+//                        //check the whether the procedure exist in the session, if not, try to build the plan from source code
+//                        make_procedure_cache_check(logic_plan->get_main_stmt(), context);
+//                    }
                     //add zt 20151117:e
-
+                    //add :e
                     if (NULL == context.transformer_allocator_)
                     {
-                        OB_ASSERT(!context.is_prepare_protocol_);
+                     //   OB_ASSERT(!context.is_prepare_protocol_);
                         context.transformer_allocator_ = &context.session_info_->get_transformer_mem_pool();
                     }
                     if (OB_SUCCESS != (ret = logic_plan->fill_result_set(result, context.session_info_,

@@ -21,7 +21,10 @@ namespace oceanbase
         response_buffer_(RESPONSE_PACKET_BUFFER_SIZE),
         rpc_buffer_(RESPONSE_PACKET_BUFFER_SIZE),
         scan_req_pool_(common::ObModIds::OB_MS_SQL_SCAN_REQ_POOL),
-        get_req_pool_(common::ObModIds::OB_MS_SQL_GET_REQ_POOL)
+        get_req_pool_(common::ObModIds::OB_MS_SQL_GET_REQ_POOL),
+        //add by wangdonghui 20160301 [pl manage] :b
+        physical_plan_manager_()
+        //add :e
     {
     }
 
@@ -225,7 +228,13 @@ namespace oceanbase
       {
         ret = service_.initialize(this);
       }
-
+      //add by wangdonghui 20160301 [physical plan cache] :b
+      if(ret == OB_SUCCESS)
+      {
+        ret = physical_plan_manager_.init();
+        physical_plan_manager_.set_mergeserver_service(&service_);
+      }
+      //add :e
       return ret;
     }
 

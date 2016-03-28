@@ -455,39 +455,41 @@ namespace oceanbase
           }
           break;
         }
+        //delete by wangdonghui 20160303 :b
         //add zt 20151121:b
-        case ObStmt::T_PROCEDURE_EXEC:
-        {
-          ObProcedureExecuteStmt *proc_exec_stmt = static_cast<ObProcedureExecuteStmt*>(stmts_[0]);
-          ObResultSet *stored_plan = NULL;
-          if (session_info == NULL)
-          {
-            ret = OB_ERROR;
-            TBSYS_LOG(ERROR, "Session Info is needed. ret=%d", ret);
-          }
-          else if (proc_exec_stmt == NULL)
-          {
-            ret = OB_ERR_PARSE_SQL;
-            TBSYS_LOG(WARN, "fail to get Execute statement");
-          }
-          else if ((stored_plan = session_info->get_plan(proc_exec_stmt->get_proc_name())) == NULL)
-          {
-            ret = OB_ERR_PREPARE_STMT_UNKNOWN;
-            TBSYS_LOG(USER_ERROR, "statement %.*s not prepared",
-                proc_exec_stmt->get_proc_name().length(), proc_exec_stmt->get_proc_name().ptr());
-          }
-          else if ((ret = result_set.from_prepared(*stored_plan)) != OB_SUCCESS)
-          {
-            TBSYS_LOG(WARN, "fail to fill result set, ret=%d", ret);
-          }
-          else
-          {
-            TBSYS_LOG(DEBUG, "get physical plan, addr=%p", stored_plan->get_physical_plan());
-            TBSYS_LOG(DEBUG, "StoredPlan: %s", to_cstring(*stored_plan->get_physical_plan()));
-          }
-          break;
-        }
+//        case ObStmt::T_PROCEDURE_EXEC:
+//        {
+//          ObProcedureExecuteStmt *proc_exec_stmt = static_cast<ObProcedureExecuteStmt*>(stmts_[0]);
+//          ObResultSet *stored_plan = NULL;
+//          if (session_info == NULL)
+//          {
+//            ret = OB_ERROR;
+//            TBSYS_LOG(ERROR, "Session Info is needed. ret=%d", ret);
+//          }
+//          else if (proc_exec_stmt == NULL)
+//          {
+//            ret = OB_ERR_PARSE_SQL;
+//            TBSYS_LOG(WARN, "fail to get Execute statement");
+//          }
+//          else if ((stored_plan = session_info->get_plan(proc_exec_stmt->get_proc_name())) == NULL)
+//          {
+//            ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+//            TBSYS_LOG(USER_ERROR, "statement %.*s not prepared",
+//                proc_exec_stmt->get_proc_name().length(), proc_exec_stmt->get_proc_name().ptr());
+//          }
+//          else if ((ret = result_set.from_prepared(*stored_plan)) != OB_SUCCESS)
+//          {
+//            TBSYS_LOG(WARN, "fail to fill result set, ret=%d", ret);
+//          }
+//          else
+//          {
+//            TBSYS_LOG(DEBUG, "get physical plan, addr=%p", stored_plan->get_physical_plan());
+//            TBSYS_LOG(DEBUG, "StoredPlan: %s", to_cstring(*stored_plan->get_physical_plan()));
+//          }
+//          break;
+//        }
         //add zt 20151121:e
+        //delete :e
         default:
           break;
       }

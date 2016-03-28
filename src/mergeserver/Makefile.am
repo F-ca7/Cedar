@@ -77,7 +77,8 @@ pub_source =                                                            \
 	ob_bloom_filter_task_queue_thread.h ob_bloom_filter_task_queue_thread.cpp\
 	ob_insert_cache.h                 ob_insert_cache.cpp\
   ob_merge_reload_config.h          ob_merge_reload_config.cpp          \
-  ob_frozen_data_cache.h            ob_frozen_data_cache.cpp
+  ob_frozen_data_cache.h            ob_frozen_data_cache.cpp\
+ob_physical_plan_cache_manager.h         ob_physical_plan_cache_manager.cpp
 
 
 # rules to auto generate svn_version.cpp

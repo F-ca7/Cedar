@@ -305,7 +305,8 @@ common_sources=				                                                  \
 	ob_fifo_stream.h									 ob_fifo_stream.cpp \
 	ob_multi_wakeup.h									 ob_multi_wakeup.cpp \
 	ob_global_factory.h\
-  ob_errno.h ob_errno.cpp
+  ob_errno.h ob_errno.cpp\
+ob_name_code_map.h     ob_name_code_map.cpp 
 
 
 location_sources=                                                                             \

@@ -509,6 +509,13 @@ namespace oceanbase
         merge_server_->get_bloom_filter_task_queue_thread().start();
       }
 
+      //add by wangdonghui run physical plan manager thread 20160317 :b
+      if (OB_SUCCESS == err)
+      {
+        merge_server_->get_physical_plan_manager().start();
+      }
+      //add :e
+
       if (OB_SUCCESS != err)
       {
         if (rpc_proxy_)
@@ -667,6 +674,14 @@ namespace oceanbase
         case OB_SWITCH_SCHEMA:
           rc = ms_accept_schema(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
           break;
+        //add by wangdonghui 20160122 :b
+        case OB_UPDATE_CACHE:
+          rc = ms_accept_cache(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
+            break;
+        case OB_DELETE_CACHE:
+          rc = ms_delete_cache(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
+            break;
+        //add :e
         case OB_SCAN_REQUEST:
           rc = ms_scan(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
           break;
@@ -1711,7 +1726,156 @@ namespace oceanbase
 
       return ret;
     }
+    //add by wangdonghui 20160122 :b
+    int ObMergeServerService::ms_accept_cache(
+      const int64_t start_time,
+      const int32_t version,
+      const int32_t channel_id,
+      easy_request_t* req,
+      common::ObDataBuffer& in_buffer,
+      common::ObDataBuffer& out_buffer,
+      const int64_t timeout_us)
+    {
+      TBSYS_LOG(INFO, "QAQ ACCEPT");
+      UNUSED(start_time);
+      UNUSED(timeout_us);
+      UNUSED(version);
+      ObString proc_name;
+      ObString proc_source_code;
+      common::ObResultCode rc;
+      rc.result_code_ = OB_SUCCESS;
+      int &err = rc.result_code_;
+      int ret = OB_SUCCESS;
+      const int32_t OB_MS_ACCEPT_CACHE_VERSION = 1;
 
+      if (OB_SUCCESS != (err = proc_name.deserialize(
+                             in_buffer.get_data(), in_buffer.get_capacity(),
+                             in_buffer.get_position())))
+      {
+          TBSYS_LOG(WARN, "fail to deserialize proc name:err[%d]", err);
+      }
+      else if(OB_SUCCESS != (err = proc_source_code.deserialize(
+                                 in_buffer.get_data(), in_buffer.get_capacity(),
+                                 in_buffer.get_position())))
+      {
+          TBSYS_LOG(WARN, "fail to deserialize proc source code:err[%d]", err);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "mergeserver accept proc succ! proc name %s, proc source code %s", proc_name.ptr(), proc_source_code.ptr());
+        if (OB_SUCCESS != (ret = rc.serialize(out_buffer.get_data(),
+                              out_buffer.get_capacity(), out_buffer.get_position())))
+        {
+          TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = merge_server_->send_response(
+                                   OB_UPDATE_CACHE_RESPONSE,
+                                   OB_MS_ACCEPT_CACHE_VERSION,
+                                   out_buffer, req, channel_id)))
+        {
+          TBSYS_LOG(ERROR, "fail to send OB_UPDATE_CACHE_RESPONSE: ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = merge_server_->get_physical_plan_manager().do_execute(proc_name, proc_source_code)))
+        {
+          TBSYS_LOG(ERROR, "fail to generate physical plan cache [%.*s] ret=[%d]",
+                    proc_name.length(), proc_name.ptr(), ret);
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "MS accepted proc succ [%.*s]", proc_name.length(), proc_name.ptr());
+        }
+      }
+      return ret;
+    }
+    //add :e
+
+
+    //add by wangdonghui 20160122 :b
+    int ObMergeServerService::ms_delete_cache(
+      const int64_t start_time,
+      const int32_t version,
+      const int32_t channel_id,
+      easy_request_t* req,
+      common::ObDataBuffer& in_buffer,
+      common::ObDataBuffer& out_buffer,
+      const int64_t timeout_us)
+    {
+      TBSYS_LOG(INFO, "QAQ ACCEPT DELETE!");
+      UNUSED(start_time);
+      UNUSED(timeout_us);
+      UNUSED(version);
+      const int32_t OB_MS_ACCEPT_CACHE_VERSION = 1;
+      ObString proc_name;
+      common::ObResultCode rc;
+      rc.result_code_ = OB_SUCCESS;
+      int &err = rc.result_code_;
+      int ret = OB_SUCCESS;
+
+      if (OB_SUCCESS == err)
+      {
+        err = proc_name.deserialize(
+              in_buffer.get_data(), in_buffer.get_capacity(),
+              in_buffer.get_position());
+        if (OB_SUCCESS != err)
+        {
+          TBSYS_LOG(WARN, "fail to deserialize proc name:err[%d]", err);
+        }
+      }
+      if (OB_SUCCESS == err)
+      {
+        TBSYS_LOG(INFO, "mergeserver accept proc succ! proc name %s, ready to delete", proc_name.ptr());
+      }
+      if (OB_SUCCESS == err)
+      {
+        merge_server_->get_physical_plan_manager().get_name_cache_map()->erase(proc_name);
+        if (-1 == ret)
+        {
+          ret = OB_ERROR;
+        }
+        else if (hash::HASH_NOT_EXIST == ret)
+        {
+          TBSYS_LOG(WARN, "procedure [%s] not exist, destroy do nothing.", proc_name.ptr());
+          ret = OB_ERROR;
+        }
+        else
+        {
+          ret = OB_SUCCESS;
+        }
+      }
+
+      ret = rc.serialize(out_buffer.get_data(),
+          out_buffer.get_capacity(), out_buffer.get_position());
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
+      }
+
+      if (OB_SUCCESS == ret)
+      {
+        ret = merge_server_->send_response(
+            OB_DELETE_CACHE_RESPONSE,
+            OB_MS_ACCEPT_CACHE_VERSION,
+            out_buffer, req, channel_id);
+      }
+
+      return ret;
+    }
+    //add :e
+    //add by wangdonghui 20160323 :b
+    int ObMergeServerService::fetch_source(common::ObNameCodeMap * name_code_map)
+    {
+        int ret = OB_SUCCESS;
+        if(OB_SUCCESS != (ret = rpc_stub_->fetch_procedure(merge_server_->get_config().network_timeout, merge_server_->get_root_server(), *name_code_map)))
+        {
+            TBSYS_LOG(WARN, "fetch source hashmap fail, ret=[%d]",ret);
+        }
+        else
+        {
+            TBSYS_LOG(INFO, "fetch source hashmap succ!");
+        }
+        return ret;
+    }
+    //add :e
     int ObMergeServerService::send_sql_response(
       easy_request_t* req,
       common::ObDataBuffer& out_buffer,

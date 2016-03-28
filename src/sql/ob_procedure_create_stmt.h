@@ -25,6 +25,11 @@ class ObProcedureCreateStmt: public ObBasicStmt {
 
 		ObString& get_proc_name();
 
+        //add by wangdonghui :b
+        int set_proc_source_code(ObString &proc_source_code);
+        ObString& get_proc_source_code();
+        //add :e
+
 		int set_proc_id(uint64_t& stmt_id);
 
 		uint64_t& get_proc_id();
@@ -39,6 +44,9 @@ class ObProcedureCreateStmt: public ObBasicStmt {
 
 	private:
 		ObString proc_name_;
+        //add by wangdonghui 20160121 :b
+        ObString proc_source_code_;
+        //add :e
 		uint64_t proc_id_;
 		uint64_t proc_insert_id_;/*插入到存储过程数据表的语句id*/
 
