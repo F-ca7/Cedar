@@ -1017,7 +1017,7 @@ int ObTransformer::gen_physical_procedure_execute(
 //        else
 //        {
 //          ObResultSet *result_set = session_info->get_plan(stmt_id);
-          ObSQLResultSet *sql_result_set;
+          ObSQLResultSet *sql_result_set = NULL;
           ObResultSet *result_set = NULL;
           int hash_ret;
           if( hash::HASH_EXIST != (hash_ret = (sql_context_->merge_service_->
