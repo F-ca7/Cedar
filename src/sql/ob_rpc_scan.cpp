@@ -947,6 +947,9 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
   int ret = OB_SUCCESS;
   if(!is_use_index_)   //如果不使用回表的索引，则按照原来的实现走
   {
+    //add longfei 2016-03-26 10:53:13
+    TBSYS_LOG(WARN, "debug::longfei>>>if original table or not back, you will see this, table_id[%ld]",main_table_id_);
+    //add e
     bool can_break = false;
     int64_t remain_us = 0;
     row = NULL;

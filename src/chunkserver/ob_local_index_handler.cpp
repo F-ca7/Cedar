@@ -425,7 +425,7 @@ namespace oceanbase
 
       ///计算采样频率
       //debugb longfei 2016-03-18 14:39:35
-      TBSYS_LOG(WARN, "debug::longfei>>>table_row_count[%ld],sample_rate[%ld]", tablet_row_count, sample_rate);
+      //TBSYS_LOG(WARN, "debug::longfei>>>table_row_count[%ld],sample_rate[%ld]", tablet_row_count, sample_rate);
       //debuge
       const int64_t MAX_SAMPLE_BUCKET = 256; //add longfei 2016-03-18 14:53:14 :e
 

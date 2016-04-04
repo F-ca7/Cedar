@@ -287,6 +287,7 @@ int ObTabletScan::build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
 {
   int ret = OB_SUCCESS;
   TBSYS_LOG(DEBUG, "sql_scan_param=%s", to_cstring(sql_scan_param));
+  TBSYS_LOG(DEBUG, "debug::longfei>>>is_result_cached?[%d]", sql_scan_param.get_is_result_cached());//add longfei 2016-03-30 19:05:02
   sstable_scan_param.set_range(*sql_scan_param.get_range());
   sstable_scan_param.set_is_result_cached(sql_scan_param.get_is_result_cached());
   sstable_scan_param.set_not_exit_col_ret_nop(false);
@@ -326,6 +327,9 @@ int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
   ObArray<uint64_t> basic_columns;
   uint64_t table_id = sql_scan_param_->get_table_id();
   uint64_t renamed_table_id = sql_scan_param_->get_renamed_table_id();
+  //add longfei 2016-03-30 15:59:22
+  TBSYS_LOG(DEBUG, "debug::longfei>>>table_id[%ld], renamed_tid[%ld]", table_id, renamed_table_id);
+  //add e
   ObProject *op_project = NULL;
   ObLimit *op_limit = NULL;
   ObFilter *op_filter = NULL;
@@ -346,7 +350,10 @@ int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
 
   if (OB_SUCCESS == ret)
   {
-
+    //add longfei 2016-03-30 16:08:08
+    //看看构造好的table_join_info
+    TBSYS_LOG(DEBUG, "debug::longfei>>>table_join_info:%s", to_cstring(table_join_info));
+    //add e
     if (OB_SUCCESS != (ret = build_sstable_scan_param(basic_columns, *sql_scan_param_, sstable_scan_param)))
     {
       TBSYS_LOG(WARN, "build_sstable_scan_param ret=%d", ret);

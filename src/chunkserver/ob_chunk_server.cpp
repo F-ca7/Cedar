@@ -496,6 +496,9 @@ namespace oceanbase
           wait_time = tbsys::CTimeUtil::getTime() - receive_time;
           FILL_TRACE_LOG("process request, packet_code=%d, wait_time=%ld",
               packet_code, wait_time);
+          //add longfei 2016-03-30 14:09:24
+          TBSYS_LOG(DEBUG, "debug::longfei>>>process request, packet_code=%d, wait_time=%ld", packet_code, wait_time);
+          //add e
           PROFILE_LOG(DEBUG, "request from peer=%s, wait_time_in_queue=%ld, packet_code=%d",
                          get_peer_ip(ob_packet->get_request()), wait_time, packet_code);
           PFILL_SET_TRACE_ID(ob_packet->get_trace_id());

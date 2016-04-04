@@ -603,6 +603,7 @@ int ObSqlReadStrategy::find_rowkeys_from_equal_expr(bool real_val, ObIArray<ObRo
     start_key_objs_[idx].set_min_value();
     end_key_objs_[idx].set_max_value();
   }
+  //遍历全主键
   for (idx = 0; idx < rowkey_info_->get_size(); idx++)
   {
     if (OB_SUCCESS != (ret = rowkey_info_->get_column_id(idx, column_id)))

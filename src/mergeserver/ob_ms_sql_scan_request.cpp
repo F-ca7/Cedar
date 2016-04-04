@@ -341,6 +341,9 @@ namespace oceanbase
         }
         /// 1. split requested ObNewRange into small ranges
         err = range_iter.next(reinterpret_cast<ObChunkServerItem*>(replicas), replica_count, query_range);
+        //add longfei 2016-03-30 14:05:43
+        TBSYS_LOG(DEBUG, "debug::longfei>>>query_range is [%s]", to_cstring(query_range));
+        //add e
         if (OB_ITER_END == err)
         {
           //TBSYS_LOG(DEBUG, "end of range iteration. break");
@@ -1023,6 +1026,10 @@ namespace oceanbase
               "merger_operator_.get_mem_size_used()=%ld, max_cs_result_mem_size_=%ld",
               total_sub_request_count_, finished_sub_request_count_, max_parallel_count_,
               merger_operator_.get_mem_size_used(), max_cs_result_mem_size_);
+          // add longfei 2016-03-30 13:53:19
+          int64_t res = org_req_range_iter_.to_string();
+          UNUSED(res);
+          // add e
           int err = do_request(max_parallel_count_, org_req_range_iter_, timeout_us_);
           if (OB_SUCCESS != err)
           {

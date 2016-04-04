@@ -1139,9 +1139,19 @@ namespace oceanbase
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
     {
+      //add longfei 2016-03-30 14:34:03 统计scan时间
+      int64_t now = tbsys::CTimeUtil::getTime(); //add
+      int ret = OB_SUCCESS;//add
       sql::ObSqlScanParam *sql_scan_param_ptr = GET_TSI_MULT(sql::ObSqlScanParam, TSI_CS_SQL_SCAN_PARAM_1);
       FILL_TRACE_LOG("start_cs_sql_scan");
-      return cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr);
+//      return cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr); del
+      ret = cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr); //add
+      //日志打出的exec time为1157
+      //第二次日志打出的exec time为85591,第一次是因为数据都在ups上 2016-04-04 14:52:56
+      TBSYS_LOG(DEBUG, "debug::longfei>>>exec time [%ld], table_id [%ld]",
+                tbsys::CTimeUtil::getTime() - now,
+                sql_scan_param_ptr->get_table_id()); //add
+      return ret; //add
     }
 
     int ObChunkService::cs_sql_get(
@@ -1205,6 +1215,7 @@ namespace oceanbase
 
       if (OB_SUCCESS == rc.result_code_)
       {
+        //解析出来ms发送过来scan的参数
         rc.result_code_ = sql_read_param_ptr->deserialize(
             in_buffer.get_data(), in_buffer.get_capacity(),
             in_buffer.get_position());
@@ -1212,6 +1223,13 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "parse cs_sql_scan input scan param error. ret=%d", rc.result_code_);
         }
+        //add longfei 2016-04-04 16:06:06
+        //看看ms发送过来的read param到底是什么
+        else
+        {
+          TBSYS_LOG(DEBUG, "debug::longfei>>>sql_read_param recieve from ms is [%s]", to_cstring(*sql_read_param_ptr));
+        }
+        //add e
       }
 
       if (OB_SUCCESS == rc.result_code_)

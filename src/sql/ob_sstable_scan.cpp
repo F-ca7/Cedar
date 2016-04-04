@@ -97,6 +97,11 @@ int ObSSTableScan::init_sstable_scanner()
   int32_t size = 1;
   ObTablet* tablet = scan_context_.tablet_;
 
+  //add longfei 2016-03-31 12:49:46
+  //看看reader的version
+  FILL_TRACE_LOG("sstable version [%d]", tablet->get_sstable_version());
+  //add e
+
   if (NULL == tablet)
   {
     ret = OB_INVALID_ARGUMENT;
