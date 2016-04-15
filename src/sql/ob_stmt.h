@@ -141,9 +141,9 @@ namespace oceanbase
       
       enum TableType
     	{
-    	  BASE_TABLE,
-        ALIAS_TABLE,
-        GENERATED_TABLE,
+        BASE_TABLE, //0
+        ALIAS_TABLE, //1
+        GENERATED_TABLE, //2
     	};
 
       // if real table id, it is valid for all threads,

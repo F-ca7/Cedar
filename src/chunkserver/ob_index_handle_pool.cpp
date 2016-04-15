@@ -735,7 +735,7 @@ namespace oceanbase
       {
         is_need_index = false;
       }
-      TBSYS_LOG(INFO,"TEST::LONGFEI>>>is_need_index[%s]",is_need_index ? "true" : "false");
+      //TBSYS_LOG(INFO,"TEST::LONGFEI>>>is_need_index[%s]",is_need_index ? "true" : "false");
       return ret;
     }
 

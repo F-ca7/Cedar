@@ -721,8 +721,8 @@ DEFINE_SERIALIZE(IndexBeat)
 DEFINE_DESERIALIZE(IndexBeat)
 {
   int ret = OB_SUCCESS;
-  int32_t status;
-  int32_t stage;
+  int32_t status = 0;
+  int32_t stage = 0;
   if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&idx_tid_))))
   {
     TBSYS_LOG(WARN, "deserialize error here");
@@ -771,6 +771,13 @@ DEFINE_DESERIALIZE(IndexBeat)
       stage_ = GLOBAL_INDEX_STAGE;
     }
   }
+  //debugb longfei 2016-03-18 14:32:14
+//  TBSYS_LOG(WARN, "debug::longfei>>>IndexBeat decode result: idx_tid_[%ld], hist_width_[%ld], status[%d], stage[%d]",
+//            idx_tid_,
+//            hist_width_,
+//            status,
+//            stage);
+  //debuge
   return ret;
 }
 // add e

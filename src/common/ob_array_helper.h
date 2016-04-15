@@ -36,7 +36,8 @@ namespace oceanbase
             }
             else
             {
-              add_ok = false;            }
+              add_ok = false;
+            }
             return add_ok;
           }
           T* pop()

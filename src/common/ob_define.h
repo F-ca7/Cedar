@@ -730,11 +730,11 @@ namespace oceanbase
 
     // longfei [create index]
     static const uint64_t OB_INDEX_VIRTUAL_COLUMN_ID = 511;
-    static const int64_t OB_MAX_INDEX_COLUMNS=100;
-    static const int64_t OB_MAX_INDEX_NUMS=5;
+    static const int64_t OB_MAX_INDEX_COLUMNS = 100;
+    static const int64_t OB_MAX_INDEX_NUMS = 5;
     static const uint64_t ORIGINAL_TABLE_ID = 44;
     static const uint64_t INDEX_STATUS_ID = 45;
-    const char* const OB_INDEX_VIRTUAL_COL_NAME="ob_virtual_col";
+    const char* const OB_INDEX_VIRTUAL_COL_NAME = "ob_virtual_col";
     enum IndexStatus
     {
       NOT_AVALIBALE=0,

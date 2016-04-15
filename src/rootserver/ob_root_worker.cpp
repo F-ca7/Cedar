@@ -3511,8 +3511,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObRootWorker::rt_report_index_info(const int32_t version, ObDataBuffer &in_buff, onev_request_e
- *req, const uint32_t channel_id, ObDataBuffer &out_buff)
+    int ObRootWorker::rt_report_index_info(const int32_t version, ObDataBuffer &in_buff, onev_request_e *req, const uint32_t channel_id, ObDataBuffer &out_buff)
     {
       int ret = OB_SUCCESS;
       static const int MY_VERSION = 2;
@@ -3536,7 +3535,7 @@ namespace oceanbase
       }
       if (OB_SUCCESS == ret && OB_SUCCESS == result_msg.result_code_)
       {
-        tablet_list = OB_NEW(ObTabletHistogramReportInfoList,  ObModIds::OB_STATIC_INDEX);
+        tablet_list = OB_NEW(ObTabletHistogramReportInfoList, ObModIds::OB_STATIC_INDEX);
         ret = tablet_list->deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position());
         if (ret != OB_SUCCESS)
         {

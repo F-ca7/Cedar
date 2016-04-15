@@ -107,7 +107,7 @@ int64_t ObSqlExpression::to_string(char* buf, const int64_t buf_len) const
   }
   if (is_aggr_func_)
   {
-	databuff_printf(buf, buf_len, pos, "%s(%s", ob_aggr_func_str(aggr_func_), is_distinct_ ? "DISTINCT " : "");
+    databuff_printf(buf, buf_len, pos, "%s(%s", ob_aggr_func_str(aggr_func_), is_distinct_ ? "DISTINCT " : "");
   }
   if (post_expr_.is_empty())
   {
@@ -121,7 +121,7 @@ int64_t ObSqlExpression::to_string(char* buf, const int64_t buf_len) const
   }
   if (is_aggr_func_)
   {
-	databuff_printf(buf, buf_len, pos, ")");
+    databuff_printf(buf, buf_len, pos, ")");
   }
   return pos;
 }
