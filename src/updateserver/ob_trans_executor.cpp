@@ -1076,6 +1076,19 @@ namespace oceanbase
         session_ctx->set_stmt_start_time(pkt.get_receive_ts());
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
+        // add by guojinwei [repeatable read] 20160418:b
+        TBSYS_LOG(INFO, "ISOLATION_LEVEL = %d, guojinwei", get_param.get_trans_id().isolation_level_);
+        if (common::REPEATABLE_READ == get_param.get_trans_id().isolation_level_
+            && get_param.get_trans_id().is_valid()
+            && 0 != get_param.get_trans_id().start_time_us_)
+        {
+          session_ctx->set_trans_start_time(get_param.get_trans_id().trans_start_time_us_);
+        }
+        if (get_param.get_trans_id().is_valid())
+        {
+          session_ctx->set_trans_descriptor(get_param.get_trans_id().descriptor_);
+        }
+        // add:e
         if (OB_NEW_GET_REQUEST == pkt.get_packet_code())
         {
           new_scanner.reuse();
@@ -1175,6 +1188,19 @@ namespace oceanbase
         session_ctx->set_stmt_start_time(pkt.get_receive_ts());
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
+        // add by guojinwei [repeatable read] 20160418:b
+        TBSYS_LOG(INFO, "ISOLATION_LEVEL = %d, guojinwei", scan_param.get_trans_id().isolation_level_);
+        if (common::REPEATABLE_READ == scan_param.get_trans_id().isolation_level_
+            && scan_param.get_trans_id().is_valid()
+            && 0 != scan_param.get_trans_id().start_time_us_)
+        {
+          session_ctx->set_trans_start_time(scan_param.get_trans_id().trans_start_time_us_);
+        }
+        if (scan_param.get_trans_id().is_valid())
+        {
+          session_ctx->set_trans_descriptor(scan_param.get_trans_id().descriptor_);
+        }
+        // add:e
         if (OB_NEW_SCAN_REQUEST == pkt.get_packet_code())
         {
           new_scanner.reuse();

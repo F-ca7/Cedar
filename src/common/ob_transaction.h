@@ -59,7 +59,7 @@ namespace oceanbase
       const static uint32_t INVALID_SESSION_ID = 0;
       // modify by guojinwei [repeatable read] 20160310:b
       //ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0) {}
-      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0), isolation_level_(READ_COMMITED) {}
+      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0), trans_start_time_us_(0), isolation_level_(READ_COMMITED) {}
       // modify:e
       ~ObTransID() {}
       void reset();
@@ -70,6 +70,7 @@ namespace oceanbase
       common::ObServer ups_;
       int64_t start_time_us_;
       // add by guojinwei [repeatalbe read] 20160310:b
+      int64_t trans_start_time_us_;
       int32_t isolation_level_;
       // add:e
     };
