@@ -402,6 +402,8 @@ namespace oceanbase
             ret = OB_ITER_END;
             break;
           }
+          // modify by guojinwei [repeatable read] 20160417:b
+          /*
           if (pvalue_->is_empty())
           {
             // 数据链表为空时 直接跳过这记录
@@ -411,6 +413,9 @@ namespace oceanbase
           {
             break;
           }
+          */
+          break;
+          // modify:e
         }
       }
       return ret;

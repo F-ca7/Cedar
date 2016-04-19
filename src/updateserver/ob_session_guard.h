@@ -136,6 +136,10 @@ namespace oceanbase
             sid.descriptor_ = session_descriptor_;
             sid.start_time_us_ = session_ctx_->get_session_start_time();
             sid.ups_ = UPS.get_self();
+            // add by guojinwei [repeatable read] 20160418:b
+            sid.trans_start_time_us_ = session_ctx_->get_trans_start_time();
+            sid.isolation_level_ = req.isolation_;
+            // add:e
             session_ctx_->lock_session();
           }
           return ret;

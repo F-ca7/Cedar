@@ -427,6 +427,9 @@ namespace oceanbase
           ctx->set_session_start_time(start_time);
           ctx->set_session_timeout(timeout);
           ctx->set_session_idle_time(idle_time);
+          // add by guojinwei [repeatable read] 20160417:b
+          ctx->set_trans_start_time(begin_trans_id);
+          // add:e
           if (OB_SUCCESS != (ret = ctx_map_.assign(ctx, sd)))
           {
             TBSYS_LOG(WARN, "assign from ctx_map fail, ret=%d ctx=%p type=%d", ret, ctx, type);
@@ -440,6 +443,9 @@ namespace oceanbase
           else
           {
             ctx->set_session_descriptor(sd);
+            // add by guojinwei [repeatable read] 20160417:b
+            ctx->set_trans_descriptor(sd);
+            // add:e
             session_descriptor = sd;
             FILL_TRACE_BUF(ctx->get_tlog_buffer(), "type=%d sd=%u ctx=%p trans_id=%ld", type, sd, ctx, begin_trans_id);
             break;
