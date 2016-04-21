@@ -632,6 +632,11 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
   if( group_proc_name_.compare("neworder") == 0 ) count = 0; //a hack for neworder
   if( group_proc_name_.compare("payment") == 0 ) count = 0; //a hack for payment
+  if( group_proc_name_.compare("loopdep") == 0 ) count = 0;
+  if( group_proc_name_.compare("amalgamate") == 0 ) count = 0;
+  if( group_proc_name_.compare("writecheck") == 0 ) count = 0;
+  if( group_proc_name_.compare("sendpayment") == 0 ) count = 0;
+  if( group_proc_name_.compare("transactsavings") == 0 ) count = 0;
 
   if( OB_SUCCESS != (ret = group_proc_name_.serialize(buf, buf_len, pos)))
   {

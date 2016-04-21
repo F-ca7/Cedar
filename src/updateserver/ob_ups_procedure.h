@@ -1112,6 +1112,239 @@ namespace oceanbase
         }
     };
 
+    struct DepParam : BasicParam
+    {
+        ObObj &c_id_;
+
+        ObObj c_value_;
+
+        DepParam() : BasicParam(3001, 2, LF_WRITE, -1), c_id_(keys_[0])
+        {
+          uint64_t column_ids[] = {16, 18};
+
+          write_desc_.reset();
+
+          for(int64_t i = 0; i < column_count_; ++i)
+          {
+            column_ids_[i] = column_ids[i];
+            row_desc_.add_column_desc(table_id_, column_ids[i]);
+            write_desc_.add_column_desc(table_id_, column_ids[i]);
+          }
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+          write_desc_.set_rowkey_cell_count(1);
+        }
+
+        void project_row(ObRow &row, ObStringBuf *str_buf)
+        {
+          UNUSED(str_buf);
+          const ObObj *cell = NULL;
+          row.get_cell(table_id_, 18, cell);
+          add_int(c_value_, *cell);
+
+          row.set_cell(table_id_, 18, c_value_);
+          row.set_row_desc(write_desc_);
+        }
+    };
+
+    struct SelectSavingParam : BasicParam
+    {
+        ObObj &acct_id_;
+
+        double *bal_;
+
+        SelectSavingParam(int64_t static_data_id) : BasicParam(3002, 2, LF_WRITE, static_data_id), acct_id_(keys_[0])
+        {
+          uint64_t column_ids[] = {16, 17};
+
+          for(int64_t i = 0; i < column_count_; ++i)
+          {
+            column_ids_[i] = column_ids[i];
+            row_desc_.add_column_desc(table_id_, column_ids[i]);
+          }
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+        }
+
+        void set_param(int acct_id, double &bal)
+        {
+          acct_id_.set_int(acct_id);
+          bal_ = &bal;
+        }
+
+        void project_row(ObRow &row, ObStringBuf *str_buf)
+        {
+          const ObObj *cell;
+          float tmp = 0;
+          UNUSED(str_buf);
+          row.get_cell(table_id_, 17, cell);
+//          cell->get_double(*bal_);
+          cell->get_float(tmp);
+          *bal_ = (double)tmp;
+
+          TBSYS_LOG(TRACE, "saving balance: %lf", *bal_);
+        }
+    };
+
+    struct SelectCheckParam : BasicParam
+    {
+        ObObj &acct_id_;
+
+        double *bal_;
+
+        SelectCheckParam(int64_t static_data_id) : BasicParam(3003, 2, LF_WRITE, static_data_id), acct_id_(keys_[0])
+        {
+          uint64_t column_ids[] = {16, 17};
+
+          for(int64_t i = 0; i < column_count_; ++i)
+          {
+            column_ids_[i] = column_ids[i];
+            row_desc_.add_column_desc(table_id_, column_ids[i]);
+          }
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+        }
+
+        void set_param(int acct_id, double &bal)
+        {
+          acct_id_.set_int(acct_id);
+          bal_ = &bal;
+        }
+
+        void project_row(ObRow &row, ObStringBuf *str_buf)
+        {
+          const ObObj *cell;
+          float tmp = 0;
+          UNUSED(str_buf);
+          row.get_cell(table_id_, 17, cell);
+//          cell->get_double(*bal_);
+          cell->get_float(tmp);
+          *bal_ = tmp;
+          TBSYS_LOG(TRACE, "check balance: %lf", *bal_);
+        }
+    };
+
+    typedef void (*bal_func)(double &base_bal, double bal);
+    struct UpdateSavingParam : BasicParam
+    {
+        ObObj &acct_id_;
+
+        double bal_;
+        bal_func fp_;
+
+        UpdateSavingParam(int64_t static_data_id) : BasicParam(3002, 2, LF_WRITE, static_data_id), acct_id_(keys_[0]), fp_(NULL)
+        {
+          uint64_t column_ids[] = {16, 17};
+
+          write_desc_.reset();
+
+          for(int64_t i = 0; i < column_count_; ++i)
+          {
+            column_ids_[i] = column_ids[i];
+            row_desc_.add_column_desc(table_id_, column_ids[i]);
+            write_desc_.add_column_desc(table_id_, column_ids[i]);
+          }
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+          write_desc_.set_rowkey_cell_count(1);
+        }
+
+        void set_param(int acct_id, double bal, bal_func fp)
+        {
+          acct_id_.set_int(acct_id);
+          bal_ = bal;
+          fp_ = fp;
+        }
+
+        void project_row(ObRow &row, ObStringBuf *str_buf)
+        {
+          UNUSED(str_buf);
+          const ObObj *cell = NULL;
+          double base_bal;
+          float tmp = 0;
+          ObObj new_val;
+          row.get_cell(table_id_, 17, cell);
+//          cell->get_double(base_bal);
+          cell->get_float(tmp);
+          base_bal = (double)tmp;
+
+          if( NULL != fp_ ) fp_(base_bal, bal_);
+
+          new_val.set_double(base_bal);
+          row.set_cell(table_id_, 17, new_val);
+          row.set_row_desc(write_desc_);
+          TBSYS_LOG(TRACE, "savings update row: %s", to_cstring(row));
+        }
+    };
+
+    struct UpdateCheckParam : BasicParam
+    {
+        ObObj &acct_id_;
+
+        double bal_;
+        bal_func fp_;
+
+        UpdateCheckParam(int64_t static_data_id) : BasicParam(3003, 2, LF_WRITE, static_data_id), acct_id_(keys_[0]), fp_(NULL)
+        {
+          uint64_t column_ids[] = {16, 17};
+
+          write_desc_.reset();
+
+          for(int64_t i = 0; i < column_count_; ++i)
+          {
+            column_ids_[i] = column_ids[i];
+            row_desc_.add_column_desc(table_id_, column_ids[i]);
+            write_desc_.add_column_desc(table_id_, column_ids[i]);
+          }
+
+          key_column_ids_[0] = 16;
+
+          row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
+          row_desc_.set_rowkey_cell_count(1);
+          write_desc_.set_rowkey_cell_count(1);
+        }
+
+        void set_param(int acct_id, double bal, bal_func fp)
+        {
+          acct_id_.set_int(acct_id);
+          bal_ = bal;
+          fp_ = fp;
+        }
+
+        void project_row(ObRow &row, ObStringBuf *str_buf)
+        {
+          UNUSED(str_buf);
+          const ObObj *cell = NULL;
+          double base_bal;
+          float tmp = 0;
+          ObObj new_val;
+          row.get_cell(table_id_, 17, cell);
+//          cell->get_double(base_bal);
+          cell->get_float(tmp);
+          base_bal = (double)tmp;
+
+          if( NULL != fp_ ) fp_(base_bal, bal_);
+          TBSYS_LOG(TRACE, "%p, %f, %f", fp_, base_bal, bal_);
+
+          new_val.set_double(base_bal);
+          row.set_cell(table_id_, 17, new_val);
+          row.set_row_desc(write_desc_);
+          TBSYS_LOG(TRACE, "check update row: %s", to_cstring(row));
+        }
+    };
+
     class ObUpsTpcc
     {
       public:
@@ -1130,29 +1363,22 @@ namespace oceanbase
 
         int execute_payment_merge_sql(int w_id, int d_id, int c_id,
                                       int c_w_id, int c_d_id, double h_amount);
+
+        int execute_update(int a_id, int b_id, int c_id, int d_id, int e_id, int value);
+
+        int execute_transact_savings(int acctId, double amount);
+
+        int execute_send_payment(int sendAcct, int destAcct, double amount);
+
+        int execute_write_check(int acctId, double amount);
+
+        int execute_amalgamate(int acctId0, int acctId1);
+
       private:
 
         int prepare(BasicParam &param);
 
         int close();
-
-        //neworder sql
-//        int select_item(SelectItemParam &param,
-//                        double &i_price,
-//                        ObString &i_name,
-//                        ObString &i_data);
-
-//        int select_stock(SelectStockParam &stock_param,
-//                         /*get fields*/int &s_quantity,
-//                         ObString &data, ObString s_dist[]);
-
-//        int update_stock(UpdateStockParam &stock_param);
-
-//        int select_district(SelectDistrictParam &param,
-//                            /*get fileds*/ int &d_next_o_id,
-//                            double &d_tax);
-
-//        int update_district(UpdateDistrictParam &param);
 
         int insert_oorder(InsertOOrderParam &param);
 
@@ -1164,6 +1390,10 @@ namespace oceanbase
         int tpcc_update(BasicParam &param);
 
         int tpcc_select(BasicParam &param);
+
+        int db_update(BasicParam &param);
+
+        int db_select(BasicParam &param);
 
         int payment_insert_hist(PaymentInsertHistParam &param);
 
@@ -1188,7 +1418,6 @@ namespace oceanbase
         ObCellAdaptor cia_;
         ObStringBuf str_buf_;
     };
-
 
     class SpUpsLoopInst;
 

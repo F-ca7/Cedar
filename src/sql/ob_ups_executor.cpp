@@ -148,6 +148,7 @@ int ObUpsExecutor::open()
     else
     {
       ret = local_result_.get_error_code();
+//      TBSYS_LOG(INFO, "test transid, start_trans[%d], trans_id[%s]", start_new_trans, to_cstring(local_result_.get_trans_id()));
       if (start_new_trans && local_result_.get_trans_id().is_valid())
       {
         FILL_TRACE_LOG("ups_err=%d ret_trans_id=%s", ret, to_cstring(local_result_.get_trans_id()));
