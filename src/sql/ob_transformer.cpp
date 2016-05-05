@@ -1000,54 +1000,16 @@ int ObTransformer::gen_physical_procedure_execute(
         }
         else
         {
-          ObResultSet *result_set = session_info->get_plan(stmt_id);
-
-          //copy the physical plan from the prepared one
-          //following the code from ObSql::copy_plan_from_store
-          //          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-          //          ObSql::copy_physical_plan(new_plan, result_set->get_physical_plan(), sql_context_);
-
-          ObResultSet &new_result_set = result_op->get_procedure_result_set();
-          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-          new_plan->set_result_set(&new_result_set);
-          if (NULL == new_plan)
-          {
-            TBSYS_LOG(ERROR, "can not alloc mem for ObPhysicalPlan");
-            ret = OB_ERR_UNEXPECTED;
-          }
-          else
-          {
-            TBSYS_LOG(DEBUG, "copy from store ob_malloc plan is %p store plan %p", new_plan, result_set->get_physical_plan());
-            //        phy_plan->set_result_set();
-            ret = ObSql::copy_physical_plan(*new_plan, *(result_set->get_physical_plan()), sql_context_);//phy_plan->assign(value->plan_);
-            if (OB_SUCCESS != ret)
-            {
-              new_plan->clear();
-              ObPhysicalPlan::free(new_plan);
-              TBSYS_LOG(ERROR, "Copy Physical plan from ObPsStoreItem to Current ResultSet failed ret=%d", ret);
-            }
-            else
-            {
-              TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
-              new_result_set.from_prepared(*result_set);
-              new_result_set.change_phy_plan(new_plan, true);
-              new_result_set.set_session(sql_context_->session_info_);
-
-              new_result_set.set_plan_from_assign(true);
-            }
-          }
           result_op->set_stmt_id(stmt_id);
         }
       }
       if( OB_SUCCESS == ret ) //save paramters into the execute_operators
       {
-//        TBSYS_LOG(INFO,"argument size =%ld",stmt->get_param_size());
         for (int64_t i = 0;i < stmt->get_param_size(); i++)
         {
           uint64_t expr_id = stmt->get_param_expr(i);
           ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
           ObSqlExpression expr;
-          //          result_op->param_list_.push_back(expr);
           result_op->add_param_expr(expr);
           if (OB_UNLIKELY(raw_expr == NULL))
           {
@@ -1681,7 +1643,7 @@ int ObTransformer::gen_physical_procedure_select_into(
           ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
           rw_comp_inst->add_assign_var(var);
         }
-        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
+        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_query(idx), idx);
         rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
     }

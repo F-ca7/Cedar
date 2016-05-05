@@ -19,7 +19,7 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
     ret = execute_expr(static_cast<SpExprInst*>(inst));
     break;
   case SP_B_INST:
-    ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
+//    ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
     break;
   case SP_D_INST:
     ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
@@ -81,9 +81,11 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   op->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
   op->get_phy_plan()->set_result_set(phy_plan->get_result_set());
 
+  op->get_phy_plan()->set_group_exec(false);
   if( OB_SUCCESS !=  (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "rd_base fail, sp rdbase inst exec(proc_op: %p, phy_plan: %p, result_set: %p)", inst->get_ownner(), phy_plan, phy_plan->get_result_set());
+    TBSYS_LOG(WARN, "rd plan: %s", to_cstring(*op));
   }
   else if( inst->is_for_group_exec() )
   {
@@ -696,6 +698,7 @@ void ObProcedure::reset()
 
 void ObProcedure::reuse()
 {
+  reset();
 }
 
 int ObProcedure::close()
@@ -712,6 +715,13 @@ int ObProcedure::close()
 //  exec_list_.clear();
   my_phy_plan_->set_group_exec(false);
   pc_ = 0;
+
+  for(int64_t i = 0; i < static_store_.count(); ++i)
+  {
+    static_store_.at(i).store.clear();
+  }
+  static_store_.clear();
+//  TBSYS_LOG(INFO, "close procedure, %ld",  static_store_.count());
   return ret;
 }
 
@@ -1824,9 +1834,9 @@ int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "Procedure %.*s\n", proc_name_.length(), proc_name_.ptr());
-  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  for(int64_t i = 0; i < exec_list_.count(); ++i)
   {
-    SpInst *inst = inst_list_.at(i);
+    SpInst *inst = exec_list_.at(i);
     databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
     pos += inst->to_string(buf + pos, buf_len -pos);
   }
