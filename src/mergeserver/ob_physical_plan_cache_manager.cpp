@@ -220,9 +220,13 @@ void ObPhysicalPlanManager::run(tbsys::CThread *thread, void *arg)
 
 }
 
-int ObPhysicalPlanManager::do_execute(const ObString & proc_name, const ObString & proc_source_code)
+int ObPhysicalPlanManager::do_execute(const ObString  name, const ObString  source_code)
 {
-     TBSYS_LOG(INFO, "do execute [%.*s]", proc_name.length(),proc_name.ptr());
+    ObString proc_name;
+    ObString proc_source_code;
+    name_code_map_.arena_.write_string(name, &proc_name);
+    name_code_map_.arena_.write_string(source_code, &proc_source_code);
+    TBSYS_LOG(INFO, "do execute [%.*s]", proc_name.length(),proc_name.ptr());
      int ret = OB_SUCCESS;
      sql::ObSQLResultSet &rs = *(this->malloc_result_set());
      sql::ObSqlContext context;
@@ -268,7 +272,7 @@ int ObPhysicalPlanManager::do_execute(const ObString & proc_name, const ObString
          }
          context.is_prepare_protocol_ = false;
          context.session_info_->get_transformer_mem_pool().start_batch_alloc();
-         session_.get_parser_mem_pool().reuse();
+        // session_.get_parser_mem_pool().reuse();
     }
     return ret;
 }
