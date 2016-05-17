@@ -69,7 +69,7 @@ namespace oceanbase
 
       ObNameCodeMap * get_name_code_map();
 
-      int do_execute(const ObString & proc_name, const ObString & proc_source_code);
+      int do_execute(const ObString proc_name, const ObString proc_source_code);
 
 
 //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;

@@ -4684,7 +4684,7 @@ int ObRootServer2::get_master_ups(ObServer &ups_addr, bool use_inner_port)
 }
 //add by wangdonghui 20160121 :b
 /// for sql api
-int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code)
+int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString proc_name, const common::ObString proc_source_code)
 {
   UNUSED(if_not_exists);
   int ret = OB_SUCCESS;
@@ -4714,12 +4714,27 @@ int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString &
   }
   if (OB_SUCCESS == ret)
   {
-      int hash_ret;
-      if(-1 == (hash_ret = name_code_map_->get_name_code_map()->set(proc_name, proc_source_code)))
+      ObString name;
+      ObString source_code;
+      name_code_map_->arena_.write_string(proc_name, &name);
+      name_code_map_->arena_.write_string(proc_source_code, &source_code);
+      int hash_ret=name_code_map_->get_name_code_map()->set(name, source_code);
+      if(hash::HASH_INSERT_SUCC != hash_ret)
       {
-          ret = OB_ERROR;
-          TBSYS_LOG(WARN, "procedure insert hashmap fail! proc name: [%s]",
-                    proc_name.ptr());
+          if(hash::HASH_EXIST == hash_ret)
+          {
+              TBSYS_LOG(WARN, "proc name code has existed! proc name: [%s]", name.ptr());
+          }
+          else
+          {
+              ret = OB_ERROR;
+              TBSYS_LOG(WARN, "insert into name code map fail! proc name: [%s]",
+                         name.ptr());
+          }
+      }
+      else
+      {
+          TBSYS_LOG(INFO, "proc name code insert hashmap succ!: [%s]", name.ptr());
       }
   }
   if (OB_SUCCESS == ret)

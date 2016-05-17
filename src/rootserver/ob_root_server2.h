@@ -336,7 +336,7 @@ namespace oceanbase
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
 
         //add by wangdonghui 20160121 :b
-        int create_procedure(const bool if_exists, const common::ObString &proc_name, const common::ObString &proc_source_code);
+        int create_procedure(const bool if_exists, const common::ObString proc_name, const common::ObString proc_source_code);
         //add :e
 
         //add by wangdonghui 20160225 [drop procedure] :b
