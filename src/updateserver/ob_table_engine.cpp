@@ -192,7 +192,7 @@ namespace oceanbase
     {
     }
 
-    int ObCellInfoNodeIterableWithCTime::next_cell()
+    int ObCellInfoNodeIterableWithCTime::next_cell() //seems be used for determine is there a next cell
     {
       int ret = OB_SUCCESS;
       if (OB_SUCCESS != inner_err)
@@ -230,7 +230,7 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //seems to be used for getting a cell
     int ObCellInfoNodeIterableWithCTime::get_cell(uint64_t &column_id, common::ObObj &value)
     {
       int ret = OB_SUCCESS;
@@ -304,7 +304,7 @@ namespace oceanbase
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    int TEValueSessionCallback::cb_func(const bool rollback, void *data, BaseSessionCtx &session)
+    int TEValueSessionCallback::cb_func(const bool rollback, void *data, BaseSessionCtx &session) //zt comment: link uclist to the valuelist;
     {
       int ret = OB_SUCCESS;
       TEValueUCInfo *uci = (TEValueUCInfo*)data;
