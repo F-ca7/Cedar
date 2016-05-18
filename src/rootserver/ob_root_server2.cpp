@@ -1359,7 +1359,7 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
 }
 
 //add by wangdonghui 20160307 :b
-int ObRootServer2::get_procedure(common::ObNameCodeMap& namecodemap)
+int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
 {
   int ret = OB_SUCCESS;
   if (NULL == schema_service_)
@@ -1382,62 +1382,64 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& namecodemap)
         ObCellInfo* cell_info = NULL;
         while(OB_SUCCESS == ret && OB_SUCCESS == (ret = res_->next_row()))
         {
-            ObString &proc_name = *(this->get_name_code_map()->malloc_string());
-            ObString &proc_source_code = *(this->get_name_code_map()->malloc_string());
-            if(OB_SUCCESS == ret)
+          //            ObString &proc_name = *(this->get_name_code_map()->malloc_string());
+          //            ObString &proc_source_code = *(this->get_name_code_map()->malloc_string());
+          ObString proc_name, proc_source_code;
+          if(OB_SUCCESS == ret)
+          {
+            ret = res_->get_row(&table_row);
+            if(OB_SUCCESS != ret && OB_ITER_END != ret)
             {
-                ret = res_->get_row(&table_row);
-                if(OB_SUCCESS != ret && OB_ITER_END != ret)
-                {
-                    TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
-                }
+              TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
             }
-            if(OB_SUCCESS == ret)
-            {
-                cell_info = table_row->get_cell_info((int64_t)(0));
-                ret = cell_info->value_.get_varchar(proc_name);
-                TBSYS_LOG(INFO, "get proc_name cell info succ! %.*s", proc_name.length(), proc_name.ptr());
-            }
-            else
-            {
-                ret = OB_ERROR;
-                TBSYS_LOG(WARN, "get proc_name cell info fail");
-            }
+          }
+          if(OB_SUCCESS == ret)
+          {
+            cell_info = table_row->get_cell_info((int64_t)(0));
+            ret = cell_info->value_.get_varchar(proc_name);
+            TBSYS_LOG(INFO, "get proc_name cell info succ! %.*s", proc_name.length(), proc_name.ptr());
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "get proc_name cell info fail");
+          }
 
-            if(OB_SUCCESS == ret)
+          if(OB_SUCCESS == ret)
+          {
+            cell_info = table_row->get_cell_info((int64_t)(1));
+            cell_info->value_.get_varchar(proc_source_code);
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "get souce_code cell info fail");
+          }
+          if(OB_SUCCESS == ret)
+          {
+            TBSYS_LOG(INFO, "get proc_source_code cell info succ! %.*s", proc_source_code.length(), proc_source_code.ptr());
+            //                int err = namecodemap.get_name_code_map()->set(proc_name, proc_source_code);
+            int err = name_code_map.put_source_code(proc_name, proc_source_code);
+            if(-1 == err)
             {
-                cell_info = table_row->get_cell_info((int64_t)(1));
-                cell_info->value_.get_varchar(proc_source_code);
+              ret = OB_ERROR;
+              TBSYS_LOG(WARN, "name code hash map insert error:err[%d]", err);
             }
             else
             {
-                ret = OB_ERROR;
-                TBSYS_LOG(WARN, "get souce_code cell info fail");
+              ret = OB_SUCCESS;
+              TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
+              //                  if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
+              //                  {
+              //                    TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
+              //                  }
+              //                  else
+              //                  {
+              //                    TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
+              //                        proc_name.ptr());
+              //                  }
             }
-            if(OB_SUCCESS == ret)
-            {
-                TBSYS_LOG(INFO, "get proc_source_code cell info succ! %.*s", proc_source_code.length(), proc_source_code.ptr());
-                int err = namecodemap.get_name_code_map()->set(proc_name, proc_source_code);
-                if(-1 == err)
-                {
-                  ret = OB_ERROR;
-                  TBSYS_LOG(WARN, "name code hash map insert error:err[%d]", err);
-                }
-                else
-                {
-                  ret = OB_SUCCESS;
-                  TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
-//                  if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
-//                  {
-//                    TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
-//                  }
-//                  else
-//                  {
-//                    TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
-//                        proc_name.ptr());
-//                  }
-                }
-            }
+          }
         }
         res_ = NULL;
       }
@@ -4192,22 +4194,24 @@ int ObRootServer2::check_procedure_exist(const common::ObString & proc_name, boo
   int ret = OB_SUCCESS;
   TBSYS_LOG(INFO, "check procedure exist proc_name: %s %c", proc_name.ptr(), exist? 'Y': 'N');
   tbsys::CRLockGuard guard(schema_manager_rwlock_);
-  if (name_code_map_->get_name_code_map()->created() == false)
+  if( !name_code_map_->is_created() )
+//  if (name_code_map_->get_name_code_map()->created() == false)
   {
     TBSYS_LOG(WARN, "check physical plan manager failed");
     ret = OB_INNER_STAT_ERROR;
   }
   else
   {
-    const ObString *source_code = name_code_map_->get_name_code_map()->get(proc_name);
-    if (NULL == source_code)
-    {
-      exist = false;
-    }
-    else
-    {
-      exist = true;
-    }
+//    const ObString *source_code = name_code_map_->get_name_code_map()->get(proc_name);
+//    if (NULL == source_code)
+//    {
+//      exist = false;
+//    }
+//    else
+//    {
+//      exist = true;
+//    }
+    exist = name_code_map_->exist(proc_name);
   }
   return ret;
 }
@@ -4714,27 +4718,34 @@ int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString p
   }
   if (OB_SUCCESS == ret)
   {
-      ObString name;
-      ObString source_code;
-      name_code_map_->arena_.write_string(proc_name, &name);
-      name_code_map_->arena_.write_string(proc_source_code, &source_code);
-      int hash_ret=name_code_map_->get_name_code_map()->set(name, source_code);
+//      ObString name;
+//      ObString source_code;
+
+      //delete by zhutao 20160517 :b
+//      name_code_map_->arena_.write_string(proc_name, &name);
+//      name_code_map_->arena_.write_string(proc_source_code, &source_code);
+//      int hash_ret=name_code_map_->get_name_code_map()->set(name, source_code);
+      //delete by zhutao 20160517 :e
+
+      //add by zhutao 20160517:b
+      int hash_ret = name_code_map_->put_source_code(proc_name, proc_source_code);
+      //add by zhutao 20160517:e
       if(hash::HASH_INSERT_SUCC != hash_ret)
       {
           if(hash::HASH_EXIST == hash_ret)
           {
-              TBSYS_LOG(WARN, "proc name code has existed! proc name: [%s]", name.ptr());
+              TBSYS_LOG(WARN, "proc name code has existed! proc name: [%s]", proc_name.ptr());
           }
           else
           {
               ret = OB_ERROR;
               TBSYS_LOG(WARN, "insert into name code map fail! proc name: [%s]",
-                         name.ptr());
+                         proc_name.ptr());
           }
       }
       else
       {
-          TBSYS_LOG(INFO, "proc name code insert hashmap succ!: [%s]", name.ptr());
+          TBSYS_LOG(INFO, "proc name code insert hashmap succ!: [%s]", proc_name.ptr());
       }
   }
   if (OB_SUCCESS == ret)
@@ -4785,8 +4796,8 @@ int ObRootServer2::drop_procedure(const bool if_exists, const ObString & proc_na
   int err = 0;
   if(OB_SUCCESS == ret)
   {
-    err = name_code_map_->get_name_code_map()->erase(proc_name);
-    if(-1 == err)
+//    err = name_code_map_->get_name_code_map()->erase(proc_name);
+    if(-1 == (err = name_code_map_->del_source_code(proc_name)))
     {
       ret = OB_ERROR;
       TBSYS_LOG(WARN, "name code map erase fail proc_name[%s]", proc_name.ptr());
@@ -7564,7 +7575,7 @@ int ObRootServer2::refresh_new_procedure()
   else
   {
     name_code_map_->set_state(true);
-    TBSYS_LOG(INFO, "force refresh physical plan manager succ, count = [%ld]", name_code_map_->get_name_code_map()->size());
+    TBSYS_LOG(INFO, "force refresh physical plan manager succ, count = [%ld]", name_code_map_->size());
   }
   return ret;
 }

@@ -28,18 +28,63 @@ namespace oceanbase {
       class ObNameCodeMap
       {
       public:
+
+          class ObNameCodeIterator
+          {
+            public:
+              ObNameCodeIterator(const ObNameCodeMap &name_code_map) : code_map_(name_code_map),
+                iter_(name_code_map.name_code_map_.begin())
+              {
+
+              }
+
+              int next()
+              {
+                iter_++;
+                return OB_SUCCESS;
+              }
+
+              const ObString & get_proc_name() const
+              {
+                return iter_->first;
+              }
+
+              const ObString & get_sour_code() const
+              {
+                return iter_->second;
+              }
+
+              bool end()
+              {
+                return iter_ == code_map_.name_code_map_.end();
+              }
+
+            private:
+              const ObNameCodeMap &code_map_;
+              hash::ObHashMap<ObString, ObString>::const_iterator iter_;
+          };
+
+          friend class ObNameCodeIterator;
+
           ObNameCodeMap();
           virtual ~ObNameCodeMap();
-          hash::ObHashMap<ObString,ObString>* get_name_code_map();
+//          hash::ObHashMap<ObString,ObString>* get_name_code_map();
           int init();
           int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
           int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
-          common::ObString * malloc_string() {
-              void * ptr = arena_.alloc(sizeof(common::ObString));
-              common::ObString *ret = NULL;
-              ret = new(ptr) common::ObString();
-              return ret;
-          }
+
+          int put_source_code(const ObString &proc_name, const ObString &sour_code);
+
+          int del_source_code(const ObString &proc_name);
+
+          const ObString * get_source_code(const ObString &proc_name);
+
+          bool is_created();
+
+          bool exist(const ObString &proc_name) const;
+
+          int64_t size() const;
+
           int get_state(){
               return is_ready_;
           }

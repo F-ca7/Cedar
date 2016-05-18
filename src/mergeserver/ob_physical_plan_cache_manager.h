@@ -32,52 +32,58 @@ namespace oceanbase
   namespace mergeserver
   {
     class ObMergerAsyncRpcStub;
-    class ObPhysicalPlanManager : public tbsys::CDefaultRunnable
+    class ObProcedureManager : public tbsys::CDefaultRunnable
     {
     public:
 
       virtual void run(tbsys::CThread* thread, void * arg);
 
-      ObPhysicalPlanManager();
-      virtual ~ObPhysicalPlanManager();
+      ObProcedureManager();
+      virtual ~ObProcedureManager();
 
       int init();
 
-      sql::ObSQLResultSet * malloc_result_set() {
-          void* ptr = arena_.alloc(sizeof(sql::ObSQLResultSet));
-          sql::ObSQLResultSet *ret = NULL;
-          ret = new(ptr) sql::ObSQLResultSet();
-          return ret;
-      }
-
-      common::ObString * malloc_string() {
-          void * ptr = arena_.alloc(sizeof(common::ObString));
-          common::ObString *ret = NULL;
-          ret = new(ptr) common::ObString();
-          return ret;
-      }
-
-      void set_mergeserver_service(ObMergeServerService *msservice){
+      void set_ms_service(ObMergeServerService *msservice)
+      {
           mergeserver_service_ = msservice;
       }
 
-      mergeserver::ObMergeServerService * get_mergeserver_service(){
+      mergeserver::ObMergeServerService * get_ms_service()
+      {
           return mergeserver_service_;
       }
 
-      hash::ObHashMap<ObString, sql::ObSQLResultSet *> * get_name_cache_map();
+//      hash::ObHashMap<ObString, sql::ObSQLResultSet *> * get_name_cache_map();
 
-      ObNameCodeMap * get_name_code_map();
+//      ObNameCodeMap * get_name_code_map();
 
-      int do_execute(const ObString proc_name, const ObString proc_source_code);
+      int update_procedure(const ObString &proc_name, const ObString &proc_source_code);
 
+      int delete_procedure(const ObString &proc_name);
+
+      int get_procedure_plan(const ObString &proc_name, ObSQLResultSet *& result_set);
+
+
+      int update_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code);
+
+      int get_procedure_plan_lazy(const ObString &proc_name, ObSQLResultSet *&result_set);
 
 //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
 //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
+    private:
+      int compile_procedure(const ObString &proc_name);
+
+      sql::ObSQLResultSet * malloc_result_set()
+      {
+        void* ptr = arena_.alloc(sizeof(sql::ObSQLResultSet));
+        sql::ObSQLResultSet *ret = NULL;
+        ret = new(ptr) sql::ObSQLResultSet();
+        return ret;
+      }
 
     private:
-      ObPhysicalPlanManager(const ObPhysicalPlanManager &);
-      const ObPhysicalPlanManager & operator = (const ObPhysicalPlanManager &);
+      ObProcedureManager(const ObProcedureManager &);
+      const ObProcedureManager & operator = (const ObProcedureManager &);
       mutable tbsys::CThreadMutex lock_;
       ModuleArena arena_;
       mergeserver::ObMergeServerService * mergeserver_service_;

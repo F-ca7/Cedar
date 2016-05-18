@@ -27,9 +27,45 @@ int ObNameCodeMap::init()
     }
     return ret;
 }
-hash::ObHashMap<ObString,ObString>* ObNameCodeMap::get_name_code_map()
+
+//hash::ObHashMap<ObString,ObString>* ObNameCodeMap::get_name_code_map()
+//{
+//    return &name_code_map_;
+//}
+
+bool ObNameCodeMap::is_created()
 {
-    return &name_code_map_;
+  return name_code_map_.created();
+}
+
+bool ObNameCodeMap::exist(const ObString &proc_name) const
+{
+  return name_code_map_.get(proc_name) != NULL;
+}
+
+int64_t ObNameCodeMap::size() const
+{
+  return name_code_map_.size();
+}
+
+int ObNameCodeMap::put_source_code(const ObString &proc_name, const ObString &sour_code)
+{
+  ObString name, code;
+
+  arena_.write_string(proc_name, &name);
+  arena_.write_string(sour_code, &code);
+
+  return name_code_map_.set(name, code, 0, 0, 1);
+}
+
+int ObNameCodeMap::del_source_code(const ObString &proc_name)
+{
+  return name_code_map_.erase(proc_name);
+}
+
+const ObString * ObNameCodeMap::get_source_code(const ObString &proc_name)
+{
+  return name_code_map_.get(proc_name);
 }
 
 int ObNameCodeMap::serialize(char* buf, const int64_t buf_len, int64_t& pos) const
@@ -96,9 +132,10 @@ int ObNameCodeMap::deserialize(const char* buf, const int64_t buf_len, int64_t& 
           {
               TBSYS_LOG(INFO, "deserialize proc name %.*s", proc_name.length(), proc_name.ptr());
               TBSYS_LOG(INFO, "deserialize proc source code %.*s", proc_source_code.length(), proc_source_code.ptr());
-              ob_write_string(arena_, proc_source_code, proc_source_code);
-              ob_write_string(arena_, proc_name, proc_name);
-              name_code_map_.set(proc_name, proc_source_code);
+              put_source_code(proc_name, proc_source_code);
+//              ob_write_string(arena_, proc_source_code, proc_source_code);
+//              ob_write_string(arena_, proc_name, proc_name);
+//              name_code_map_.set(proc_name, proc_source_code);
           }
         }
     }

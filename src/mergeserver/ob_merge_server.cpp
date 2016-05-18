@@ -23,7 +23,7 @@ namespace oceanbase
         scan_req_pool_(common::ObModIds::OB_MS_SQL_SCAN_REQ_POOL),
         get_req_pool_(common::ObModIds::OB_MS_SQL_GET_REQ_POOL),
         //add by wangdonghui 20160301 [pl manage] :b
-        physical_plan_manager_()
+        procedure_manager_()
         //add :e
     {
     }
@@ -231,8 +231,8 @@ namespace oceanbase
       //add by wangdonghui 20160301 [physical plan cache] :b
       if(ret == OB_SUCCESS)
       {
-        ret = physical_plan_manager_.init();
-        physical_plan_manager_.set_mergeserver_service(&service_);
+        ret = procedure_manager_.init();
+        procedure_manager_.set_ms_service(&service_);
       }
       //add :e
       return ret;

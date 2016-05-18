@@ -1021,11 +1021,11 @@ int ObTransformer::gen_physical_procedure_execute(
           ObResultSet *result_set = NULL;
           int hash_ret;
           if( hash::HASH_EXIST != (hash_ret = (sql_context_->merge_service_->
-                             get_merge_server()->get_physical_plan_manager().get_name_cache_map()->get(proc_name, sql_result_set)
+                             get_merge_server()->get_procedure_manager().get_procedure_plan(proc_name, sql_result_set)
                              )))
           {
 
-              TBSYS_LOG(WARN, "failed to get cached result_set, ret=%d", hash_ret);
+              TBSYS_LOG(WARN, "failed to get cached result_set[%.*s], ret=%d", proc_name.length(), proc_name.ptr(), hash_ret);
               ret = OB_ERROR;
           }
           else

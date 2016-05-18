@@ -512,7 +512,7 @@ namespace oceanbase
       //add by wangdonghui run physical plan manager thread 20160317 :b
       if (OB_SUCCESS == err)
       {
-        merge_server_->get_physical_plan_manager().start();
+        merge_server_->get_procedure_manager().start();
       }
       //add :e
 
@@ -1775,7 +1775,7 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "fail to send OB_UPDATE_CACHE_RESPONSE: ret[%d]", ret);
         }
-        else if(OB_SUCCESS != (ret = merge_server_->get_physical_plan_manager().do_execute(proc_name, proc_source_code)))
+        else if(OB_SUCCESS != (ret = merge_server_->get_procedure_manager().update_procedure(proc_name, proc_source_code)))
         {
           TBSYS_LOG(ERROR, "fail to generate physical plan cache [%.*s] ret=[%d]",
                     proc_name.length(), proc_name.ptr(), ret);
@@ -1827,7 +1827,8 @@ namespace oceanbase
       }
       if (OB_SUCCESS == err)
       {
-        merge_server_->get_physical_plan_manager().get_name_cache_map()->erase(proc_name);
+//        merge_server_->get_physical_plan_manager().get_name_cache_map()->erase(proc_name);
+        merge_server_->get_procedure_manager().delete_procedure(proc_name);
         if (-1 == ret)
         {
           ret = OB_ERROR;

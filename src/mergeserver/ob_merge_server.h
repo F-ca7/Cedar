@@ -99,9 +99,9 @@ namespace oceanbase
           return bloom_filter_queue_thread_;
         }
         //add by wangdonghui [procedure physical plan cache] 20160229 :b
-        inline mergeserver::ObPhysicalPlanManager & get_physical_plan_manager()
+        inline mergeserver::ObProcedureManager & get_procedure_manager()
         {
-          return physical_plan_manager_;
+          return procedure_manager_;
         }
 
         //add :e
@@ -137,7 +137,7 @@ namespace oceanbase
 
 
         //add by wangdonghui 20160229 [procedure physical plan cache] :b
-        ObPhysicalPlanManager physical_plan_manager_;
+        ObProcedureManager procedure_manager_;
         //add :e
     };
   } /* mergeserver */

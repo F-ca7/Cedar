@@ -1729,7 +1729,7 @@ namespace oceanbase
       common::ObResultCode result_msg;
       result_msg.result_code_ = OB_SUCCESS;
       int ret = OB_SUCCESS;
-      TBSYS_LOG(INFO, "before serialize count = [%ld] &[%p]", root_server_.get_name_code_map()->get_name_code_map()->size(), (root_server_.get_name_code_map()->get_name_code_map()));
+      TBSYS_LOG(INFO, "before serialize count = [%ld]", root_server_.get_name_code_map()->size());
       if(false == root_server_.get_name_code_map()->get_state())
       {
           result_msg.result_code_ = OB_ERROR;
