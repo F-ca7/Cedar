@@ -41,16 +41,12 @@ namespace oceanbase
       ObProcedureManager();
       virtual ~ObProcedureManager();
 
+
       int init();
 
       void set_ms_service(ObMergeServerService *msservice)
       {
           mergeserver_service_ = msservice;
-      }
-
-      mergeserver::ObMergeServerService * get_ms_service()
-      {
-          return mergeserver_service_;
       }
 
       int create_procedure(const ObString &proc_name, const ObString &proc_source_code);
@@ -59,15 +55,31 @@ namespace oceanbase
 
       int get_procedure(const ObString &proc_name, ObSQLResultSet *& result_set);
 
+      const ObString * get_procedure_source(const ObString &proc_name) { return name_code_map_.get_source_code(proc_name); }
 
       int create_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code);
 
-      int get_procedure_lazy(const ObString &proc_name, ObSQLResultSet *&result_set);
+      /**
+       * @brief get_procedure_lazy
+       * try to compile procedure on behalf of session, the plan is indexed by stmt_id in session's cache pool.
+       * @param proc_name
+       * @param context
+       * @param stmt_id
+       * @return
+       */
+      int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id );
+
+      bool is_consisitent(const ObString &proc_name, int64_t hash_code) const
+      {
+        return name_code_map_.exist(proc_name, hash_code);
+      }
 
 //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
 //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
     private:
       int compile_procedure(const ObString &proc_name);
+
+      int compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id);
 
       sql::ObSQLResultSet * malloc_result_set()
       {

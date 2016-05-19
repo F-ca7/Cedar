@@ -8,6 +8,8 @@
 #define NAME_CACHE_MAP_BUCKET_NUM 100
 #define THREAD_SLEEP_UTIME 1000000
 
+#define LAZY_COMPILE
+
 using namespace oceanbase::mergeserver;
 ObProcedureManager::ObProcedureManager() : has_init_(false)
 {
@@ -110,84 +112,49 @@ int ObProcedureManager::compile_procedure(const ObString &proc_name)
   return ret;
 }
 
-//int ObProcedureManager::serialize(char* buf, const int64_t buf_len, int64_t& pos) const
-//{
-//    int ret = OB_SUCCESS;
-//    TBSYS_LOG(INFO, "the name code map[%p] size is %ld", &name_code_map_, name_code_map_.size());
-//    if(OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, name_code_map_.size())))
-//    {
-//        TBSYS_LOG(WARN, "failed to serialize size, err=%d buf_len=%ld pos=%ld",
-//                  ret, buf_len, pos);
-//    }
-//    if(OB_SUCCESS == ret)
-//    {
-//        common::hash::ObHashMap<common::ObString, common::ObString* >::const_iterator iter = name_code_map_.begin();
-//        for(;iter != name_code_map_.end(); iter++)
-//        {
-//          ObString proc_name = iter->first;
-//          ObString *proc_source_code = iter->second;
-//          TBSYS_LOG(INFO, "serialize proc name %.*s", proc_name.length(), proc_name.ptr());
-//          TBSYS_LOG(INFO, "serialize proc source code %.*s", proc_source_code->length(), proc_source_code->ptr());
-//          if(OB_SUCCESS != (ret = proc_name.serialize(buf, buf_len, pos)))
-//          {
-//              TBSYS_LOG(WARN, "failed to serialize proc_name, err=%d buf_len=%ld pos=%ld",
-//                        ret, buf_len, pos);
-//          }
-//          else if(OB_SUCCESS != (ret = proc_source_code->serialize(buf, buf_len, pos)))
-//          {
-//              TBSYS_LOG(WARN, "failed to serialize proc_source_code, err=%d buf_len=%ld pos=%ld",
-//                        ret, buf_len, pos);
-//          }
-//        }
-//    }
-//    return ret;
-//}
-//int ObProcedureManager::deserialize(const char* buf, const int64_t buf_len, int64_t& pos)
-//{
-//    int ret = OB_SUCCESS;
-//    int64_t size = 0;
-//    if(OB_SUCCESS != (ret = serialization::decode_vi64(buf, buf_len, pos, &size)))
-//    {
-//        TBSYS_LOG(WARN, "failed to decode size, err=%d buf_len=%ld pos=%ld",
-//                  ret, buf_len, pos);
-//    }
-//    else
-//    {
-//        TBSYS_LOG(INFO, "the name code map size is %ld", size);
-//        for(int64_t i = 0; i < size; i ++)
-//        {
-//          ObString &proc_name = *(this->malloc_string());
-//          ObString &proc_source_code = *(this->malloc_string());
-//          if(OB_SUCCESS != (ret = proc_name.deserialize(buf, buf_len, pos)))
-//          {
-//              TBSYS_LOG(WARN, "failed to deserialize proc_name, err=%d buf_len=%ld pos=%ld",
-//                        ret, buf_len, pos);
-//          }
-//          else if(OB_SUCCESS != (ret = proc_source_code.deserialize(buf, buf_len, pos)))
-//          {
-//              TBSYS_LOG(WARN, "failed to deserialize proc_source_code, err=%d buf_len=%ld pos=%ld",
-//                        ret, buf_len, pos);
-//          }
-//          else
-//          {
-//              TBSYS_LOG(INFO, "deserialize proc name %.*s", proc_name.length(), proc_name.ptr());
-//              TBSYS_LOG(INFO, "deserialize proc source code %.*s", proc_source_code.length(), proc_source_code.ptr());
-//              name_code_map_.set(proc_name, &proc_source_code);
-//          }
-//        }
-//    }
-//    return ret;
-//}
+int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id)
+{
+  int ret = OB_SUCCESS;
+  ObSQLResultSet proc_result_set;
+  const ObString * psource_code = name_code_map_.get_source_code(proc_name);
+  if( psource_code == NULL )
+  {
+    TBSYS_LOG(WARN, "procedure code does not exist");
+    ret = OB_ENTRY_NOT_EXIST;
+  }
+  else
+  {
+    const ObString &proc_source_code = *psource_code;
 
-//hash::ObHashMap<ObString, sql::ObSQLResultSet *> * ObProcedureManager::get_name_cache_map()
-//{
-//    return &name_cache_map_;
-//}
+    context.transformer_allocator_ = context.session_info_->get_transformer_mem_pool_for_ps();
 
-//ObNameCodeMap * ObProcedureManager::get_name_code_map()
-//{
-//    return &(name_code_map_);
-//}
+    context.is_prepare_protocol_ = true;
+    if( OB_SUCCESS != (ret = mergeserver_service_->get_sql_proxy_().execute(proc_source_code, proc_result_set, context, 0)) )
+    {
+      TBSYS_LOG(WARN, "prepare the procedure plan fail");
+      context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
+    }
+    else
+    {
+      proc_result_set.get_result_set().set_stmt_hash(proc_source_code.hash());
+      if ((ret = context.session_info_->store_plan(proc_name, proc_result_set.get_result_set())) != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "Store current result failed.");
+      }
+      else if( !context.session_info_->plan_exists(proc_name, &stmt_id) )
+      {
+        TBSYS_LOG(WARN, "Cache plan failed, unexpected error");
+        ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "compile [%.*s], indexed with [%ld]", proc_name.length(), proc_name.ptr(), stmt_id);
+      }
+    }
+    context.is_prepare_protocol_ = false;
+  }
+  return ret;
+}
 
 /**
  * @brief ObProcedureManager::run
@@ -210,6 +177,7 @@ void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
     }
     else
     {
+#ifndef LAZY_COMPILE
       TBSYS_LOG(INFO, "fecth procedure codes[%ld]", name_code_map_.size());
       for(common::ObNameCodeMap::ObNameCodeIterator iter(name_code_map_); OB_SUCCESS == ret && !iter.end(); iter.next())
       {
@@ -221,6 +189,7 @@ void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
           break;
         }
       }
+#endif
     }
 
     if( OB_SUCCESS != ret )
@@ -249,10 +218,12 @@ int ObProcedureManager::create_procedure(const ObString  &name, const ObString &
   lock_.lock();
   name_code_map_.put_source_code(name, source_code);
 
+#ifndef LAZY_COMPILE
   if( OB_SUCCESS != (ret = compile_procedure(name)))
   {
     TBSYS_LOG(WARN, "compilation fails during updating procedure");
   }
+#endif
   lock_.unlock();
   return ret;
 }
@@ -262,24 +233,18 @@ int ObProcedureManager::delete_procedure(const ObString &proc_name)
 {
   lock_.lock();
   name_code_map_.del_source_code(proc_name);
+
+#ifndef LAZY_COMPILE
   del_cache_plan(proc_name);
+#endif
   lock_.unlock();
   return OB_SUCCESS;
 }
 
 int ObProcedureManager::get_procedure(const ObString &proc_name, ObSQLResultSet * &result_set)
 {
-  TBSYS_LOG(INFO, "cache_size: %ld", name_cache_map_.size());
-
-  for(ObProcCache::const_iterator cit = name_cache_map_.begin(); cit != name_cache_map_.end();
-      cit++)
-  {
-    TBSYS_LOG(INFO, "cache proc: %.*s", cit->first.length(), cit->first.ptr());
-  }
   return name_cache_map_.get(proc_name, result_set);
 }
-
-
 
 int ObProcedureManager::create_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code)
 {
@@ -298,32 +263,30 @@ int ObProcedureManager::create_procedure_lazy(const ObString &proc_name, const O
   return ret;
 }
 
-int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSQLResultSet *& result_set)
+int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id)
 {
   int ret = OB_SUCCESS;
+
+  TBSYS_LOG(TRACE, "compile procedure[%.*s]", proc_name.length(), proc_name.ptr());
   if( !name_code_map_.exist(proc_name))
   {
     ret = OB_ENTRY_NOT_EXIST;
     TBSYS_LOG(WARN, "procedure %*.s does not exist", proc_name.length(), proc_name.ptr());
   }
-  else if( NULL == name_cache_map_.get(proc_name) )
+  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id)) )
   {
-    ret = compile_procedure(proc_name);
-  }
-
-  if( OB_SUCCESS == ret )
-  {
-    ret = get_procedure(proc_name, result_set);
+    TBSYS_LOG(WARN, "failed to compile proc[%.*s]", proc_name.length(), proc_name.ptr());
   }
   return ret;
 }
+
+
 
 int ObProcedureManager::put_cache_plan(const ObString &proc_name, ObSQLResultSet *result_set)
 {
   ObString name;
   ob_write_string(proc_name_buf_, proc_name, name);
   TBSYS_LOG(INFO, "add [%.*s] plan", name.length(), name.ptr());
-
   return name_cache_map_.set(name, result_set);
 }
 
@@ -331,11 +294,6 @@ int ObProcedureManager::del_cache_plan(const ObString &proc_name)
 {
   int64_t count = name_cache_map_.size();
   name_cache_map_.erase(proc_name);
-  for(ObProcCache::const_iterator cit = name_cache_map_.begin(); cit != name_cache_map_.end();
-      ++cit)
-  {
-    TBSYS_LOG(INFO, "[%.*s]", cit->first.length(), cit->first.ptr());
-  }
   TBSYS_LOG(INFO, "delete [%.*s], prev[ %ld ], now[ %ld ]",
             proc_name.length(), proc_name.ptr(), count, name_cache_map_.size());
   return OB_SUCCESS;

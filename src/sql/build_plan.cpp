@@ -4194,7 +4194,7 @@ int resolve_procedure_stmt(
           }
           else
           {
-            TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param.param_name_.length(),param.param_name_.ptr(),stmt->get_param_size());
+//            TBSYS_LOG(INFO, "add_proc_param %.*s  param size:%ld",param.param_name_.length(),param.param_name_.ptr(),stmt->get_param_size());
           }
         }
       }

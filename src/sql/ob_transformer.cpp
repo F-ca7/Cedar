@@ -1010,15 +1010,6 @@ int ObTransformer::gen_physical_procedure_execute(
         /** plan query
 <<<<<<< HEAD
           //modified by wangdonghui 20160302 [pl manage] :b
-//        uint64_t stmt_id = OB_INVALID_ID;
-//        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
-//        {
-//          TBSYS_LOG(WARN, "plan does not generated and cached in session");
-//          ret = OB_ENTRY_NOT_EXIST;
-//        }
-//        else
-//        {
-//          ObResultSet *result_set = session_info->get_plan(stmt_id);
           ObSQLResultSet *sql_result_set = NULL;
           ObResultSet *result_set = NULL;
           int hash_ret;
@@ -1043,11 +1034,6 @@ int ObTransformer::gen_physical_procedure_execute(
           else
           {
               //modified :e
-
-              //copy the physical plan from the prepared one
-              //following the code from ObSql::copy_plan_from_store
-              //          ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-              //          ObSql::copy_physical_plan(new_plan, result_set->get_physical_plan(), sql_context_);
 
               ObResultSet &new_result_set = result_op->get_procedure_result_set();
               ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
@@ -1083,11 +1069,31 @@ int ObTransformer::gen_physical_procedure_execute(
 =======
 **/
         uint64_t stmt_id = OB_INVALID_ID;
-        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
+
+        bool need_compile = !(session_info->plan_exists(stmt->get_proc_name(), &stmt_id));
+
+        if( !need_compile )
         {
-          TBSYS_LOG(WARN, "plan does not generated and cached in session");
-          ret = OB_ENTRY_NOT_EXIST;
+          if (!(sql_context_->merge_service_->get_merge_server()->
+                get_procedure_manager().is_consisitent(
+                  stmt->get_proc_name(), session_info->get_plan(stmt_id)->get_stmt_hash())))
+          {
+            TBSYS_LOG(WARN, "detected inconsistency plan for [%.*s]", stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
+            session_info->remove_plan(stmt_id); //expired
+            need_compile = true;
+          }
         }
+
+        if( need_compile)
+        {
+          if (OB_SUCCESS != (ret = sql_context_->merge_service_->get_merge_server()->
+                             get_procedure_manager().get_procedure_lazy(stmt->get_proc_name(), *sql_context_, stmt_id)))
+          {
+            TBSYS_LOG(WARN, "failed to execute proc[%.*s], ret=%d", stmt->get_proc_name().length(), stmt->get_proc_name().ptr(), ret);
+          }
+        }
+
+        if (OB_SUCCESS != ret ) {}
         else
         {
           result_op->set_stmt_id(stmt_id);

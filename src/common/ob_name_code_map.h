@@ -28,6 +28,7 @@ namespace oceanbase {
       class ObNameCodeMap
       {
       public:
+        typedef hash::ObHashMap<ObString, int64_t> ObProcHashCache;
 
           class ObNameCodeIterator
           {
@@ -68,7 +69,7 @@ namespace oceanbase {
 
           ObNameCodeMap();
           virtual ~ObNameCodeMap();
-//          hash::ObHashMap<ObString,ObString>* get_name_code_map();
+
           int init();
           int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
           int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
@@ -82,6 +83,7 @@ namespace oceanbase {
           bool is_created();
 
           bool exist(const ObString &proc_name) const;
+          bool exist(const ObString &proc_name, int64_t hash_code) const;
 
           int64_t size() const;
 
@@ -95,6 +97,7 @@ namespace oceanbase {
       private:
           ObNameCodeMap & operator = (const ObNameCodeMap &);
           hash::ObHashMap<ObString, ObString> name_code_map_;
+          ObProcHashCache name_hash_map_;
           common::ObStringBuf arena_;
           bool is_ready_;
       };

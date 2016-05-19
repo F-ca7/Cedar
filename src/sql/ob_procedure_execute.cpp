@@ -147,8 +147,10 @@ int ObProcedureExecute::open()
   {
     TBSYS_LOG(ERROR, "Failed to set main query");
   }
+  else{
+    result_set->set_running_procedure(proc);
+  }
 
-  result_set->set_running_procedure(proc);
 
 //  if (stmt_id_ == OB_INVALID_ID)
 //  {

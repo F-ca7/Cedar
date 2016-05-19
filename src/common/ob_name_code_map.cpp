@@ -15,10 +15,13 @@ ObNameCodeMap::~ObNameCodeMap()
 int ObNameCodeMap::init()
 {
     int ret = OB_SUCCESS;
-    ret = name_code_map_.create(NAME_CODE_MAP_BUCKET_NUM);
-    if(OB_SUCCESS != ret)
+    if(OB_SUCCESS != (ret = name_code_map_.create(NAME_CODE_MAP_BUCKET_NUM)))
     {
         TBSYS_LOG(WARN, "create name code map fail:ret=[%d]", ret);
+    }
+    else if( OB_SUCCESS != (ret = name_hash_map_.create(NAME_CODE_MAP_BUCKET_NUM)) )
+    {
+      TBSYS_LOG(WARN, "create name hash map fail:ret=[%d]", ret);
     }
     else
     {
@@ -28,11 +31,6 @@ int ObNameCodeMap::init()
     return ret;
 }
 
-//hash::ObHashMap<ObString,ObString>* ObNameCodeMap::get_name_code_map()
-//{
-//    return &name_code_map_;
-//}
-
 bool ObNameCodeMap::is_created()
 {
   return name_code_map_.created();
@@ -41,6 +39,20 @@ bool ObNameCodeMap::is_created()
 bool ObNameCodeMap::exist(const ObString &proc_name) const
 {
   return name_code_map_.get(proc_name) != NULL;
+}
+
+bool ObNameCodeMap::exist(const ObString &proc_name, int64_t hash_code) const
+{
+  const int64_t *hc = NULL;
+  if( NULL == (hc = name_hash_map_.get(proc_name)) )
+  {
+    return false;
+  }
+  else if( *hc != hash_code )
+  {
+    return false;
+  }
+  return true;
 }
 
 int64_t ObNameCodeMap::size() const
@@ -55,11 +67,13 @@ int ObNameCodeMap::put_source_code(const ObString &proc_name, const ObString &so
   arena_.write_string(proc_name, &name);
   arena_.write_string(sour_code, &code);
 
+  name_hash_map_.set(name, code.hash(), 0, 0, 1);
   return name_code_map_.set(name, code, 0, 0, 1);
 }
 
 int ObNameCodeMap::del_source_code(const ObString &proc_name)
 {
+  name_hash_map_.erase(proc_name);
   return name_code_map_.erase(proc_name);
 }
 

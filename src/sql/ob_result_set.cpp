@@ -384,6 +384,7 @@ int ObResultSet::to_prepare(ObResultSet& other)
   other.my_session_ = my_session_;
   other.ps_trans_allocator_ = ps_trans_allocator_;
   other.query_string_id_ = query_string_id_;
+  other.stmt_hash_code_ = stmt_hash_code_;
 
   this->statement_name_.reset();
   this->physical_plan_ = NULL;

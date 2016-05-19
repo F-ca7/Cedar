@@ -155,6 +155,8 @@ namespace oceanbase
         //for postfix_expr to get procedure obj, read array variables
         void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
         const SpProcedure* get_running_procedure() const{ return proc_; }
+        int64_t get_stmt_hash() const { return stmt_hash_code_; }
+        void set_stmt_hash(int64_t hc) { stmt_hash_code_ = hc; }
         //add zt 20151201:e
       private:
         // types and constants
@@ -201,6 +203,7 @@ namespace oceanbase
          * @brief proc_
          */
         SpProcedure *proc_; //add zt: 20151201
+        int64_t stmt_hash_code_;
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
