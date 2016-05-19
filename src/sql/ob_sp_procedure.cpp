@@ -595,24 +595,24 @@ int SpRwCompInst::assign(const SpInst *inst)
 }
 
 /* ========================================================
- *      SpBlockInsts Definition
+ *      SpGroupInsts Definition
  * =======================================================*/
-SpBlockInsts::~SpBlockInsts()
+SpGroupInsts::~SpGroupInsts()
 {
   //sp_block_insts doesn't really own the memory of inst_list_
 }
 
-void SpBlockInsts::get_read_variable_set(SpVariableSet &read_set) const
+void SpGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
 {
   read_set.add_var_info_set(rs_);
 }
 
-void SpBlockInsts::get_write_variable_set(SpVariableSet &write_set) const
+void SpGroupInsts::get_write_variable_set(SpVariableSet &write_set) const
 {
   write_set.add_var_info_set(ws_);
 }
 
-int SpBlockInsts::add_inst(SpInst *inst)
+int SpGroupInsts::add_inst(SpInst *inst)
 {
   int ret = OB_SUCCESS;
   if( OB_SUCCESS != inst_list_.push_back(inst) )
@@ -625,7 +625,7 @@ int SpBlockInsts::add_inst(SpInst *inst)
   return ret;
 }
 
-int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   int ret = OB_SUCCESS;
   int64_t count = inst_list_.count();
@@ -675,7 +675,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     else if( var_info.using_method_ == VM_FUL_ARY ) rd_array_var_count++;
   }
 
-  TBSYS_LOG(TRACE, "Block inst serialization, rd_var count: %ld, tmp_var[%d], array[%d]", rd_var_count, rd_tmp_var_count, rd_array_var_count);
+  TBSYS_LOG(TRACE, "Group inst serialization, rd_var count: %ld, tmp_var[%d], array[%d]", rd_var_count, rd_tmp_var_count, rd_array_var_count);
   //serialize temp variables
   if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, rd_tmp_var_count)))
   {
@@ -705,7 +705,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
         }
         else
         {
-          TBSYS_LOG(DEBUG, "Block inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
+          TBSYS_LOG(DEBUG, "Group inst seralization, %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*obj));
         }
       }
     }
@@ -753,7 +753,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
             }
             else
             {
-              TBSYS_LOG(DEBUG, "Block inst serialize, %.*s[%ld] = %s", var_name.length(), var_name.ptr(), j, to_cstring(*val));
+              TBSYS_LOG(DEBUG, "Group inst serialize, %.*s[%ld] = %s", var_name.length(), var_name.ptr(), j, to_cstring(*val));
             }
           }
         }
@@ -790,7 +790,7 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   return ret;
 }
 
-int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena& allocator,
+int SpGroupInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena& allocator,
                                    ObPhysicalPlan::OperatorStore& operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
@@ -917,10 +917,10 @@ int SpBlockInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   return ret;
 }
 
-int SpBlockInsts::assign(const SpInst *inst)
+int SpGroupInsts::assign(const SpInst *inst)
 {
   int ret = OB_SUCCESS;
-  const SpBlockInsts *old_inst = static_cast<const SpBlockInsts*>(inst);
+  const SpGroupInsts *old_inst = static_cast<const SpGroupInsts*>(inst);
 
   inst_list_.clear();
   for(int64_t i = 0; i < old_inst->inst_list_.count(); ++i)
@@ -1811,8 +1811,8 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
   case SP_DE_INST:
     new_inst = create_inst<SpRwDeltaIntoVarInst>(mul_inst);
     break;
-  case SP_BLOCK_INST:
-    new_inst = create_inst<SpBlockInsts>(mul_inst);
+  case SP_GROUP_INST:
+    new_inst = create_inst<SpGroupInsts>(mul_inst);
     break;
   case SP_L_INST:
     new_inst = create_inst<SpLoopInst>(mul_inst);
@@ -2039,7 +2039,7 @@ DEFINE_SERIALIZE(SpProcedure)
 {
   //must be only one block inst
   int ret = OB_SUCCESS;
-  if( inst_list_.at(0)->get_type() != SP_BLOCK_INST )
+  if( inst_list_.at(0)->get_type() != SP_GROUP_INST )
   {
     TBSYS_LOG(WARN, "unexpected ups procedure execution");
   }
@@ -2055,7 +2055,7 @@ DEFINE_DESERIALIZE(SpProcedure)
 {
   //must be only one block inst
   int ret = OB_SUCCESS;
-  SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+  SpGroupInsts* block_inst = create_inst<SpGroupInsts>(NULL);
   if( OB_SUCCESS != (ret = block_inst->deserialize_inst(
                        buf, data_len, pos, *my_phy_plan_->allocator_,
                        my_phy_plan_->operators_store_,  my_phy_plan_->op_factory_)) )
@@ -2143,7 +2143,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
-int64_t SpBlockInsts::to_string(char *buf, const int64_t buf_len) const
+int64_t SpGroupInsts::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "type [Group] name:%.*s\n", group_proc_name_.length(), group_proc_name_.ptr());

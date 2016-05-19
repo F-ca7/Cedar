@@ -29,7 +29,7 @@ namespace oceanbase
       SP_D_INST, //maintain delta data
       SP_DE_INST, //maintain delta data, read into variables
       SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
-      SP_BLOCK_INST, //for a block of instructions
+      SP_GROUP_INST, //for a block of instructions
       SP_UNKOWN
     };
 
@@ -383,12 +383,12 @@ namespace oceanbase
      * @brief The SpInstBlock class
      * a list of each instruction, which would be sent to ups for further execution
      */
-    class SpBlockInsts : public SpInst
+    class SpGroupInsts : public SpInst
     {
     public:
 
-      SpBlockInsts() : SpInst(SP_BLOCK_INST) {}
-      virtual ~SpBlockInsts();
+      SpGroupInsts() : SpInst(SP_GROUP_INST) {}
+      virtual ~SpGroupInsts();
 
       const ObString & get_name() const { return group_proc_name_; }
       void set_name(ObString &name) { group_proc_name_ = name; }
@@ -618,7 +618,7 @@ namespace oceanbase
     };
 
     template<>
-    struct sp_inst_traits<SpBlockInsts>
+    struct sp_inst_traits<SpGroupInsts>
     {
       static const bool is_sp_inst = true;
     };
@@ -649,10 +649,10 @@ namespace oceanbase
     private:
       virtual int execute_expr(SpExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
-      virtual int execute_rw_delta(SpRwDeltaInst *inst) = 0;
-      virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst) = 0;
-      virtual int execute_rw_comp(SpRwCompInst *inst) = 0;
-      virtual int execute_block(SpBlockInsts *inst) = 0;
+      virtual int execute_wr_delta(SpRwDeltaInst *inst) = 0;
+      virtual int execute_rd_delta(SpRwDeltaIntoVarInst *inst) = 0;
+      virtual int execute_rw_all(SpRwCompInst *inst) = 0;
+      virtual int execute_group(SpGroupInsts *inst) = 0;
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst) = 0;
       virtual int execute_loop(SpLoopInst *inst) = 0;
       virtual int execute_casewhen(SpCaseInst *inst) = 0;  //TODO

@@ -1435,7 +1435,7 @@ namespace oceanbase
         return inst_handler[inst->get_type()](this, inst);
       }
 
-      int execute_block(SpBlockInsts *inst) ;
+      int execute_block(SpGroupInsts *inst) ;
 
     private:
       int execute_expr(SpExprInst *inst) ;

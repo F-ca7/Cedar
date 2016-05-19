@@ -741,8 +741,8 @@ int ObTransformer::gen_physical_procedure(
 
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
       }
-      TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
       result_op->optimize();
+      TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
     }
   }
   return ret;

@@ -1518,7 +1518,7 @@ SpUpsInstExecStrategy::SpUpsInstExecStrategy()
   inst_handler[SP_D_INST] = pexecute_rw_delta;
   inst_handler[SP_DE_INST] = pexecute_rw_delta_into_var;
   inst_handler[SP_A_INST] = NULL;
-  inst_handler[SP_BLOCK_INST] = pexecute_block;
+  inst_handler[SP_GROUP_INST] = pexecute_block;
   inst_handler[SP_CW_INST] = pexecute_casewhen;
 }
 
@@ -1554,7 +1554,7 @@ int SpUpsInstExecStrategy::pexecute_casewhen(SpUpsInstExecStrategy *host, SpInst
 
 int SpUpsInstExecStrategy::pexecute_block(SpUpsInstExecStrategy *host, SpInst *inst)
 {
-  return host->execute_block(static_cast<SpBlockInsts*>(inst));
+  return host->execute_block(static_cast<SpGroupInsts*>(inst));
 }
 
 //int SpUpsInstExecStrategy::execute_inst(SpInst *inst)
@@ -1684,7 +1684,7 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   return ret;
 }
 
-int SpUpsInstExecStrategy::execute_block(SpBlockInsts* inst)
+int SpUpsInstExecStrategy::execute_block(SpGroupInsts* inst)
 {
   int ret = OB_SUCCESS;
   ObIArray<SpInst*>& inst_list_ = inst->get_inst_list();
@@ -2032,7 +2032,7 @@ int ObUpsProcedure::open()
   pc_ = 0;
   //we need only to execute the block instructions
 
-  SpBlockInsts *inst = dynamic_cast<SpBlockInsts*>(inst_list_.at(0));
+  SpGroupInsts *inst = dynamic_cast<SpGroupInsts*>(inst_list_.at(0));
   if( inst->get_name().compare(ObString::make_string("neworder")) == 0 ||
       inst->get_name().compare(ObString::make_string("order5")) == 0 ||
       inst->get_name().compare(ObString::make_string("order6")) == 0 )

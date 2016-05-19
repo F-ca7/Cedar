@@ -26,10 +26,10 @@ namespace oceanbase
     private:
       virtual int execute_expr(SpExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
-      virtual int execute_rw_delta(SpRwDeltaInst *inst);
-      virtual int execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst);
-      virtual int execute_rw_comp(SpRwCompInst *inst);
-      virtual int execute_block(SpBlockInsts *inst);
+      virtual int execute_wr_delta(SpRwDeltaInst *inst);
+      virtual int execute_rd_delta(SpRwDeltaIntoVarInst *inst);
+      virtual int execute_rw_all(SpRwCompInst *inst);
+      virtual int execute_group(SpGroupInsts *inst);
       virtual int execute_if_ctrl(SpIfCtrlInsts *inst);
       virtual int execute_loop(SpLoopInst *inst);
 
@@ -38,18 +38,6 @@ namespace oceanbase
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
     };
-
-
-    /**
-     * @brief The ObProcArray struct
-     * save the array variables in the procedure
-     */
-//    struct ObProcArray
-//    {
-//      ObString array_name_;
-//      ObObjType val_type_;
-//      ObArray<ObObj> array_value_;
-//    };
 
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
