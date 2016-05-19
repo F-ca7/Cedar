@@ -48,6 +48,68 @@ int ObProcedureManager::init()
     return ret;
 }
 
+
+//may be need to synchronize between multiple clients
+int ObProcedureManager::compile_procedure(const ObString &proc_name)
+{
+  int ret = OB_SUCCESS;
+  const ObString * psource_code = name_code_map_.get_source_code(proc_name);
+
+  if( psource_code == NULL )
+  {
+    ret = OB_ENTRY_NOT_EXIST;
+  }
+  else
+  {
+    const ObString &proc_source_code = *psource_code;
+    sql::ObSQLResultSet &rs = *(this->malloc_result_set());
+    sql::ObSqlContext context;
+    int64_t schema_version = 0;
+    if (OB_SUCCESS !=(ret = mergeserver_service_->get_sql_proxy_().init_sql_env_for_cache(context, schema_version, rs, session_)))
+    {
+      TBSYS_LOG(WARN, "init sql env error.");
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "before compile, proc_name: %.*s", proc_name.length(), proc_name.ptr());
+      context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
+      context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+      context.is_prepare_protocol_ = true;
+      if (OB_SUCCESS != (ret = mergeserver_service_->get_sql_proxy_().execute(proc_source_code, rs, context, schema_version)))
+      {
+        TBSYS_LOG(WARN, "ms execute sql failed. ret = [%d]", ret);
+        context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
+      }
+      else
+      {
+        TBSYS_LOG(TRACE, "MS ExecutionPlan: \n%s", to_cstring(*(rs.get_result_set().get_physical_plan())));
+        int hash_ret = put_cache_plan(proc_name, &rs);
+        if(hash::HASH_INSERT_SUCC != hash_ret)
+        {
+          if(hash::HASH_EXIST == hash_ret)
+          {
+            TBSYS_LOG(WARN, "proc physic al plan has existed! proc name: [%s]", proc_name.ptr());
+          }
+          else
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "gen physical plan and insert into physical plan manager fail! proc name: [%s]",
+                      proc_name.ptr());
+          }
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "proc[%.*s] physical plan insert hashmap succ!", proc_name.length(), proc_name.ptr());
+        }
+        context.session_info_->get_transformer_mem_pool().end_batch_alloc(false);
+      }
+      context.is_prepare_protocol_ = false;
+      context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+    }
+  }
+  return ret;
+}
+
 //int ObProcedureManager::serialize(char* buf, const int64_t buf_len, int64_t& pos) const
 //{
 //    int ret = OB_SUCCESS;
@@ -135,49 +197,42 @@ int ObProcedureManager::init()
  */
 void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
 {
-    UNUSED(thread);
-    UNUSED(arg);
-    bool stop = false;
+  UNUSED(thread);
+  UNUSED(arg);
+  bool stop = false;
 
-    int ret = OB_SUCCESS;
-    while(!stop)
+  int ret = OB_SUCCESS;
+  while(!stop)
+  {
+    if( OB_SUCCESS != (ret = mergeserver_service_->fetch_source(&name_code_map_)) )
     {
-      TBSYS_LOG(INFO, "begin to create procedure cache, name code map size [%ld]", name_code_map_.size());
-      if( OB_SUCCESS != (ret = mergeserver_service_->fetch_source(&name_code_map_)) )
+      TBSYS_LOG(WARN, "fail to fecth procedure source, retry after 1 seconds");
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "fecth procedure codes[%ld]", name_code_map_.size());
+      for(common::ObNameCodeMap::ObNameCodeIterator iter(name_code_map_); OB_SUCCESS == ret && !iter.end(); iter.next())
       {
-        TBSYS_LOG(WARN, "fail to fecth procedure source, retry after 1 seconds");
-      }
-      else
-      {
-        TBSYS_LOG(INFO, "fecth procedure source codes successfully");
-        for(common::ObNameCodeMap::ObNameCodeIterator iter(name_code_map_); OB_SUCCESS == ret && !iter.end(); iter.next())
+        const ObString &proc_name = iter.get_proc_name();
+
+        if( OB_SUCCESS != (ret = compile_procedure(proc_name)) )
         {
-          const ObString &proc_name = iter.get_proc_name();
-//          const ObString &proc_sour_code = iter.get_sour_code();
-//          TBSYS_LOG(TRACE, "proc name[%.*s], source code[%.*s]", proc_name.length(), proc_name.ptr(),
-//                    proc_sour_code.length(), proc_sour_code.ptr());
-//          TBSYS_LOG(INFO, "before direct execute proc name[%p][%.*s]", proc_name.ptr(), proc_name.length(), proc_name.ptr());
-//          TBSYS_LOG(INFO, "before direct execute source code[%p][%.*s]",proc_source_code.ptr(), proc_source_code.length(), proc_source_code.ptr());
-
-          if( OB_SUCCESS != (ret = compile_procedure(proc_name)) )
-          {
-            TBSYS_LOG(WARN, "fail to compile procedure[ %s ]", to_cstring(proc_name));
-            break;
-          }
+          TBSYS_LOG(WARN, "fail to compile procedure[ %s ]", to_cstring(proc_name));
+          break;
         }
-      }
-
-      if( OB_SUCCESS != ret )
-      {
-        usleep(THREAD_SLEEP_UTIME);
-      }
-      else
-      {
-        stop = true;
-        TBSYS_LOG(INFO, "fetch procedure codes completed!");
       }
     }
 
+    if( OB_SUCCESS != ret )
+    {
+      usleep(THREAD_SLEEP_UTIME);
+    }
+    else
+    {
+      stop = true;
+      TBSYS_LOG(INFO, "cache procedure codes completed!");
+    }
+  }
 }
 
 /**
@@ -187,13 +242,12 @@ void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
  * @param source_code
  * @return
  */
-int ObProcedureManager::update_procedure(const ObString  &name, const ObString &source_code)
+int ObProcedureManager::create_procedure(const ObString  &name, const ObString &source_code)
 {
   int ret = OB_SUCCESS;
-  lock_.lock();
   delete_procedure(name); //clear old one
+  lock_.lock();
   name_code_map_.put_source_code(name, source_code);
-  TBSYS_LOG(INFO, "update procedure [%.*s]", name.length(), name.ptr());
 
   if( OB_SUCCESS != (ret = compile_procedure(name)))
   {
@@ -203,18 +257,21 @@ int ObProcedureManager::update_procedure(const ObString  &name, const ObString &
   return ret;
 }
 
+
 int ObProcedureManager::delete_procedure(const ObString &proc_name)
 {
+  lock_.lock();
   name_code_map_.del_source_code(proc_name);
-  name_cache_map_.erase(proc_name);
+  del_cache_plan(proc_name);
+  lock_.unlock();
   return OB_SUCCESS;
 }
 
-int ObProcedureManager::get_procedure_plan(const ObString &proc_name, ObSQLResultSet * &result_set)
+int ObProcedureManager::get_procedure(const ObString &proc_name, ObSQLResultSet * &result_set)
 {
   TBSYS_LOG(INFO, "cache_size: %ld", name_cache_map_.size());
 
-  for(hash::ObHashMap<ObString, sql::ObSQLResultSet*>::const_iterator cit = name_cache_map_.begin(); cit != name_cache_map_.end();
+  for(ObProcCache::const_iterator cit = name_cache_map_.begin(); cit != name_cache_map_.end();
       cit++)
   {
     TBSYS_LOG(INFO, "cache proc: %.*s", cit->first.length(), cit->first.ptr());
@@ -223,68 +280,8 @@ int ObProcedureManager::get_procedure_plan(const ObString &proc_name, ObSQLResul
 }
 
 
-//may be need to synchronize between multiple clients
-int ObProcedureManager::compile_procedure(const ObString &proc_name)
-{
-  int ret = OB_SUCCESS;
-  const ObString * psource_code = name_code_map_.get_source_code(proc_name);
 
-  if( psource_code == NULL )
-  {
-    ret = OB_ENTRY_NOT_EXIST;
-  }
-  else
-  {
-    const ObString &proc_source_code = *psource_code;
-    sql::ObSQLResultSet &rs = *(this->malloc_result_set());
-    sql::ObSqlContext context;
-    int64_t schema_version = 0;
-    if (OB_SUCCESS !=(ret = mergeserver_service_->get_sql_proxy_().init_sql_env_for_cache(context, schema_version, rs, session_)))
-    {
-      TBSYS_LOG(WARN, "init sql env error.");
-    }
-    else
-    {
-      context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
-      context.session_info_->get_transformer_mem_pool().start_batch_alloc();
-      context.is_prepare_protocol_ = true;
-      TBSYS_LOG(INFO, "before execute source code[%.*s]",proc_source_code.length(), proc_source_code.ptr());
-      if (OB_SUCCESS != (ret = mergeserver_service_->get_sql_proxy_().execute(proc_source_code, rs, context, schema_version)))
-      {
-        TBSYS_LOG(WARN, "ms execute sql failed. ret = [%d]", ret);
-        context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
-      }
-      else
-      {
-        TBSYS_LOG(TRACE, "MS ExecutionPlan: \n%s", to_cstring(*(rs.get_result_set().get_physical_plan())));
-        int hash_ret = name_cache_map_.set(proc_name, &rs, 0, 0, 1);
-        if(hash::HASH_INSERT_SUCC != hash_ret)
-        {
-          if(hash::HASH_EXIST == hash_ret)
-          {
-            TBSYS_LOG(WARN, "proc physic al plan has existed! proc name: [%s]", proc_name.ptr());
-          }
-          else
-          {
-            ret = OB_ERROR;
-            TBSYS_LOG(WARN, "gen physical plan and insert into physical plan manager fail! proc name: [%s]",
-                      proc_name.ptr());
-          }
-        }
-        else
-        {
-          TBSYS_LOG(INFO, "proc physical plan insert hashmap succ!");
-        }
-        context.session_info_->get_transformer_mem_pool().end_batch_alloc(false);
-      }
-      context.is_prepare_protocol_ = false;
-      context.session_info_->get_transformer_mem_pool().start_batch_alloc();
-    }
-  }
-  return ret;
-}
-
-int ObProcedureManager::update_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code)
+int ObProcedureManager::create_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code)
 {
   int ret = OB_SUCCESS;
   if( name_code_map_.exist(proc_name) )
@@ -301,7 +298,7 @@ int ObProcedureManager::update_procedure_lazy(const ObString &proc_name, const O
   return ret;
 }
 
-int ObProcedureManager::get_procedure_plan_lazy(const ObString &proc_name, ObSQLResultSet *& result_set)
+int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSQLResultSet *& result_set)
 {
   int ret = OB_SUCCESS;
   if( !name_code_map_.exist(proc_name))
@@ -316,7 +313,30 @@ int ObProcedureManager::get_procedure_plan_lazy(const ObString &proc_name, ObSQL
 
   if( OB_SUCCESS == ret )
   {
-    ret = get_procedure_plan(proc_name, result_set);
+    ret = get_procedure(proc_name, result_set);
   }
   return ret;
+}
+
+int ObProcedureManager::put_cache_plan(const ObString &proc_name, ObSQLResultSet *result_set)
+{
+  ObString name;
+  ob_write_string(proc_name_buf_, proc_name, name);
+  TBSYS_LOG(INFO, "add [%.*s] plan", name.length(), name.ptr());
+
+  return name_cache_map_.set(name, result_set);
+}
+
+int ObProcedureManager::del_cache_plan(const ObString &proc_name)
+{
+  int64_t count = name_cache_map_.size();
+  name_cache_map_.erase(proc_name);
+  for(ObProcCache::const_iterator cit = name_cache_map_.begin(); cit != name_cache_map_.end();
+      ++cit)
+  {
+    TBSYS_LOG(INFO, "[%.*s]", cit->first.length(), cit->first.ptr());
+  }
+  TBSYS_LOG(INFO, "delete [%.*s], prev[ %ld ], now[ %ld ]",
+            proc_name.length(), proc_name.ptr(), count, name_cache_map_.size());
+  return OB_SUCCESS;
 }

@@ -1763,7 +1763,12 @@ namespace oceanbase
       else
       {
         TBSYS_LOG(INFO, "mergeserver accept proc succ! proc name %s, proc source code %s", proc_name.ptr(), proc_source_code.ptr());
-        if (OB_SUCCESS != (ret = rc.serialize(out_buffer.get_data(),
+        if(OB_SUCCESS != (ret = merge_server_->get_procedure_manager().create_procedure(proc_name, proc_source_code)))
+        {
+          TBSYS_LOG(ERROR, "fail to generate physical plan cache [%.*s] ret=[%d]",
+                    proc_name.length(), proc_name.ptr(), ret);
+        }
+        else if (OB_SUCCESS != (ret = rc.serialize(out_buffer.get_data(),
                               out_buffer.get_capacity(), out_buffer.get_position())))
         {
           TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
@@ -1775,15 +1780,10 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "fail to send OB_UPDATE_CACHE_RESPONSE: ret[%d]", ret);
         }
-        else if(OB_SUCCESS != (ret = merge_server_->get_procedure_manager().update_procedure(proc_name, proc_source_code)))
-        {
-          TBSYS_LOG(ERROR, "fail to generate physical plan cache [%.*s] ret=[%d]",
-                    proc_name.length(), proc_name.ptr(), ret);
-        }
-        else
-        {
-          TBSYS_LOG(INFO, "MS accepted proc succ [%.*s]", proc_name.length(), proc_name.ptr());
-        }
+//        else
+//        {
+//          TBSYS_LOG(INFO, "MS accepted proc succ [%.*s]", proc_name.length(), proc_name.ptr());
+//        }
       }
       return ret;
     }

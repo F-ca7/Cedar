@@ -35,7 +35,7 @@ namespace oceanbase
     class ObProcedureManager : public tbsys::CDefaultRunnable
     {
     public:
-
+        typedef hash::ObHashMap<ObString, sql::ObSQLResultSet *> ObProcCache;
       virtual void run(tbsys::CThread* thread, void * arg);
 
       ObProcedureManager();
@@ -53,20 +53,16 @@ namespace oceanbase
           return mergeserver_service_;
       }
 
-//      hash::ObHashMap<ObString, sql::ObSQLResultSet *> * get_name_cache_map();
-
-//      ObNameCodeMap * get_name_code_map();
-
-      int update_procedure(const ObString &proc_name, const ObString &proc_source_code);
+      int create_procedure(const ObString &proc_name, const ObString &proc_source_code);
 
       int delete_procedure(const ObString &proc_name);
 
-      int get_procedure_plan(const ObString &proc_name, ObSQLResultSet *& result_set);
+      int get_procedure(const ObString &proc_name, ObSQLResultSet *& result_set);
 
 
-      int update_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code);
+      int create_procedure_lazy(const ObString &proc_name, const ObString &proc_source_code);
 
-      int get_procedure_plan_lazy(const ObString &proc_name, ObSQLResultSet *&result_set);
+      int get_procedure_lazy(const ObString &proc_name, ObSQLResultSet *&result_set);
 
 //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
 //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
@@ -81,15 +77,19 @@ namespace oceanbase
         return ret;
       }
 
+      int put_cache_plan(const ObString &proc_name, ObSQLResultSet *result_set);
+      int del_cache_plan(const ObString &proc_name);
+
     private:
       ObProcedureManager(const ObProcedureManager &);
       const ObProcedureManager & operator = (const ObProcedureManager &);
       mutable tbsys::CThreadMutex lock_;
       ModuleArena arena_;
+      ObStringBuf proc_name_buf_;
       mergeserver::ObMergeServerService * mergeserver_service_;
       common::DefaultBlockAllocator block_allocator_;
       ObSQLSessionInfo session_;
-      hash::ObHashMap<ObString, sql::ObSQLResultSet *> name_cache_map_;
+      ObProcCache name_cache_map_;
       ObNameCodeMap name_code_map_;
       bool has_init_;
     };

@@ -1021,7 +1021,7 @@ int ObTransformer::gen_physical_procedure_execute(
           ObResultSet *result_set = NULL;
           int hash_ret;
           if( hash::HASH_EXIST != (hash_ret = (sql_context_->merge_service_->
-                             get_merge_server()->get_procedure_manager().get_procedure_plan(proc_name, sql_result_set)
+                             get_merge_server()->get_procedure_manager().get_procedure(proc_name, sql_result_set)
                              )))
           {
 
