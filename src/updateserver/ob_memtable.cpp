@@ -2074,10 +2074,10 @@ namespace oceanbase
             }
 
             uint64_t ctime_column_id = OB_UPS_CREATE_TIME_COLUMN_ID(te_key_.table_id);
-            cell_iter_.set_ctime_column_id(ctime_column_id);
+            cell_iter_.set_ctime_column_id(ctime_column_id); //seems to be the column_id of ctime
 
             uint64_t mtime_column_id = OB_UPS_MODIFY_TIME_COLUMN_ID(te_key_.table_id);
-            cell_iter_.set_mtime(mtime_column_id, node_iter_->modify_time);
+            cell_iter_.set_mtime(mtime_column_id, node_iter_->modify_time); //seems to be the column id of mtime
 
             cell_iter_.set_cell_info_node(node_iter_);
 

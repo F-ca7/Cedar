@@ -57,26 +57,29 @@ int64_t ObProcedureExecute::get_param_size() const
 void ObProcedureExecute::reset()
 {
 	param_names_.clear();
-	stmt_id_=common::OB_INVALID_ID;
+  stmt_id_=common::OB_INVALID_ID;
+  ObSingleChildPhyOperator::reset();
 }
 
 void ObProcedureExecute::reuse()
 {
 	param_names_.clear();
-	stmt_id_=common::OB_INVALID_ID;
+  stmt_id_=common::OB_INVALID_ID;
+  ObSingleChildPhyOperator::reuse();
 }
 
 int ObProcedureExecute::close()
 {
-  int ret = OB_SUCCESS;
-  if( NULL != child_op_ && OB_SUCCESS != (ret = child_op_->close()) )
-  {
-    if( stmt_id_ != OB_INVALID_ID )
-    {
-      my_phy_plan_->get_result_set()->get_session()->remove_plan(stmt_id_);
-    }
-  }
-  return ret;
+//  int ret = OB_SUCCESS;
+//  if( NULL != child_op_ && OB_SUCCESS != (ret = child_op_->close()) )
+//  {
+//    if( stmt_id_ != OB_INVALID_ID )
+//    {
+//      my_phy_plan_->get_result_set()->get_session()->remove_plan(stmt_id_);
+//    }
+//  }
+//  return ret;
+  return ObSingleChildPhyOperator::close();
 }
 
 int ObProcedureExecute::get_row_desc(const common::ObRowDesc *&row_desc) const
@@ -116,8 +119,11 @@ int ObProcedureExecute::open()
   int ret = OB_SUCCESS;
   int clear_ret = OB_SUCCESS;
   ObProcedure *proc = NULL;
+  ObResultSet *result_set = NULL;
+  ObPhysicalPlan *physical_plan = NULL;
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
-
+/** plan cache
+<<<<<<< HEAD
 //  ObPhysicalPlan *physical_plan = inner_result_set_.get_physical_plan();
   ObResultSet *result_set = &inner_result_set_;
   //delete by wangdonghui 20160303 :b
@@ -128,37 +134,57 @@ int ObProcedureExecute::open()
 //  }
 //  else
   //delete :e
+=======
+*/
+  if( (result_set = session->get_plan(stmt_id_)) == NULL
+      ||  (physical_plan = result_set->get_physical_plan()) == NULL
+      ||  (proc = dynamic_cast<ObProcedure*>(physical_plan->get_main_query())) == NULL)
   {
-    ObPhyOperator *tmp_op = result_set->get_physical_plan()->get_main_query();
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(ERROR, "Find stored procedure plan failed");
+  }
+  else if (OB_SUCCESS != (ret = set_child(0, *proc)) )
+  {
+    TBSYS_LOG(ERROR, "Failed to set main query");
+  }
+
+  result_set->set_running_procedure(proc);
+
+//  if (stmt_id_ == OB_INVALID_ID)
+//  {
+//    TBSYS_LOG(WARN, "procedure is not prepared");
+//    ret = OB_ENTRY_NOT_EXIST;
+//  }
+//  else
+//  {
+//    ObPhyOperator *tmp_op = result_set->get_physical_plan()->get_main_query();
 //    TBSYS_LOG(INFO,"get main query success");
-    if( PHY_PROCEDURE != tmp_op->get_type() )
-    {
-      TBSYS_LOG(WARN, "the procedure plan is not correct");
-      ret = OB_ENTRY_NOT_EXIST;
-    }
-    else
-    {
-      proc = static_cast<ObProcedure*>(tmp_op);
+//    if( PHY_PROCEDURE != tmp_op->get_type() )
+//    {
+//      TBSYS_LOG(WARN, "the procedure plan is not correct");
+//      ret = OB_ENTRY_NOT_EXIST;
+//    }
+//    else
+//    {
+//      proc = static_cast<ObProcedure*>(tmp_op);
       //since the procedur comes from assign, we need to
       //set the phy_operator point
-      result_set->set_running_procedure(proc);
-      proc->set_inst_op();
+//      result_set->set_running_procedure(proc);
+//      proc->set_inst_op();
 
 //      if( result_set->get_cur_time_place() != NULL  )
 //      {
 //        my_phy_plan_->get_result_set()->pre_assign_cur_time_room(static_cast<ObObj*>(result_set->get_cur_time_place()));
 //      }
-    }
-  }
-  if( proc != NULL )
+//    }
+//  }
+  //fill running parameters
+  if( OB_SUCCESS == ret )
   {
-    OB_ASSERT(proc->get_type() == PHY_PROCEDURE);
-    child_op_ = proc;
+//    OB_ASSERT(proc->get_type() == PHY_PROCEDURE);
     int64_t param_desired = proc->get_param_num();
-//    TBSYS_LOG(INFO,"param num is %ld",param_desired);
     int64_t param_provided = get_param_size();
-//     TBSYS_LOG(INFO,"param size is %ld",param_provided);
-    if(param_desired!=param_provided)
+    if(param_desired != param_provided)
     {
       ret =OB_INPUT_PARAM_ERROR;
     }
@@ -206,11 +232,6 @@ int ObProcedureExecute::open()
           TBSYS_LOG(TRACE, "procedure execute success!");
         }
       }
-//      else
-//      {
-//        ret = OB_NOT_INIT;
-//        TBSYS_LOG(ERROR, "child_op_ is NULL");
-//      }
     }
 
     //clear paramaters, remove input paramters, keep output paramters
@@ -271,22 +292,6 @@ int ObProcedureExecute::open()
       //		delete param->param_name_;
       //		delete param;
     }
-
-    //clear the declared variables
-    //better to put into the ObProcedure class, a reverse operation of create variables
-    //do what in the ObProcedure
-//    for(int64_t i=0;i<proc->get_declare_var_num();i++)
-//    {
-//      const ObString &var_name = proc->get_declare_var(i);
-//      if ((clear_ret = session->remove_variable(var_name)) != OB_SUCCESS)
-//      {
-//        TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", var_name.length(), var_name.ptr(), ret);
-//      }
-//      else
-//      {
-//        TBSYS_LOG(TRACE, "zz:Remove variable success var_name=%.*s", var_name.length(), var_name.ptr());
-//      }
-//    }
   }
 	if(clear_ret==OB_SUCCESS)
 		return ret;

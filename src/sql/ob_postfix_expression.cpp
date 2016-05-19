@@ -949,7 +949,7 @@ namespace oceanbase
           else
           {
             ret = OB_ERR_UNEXPECTED;
-            TBSYS_LOG(WARN, "Can not get result set.err=%d", ret);
+            TBSYS_LOG(WARN, "Can not get result set.err=%d, type: %d", ret, owner_op_->get_phy_plan()->get_main_query()->get_type());
           }
           //add zt 20151109 :e
         }
@@ -1471,6 +1471,7 @@ namespace oceanbase
       int i = 0;
       ObObj obj;
       obj.set_int(expr_.count());
+
       if (OB_SUCCESS != (ret = obj.serialize(buf, buf_len, pos)))
       {
         TBSYS_LOG(WARN, "fail to serialize postfix expression size. ret=%d", ret);

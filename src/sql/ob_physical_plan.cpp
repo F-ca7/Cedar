@@ -507,6 +507,7 @@ DEFINE_SERIALIZE(ObPhysicalPlan)
   OB_ASSERT(my_result_set_);
   common::ObTransID trans_id = my_result_set_->get_session()->get_trans_id();
   FILL_TRACE_LOG("trans_id=%s", to_cstring(trans_id));
+//  TBSYS_LOG(INFO, "trans_id=%s", to_cstring(trans_id)); //add by zt for test purpose
   if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, start_trans_)))
   {
     TBSYS_LOG(WARN, "failed to serialize trans_id_, err=%d buf_len=%ld pos=%ld",

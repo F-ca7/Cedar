@@ -19,7 +19,7 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
     ret = execute_expr(static_cast<SpExprInst*>(inst));
     break;
   case SP_B_INST:
-    ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
+//    ret = execute_rd_base(static_cast<SpRdBaseInst*>(inst));
     break;
   case SP_D_INST:
     ret = execute_rw_delta(static_cast<SpRwDeltaInst*>(inst));
@@ -81,9 +81,11 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   op->get_phy_plan()->set_curr_frozen_version(phy_plan->get_curr_frozen_version());
   op->get_phy_plan()->set_result_set(phy_plan->get_result_set());
 
+  op->get_phy_plan()->set_group_exec(false);
   if( OB_SUCCESS !=  (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "rd_base fail, sp rdbase inst exec(proc_op: %p, phy_plan: %p, result_set: %p)", inst->get_ownner(), phy_plan, phy_plan->get_result_set());
+    TBSYS_LOG(WARN, "rd plan: %s", to_cstring(*op));
   }
   else if( inst->is_for_group_exec() )
   {
@@ -696,6 +698,7 @@ void ObProcedure::reset()
 
 void ObProcedure::reuse()
 {
+  reset();
 }
 
 int ObProcedure::close()
@@ -712,6 +715,13 @@ int ObProcedure::close()
 //  exec_list_.clear();
   my_phy_plan_->set_group_exec(false);
   pc_ = 0;
+
+  for(int64_t i = 0; i < static_store_.count(); ++i)
+  {
+    static_store_.at(i).store.clear();
+  }
+  static_store_.clear();
+//  TBSYS_LOG(INFO, "close procedure, %ld",  static_store_.count());
   return ret;
 }
 
@@ -966,6 +976,168 @@ int ObProcedure::optimize()
     block_inst->add_inst(inst_list_.at(1));
     exec_list_.push_back(block_inst);
   }
+  else if ( proc_name_.compare("loopdep0") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+    exec_list_.push_back(inst_list_.at(8));
+
+
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(16));
+    exec_list_.push_back(inst_list_.at(18));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+//    block_inst->add_inst(inst_list_.at(1));
+//    block_inst->add_inst(inst_list_.at(3));
+//    block_inst->add_inst(inst_list_.at(5));
+//    block_inst->add_inst(inst_list_.at(7));
+//    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(15));
+    block_inst->add_inst(inst_list_.at(17));
+    block_inst->add_inst(inst_list_.at(19));
+
+    exec_list_.push_back(block_inst);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("dep"), block_name);
+    block_inst->set_name(block_name);
+    long_trans_ = false;
+  }
+  else if ( proc_name_.compare("loopdep1") == 0 )
+  {
+
+    for(int ii = 0; ii < 3; ++ii)
+    {
+      exec_list_.push_back(inst_list_.at(ii));
+    }
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(6));
+    exec_list_.push_back(inst_list_.at(8));
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(16));
+    exec_list_.push_back(inst_list_.at(18));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+//    block_inst->add_inst(inst_list_.at(3));
+//    block_inst->add_inst(inst_list_.at(5));
+//    block_inst->add_inst(inst_list_.at(7));
+//    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(15));
+    block_inst->add_inst(inst_list_.at(17));
+    block_inst->add_inst(inst_list_.at(19));
+
+    exec_list_.push_back(block_inst);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("dep"), block_name);
+    block_inst->set_name(block_name);
+    long_trans_ = true;
+  }
+  else if ( proc_name_.compare("loopdep2") == 0 )
+  {
+    for(int ii = 0; ii < 5; ++ii)
+    {
+      exec_list_.push_back(inst_list_.at(ii));
+    }
+
+    exec_list_.push_back(inst_list_.at(6));
+    exec_list_.push_back(inst_list_.at(8));
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(16));
+    exec_list_.push_back(inst_list_.at(18));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+
+//    block_inst->add_inst(inst_list_.at(5));
+//    block_inst->add_inst(inst_list_.at(7));
+//    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(15));
+    block_inst->add_inst(inst_list_.at(17));
+    block_inst->add_inst(inst_list_.at(19));
+
+    exec_list_.push_back(block_inst);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("dep"), block_name);
+    block_inst->set_name(block_name);
+    long_trans_ = true;
+  }
+  else if ( proc_name_.compare("loopdep3") == 0 )
+  {
+    for(int ii = 0; ii < 7; ++ii)
+    {
+      exec_list_.push_back(inst_list_.at(ii));
+    }
+
+    exec_list_.push_back(inst_list_.at(8));
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(16));
+    exec_list_.push_back(inst_list_.at(18));
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+//    block_inst->add_inst(inst_list_.at(7));
+//    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(15));
+    block_inst->add_inst(inst_list_.at(17));
+    block_inst->add_inst(inst_list_.at(19));
+
+    exec_list_.push_back(block_inst);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("dep"), block_name);
+    block_inst->set_name(block_name);
+    long_trans_ = true;
+  }
+  else if ( proc_name_.compare("loopdep4") == 0 )
+  {
+    //resolving dependence
+    for(int ii = 0; ii < 9; ++ii)
+    {
+      exec_list_.push_back(inst_list_.at(ii));
+    }
+
+    //commit s-node rpc after resolving dependence
+    exec_list_.push_back(inst_list_.at(10));
+    exec_list_.push_back(inst_list_.at(12));
+    exec_list_.push_back(inst_list_.at(14));
+    exec_list_.push_back(inst_list_.at(16));
+    exec_list_.push_back(inst_list_.at(18));
+
+    //one phase write
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+//    block_inst->add_inst(inst_list_.at(9));
+    block_inst->add_inst(inst_list_.at(11));
+    block_inst->add_inst(inst_list_.at(13));
+    block_inst->add_inst(inst_list_.at(15));
+    block_inst->add_inst(inst_list_.at(17));
+    block_inst->add_inst(inst_list_.at(19));
+
+    exec_list_.push_back(block_inst);
+
+    ObString block_name;
+    ob_write_string(arena_, ObString::make_string("dep"), block_name);
+    block_inst->set_name(block_name);
+    long_trans_ = true;
+  }
   else if( proc_name_.compare("order3") == 0 )
   {
     exec_list_.push_back(inst_list_.at(0));
@@ -1097,6 +1269,77 @@ int ObProcedure::optimize()
            proc_name_.compare("small8") == 0)
   {
     exec_list_.push_back(inst_list_.at(0));
+  }
+  else if( proc_name_.compare("amalgamate") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+    exec_list_.push_back(inst_list_.at(4));
+    exec_list_.push_back(inst_list_.at(7));
+    exec_list_.push_back(inst_list_.at(9));
+
+    SpBlockInsts* block_inst = create_inst<SpBlockInsts>(NULL);
+    ObString block_name;
+    ob_write_string(arena_, proc_name_, block_name);
+    block_inst->set_name(block_name);
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(6));
+    block_inst->add_inst(inst_list_.at(8));
+    block_inst->add_inst(inst_list_.at(10));
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("writecheck") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(3));
+
+    static_cast<SpIfCtrlInsts*>(inst_list_.at(6))->optimize(exec_list_);
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    ObString block_name;
+    ob_write_string(arena_, proc_name_, block_name);
+    block_inst->set_name(block_name);
+    block_inst->add_inst(inst_list_.at(2));
+    block_inst->add_inst(inst_list_.at(4));
+    block_inst->add_inst(inst_list_.at(5));
+    block_inst->add_inst(inst_list_.at(6));
+
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("sendpayment") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    exec_list_.push_back(inst_list_.at(2));
+
+    static_cast<SpIfCtrlInsts*>(inst_list_.at(4))->optimize(exec_list_);
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    ObString block_name;
+    ob_write_string(arena_, proc_name_, block_name);
+    block_inst->set_name(block_name);
+    block_inst->add_inst(inst_list_.at(3));
+    block_inst->add_inst(inst_list_.at(4));
+
+    exec_list_.push_back(block_inst);
+  }
+  else if( proc_name_.compare("transactsavings") == 0 )
+  {
+    exec_list_.push_back(inst_list_.at(0));
+    exec_list_.push_back(inst_list_.at(1));
+    static_cast<SpIfCtrlInsts*>(inst_list_.at(3))->optimize(exec_list_);
+
+    SpBlockInsts *block_inst = create_inst<SpBlockInsts>(NULL);
+    ObString block_name;
+    ob_write_string(arena_, proc_name_, block_name);
+    block_inst->set_name(block_name);
+    block_inst->add_inst(inst_list_.at(2));
+    block_inst->add_inst(inst_list_.at(3));
+
+    exec_list_.push_back(block_inst);
   }
   else if( proc_name_.compare("ins_loop") == 0 )
   {
@@ -1591,9 +1834,9 @@ int64_t ObProcedure::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
   databuff_printf(buf, buf_len, pos, "Procedure %.*s\n", proc_name_.length(), proc_name_.ptr());
-  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  for(int64_t i = 0; i < exec_list_.count(); ++i)
   {
-    SpInst *inst = inst_list_.at(i);
+    SpInst *inst = exec_list_.at(i);
     databuff_printf(buf, buf_len, pos, "inst %ld: ", i);
     pos += inst->to_string(buf + pos, buf_len -pos);
   }

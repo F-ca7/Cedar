@@ -1671,19 +1671,19 @@ select_clause:
 /*===========================================================
  *	Select Into sentence
  *===========================================================*/
-select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
+select_into_clause	:	SELECT opt_hint select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
 						{
 						  ParseNode* project_list = NULL;
 						  ParseNode* from_list = NULL;
 						  ParseNode* select = NULL;
 						  ParseNode* args = NULL;
-						  merge_nodes(project_list, result->malloc_pool_, T_PROJECT_LIST, $2);
-						  merge_nodes(from_list, result->malloc_pool_, T_FROM_LIST, $6);
+              merge_nodes(project_list, result->malloc_pool_, T_PROJECT_LIST, $3);
+              merge_nodes(from_list, result->malloc_pool_, T_FROM_LIST, $7);
 						  malloc_non_terminal_node(select, result->malloc_pool_, T_SELECT, 16,
                               NULL,           /* 1. distinct */
                               project_list,   /* 2. select clause */
                               from_list,      /* 3. from clause */
-                              $7,             /* 4. where */
+                              $8,             /* 4. where */
                               NULL,           /* 5. group by */
                               NULL,           /* 6. having */
                               NULL,           /* 7. set operation */
@@ -1692,12 +1692,12 @@ select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list o
                               NULL,           /* 10. later select stmt */
                               NULL,           /* 11. order by */
                               NULL,             /* 12. limit */
-                              $8,           /* 13. for update */
-                              NULL,             /* 14 hints */
+                              $9,           /* 13. for update */
+                              $2,             /* 14 hints */
                               NULL            /* 15 when clause */
                               ,NULL
                               );
-						  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $4);
+              merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
 						  malloc_non_terminal_node($$,result->malloc_pool_, T_SELECT_INTO, 2, args, select);
 						}
 					;

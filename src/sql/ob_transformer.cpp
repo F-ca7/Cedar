@@ -1007,6 +1007,8 @@ int ObTransformer::gen_physical_procedure_execute(
       }
       else
       {
+        /** plan query
+<<<<<<< HEAD
           //modified by wangdonghui 20160302 [pl manage] :b
 //        uint64_t stmt_id = OB_INVALID_ID;
 //        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
@@ -1078,16 +1080,26 @@ int ObTransformer::gen_physical_procedure_execute(
               }
              // result_op->set_stmt_id(stmt_id);
           }
+=======
+**/
+        uint64_t stmt_id = OB_INVALID_ID;
+        if (session_info->plan_exists(stmt->get_proc_name(), &stmt_id) == false)
+        {
+          TBSYS_LOG(WARN, "plan does not generated and cached in session");
+          ret = OB_ENTRY_NOT_EXIST;
+        }
+        else
+        {
+          result_op->set_stmt_id(stmt_id);
+        }
       }
       if( OB_SUCCESS == ret ) //save paramters into the execute_operators
       {
-//        TBSYS_LOG(INFO,"argument size =%ld",stmt->get_param_size());
         for (int64_t i = 0;i < stmt->get_param_size(); i++)
         {
           uint64_t expr_id = stmt->get_param_expr(i);
           ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
           ObSqlExpression expr;
-          //          result_op->param_list_.push_back(expr);
           result_op->add_param_expr(expr);
           if (OB_UNLIKELY(raw_expr == NULL))
           {
@@ -1721,7 +1733,7 @@ int ObTransformer::gen_physical_procedure_select_into(
           ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
           rw_comp_inst->add_assign_var(var);
         }
-        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_operator(idx), idx);
+        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_query(idx), idx);
         rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
     }

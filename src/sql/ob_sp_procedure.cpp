@@ -389,6 +389,7 @@ int SpRwDeltaInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) cons
 
   //op_'s phyplan is different with proc_'s phyplan, op_ is in the ups_executor's innerplan
   op_->get_phy_plan()->set_group_exec(true);
+  static_cast<ObPhyOperator*>(op_)->get_phy_plan()->set_result_set(ups_exec_op_->get_phy_plan()->get_result_set());
   if( OB_SUCCESS != (ret = proc_->serialize_tree(buf, buf_len, pos, *op_)) )
   {
     TBSYS_LOG(WARN, "Serialize ups main query fail: ret=%d", ret);
@@ -632,6 +633,11 @@ int SpBlockInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
   if( group_proc_name_.compare("neworder") == 0 ) count = 0; //a hack for neworder
   if( group_proc_name_.compare("payment") == 0 ) count = 0; //a hack for payment
+  if( group_proc_name_.compare("loopdep") == 0 ) count = 0;
+  if( group_proc_name_.compare("amalgamate") == 0 ) count = 0;
+  if( group_proc_name_.compare("writecheck") == 0 ) count = 0;
+  if( group_proc_name_.compare("sendpayment") == 0 ) count = 0;
+  if( group_proc_name_.compare("transactsavings") == 0 ) count = 0;
 
   if( OB_SUCCESS != (ret = group_proc_name_.serialize(buf, buf_len, pos)))
   {
@@ -2123,7 +2129,7 @@ int64_t SpRwCompInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [A], ws: %s, rs: %s, tid[%ld]\n", to_cstring(write_set), to_cstring(read_set), table_id_);
+  databuff_printf(buf, buf_len, pos, "type [A], ws: %s, rs: %s, tid[%ld], op[%p]\n", to_cstring(write_set), to_cstring(read_set), table_id_, op_);
   return pos;
 }
 
