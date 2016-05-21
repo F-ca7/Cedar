@@ -18,6 +18,7 @@ namespace oceanbase
     class SpInstExecStrategy;
     class SpMsInstExecStrategy;
     class SpProcedure;
+    class ObProcedureOptimizer;
 
     enum SpInstType
     {
@@ -31,6 +32,13 @@ namespace oceanbase
       SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
       SP_GROUP_INST, //for a block of instructions
       SP_UNKOWN
+    };
+
+    enum CallType
+    {
+      L_LPC = 0,
+      T_RPC,
+      S_RPC
     };
 
     /**
@@ -130,7 +138,7 @@ namespace oceanbase
       VarArray var_info_set_;
     };
 
-    enum DepDirection //dependence direction between two instructions
+    enum InstDep //dependence direction between two instructions
     {
       Da_True_Dep, //data true dependence
       Da_Anti_Dep, //data anti dependecne
@@ -155,12 +163,14 @@ namespace oceanbase
       virtual ~SpInst();
       virtual void get_read_variable_set(SpVariableSet &read_set) const = 0; //bad design ret type as ref ... try to correct later
       virtual void get_write_variable_set(SpVariableSet &write_set) const = 0;
+      virtual CallType get_call_type() const  = 0;
 
-      static DepDirection get_dep_rel(SpInst &inst_in, SpInst &inst_out);
+      static InstDep check_dep(SpInst &inst_in, SpInst &inst_out);
 
       void set_owner_procedure(SpProcedure *proc) { proc_ = proc;}
       SpProcedure *get_ownner() const { return proc_; }
       SpInstType get_type() const { return type_; }
+
       int64_t get_id() const { return id_; }
 
       void set_id(int64_t id) { id_ = id; }
@@ -180,7 +190,7 @@ namespace oceanbase
       SpProcedure *proc_; //the procedure thats owns this instruction
     };
 
-    const static int SP_INST_LIST_SIZE = 5;
+    const static int SP_INST_LIST_SIZE = 16;
     typedef ObSEArray<SpInst *, SP_INST_LIST_SIZE> SpInstList;
 
     /**
@@ -191,6 +201,7 @@ namespace oceanbase
     class SpMultiInsts
     {
     public:
+        friend class ObProcedureOptimizer;
       SpMultiInsts() : ownner_(NULL) {}
       SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
       virtual ~SpMultiInsts();
@@ -201,6 +212,7 @@ namespace oceanbase
 
       void get_read_variable_set(SpVariableSet &read_set) const;
       void get_write_variable_set(SpVariableSet &write_set) const;
+      CallType get_call_type() const;
 
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                            ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);
@@ -232,7 +244,8 @@ namespace oceanbase
       SpVar & get_var() { return left_var_; }
 
       SpVariableSet & cons_read_var_set() { return rs_; }
-//      int add_rs_var(const ObString &name, bool is_array = false);
+
+      CallType get_call_type() const { return L_LPC; }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -259,8 +272,10 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       SpVariableSet & cons_read_var_set() { return rs_; }
-
       int set_rdbase_op(ObPhyOperator *op, int32_t query_id);
+
+      CallType get_call_type() const { return S_RPC; }
+
       ObPhyOperator* get_rd_op() { return op_;}
       int32_t get_query_id() const {return query_id_; }
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
@@ -292,6 +307,8 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       SpVariableSet & cons_read_var_set() { return rs_; }
+
+      CallType get_call_type() const { return T_RPC; }
 
       int set_rwdelta_op(ObPhyOperator *op);
       int set_ups_exec_op(ObPhyOperator *op, int32_t query_id);
@@ -351,8 +368,7 @@ namespace oceanbase
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
-//      void add_read_var(ObString &var_name) { rs_.add_tmp_var(var_name); }
-//      void add_write_var(ObString &var_name) { ws_.addVariable(var_name); }
+      CallType get_call_type() const { return S_RPC; }
 
       SpVariableSet & cons_read_var_set() { return rs_; }
 
@@ -360,6 +376,7 @@ namespace oceanbase
       ObPhyOperator * get_rwcomp_op() { return op_; }
 
       int32_t get_query_id() const { return query_id_; }
+
 
       const ObIArray<SpVar> & get_var_list() const { return var_list_;}
 
@@ -392,11 +409,18 @@ namespace oceanbase
 
       const ObString & get_name() const { return group_proc_name_; }
       void set_name(ObString &name) { group_proc_name_ = name; }
+      void set_name(ModuleArena &alloc, const ObString &name)
+      {
+        ob_write_string(alloc, name, group_proc_name_);
+      }
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
+      CallType get_call_type() const { return T_RPC; }
+
       int add_inst(SpInst *inst);
+      int push_back(SpInst *inst) { return add_inst(inst); }
       ObIArray<SpInst *> & get_inst_list() { return inst_list_;}
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -409,7 +433,7 @@ namespace oceanbase
 
       int assign(const SpInst *inst);
     private:
-      ObSEArray<SpInst *, 32> inst_list_;
+      SpInstList inst_list_;
       SpVariableSet rs_;
       SpVariableSet ws_;
       ObString group_proc_name_;
@@ -454,6 +478,8 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
+      CallType get_call_type() const;
+
       int assign(const SpInst *inst);
     private:
       ObSqlExpression if_expr_;
@@ -491,6 +517,7 @@ namespace oceanbase
       int optimize(SpInstList &exec_list);
       void set_in_group_exec();
 
+      CallType get_call_type() const;
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
@@ -565,6 +592,7 @@ namespace oceanbase
       void set_in_group_exec();
       SpVariableSet & cons_read_var_set() { return case_expr_var_set_; }
 
+      CallType get_call_type() const;
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
@@ -577,7 +605,7 @@ namespace oceanbase
     private:
       ObSqlExpression case_expr_;
       SpVariableSet case_expr_var_set_;
-      ObSEArray<SpWhenBlock, 5> when_list_;
+      ObSEArray<SpWhenBlock, 8> when_list_;
       SpMultiInsts else_branch_;
     };
 
@@ -669,6 +697,8 @@ namespace oceanbase
       {
         return PHY_PROCEDURE;
       }
+      int set_proc_name(const ObString &proc_name); //proc name
+      const ObString & get_proc_name() const { return proc_name_; }
 
       virtual void reset();
       virtual void reuse() {}
@@ -750,9 +780,10 @@ namespace oceanbase
 
     protected:
 
+      ObString proc_name_;
       //further using SpMulInsts to replace it
-      ObSEArray<SpInst *, 16> inst_list_;
-      ObSEArray<SpInst *, 32> inst_store_;
+      SpInstList inst_list_;
+      SpInstList inst_store_;
 
       SpInstExecStrategy *exec_strategy_;
       int64_t static_data_id_gen_;

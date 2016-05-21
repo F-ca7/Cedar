@@ -201,6 +201,17 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
   return OB_ERROR;
 }
 
+InstDep SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
+{
+  SpVariableSet in_rs, in_ws, out_rs, out_ws;
+  inst_in.get_read_variable_set(in_rs);
+  inst_in.get_write_variable_set(in_ws);
+  inst_out.get_read_variable_set(out_rs);
+  inst_out.get_write_variable_set(out_ws);
+
+
+}
+
 /* ==============================================
  *    SpExprInst Definition
  * ===============================================*/
@@ -1080,6 +1091,17 @@ void SpMultiInsts::set_in_group_exec()
   }
 }
 
+CallType SpMultiInsts::get_call_type() const
+{
+  CallType ret = L_LPC;
+  for(int64_t i = 0; i < inst_list_.count(); ++i)
+  {
+    if( inst_list_.at(i)->get_call_type() > ret )
+      ret = inst_list_.at(i)->get_call_type();
+  }
+  return ret;
+}
+
 /*================================================
  * 					SpIfContrlInsts Definition
  * ==============================================*/
@@ -1209,6 +1231,13 @@ int SpIfCtrlInsts::optimize(SpInstList &exec_list)
     //construct read set
   }
   return ret;
+}
+
+CallType SpIfCtrlInsts::get_call_type() const
+{
+  CallType c1 = then_branch_.get_call_type();
+  CallType c2 = else_branch_.get_call_type();
+  return c1 > c2 ? c1 : c2;
 }
 
 /*=================================================
@@ -1482,6 +1511,11 @@ void SpLoopInst::set_in_group_exec()
   loop_body_.set_in_group_exec();
 }
 
+CallType SpLoopInst::get_call_type() const
+{
+  return loop_body_.get_call_type();
+}
+
 /*=================================================
              SpWhenBlock Defintion
  * ===============================================*/
@@ -1651,6 +1685,17 @@ void SpCaseInst::set_in_group_exec()
   }
 }
 
+CallType SpCaseInst::get_call_type() const
+{
+  CallType ret = L_LPC;
+  for(int64_t i = 0; i < when_list_.count(); ++i)
+  {
+    if( when_list_.at(i).get_call_type() > ret )
+      ret = when_list_.at(i).get_call_type();
+  }
+  return ret;
+}
+
 
 /*=================================================
              SpProcedure Defintion
@@ -1662,6 +1707,11 @@ SpProcedure::SpProcedure() : static_data_id_gen_(0)
 SpProcedure::~SpProcedure()
 {
   reset();
+}
+
+int SpProcedure::set_proc_name(const ObString &proc_name)
+{
+  return ob_write_string(arena_, proc_name, proc_name_);
 }
 
 void SpProcedure::reset()
@@ -2079,7 +2129,7 @@ DEFINE_GET_SERIALIZE_SIZE(SpProcedure)
 int64_t SpProcedure::to_string(char* buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "Procedure\n");
+  databuff_printf(buf, buf_len, pos, "proc[seq] %.*s\n", proc_name_.length(), proc_name_.ptr());
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *inst = inst_list_.at(i);
@@ -2118,7 +2168,7 @@ int64_t SpRwDeltaInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [D], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
+  databuff_printf(buf, buf_len, pos, "type [W], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
   return pos;
 }
 
@@ -2139,7 +2189,7 @@ int64_t SpRwDeltaIntoVarInst::to_string(char *buf, const int64_t buf_len) const
   SpVariableSet write_set, read_set;
   get_write_variable_set(write_set);
   get_read_variable_set(read_set);
-  databuff_printf(buf, buf_len, pos, "type [DW], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
+  databuff_printf(buf, buf_len, pos, "type [R], ws: %s, rs: %s, tid[%ld] mod[%s]\n", to_cstring(write_set), to_cstring(read_set), table_id_, group_exec_? "Group" : "Normal");
   return pos;
 }
 

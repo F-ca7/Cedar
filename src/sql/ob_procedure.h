@@ -39,6 +39,8 @@ namespace oceanbase
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
     };
 
+
+    class ObProcedureOptimizer;
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
      * in this class, but the execution model could not be the iterator model
@@ -51,6 +53,7 @@ namespace oceanbase
     class ObProcedure : public SpProcedure
 		{
     public:
+        friend class ObProcedureOptimizer;
 			ObProcedure();
 			virtual ~ObProcedure();
 			virtual void reset();
@@ -65,7 +68,6 @@ namespace oceanbase
       int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
       mergeserver::ObMergerRpcProxy * get_rpc_stub() { return rpc_; }
 
-      int set_proc_name(const ObString &proc_name); //proc name
       int add_param(const ObParamDef &proc_param);	//add param def
 
       int add_var_def(const ObVariableDef &def);
@@ -87,7 +89,6 @@ namespace oceanbase
       int64_t get_static_data_count() const;
       int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
 
-      int optimize();
       int deter_exec_mode();
 
       const ObParamDef& get_param(int64_t index) const;
@@ -105,7 +106,6 @@ namespace oceanbase
 
       int set_inst_op(SpInst *inst);
     private:
-      ObString proc_name_;
       ObArray<ObParamDef> params_;
       ObArray<ObVariableDef> defs_;
 

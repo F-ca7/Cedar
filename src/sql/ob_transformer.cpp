@@ -162,6 +162,7 @@
 #include "ob_procedure_loop_stmt.h"
 #include "ob_variable_set_array_value_stmt.h"
 #include "ob_variable_set_array_value.h"
+#include "ob_procedure_optimizer.h"
 //code_coverage_zhujun
 //add:e
 using namespace oceanbase::common;
@@ -741,8 +742,13 @@ int ObTransformer::gen_physical_procedure(
 
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
       }
-      result_op->optimize();
-      TBSYS_LOG(INFO, "Procedure Compile test:\n %s", to_cstring(*result_op));
+      char buf[4096];
+      result_op->SpProcedure::to_string(buf, 4096);
+      ObProcedureOptimizer::optimize(*result_op);
+//      result_op->optimize();
+
+      TBSYS_LOG(INFO, "Procedure Compile: \n%s", buf);
+      TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
     }
   }
   return ret;

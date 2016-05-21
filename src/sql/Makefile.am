@@ -70,6 +70,7 @@ sql_parser_sources=                                    \
   ob_procedure_stmt.h         ob_procedure_stmt.cpp   \
   ob_procedure.h              ob_procedure.cpp         \
   ob_sp_procedure.h           ob_sp_procedure.cpp      \
+  ob_procedure_optimizer.h    ob_procedure_optimizer.cpp   \
   ob_procedure_create_stmt.h  ob_procedure_create_stmt.cpp\
   ob_procedure_create.h       ob_procedure_create.cpp  \
   ob_procedure_drop_stmt.h    ob_procedure_drop_stmt.cpp \
