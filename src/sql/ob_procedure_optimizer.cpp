@@ -410,14 +410,67 @@ int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
 {
   PREP_PROC(proc);
   UNUSED(proc_name);
-  exec_list.reserve(inst_list.count());
-  for(int64_t i = 0; i < inst_list.count(); ++i)
-  {
-    ADD_INST(exec_list, i);
-  }
+  UNUSED(exec_list);
+  TBSYS_LOG(INFO, "rule_base_optimize: %.*s", proc_name.length(), proc_name.ptr());
+
+  ObProcDepGraph graph;
+  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> seq;
+  graph.set_insts(inst_list);
+  graph.reorder_for_group(seq);
+
+  TBSYS_LOG(INFO, "order after group: %s", to_cstring(seq));
+
+  group_opt(proc, seq);
+
   return OB_SUCCESS;
 }
 
+
+int ObProcedureOptimizer::group(ObProcedure &proc, ObIArray<int64_t> &seq)
+{
+  PREP_PROC(proc);
+  UNUSED(proc_name);
+  int64_t group_range_start, group_range_end;
+  for(int64_t start = seq.count() - 1; start >= 0; --start)
+  {
+    if( inst_list.at(seq.at(start))->get_call_type() == T_RPC )
+    {
+      group_range_start = start;
+      group_range_end = start;
+      for(int64_t cur = start - 1; cur >= 0; --cur)
+      {
+        if( inst_list.at(seq.at(cur))->get_call_type() == S_RPC )
+        {
+          break;
+        }
+        else if( inst_list.at(seq.at(cur))->get_call_type() == T_RPC )
+        {
+          group_range_end = cur;
+        }
+      }
+      //try to group operations [start_id, end_id]
+      if( group_range_start != group_range_end )
+      {
+        SpGroupInsts *group = proc.create_inst<SpGroupInsts>(NULL);
+        for(int64_t i = group_range_start; i >= group_range_end; --i)
+        {
+          ADD_INST(*group, seq.at(i));
+        }
+        exec_list.push_back(group);
+        start = group_range_end;
+      }
+      else
+      {
+        ADD_INST(exec_list, seq.at(start));
+      }
+    }
+    else
+    {
+      ADD_INST(exec_list, seq.at(start));
+    }
+  }
+  return OB_SUCCESS;
+}
 
 /**
  * @brief ObProcedure::optimize
@@ -442,10 +495,6 @@ int ObProcedureOptimizer::specialize_optimize(ObProcedure &proc)
   {
 
   }
-//  else if( OB_SUCCESS == (ret = tatp_optimize(proc)))
-//  {
-
-//  }
   return ret;
 }
 
@@ -456,11 +505,12 @@ int ObProcedureOptimizer::optimize(ObProcedure &proc)
   UNUSED(inst_list);
   UNUSED(exec_list);
 
-  if( OB_SUCCESS == (ret = specialize_optimize(proc)) )
-  {
-    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
-  }
-  else if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
+//  if( OB_SUCCESS == (ret = specialize_optimize(proc)) )
+//  {
+//    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
+//  }
+//  else
+    if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
   {
     TBSYS_LOG(INFO, "[%.*s] use general optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
   }
@@ -474,14 +524,36 @@ int ObProcedureOptimizer::optimize(ObProcedure &proc)
 int ObProcedureOptimizer::loop_split(SpLoopInst *inst, SpInstList &inst_list)
 {
   int ret = OB_SUCCESS;
-
+  UNUSED(inst);
+  UNUSED(inst_list);
   return ret;
 }
 
+/**
+ * @brief ObProcedureOptimizer::ctrl_split
+ * @param inst
+ * @param inst_list
+ *  upper level inst_list?
+ * @return
+ */
 int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *inst, SpInstList &inst_list)
 {
   int ret = OB_SUCCESS;
+  UNUSED(inst);
+  UNUSED(inst_list);
 
+
+
+  ObProcDepGraph then_graph, else_graph;
+  then_graph.set_insts(inst->get_then_block()->inst_list_);
+  else_graph.set_insts(inst->get_else_block()->inst_list_);
+
+  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> then_seq, else_seq;
+  then_graph.reorder_for_group(then_seq);
+  else_graph.reorder_for_group(else_seq);
+
+  //get pending s-rpc out of then_block
+  //get pending s-rpc out of else_block
   return ret;
 }
 
@@ -503,45 +575,20 @@ int ObProcedureOptimizer::split(SpInst *inst, SpInstList &inst_list)
   return ret;
 }
 
-
-int ObProcedureOptimizer::graph_based_optimize(ObProcedure &proc)
-{
-  int ret = OB_SUCCESS;
-  PREP_PROC(proc);
-
-  return ret;
-}
-
-int ObProcedureOptimizer::reorder(SpMultiInsts &inst_list)
-{
-  int ret = OB_SUCCESS;
-  UNUSED(inst_list);
-  return ret;
-}
-
-
-int ObProcedureOptimizer::reorder()
-{
-  int ret = OB_SUCCESS;
-
-  return ret;
-}
-
 bool ObProcDepGraph::check_dep(SpInst *in_node, SpInst *out_node)
 {
   //check dependence between instructions
-  SpInst::check_dep(in_node, out_node);
+  return SpInst::check_dep(*in_node, *out_node);
 }
 
 
 void ObProcDepGraph::build_dep_graph(GraphType type)
 {
-  reset();
   type_ = type;
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
     SpInst *in_node = inst_list_.at(i);
-    for(int64_t j = i + 1; j < inst_list_count(); ++i)
+    for(int64_t j = i + 1; j < inst_list_.count(); ++j)
     {
       if( check_dep(in_node, inst_list_.at(j)) )
       {
@@ -553,42 +600,39 @@ void ObProcDepGraph::build_dep_graph(GraphType type)
 
 void ObProcDepGraph::add_edge(int64_t i, int64_t j)
 {
-  if( type_ = Backward )
+  if( type_ == Backward )
   {
     int64_t tmp = i;
     i = j;
     j = tmp;
   }
   SpNode &node = graph_.at(i);
-  SpNode *new_node = arena_->alloc(sizeof(SpNode));
+  SpNode *new_node = (SpNode*)arena_.alloc(sizeof(SpNode));
   new_node->id_ = j;
   new_node->next_ = node.next_;
   node.next_ = new_node;
 
   degree_.at(j)++;
-  return OB_SUCCESS;
 }
 
-void ObProcDepGraph::reset()
+int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
 {
   graph_.clear();
   degree_.clear();
   arena_.reuse();
-}
-
-int ObProcDepGraph::set_insts(SpInstList &insts)
-{
-  reset();
   inst_list_.clear();
   for(int64_t i = 0; i < insts.count(); ++i)
   {
     inst_list_.push_back(insts.at(i));
     graph_.push_back(SpNode(i, NULL));
+    degree_.push_back(0);
   }
+
+  TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
+            graph_.count(), degree_.count());
   active_node_count_ = insts.count();
   return OB_SUCCESS;
 }
-
 
 bool ObProcDepGraph::is_leaf(int64_t id) const
 {
@@ -610,11 +654,13 @@ void ObProcDepGraph::mark_done(int64_t id, GraphType type)
   OB_ASSERT(type = type_);
   degree_.at(id) = -1;
 
+  --active_node_count_;
   const SpNode *node = &(graph_.at(id));
   const SpNode *nxt = node->next_;
-  while( node->next_ != NULL)
+  while( nxt != NULL)
   {
     degree_.at(nxt->id_)--;
+    nxt = nxt->next_;
   }
 }
 
@@ -628,41 +674,64 @@ bool ObProcDepGraph::is_ttype(int64_t id) const
   return inst_list_.at(id)->get_call_type() == T_RPC;
 }
 
-int ObProcDepGraph::group_opt(ObSEArray<int64_t, MAX_GRAPH_SIZE> &seq)
+int ObProcDepGraph::reorer_for_group(ObSEArray<int64_t, MAX_GRAPH_SIZE> &seq)
 {
   build_dep_graph(Backward);
-
+  TBSYS_LOG(INFO, "%s", to_cstring(*this));
   while( active_node_count_ != 0 )
   {
-    int64_t last_active_node_count = -1;
-    while( active_node_count_ != 0 && last_active_node_count != active_node_count_ )
+    bool find = true;
+    while( active_node_count_ != 0 && find )
     {
-      last_active_node_count = active_node_count_;
-      for(int64_t i = 0; i < inst_list_.count(); ++i)
+      find = false;
+      for(int64_t i = inst_list_.count() - 1; i >= 0; --i)
       {
-        if( is_done(i) || is_stype(i) || !is_root(i)) continue;
+        if( is_done(i) || is_stype(i) || !is_root(i) ) continue;
         else
         {
           seq.push_back(i);
           mark_done(i, Backward);
+          find = true;
+          break;
         }
       }
     }
 
-    last_active_node_count  = -1;
-    while( active_node_count_ != 0 && last_active_node_count != active_node_count_ )
+    find = true;
+    while( active_node_count_ != 0 && find )
     {
-      last_active_node_count = active_node_count_;
-      for(int64_t i = 0; i < inst_list_.count(); ++i)
+      find = false;
+      for(int64_t i = inst_list_.count() - 1; i >= 0; --i)
       {
         if( is_done(i) || is_ttype(i) || !is_root(i)) continue;
         else
         {
           seq.push_back(i);
           mark_done(i, Backward);
+          find = true;
+          break;
         }
       }
     }
   }
   return OB_SUCCESS;
+}
+
+int64_t ObProcDepGraph::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "Dump dependence graph\n");
+  for(int64_t i = 0; i < graph_.count(); ++i)
+  {
+    const SpNode &node = graph_.at(i);
+    databuff_printf(buf, buf_len, pos, "%ld[%d, s:%d, t:%d]: ", node.id_, degree_.at(node.id_), is_stype(i), is_ttype(i));
+    const SpNode *nxt = node.next_;
+    while(nxt != NULL)
+    {
+      databuff_printf(buf, buf_len, pos, "%ld, ", nxt->id_);
+      nxt = nxt->next_;
+    }
+    databuff_printf(buf, buf_len, pos, "\n");
+  }
+  return pos;
 }

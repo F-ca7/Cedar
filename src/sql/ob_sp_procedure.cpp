@@ -75,14 +75,6 @@ int SpVar::assign(const SpVar &other)
   return OB_SUCCESS;
 }
 
-//void SpVar::clear()
-//{
-//  if( idx_value_ != NULL )
-//  {
-//    ObSqlExpression::free(idx_value_);
-//    idx_value_ = NULL;
-//  }
-//}
 
 SpVar::~SpVar()
 {
@@ -110,6 +102,23 @@ int64_t SpVarInfo::to_string(char *buf, const int64_t buf_len) const
   return pos;
 }
 
+bool SpVarInfo::conflict(const SpVarInfo &a, const SpVarInfo &b)
+{
+  bool ret = false;
+  if( a.using_method_ == b.using_method_ )
+  {
+    if( a.using_method_ == VM_DB_TAB )
+    {
+      ret = (a.table_id_ == b.table_id_);
+    }
+    else
+    {
+      ret = (a.var_name_.compare(b.var_name_) == 0);
+    }
+  }
+  return ret;
+}
+
 int SpVariableSet::add_tmp_var(const ObString &var_name)
 {
   return add_var_info(SpVarInfo(var_name, VM_TMP_VAR));
@@ -135,14 +144,10 @@ int SpVariableSet::add_var_info(const SpVarInfo &var_info)
 {
   int ret = OB_SUCCESS;
   bool flag = false;
-  for(int64_t i = 0; i < var_info_set_.count(); ++i)
+  for(int64_t i = 0; i < var_info_set_.count() && !flag; ++i)
   {
     const SpVarInfo &info = var_info_set_.at(i);
-    if( 0 == info.var_name_.compare(var_info.var_name_) && info.using_method_ == var_info.using_method_)
-    {
-      flag = true;
-      break;
-    }
+    flag = SpVarInfo::conflict(var_info, info);
   }
   if( !flag ) ret = var_info_set_.push_back(var_info);
   return ret;
@@ -158,6 +163,11 @@ int SpVariableSet::add_var_info_set(const SpVariableSet &var_set)
   return ret;
 }
 
+int SpVariableSet::add_table_id(const uint64_t table_id)
+{
+  return add_var_info(SpVarInfo(table_id));
+}
+
 int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
 {
   int64_t pos = 0;
@@ -170,7 +180,23 @@ int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
   return pos;
 }
 
-
+bool SpVariableSet::empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set)
+{
+  bool ret = true;
+  for(int64_t i = 0; ret && i < in_set.count(); ++i)
+  {
+    const SpVarInfo &in_var = in_set.var_info_set_.at(i);
+    for(int64_t j = 0; ret && j < out_set.count(); ++j)
+    {
+      const SpVarInfo &out_var = out_set.var_info_set_.at(j);
+      if( SpVarInfo::conflict(in_var, out_var) )
+      {
+        ret = false;
+      }
+    }
+  }
+  return ret;
+}
 
 /*===================================================================
  *                       SpInst Definition
@@ -201,7 +227,7 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
   return OB_ERROR;
 }
 
-InstDep SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
+bool SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
 {
   SpVariableSet in_rs, in_ws, out_rs, out_ws;
   inst_in.get_read_variable_set(in_rs);
@@ -209,7 +235,16 @@ InstDep SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
   inst_out.get_read_variable_set(out_rs);
   inst_out.get_write_variable_set(out_ws);
 
+  bool static_delta_dep = false;
+  if ( inst_in.get_type() == SP_B_INST )
+  {
+    static_delta_dep = (static_cast<SpRdBaseInst&>(inst_in).get_rw_id() == inst_out.id_);
+  }
 
+  return !SpVariableSet::empty_intersection(in_rs, out_ws) ||
+      !SpVariableSet::empty_intersection(in_ws, out_rs) ||
+      !SpVariableSet::empty_intersection(in_ws, out_ws) ||
+      static_delta_dep;
 }
 
 /* ==============================================
@@ -234,13 +269,6 @@ void SpExprInst::get_write_variable_set(SpVariableSet &write_set) const
     write_set.add_tmp_var(left_var_.var_name_);
 }
 
-//void SpExprInst::add_rs_var(const ObString &name, bool is_array)
-//{
-//  if( is_array )
-//    rs_.add_array_var(name);
-//  else
-//    rs_.add_tmp_var(name);
-//}
 
 int SpExprInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
@@ -352,13 +380,12 @@ SpRwDeltaInst::~SpRwDeltaInst()
 void SpRwDeltaInst::get_read_variable_set(SpVariableSet &read_set) const
 {
   read_set.add_var_info_set(rs_);
+  read_set.add_table_id(table_id_);
 }
 
 void SpRwDeltaInst::get_write_variable_set(SpVariableSet &write_set) const
 {
-//  OB_ASSERT(ws_.var_set_.count() == 0); //since select..into inst inherit this, such assert is not valid any more
-//  write_set.add_var_info_set(ws_);
-  UNUSED(write_set);
+  write_set.add_table_id(table_id_);
 }
 
 //void SpRwDeltaInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
@@ -438,10 +465,6 @@ int SpRwDeltaInst::assign(const SpInst *inst)
  * =======================================================*/
 SpRwDeltaIntoVarInst::~SpRwDeltaIntoVarInst()
 {
-//  for(int64_t i = 0; i < var_list_.count(); ++i)
-//  {
-//    var_list_.at(i).clear();
-//  }
 }
 
 void SpRwDeltaIntoVarInst::get_write_variable_set(SpVariableSet &write_set) const
@@ -561,6 +584,7 @@ SpRwCompInst::~SpRwCompInst()
 void SpRwCompInst::get_read_variable_set(SpVariableSet &read_set) const
 {
   read_set.add_var_info_set(rs_);
+  read_set.add_table_id(table_id_);
 }
 
 void SpRwCompInst::get_write_variable_set(SpVariableSet &write_set) const

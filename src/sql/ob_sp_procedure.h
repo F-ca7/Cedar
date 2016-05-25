@@ -72,7 +72,6 @@ namespace oceanbase
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
 
-//      void clear();
       //comment, donot forget the set the ownner op of the idx_value_
       int assign(const SpVar &other);
     };
@@ -88,7 +87,8 @@ namespace oceanbase
     enum VarUsedMethods
     {
       VM_TMP_VAR,
-      VM_FUL_ARY
+      VM_FUL_ARY,
+      VM_DB_TAB
     };
 
     /**
@@ -98,11 +98,15 @@ namespace oceanbase
     struct SpVarInfo
     {
       SpVarInfo() {}
+      SpVarInfo(uint64_t table_id) : table_id_(table_id), using_method_(VM_DB_TAB)  {}
       SpVarInfo(const ObString &name, const SpVarUsedMethod &md) :
         var_name_(name), using_method_(md) {}
 
+      static bool conflict(const SpVarInfo &a, const SpVarInfo &b);
+
       int64_t to_string(char *buf, const int64_t buf_len) const;
       ObString var_name_;
+      uint64_t table_id_;
       SpVarUsedMethod using_method_;
     };
 
@@ -130,10 +134,13 @@ namespace oceanbase
       int add_var_info_set(const SpVariableSet &var_set);
       int add_var_info(const SpVarInfo &var_info);
 
+      int add_table_id(const uint64_t table_id);
+
       int64_t count() const { return var_info_set_.count(); }
       const SpVarInfo & get_var_info(int64_t idx) const { return var_info_set_.at(idx); }
       int64_t to_string(char *buf, int64_t buf_len) const;
 
+      bool static empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set);
     private:
       VarArray var_info_set_;
     };
@@ -165,7 +172,7 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const = 0;
       virtual CallType get_call_type() const  = 0;
 
-      static InstDep check_dep(SpInst &inst_in, SpInst &inst_out);
+      static bool check_dep(SpInst &inst_in, SpInst &inst_out);
 
       void set_owner_procedure(SpProcedure *proc) { proc_ = proc;}
       SpProcedure *get_ownner() const { return proc_; }
@@ -280,6 +287,7 @@ namespace oceanbase
       int32_t get_query_id() const {return query_id_; }
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       int set_rw_id(int64_t id) { rw_inst_id_ = id; return OB_SUCCESS; }
+      int64_t get_rw_id() const { return rw_inst_id_; }
       bool is_for_group_exec() const { return for_group_exec_; }
       void set_exec_mode();
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -376,7 +384,6 @@ namespace oceanbase
       ObPhyOperator * get_rwcomp_op() { return op_; }
 
       int32_t get_query_id() const { return query_id_; }
-
 
       const ObIArray<SpVar> & get_var_list() const { return var_list_;}
 
