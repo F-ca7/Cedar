@@ -1,6 +1,8 @@
 #ifndef OBPROCEDUREOPTIMIZER_H
 #define OBPROCEDUREOPTIMIZER_H
 
+#define NOT_OPTIMIZE_FOR_COMPOSITE_STRUCTURE
+
 #include "ob_procedure.h"
 
 namespace oceanbase
@@ -28,7 +30,7 @@ namespace oceanbase
         int set_insts(ObIArray<SpInst*> &insts);
 
 
-        int reorder_for_group(ObSEArray<int64_t, MAX_GRAPH_SIZE> &seq);
+        int reorder_for_group(ObIArray<int64_t> &seq);
 
         int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -75,6 +77,10 @@ namespace oceanbase
 
 
       private:
+
+
+#ifndef NOT_OPTIMIZE_FOR_COMPOSITE_STRUCTURE
+
         /**
          * @brief is_simple_loop
          * checking the footscripts of each instructions
@@ -96,12 +102,13 @@ namespace oceanbase
 
         static int ctrl_split(SpIfCtrlInsts *inst, SpInstList &inst_list);
 
-        int split(SpInst *inst, SpInstList &inst_list);
-
-        int group(ObProcedure &proc, ObIArray<int64_t> &seq);
+        int split(SpInstList &inst_list, ObIArray<int64_t> &seq, int64_t &split_idx);
+        int do_split(SpInstList &inst_list, ObIArray<int64_t> &seq, int64_t split_idx,
+                     SpInstList &pre_list, SpInstList &main_list);
+#endif
+        static int group(ObProcedure &proc, ObIArray<int64_t> &seq);
 
       private:
-        ObProcDepGraph graph_;
 
     };
   }
