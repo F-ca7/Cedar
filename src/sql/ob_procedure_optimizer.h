@@ -43,6 +43,7 @@ namespace oceanbase
         bool is_done(int64_t id) const;
         bool is_stype(int64_t id) const;
         bool is_ttype(int64_t id) const;
+        bool cover_tnode(int64_t id) const;
 
         static bool check_dep(SpInst *in_node, SpInst *out_node);
 
@@ -51,6 +52,7 @@ namespace oceanbase
         ObSEArray<SpInst *, MAX_GRAPH_SIZE> inst_list_;
         ObSEArray<SpNode, MAX_GRAPH_SIZE> graph_;
         ObSEArray<int, MAX_GRAPH_SIZE> degree_;
+        ObSEArray<bool ,MAX_GRAPH_SIZE> cover_;
         int64_t active_node_count_;
         GraphType type_;
         ModuleArena arena_;

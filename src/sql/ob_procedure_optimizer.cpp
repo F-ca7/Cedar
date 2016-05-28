@@ -518,7 +518,6 @@ int ObProcedureOptimizer::optimize(ObProcedure &proc)
 
   proc.deter_exec_mode();
 
-  TBSYS_LOG(INFO, "[%.*s] optimize:\n%s", proc_name.length(), proc_name.ptr(), to_cstring(proc));
   return OB_SUCCESS;
 }
 
@@ -619,18 +618,18 @@ bool ObProcDepGraph::check_dep(SpInst *in_node, SpInst *out_node)
   return SpInst::check_dep(*in_node, *out_node);
 }
 
-
 void ObProcDepGraph::build_dep_graph(GraphType type)
 {
   type_ = type;
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
-    SpInst *in_node = inst_list_.at(i);
-    for(int64_t j = i + 1; j < inst_list_.count(); ++j)
+    SpInst *dep_node = inst_list_.at(i);
+    for(int64_t j = 0; j < i; ++j)
     {
-      if( check_dep(in_node, inst_list_.at(j)) )
+      SpInst *pre_node = inst_list_.at(j);
+      if( check_dep(pre_node, dep_node) ) //check whether dep_node depends on the output of pre_node
       {
-        add_edge(i, j);
+        add_edge(j, i);
       }
     }
   }
@@ -651,19 +650,23 @@ void ObProcDepGraph::add_edge(int64_t i, int64_t j)
   node.next_ = new_node;
 
   degree_.at(j)++;
+
+  cover_.at(i) = cover_.at(j) || cover_.at(i);
 }
 
 int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
 {
   graph_.clear();
   degree_.clear();
-  arena_.reuse();
+  cover_.clear();
   inst_list_.clear();
+  arena_.reuse();
   for(int64_t i = 0; i < insts.count(); ++i)
   {
     inst_list_.push_back(insts.at(i));
     graph_.push_back(SpNode(i, NULL));
     degree_.push_back(0);
+    cover_.push_back(inst_list_.at(i)->get_call_type() == T_RPC);
   }
 
   TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
@@ -685,6 +688,11 @@ bool ObProcDepGraph::is_root(int64_t id) const
 bool ObProcDepGraph::is_done(int64_t id) const
 {
   return degree_.at(id) == -1;
+}
+
+bool ObProcDepGraph::cover_tnode(int64_t id) const
+{
+  return cover_.at(id);
 }
 
 void ObProcDepGraph::mark_done(int64_t id, GraphType type)
@@ -716,9 +724,12 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
 {
   build_dep_graph(Backward);
   TBSYS_LOG(INFO, "%s", to_cstring(*this));
-  while( active_node_count_ != 0 )
+  int t_iter = -1, s_iter = -1;
+  while( t_iter != 0 || s_iter != 0 )
   {
     bool find = true;
+    t_iter = 0;
+    s_iter = 0;
     while( active_node_count_ != 0 && find )
     {
       find = false;
@@ -729,6 +740,7 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
         {
           seq.push_back(i);
           mark_done(i, Backward);
+          t_iter ++;
           find = true;
           break;
         }
@@ -741,14 +753,29 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
       find = false;
       for(int64_t i = inst_list_.count() - 1; i >= 0; --i)
       {
-        if( is_done(i) || is_ttype(i) || !is_root(i)) continue;
+        if( is_done(i) || is_ttype(i) || !is_root(i) || !cover_tnode(i) ) continue;
         else
         {
           seq.push_back(i);
           mark_done(i, Backward);
+          s_iter ++;
           find = true;
           break;
         }
+      }
+    }
+  }
+
+  while( active_node_count_ != 0 )
+  {
+    for(int64_t i = inst_list_.count() - 1; i >= 0; --i)
+    {
+      if( is_done(i) || !is_root(i) ) continue;
+      else
+      {
+        seq.push_back(i);
+        mark_done(i, Backward);
+        break;
       }
     }
   }
