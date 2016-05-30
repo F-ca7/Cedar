@@ -182,13 +182,6 @@ namespace oceanbase
       // cs version error
       FAIL_CS_VERSION_COUNT,
 
-      ///add longfei
-      // inc query
-      INC_QUERY_GET_COUNT,
-      INC_QUERY_GET_TIME,
-      INC_QUERY_SCAN_COUNT,
-      INC_QUERY_SCAN_TIME,
-
       CHUNKSERVER_STAT_MAX,
     };
     /* sstable */
