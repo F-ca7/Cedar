@@ -161,6 +161,12 @@ const char *ObStatSingleton::cs_map[] = {
 
   // cs version error
   "fail_cs_version_count",
+  
+  //add longfei
+  "inc_query_get_count",
+  "inc_query_get_time",
+  "inc_query_scan_count",
+  "inc_query_scan_time",
 };
 
 const char *ObStatSingleton::sstable_map[] = {
