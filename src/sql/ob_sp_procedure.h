@@ -37,9 +37,15 @@ namespace oceanbase
     enum CallType
     {
       L_LPC = 0,
-      T_RPC,
-      S_RPC
+      T_RPC = 1,
+      S_RPC = 2,
+      T_AND_S  = 3,
     };
+
+    inline CallType merge_call_type(CallType a, CallType b)
+    {
+      return (CallType)(a | b);
+    }
 
     /**
      * @brief The SpVar struct
@@ -117,8 +123,8 @@ namespace oceanbase
     class SpVariableSet
     {
     public:
-      const static int VAR_PER_INST = 5;
-      typedef ObSEArray<SpVarInfo, VAR_PER_INST> VarArray;
+      const static int VAR_PER_INST = 8;
+      typedef ObSEArray<SpVarInfo, VAR_PER_INST> SpVarArray;
       SpVariableSet() {}
 
       /**
@@ -140,17 +146,17 @@ namespace oceanbase
       const SpVarInfo & get_var_info(int64_t idx) const { return var_info_set_.at(idx); }
       int64_t to_string(char *buf, int64_t buf_len) const;
 
-      bool static empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set);
+      int static empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set);
     private:
-      VarArray var_info_set_;
+      SpVarArray var_info_set_;
     };
 
     enum InstDep //dependence direction between two instructions
     {
-      Da_True_Dep, //data true dependence
-      Da_Anti_Dep, //data anti dependecne
-      Da_Out_Dep,  //data output dependece
-      Tr_Itm_Dep   //transaction item dependence
+      Da_True_Dep = 1, //data true dependence
+      Da_Anti_Dep = 2, //data anti dependecne
+      Da_Out_Dep  = 4,  //data output dependece
+      Tr_Itm_Dep  = 8   //transaction item dependence
     };
 
     struct StaticData {
@@ -172,11 +178,13 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const = 0;
       virtual CallType get_call_type() const  = 0;
 
-      static bool check_dep(SpInst &inst_in, SpInst &inst_out);
+      static int check_dep(SpInst &inst_in, SpInst &inst_out);
 
       void set_owner_procedure(SpProcedure *proc) { proc_ = proc;}
       SpProcedure *get_ownner() const { return proc_; }
       SpInstType get_type() const { return type_; }
+      bool is_srpc() const { return get_call_type() == S_RPC || get_call_type() == T_AND_S; }
+      bool is_trpc() const { return get_call_type() == T_RPC; }
 
       int64_t get_id() const { return id_; }
 
@@ -747,16 +755,19 @@ namespace oceanbase
         if( sp_inst_traits<T>::is_sp_inst )
         {
           void *ptr = arena_.alloc(sizeof(T));
-          ret = new(ptr) T();
-          //inst_list_.push_back((SpInst *)ret);
-          ((SpInst*)ret)->set_owner_procedure(this);
-          if( NULL != mul_inst)
-            mul_inst->add_inst(ret);
-          else
-            inst_list_.push_back((SpInst*)ret);
+          if( NULL != ptr )
+          {
+            ret = new(ptr) T();
+            //inst_list_.push_back((SpInst *)ret);
+            ((SpInst*)ret)->set_owner_procedure(this);
+            if( NULL != mul_inst)
+              mul_inst->add_inst(ret);
+            else
+              inst_list_.push_back((SpInst*)ret);
 
-          ((SpInst*)ret)->set_id(inst_store_.count());
-          inst_store_.push_back(ret);
+            ((SpInst*)ret)->set_id(inst_store_.count());
+            inst_store_.push_back(ret);
+          }
         }
         return ret;
       }

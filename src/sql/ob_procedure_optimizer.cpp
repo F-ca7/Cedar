@@ -407,69 +407,22 @@ int ObProcedureOptimizer::bank_optimize(ObProcedure &proc)
   else return OB_NOT_SUPPORTED;
 }
 
-int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
+int ObProcedureOptimizer::optimize(ObProcedure &proc)
 {
-  PREP_PROC(proc);
-  UNUSED(proc_name);
-  UNUSED(exec_list);
-  TBSYS_LOG(INFO, "rule_base_optimize: %.*s", proc_name.length(), proc_name.ptr());
+  int ret = OB_SUCCESS;
 
-  ObProcDepGraph graph;
-  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> seq;
-  graph.set_insts(inst_list);
-  graph.reorder_for_group(seq);
-
-  TBSYS_LOG(INFO, "order after group: %s", to_cstring(seq));
-
-  group(proc, seq);
-
-  return OB_SUCCESS;
-}
-
-
-int ObProcedureOptimizer::group(ObProcedure &proc, ObIArray<int64_t> &seq)
-{
-  PREP_PROC(proc);
-  UNUSED(proc_name);
-  int64_t group_range_start, group_range_end;
-  for(int64_t start = seq.count() - 1; start >= 0; --start)
+//  if( OB_SUCCESS == (ret = specialize_optimize(proc)) )
+//  {
+//    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
+//  }
+//  else
+    if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
   {
-    if( inst_list.at(seq.at(start))->get_call_type() == T_RPC )
-    {
-      group_range_start = start;
-      group_range_end = start;
-      for(int64_t cur = start - 1; cur >= 0; --cur)
-      {
-        if( inst_list.at(seq.at(cur))->get_call_type() == S_RPC )
-        {
-          break;
-        }
-        else if( inst_list.at(seq.at(cur))->get_call_type() == T_RPC )
-        {
-          group_range_end = cur;
-        }
-      }
-      //try to group operations [start_id, end_id]
-      if( group_range_start != group_range_end )
-      {
-        SpGroupInsts *group = proc.create_inst<SpGroupInsts>(NULL);
-        for(int64_t i = group_range_start; i >= group_range_end; --i)
-        {
-          ADD_INST(*group, seq.at(i));
-        }
-        exec_list.push_back(group);
-        start = group_range_end;
-      }
-      else
-      {
-        ADD_INST(exec_list, seq.at(start));
-      }
-    }
-    else
-    {
-      ADD_INST(exec_list, seq.at(start));
-    }
+    TBSYS_LOG(INFO, "[%.*s] use general optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
   }
+
+  proc.deter_exec_mode();
+
   return OB_SUCCESS;
 }
 
@@ -499,120 +452,200 @@ int ObProcedureOptimizer::specialize_optimize(ObProcedure &proc)
   return ret;
 }
 
-int ObProcedureOptimizer::optimize(ObProcedure &proc)
+int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
 {
-  int ret = OB_SUCCESS;
   PREP_PROC(proc);
-  UNUSED(inst_list);
+  UNUSED(proc_name);
   UNUSED(exec_list);
+  TBSYS_LOG(INFO, "rule_base_optimize: %.*s", proc_name.length(), proc_name.ptr());
 
-//  if( OB_SUCCESS == (ret = specialize_optimize(proc)) )
-//  {
-//    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
-//  }
-//  else
-    if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
+  SpInstList expand_list;
+  SpInstList seq_list;
+
+  expand_list.clear();
+
+  for(int64_t i = 0; i < inst_list.count(); ++i)
   {
-    TBSYS_LOG(INFO, "[%.*s] use general optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
+    seq_list.push_back(inst_list.at(i));
   }
 
-  proc.deter_exec_mode();
+  for(int64_t i = 0; i < seq_list.count(); ++i)
+  {
+    if( seq_list.at(i)->get_type() == SP_C_INST)
+    {
+      ctrl_split(static_cast<SpIfCtrlInsts*>(seq_list.at(i)), expand_list);
+    }
+    else if( seq_list.at(i)->get_type() == SP_L_INST )
+    {
+      loop_split(static_cast<SpLoopInst*>(seq_list.at(i)), expand_list);
+    }
+    else
+    {
+      expand_list.push_back(seq_list.at(i));
+    }
+  }
 
+  group(proc, expand_list);
   return OB_SUCCESS;
 }
 
-//int ObProcedureOptimizer::loop_split(SpLoopInst *inst, SpInstList &inst_list)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(inst);
-//  UNUSED(inst_list);
-//  return ret;
-//}
 
-///**
-// * @brief ObProcedureOptimizer::ctrl_split
-// * @param inst
-// * @param inst_list
-// *  upper level inst_list?
-// * @return
-// */
-//int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *inst, SpInstList &inst_list)
-//{
-//  int ret = OB_SUCCESS;
-//  UNUSED(inst);
-//  UNUSED(inst_list);
+int ObProcedureOptimizer::group(ObProcedure &proc, SpInstList &expand_list)
+{
+  int64_t group_range_start, group_range_end;
+  ObProcDepGraph graph;
+  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> seq;
+  SpInstList &exec_list = proc.exec_list_;
+  graph.set_insts(expand_list);
+  graph.reorder_for_group(seq);
 
-////  ObProcDepGraph then_graph, else_graph;
-////  then_graph.set_insts(inst->get_then_block()->inst_list_);
-////  else_graph.set_insts(inst->get_else_block()->inst_list_);
+  for(int64_t start = seq.count() - 1; start >= 0; --start)
+  {
+    if( expand_list.at(seq.at(start))->is_trpc() )
+    {
+      group_range_start = start;
+      group_range_end = start;
+      for(int64_t cur = start - 1; cur >= 0; --cur)
+      {
+        if( S_RPC == (S_RPC & expand_list.at(seq.at(cur))->get_call_type()) )
+        {
+          break;
+        }
+        else if( expand_list.at(seq.at(cur))->is_trpc() )
+        {
+          group_range_end = cur;
+        }
+      }
+      //try to group operations [start_id, end_id]
+      if( group_range_start != group_range_end )
+      {
+        SpGroupInsts *group = proc.create_inst<SpGroupInsts>(NULL);
+        for(int64_t i = group_range_start; i >= group_range_end; --i)
+        {
+          ADD_INST_WITH_SOUR(*group, expand_list, seq.at(i));
+        }
+        exec_list.push_back(group);
+        start = group_range_end;
+      }
+      else
+      {
+        ADD_INST_WITH_SOUR(exec_list, expand_list, seq.at(start));
+      }
+    }
+    else
+    {
+      ADD_INST_WITH_SOUR(exec_list, expand_list, seq.at(start));
+    }
+  }
+  return OB_SUCCESS;
+}
 
-////  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> then_seq, else_seq;
-////  then_graph.reorder_for_group(then_seq);
-////  else_graph.reorder_for_group(else_seq);
+int ObProcedureOptimizer::loop_split(SpLoopInst *loop_inst, SpInstList &inst_list)
+{
+  int ret = OB_SUCCESS;
 
-//  //get pending s-rpc out of then_block
-//  //get pending s-rpc out of else_block
-//  return ret;
-//}
+  SpInstList pre_inst, post_inst;
 
-//int ObProcedureOptimizer::split(SpInstList &inst_list, ObIArray<int64_t> &seq, int64_t &split_idx)
-//{
-//  int ret = OB_SUCCESS;
-//  bool can_split = false;
-//  OB_ASSERT(inst_list.count() == seq.count());
-//  split_idx = -1;
-//  for(i = 0; i < inst_list.count(); ++i)
-//  {
-//    if( ! inst_list.at(seq.at(i))->get_call_type() == L_LPC &&
-//        ! inst_list.at(seq.at(i))->get_call_type() == S_RPC )
-//    {
-//      break;
-//    }
+  pre_inst.clear();
+  post_inst.clear();
 
-//    if( inst_list.at(seq.at(i))->get_call_type() == S_RPC )
-//    {
-//      split_idx = i;
-//      can_split = true;
-//    }
-//  }
+  do_split(loop_inst->get_body_block()->inst_list_, pre_inst, post_inst);
 
-//  for(int i =split_idx; i < inst_list.count(); ++i)
-//  {
-//    if( inst_list.at(seq.at(i))->get_call_type() == S_RPC )
-//    {
-//      can_split = false;
-//    }
-//  }
+  if( pre_inst.count() != 0 )
+  {
+    SpLoopInst *new_loop = loop_inst->get_ownner()->create_inst<SpLoopInst>(NULL);
 
-//  if( !can_split )
-//  {
-//    split_idx = -1;
-//  }
-//  return ret;
-//}
+    new_loop->assign_template(loop_inst);
 
-//int ObProcedureOptimizer::do_split(SpInstList &inst_list, ObIArray<int64_t> &seq, int64_t split_idx,
-//                                   SpInstList &pre_list, SpInstList &main_list)
-//{
-//  int ret = OB_SUCCESS;
+    for(int64_t i = 0; i < pre_inst.count(); ++i)
+    {
+      new_loop->get_body_block()->add_inst(pre_inst.at(i));
+    }
+    inst_list.push_back(new_loop);
+  }
 
-//  for(int64_t i = 0; i < split_idx; ++i)
-//  {
-//    if( inst_list.at(seq.at(i))->get_call_type() == L_LPC )
-//    {
-//      main_list.push_back(inst_list.at(seq.at(i)));
-//    }
-//    pre_list.push_back(inst_list.at(seq.at(i)));
-//  }
+  loop_inst->get_body_block()->inst_list_.clear();
+  for(int64_t i = 0; i < post_inst.count(); ++i)
+  {
+    loop_inst->get_body_block()->add_inst(post_inst.at(i));
+  }
 
-//  for(int64_t i = split_idx; i < inst_list.count(); ++i)
-//  {
-//    main_list.push_back(inst_list.at(seq.at(i)));
-//  }
-//  return ret;
-//}
+  inst_list.push_back(loop_inst);
+  return ret;
+}
 
-bool ObProcDepGraph::check_dep(SpInst *in_node, SpInst *out_node)
+/**
+ * @brief ObProcedureOptimizer::ctrl_split
+ * @param inst
+ * @param inst_list
+ *  upper level inst_list?
+ * @return
+ */
+int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_list)
+{
+  int ret = OB_SUCCESS;
+
+  SpInstList post_inst, pre_inst;
+
+  pre_inst.clear();
+  post_inst.clear();
+
+  do_split(if_inst->get_then_block()->inst_list_, pre_inst, post_inst);
+
+  for(int64_t i = 0; i < pre_inst.count(); ++i)
+  {
+    inst_list.push_back(pre_inst.at(i));
+  }
+
+  if_inst->get_then_block()->inst_list_.clear();
+  for(int64_t i = 0; i < post_inst.count(); ++i)
+  {
+    if_inst->get_then_block()->inst_list_.push_back(post_inst.at(i));
+  }
+
+  pre_inst.clear();
+  post_inst.clear();
+  do_split(if_inst->get_else_block()->inst_list_, pre_inst, post_inst);
+
+  for(int64_t i = 0; i < pre_inst.count(); ++i)
+  {
+    inst_list.push_back(pre_inst.at(i));
+  }
+
+  if_inst->get_else_block()->inst_list_.clear();
+  for(int64_t i = 0; i < post_inst.count(); ++i)
+  {
+    if_inst->get_else_block()->inst_list_.push_back(post_inst.at(i));
+  }
+
+  inst_list.push_back(if_inst);
+  return ret;
+}
+
+int ObProcedureOptimizer::do_split(SpInstList &inst_list, SpInstList &pre_inst, SpInstList &post_inst)
+{
+  int ret = OB_SUCCESS;
+  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> seq;
+  int64_t pre_count = 0;
+  ObProcDepGraph graph;
+  graph.set_insts(inst_list);
+  graph.split(seq, pre_count);
+  //pre-execute all s-rpc
+  /**
+      * Maybe we need use a speical instructions to wrap
+      */
+  for(int64_t i = 0; i < pre_count; ++i)
+  {
+    pre_inst.push_back(inst_list.at(seq.at(i)));
+  }
+  for(int64_t i = pre_count; i < inst_list.count(); ++i)
+  {
+    post_inst.push_back(inst_list.at(seq.at(i)));
+  }
+  return ret;
+}
+
+int ObProcDepGraph::check_dep(SpInst *in_node, SpInst *out_node)
 {
   //check dependence between instructions
   return SpInst::check_dep(*in_node, *out_node);
@@ -620,6 +653,7 @@ bool ObProcDepGraph::check_dep(SpInst *in_node, SpInst *out_node)
 
 void ObProcDepGraph::build_dep_graph(GraphType type)
 {
+  int dep_type = 0;
   type_ = type;
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
@@ -627,15 +661,17 @@ void ObProcDepGraph::build_dep_graph(GraphType type)
     for(int64_t j = 0; j < i; ++j)
     {
       SpInst *pre_node = inst_list_.at(j);
-      if( check_dep(pre_node, dep_node) ) //check whether dep_node depends on the output of pre_node
+      if( 0 != (dep_type = check_dep(pre_node, dep_node)) ) //check whether dep_node depends on the output of pre_node
       {
-        add_edge(j, i);
+        add_edge(j, i, dep_type);
       }
     }
   }
+  TBSYS_LOG(INFO, "%s", to_cstring(*this));
+  inited_ = true;
 }
 
-void ObProcDepGraph::add_edge(int64_t i, int64_t j)
+void ObProcDepGraph::add_edge(int64_t i, int64_t j, int dep_type)
 {
   if( type_ == Backward )
   {
@@ -646,27 +682,30 @@ void ObProcDepGraph::add_edge(int64_t i, int64_t j)
   SpNode &node = graph_.at(i);
   SpNode *new_node = (SpNode*)arena_.alloc(sizeof(SpNode));
   new_node->id_ = j;
+  new_node->dep_type_ = dep_type;
   new_node->next_ = node.next_;
   node.next_ = new_node;
-
   degree_.at(j)++;
 
-  cover_.at(i) = cover_.at(j) || cover_.at(i);
+  cover_trpc_.at(i) = cover_trpc_.at(j) || cover_trpc_.at(i);
 }
 
 int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
 {
   graph_.clear();
   degree_.clear();
-  cover_.clear();
+  cover_trpc_.clear();
+  flow_srpc_.clear();
   inst_list_.clear();
   arena_.reuse();
+  inited_ = false;
   for(int64_t i = 0; i < insts.count(); ++i)
   {
     inst_list_.push_back(insts.at(i));
     graph_.push_back(SpNode(i, NULL));
     degree_.push_back(0);
-    cover_.push_back(inst_list_.at(i)->get_call_type() == T_RPC);
+    cover_trpc_.push_back((T_RPC & inst_list_.at(i)->get_call_type()) == T_RPC);
+    flow_srpc_.push_back(false);
   }
 
   TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
@@ -692,7 +731,7 @@ bool ObProcDepGraph::is_done(int64_t id) const
 
 bool ObProcDepGraph::cover_tnode(int64_t id) const
 {
-  return cover_.at(id);
+  return cover_trpc_.at(id);
 }
 
 void ObProcDepGraph::mark_done(int64_t id, GraphType type)
@@ -712,24 +751,24 @@ void ObProcDepGraph::mark_done(int64_t id, GraphType type)
 
 bool ObProcDepGraph::is_stype(int64_t id) const
 {
-  return inst_list_.at(id)->get_call_type() == S_RPC;
+  return inst_list_.at(id)->is_srpc();
 }
 
 bool ObProcDepGraph::is_ttype(int64_t id) const
 {
-  return inst_list_.at(id)->get_call_type() == T_RPC;
+  return inst_list_.at(id)->is_trpc();
 }
 
 int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
 {
   build_dep_graph(Backward);
-  TBSYS_LOG(INFO, "%s", to_cstring(*this));
   int t_iter = -1, s_iter = -1;
   while( t_iter != 0 || s_iter != 0 )
   {
     bool find = true;
     t_iter = 0;
     s_iter = 0;
+    //execute t-op at last
     while( active_node_count_ != 0 && find )
     {
       find = false;
@@ -748,6 +787,7 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
     }
 
     find = true;
+    //execute s-op that covered by some t-op
     while( active_node_count_ != 0 && find )
     {
       find = false;
@@ -765,7 +805,8 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
       }
     }
   }
-
+  //firstly execute s-op that does not covered by any t-op
+  //for such op, we can use more aggressive optimization
   while( active_node_count_ != 0 )
   {
     for(int64_t i = inst_list_.count() - 1; i >= 0; --i)
@@ -780,6 +821,83 @@ int ObProcDepGraph::reorder_for_group(ObIArray<int64_t> &seq)
     }
   }
   return OB_SUCCESS;
+}
+
+bool ObProcDepGraph::could_split() const
+{
+  bool ret = true;
+  for(int64_t i = 0; ret && i < cover_trpc_.count(); ++i)
+  {
+    /**
+      * If no s_rpc is covered by any t_rpc, we can use preexecute optimization
+      */
+    if( cover_trpc_.at(i) && (S_RPC == (inst_list_.at(i)->get_call_type() & S_RPC)))
+    {
+      TBSYS_LOG(INFO, "can not split[%ld, %d, %d]", i, cover_trpc_.at(i), inst_list_.at(i)->get_call_type());
+      ret = false;
+    }
+  }
+  return ret;
+}
+
+int ObProcDepGraph::split(ObIArray<int64_t> &seq, int64_t &pre_count)
+{
+  int ret = OB_SUCCESS;
+  if( !inited_ ) build_dep_graph(Backward);
+  pre_count = 0;
+  if( could_split() )
+  {
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      if( inst_list_.at(i)->get_call_type() == S_RPC )
+      {
+        tag_true_flow(i);
+      }
+    }
+
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      TBSYS_LOG(INFO, "%ld: %d", i, flow_srpc_.at(i));
+      if( flow_srpc_.at(i) )
+      {
+        seq.push_back(i);
+        pre_count ++;
+      }
+    }
+
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      if( inst_list_.at(i)->get_call_type() != S_RPC )
+      {
+        seq.push_back(i);
+      }
+    }
+  }
+  else
+  {
+    pre_count = 0;
+  }
+  return ret;
+}
+
+int ObProcDepGraph::tag_true_flow(int64_t id)
+{
+  int ret = OB_SUCCESS;
+
+  if( !flow_srpc_.at(id) )
+  {
+    flow_srpc_.at(id) = true;
+    SpNode *nxt = graph_.at(id).next_;
+    while( NULL != nxt )
+    {
+      if( Da_True_Dep == (nxt->dep_type_ & Da_True_Dep) )
+      {
+        tag_true_flow(nxt->id_);
+      }
+      nxt = nxt->next_;
+    }
+  }
+  return ret;
 }
 
 int64_t ObProcDepGraph::to_string(char *buf, const int64_t buf_len) const

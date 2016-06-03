@@ -95,9 +95,13 @@ int64_t SpVarInfo::to_string(char *buf, const int64_t buf_len) const
   {
     databuff_printf(buf, buf_len, pos, "%.*s(var)", var_name_.length(), var_name_.ptr());
   }
-  else
+  else if( using_method_ == VM_FUL_ARY )
   {
     databuff_printf(buf, buf_len, pos, "%.*s(arr)", var_name_.length(), var_name_.ptr());
+  }
+  else if( using_method_ == VM_DB_TAB )
+  {
+    databuff_printf(buf, buf_len, pos, "%ld(tab)", table_id_);
   }
   return pos;
 }
@@ -180,18 +184,19 @@ int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
   return pos;
 }
 
-bool SpVariableSet::empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set)
+int SpVariableSet::empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set)
 {
-  bool ret = true;
-  for(int64_t i = 0; ret && i < in_set.count(); ++i)
+  int ret = 0;
+  for(int64_t i = 0; i < in_set.count(); ++i)
   {
     const SpVarInfo &in_var = in_set.var_info_set_.at(i);
-    for(int64_t j = 0; ret && j < out_set.count(); ++j)
+    for(int64_t j = 0; j < out_set.count(); ++j)
     {
       const SpVarInfo &out_var = out_set.var_info_set_.at(j);
       if( SpVarInfo::conflict(in_var, out_var) )
       {
-        ret = false;
+        if( in_var.using_method_ == VM_DB_TAB) ret |= 2;
+        else ret |= 1;
       }
     }
   }
@@ -227,24 +232,43 @@ int SpInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, co
   return OB_ERROR;
 }
 
-bool SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
+int SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
 {
+  int ret = 0;
+  int conflict;
   SpVariableSet in_rs, in_ws, out_rs, out_ws;
   inst_in.get_read_variable_set(in_rs);
   inst_in.get_write_variable_set(in_ws);
   inst_out.get_read_variable_set(out_rs);
   inst_out.get_write_variable_set(out_ws);
 
-  bool static_delta_dep = false;
   if ( inst_in.get_type() == SP_B_INST )
   {
-    static_delta_dep = (static_cast<SpRdBaseInst&>(inst_in).get_rw_id() == inst_out.id_);
+    if(static_cast<SpRdBaseInst&>(inst_in).get_rw_id() == inst_out.id_)
+    {
+      ret = Da_True_Dep;
+    }
   }
 
-  return !SpVariableSet::empty_intersection(in_rs, out_ws) ||
-      !SpVariableSet::empty_intersection(in_ws, out_rs) ||
-      !SpVariableSet::empty_intersection(in_ws, out_ws) ||
-      static_delta_dep;
+  if( 0 != (conflict = SpVariableSet::empty_intersection(in_rs, out_ws)) )
+  {
+    if( 2 == (conflict & 2) ) ret |= Tr_Itm_Dep;
+    if( 1 == (conflict & 1) ) ret |= Da_Anti_Dep;
+  }
+
+  if( 0 != (conflict = SpVariableSet::empty_intersection(in_ws, out_rs)) )
+  {
+    if( 2 == (conflict &2) ) ret |= Tr_Itm_Dep;
+    if( 1 == (conflict &1) ) ret |= Da_True_Dep;
+  }
+
+  if( 0 != (conflict = SpVariableSet::empty_intersection(in_ws, out_ws)) )
+  {
+    if( 2 == (conflict &2) ) ret |= Tr_Itm_Dep;
+    if( 1 == (conflict &1) ) ret |= Da_Out_Dep;
+  }
+
+  return ret;
 }
 
 /* ==============================================
@@ -1120,8 +1144,7 @@ CallType SpMultiInsts::get_call_type() const
   CallType ret = L_LPC;
   for(int64_t i = 0; i < inst_list_.count(); ++i)
   {
-    if( inst_list_.at(i)->get_call_type() > ret )
-      ret = inst_list_.at(i)->get_call_type();
+    ret = merge_call_type(ret, inst_list_.at(i)->get_call_type());
   }
   return ret;
 }
@@ -1261,7 +1284,7 @@ CallType SpIfCtrlInsts::get_call_type() const
 {
   CallType c1 = then_branch_.get_call_type();
   CallType c2 = else_branch_.get_call_type();
-  return c1 > c2 ? c1 : c2;
+  return merge_call_type(c1, c2);
 }
 
 /*=================================================
@@ -1714,8 +1737,7 @@ CallType SpCaseInst::get_call_type() const
   CallType ret = L_LPC;
   for(int64_t i = 0; i < when_list_.count(); ++i)
   {
-    if( when_list_.at(i).get_call_type() > ret )
-      ret = when_list_.at(i).get_call_type();
+    ret = merge_call_type(ret, when_list_.at(i).get_call_type());
   }
   return ret;
 }
