@@ -475,7 +475,8 @@ int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
     {
       ctrl_split(static_cast<SpIfCtrlInsts*>(seq_list.at(i)), expand_list);
     }
-    else if( seq_list.at(i)->get_type() == SP_L_INST )
+    else if( seq_list.at(i)->get_type() == SP_L_INST &&
+             static_cast<SpLoopInst*>(seq_list.at(i))->is_simple_loop() )
     {
       loop_split(static_cast<SpLoopInst*>(seq_list.at(i)), expand_list);
     }

@@ -836,8 +836,19 @@ int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, c
     else if( raw_expr->get_expr_type() == T_ARRAY )
     {
       ObString array_name = static_cast<const ObArrayRawExpr*>(raw_expr)->get_array_name();
-      ret = ob_write_string(*mem_pool_, array_name, array_name);
-      var_set.add_array_var(array_name);
+      ObObj idx_value = static_cast<const ObArrayRawExpr*>(raw_expr)->get_idx_value();
+      if( OB_SUCCESS != (ret = ob_write_string(*mem_pool_, array_name, array_name)) )
+      {
+        TBSYS_LOG(WARN, "fail to copy array name");
+      }
+      else if( OB_SUCCESS != (ret = ob_write_obj(*mem_pool_, idx_value, idx_value)) )
+      {
+        TBSYS_LOG(WARN, "failed to copy index value");
+      }
+      else
+      {
+        var_set.add_array_var(array_name, idx_value);
+      }
     }
   }
   return ret;

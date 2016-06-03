@@ -88,14 +88,6 @@ namespace oceanbase
 #ifndef NOT_OPTIMIZE_FOR_COMPOSITE_STRUCTURE
 
         /**
-         * @brief is_simple_loop
-         * checking the footscripts of each instructions
-         * @param inst
-         * @return
-         */
-        static bool is_simple_loop(SpLoopInst *inst);
-
-        /**
          *
          * @brief loop_split
          *  Optimize is possible when there is no inter-loop dependence.

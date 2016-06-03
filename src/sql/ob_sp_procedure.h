@@ -66,7 +66,6 @@ namespace oceanbase
     struct SpVar
     {
       ObString var_name_;
-//      ObSqlExpression *idx_value_; //NULL for ordinary variable
       ObObj idx_value_;
 
       SpVar() { idx_value_.set_null();}
@@ -83,14 +82,12 @@ namespace oceanbase
     };
 
     /**
-     * @brief VarUsedMethod
+     * @brief SpVarType
           Used to represent the usage of a variable
           I'm not sure how many ways the array could be used.
           Thus, leave it as a typedef to expand in future
-     *
      */
-    typedef int64_t SpVarUsedMethod;
-    enum VarUsedMethods
+    enum SpVarType
     {
       VM_TMP_VAR,
       VM_FUL_ARY,
@@ -104,16 +101,19 @@ namespace oceanbase
     struct SpVarInfo
     {
       SpVarInfo() {}
-      SpVarInfo(uint64_t table_id) : table_id_(table_id), using_method_(VM_DB_TAB)  {}
-      SpVarInfo(const ObString &name, const SpVarUsedMethod &md) :
-        var_name_(name), using_method_(md) {}
+      SpVarInfo(uint64_t table_id) :
+        var_type_(VM_DB_TAB)  { idx_value_.set_int((int64_t)table_id);}
+      SpVarInfo(const ObString &name) :
+        var_name_(name), var_type_(VM_TMP_VAR) {}
+      SpVarInfo(const ObString &name, const ObObj &idx) :
+        var_name_(name), idx_value_(idx), var_type_(VM_FUL_ARY) {}
 
       static bool conflict(const SpVarInfo &a, const SpVarInfo &b);
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
       ObString var_name_;
-      uint64_t table_id_;
-      SpVarUsedMethod using_method_;
+      ObObj    idx_value_;
+      SpVarType var_type_;
     };
 
     /**
@@ -127,15 +127,10 @@ namespace oceanbase
       typedef ObSEArray<SpVarInfo, VAR_PER_INST> SpVarArray;
       SpVariableSet() {}
 
-      /**
-       * add usage of normal variable
-       * @brief addVariable
-       * @param var_name
-       * @return
-       */
       int add_tmp_var(const ObString &var_name);
       int add_tmp_var(const ObIArray<ObString>& var_set);
-      int add_array_var(const ObString &arr_name);
+      int add_array_var(const ObString &arr_name, const ObObj &idx_value);
+      int add_var(const SpVar &var);
 
       int add_var_info_set(const SpVariableSet &var_set);
       int add_var_info(const SpVarInfo &var_info);
@@ -146,7 +141,7 @@ namespace oceanbase
       const SpVarInfo & get_var_info(int64_t idx) const { return var_info_set_.at(idx); }
       int64_t to_string(char *buf, int64_t buf_len) const;
 
-      int static empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set);
+      static int conflict(const SpVariableSet &in_set, const SpVariableSet &out_set);
     private:
       SpVarArray var_info_set_;
     };
@@ -159,10 +154,6 @@ namespace oceanbase
       Tr_Itm_Dep  = 8   //transaction item dependence
     };
 
-    struct StaticData {
-        uint64_t id;
-        ObRowStore store;
-    };
 
     /**
       SpInst should be a simple wrapper, do not own big memory area which
@@ -530,6 +521,8 @@ namespace oceanbase
       const SpVar & get_loop_var() const { return loop_counter_var_; }
 
       int optimize(SpInstList &exec_list);
+
+      bool is_simple_loop() const;
       void set_in_group_exec();
 
       CallType get_call_type() const;

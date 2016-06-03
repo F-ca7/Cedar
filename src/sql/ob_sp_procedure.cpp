@@ -54,7 +54,6 @@ int SpVar::deserialize(const char *buf, int64_t data_len, int64_t &pos)
   else if( has_idx )
   {
     ret = idx_value_.deserialize(buf, data_len, pos);
-//    idx_value_->set_owner_op(proc);
   }
   else
   {
@@ -67,41 +66,29 @@ int SpVar::assign(const SpVar &other)
 {
   var_name_ = other.var_name_;
   idx_value_ = other.idx_value_;
-//  if( other.idx_value_ != NULL )
-//  {
-//    idx_value_ = ObSqlExpression::alloc();
-//    *idx_value_ = *(other.idx_value_);
-//  }
   return OB_SUCCESS;
 }
 
 
 SpVar::~SpVar()
 {
-  /**
-    *  do not release sql memory here,
-    *  because we allow the copy and copy construction function
-    *  there would be multiple SpVar object share the same idx_value_ pointer
-    *  once one of them is deconstructed, the idx_value_ becomes wild pointer
-    *  so, we manully use clear function to release memory
-    * */
-//  idx_value_ = NULL;
 }
 
 int64_t SpVarInfo::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  if( using_method_ == VM_TMP_VAR )
+  if( var_type_ == VM_TMP_VAR )
   {
     databuff_printf(buf, buf_len, pos, "%.*s(var)", var_name_.length(), var_name_.ptr());
   }
-  else if( using_method_ == VM_FUL_ARY )
+  else if( var_type_ == VM_FUL_ARY )
   {
-    databuff_printf(buf, buf_len, pos, "%.*s(arr)", var_name_.length(), var_name_.ptr());
+    databuff_printf(buf, buf_len, pos, "%.*s[%s](arr)", var_name_.length(), var_name_.ptr(),
+                    to_cstring(idx_value_));
   }
-  else if( using_method_ == VM_DB_TAB )
+  else if( var_type_ == VM_DB_TAB )
   {
-    databuff_printf(buf, buf_len, pos, "%ld(tab)", table_id_);
+    databuff_printf(buf, buf_len, pos, "%s(tab)", to_cstring(idx_value_));
   }
   return pos;
 }
@@ -109,23 +96,36 @@ int64_t SpVarInfo::to_string(char *buf, const int64_t buf_len) const
 bool SpVarInfo::conflict(const SpVarInfo &a, const SpVarInfo &b)
 {
   bool ret = false;
-  if( a.using_method_ == b.using_method_ )
+  if( a.var_type_ == b.var_type_ && a.var_type_ == VM_DB_TAB )
   {
-    if( a.using_method_ == VM_DB_TAB )
-    {
-      ret = (a.table_id_ == b.table_id_);
-    }
-    else
-    {
-      ret = (a.var_name_.compare(b.var_name_) == 0);
-    }
+    ret = (a.idx_value_.compare(b.idx_value_) == 0);
+  }
+  else if ( a.var_type_ == b.var_type_ )
+  {
+    ret = (a.var_name_.compare(b.var_name_) == 0);
+  }
+  else if( VM_FUL_ARY == a.var_type_ &&
+           VM_TMP_VAR == b.var_type_ &&
+           ObVarcharType == a.idx_value_.get_type())
+  {
+    ObString idx_var;
+    a.idx_value_.get_varchar(idx_var);
+    ret = (b.var_name_.compare(idx_var) == 0);
+  }
+  else if( VM_FUL_ARY == b.var_type_ &&
+           VM_TMP_VAR == a.var_type_ &&
+           ObVarcharType == b.idx_value_.get_type())
+  {
+    ObString idx_var;
+    b.idx_value_.get_varchar(idx_var);
+    ret = (a.var_name_.compare(idx_var) == 0);
   }
   return ret;
 }
 
 int SpVariableSet::add_tmp_var(const ObString &var_name)
 {
-  return add_var_info(SpVarInfo(var_name, VM_TMP_VAR));
+  return add_var_info(SpVarInfo(var_name));
 }
 
 int SpVariableSet::add_tmp_var(const ObIArray<ObString> &var_set)
@@ -139,9 +139,28 @@ int SpVariableSet::add_tmp_var(const ObIArray<ObString> &var_set)
   return ret;
 }
 
-int SpVariableSet::add_array_var(const ObString &arr_name)
+int SpVariableSet::add_array_var(const ObString &arr_name, const ObObj &idx_value)
 {
-  return  add_var_info(SpVarInfo(arr_name, VM_FUL_ARY));
+  return  add_var_info(SpVarInfo(arr_name, idx_value));
+}
+
+int SpVariableSet::add_table_id(const uint64_t table_id)
+{
+  return add_var_info(SpVarInfo(table_id));
+}
+
+int SpVariableSet::add_var(const SpVar &var)
+{
+  int ret = OB_SUCCESS;
+  if( var.is_array() )
+  {
+    ret = add_array_var(var.var_name_, var.idx_value_);
+  }
+  else
+  {
+    ret = add_tmp_var(var.var_name_);
+  }
+  return ret;
 }
 
 int SpVariableSet::add_var_info(const SpVarInfo &var_info)
@@ -167,11 +186,6 @@ int SpVariableSet::add_var_info_set(const SpVariableSet &var_set)
   return ret;
 }
 
-int SpVariableSet::add_table_id(const uint64_t table_id)
-{
-  return add_var_info(SpVarInfo(table_id));
-}
-
 int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
 {
   int64_t pos = 0;
@@ -184,7 +198,7 @@ int64_t SpVariableSet::to_string(char *buf, int64_t buf_len) const
   return pos;
 }
 
-int SpVariableSet::empty_intersection(const SpVariableSet &in_set, const SpVariableSet &out_set)
+int SpVariableSet::conflict(const SpVariableSet &in_set, const SpVariableSet &out_set)
 {
   int ret = 0;
   for(int64_t i = 0; i < in_set.count(); ++i)
@@ -195,7 +209,7 @@ int SpVariableSet::empty_intersection(const SpVariableSet &in_set, const SpVaria
       const SpVarInfo &out_var = out_set.var_info_set_.at(j);
       if( SpVarInfo::conflict(in_var, out_var) )
       {
-        if( in_var.using_method_ == VM_DB_TAB) ret |= 2;
+        if( in_var.var_type_ == VM_DB_TAB) ret |= 2;
         else ret |= 1;
       }
     }
@@ -250,19 +264,19 @@ int SpInst::check_dep(SpInst &inst_in, SpInst &inst_out)
     }
   }
 
-  if( 0 != (conflict = SpVariableSet::empty_intersection(in_rs, out_ws)) )
+  if( 0 != (conflict = SpVariableSet::conflict(in_rs, out_ws)) )
   {
     if( 2 == (conflict & 2) ) ret |= Tr_Itm_Dep;
     if( 1 == (conflict & 1) ) ret |= Da_Anti_Dep;
   }
 
-  if( 0 != (conflict = SpVariableSet::empty_intersection(in_ws, out_rs)) )
+  if( 0 != (conflict = SpVariableSet::conflict(in_ws, out_rs)) )
   {
     if( 2 == (conflict &2) ) ret |= Tr_Itm_Dep;
     if( 1 == (conflict &1) ) ret |= Da_True_Dep;
   }
 
-  if( 0 != (conflict = SpVariableSet::empty_intersection(in_ws, out_ws)) )
+  if( 0 != (conflict = SpVariableSet::conflict(in_ws, out_ws)) )
   {
     if( 2 == (conflict &2) ) ret |= Tr_Itm_Dep;
     if( 1 == (conflict &1) ) ret |= Da_Out_Dep;
@@ -287,10 +301,7 @@ void SpExprInst::get_read_variable_set(SpVariableSet &read_set) const
 void SpExprInst::get_write_variable_set(SpVariableSet &write_set) const
 {
 //  write_set.add_tmp_var(left_var_.var_name_);
-  if( left_var_.is_array() )
-    write_set.add_array_var(left_var_.var_name_);
-  else
-    write_set.add_tmp_var(left_var_.var_name_);
+  write_set.add_var(left_var_);
 }
 
 
@@ -412,20 +423,6 @@ void SpRwDeltaInst::get_write_variable_set(SpVariableSet &write_set) const
   write_set.add_table_id(table_id_);
 }
 
-//void SpRwDeltaInst::add_read_var(const ObArray<const ObRawExpr*> &var_list)
-//{
-//  for(int64_t i = 0; i < var_list.count(); ++i)
-//  {
-//    const ObItemType &raw_type = var_list.at(i)->get_expr_type();
-//    if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type )
-//    {
-//      ObString var_name;
-//      ((const ObConstRawExpr *)var_list.at(i))->get_value().get_varchar(var_name);
-//      rs_.add_tmp_var(var_name);
-//    }
-//  }
-//}
-
 int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
 {
   int ret = OB_SUCCESS;
@@ -495,8 +492,7 @@ void SpRwDeltaIntoVarInst::get_write_variable_set(SpVariableSet &write_set) cons
 {
   for(int64_t i = 0; i < var_list_.count(); ++i)
   {
-    if( var_list_.at(i).is_array() ) write_set.add_array_var(var_list_.at(i).var_name_);
-    else write_set.add_tmp_var(var_list_.at(i).var_name_);
+    write_set.add_var(var_list_.at(i));
   }
 }
 
@@ -615,10 +611,7 @@ void SpRwCompInst::get_write_variable_set(SpVariableSet &write_set) const
 {
   for(int64_t i = 0; i < var_list_.count(); ++i)
   {
-    const SpVar & var = var_list_.at(i);
-    //TODO we have not handle the variables used in array idx
-    if( var.is_array() ) write_set.add_array_var(var.var_name_);
-    else write_set.add_tmp_var(var.var_name_);
+    write_set.add_var(var_list_.at(i));
   }
 }
 
@@ -730,8 +723,8 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   for(int64_t i = 0; i < rd_var_count; ++i)
   {
     const SpVarInfo & var_info = rs_.get_var_info(i);
-    if( var_info.using_method_ == VM_TMP_VAR ) rd_tmp_var_count ++;
-    else if( var_info.using_method_ == VM_FUL_ARY ) rd_array_var_count++;
+    if( var_info.var_type_ == VM_TMP_VAR ) rd_tmp_var_count ++;
+    else if( var_info.var_type_ == VM_FUL_ARY ) rd_array_var_count++;
   }
 
   TBSYS_LOG(TRACE, "Group inst serialization, rd_var count: %ld, tmp_var[%d], array[%d]", rd_var_count, rd_tmp_var_count, rd_array_var_count);
@@ -746,7 +739,7 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
     {
       const SpVarInfo &var_info = rs_.get_var_info(i);
       const ObString &var_name = var_info.var_name_;
-      if( var_info.using_method_ == VM_TMP_VAR )
+      if( var_info.var_type_ == VM_TMP_VAR )
       {
         //try to serialize the temp variables
         const ObObj *obj;
@@ -784,7 +777,7 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
       const ObString &var_name = var_info.var_name_;
       const ObObj *val;
       int64_t size = 0; //array size
-      if( var_info.using_method_ == VM_FUL_ARY )
+      if( var_info.var_type_ == VM_FUL_ARY )
       {
         if( OB_SUCCESS != (ret = proc_->read_array_size(var_name, size)))
         {
@@ -1563,6 +1556,49 @@ CallType SpLoopInst::get_call_type() const
   return loop_body_.get_call_type();
 }
 
+bool SpLoopInst::is_simple_loop() const
+{
+  bool ret = true;
+
+  SpVariableSet write_set;
+  loop_body_.get_write_variable_set(write_set);
+
+  //first check whether any insturctions modify the counter
+  for(int64_t i = 0; ret && i < write_set.count(); ++i)
+  {
+    const SpVarInfo &var_info = write_set.get_var_info(i);
+    if( var_info.var_type_ == VM_TMP_VAR &&
+        var_info.var_name_.compare(loop_counter_var_.var_name_) == 0)
+    {
+      TBSYS_LOG(INFO, "some instructions try to modify the counter[%s]", to_cstring(loop_counter_var_));
+      ret = false;
+    }
+  }
+
+  //second check whether any array variable using a different counter
+  if( ret )
+  {
+    SpVariableSet read_set;
+    loop_body_.get_read_variable_set(read_set);
+    for(int64_t i = 0; ret && i < read_set.count(); ++i)
+    {
+      const SpVarInfo &var_info = read_set.get_var_info(i);
+      if( var_info.var_type_ == VM_FUL_ARY )
+      {
+        ObString idx_var;
+        var_info.idx_value_.get_varchar(idx_var);
+        if(0 !=  idx_var.compare(loop_counter_var_.var_name_))
+        {
+          TBSYS_LOG(INFO, "some instrucitons use unstable counter[%s]", to_cstring(var_info));
+          ret = false;
+        }
+      }
+    }
+  }
+
+  return ret;
+}
+
 /*=================================================
              SpWhenBlock Defintion
  * ===============================================*/
@@ -1942,7 +1978,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
     {
       const SpVarInfo &var_info = rs.get_var_info(i);
       const ObObj *val;
-      if( var_info.using_method_ == VM_TMP_VAR )
+      if( var_info.var_type_ == VM_TMP_VAR )
       {
         //read temp variable
         if( OB_SUCCESS == read_variable(var_info.var_name_, val) )
@@ -1956,7 +1992,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
                           var_info.var_name_.length(), var_info.var_name_.ptr());
         }
       }
-      else if( var_info.using_method_ == VM_FUL_ARY )
+      else if( var_info.var_type_ == VM_FUL_ARY )
       {
         //read full array
         int64_t arr_size = 0;
@@ -1984,7 +2020,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
     {
       const ObObj *val;
       const SpVarInfo &var_info = ws.get_var_info(i);
-      if( var_info.using_method_ == VM_TMP_VAR )
+      if( var_info.var_type_ == VM_TMP_VAR )
       {
         //read temp variable
         if( OB_SUCCESS == read_variable(var_info.var_name_, val) )
@@ -1998,7 +2034,7 @@ int SpProcedure::debug_status(const SpInst *inst) const
                           var_info.var_name_.length(), var_info.var_name_.ptr());
         }
       }
-      else if( var_info.using_method_ == VM_FUL_ARY )
+      else if( var_info.var_type_ == VM_FUL_ARY )
       {
         //read full array
         int64_t arr_size = 0;
