@@ -635,6 +635,10 @@ int ObProcedureOptimizer::do_split(SpInstList &inst_list, SpInstList &pre_inst, 
   /**
       * Maybe we need use a speical instructions to wrap
       */
+  if( pre_count == inst_list.count() )
+  {
+    pre_count = 0;
+  }
   for(int64_t i = 0; i < pre_count; ++i)
   {
     pre_inst.push_back(inst_list.at(seq.at(i)));
@@ -877,6 +881,10 @@ int ObProcDepGraph::split(ObIArray<int64_t> &seq, int64_t &pre_count)
   else
   {
     pre_count = 0;
+    for(int64_t i = 0; i < inst_list_.count(); ++i)
+    {
+      seq.push_back(i);
+    }
   }
   return ret;
 }
