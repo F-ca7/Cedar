@@ -1,7 +1,12 @@
 #include "ob_procedure_static_data_mgr.h"
 
-ObProcedureStaticDataMgr::ObProcedureStaticDataMgr()
+namespace oceanbase
 {
+  namespace sql
+  {
+    ObProcedureStaticDataMgr::ObProcedureStaticDataMgr()
+    {
 
+    }
+  }
 }
-

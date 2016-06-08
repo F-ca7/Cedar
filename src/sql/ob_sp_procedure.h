@@ -8,6 +8,7 @@
 #include "ob_procedure_assgin.h"
 #include "ob_physical_plan.h"
 #include "ob_raw_expr.h"
+#include "ob_procedure_static_data_mgr.h"
 
 using namespace oceanbase::common;
 
@@ -287,8 +288,11 @@ namespace oceanbase
       int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
       int set_rw_id(int64_t id) { rw_inst_id_ = id; return OB_SUCCESS; }
       int64_t get_rw_id() const { return rw_inst_id_; }
+
       bool is_for_group_exec() const { return for_group_exec_; }
       void set_exec_mode();
+      int64_t get_sdata_id() const { return sdata_id_; }
+
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
       int assign(const SpInst *inst);
@@ -298,6 +302,8 @@ namespace oceanbase
 
       SpVariableSet rs_; //the row key variable
       uint64_t table_id_;
+
+      int64_t sdata_id_;
       bool for_group_exec_;
 
       //Never use in execution phase. Only meaningful in compilation phase.
@@ -693,6 +699,11 @@ namespace oceanbase
       virtual int execute_loop(SpLoopInst *inst) = 0;
       virtual int execute_casewhen(SpCaseInst *inst) = 0;  //TODO
       virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
+
+      int64_t sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> counter);
+
+    private:
+      typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
     };
 
 
@@ -729,10 +740,10 @@ namespace oceanbase
       virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
 
       //for static data management
-      virtual int create_static_data(StaticData *&static_data);
-      virtual int64_t get_static_data_count() const ;
-      virtual int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
-      virtual int get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr);
+      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store);
+      virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
+      virtual int64_t get_static_data_count() const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object
@@ -792,16 +803,15 @@ namespace oceanbase
     protected:
 
       ObString proc_name_;
-      //further using SpMulInsts to replace it
+
       SpInstList inst_list_;
       SpInstList inst_store_;
 
       SpInstExecStrategy *exec_strategy_;
       int64_t static_data_id_gen_;
-      typedef int64_t ProgramCounter;
-      ProgramCounter pc_;
-      ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
+      int64_t pc_;
 
+      ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
     };
   }
 }

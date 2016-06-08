@@ -37,6 +37,10 @@ namespace oceanbase
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
+
+    private:
+      //execution context
+      ObLoopCounter loop_counter_;
     };
 
 
@@ -85,9 +89,11 @@ namespace oceanbase
 
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
 
-      int create_static_data(StaticData *&static_data);
-      int64_t get_static_data_count() const;
-      int get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const;
+      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store);
+      virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
+      virtual int64_t get_static_data_count() const;
+
 
       int deter_exec_mode();
 
@@ -106,12 +112,13 @@ namespace oceanbase
 
       int set_inst_op(SpInst *inst);
     private:
-      ObArray<ObParamDef> params_;
-      ObArray<ObVariableDef> defs_;
+      ObSEArray<ObParamDef, 16> params_;
+      ObSEArray<ObVariableDef, 16> defs_;
 
       SpInstList exec_list_;
 
       mergeserver::ObMergerRpcProxy *rpc_;
+      ObProcedureStaticDataMgr static_data_mgr_;
 
       ObArray<StaticData> static_store_;
       bool long_trans_;

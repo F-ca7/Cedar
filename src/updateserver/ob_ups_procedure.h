@@ -1518,9 +1518,9 @@ namespace oceanbase
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
-      int create_static_data(StaticData *&static_data);
-      int64_t get_static_data_count() const;
-      int get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr);
+      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store);
+      virtual int64_t get_static_data_count() const;
 
       //specially handle the loop inst creataion
       virtual SpInst * create_inst(SpInstType type, SpMultiInsts *mul_inst);

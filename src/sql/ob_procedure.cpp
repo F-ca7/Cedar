@@ -89,12 +89,20 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   }
   else if( inst->is_for_group_exec() )
   {
-    //if the static data is used for group execution, we need save which into static_store and close the op by self.
-    //later, it would be sent to the UPS.
-    //if not, ObUpsExecutor would consume the static data and close the ObValues op.
-    StaticData* static_data;
+    /**
+      if the static data is used for group execution, we need save which into static_store and close the op by self.
+        later, it would be sent to the UPS.
+      Otherwise, ObUpsExecutor would consume the static data and close the ObValues op.
+    */
+    int64_t hkey = 0;
 
-    if( OB_SUCCESS == (ret = inst->get_ownner()->create_static_data(static_data)) )
+
+
+    ObRowStore *p_row_store = NULL;
+    if( OB_SUCCESS == (ret = inst->get_ownner()->store_static_data(
+                         inst->get_sdata_id(),
+
+                         p_row_store)) )
     {
       static_data->id = static_cast<ObValues*>(op)->get_static_data_id();
     }
@@ -378,8 +386,11 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     }
     else
     {
+      loop_counter_.push_back(0);
+      int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
       for(; itr < itr_end && OB_SUCCESS == ret; itr ++)
       {
+        ++counter;
         itr_var.set_int(itr);
         if( OB_SUCCESS != (ret = proc->write_variable(inst->get_loop_var(), itr_var )))
         {
@@ -402,6 +413,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
           highest_value->get_int(itr_end);
         }
       }
+      loop_counter_.pop_back();
     }
   }
   return ret;
@@ -682,11 +694,12 @@ void ObProcedure::reset()
   defs_.clear();
   exec_list_.clear();
 
-  for(int64_t i = 0; i < static_store_.count(); ++i)
-  {
-    static_store_.at(i).store.clear();
-  }
-  static_store_.clear();
+  static_data_mgr_.clear();
+//  for(int64_t i = 0; i < static_store_.count(); ++i)
+//  {
+//    static_store_.at(i).store.clear();
+//  }
+//  static_store_.clear();
   SpProcedure::reset();
 }
 
@@ -701,11 +714,12 @@ int ObProcedure::close()
   my_phy_plan_->set_group_exec(false);
   pc_ = 0;
 
-  for(int64_t i = 0; i < static_store_.count(); ++i)
-  {
-    static_store_.at(i).store.clear();
-  }
-  static_store_.clear();
+  static_data_mgr_.clear();
+//  for(int64_t i = 0; i < static_store_.count(); ++i)
+//  {
+//    static_store_.at(i).store.clear();
+//  }
+//  static_store_.clear();
   return ret;
 }
 
@@ -836,7 +850,7 @@ int ObProcedure::open()
         debug_status(exec_list_.at(pc_));
       if( OB_SUCCESS != ret )
       {
-        TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
+        TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", top_level_counter, to_cstring(*this));
       }
     }
 
@@ -978,32 +992,24 @@ int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   return ret;
 }
 
-int ObProcedure::create_static_data(StaticData *&static_data)
+int ObProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
 {
-  int ret = OB_SUCCESS;
-  StaticData item;
-  ret = static_store_.push_back(item);
-  static_data = &(static_store_.at(static_store_.count() - 1));
-  return ret;
+  return static_data_mgr_.store(sdata_id, hkey, p_row_store);
 }
 
 int64_t ObProcedure::get_static_data_count() const
 {
-  return static_store_.count();
+  return static_data_mgr_.count();
 }
 
-int ObProcedure::get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const
+int ObProcedure::get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store)
 {
-  int ret = OB_SUCCESS;
-  if( idx < static_store_.count() )
-  {
-    static_data = &static_store_.at(idx);
-  }
-  else
-  {
-    ret = OB_ERR_ILLEGAL_INDEX;
-  }
-  return ret;
+  return static_data_mgr_.get(sdata_id, hkey, p_row_store);
+}
+
+int ObProcedure::get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store)
+{
+  return static_data_mgr_.get(idx, sdata_id, hkey, p_row_store);
 }
 
 namespace oceanbase{

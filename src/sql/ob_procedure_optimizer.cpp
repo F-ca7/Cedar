@@ -518,7 +518,8 @@ int ObProcedureOptimizer::group(ObProcedure &proc, SpInstList &expand_list)
         }
       }
       //try to group operations [start_id, end_id]
-      if( group_range_start != group_range_end )
+      if( group_range_start != group_range_end ||
+          (expand_list.at(seq.at(start))->get_type() == SP_L_INST))
       {
         SpGroupInsts *group = proc.create_inst<SpGroupInsts>(NULL);
         for(int64_t i = group_range_start; i >= group_range_end; --i)

@@ -290,7 +290,6 @@ int ObMemSSTableScan::serialize_template(char *buf, const int64_t buf_len, int64
     TBSYS_LOG(WARN, "fail to serialize row desc:ret[%d]", ret);
   }
   else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, tmp_table->get_static_data_id())) )
-//  else if ( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, tmp_table_subquery_)) )
   {
     TBSYS_LOG(WARN, "failed to serialize static data id");
   }

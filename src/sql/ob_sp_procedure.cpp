@@ -377,7 +377,8 @@ int SpRdBaseInst::set_rdbase_op(ObPhyOperator *op, int32_t query_id)
   int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_VALUES);
   op_ = op;
-  static_cast<ObValues*>(op_)->set_static_data_id(proc_->generate_static_data_id());
+  sdata_id_ = proc_->generate_static_data_id();
+  static_cast<ObValues*>(op_)->set_static_data_id(sdata_id_);
   query_id_ = query_id;
   return ret;
 }
@@ -821,22 +822,29 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   }
   else
   {
-    const StaticData *store = NULL;
     for(int64_t i = 0; OB_SUCCESS == ret && i < static_data_count; ++i)
     {
-      if( OB_SUCCESS != (ret = proc_->get_static_data_by_idx(i, store)))
+      int64_t sdata_id, hkey;
+      const ObRowStore *p_row_store = NULL;
+
+      if( OB_SUCCESS != (ret = proc_->get_static_data(i, sdata_id, hkey, p_row_store)) )
       {
-        TBSYS_LOG(WARN, "fail to get static data");
+        TBSYS_LOG(WARN, "faile to get static data");
       }
-      else if( OB_SUCCESS != (serialization::encode_i64(buf, buf_len, pos, store->id)) )
+      else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, sdata_id)))
       {
-        TBSYS_LOG(WARN, "fail to serialize static data id");
+        TBSYS_LOG(WARN, "fail to serialize sdata_id");
       }
-      else if( OB_SUCCESS != (store->store.serialize(buf, buf_len, pos)))
+      else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, hkey)))
+      {
+        TBSYS_LOG(WARN, "fail to serialize hkey");
+      }
+      else if( OB_SUCCESS != (ret = (p_row_store->serialize(buf, buf_len, pos))))
       {
         TBSYS_LOG(WARN, "fail to serialize static data");
       }
-      TBSYS_LOG(TRACE, "static_data_id: %ld, %s", store->id, to_cstring(store->store));
+
+      TBSYS_LOG(TRACE, "sid: %ld, hkey: %ld, sdata: %s", sdata_id, hkey, to_cstring(*p_row_store));
     }
   }
   return ret;
@@ -948,22 +956,28 @@ int SpGroupInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
   if( OB_SUCCESS == ret && OB_SUCCESS == (ret = serialization::decode_i64(buf, data_len, pos, &static_data_count)) )
   {
     TBSYS_LOG(TRACE, "block inst, static_data_count: %ld", static_data_count);
+
     for(int64_t i = 0; i < static_data_count && OB_SUCCESS == ret; ++i)
     {
-      StaticData *static_data = NULL;
-      if( OB_SUCCESS != (ret = proc_->create_static_data(static_data)) )
-      {
-        TBSYS_LOG(WARN, "failed to create static store");
-      }
-      else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, (int64_t *)&static_data->id)) )
+      int64_t sdata_id, hkey;
+      ObRowStore *p_row_store = NULL;
+      if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &sdata_id)) )
       {
         TBSYS_LOG(WARN, "failed to deserialize static data id");
       }
-      else if( OB_SUCCESS != (ret = static_data->store.deserialize(buf, data_len, pos)) )
+      else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &hkey)))
+      {
+        TBSYS_LOG(WARN, "failed to deserialize hkey");
+      }
+      else if( OB_SUCCESS != (ret = proc_->store_static_data(sdata_id, hkey, p_row_store)))
+      {
+        TBSYS_LOG(WARN, "create row store failed");
+      }
+      else if( OB_SUCCESS != (ret = p_row_store->deserialize(buf, data_len, pos)) )
       {
         TBSYS_LOG(WARN, "failed to deserialize static data");
       }
-      TBSYS_LOG(TRACE, "static_data_id: %ld, %s", static_data->id, to_cstring(static_data->store));
+      TBSYS_LOG(TRACE, "sid: %ld, hkey: %ld, sdata: %s", sdata_id, hkey, to_cstring(*p_row_store));
     }
   }
   return ret;
@@ -1779,6 +1793,18 @@ CallType SpCaseInst::get_call_type() const
 }
 
 
+int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> counter)
+{
+  int64_t ret = sdata_id;
+
+  for(int64_t i = 0; i < counter.count(); ++i)
+  {
+    murmurhash64A(&ret, sizeof(int64_t), counter.at(i));
+  }
+
+  return ret;
+}
+
 /*=================================================
              SpProcedure Defintion
  * ===============================================*/
@@ -1895,9 +1921,13 @@ int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
   return ret;
 }
 
-int SpProcedure::create_static_data(StaticData *&static_data)
+int SpProcedure::store_static_data(int64_t sdata_id,
+                                    const ObIArray<int64_t> &loop_counter,
+                                    StaticData *&static_data)
 {
   UNUSED(static_data);
+  UNUSED(sdata_id);
+  UNUSED(loop_counter);
   return OB_NOT_SUPPORTED;
 }
 
@@ -1906,17 +1936,23 @@ int64_t SpProcedure::get_static_data_count() const
   return 0;
 }
 
-int SpProcedure::get_static_data_by_idx(int64_t idx, const StaticData *&static_data) const
+int SpProcedure::get_static_data(int64_t idx,
+                                 int64_t &sdata_id,
+                                 int64_t &hkey,
+                                 const ObRowStore *&p_row_store)
 {
   UNUSED(idx);
-  UNUSED(static_data);
+  UNUSED(sdata_id);
+  UNUSED(hkey);
+  UNUSED(p_row_store);
   return OB_NOT_SUPPORTED;
 }
 
-int SpProcedure::get_static_data_by_id(uint64_t static_data_id, ObRowStore *&row_store_ptr)
+int SpProcedure::get_static_data_by_id(uint64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store)
 {
-  UNUSED(static_data_id);
-  UNUSED(row_store_ptr);
+  UNUSED(sdata_id);
+  UNUSED(hkey);
+  UNUSED(p_row_store);
   return OB_NOT_SUPPORTED;
 }
 
