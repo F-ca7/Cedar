@@ -9,7 +9,6 @@
 #include "ob_physical_plan.h"
 #include "ob_raw_expr.h"
 #include "ob_procedure_static_data_mgr.h"
-
 using namespace oceanbase::common;
 
 namespace oceanbase
