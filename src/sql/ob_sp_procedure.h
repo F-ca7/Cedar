@@ -538,7 +538,7 @@ namespace oceanbase
                                    ObPhysicalPlan::OperatorStore &operators_store,
                                    ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-      int serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end);
+//      int serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end);
 
       int serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -547,7 +547,7 @@ namespace oceanbase
       int assign_template(const SpLoopInst *old_inst);
 
     private:
-      static bool need_expand(SpInst *inst);
+//      static bool need_expand(SpInst *inst);
 
     private:
       SpVar loop_counter_var_;       //loop counter var
@@ -685,7 +685,7 @@ namespace oceanbase
     {
     public:
       virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
-      static int64_t sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> &counter);
+      static int64_t sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter &counter);
     private:
       virtual int execute_expr(SpExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
@@ -734,7 +734,7 @@ namespace oceanbase
 
       //for static data management
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
       virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
 
@@ -742,8 +742,8 @@ namespace oceanbase
       //only used when we build a fake procedure object
       void clear_inst_list() { inst_list_.clear(); }
 
-      void set_exec_strategy(SpInstExecStrategy *exec_strategy) { exec_strategy_ = exec_strategy; }
-      SpInstExecStrategy * get_exec_strategy() { return exec_strategy_; }
+//      void set_exec_strategy(SpInstExecStrategy *exec_strategy) { exec_strategy_ = exec_strategy; }
+//      SpInstExecStrategy * get_exec_strategy() { return exec_strategy_; }
 
       template<class T>
       T * create_inst(SpMultiInsts *mul_inst)
@@ -800,7 +800,7 @@ namespace oceanbase
       SpInstList inst_list_;
       SpInstList inst_store_;
 
-      SpInstExecStrategy *exec_strategy_;
+//      SpInstExecStrategy *exec_strategy_;
       int64_t static_data_id_gen_;
       int64_t pc_;
 

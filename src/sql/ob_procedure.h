@@ -22,8 +22,9 @@ namespace oceanbase
     class SpMsInstExecStrategy : public SpInstExecStrategy
     {
     public:
-      virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
-//      int close(SpInst *inst);
+        virtual int execute_inst(SpInst *inst); //provide simple routine for inst execution
+        int64_t hkey(int64_t sdata_id) const;
+
     private:
       virtual int execute_expr(SpExprInst *inst);
       virtual int execute_rd_base(SpRdBaseInst *inst);
@@ -89,7 +90,7 @@ namespace oceanbase
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
 
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
       virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
 
@@ -116,9 +117,10 @@ namespace oceanbase
 
       SpInstList exec_list_;
       ObProcedureStaticDataMgr static_data_mgr_;
-//      ObArray<StaticData> static_store_;
-      bool long_trans_;
 
+      SpMsInstExecStrategy strategy_;
+
+      bool long_trans_;
       mergeserver::ObMergerRpcProxy *rpc_;
     };
   }

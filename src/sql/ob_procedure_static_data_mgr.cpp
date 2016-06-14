@@ -6,15 +6,27 @@ namespace oceanbase
   {
     ObProcedureStaticDataMgr::ObProcedureStaticDataMgr()
     {
+    }
 
+    int ObProcedureStaticDataMgr::init()
+    {
+      int ret = OB_SUCCESS;
+      if( OB_SUCCESS != (ret = hkey_idx_map_.create(64)))
+      {
+        TBSYS_LOG(WARN, "fail to create hkey_idx_map");
+      }
+      return ret;
     }
 
     int ObProcedureStaticDataMgr::store(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
     {
+      int ret = OB_SUCCESS;
       int64_t idx = -1;
+      TBSYS_LOG(INFO, "store static data[%ld, %ld]", sdata_id, hkey);
       if ( HASH_NOT_EXIST != hkey_idx_map_.get(hkey, idx))
       {
         TBSYS_LOG(ERROR, "static data has been created, sdata_id:%ld, hkey: %ld", sdata_id, hkey);
+        ret = OB_ERROR;
       }
       else
       {
@@ -29,11 +41,12 @@ namespace oceanbase
 
         hkey_idx_map_.set(hkey, idx);
       }
+      return ret;
     }
 
     int ObProcedureStaticDataMgr::get(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store) const
     {
-      int ret = (static_store_.count() > 0 && static_store_.count() < idx) ?
+      int ret = (idx < static_store_.count()) ?
             OB_SUCCESS :
             OB_ERROR;
 
@@ -53,17 +66,18 @@ namespace oceanbase
       return ret;
     }
 
-    int ObProcedureStaticDataMgr::get(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store) const
+    int ObProcedureStaticDataMgr::get(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
     {
       int ret = OB_SUCCESS;
       int64_t idx = -1;
-      if( HASH_NOT_EXIST != hkey_idx_map_.get(hkey, idx) )
+      TBSYS_LOG(INFO, "read static data[%ld, %ld]", sdata_id, hkey);
+      if( HASH_NOT_EXIST == hkey_idx_map_.get(hkey, idx) )
       {
         TBSYS_LOG(WARN, "static data does not exists, hkey: %ld", hkey);
       }
       else
       {
-        const StaticData *item = static_store_.at(idx);
+        StaticData *item = static_store_.at(idx);
         if( item->id == sdata_id )
         {
           p_row_store = &(item->store);
@@ -79,7 +93,7 @@ namespace oceanbase
 
     int64_t ObProcedureStaticDataMgr::get_static_data_count() const
     {
-      static_store_.count();
+      return static_store_.count();
     }
 
     int ObProcedureStaticDataMgr::clear()
@@ -91,6 +105,7 @@ namespace oceanbase
       static_store_.clear();
       static_store_arena_.free();
       hkey_idx_map_.clear();
+      return OB_SUCCESS;
     }
   }
 }

@@ -1,7 +1,10 @@
 #ifndef OB_UPS_PROCEDURE_SPECIAL_EXECUTOR_H
 #define OB_UPS_PROCEDURE_SPECIAL_EXECUTOR_H
+#include "sql/ob_sp_procedure.h"
+#include "ob_session_mgr.h"
 #include "ob_table_mgr.h"
 #include "ob_ups_table_mgr.h"
+using namespace oceanbase::sql;
 namespace oceanbase
 {
   namespace updateserver

@@ -1,6 +1,13 @@
 #include "ob_ups_procedure_special_executor.h"
+#include "ob_ups_procedure.h"
+#include "common/ob_common_stat.h"
+#include "common/ob_row_fuse.h"
+#include "ob_table_mgr.h"
+#include "ob_ups_table_mgr.h"
+#include "ob_update_server_main.h"
 
 using namespace oceanbase::updateserver;
+using namespace oceanbase::sql;
 
 int ObUpsTpcc::execute_neworder(int w_id, int d_id, int c_id, int item_ids[], double i_prices[],
                            int supplier_w_ids[], int order_quantities[], int o_ol_cnt, int o_all_local)

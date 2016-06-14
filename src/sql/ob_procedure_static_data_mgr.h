@@ -21,9 +21,11 @@ namespace oceanbase
       public:
         ObProcedureStaticDataMgr();
 
+        int init();
+
         int store(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
 
-        int get(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store) const;
+        int get(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
 
         int get(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store) const;
 

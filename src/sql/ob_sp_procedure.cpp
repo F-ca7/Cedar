@@ -829,7 +829,7 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 
       if( OB_SUCCESS != (ret = proc_->get_static_data(i, sdata_id, hkey, p_row_store)) )
       {
-        TBSYS_LOG(WARN, "faile to get static data");
+        TBSYS_LOG(WARN, "fail to get static data, idx: %ld", i);
       }
       else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, sdata_id)))
       {
@@ -959,7 +959,7 @@ int SpGroupInsts::deserialize_inst(const char *buf, int64_t data_len, int64_t &p
 
     for(int64_t i = 0; i < static_data_count && OB_SUCCESS == ret; ++i)
     {
-      int64_t sdata_id, hkey;
+      int64_t sdata_id = 0, hkey = 0;
       ObRowStore *p_row_store = NULL;
       if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &sdata_id)) )
       {
@@ -1402,111 +1402,111 @@ int SpLoopInst::serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos
   return ret;
 }
 
-int SpLoopInst::serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end)
-{
-  int ret = OB_SUCCESS;
+//int SpLoopInst::serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end)
+//{
+//  int ret = OB_SUCCESS;
 
-  int64_t total_inst_count = 0, expanded_inst_count = 0, seri_inst_count = 0;
-  serialization::encode_i64(buf, buf_len, pos, loop_body_.inst_count());
+//  int64_t total_inst_count = 0, expanded_inst_count = 0, seri_inst_count = 0;
+//  serialization::encode_i64(buf, buf_len, pos, loop_body_.inst_count());
 
-  //some instruction is expanded and some are not
-  for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
-  {
-    SpInst *inst = loop_body_.get_inst(i);
-    bool flag = need_expand(inst);
-    ret = serialization::encode_bool(buf, buf_len, pos, flag);
+//  //some instruction is expanded and some are not
+//  for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
+//  {
+//    SpInst *inst = loop_body_.get_inst(i);
+//    bool flag = need_expand(inst);
+//    ret = serialization::encode_bool(buf, buf_len, pos, flag);
 
-    if( flag ) ++expanded_inst_count;
-  }
+//    if( flag ) ++expanded_inst_count;
+//  }
 
-  total_inst_count = expanded_inst_count * (itr_end - itr_begin - 1) + loop_body_.inst_count();
+//  total_inst_count = expanded_inst_count * (itr_end - itr_begin - 1) + loop_body_.inst_count();
 
-  ret = serialization::encode_i64(buf, buf_len, pos, total_inst_count);
+//  ret = serialization::encode_i64(buf, buf_len, pos, total_inst_count);
 
-  bool is_first_loop_iteration = true;
-  ObObj itr_var;
-  for(int64_t itr = itr_begin; itr < itr_end; ++itr)
-  {
-    itr_var.set_int(itr);
+//  bool is_first_loop_iteration = true;
+//  ObObj itr_var;
+//  for(int64_t itr = itr_begin; itr < itr_end; ++itr)
+//  {
+//    itr_var.set_int(itr);
 
-    //update the loop variable
-    if( OB_SUCCESS != (ret = proc_->write_variable(loop_counter_var_, itr_var)))
-    {
-      TBSYS_LOG(WARN, "update iterate variable fail");
-    }
-    else
-    {
-      //execute loop local inst
-      for(int64_t loop_local_inst_itr = 0; OB_SUCCESS == ret && loop_local_inst_itr < loop_local_inst_.count(); ++loop_local_inst_itr)
-      {
-        SpInst *pre_inst = loop_body_.get_inst(loop_local_inst_.at(loop_local_inst_itr));
-        if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->execute_inst(pre_inst)) )
-        {
-          TBSYS_LOG(WARN, "process pro-loop instruction failed at %ld", loop_local_inst_itr);
-        }
-      }
-
-      //loop body
-      for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
-      {
-        SpInst *inst = loop_body_.get_inst(i);
-        bool flag = need_expand(inst);
-
-        if( flag || is_first_loop_iteration )
-        {
-          serialization::encode_i32(buf, buf_len, pos, inst->get_type());
-          inst->serialize_inst(buf, buf_len, pos);
-          ++seri_inst_count;
-        }
-      }
-
-      //close inst
-//      if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->close(this)) ) //close body inst operation
+//    //update the loop variable
+//    if( OB_SUCCESS != (ret = proc_->write_variable(loop_counter_var_, itr_var)))
+//    {
+//      TBSYS_LOG(WARN, "update iterate variable fail");
+//    }
+//    else
+//    {
+//      //execute loop local inst
+//      for(int64_t loop_local_inst_itr = 0; OB_SUCCESS == ret && loop_local_inst_itr < loop_local_inst_.count(); ++loop_local_inst_itr)
 //      {
-//        TBSYS_LOG(WARN, "reset loop body inst operation fail");
+//        SpInst *pre_inst = loop_body_.get_inst(loop_local_inst_.at(loop_local_inst_itr));
+//        if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->execute_inst(pre_inst)) )
+//        {
+//          TBSYS_LOG(WARN, "process pro-loop instruction failed at %ld", loop_local_inst_itr);
+//        }
 //      }
-    }
-    is_first_loop_iteration = false;
-  }
-  serialization::encode_i64(buf, buf_len, pos, 1723);
-  OB_ASSERT(seri_inst_count == total_inst_count);
-  return ret;
-}
 
-bool SpLoopInst::need_expand(SpInst *inst)
-{
-  bool ret = inst->get_type() == SP_DE_INST ||
-      ( inst->get_type() == SP_D_INST &&
-        static_cast<SpRwDeltaInst*>(inst)->get_rwdelta_op()->get_type() != PHY_UPS_MODIFY);
+//      //loop body
+//      for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
+//      {
+//        SpInst *inst = loop_body_.get_inst(i);
+//        bool flag = need_expand(inst);
 
-  if( ret ) {}
-  else if( inst->get_type() == SP_C_INST )
-  {
-    //make some judge
-    SpMultiInsts *then_branch = static_cast<SpIfCtrlInsts*>(inst)->get_then_block();
-    for(int64_t i = 0; !ret && i < then_branch->inst_count(); ++i)
-    {
-      if( need_expand(then_branch->get_inst(i)))
-        ret = true;
-    }
-    SpMultiInsts *else_branch = static_cast<SpIfCtrlInsts*>(inst)->get_else_block();
-    for(int64_t i = 0; !ret && i < else_branch->inst_count(); ++i)
-    {
-      if( need_expand(else_branch->get_inst(i)))
-        ret = true;
-    }
-  }
-  else if( inst->get_type() == SP_L_INST )
-  {
-    SpMultiInsts *loop_body = static_cast<SpLoopInst*>(inst)->get_body_block();
-    for(int64_t i = 0; !ret && i < loop_body->inst_count(); ++i)
-    {
-      if( need_expand(loop_body->get_inst(i)))
-        ret = true;
-    }
-  }
-  return ret;
-}
+//        if( flag || is_first_loop_iteration )
+//        {
+//          serialization::encode_i32(buf, buf_len, pos, inst->get_type());
+//          inst->serialize_inst(buf, buf_len, pos);
+//          ++seri_inst_count;
+//        }
+//      }
+
+//      //close inst
+////      if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->close(this)) ) //close body inst operation
+////      {
+////        TBSYS_LOG(WARN, "reset loop body inst operation fail");
+////      }
+//    }
+//    is_first_loop_iteration = false;
+//  }
+//  serialization::encode_i64(buf, buf_len, pos, 1723);
+//  OB_ASSERT(seri_inst_count == total_inst_count);
+//  return ret;
+//}
+
+//bool SpLoopInst::need_expand(SpInst *inst)
+//{
+//  bool ret = inst->get_type() == SP_DE_INST ||
+//      ( inst->get_type() == SP_D_INST &&
+//        static_cast<SpRwDeltaInst*>(inst)->get_rwdelta_op()->get_type() != PHY_UPS_MODIFY);
+
+//  if( ret ) {}
+//  else if( inst->get_type() == SP_C_INST )
+//  {
+//    //make some judge
+//    SpMultiInsts *then_branch = static_cast<SpIfCtrlInsts*>(inst)->get_then_block();
+//    for(int64_t i = 0; !ret && i < then_branch->inst_count(); ++i)
+//    {
+//      if( need_expand(then_branch->get_inst(i)))
+//        ret = true;
+//    }
+//    SpMultiInsts *else_branch = static_cast<SpIfCtrlInsts*>(inst)->get_else_block();
+//    for(int64_t i = 0; !ret && i < else_branch->inst_count(); ++i)
+//    {
+//      if( need_expand(else_branch->get_inst(i)))
+//        ret = true;
+//    }
+//  }
+//  else if( inst->get_type() == SP_L_INST )
+//  {
+//    SpMultiInsts *loop_body = static_cast<SpLoopInst*>(inst)->get_body_block();
+//    for(int64_t i = 0; !ret && i < loop_body->inst_count(); ++i)
+//    {
+//      if( need_expand(loop_body->get_inst(i)))
+//        ret = true;
+//    }
+//  }
+//  return ret;
+//}
 
 int SpLoopInst::assign(const SpInst *inst)
 {
@@ -1793,16 +1793,41 @@ CallType SpCaseInst::get_call_type() const
 }
 
 
-int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> &counter)
+/**
+ * @brief SpInstExecStrategy::sdata_mgr_hash
+ * A variation of murmurhash
+ * @param sdata_id
+ * @param counter
+ * @return
+ */
+int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter &counter)
 {
-  int64_t ret = sdata_id;
+  uint64_t seed = (uint64_t) sdata_id;
+  int64_t len = counter.count();
 
-  for(int64_t i = 0; i < counter.count(); ++i)
+  const uint64_t m = 0xc6a4a7935bd1e995;
+  const int r = 47;
+
+  uint64_t h = seed ^ (len * 8 * m);
+
+  for(int64_t i = 0 ; i < counter.count(); ++i)
   {
-    murmurhash64A(&ret, sizeof(int64_t), counter.at(i));
+    uint64_t k = (uint64_t) counter.at(i);
+
+    k *= m;
+    k ^= k >> r;
+    k *= m;
+
+    h ^= k;
+    h *= m;
   }
 
-  return ret;
+
+  h ^= h >> r;
+  h *= m;
+  h ^= h >> r;
+
+  return (int64_t)h;
 }
 
 /*=================================================
@@ -1922,12 +1947,12 @@ int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
 }
 
 int SpProcedure::store_static_data(int64_t sdata_id,
-                                    const ObIArray<int64_t> &loop_counter,
-                                    StaticData *&static_data)
+                                   int64_t hkey,
+                                    ObRowStore *&p_row_store)
 {
-  UNUSED(static_data);
   UNUSED(sdata_id);
-  UNUSED(loop_counter);
+  UNUSED(hkey);
+  UNUSED(p_row_store);
   return OB_NOT_SUPPORTED;
 }
 
@@ -1948,7 +1973,7 @@ int SpProcedure::get_static_data(int64_t idx,
   return OB_NOT_SUPPORTED;
 }
 
-int SpProcedure::get_static_data_by_id(uint64_t sdata_id, const ObRowStore *&p_row_store)
+int SpProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
 {
   UNUSED(sdata_id);
   UNUSED(p_row_store);

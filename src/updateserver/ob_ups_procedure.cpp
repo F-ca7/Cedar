@@ -55,6 +55,11 @@ int SpUpsInstExecStrategy::pexecute_block(SpUpsInstExecStrategy *host, SpInst *i
   return host->execute_block(static_cast<SpGroupInsts*>(inst));
 }
 
+int64_t SpUpsInstExecStrategy::hkey(int64_t sdata_id) const
+{
+  return SpInstExecStrategy::sdata_mgr_hash(sdata_id, loop_counter_);
+}
+
 int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -430,8 +435,10 @@ ObUpsProcedure::ObUpsProcedure(BaseSessionCtx &session_ctx) :
   is_var_tab_created(false),
   block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
   var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
-  name_pool_(), static_ptr_(0), session_ctx_(&session_ctx)
-{}
+  name_pool_(), session_ctx_(&session_ctx)
+{
+  static_data_mgr_.init();
+}
 
 ObUpsProcedure::~ObUpsProcedure()
 {
@@ -617,6 +624,7 @@ int ObUpsProcedure::open()
 
 int ObUpsProcedure::close()
 {
+  static_data_mgr_.clear();
   return OB_SUCCESS;
 }
 
@@ -624,14 +632,7 @@ void ObUpsProcedure::reset()
 {
   pc_ = 0;
 
-  for(int64_t i = 0; i < static_store_.count(); ++i)
-  {
-    static_store_.at(i)->store.clear();
-  }
-
-  static_store_.clear();
-  static_store_area_.free();
-  static_ptr_ = 0;
+  static_data_mgr_.clear();
 
   SpProcedure::reset();
   name_pool_.clear();
@@ -831,12 +832,9 @@ int64_t ObUpsProcedure::get_static_data_count() const
   return static_data_mgr_.get_static_data_count();
 }
 
-int ObUpsProcedure::get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store)
+int ObUpsProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
 {
-  int64_t hkey  =
-      SpInstExecStrategy::sdata_mgr_hash(sdata_id, strategy_.loop_counter_);
-
-  return static_data_mgr_.get(sdata_id, hkey, p_row_store);
+  return static_data_mgr_.get(sdata_id, strategy_.hkey(sdata_id), p_row_store);
 }
 
 SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)

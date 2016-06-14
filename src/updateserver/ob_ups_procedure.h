@@ -29,6 +29,8 @@ namespace oceanbase
 
       int execute_block(SpGroupInsts *inst) ;
 
+      int64_t hkey(int64_t sdata_id) const;
+
     private:
       int execute_expr(SpExprInst *inst) ;
       int execute_rd_base(SpRdBaseInst *inst)  { UNUSED(inst); return OB_ERROR; }
@@ -112,7 +114,7 @@ namespace oceanbase
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
 
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
 
       //specially handle the loop inst creataion
@@ -153,12 +155,6 @@ namespace oceanbase
       };
 
       ObSEArray<ObUpsArray, 4> array_table_;
-
-//      ModuleArena static_store_area_;
-//      ObSEArray<StaticData*, 64> static_store_;
-      //be careful use of static_ptr.
-      //For now, I assume static data is consumed in ascending order.
-//      int64_t static_ptr_;
 
       SpUpsInstExecStrategy strategy_;
       ObProcedureStaticDataMgr static_data_mgr_;

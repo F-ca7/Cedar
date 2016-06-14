@@ -50,6 +50,11 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   return ret;
 }
 
+int64_t SpMsInstExecStrategy::hkey(int64_t sdata_id) const
+{
+  return SpInstExecStrategy::sdata_mgr_hash(sdata_id, loop_counter_);
+}
+
 
 int SpMsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
@@ -658,7 +663,7 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
 ===================================================*/
 ObProcedure::ObProcedure() : long_trans_(false)
 {
-//  child_num_ = 0;
+  static_data_mgr_.init();
 }
 
 ObProcedure::~ObProcedure()
@@ -692,11 +697,7 @@ void ObProcedure::reset()
   exec_list_.clear();
 
   static_data_mgr_.clear();
-//  for(int64_t i = 0; i < static_store_.count(); ++i)
-//  {
-//    static_store_.at(i).store.clear();
-//  }
-//  static_store_.clear();
+
   SpProcedure::reset();
 }
 
@@ -712,11 +713,7 @@ int ObProcedure::close()
   pc_ = 0;
 
   static_data_mgr_.clear();
-//  for(int64_t i = 0; i < static_store_.count(); ++i)
-//  {
-//    static_store_.at(i).store.clear();
-//  }
-//  static_store_.clear();
+
   return ret;
 }
 
@@ -829,7 +826,7 @@ int ObProcedure::open()
   int ret = OB_SUCCESS;
   SpMsInstExecStrategy strategy;
 
-  set_exec_strategy(&strategy);
+//  set_exec_strategy(&strategy);
   if( OB_SUCCESS != (ret = create_variables()))
   {
     TBSYS_LOG(WARN, "create varialbes fail");
@@ -847,7 +844,7 @@ int ObProcedure::open()
         debug_status(exec_list_.at(pc_));
       if( OB_SUCCESS != ret )
       {
-        TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", top_level_counter, to_cstring(*this));
+        TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
       }
     }
 
@@ -857,7 +854,7 @@ int ObProcedure::open()
        end_trans(OB_SUCCESS != ret);
     }
   }
-  set_exec_strategy(NULL);
+//  set_exec_strategy(NULL);
   if( OB_SUCCESS != clear_variables() )
   {
     TBSYS_LOG(WARN, "clear varialbes fail");
@@ -996,12 +993,12 @@ int ObProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&
 
 int64_t ObProcedure::get_static_data_count() const
 {
-  return static_data_mgr_.count();
+  return static_data_mgr_.get_static_data_count();
 }
 
-int ObProcedure::get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store)
+int ObProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
 {
-  return static_data_mgr_.get(sdata_id, hkey, p_row_store);
+  return static_data_mgr_.get(sdata_id, strategy_.hkey(sdata_id), p_row_store);
 }
 
 int ObProcedure::get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store)
