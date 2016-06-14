@@ -17,6 +17,7 @@ namespace oceanbase
     class ObPhysicalPlan;
     class ObProcedure;
     class SpProcedure;
+    class ObProcedureOptimizer;
 
     class SpMsInstExecStrategy : public SpInstExecStrategy
     {
@@ -43,8 +44,6 @@ namespace oceanbase
       ObLoopCounter loop_counter_;
     };
 
-
-    class ObProcedureOptimizer;
     /**
      * ObProcedure is the wrapper of a stored procedure, the really execution model is include
      * in this class, but the execution model could not be the iterator model
@@ -90,7 +89,7 @@ namespace oceanbase
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
 
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store);
       virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
 
@@ -116,13 +115,12 @@ namespace oceanbase
       ObSEArray<ObVariableDef, 16> defs_;
 
       SpInstList exec_list_;
+      ObProcedureStaticDataMgr static_data_mgr_;
+//      ObArray<StaticData> static_store_;
+      bool long_trans_;
 
       mergeserver::ObMergerRpcProxy *rpc_;
-      ObProcedureStaticDataMgr static_data_mgr_;
-
-      ObArray<StaticData> static_store_;
-      bool long_trans_;
-    }; 
+    };
   }
 }
 

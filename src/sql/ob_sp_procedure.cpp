@@ -1793,7 +1793,7 @@ CallType SpCaseInst::get_call_type() const
 }
 
 
-int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> counter)
+int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> &counter)
 {
   int64_t ret = sdata_id;
 
@@ -1948,10 +1948,9 @@ int SpProcedure::get_static_data(int64_t idx,
   return OB_NOT_SUPPORTED;
 }
 
-int SpProcedure::get_static_data_by_id(uint64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store)
+int SpProcedure::get_static_data_by_id(uint64_t sdata_id, const ObRowStore *&p_row_store)
 {
   UNUSED(sdata_id);
-  UNUSED(hkey);
   UNUSED(p_row_store);
   return OB_NOT_SUPPORTED;
 }

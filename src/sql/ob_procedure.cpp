@@ -94,17 +94,15 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
         later, it would be sent to the UPS.
       Otherwise, ObUpsExecutor would consume the static data and close the ObValues op.
     */
-    int64_t hkey = 0;
-
-
+    int64_t hkey = sdata_mgr_hash(inst->get_sdata_id(), loop_counter_);
 
     ObRowStore *p_row_store = NULL;
-    if( OB_SUCCESS == (ret = inst->get_ownner()->store_static_data(
+    if( OB_SUCCESS != (ret = inst->get_ownner()->store_static_data(
                          inst->get_sdata_id(),
-
+                         hkey,
                          p_row_store)) )
     {
-      static_data->id = static_cast<ObValues*>(op)->get_static_data_id();
+      TBSYS_LOG(WARN, "fail to store static data");
     }
 
     while( OB_SUCCESS == ret )
@@ -122,7 +120,7 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
       else
       {
         TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
-        if (OB_SUCCESS != (ret = static_data->store.add_row(*row, stored_row)))
+        if (OB_SUCCESS != (ret = p_row_store->add_row(*row, stored_row)))
         {
           TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
         }
@@ -138,7 +136,6 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
       }
     }
   }
-
   return ret;
 }
 
@@ -1002,7 +999,7 @@ int64_t ObProcedure::get_static_data_count() const
   return static_data_mgr_.count();
 }
 
-int ObProcedure::get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store)
+int ObProcedure::get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store)
 {
   return static_data_mgr_.get(sdata_id, hkey, p_row_store);
 }

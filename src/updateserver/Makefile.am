@@ -102,6 +102,7 @@ libupdateserver_a_SOURCES =                                                 \
   ob_ups_lock_filter.h              ob_ups_lock_filter.cpp                  \
   ob_ups_inc_scan.h                 ob_ups_inc_scan.cpp                     \
   ob_ups_procedure.h                ob_ups_procedure.cpp                    \
+  ob_ups_procedure_special_executor.h  ob_ups_procedure_special_executor.cpp  \
   ob_clog_stat.h                    ob_clog_stat.cpp                        \
   ups_mon.h                                                                 \
   ob_memtable_modify.h              ob_memtable_modify.cpp                  \

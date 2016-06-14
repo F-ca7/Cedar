@@ -268,8 +268,6 @@ namespace oceanbase
       SpVariableSet rs_;
     };
 
-    //TODO: build a link between static operation and delta operation.
-    //For delta operation, it should answer whether in a group execution
     class SpRdBaseInst :public SpInst
     {
     public:
@@ -285,8 +283,8 @@ namespace oceanbase
 
       ObPhyOperator* get_rd_op() { return op_;}
       int32_t get_query_id() const {return query_id_; }
-      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
-      int set_rw_id(int64_t id) { rw_inst_id_ = id; return OB_SUCCESS; }
+      void set_tid(uint64_t tid) { table_id_ = tid; }
+      void set_rw_id(int64_t id) { rw_inst_id_ = id; }
       int64_t get_rw_id() const { return rw_inst_id_; }
 
       bool is_for_group_exec() const { return for_group_exec_; }
@@ -474,6 +472,7 @@ namespace oceanbase
       SpMultiInsts* get_then_block() { return &then_branch_; }
       SpMultiInsts* get_else_block() { return &else_branch_; }
 
+      //@deprecated
       int optimize(SpInstList &exec_list);
       void set_open_flag(int flag) { branch_opened_ = flag; }
       int get_open_flag() const { return branch_opened_; }
@@ -584,7 +583,6 @@ namespace oceanbase
     private:
       ObSqlExpression when_expr_;
       SpVariableSet when_expr_var_set_;
-//      ObObj when_value_;
     };
 
 
@@ -683,11 +681,12 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
-
+    typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
     class SpInstExecStrategy
     {
     public:
       virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
+      static int64_t sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> &counter);
     private:
       virtual int execute_expr(SpExprInst *inst) = 0;
       virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
@@ -699,11 +698,6 @@ namespace oceanbase
       virtual int execute_loop(SpLoopInst *inst) = 0;
       virtual int execute_casewhen(SpCaseInst *inst) = 0;  //TODO
       virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
-
-      int64_t sdata_mgr_hash(int64_t sdata_id, ObIArray<int64_t> counter);
-
-    private:
-      typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
     };
 
 
@@ -741,7 +735,7 @@ namespace oceanbase
 
       //for static data management
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, int64_t hkey, const ObRowStore *&p_row_store);
+      virtual int get_static_data_by_id(int64_t sdata_id, const ObRowStore *&p_row_store);
       virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
 
