@@ -79,6 +79,7 @@ namespace oceanbase
       int create_variables();
       int clear_variables();
 
+      /*
       virtual int write_variable(const ObString &var_name, const ObObj & val);
       virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
       virtual int write_variable(const SpVar &var, const ObObj &val);
@@ -88,12 +89,16 @@ namespace oceanbase
       virtual int read_variable(const SpVar &var, const ObObj *&val) const;
 
       virtual int read_array_size(const ObString &array_name, int64_t &size) const;
+      */
 
+      /*
       virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
       virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
       virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
       virtual int64_t get_static_data_count() const;
+      */
 
+      virtual int64_t hkey(int64_t sdata_id) const;
 
       int deter_exec_mode();
 
@@ -116,7 +121,7 @@ namespace oceanbase
       ObSEArray<ObVariableDef, 16> defs_;
 
       SpInstList exec_list_;
-      ObProcedureStaticDataMgr static_data_mgr_;
+//      ObProcedureStaticDataMgr static_data_mgr_;
 
       SpMsInstExecStrategy strategy_;
 

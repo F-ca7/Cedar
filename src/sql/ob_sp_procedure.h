@@ -732,10 +732,11 @@ namespace oceanbase
       virtual int read_index_value(const ObObj &obj, int64_t &idx_val) const;
 
       //for static data management
-      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
-      virtual int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
-      virtual int64_t get_static_data_count() const;
+      int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
+      int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
+      int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);
+      int64_t get_static_data_count() const;
+      virtual int64_t hkey(int64_t sdata_id) const;
 
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object
@@ -806,6 +807,7 @@ namespace oceanbase
       ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
 
 
+      static const int64_t SMALL_BLOCK_SIZE = 4 * 1024LL;
       typedef common::ObPooledAllocator<common::hash::HashMapTypes<common::ObString, common::ObObj>::AllocType, common::ObWrapperAllocator> VarNameValMapAllocer;
       typedef common::hash::ObHashMap<common::ObString,
       common::ObObj,
@@ -829,6 +831,8 @@ namespace oceanbase
       };
 
       ObSEArray<ObProcedureArray, 4> array_table_;
+
+      ObProcedureStaticDataMgr static_data_mgr_;
     };
   }
 }

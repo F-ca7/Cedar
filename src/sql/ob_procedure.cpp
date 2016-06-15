@@ -663,7 +663,7 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
 ===================================================*/
 ObProcedure::ObProcedure() : long_trans_(false)
 {
-  static_data_mgr_.init();
+//  static_data_mgr_.init();
 }
 
 ObProcedure::~ObProcedure()
@@ -696,7 +696,7 @@ void ObProcedure::reset()
   defs_.clear();
   exec_list_.clear();
 
-  static_data_mgr_.clear();
+//  static_data_mgr_.clear();
 
   SpProcedure::reset();
 }
@@ -712,7 +712,7 @@ int ObProcedure::close()
   my_phy_plan_->set_group_exec(false);
   pc_ = 0;
 
-  static_data_mgr_.clear();
+//  static_data_mgr_.clear();
 
   return ret;
 }
@@ -887,6 +887,7 @@ int ObProcedure::deter_exec_mode()
   return OB_SUCCESS;
 }
 
+/*
 int ObProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
@@ -985,7 +986,9 @@ int ObProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   }
   return ret;
 }
+*/
 
+/*
 int ObProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
 {
   return static_data_mgr_.store(sdata_id, hkey, p_row_store);
@@ -1004,6 +1007,12 @@ int ObProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_stor
 int ObProcedure::get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store)
 {
   return static_data_mgr_.get(idx, sdata_id, hkey, p_row_store);
+}
+*/
+
+int64_t ObProcedure::hkey(int64_t sdata_id) const
+{
+  return strategy_.hkey(sdata_id);
 }
 
 namespace oceanbase{

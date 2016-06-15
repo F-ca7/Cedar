@@ -432,12 +432,13 @@ int SpUpsLoopInst::assign(const SpInst *inst)
  *                    ObUpsProcedure  Definition
  * ==========================================================================*/
 ObUpsProcedure::ObUpsProcedure(BaseSessionCtx &session_ctx) :
-  is_var_tab_created(false),
-  block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
-  var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
-  name_pool_(), session_ctx_(&session_ctx)
+//  is_var_tab_created(false),
+//  block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
+//  var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
+//  name_pool_(),
+  session_ctx_(&session_ctx)
 {
-  static_data_mgr_.init();
+//  static_data_mgr_.init();
 }
 
 ObUpsProcedure::~ObUpsProcedure()
@@ -446,10 +447,10 @@ ObUpsProcedure::~ObUpsProcedure()
 //  TBSYS_LOG(INFO, "release ob_ups_procedure");
 }
 
-int ObUpsProcedure::create_variable_table()
-{
-  return var_name_val_map_.create(hash::cal_next_prime(16), &var_name_val_map_allocer_, &block_allocator_);
-}
+//int ObUpsProcedure::create_variable_table()
+//{
+//  return var_name_val_map_.create(hash::cal_next_prime(16), &var_name_val_map_allocer_, &block_allocator_);
+//}
 
 int ObUpsProcedure::open()
 {
@@ -624,7 +625,7 @@ int ObUpsProcedure::open()
 
 int ObUpsProcedure::close()
 {
-  static_data_mgr_.clear();
+//  static_data_mgr_.clear();
   return OB_SUCCESS;
 }
 
@@ -632,10 +633,10 @@ void ObUpsProcedure::reset()
 {
   pc_ = 0;
 
-  static_data_mgr_.clear();
+//  static_data_mgr_.clear();
 
   SpProcedure::reset();
-  name_pool_.clear();
+//  name_pool_.clear();
   var_name_val_map_.destroy();
 }
 
@@ -644,6 +645,7 @@ void ObUpsProcedure::reuse()
   pc_ = 0;
 }
 
+/*
 int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   int ret = OB_SUCCESS;
@@ -822,6 +824,7 @@ int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value,
   return ret;
 }
 
+
 int ObUpsProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
 {
   return static_data_mgr_.store(sdata_id, hkey, p_row_store);
@@ -835,6 +838,12 @@ int64_t ObUpsProcedure::get_static_data_count() const
 int ObUpsProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
 {
   return static_data_mgr_.get(sdata_id, strategy_.hkey(sdata_id), p_row_store);
+}
+*/
+
+int64_t ObUpsProcedure::hkey(int64_t sdata_id) const
+{
+  return strategy_.hkey(sdata_id);
 }
 
 SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)

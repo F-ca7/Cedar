@@ -1811,7 +1811,10 @@ int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter
              SpProcedure Defintion
  * ===============================================*/
 
-SpProcedure::SpProcedure() : static_data_id_gen_(0)
+SpProcedure::SpProcedure() : static_data_id_gen_(0),
+  block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE),
+  var_name_val_map_allocer_(SMALL_BLOCK_SIZE, ObWrapperAllocator(&block_allocator_)),
+  name_pool_()
 {
   create_variable_table();
 }
@@ -1854,7 +1857,7 @@ int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
     ret = OB_ERROR;
 //    TBSYS_LOG(ERROR, "Empty variable name");
   }
-  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS
+  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS //reconsider this usage
            || (ret = name_pool_.write_obj(val, &tmp_val)) != OB_SUCCESS
            || ((ret = var_name_val_map_.set(tmp_var, tmp_val, 1)) != hash::HASH_INSERT_SUCC
                && ret != hash::HASH_OVERWRITE_SUCC))
@@ -2019,18 +2022,37 @@ int SpProcedure::read_variable(const SpVar &var, const ObObj *&val) const
       TBSYS_LOG(WARN, "read %.*s[%ld] failed", var.var_name_.length(), var.var_name_.ptr(), idx);
     }
   }
-  else
+  else if( OB_SUCCESS != (ret = read_variable(var.var_name_, val)))
   {
-    ret = read_variable(var.var_name_, val);
+    TBSYS_LOG(WARN, "read %.*s failed", var.var_name_.length(), var.var_name_.ptr());
   }
   return ret;
 }
 
 int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) const
 {
-  UNUSED(array_name);
-  UNUSED(size);
-  return OB_NOT_SUPPORTED;
+  int ret = OB_SUCCESS;
+
+  const ObObj *idx;
+  if( OB_SUCCESS != (ret = read_variable(array_name, val)))
+  {
+    TBSYS_LOG(WARN, "fail to read array idx");
+  }
+  else
+  {
+    int64_t i = -1;
+    idx->get_int(i);
+    if( 0 <= i && i < array_table_.count() )
+    {
+      const ObProcedureArray &arr = array_table_.at(i);
+      size = arr.array_values_.count();
+    }
+    else
+    {
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+  }
+  return ret;
 }
 
 int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
@@ -2068,6 +2090,33 @@ int SpProcedure::read_index_value(const ObObj &obj, int64_t &idx_val) const
   return ret;
 }
 
+int SpProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
+{
+  return static_data_mgr_.store(sdata_id, hkey, p_row_store);
+}
+
+int64_t SpProcedure::get_static_data_count() const
+{
+  return static_data_mgr_.get_static_data_count();
+}
+
+int SpProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
+{
+  return static_data_mgr_.get(sdata_id, hkey(sdata_id), p_row_store);
+}
+
+int SpProcedure::get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store)
+{
+  return static_data_mgr_.get(idx, sdata_id, hkey, p_row_store);
+}
+
+int64_t SpProcedure::hkey(int64_t sdata_id) const
+{
+  UNUSED(sdata_id);
+  return 0;
+}
+
+/*
 int SpProcedure::store_static_data(int64_t sdata_id,
                                    int64_t hkey,
                                     ObRowStore *&p_row_store)
@@ -2101,6 +2150,7 @@ int SpProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_stor
   UNUSED(p_row_store);
   return OB_NOT_SUPPORTED;
 }
+*/
 
 SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
 {

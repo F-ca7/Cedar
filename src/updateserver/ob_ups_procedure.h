@@ -105,6 +105,7 @@ namespace oceanbase
       virtual int open();
       virtual int close();
 
+      /*
       int create_variable_table();
       virtual int write_variable(const ObString &var_name, const ObObj &val);
       virtual int write_variable(const SpVar &var, const ObObj &val);
@@ -112,10 +113,13 @@ namespace oceanbase
 
       virtual int read_variable(const ObString &var_name, const ObObj *&val) const;
       virtual int read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const;
+      */
 
-      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
-      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
-      virtual int64_t get_static_data_count() const;
+//      virtual int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
+//      virtual int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
+//      virtual int64_t get_static_data_count() const;
+
+      virtual int64_t hkey(int64_t sdata_id) const;
 
       //specially handle the loop inst creataion
       virtual SpInst * create_inst(SpInstType type, SpMultiInsts *mul_inst);
@@ -130,6 +134,7 @@ namespace oceanbase
       ObUpsProcedure& operator=(const ObUpsProcedure &other);
     private:
 
+      /*
       typedef common::ObPooledAllocator<common::hash::HashMapTypes<common::ObString, common::ObObj>::AllocType, common::ObWrapperAllocator> VarNameValMapAllocer;
       typedef common::hash::ObHashMap<common::ObString,
       common::ObObj,
@@ -140,24 +145,25 @@ namespace oceanbase
       common::hash::NormalPointer,
       common::ObSmallBlockAllocator<>
       > VarNameValMap;
+      */
 
       //save the variables
-      bool is_var_tab_created;
-      common::ObSmallBlockAllocator<> block_allocator_;
-      VarNameValMapAllocer var_name_val_map_allocer_;
-      VarNameValMap var_name_val_map_;
-      common::ObStringBuf name_pool_;
+//      bool is_var_tab_created;
+//      common::ObSmallBlockAllocator<> block_allocator_;
+//      VarNameValMapAllocer var_name_val_map_allocer_;
+//      VarNameValMap var_name_val_map_;
+//      common::ObStringBuf name_pool_;
 
-      struct ObUpsArray
-      {
-        ObString array_name_;
-        ObSEArray<ObObj, 8> array_values_;
-      };
+//      struct ObUpsArray
+//      {
+//        ObString array_name_;
+//        ObSEArray<ObObj, 8> array_values_;
+//      };
 
-      ObSEArray<ObUpsArray, 4> array_table_;
+//      ObSEArray<ObUpsArray, 4> array_table_;
 
       SpUpsInstExecStrategy strategy_;
-      ObProcedureStaticDataMgr static_data_mgr_;
+//      ObProcedureStaticDataMgr static_data_mgr_;
 
       BaseSessionCtx *session_ctx_;
     };
