@@ -22,11 +22,11 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int64_t idx = -1;
-      TBSYS_LOG(INFO, "store static data[%ld, %ld]", sdata_id, hkey);
+      TBSYS_LOG(TRACE, "store static data[%ld, %ld]", sdata_id, hkey);
       if ( HASH_NOT_EXIST != hkey_idx_map_.get(hkey, idx))
       {
         TBSYS_LOG(ERROR, "static data has been created, sdata_id:%ld, hkey: %ld", sdata_id, hkey);
-        ret = OB_ERROR;
+        ret = OB_ENTRY_EXIST;
       }
       else
       {
@@ -70,7 +70,7 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int64_t idx = -1;
-      TBSYS_LOG(INFO, "read static data[%ld, %ld]", sdata_id, hkey);
+      TBSYS_LOG(TRACE, "read static data[%ld, %ld]", sdata_id, hkey);
       if( HASH_NOT_EXIST == hkey_idx_map_.get(hkey, idx) )
       {
         TBSYS_LOG(WARN, "static data does not exists, hkey: %ld", hkey);

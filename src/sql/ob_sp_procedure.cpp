@@ -584,8 +584,6 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
     }
     else
     {
-//      if( var_list_.at(i).idx_value_ != NULL )
-//        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
     }
   }
   return ret;
@@ -596,10 +594,6 @@ int SpRwDeltaIntoVarInst::assign(const SpInst *inst)
  * =======================================================*/
 SpRwCompInst::~SpRwCompInst()
 {
-//  for(int64_t i = 0; i < var_list_.count(); ++i)
-//  {
-//    var_list_.at(i).clear();
-//  }
 }
 
 void SpRwCompInst::get_read_variable_set(SpVariableSet &read_set) const
@@ -640,8 +634,6 @@ int SpRwCompInst::assign(const SpInst *inst)
     }
     else
     {
-//      if( var_list_.at(i).idx_value_ != NULL )
-//        var_list_.at(i).idx_value_->set_owner_op(proc_); //important
     }
   }
   return ret;
@@ -1330,10 +1322,6 @@ int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
 
 
 /**
- * In essential, loop could not be serialized. Here, we are trying
- * to expand the loop body, serialize each instruction,
- * the baseline read instruction is automaiclly called.
- * Here the loop must be a normalization one, see wiki
  * @brief SpLoopInst::serialize_inst
  * @param buf
  * @param buf_len
@@ -1526,7 +1514,7 @@ int SpLoopInst::assign(const SpInst *inst)
   reverse_ = old_inst->reverse_;
 
   loop_body_.assign(old_inst->loop_body_);
-  loop_local_inst_ = old_inst->loop_local_inst_;
+//  loop_local_inst_ = old_inst->loop_local_inst_;
 
   return ret;
 }
@@ -1762,17 +1750,6 @@ int SpCaseInst::assign(const SpInst *inst)
   return ret;
 }
 
-int SpCaseInst::optimize(SpInstList &exec_list)
-{
-  int ret = OB_SUCCESS;
-  UNUSED(exec_list);
-//  if(OB_SUCCESS != (ret = else_branch_.optimize(exec_list)))
-//  {
-//    TBSYS_LOG(WARN,"failed to optimize else branch!");
-//  }
-  return ret;
-}
-
 void SpCaseInst::set_in_group_exec()
 {
   else_branch_.set_in_group_exec();
@@ -1835,7 +1812,9 @@ int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter
  * ===============================================*/
 
 SpProcedure::SpProcedure() : static_data_id_gen_(0)
-{}
+{
+  create_variable_table();
+}
 
 SpProcedure::~SpProcedure()
 {
@@ -1859,49 +1838,192 @@ void SpProcedure::reset()
   static_data_id_gen_ = 0;
 }
 
+int SpProcedure::create_variable_table()
+{
+  return var_name_val_map_.create(hash::cal_next_prime(16), &var_name_val_map_allocer_, &block_allocator_);
+}
 
 int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
-  UNUSED(var_name);
-  UNUSED(val);
-  return OB_NOT_SUPPORTED;
-}
+  int ret = OB_SUCCESS;
+  ObString tmp_var;
+  ObObj tmp_val;
 
-int SpProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
-{
-  UNUSED(array_name);
-  UNUSED(idx_value);
-  UNUSED(val);
-  return OB_NOT_SUPPORTED;
+  if (var_name.length() <= 0)
+  {
+    ret = OB_ERROR;
+//    TBSYS_LOG(ERROR, "Empty variable name");
+  }
+  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS
+           || (ret = name_pool_.write_obj(val, &tmp_val)) != OB_SUCCESS
+           || ((ret = var_name_val_map_.set(tmp_var, tmp_val, 1)) != hash::HASH_INSERT_SUCC
+               && ret != hash::HASH_OVERWRITE_SUCC))
+  {
+    ret = OB_ERROR;
+//    TBSYS_LOG(ERROR, "Add variable %.*s error", var_name.length(), var_name.ptr());
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
+    ret = OB_SUCCESS;
+  }
+  return ret;
 }
 
 int SpProcedure::write_variable(const SpVar &var, const ObObj &val)
 {
-  UNUSED(var);
-  UNUSED(val);
-  return OB_NOT_SUPPORTED;
+  int ret = OB_SUCCESS;
+  if( !var.is_array() )
+  {
+    ret = write_variable(var.var_name_, val);
+  }
+  else //write array variables
+  {
+    int64_t idx = 0;
+    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
+    {
+//      TBSYS_LOG(WARN, "read index value failed");
+    }
+    else if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
+    {
+      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
+    }
+  }
+  return ret;
+}
+
+int SpProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+
+  //check array existence
+  const ObObj *array_idx_obj;
+  if( idx_value < 0 )
+  {
+    ret = OB_ERR_ILLEGAL_INDEX;
+  }
+  else if( OB_SUCCESS != (ret = read_variable(array_name, array_idx_obj)) )
+  {
+    //array is not created
+  }
+  else
+  {
+    int64_t array_idx = -1;
+    find = true;
+    array_idx_obj->get_int(array_idx);
+    ObProcedureArray &array = array_table_.at(array_idx);
+
+    if( idx_value >= array.array_values_.count() )
+    {
+      while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
+      {
+        ObObj tmp_obj;
+        tmp_obj.set_null();
+        ret = array.array_values_.push_back(tmp_obj);
+      }
+    }
+    if( OB_SUCCESS == ret )
+    {
+      array.array_values_.at(idx_value) = val;
+    }
+  }
+
+  if ( !find && OB_ERR_VARIABLE_UNKNOWN == ret )
+  {
+    ObProcedureArray tmp_array;
+    ObObj loc;
+    array_table_.push_back(tmp_array);
+    loc.set_int(array_table_.count() - 1);
+    ObProcedureArray &array = array_table_.at(array_table_.count() - 1);
+    if( OB_SUCCESS != (ret = write_variable(array_name, loc)))
+    {
+      //udpate array_name location fail
+    }
+    else if( idx_value < 0 )
+    {
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+    else if( idx_value >= array.array_values_.count() )
+    {
+      while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
+      {
+        ObObj tmp_obj;
+        tmp_obj.set_null();
+        ret = array.array_values_.push_back(tmp_obj);
+      }
+    }
+
+    if( OB_SUCCESS == ret )
+    {
+      array.array_values_.at(idx_value) = val;
+    }
+  }
+  return ret;
 }
 
 int SpProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
 {
-  UNUSED(var_name);
-  UNUSED(val);
-  return OB_NOT_SUPPORTED;
+  int ret = OB_SUCCESS;
+  if ((val=var_name_val_map_.get(var_name)) == NULL)
+  {
+//		TBSYS_LOG(WARN, "var does not exist");
+    ret = OB_ERR_VARIABLE_UNKNOWN;
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
+  }
+  return ret;
 }
 
 int SpProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
 {
-  UNUSED(array_name);
-  UNUSED(val);
-  UNUSED(idx_value);
-  return OB_NOT_SUPPORTED;
+  int ret = OB_SUCCESS;
+
+  if( OB_SUCCESS != (ret = read_variable(array_name, val)))
+  {
+    //table may not exist
+  }
+  else
+  {
+    int64_t i = -1;
+    val->get_int(i);
+    const ObProcedureArray &arr = array_table_.at(i);
+    if( idx_value >= 0 && idx_value < arr.array_values_.count() )
+    {
+      val = & (arr.array_values_.at(idx_value));
+    }
+    else
+    {
+      TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+  }
+  return ret;
 }
 
 int SpProcedure::read_variable(const SpVar &var, const ObObj *&val) const
 {
-  UNUSED(var);
-  UNUSED(val);
-  return OB_NOT_SUPPORTED;
+  int ret = OB_SUCCESS;
+
+  if( var.is_array() )
+  {
+    int64_t idx = 0;
+    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
+    {
+      TBSYS_LOG(WARN, "read index value failed");
+    }
+    else if( OB_SUCCESS != (ret = read_variable(var.var_name_, idx, val)))
+    {
+      TBSYS_LOG(WARN, "read %.*s[%ld] failed", var.var_name_.length(), var.var_name_.ptr(), idx);
+    }
+  }
+  else
+  {
+    ret = read_variable(var.var_name_, val);
+  }
+  return ret;
 }
 
 int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) const

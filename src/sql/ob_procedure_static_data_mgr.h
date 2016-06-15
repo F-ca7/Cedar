@@ -2,20 +2,20 @@
 #define OBPROCEDURESTATICDATAMGR_H
 
 #include "common/hash/ob_hashmap.h"
-#include "ob_physical_plan.h"
-#include "ob_sp_procedure.h"
+#include "common/ob_row_store.h"
+#include "common/ob_se_array.h"
 using namespace oceanbase::common;
 using namespace oceanbase::common::hash;
 namespace oceanbase
 {
   namespace sql
   {
-    struct StaticData {
-        int64_t id;
-        int64_t hkey;
-        ObRowStore store;
-    };
 
+    /**
+     * @brief The ObProcedureStaticDataMgr class
+     * Manage static data used in procedure running.
+     * It keeps all static data that being used for group execution
+     */
     class ObProcedureStaticDataMgr
     {
       public:
@@ -33,10 +33,12 @@ namespace oceanbase
 
         int clear();
 
-
-        //use static_idx + iteration_counter to locate typical static data on the ups
-//        int get_static_data(int64_t hk, const StaticData *&sdata) const;
       private:
+        struct StaticData {
+            int64_t id;
+            int64_t hkey;
+            ObRowStore store;
+        };
 
         ModuleArena static_store_arena_;
         ObSEArray<StaticData*, 64> static_store_;

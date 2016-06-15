@@ -520,7 +520,7 @@ namespace oceanbase
        * exectuted at the start of each iteration, just like increase the loop_counter_var_
        * @param inst
        */
-      void add_itr_local_inst(int64_t idx) { loop_local_inst_.push_back(idx); }
+//      void add_itr_local_inst(int64_t idx) { loop_local_inst_.push_back(idx); }
 
       const SpVar & get_loop_var() const { return loop_counter_var_; }
 
@@ -558,7 +558,7 @@ namespace oceanbase
       SpMultiInsts loop_body_;       //loop body
 
       //executed at each iteration started
-      ObSEArray<int64_t, 8> loop_local_inst_;
+//      ObSEArray<int64_t, 8> loop_local_inst_;
       bool reverse_;   //this variable could be elimated
     };
 
@@ -598,8 +598,6 @@ namespace oceanbase
       SpWhenBlock * get_when_block(int64_t idx) { return & (when_list_.at(idx)); }
       int64_t get_when_count() const { return when_list_.count(); }
 
-
-      int optimize(SpInstList& exec_list);
       void set_in_group_exec();
       SpVariableSet & cons_read_var_set() { return case_expr_var_set_; }
 
@@ -719,6 +717,7 @@ namespace oceanbase
       virtual int get_row_desc(const common::ObRowDesc *&row_desc) const {UNUSED(row_desc); return OB_SUCCESS;}
       virtual int get_next_row(const common::ObRow *&row) {UNUSED(row); return OB_ITER_END;}
 
+      int create_variable_table();
       virtual int write_variable(const ObString &var_name, const ObObj & val);
       virtual int write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val);
 
@@ -805,6 +804,31 @@ namespace oceanbase
       int64_t pc_;
 
       ModuleArena arena_; //maybe we can use the ObTransformer's mem_pool_ to allocate the instruction
+
+
+      typedef common::ObPooledAllocator<common::hash::HashMapTypes<common::ObString, common::ObObj>::AllocType, common::ObWrapperAllocator> VarNameValMapAllocer;
+      typedef common::hash::ObHashMap<common::ObString,
+      common::ObObj,
+      common::hash::NoPthreadDefendMode,
+      common::hash::hash_func<common::ObString>,
+      common::hash::equal_to<common::ObString>,
+      VarNameValMapAllocer,
+      common::hash::NormalPointer,
+      common::ObSmallBlockAllocator<>
+      > VarNameValMap;
+
+      common::ObSmallBlockAllocator<> block_allocator_;
+      VarNameValMapAllocer var_name_val_map_allocer_;
+      VarNameValMap var_name_val_map_;
+      common::ObStringBuf name_pool_;
+
+      struct ObProcedureArray
+      {
+//        ObString array_name_;
+        ObSEArray<ObObj, 8> array_values_;
+      };
+
+      ObSEArray<ObProcedureArray, 4> array_table_;
     };
   }
 }
