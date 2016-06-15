@@ -2034,7 +2034,7 @@ int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   int ret = OB_SUCCESS;
 
   const ObObj *idx;
-  if( OB_SUCCESS != (ret = read_variable(array_name, val)))
+  if( OB_SUCCESS != (ret = read_variable(array_name, idx)))
   {
     TBSYS_LOG(WARN, "fail to read array idx");
   }

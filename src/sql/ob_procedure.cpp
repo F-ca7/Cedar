@@ -740,42 +740,24 @@ int ObProcedure::create_variables()
   int ret = OB_SUCCESS;
   if( defs_.count() > 0 )
   {
-    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
+    ObObj new_value_obj;
+    new_value_obj.set_null();
     for (int64_t i = 0; i < defs_.count() && OB_SUCCESS == ret; ++i)
     {
-      ObVariableDef &var= defs_.at(i);
+      ObVariableDef &var = defs_.at(i);
 
-      if( var.is_array_ ) //save the array vairable in th procedure
+      if( var.is_array_ )
       {
-        ObArray<ObObj> tmp_array;
-        session->replace_vararray(var.variable_name_, tmp_array);
+        ret = write_variable(var.variable_name_, 0, new_value_obj);
       }
       else if(var.is_default_)
       {
-        if((ret=session->replace_variable(var.variable_name_,var.default_value_))!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "replace_variable default_value_  ERROR");
-        }
-        else
-        {
-          TBSYS_LOG(TRACE, "declare %.*s and set default_value",
-                    var.variable_name_.length(),var.variable_name_.ptr());
-        }
+        ret = write_variable(var.variable_name_, var.default_value_);
       }
       else
       {
-        ObObj new_value_obj;
-        new_value_obj.set_null();
-        new_value_obj.set_type(var.variable_type_);
-        if((ret=session->replace_variable(var.variable_name_,new_value_obj))!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "replace_variable default_value_  ERROR");
-        }
-        else
-        {
-          TBSYS_LOG(TRACE, "declare %.*s and set  default_value null",
-                    var.variable_name_.length(),var.variable_name_.ptr());
-        }
+//        new_value_obj.set_type(var.variable_type_);
+        ret = write_variable(var.variable_name_, new_value_obj);
       }
     }
   }
@@ -785,41 +767,71 @@ int ObProcedure::create_variables()
 int ObProcedure::clear_variables()
 {
   int ret = OB_SUCCESS;
-  if( defs_.count() > 0 )
-  {
-    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
-    for (int64_t i = 0; i < defs_.count() && OB_SUCCESS == ret; ++i)
-    {
-      ObVariableDef &var= defs_.at(i);
 
-      if( !var.is_array_ )
-      {
-        if( OB_SUCCESS != (ret=session->remove_variable(var.variable_name_)) )
-        {
-          TBSYS_LOG(WARN, "remove variable from sql_session[%p] fail", session);
-        }
-        else
-        {
-          TBSYS_LOG(TRACE, "remove %.*s from sql_session[%p]",
-                    var.variable_name_.length(),var.variable_name_.ptr(), session);
-        }
-      }
-      else
-      {
-        if( OB_SUCCESS != (ret = session->remove_vararray(var.variable_name_)))
-        {
-          TBSYS_LOG(WARN, "remove vararray from sql_session[%p] fail", session);
-        }
-        else
-        {
-          TBSYS_LOG(TRACE, "remove %.*s[] from sql_session[%p]",
-                    var.variable_name_.length(),var.variable_name_.ptr(), session);
-        }
-      }
-    }
+  for(int64_t i = 0; i < array_table_.count(); ++i)
+  {
+    array_table_.at(i).array_values_.clear();
   }
+  array_table_.clear();
+
+  var_name_val_map_.clear();
+
+  name_pool_.clear();
+//  if( defs_.count() > 0 )
+//  {
+//    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
+//    for (int64_t i = 0; i < defs_.count() && OB_SUCCESS == ret; ++i)
+//    {
+//      ObVariableDef &var= defs_.at(i);
+
+//      if( !var.is_array_ )
+//      {
+//        if( OB_SUCCESS != (ret=session->remove_variable(var.variable_name_)) )
+//        {
+//          TBSYS_LOG(WARN, "remove variable from sql_session[%p] fail", session);
+//        }
+//        else
+//        {
+//          TBSYS_LOG(TRACE, "remove %.*s from sql_session[%p]",
+//                    var.variable_name_.length(),var.variable_name_.ptr(), session);
+//        }
+//      }
+//      else
+//      {
+//        if( OB_SUCCESS != (ret = session->remove_vararray(var.variable_name_)))
+//        {
+//          TBSYS_LOG(WARN, "remove vararray from sql_session[%p] fail", session);
+//        }
+//        else
+//        {
+//          TBSYS_LOG(TRACE, "remove %.*s[] from sql_session[%p]",
+//                    var.variable_name_.length(),var.variable_name_.ptr(), session);
+//        }
+//      }
+//    }
+//  }
   return ret;
 }
+
+int ObProcedure::load_parameters(ObIArray<ObSqlExpression> &param_list)
+{
+  int ret = OB_SUCCESS;
+
+  if( param_list.count() != params_.count() )
+  {
+    ret = OB_INPUT_PARAM_ERROR;
+  }
+
+  return ret;
+}
+
+int ObProcedure::return_paramters()
+{
+  int ret = OB_SUCCESS;
+
+  return ret;
+}
+
 
 int ObProcedure::open()
 {
