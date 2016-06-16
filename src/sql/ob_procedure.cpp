@@ -813,13 +813,20 @@ int ObProcedure::clear_variables()
   return ret;
 }
 
-int ObProcedure::load_parameters(ObIArray<ObSqlExpression> &param_list)
+int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 {
   int ret = OB_SUCCESS;
 
-  if( param_list.count() != params_.count() )
+  if( param_expr.count() != params_.count() )
   {
     ret = OB_INPUT_PARAM_ERROR;
+  }
+  else
+  {
+    for(int64_t i = 0; i < params_.count(); ++i)
+    {
+      const ObParamDef 
+    }
   }
 
   return ret;

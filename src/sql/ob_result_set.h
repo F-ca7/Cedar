@@ -196,7 +196,7 @@ namespace oceanbase
         common::ObObj *cur_time_; // only used when the sql contains fun like current_time
 
         /**
-         * When add this pointer, I would use is the located the running procedure, then I
+         * The pointer to used to the located the running procedure, then I
          * can read variables or array from that. This is important when doing postfix_exprssion
          * calculation. However, if we only read variables or array from ObSqlSession, Such desgin
          * is not necessary.

@@ -76,7 +76,7 @@ namespace oceanbase
 
       int add_var_def(const ObVariableDef &def);
 
-      int load_parameters(ObIArray<ObSqlExpression> &param_list);
+      int fill_parameters(ObIArray<ObSqlExpression> &param_expr);
       int return_paramters();
       int create_variables();
       int clear_variables();
