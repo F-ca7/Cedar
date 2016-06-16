@@ -149,6 +149,7 @@ namespace oceanbase
       PHY_PROCEDURE_ELSE,
       PHY_PROCEDURE_SELECT_INTO,
       //add:e
+      PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616
       PHY_END, /* end of phy operator type */
 
     };

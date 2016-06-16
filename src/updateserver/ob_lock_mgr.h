@@ -62,6 +62,13 @@ namespace oceanbase
         int unlock(TEValue *value, BaseSessionCtx &session);
     };
 
+    class TableUnlocker : public ISessionCallback
+    {
+      public:
+        virtual ~TableUnlocker() {};
+        int cb_func(const bool rollback, void *data, BaseSessionCtx &session);
+    };
+
     class LockMgr;
     class RWSessionCtx;
     class RPSessionCtx;

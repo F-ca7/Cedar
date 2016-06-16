@@ -208,6 +208,10 @@
 #include "ob_procedure_select_into.h"
 //code_coverage_zhujun
 //add:e
+//add wangjiahao [table lock] 20160616 :b
+#include "ob_lock_table_stmt.h"
+#include "ob_ups_lock_table.h"
+//add :e
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 typedef int ObMySQLSessionKey;
@@ -512,6 +516,11 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
         	break;          
         //code_coverage_zhujun
 		//add:e
+//add wangjiahao [table lock] 20160616 :b
+      case ObBasicStmt::T_LOCK_TABLE:
+        ret = gen_physical_lock_table(logical_plan, physical_plan, err_stat, query_id, index);
+        break;
+//add :e
       default:
         ret = OB_NOT_SUPPORTED;
         TRANS_LOG("Unknown logical plan, stmt_type=%d", stmt->get_stmt_type());
@@ -8455,6 +8464,57 @@ int ObTransformer::gen_physical_show(ObLogicalPlan *logical_plan, ObPhysicalPlan
   return ret;
 }
 
+//add wangjiahao [table lock] 20160616 :b
+int ObTransformer::gen_physical_lock_table(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    int32_t* index)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  ObLockTableStmt *lock_table_stmt = NULL;
+  ObPhysicalPlan* inner_plan = NULL;
+  ObUpsLockTable *ups_lock_table = NULL;
+  int64_t table_id = 0;
+  //ObPhyOperator *result_op = NULL;
+
+  if (OB_SUCCESS != (ret = wrap_ups_executor(physical_plan, query_id, inner_plan, index, err_stat)))
+  {
+    TBSYS_LOG(WARN, "err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = get_stmt(logical_plan, err_stat, query_id, lock_table_stmt)))
+  {
+    TRANS_LOG("Fail to get statement");
+  }
+  else if (0 == (table_id = lock_table_stmt->get_lock_table_id()))
+  {
+    TRANS_LOG("Invalid table_id in lock table stmt.");
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else if (NULL == CREATE_PHY_OPERRATOR(ups_lock_table, ObUpsLockTable, inner_plan, err_stat))
+  {
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+  }
+  else if (OB_SUCCESS != (ret = ups_lock_table->set_lock_table_id(table_id)))
+  {
+    TRANS_LOG("Set table_id ERROR.");
+  }
+  else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(
+                                                ups_lock_table,
+                                                physical_plan == inner_plan ? index : NULL,
+                                                physical_plan != inner_plan)))
+  {
+    TRANS_LOG("Failed to add phy query, err=%d", ret);
+  }
+  else
+  {
+
+  }
+  return OB_SUCCESS;
+}
+//add :e
+
 int ObTransformer::gen_physical_prepare(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, const uint64_t& query_id, int32_t* index)
 {
   int &ret = err_stat.err_code_ = OB_SUCCESS;
@@ -9109,6 +9169,7 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
   else
   {
     ups_modify->set_dml_type(OB_DML_INSERT);
+    ups_modify->set_table_id(insert_stmt->get_table_id()); //add wangjiahao [table lock] 20160616
     // check primary key columns
     uint64_t tid = insert_stmt->get_table_id();
     uint64_t cid = OB_INVALID_ID;
@@ -11168,6 +11229,7 @@ int ObTransformer::gen_physical_update_new(
   {
     table_id = update_stmt->get_update_table_id();
     ups_modify->set_dml_type(OB_DML_UPDATE);
+    ups_modify->set_table_id(table_id); //add wangjiahao [table lock] 20160616
   }
   ObSqlExpression expr;
   // fill rowkey columns into the Project op
@@ -11676,6 +11738,7 @@ int ObTransformer::gen_physical_delete_new(
   {
     table_id = delete_stmt->get_delete_table_id();
     ups_modify->set_dml_type(OB_DML_DELETE);
+    ups_modify->set_table_id(table_id); // add wangjiahao [table lock] 20160616
   }
   //add maoxx
   if (OB_LIKELY(ret == OB_SUCCESS))

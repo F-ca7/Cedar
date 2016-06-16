@@ -60,6 +60,8 @@
 #include "ob_semi_left_join.h"
 //add:e
 
+#include "ob_ups_lock_table.h" //add wangjiahao [table lock] 20160616
+
 using namespace oceanbase;
 using namespace sql;
 

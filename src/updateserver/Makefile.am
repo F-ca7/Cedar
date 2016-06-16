@@ -108,7 +108,10 @@ libupdateserver_a_SOURCES =                                                 \
   ob_update_reload_config.h         ob_update_reload_config.cpp             \
   ob_util_interface.h                                                       \
   ob_inc_seq.h                      ob_inc_seq.cpp			    \
-  ob_commit_point_runnable.h	    ob_commit_point_runnable.cpp
+  ob_commit_point_runnable.h	    ob_commit_point_runnable.cpp            \
+  ob_memtable_lock.h                ob_memtable_lock.cpp                    \
+  ob_table_lock_mgr.h               ob_table_lock_mgr.cpp                   \
+  ob_table_lock.h
 
 bin_PROGRAMS = updateserver ob_ping
 updateserver_SOURCES = main.cpp ${libupdateserver_a_SOURCES}

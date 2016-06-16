@@ -69,6 +69,7 @@ namespace oceanbase
         virtual void free(BaseSessionCtx *ptr) = 0;
     };
 
+    class SessionTableLockInfo;
     class BaseSessionCtx
     {
       public:
@@ -141,6 +142,17 @@ namespace oceanbase
           UNUSED(isolation);
           return common::OB_SUCCESS;
         };
+        //add wangjiahao [tablelock] 20160616 :b
+        virtual int init_table_lock_info()
+        {
+          return common::OB_SUCCESS;
+        }
+
+        virtual SessionTableLockInfo* get_tblock_info()
+        {
+          return NULL;
+        }
+        //add :e
         virtual int add_publish_callback(ISessionCallback *callback, void *data)
         {
           UNUSED(callback);

@@ -84,7 +84,40 @@ namespace oceanbase
       uint64_t table_id = OB_INVALID_ID;
       uint64_t column_id = OB_INVALID_ID;
       const ObRowkeyInfo *rki = NULL;
-      if (NULL == T::child_op_)
+//add wangjiahao [table lock] 20160616 :b
+      if (this->get_dml_type() == OB_DML_REPLACE)
+      {
+        T::child_op_->get_row_desc(row_desc);
+        row_desc->get_tid_cid(0, table_id, column_id);
+      }
+      else
+      {
+        table_id = this->get_table_id();
+      }
+      //TBSYS_LOG(INFO, "##TEST_PRINT## what's' the fuck table_id=%lu", table_id);
+      SessionTableLockInfo* stblk_info = NULL;
+      if (table_id > 3000 && table_id <= 5048)
+      {
+
+        if (NULL == (stblk_info = session_.get_tblock_info()))
+        {
+          TBSYS_LOG(ERROR, "SessionTableLockInfo is NULL. table_id=%lu err=%d", table_id, ret);
+        }
+        else
+        {
+          TableLockMgr& global_tblk_mgr = host_.get_table_lock_mgr();
+          uint32_t uid = session_.get_session_descriptor();
+          if (OB_SUCCESS != (ret = stblk_info->lock_table(global_tblk_mgr, uid, table_id, IX_LOCK)))
+          {
+            TBSYS_LOG(WARN, "Lock table failed table_id=%ld err=%d", table_id, ret);
+          }
+        }
+
+      }
+//add :e
+      if (OB_SUCCESS != ret)
+      {}
+      else if (NULL == T::child_op_)
       {
         ret = OB_NOT_INIT;
       }

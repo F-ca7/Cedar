@@ -52,6 +52,9 @@
 #include "common/ob_string_buf.h"
 #include "common/utility.h"
 #include "common/ob_hint.h"
+//add wangjiahao [table lock] 20160616 :b
+#include "ob_lock_table_stmt.h"
+//add :e
 #include <stdint.h>
 
 //add longfei for hint

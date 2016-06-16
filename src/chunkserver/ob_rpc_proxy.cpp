@@ -1167,7 +1167,7 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       UNUSED(server_type);
-      int64_t start_time = tbsys::CTimeUtil::getTime();
+      //int64_t start_time = tbsys::CTimeUtil::getTime();
       if (!check_inner_stat())
       {
         TBSYS_LOG(ERROR, "%s", "check inner stat failed");
@@ -1186,8 +1186,8 @@ namespace oceanbase
           TBSYS_LOG(ERROR, "scan from another cs failed:ret[%d]", ret);
         }
       }
-      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_COUNT);
-      OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_TIME, tbsys::CTimeUtil::getTime() - start_time);
+      //OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_COUNT);
+      //OB_STAT_INC(CHUNKSERVER, INC_QUERY_SCAN_TIME, tbsys::CTimeUtil::getTime() - start_time);
 
       return ret;
     }

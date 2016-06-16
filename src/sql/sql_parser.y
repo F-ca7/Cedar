@@ -145,7 +145,7 @@ do \
 %token IDENTIFIED IF IN INNER INTEGER INTERSECT INSERT INTO IS
 %token JOIN SEMI_JOIN
 %token KEY
-%token LEADING LEFT LIMIT LIKE LOCAL LOCKED
+%token LEADING LEFT LIMIT LIKE LOCAL LOCKED LOCKWJH
 %token MEDIUMINT MEMORY MOD MODIFYTIME MASTER
 %token NOT NUMERIC
 %token OFFSET ON OR ORDER OPTION OUTER
@@ -231,6 +231,7 @@ do \
 %type <non_reserved_keyword> unreserved_keyword
 %type <ival> consistency_level
 %type <node> opt_comma_list hint_options
+%type <node> lock_table_stmt
 /* add [secondaryindex reconstruct] 20150925 longfei [create index] :b */
 %type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
 /* add e */
@@ -311,6 +312,7 @@ stmt:
   | commit_stmt { $$ = $1;}
   | rollback_stmt {$$ = $1;}
   | kill_stmt {$$ = $1;}
+  | lock_table_stmt {$$ = $1;}
   | /*EMPTY*/   { $$ = NULL; }
   ;
 
@@ -2434,7 +2436,12 @@ show_stmt:
       $$->value_ = $2;
     }
   ;
-
+lock_table_stmt:
+    LOCKWJH TABLE relation_factor
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LOCK_TABLE, 1, $3);
+    }
+  ;
 opt_limit:
     LIMIT INTNUM ',' INTNUM
     {

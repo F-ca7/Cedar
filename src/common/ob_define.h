@@ -395,6 +395,10 @@ namespace oceanbase
     //add wenghaixing[secondary index.static_index]20151118
     const int OB_ERR_NULL_POINTER = -5082;
     //add e
+    //add wangjiahao [table lock] 20160616 :b
+    const int OB_ERR_TABLE_EXCLUSIVE_LOCK_CONFLICT = -5090;
+    const int OB_ERR_TABLE_INTENTION_LOCK_CONFLICT = -5091;
+    //add :e
     //add longfei [cons static index] 151220:b
     const int OB_GET_TABLETS = -5602;
     const int OB_GET_RANGES = -5603;

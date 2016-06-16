@@ -65,6 +65,10 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
 
+      //add wangjiahao [table lock] 20160616 :b
+      err = table_lock_mgr_.init();
+      TBSYS_LOG(INFO, "##TEST_PRINT## table_lock_map_.init() err=%d", err);
+      //add:e
       err = table_mgr_.init();
       if (OB_SUCCESS != err)
       {
