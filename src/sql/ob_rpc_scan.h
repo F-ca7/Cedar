@@ -10,9 +10,15 @@
  *
  * modified by longfei：add some member variables and some rule for Query Optimization
  *
+ * modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ * add header files
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ *         guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
  * @date 2016_01_22
+ *       2016_06_16
  */
 
 /**
