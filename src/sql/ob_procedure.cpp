@@ -819,9 +819,11 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
     common::ObRow tmp_row;
     const ObObj *result = NULL;
     ObObj casted_cell;
+    ObObj expected_type;
     for(int64_t i = 0; OB_SUCCESS == ret && i < params_.count(); ++i)
     {
       const ObParamDef &  param = params_.at(i);
+      expected_type.set_type(param.param_type_);
 
       if( param.out_type_ ==  IN_TYPE || param.out_type_ == INOUT_TYPE )
       {
@@ -834,7 +836,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
         else if( result->get_type() != param.param_type_ )
         {
           //try to cast input paramter
-          if( OB_SUCCESS != (ret = common::obj_cast(*result, param.param_type_, casted_cell, result)) )
+          if( OB_SUCCESS != (ret = common::obj_cast(*result, expected_type, casted_cell, result)) )
           {
             TBSYS_LOG(WARN, "fail to cast obj, orig: %s, expected type: %d", to_cstring(*result), param.param_type_);
           }
@@ -854,7 +856,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
         if( OB_SUCCESS != (param_expr.at(i).is_var_expr(is_var_type, params_.at(i).out_var_))
             || !is_var_type )
         {
-          TBSYS_LOG(WARN, "out parameter must be a variable, i,  %s", i, to_cstring(param_expr.at(i)));
+          TBSYS_LOG(WARN, "out parameter must be a variable, %ld,  %s", i, to_cstring(param_expr.at(i)));
           ret = OB_ERR_UNEXPECTED;
         }
       }
@@ -888,7 +890,7 @@ int ObProcedure::return_paramters()
       {
         TBSYS_LOG(WARN, "fail to return paramter into session, param[%s], var[%s]",
             to_cstring(param.param_name_),
-            var_name);
+            to_cstring(var_name));
       }
     }
   }
