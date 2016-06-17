@@ -6,32 +6,20 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_tablet_scan.cpp
+ * @brief for scanning tablet
+ * modified by longfei：
+ * make function build_sstable_scan_param() public
+ *
  * @brief ObTabletScan
  *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
  *     set_trans_id for scan_param in need_incremental_data()
  *
  * @version __DaSE_VERSION
- * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
- *         bingo <bingxiao@stu.ecnu.edu.cn>
- * @date 2016_06_16
- */
-
-/**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * @file ob_tablet_scan.cpp
- * @brief for scanning tablet
- *
- * modified by longfei：
- * make function build_sstable_scan_param() public
- *
- * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
+ *         guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
  * @date 2016_01_22
+ *       2016_06_16
  */
 
 /**

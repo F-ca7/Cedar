@@ -151,7 +151,7 @@ namespace oceanbase
       start_time_us_ = 0;
       // add by guojinwei [repeatable read] 20160310:b
       trans_start_time_us_ = 0;
-      isolation_level_ = READ_COMMITED;
+      isolation_level_ = READ_COMMITED;  ///< default isolation level is READ_COMMITTED
       // add:e
     }
 

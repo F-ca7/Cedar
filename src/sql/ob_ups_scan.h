@@ -85,6 +85,10 @@ namespace oceanbase
         virtual int set_range(const ObNewRange &range);
         void set_version_range(const ObVersionRange &version_range);
         // add by guojinwei [repeatable read] 20160312:b
+        /*
+         * @brief set function of transaction ID for scan parameter
+         * @param[in] trans_id, transantion ID
+         */
         void set_trans_id(const ObTransID & trans_id);
         // add:e
 

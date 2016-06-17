@@ -112,6 +112,12 @@ namespace oceanbase
       public:
         int on_trans_begin();
         int on_read_begin(const TEKey &key, TEValue &value);
+        /**
+         * @brief lock a key-value pair
+         * @param[in] key, key of target record
+         * @param[in] value, value of target record
+         * @return boolean, 0 for success, 1 for error.
+         */
         int on_write_begin(const TEKey &key, TEValue &value);
         void on_trans_end();
         void on_precommit_end();
