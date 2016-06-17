@@ -226,7 +226,7 @@ int ObProcedureExecute::open()
 //      if(ret == OB_SUCCESS)
 //      {
 
-  if( OB_SUCCESS != (ret = proc->fill_parameters(param_list)) )
+  if( OB_SUCCESS != (ret = proc->fill_parameters(param_list_)) )
   {
     TBSYS_LOG(WARN, "fill paramters fail");
   }

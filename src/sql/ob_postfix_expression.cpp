@@ -841,9 +841,9 @@ namespace oceanbase
       {
         proc = static_cast<SpProcedure*>(plan->get_main_query());
       }
-      else if( plan->get_result_set() != NULL )
+      else if( const_cast<ObPhysicalPlan*>(plan)->get_result_set() != NULL )
       {
-        proc = plan->get_result_set()->get_running_procedure();
+        proc = const_cast<ObPhysicalPlan*>(plan)->get_result_set()->get_running_procedure();
       }
       return proc;
     }
