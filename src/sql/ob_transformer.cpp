@@ -1142,13 +1142,13 @@ int ObTransformer::gen_physical_procedure_execute(
         }
 
         //add by zhujun 2015-7-10
-        for (int64_t i = 0;i < stmt->get_variable_size(); i++)
-        {
-          ObString param_name;
-          ob_write_string(*mem_pool_, stmt->get_variable_name(i), param_name);
-          result_op->add_param_name(param_name);
+//        for (int64_t i = 0;i < stmt->get_variable_size(); i++)
+//        {
+//          ObString param_name;
+//          ob_write_string(*mem_pool_, stmt->get_variable_name(i), param_name);
+//          result_op->add_param_name(param_name);
 //          TBSYS_LOG(TRACE,"add_param_name %.*s", param_name.length(), param_name.ptr());
-        }
+//        }
       }
     }
   }

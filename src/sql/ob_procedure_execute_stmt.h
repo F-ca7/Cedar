@@ -30,11 +30,11 @@ class ObProcedureExecuteStmt: public ObBasicStmt {
 
 		virtual void print(FILE* fp, int32_t level, int32_t index);
 
-    int add_variable_name(const ObString& name);
+//    int add_variable_name(const ObString& name);
 
-    const ObString& get_variable_name(int64_t index) const;
+//    const ObString& get_variable_name(int64_t index) const;
 
-    int64_t get_variable_size() const;
+//    int64_t get_variable_size() const;
 
     int add_param_expr(uint64_t expr_id);
 
@@ -44,7 +44,7 @@ class ObProcedureExecuteStmt: public ObBasicStmt {
 
 	private:
 		ObString proc_name_;
-		common::ObArray<common::ObString> variable_names_;
+//		common::ObArray<common::ObString> variable_names_;
 		common::ObArray<uint64_t> param_list_;
 		uint64_t proc_stmt_id_;/*需要从表里面查询数据生成存储过程计划的时候对应的存储过程语句id*/
 	};

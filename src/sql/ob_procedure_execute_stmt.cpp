@@ -33,20 +33,20 @@ namespace oceanbase{
       return proc_stmt_id_;
     }
 
-    int ObProcedureExecuteStmt::add_variable_name(const ObString& name)
-    {
-      return variable_names_.push_back(name);
-    }
+//    int ObProcedureExecuteStmt::add_variable_name(const ObString& name)
+//    {
+//      return variable_names_.push_back(name);
+//    }
 
-    int64_t ObProcedureExecuteStmt::get_variable_size() const
-    {
-      return variable_names_.count();
-    }
+//    int64_t ObProcedureExecuteStmt::get_variable_size() const
+//    {
+//      return variable_names_.count();
+//    }
 
-    const ObString& ObProcedureExecuteStmt::get_variable_name(int64_t index) const
-    {
-      return variable_names_.at(index);
-    }
+//    const ObString& ObProcedureExecuteStmt::get_variable_name(int64_t index) const
+//    {
+//      return variable_names_.at(index);
+//    }
 
     int ObProcedureExecuteStmt::add_param_expr(uint64_t expr_id)
     {

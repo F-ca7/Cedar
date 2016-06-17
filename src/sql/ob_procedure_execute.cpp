@@ -19,7 +19,7 @@ ObProcedureExecute::ObProcedureExecute()
 ObProcedureExecute::~ObProcedureExecute()
 {
   //inner_result_set_ has a physical plan from assign, we need to clear it
-  inner_result_set_.reset();
+//  inner_result_set_.reset();
 }
 
 int ObProcedureExecute::set_proc_name(const ObString &proc_name)
@@ -33,10 +33,10 @@ int ObProcedureExecute::set_stmt_id(uint64_t stmt_id)
 	return OB_SUCCESS;
 }
 
-int ObProcedureExecute::add_param_name(const ObString& name)
-{
-  return param_names_.push_back(name);
-}
+//int ObProcedureExecute::add_param_name(const ObString& name)
+//{
+//  return param_names_.push_back(name);
+//}
 
 int ObProcedureExecute::add_param_expr(ObSqlExpression& expr)
 {
@@ -44,10 +44,10 @@ int ObProcedureExecute::add_param_expr(ObSqlExpression& expr)
   return param_list_.push_back(expr);
 }
 
-int64_t ObProcedureExecute::get_param_num() const
-{
-	return param_names_.count();
-}
+//int64_t ObProcedureExecute::get_param_num() const
+//{
+//	return param_names_.count();
+//}
 
 int64_t ObProcedureExecute::get_param_size() const
 {
@@ -56,14 +56,14 @@ int64_t ObProcedureExecute::get_param_size() const
 
 void ObProcedureExecute::reset()
 {
-	param_names_.clear();
+//	param_names_.clear();
   stmt_id_=common::OB_INVALID_ID;
   ObSingleChildPhyOperator::reset();
 }
 
 void ObProcedureExecute::reuse()
 {
-	param_names_.clear();
+//	param_names_.clear();
   stmt_id_=common::OB_INVALID_ID;
   ObSingleChildPhyOperator::reuse();
 }

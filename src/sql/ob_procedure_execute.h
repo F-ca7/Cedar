@@ -32,9 +32,9 @@ namespace oceanbase
 
       int set_stmt_id(uint64_t stmt_id);			//the cached ObProcedure plan id
 
-      int64_t get_param_num() const;
+//      int64_t get_param_num() const;
 
-      int add_param_name(const ObString& name);
+//      int add_param_name(const ObString& name);
 
 			int add_param_expr(ObSqlExpression& expr);
 
@@ -42,7 +42,7 @@ namespace oceanbase
 
       int64_t get_param_size() const;
 
-      ObResultSet & get_procedure_result_set() { return inner_result_set_; }
+//      ObResultSet & get_procedure_result_set() { return inner_result_set_; }
 		private:
 			//disallow copy
 			ObProcedureExecute(const ObProcedureExecute &other);
@@ -52,10 +52,10 @@ namespace oceanbase
 		private:
 			//data members
 			ObString proc_name_;
-			common::ObArray<common::ObString> param_names_;
+//      common::ObArray<common::ObString> param_names_;
 			common::ObArray<ObSqlExpression> param_list_;
       uint64_t stmt_id_;
-      ObResultSet inner_result_set_;
+//      ObResultSet inner_result_set_;
 		};
 	}
 }

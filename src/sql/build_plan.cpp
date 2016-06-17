@@ -4501,25 +4501,27 @@ int resolve_procedure_execute_stmt(
 					else
 					{
 						stmt->add_param_expr(expr_id);
-					}
-					if(arguments->children_[i]->type_==T_TEMP_VARIABLE)
-					{
-						ObString name;
-						if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
-						{
-							PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
-						}
-						else if ((ret = stmt->add_variable_name(name)) != OB_SUCCESS)
-						{
-							PARSER_LOG("Add Using variable failed");
-						}
-					}
+          }
+          //delete by zt 20160117 :b
+//					if(arguments->children_[i]->type_==T_TEMP_VARIABLE)
+//					{
+//						ObString name;
+//						if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
+//						{
+//							PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
+//						}
+//						else if ((ret = stmt->add_variable_name(name)) != OB_SUCCESS)
+//						{
+//							PARSER_LOG("Add Using variable failed");
+//						}
+//					}
 					//add by zhujun 2015-8-4 put a null string into parameters only stay
-					else
-					{
-						 ObString name=ObString::make_string("null");
-						 stmt->add_variable_name(name);
-					}
+//					else
+//					{
+//						 ObString name=ObString::make_string("null");
+//						 stmt->add_variable_name(name);
+//					}
+          //delete by zt 20160117 :e
 			  }
       }
       //delete by zt 20151117 :b
