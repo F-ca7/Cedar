@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_common_param.h
+ * @brief ObReadParam
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add ObTranID variable to ObReadParam, and set get
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 #ifndef OCEANBASE_COMMON_COMMON_PARAM_H_
 #define OCEANBASE_COMMON_COMMON_PARAM_H_
 

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_query_engine.cpp
+ * @brief QueryEngine
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     modify next() for 'null' control
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 ////===================================================================
  //
  // ob_query_engine.cpp / hash / common / Oceanbase
