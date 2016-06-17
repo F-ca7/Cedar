@@ -14,9 +14,9 @@ namespace oceanbase {
     enum ParamType
     {
       DEFAULT_TYPE=0,
-      IN_TYPE,
-      OUT_TYPE,
-      INOUT_TYPE
+      IN_TYPE = 1,
+      OUT_TYPE = 2,
+      INOUT_TYPE = 3
     };
 
     struct ObParamDef
@@ -26,6 +26,7 @@ namespace oceanbase {
       ObObj       default_value_;/*默认值*/
       bool				is_array;
       ParamType	out_type_;/*输出类型*/
+      ObObj       out_var_;
     };
 
 

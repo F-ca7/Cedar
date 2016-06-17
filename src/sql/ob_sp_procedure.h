@@ -741,6 +741,7 @@ namespace oceanbase
       //remove the instruction that does not owned by itself
       //only used when we build a fake procedure object
       void clear_inst_list() { inst_list_.clear(); }
+      void clear_var_tab();
 
 //      void set_exec_strategy(SpInstExecStrategy *exec_strategy) { exec_strategy_ = exec_strategy; }
 //      SpInstExecStrategy * get_exec_strategy() { return exec_strategy_; }

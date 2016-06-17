@@ -117,7 +117,7 @@ int ObProcedureExecute::open()
 {
 //  TBSYS_LOG(INFO, "zz:ObProcedureExecute::open");
   int ret = OB_SUCCESS;
-  int clear_ret = OB_SUCCESS;
+//  int clear_ret = OB_SUCCESS;
   ObProcedure *proc = NULL;
   ObResultSet *result_set = NULL;
   ObPhysicalPlan *physical_plan = NULL;
@@ -181,124 +181,130 @@ int ObProcedureExecute::open()
 //    }
 //  }
   //fill running parameters
-  if( OB_SUCCESS == ret )
-  {
+//  if( OB_SUCCESS == ret )
+//  {
 //    OB_ASSERT(proc->get_type() == PHY_PROCEDURE);
-    int64_t param_desired = proc->get_param_num();
-    int64_t param_provided = get_param_size();
-    if(param_desired != param_provided)
-    {
-      ret =OB_INPUT_PARAM_ERROR;
-    }
-    else
-    {
+//    int64_t param_desired = proc->get_param_num();
+//    int64_t param_provided = get_param_size();
+//    if(param_desired != param_provided)
+//    {
+//      ret =OB_INPUT_PARAM_ERROR;
+//    }
+//    else
+//    {
       //create paramaters
-      for(int64_t i=0;i < param_desired; ++i)
-      {
-        const ObParamDef &param_def = proc->get_param(i);
-        const ObString& param_name = param_def.param_name_;
-        ObSqlExpression& expr=param_list_.at(i);
-        common::ObRow tmp_row;
-        const ObObj *result = NULL;
+//      for(int64_t i=0;i < param_desired; ++i)
+//      {
+//        const ObParamDef &param_def = proc->get_param(i);
+//        const ObString& param_name = param_def.param_name_;
+//        ObSqlExpression& expr=param_list_.at(i);
+//        common::ObRow tmp_row;
+//        const ObObj *result = NULL;
 
-//        TBSYS_LOG(INFO, "param %ld: %s", i, to_cstring(expr));
-        // 如果是输出参数则
-        if( param_def.out_type_ == OUT_TYPE )
-        {
-          const ObObj nullValue;
-          if((ret=session->replace_variable(param_name,nullValue))!=OB_SUCCESS)
-          {
-            TBSYS_LOG(WARN, "replace_variable ERROR");
-          }
-          continue;
-        }
+////        TBSYS_LOG(INFO, "param %ld: %s", i, to_cstring(expr));
+//        // 如果是输出参数则
+//        if( param_def.out_type_ == OUT_TYPE )
+//        {
+//          const ObObj nullValue;
+//          if((ret=session->replace_variable(param_name,nullValue))!=OB_SUCCESS)
+//          {
+//            TBSYS_LOG(WARN, "replace_variable ERROR");
+//          }
+//          continue;
+//        }
 
-        if((ret=expr.calc(tmp_row, result))!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "ObProcedureExecute expr compute failed");
-        }
-        else if((ret=session->replace_variable(param_name,*result))!=OB_SUCCESS)//取出这个的值，|赋给形式参数|
-        {
-          TBSYS_LOG(WARN, "zz:replace_variable ERROR");
-        }
-      }
+//        if((ret=expr.calc(tmp_row, result))!=OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "ObProcedureExecute expr compute failed");
+//        }
+//        else if((ret=session->replace_variable(param_name,*result))!=OB_SUCCESS)//取出这个的值，|赋给形式参数|
+//        {
+//          TBSYS_LOG(WARN, "zz:replace_variable ERROR");
+//        }
+//      }
 
-      if(ret == OB_SUCCESS)
-      {
-        if((ret=result_set->open())!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "procedure execute error!");
-        }
-        else
-        {
-          TBSYS_LOG(TRACE, "procedure execute success!");
-        }
-      }
-    }
+//      if(ret == OB_SUCCESS)
+//      {
+
+  if( OB_SUCCESS != (ret = proc->fill_parameters(param_list)) )
+  {
+    TBSYS_LOG(WARN, "fill paramters fail");
+  }
+  else if( OB_SUCCESS != (ret=result_set->open()) )
+  {
+    TBSYS_LOG(WARN, "procedure execute error!");
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "procedure execute success!");
+  }
+//      }
+//    }
 
     //clear paramaters, remove input paramters, keep output paramters
-    int var_index=0;
-    for(int64_t i=0;i<proc->get_param_num();++i)
-    {
-      const ObParamDef& param=proc->get_param(i);
-      const ObString& param_name=param.param_name_;//存储过程的形式参数名称
+//    int var_index=0;
+//    for(int64_t i=0;i<proc->get_param_num();++i)
+//    {
+//      const ObParamDef& param=proc->get_param(i);
+//      const ObString& param_name=param.param_name_;//存储过程的形式参数名称
 
-      if(param.out_type_==OUT_TYPE||param.out_type_==INOUT_TYPE)
-      {
-        ObObj val;
-        const ObString& var_name=param_names_.at(var_index++);//赋值的参数名
-        //应该从这里面获取变量名ObSqlExpression& expr= param_list_.at(i)
-        if ((clear_ret = session->get_variable_value(param_name, val)) != OB_SUCCESS)//|取出这个的值|，赋给形式参数
-        {
-          TBSYS_LOG(WARN, "zz:Get variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
-        }
-        else if((clear_ret=session->replace_variable(var_name,val))!=OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "zz:replace_variable ERROR");
-        }
-        else
-        {
-          if(var_name.compare(param_name)!=0)//如果形参和实参名字一样则不用移除
-          {
-            //名称不一样，移除形参，保留实参
-            if ((clear_ret = session->remove_variable(param_name)) != OB_SUCCESS)
-            {
-              TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
-            }
-            else
-            {
-//              TBSYS_LOG(INFO,"zz:remove %.*s  assign %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
-            }
-          }
-          else
-          {
-//            TBSYS_LOG(INFO,"zz:param1 %.*s  param2 %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
-          }
+//      if(param.out_type_==OUT_TYPE||param.out_type_==INOUT_TYPE)
+//      {
+//        ObObj val;
+//        const ObString& var_name=param_names_.at(var_index++);//赋值的参数名
+//        //应该从这里面获取变量名ObSqlExpression& expr= param_list_.at(i)
+//        if ((clear_ret = session->get_variable_value(param_name, val)) != OB_SUCCESS)//|取出这个的值|，赋给形式参数
+//        {
+//          TBSYS_LOG(WARN, "zz:Get variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
+//        }
+//        else if((clear_ret=session->replace_variable(var_name,val))!=OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "zz:replace_variable ERROR");
+//        }
+//        else
+//        {
+//          if(var_name.compare(param_name)!=0)//如果形参和实参名字一样则不用移除
+//          {
+//            //名称不一样，移除形参，保留实参
+//            if ((clear_ret = session->remove_variable(param_name)) != OB_SUCCESS)
+//            {
+//              TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
+//            }
+//            else
+//            {
+////              TBSYS_LOG(INFO,"zz:remove %.*s  assign %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
+//            }
+//          }
+//          else
+//          {
+////            TBSYS_LOG(INFO,"zz:param1 %.*s  param2 %.*s",param_name.length(),param_name.ptr(),var_name.length(),var_name.ptr());
+//          }
 
-        }
-        //param_names_.remove(i);
-      }
-      else
-      {
-//        const ObString &var_name = param_names_.at(var_index++);//赋值的参数名 取出占位的变量名
-//        TBSYS_LOG(INFO,"zz:varname is %.*s",var_name.length(),var_name.ptr());
-        if ((clear_ret = session->remove_variable(param_name)) != OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
-        }
-        else
-        {
-          TBSYS_LOG(TRACE,"zz:remove %.*s success",param_name.length(),param_name.ptr());
-        }
-      }
-      //		delete param->param_name_;
-      //		delete param;
-    }
-  }
-	if(clear_ret==OB_SUCCESS)
-		return ret;
-	else
-		return clear_ret;
+//        }
+//        //param_names_.remove(i);
+//      }
+//      else
+//      {
+////        const ObString &var_name = param_names_.at(var_index++);//赋值的参数名 取出占位的变量名
+////        TBSYS_LOG(INFO,"zz:varname is %.*s",var_name.length(),var_name.ptr());
+//        if ((clear_ret = session->remove_variable(param_name)) != OB_SUCCESS)
+//        {
+//          TBSYS_LOG(WARN, "zz:Remove variable %.*s faild. ret=%d", param_name.length(), param_name.ptr(), ret);
+//        }
+//        else
+//        {
+//          TBSYS_LOG(TRACE,"zz:remove %.*s success",param_name.length(),param_name.ptr());
+//        }
+//      }
+//      //		delete param->param_name_;
+//      //		delete param;
+//    }
+//  }
+//	if(clear_ret==OB_SUCCESS)
+//		return ret;
+//	else
+//		return clear_ret;
+  return ret;
 }
 
 

@@ -637,7 +637,7 @@ void ObUpsProcedure::reset()
 
   SpProcedure::reset();
 //  name_pool_.clear();
-  var_name_val_map_.destroy();
+//  var_name_val_map_.destroy();
 }
 
 void ObUpsProcedure::reuse()

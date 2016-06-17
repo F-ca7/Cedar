@@ -73,6 +73,7 @@ namespace oceanbase
 
         // check expression type
         inline int is_const_expr(bool &is_const_type) const;
+        inline int is_var_expr(bool &is_var_type, ObObj &var_name) const; //add by zt 20160617
         inline int is_column_index_expr(bool &is_idx_type) const;
         inline int is_simple_condition(bool &is_simple_cond_type) const;
         inline int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const;
@@ -182,6 +183,13 @@ namespace oceanbase
     {
       return post_expr_.is_const_expr(is_const_type);
     }
+
+    //add by zt 20160117:b
+    inline int ObSqlExpression::is_var_expr(bool &is_var_type, ObObj &var_name) const
+    {
+      return post_expr_.is_var_expr(is_var_type, var_name);
+    }
+    //add by zt 20160117:e
 
     inline int ObSqlExpression::get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const
     {

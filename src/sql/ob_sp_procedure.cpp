@@ -1837,8 +1837,22 @@ void SpProcedure::reset()
   }
   inst_list_.clear();
   inst_store_.clear();
+  clear_var_tab();
   arena_.free();
   static_data_id_gen_ = 0;
+}
+
+void SpProcedure::clear_var_tab()
+{
+  for(int64_t i = 0; i < array_table_.count(); ++i)
+  {
+    array_table_.at(i).array_values_.clear();
+  }
+  array_table_.clear();
+
+  var_name_val_map_.clear();
+
+  name_pool_.clear();
 }
 
 int SpProcedure::create_variable_table()

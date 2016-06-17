@@ -334,6 +334,7 @@ namespace oceanbase
          */
         int is_const_expr(bool &is_type) const;
         int is_column_index_expr(bool &is_type) const;
+        int is_var_expr(bool &is_type, ObObj &var_name) const;  //add by zt 20160617
         int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_type) const;
         int merge_expr(const ObPostfixExpression &expr1, const ObPostfixExpression &expr2, const ExprItem &op);
         bool is_empty() const;

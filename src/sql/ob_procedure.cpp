@@ -3,6 +3,7 @@
 #include "ob_physical_plan.h"
 #include "ob_ups_executor.h"
 #include "common/ob_common_stat.h"
+#include "common/ob_obj_cast.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -768,15 +769,7 @@ int ObProcedure::clear_variables()
 {
   int ret = OB_SUCCESS;
 
-  for(int64_t i = 0; i < array_table_.count(); ++i)
-  {
-    array_table_.at(i).array_values_.clear();
-  }
-  array_table_.clear();
-
-  var_name_val_map_.clear();
-
-  name_pool_.clear();
+  SpProcedure::clear_var_tab();
 //  if( defs_.count() > 0 )
 //  {
 //    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
@@ -823,12 +816,50 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
   }
   else
   {
-    for(int64_t i = 0; i < params_.count(); ++i)
+    common::ObRow tmp_row;
+    const ObObj *result = NULL;
+    ObObj casted_cell;
+    for(int64_t i = 0; OB_SUCCESS == ret && i < params_.count(); ++i)
     {
-      const ObParamDef 
+      const ObParamDef &  param = params_.at(i);
+
+      if( param.out_type_ ==  IN_TYPE || param.out_type_ == INOUT_TYPE )
+      {
+        ObSqlExpression &expr = param_expr.at(i);
+
+        if( OB_SUCCESS != (ret = expr.calc(tmp_row, result)) )
+        {
+          TBSYS_LOG(WARN, "fail to calc input expr");
+        }
+        else if( result->get_type() != param.param_type_ )
+        {
+          //try to cast input paramter
+          if( OB_SUCCESS != (ret = common::obj_cast(*result, param.param_type_, casted_cell, result)) )
+          {
+            TBSYS_LOG(WARN, "fail to cast obj, orig: %s, expected type: %d", to_cstring(*result), param.param_type_);
+          }
+        }
+
+        if( OB_SUCCESS != ret) {}
+        else if( OB_SUCCESS != (ret = write_variable(param.param_name_, *result)) )
+        {
+          TBSYS_LOG(WARN, "fail to set input expr");
+        }
+      }
+
+      if( param.out_type_ == OUT_TYPE || param.out_type_ == INOUT_TYPE )
+      {
+        bool is_var_type = false;
+        //save output into default value
+        if( OB_SUCCESS != (param_expr.at(i).is_var_expr(is_var_type, params_.at(i).out_var_))
+            || !is_var_type )
+        {
+          TBSYS_LOG(WARN, "out parameter must be a variable, i,  %s", i, to_cstring(param_expr.at(i)));
+          ret = OB_ERR_UNEXPECTED;
+        }
+      }
     }
   }
-
   return ret;
 }
 
@@ -836,9 +867,33 @@ int ObProcedure::return_paramters()
 {
   int ret = OB_SUCCESS;
 
+  for(int64_t i = 0; i < params_.count(); ++i)
+  {
+    const ObParamDef &param = params_.at(i);
+    const ObObj *val;
+    if( param.out_type_ == OUT_TYPE || param.out_type_ == INOUT_TYPE )
+    {
+      ObString var_name;
+      if( OB_SUCCESS != (ret = param.out_var_.get_varchar(var_name)) )
+      {
+        TBSYS_LOG(WARN, "out param does not receive variable name");
+        ret = OB_ERR_UNEXPECTED;
+      }
+      else if( OB_SUCCESS != (ret = read_variable(param.param_name_, val)))
+      {
+        TBSYS_LOG(WARN, "does not read param value, %s", to_cstring(param.param_name_));
+      }
+      else if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                              get_session()->replace_variable(var_name, *val)) )
+      {
+        TBSYS_LOG(WARN, "fail to return paramter into session, param[%s], var[%s]",
+            to_cstring(param.param_name_),
+            var_name);
+      }
+    }
+  }
   return ret;
 }
-
 
 int ObProcedure::open()
 {
@@ -873,7 +928,12 @@ int ObProcedure::open()
        end_trans(OB_SUCCESS != ret);
     }
   }
-//  set_exec_strategy(NULL);
+
+  if( OB_SUCCESS != (ret = return_paramters() ))
+  {
+    TBSYS_LOG(WARN, "fail to return paramters");
+  }
+
   if( OB_SUCCESS != clear_variables() )
   {
     TBSYS_LOG(WARN, "clear varialbes fail");

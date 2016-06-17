@@ -1030,6 +1030,20 @@ namespace oceanbase
       }
       return ret;
     }
+
+    int ObPostfixExpression::is_var_expr(bool &is_type, ObObj &var_name) const
+    {
+      int ret = OB_SUCCESS;
+      if( OB_SUCCESS == (ret = check_expr_type((int64_t)TEMP_VAR, is_type, 3)) )
+      {
+        if( is_type )
+        {
+          var_name = expr_.at(1);
+        }
+      }
+      return ret;
+    }
+
     //add zt 20151126:e
 
     int ObPostfixExpression::is_const_expr(bool &is_type) const
