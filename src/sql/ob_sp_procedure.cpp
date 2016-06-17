@@ -1829,6 +1829,12 @@ int SpProcedure::set_proc_name(const ObString &proc_name)
   return ob_write_string(arena_, proc_name, proc_name_);
 }
 
+int SpProcedure::close()
+{
+  clear_var_tab();
+  static_data_mgr_.clear();
+}
+
 void SpProcedure::reset()
 {
   for(int64_t i = 0 ; i < inst_list_.count(); ++i)
@@ -1838,6 +1844,7 @@ void SpProcedure::reset()
   inst_list_.clear();
   inst_store_.clear();
   clear_var_tab();
+  static_data_mgr_.clear();
   arena_.free();
   static_data_id_gen_ = 0;
 }

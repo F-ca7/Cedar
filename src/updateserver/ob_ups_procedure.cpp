@@ -626,7 +626,7 @@ int ObUpsProcedure::open()
 int ObUpsProcedure::close()
 {
 //  static_data_mgr_.clear();
-  return OB_SUCCESS;
+  return SpProcedure::close();
 }
 
 void ObUpsProcedure::reset()

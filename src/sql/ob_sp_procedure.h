@@ -713,7 +713,7 @@ namespace oceanbase
       virtual void reset();
       virtual void reuse() {}
       virtual int open() {return OB_SUCCESS;}
-      virtual int close() {return OB_SUCCESS;}
+      virtual int close();
       virtual int get_row_desc(const common::ObRowDesc *&row_desc) const {UNUSED(row_desc); return OB_SUCCESS;}
       virtual int get_next_row(const common::ObRow *&row) {UNUSED(row); return OB_ITER_END;}
 

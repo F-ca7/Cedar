@@ -714,7 +714,7 @@ int ObProcedure::close()
   pc_ = 0;
 
 //  static_data_mgr_.clear();
-
+  ret = SpProcedure::close();
   return ret;
 }
 
@@ -765,11 +765,11 @@ int ObProcedure::create_variables()
   return ret;
 }
 
-int ObProcedure::clear_variables()
-{
-  int ret = OB_SUCCESS;
+//int ObProcedure::clear_variables()
+//{
+//  int ret = OB_SUCCESS;
 
-  SpProcedure::clear_var_tab();
+//  SpProcedure::clear_var_tab();
 //  if( defs_.count() > 0 )
 //  {
 //    ObSQLSessionInfo *session = my_phy_plan_->get_result_set()->get_session();
@@ -803,8 +803,8 @@ int ObProcedure::clear_variables()
 //      }
 //    }
 //  }
-  return ret;
-}
+//  return ret;
+//}
 
 int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 {
@@ -936,10 +936,6 @@ int ObProcedure::open()
     TBSYS_LOG(WARN, "fail to return paramters");
   }
 
-  if( OB_SUCCESS != clear_variables() )
-  {
-    TBSYS_LOG(WARN, "clear varialbes fail");
-  }
   return ret;
 }
 

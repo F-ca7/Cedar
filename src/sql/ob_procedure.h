@@ -79,7 +79,7 @@ namespace oceanbase
       int fill_parameters(ObIArray<ObSqlExpression> &param_expr);
       int return_paramters();
       int create_variables();
-      int clear_variables();
+//      int clear_variables();
 
       /*
       virtual int write_variable(const ObString &var_name, const ObObj & val);
