@@ -873,10 +873,18 @@ namespace oceanbase
         }
         else if( NULL != (proc = get_running_procedure(owner_op_->get_phy_plan())) )
         {
-          if( type == PARAM_IDX  || type == CUR_TIME_OP )
+          if( type == PARAM_IDX || (type == CUR_TIME_OP && owner_op_->get_phy_plan()->get_result_set() == NULL))
           {
             TBSYS_LOG(WARN, "Unsupported read");
             ret = OB_NOT_SUPPORTED;
+          }
+          else if( type == CUR_TIME_OP )
+          {
+            if ((val = result_set->get_cur_time_place()) == NULL)
+            {
+              ret = OB_ERR_UNEXPECTED;
+              TBSYS_LOG(WARN, "Can not get current time. err=%d", ret);
+            }
           }
           else
           {
