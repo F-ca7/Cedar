@@ -1833,6 +1833,7 @@ int SpProcedure::close()
 {
   clear_var_tab();
   static_data_mgr_.clear();
+  return OB_SUCCESS;
 }
 
 void SpProcedure::reset()
