@@ -1296,9 +1296,8 @@ SpWhileInst::~SpWhileInst()
 
 void SpWhileInst::get_read_variable_set(SpVariableSet &read_set) const
 {
-    read_set.add_var_info_set(while_expr_var_set_);
-    do_body_.get_read_variable_set(read_set);
-
+  read_set.add_var_info_set(while_expr_var_set_);
+  do_body_.get_read_variable_set(read_set);
 }
 
 void SpWhileInst::get_write_variable_set(SpVariableSet &write_set) const
@@ -1356,19 +1355,11 @@ int SpWhileInst::assign(const SpInst *inst)
   return ret;
 }
 
-int SpWhileInst::optimize(SpInstList &exec_list)
+CallType SpWhileInst::get_call_type() const
 {
-  int ret = OB_SUCCESS;
-
-  if( OB_SUCCESS != (ret = do_body_.optimize(exec_list)) )
-  {
-    TBSYS_LOG(WARN, "optimize do body fail");
-  }
-  else
-  {
-  }
-  return ret;
+  return do_body_.get_call_type();
 }
+
 //add hjw 20151231:e
 
 

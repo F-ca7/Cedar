@@ -574,11 +574,10 @@ namespace oceanbase
         SpMultiInsts* get_body_block() {return &do_body_;}
         SpVariableSet & cons_read_var_set() { return while_expr_var_set_; }
 
-        int optimize(SpInstList &exec_list);
 
         virtual void get_read_variable_set(SpVariableSet &read_set) const;
         virtual void get_write_variable_set(SpVariableSet &write_set) const;
-
+        virtual CallType get_call_type() const;
 
         virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,ModuleArena &allocator,ObPhysicalPlan::OperatorStore &operators_store,ObPhyOperatorFactory *op_factory);
         virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
