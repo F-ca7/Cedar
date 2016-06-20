@@ -19,30 +19,25 @@ int ObProcedureWhileStmt::set_expr_id(uint64_t& expr_id)
 	return OB_SUCCESS;
 }
 
-int ObProcedureWhileStmt::add_then_stmt(uint64_t& stmt_id)
+int ObProcedureWhileStmt::add_do_stmt(uint64_t& stmt_id)
 {
-	while_then_stmts_.push_back(stmt_id);
+	while_do_stmts_.push_back(stmt_id);
 	return OB_SUCCESS;
 }
 
-/*while表达的id*/
+/*while expr id*/
 uint64_t ObProcedureWhileStmt::get_expr_id()
 {
 	return expr_id_;
 }
 
-ObArray<uint64_t> ObProcedureWhileStmt::get_then_stmts()/*while then语句列表*/
+uint64_t& ObProcedureWhileStmt::get_do_stmt(int64_t index)
 {
-	return while_then_stmts_;
+	return while_do_stmts_.at(index);
 }
-
-uint64_t& ObProcedureWhileStmt::get_then_stmt(int64_t index)
+int64_t ObProcedureWhileStmt::get_do_stmt_size()
 {
-	return while_then_stmts_.at(index);
-}
-int64_t ObProcedureWhileStmt::get_then_stmt_size()
-{
-	return while_then_stmts_.count();
+	return while_do_stmts_.count();
 }
 
 

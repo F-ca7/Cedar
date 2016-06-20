@@ -39,6 +39,7 @@ namespace oceanbase
       int execute_loop(SpLoopInst *inst) { UNUSED(inst); return OB_ERROR; }
       int execute_casewhen(SpCaseInst *inst);
       int execute_multi_inst(SpMultiInsts *mul_inst);
+      int execute_while(SpWhileInst *inst);
       int execute_ups_loop(SpUpsLoopInst *inst);
     private:
       static int pexecute_expr(SpUpsInstExecStrategy *host, SpInst *inst);

@@ -43,6 +43,9 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_CW_INST:
     ret = execute_casewhen(static_cast<SpCaseInst*>(inst));
     break;
+  case SP_W_INST:
+    ret = execute_while(static_cast<SpWhileInst*>(inst));
+    break;
   default:
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
     ret = OB_NOT_SUPPORTED;
@@ -424,6 +427,28 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   }
   return ret;
 }
+
+//add hjw 20151230:b
+int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
+{
+    int ret = OB_SUCCESS;
+    common::ObRow fake_row;
+    const ObObj *flag =NULL;
+    TBSYS_LOG(INFO, "execute while instruction");
+    while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+      {
+         TBSYS_LOG(INFO,"while expr value: %s", to_cstring(*flag));
+         inst->get_ownner()->debug_status(inst);
+         if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
+         {
+           TBSYS_LOG(WARN,"execute do body block failed");
+           break;
+         }
+      }
+
+    return ret;
+}
+//add hjw 20151230:e
 
 int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
 {
@@ -1218,6 +1243,16 @@ int ObProcedure::set_inst_op(SpInst *inst)
       }
       break;
     }
+  case SP_W_INST:
+  {
+    SpWhileInst *while_inst =static_cast<SpWhileInst*>(inst);
+    SpMultiInsts *mul_inst = while_inst->get_body_block();
+    for(int64_t i = 0; i < mul_inst->inst_count(); ++i)
+    {
+      set_inst_op(mul_inst->get_inst(i));
+    }
+    break;
+  }
   case SP_GROUP_INST:
     {
       SpGroupInsts *block_inst = static_cast<SpGroupInsts*>(inst);
