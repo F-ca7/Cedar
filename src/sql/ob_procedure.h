@@ -40,11 +40,13 @@ namespace oceanbase
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
 
-      int handle_group_result(ObProcedure *proc, ObUpsResult &result);
+      int handle_group_result(SpProcedure *proc, ObUpsResult &result);
 
     private:
       //execution context
       ObLoopCounter loop_counter_;
+      ObRow curr_row_;
+      ObRowDesc fake_row_desc_;
     };
 
     /**

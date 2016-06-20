@@ -337,8 +337,10 @@ int SpMsInstExecStrategy::set_trans_params(ObSQLSessionInfo *session, common::Ob
 int SpMsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
 {
   int ret = OB_SUCCESS;
-  common::ObRow fake_row;
+  common::ObRow &fake_row = curr_row_;
   const ObObj *flag = NULL;
+
+  fake_row.clear();
   if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
   {
     TBSYS_LOG(WARN, "if expr evalute failed");
@@ -367,10 +369,11 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   int ret = OB_SUCCESS;
   const ObObj *lowest_value, *highest_value;
   ObObj itr_var;
-  common::ObRow fake_row;
+  common::ObRow &fake_row = curr_row_;
 
   SpProcedure *proc = inst->get_ownner();
 
+  fake_row.clear();
   if( OB_SUCCESS != (ret = inst->get_lowest_expr().calc(fake_row, lowest_value)) ||  lowest_value->get_type() != ObIntType )
   {
     TBSYS_LOG(WARN, "unsupported loop range type: %d", lowest_value->get_type());
@@ -425,10 +428,11 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
 int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
 {
   int ret = OB_SUCCESS;
-  common::ObRow fake_row;
+  common::ObRow &fake_row = curr_row_;
   const ObObj *flag = NULL;
   const ObObj *when_value = NULL;
   bool else_flag = true;
+  fake_row.clear();
   TBSYS_LOG(TRACE, "execute casewhen instruction");
   if(OB_SUCCESS != (ret = inst->get_case_expr().calc(fake_row, flag)) )
   {
@@ -557,7 +561,7 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
           out_plan->get_result_set()->get_session()->set_trans_id(invalid_trans);
         }
       }
-      else if( OB_SUCCESS != handle_group_result(proc, result))
+      else if( OB_SUCCESS != handle_group_result(inst->get_ownner(), result))
       {
         TBSYS_LOG(WARN, "failed to handle the group execution result");
       }
@@ -576,26 +580,30 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
   return ret;
 }
 
-int SpMsInstExecStrategy::handle_group_result(ObProcedure *proc, ObUpsResult &result)
+int SpMsInstExecStrategy::handle_group_result(SpProcedure *proc, ObUpsResult &result)
 {
   int ret = OB_SUCCESS;
-  ObRow curr_row;
   const ObObj *cell;
   ObString var;
+
+  fake_row_desc_.add_column_desc(SpProcedure::FAKE_TABLE_ID, SpProcedure::ROW_VAR_CID);
+  fake_row_desc_.add_column_desc(SpProcedure::FAKE_TABLE_ID, SpProcedure::ROW_VAL_CID);
+
+  curr_row_.clear();
+  curr_row_.set_row_desc(fake_row_desc_);
   while( OB_SUCCESS == ret &&
-         OB_SUCCESS == (ret = result.get_scanner().get_next_row(curr_row)))
+         OB_SUCCESS == (ret = result.get_scanner().get_next_row(curr_row_)))
   {
-    curr_row.get_cell(-1, 16, cell);
+    curr_row_.get_cell(SpProcedure::FAKE_TABLE_ID, SpProcedure::ROW_VAR_CID, cell);
     cell->get_varchar(var);
 
-    curr_row.get_cell(-1, 17, cell);
+    curr_row_.get_cell(SpProcedure::FAKE_TABLE_ID, SpProcedure::ROW_VAL_CID, cell);
+
+    TBSYS_LOG(TRACE, "row: %s", to_cstring(curr_row_));
+
     if( OB_SUCCESS != (ret = proc->write_variable(var, *cell)) )
     {
       TBSYS_LOG(WARN, "set group execution result failed");
-    }
-    else
-    {
-      TBSYS_LOG(INFO, "%.*s = %s", var.length(), var.ptr(), to_cstring(*cell));
     }
   }
 

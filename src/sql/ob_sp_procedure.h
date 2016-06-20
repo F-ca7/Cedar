@@ -790,6 +790,9 @@ namespace oceanbase
       NEED_SERIALIZE_AND_DESERIALIZE;
       virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
+      const static int64_t FAKE_TABLE_ID = -1;
+      const static int64_t ROW_VAR_CID = 16;
+      const static int64_t ROW_VAL_CID = 17;
     private:
       SpProcedure(const SpProcedure &other);
       SpProcedure& operator=(const SpProcedure &other);

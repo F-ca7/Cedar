@@ -1817,6 +1817,7 @@ SpProcedure::SpProcedure() : static_data_id_gen_(0),
   name_pool_()
 {
   create_variable_table();
+  static_data_mgr_.init();
 }
 
 SpProcedure::~SpProcedure()

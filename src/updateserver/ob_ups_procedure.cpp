@@ -65,8 +65,9 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
   int ret = OB_SUCCESS;
   int64_t start_ts = tbsys::CTimeUtil::getTime();
 //  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(inst->get_val()));
-  common::ObRow input_row;
+  common::ObRow &input_row = curr_row_;
   const ObObj *val = NULL;
+  input_row.clear();
   if((ret= inst->get_val().calc(input_row, val))!=OB_SUCCESS)
   {
 //    TBSYS_LOG(WARN, "sp expr compute failed");
@@ -176,8 +177,9 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
 {
   int ret = OB_SUCCESS;
   int64_t start_ts = tbsys::CTimeUtil::getTime();
-  common::ObRow fake_row;
+  common::ObRow &fake_row = curr_row_;
   const ObObj *flag = NULL;
+  fake_row.clear();
 //  TBSYS_LOG(TRACE, "if_ctrl inst:\n%s", to_cstring(inst->get_if_expr()));
   if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
   {
@@ -259,10 +261,11 @@ int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
 int SpUpsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
 {
   int ret = OB_SUCCESS;
-  common::ObRow fake_row;
+  common::ObRow &fake_row = curr_row_;
   const ObObj *flag = NULL;
   const ObObj *when_value = NULL;
   bool else_flag = true;
+  fake_row.clear();
   if(OB_SUCCESS != (ret = inst->get_case_expr().calc(fake_row, flag)) )
   {
     TBSYS_LOG(WARN, "fail to execute case expr");
@@ -622,6 +625,7 @@ int ObUpsProcedure::open()
   OB_STAT_INC(UPDATESERVER, UPS_PROC_EXEC_TIME, cost_ts);
 
   var_iter_ = var_name_val_map_.begin();
+  make_fake_desc();
   return ret;
 }
 
@@ -888,7 +892,7 @@ int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
  * @param row
  * @return
  */
-int ObUpsProcedure::get_next_row(const ObRow *&row)
+int ObUpsProcedure::get_next_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
 
@@ -899,10 +903,11 @@ int ObUpsProcedure::get_next_row(const ObRow *&row)
     ObObj var;
     var.set_varchar(name);
 
-    var_row_.set_cell(FAKE_TABLE_ID, 16, val);
-    var_row_.set_cell(FAKE_TABLE_ID, 17, val);
-    TBSYS_LOG(INFO, "var_info: %s", to_cstring(var_row_));
+    var_row_.set_cell(FAKE_TABLE_ID, ROW_VAR_CID, var);
+    var_row_.set_cell(FAKE_TABLE_ID, ROW_VAL_CID, val);
     row = &var_row_;
+
+    TBSYS_LOG(TRACE, "row: %s", to_cstring(*row));
     var_iter_ ++;
   }
   else
@@ -911,4 +916,19 @@ int ObUpsProcedure::get_next_row(const ObRow *&row)
     ret = OB_ITER_END;
   }
   return ret;
+}
+
+int ObUpsProcedure::make_fake_desc()
+{
+  fake_desc_.reset();
+  fake_desc_.add_column_desc(FAKE_TABLE_ID, ROW_VAR_CID);
+  fake_desc_.add_column_desc(FAKE_TABLE_ID, ROW_VAL_CID);
+  var_row_.set_row_desc(fake_desc_);
+  return OB_SUCCESS;
+}
+
+int ObUpsProcedure::get_row_desc(const ObRowDesc *&row_desc) const
+{
+   row_desc = & fake_desc_;
+   return OB_SUCCESS;
 }
