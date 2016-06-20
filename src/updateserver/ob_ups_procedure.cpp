@@ -620,6 +620,8 @@ int ObUpsProcedure::open()
   int64_t cost_ts = tbsys::CTimeUtil::getTime() - start_proc_exec_ts;
   OB_STAT_INC(UPDATESERVER, UPS_PROC_EXEC_COUNT, 1);
   OB_STAT_INC(UPDATESERVER, UPS_PROC_EXEC_TIME, cost_ts);
+
+  var_iter_ = var_name_val_map_.begin();
   return ret;
 }
 
@@ -634,7 +636,7 @@ void ObUpsProcedure::reset()
   pc_ = 0;
 
 //  static_data_mgr_.clear();
-
+  var_row_.clear();
   SpProcedure::reset();
 //  name_pool_.clear();
 //  var_name_val_map_.destroy();
@@ -878,4 +880,35 @@ int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
   }
   databuff_printf(buf, buf_len, pos, "Procedure variable status:\n");
   return pos;
+}
+
+/**
+ * @brief ObUpsProcedure::get_next_row
+ *  Used to return modified variables back to mergeserver
+ * @param row
+ * @return
+ */
+int ObUpsProcedure::get_next_row(const ObRow *&row)
+{
+  int ret = OB_SUCCESS;
+
+  if( var_iter_ != var_name_val_map_.end() )
+  {
+    const ObString &name = var_iter_->first;
+    const ObObj &val = var_iter_->second;
+    ObObj var;
+    var.set_varchar(name);
+
+    var_row_.set_cell(FAKE_TABLE_ID, 16, val);
+    var_row_.set_cell(FAKE_TABLE_ID, 17, val);
+    TBSYS_LOG(INFO, "var_info: %s", to_cstring(var_row_));
+    row = &var_row_;
+    var_iter_ ++;
+  }
+  else
+  {
+    row = NULL;
+    ret = OB_ITER_END;
+  }
+  return ret;
 }

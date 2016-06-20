@@ -557,6 +557,10 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
           out_plan->get_result_set()->get_session()->set_trans_id(invalid_trans);
         }
       }
+      else if( OB_SUCCESS != handle_group_result(proc, result))
+      {
+        TBSYS_LOG(WARN, "failed to handle the group execution result");
+      }
       else
       {
         int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
@@ -572,6 +576,33 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
   return ret;
 }
 
+int SpMsInstExecStrategy::handle_group_result(ObProcedure *proc, ObUpsResult &result)
+{
+  int ret = OB_SUCCESS;
+  ObRow curr_row;
+  const ObObj *cell;
+  ObString var;
+  while( OB_SUCCESS == ret &&
+         OB_SUCCESS == (ret = result.get_scanner().get_next_row(curr_row)))
+  {
+    curr_row.get_cell(-1, 16, cell);
+    cell->get_varchar(var);
+
+    curr_row.get_cell(-1, 17, cell);
+    if( OB_SUCCESS != (ret = proc->write_variable(var, *cell)) )
+    {
+      TBSYS_LOG(WARN, "set group execution result failed");
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "%.*s = %s", var.length(), var.ptr(), to_cstring(*cell));
+    }
+  }
+
+  if( OB_ITER_END == ret ) ret = OB_SUCCESS;
+
+  return ret;
+}
 
 /**
  * This function is innecessary any more. Because we would close each op afte execution.

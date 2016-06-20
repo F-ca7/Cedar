@@ -86,6 +86,9 @@ namespace oceanbase
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
       virtual int assign(const SpInst *inst);
 
+      virtual int get_row_desc(const common::ObRowDesc *&row_desc);
+      virtual int get_next_row(const common::ObRow *&row);
+
     private:
       SpVar loop_counter_var_;
       int64_t lowest_number_;
@@ -127,6 +130,8 @@ namespace oceanbase
       virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
       BaseSessionCtx * get_session_ctx() { return session_ctx_; }
+
+      const static int64_t FAKE_TABLE_ID = -1;
     private:
       //disallow copy
       static const int64_t SMALL_BLOCK_SIZE = 4 * 1024LL;
@@ -163,8 +168,10 @@ namespace oceanbase
 //      ObSEArray<ObUpsArray, 4> array_table_;
 
       SpUpsInstExecStrategy strategy_;
-//      ObProcedureStaticDataMgr static_data_mgr_;
 
+      VarNameValMap::const_iterator var_iter_;
+//      ObProcedureStaticDataMgr static_data_mgr_;
+      ObRow var_row_;
       BaseSessionCtx *session_ctx_;
     };
 
