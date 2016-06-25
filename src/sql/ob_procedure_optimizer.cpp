@@ -670,7 +670,7 @@ int ObProcedureOptimizer::do_loop_split(SpInstList &inst_list, SpInstList &pre_i
     expand_list.push_back(inst_list.at(i));
   }
 
-  graph.set_insts(inst_list);
+  graph.set_insts(expand_list);
   graph.split(seq, pre_count);
 
   if( pre_count == 2 * inst_list.count() )
@@ -722,6 +722,8 @@ void ObProcDepGraph::build_dep_graph(GraphType type)
   inited_ = true;
 }
 
+//build edge i ---> j  forward
+//build edge i <--- j  backward
 void ObProcDepGraph::add_edge(int64_t i, int64_t j, int dep_type)
 {
   if( type_ == Backward )
@@ -738,7 +740,10 @@ void ObProcDepGraph::add_edge(int64_t i, int64_t j, int dep_type)
   node.next_ = new_node;
   degree_.at(j)++;
 
-  cover_trpc_.at(i) = cover_trpc_.at(j) || cover_trpc_.at(i);
+  if( dep_type == Da_True_Dep )
+  {
+    cover_trpc_.at(i) = cover_trpc_.at(j) || cover_trpc_.at(i);
+  }
 }
 
 int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
