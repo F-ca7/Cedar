@@ -551,7 +551,7 @@ int ObProcedureOptimizer::loop_split(SpLoopInst *loop_inst, SpInstList &inst_lis
   pre_inst.clear();
   post_inst.clear();
 
-  do_split(loop_inst->get_body_block()->inst_list_, pre_inst, post_inst);
+  do_loop_split(loop_inst->get_body_block()->inst_list_, pre_inst, post_inst);
 
   if( pre_inst.count() != 0 )
   {
@@ -647,6 +647,51 @@ int ObProcedureOptimizer::do_split(SpInstList &inst_list, SpInstList &pre_inst, 
   for(int64_t i = pre_count; i < inst_list.count(); ++i)
   {
     post_inst.push_back(inst_list.at(seq.at(i)));
+  }
+  return ret;
+}
+
+int ObProcedureOptimizer::do_loop_split(SpInstList &inst_list, SpInstList &pre_inst, SpInstList &post_inst)
+{
+  int ret = OB_SUCCESS;
+  ObSEArray<int64_t, ObProcDepGraph::MAX_GRAPH_SIZE> seq;
+  int64_t pre_count = 0;
+  ObProcDepGraph graph;
+
+  SpInstList expand_list;
+
+  for(int64_t i = 0; i < inst_list.count(); ++i)
+  {
+    expand_list.push_back(inst_list.at(i));
+  }
+
+  for(int64_t i = 0; i < inst_list.count(); ++i)
+  {
+    expand_list.push_back(inst_list.at(i));
+  }
+
+  graph.set_insts(inst_list);
+  graph.split(seq, pre_count);
+
+  if( pre_count == 2 * inst_list.count() )
+  {
+    pre_count = 0;
+  }
+
+  for(int64_t i = 0; i < pre_count; ++i)
+  {
+    if( seq.at(i) < inst_list.count() )
+    {
+      pre_inst.push_back(inst_list.at(seq.at(i)));
+    }
+  }
+
+  for(int64_t i = pre_count; i < seq.count(); ++i)
+  {
+    if( seq.at(i) < inst_list.count() )
+    {
+      post_inst.push_back(inst_list.at(seq.at(i)));
+    }
   }
   return ret;
 }

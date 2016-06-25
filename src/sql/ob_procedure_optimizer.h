@@ -113,6 +113,9 @@ namespace oceanbase
          */
         static int do_split(SpInstList &inst_list, SpInstList &pre_insts, SpInstList &post_insts);
 
+
+        static int do_loop_split(SpInstList &inst_list, SpInstList &pre_insts, SpInstList &post_insts);
+
         /**
          * @brief group
          * @param proc
