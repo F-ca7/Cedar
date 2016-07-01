@@ -156,6 +156,23 @@ namespace oceanbase
       return ret;
     }
 
+    //add wangjiahao [tablelock] 20160616 :b
+    int RWSessionCtx::init_table_lock_info()
+    {
+      int ret = OB_SUCCESS;
+      void *buffer = NULL;
+      if (NULL == (buffer = alloc(sizeof(SessionTableLockInfo))))
+      {
+        TBSYS_LOG(ERROR, "alloc rclock info fail, ctx=%s", to_cstring(*this));
+      }
+      else if (NULL == (table_lock_info_ = new(buffer) SessionTableLockInfo(this)))
+      {
+        TBSYS_LOG(ERROR, "new alloc rclock info fail, ctx=%s", to_cstring(*this));
+      }
+      return ret;
+    }
+    //add :e
+
     ILockInfo *RWSessionCtx::get_lock_info()
     {
       return lock_info_;

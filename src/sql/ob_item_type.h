@@ -284,6 +284,7 @@ typedef enum ObItemType
   T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
   T_KILL,
   T_MAX,
+  T_LOCK_TABLE, // add wangjiahao [table lock] 20160616
   //add by zhujun 2014-11-27
   T_PROCEDURE_CREATE,//add zz for test 2014-11-27
   T_PROCEDURE_DECL,

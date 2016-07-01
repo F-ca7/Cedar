@@ -272,6 +272,14 @@ namespace oceanbase
             ErrStat& err_stat,
             const uint64_t& query_id,
             int32_t* index);
+        //add wangjiahao [table lock] 20160616 :b
+        int gen_physical_lock_table(
+                    ObLogicalPlan *logical_plan,
+                    ObPhysicalPlan *physical_plan,
+                    ErrStat& err_stat,
+                    const uint64_t& query_id,
+                    int32_t* index);
+        //add :e
         int gen_phy_tables(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

@@ -27,6 +27,8 @@
 #include "ob_lock_mgr.h"
 #include "common/ob_fifo_allocator.h"
 
+#include "ob_table_lock_mgr.h" // add wangjiahao [table lock] 20160616
+
 namespace oceanbase
 {
   namespace updateserver
@@ -199,6 +201,10 @@ namespace oceanbase
         TransUCInfo &get_uc_info();
         TEValueUCInfo *alloc_tevalue_uci();
         int init_lock_info(LockMgr& lock_mgr, const IsolationLevel isolation);
+        //add wangjiahao [tablelock] 20160616 :b
+        int init_table_lock_info();
+        SessionTableLockInfo* get_tblock_info(){return table_lock_info_;}
+        //add :e
         ILockInfo *get_lock_info();
         int64_t get_min_flying_trans_id();
         void flush_min_flying_trans_id();
@@ -230,6 +236,9 @@ namespace oceanbase
         uint64_t mark_stmt_checksum_;
         v4si mark_dml_count_;
         v4si dml_count_;
+        //add wangjiahao [tablelock] 20160616 :b
+        SessionTableLockInfo* table_lock_info_;
+        //add :e
     };
 
     class RPSessionCtx: public RWSessionCtx

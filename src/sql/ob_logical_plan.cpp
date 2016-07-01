@@ -8,6 +8,7 @@
 #include "ob_prepare_stmt.h"
 #include "ob_sql_session_info.h"
 #include "parse_malloc.h"
+#include "ob_lock_table_stmt.h" //add wangjiahao [table lock] 20160616
 
 namespace oceanbase
 {

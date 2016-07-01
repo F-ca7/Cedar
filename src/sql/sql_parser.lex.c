@@ -362,8 +362,8 @@ static void yy_fatal_error (yyconst char msg[] ,yyscan_t yyscanner );
 	*yy_cp = '\0'; \
 	yyg->yy_c_buf_p = yy_cp;
 
-#define YY_NUM_RULES 229
-#define YY_END_OF_BUFFER 230
+#define YY_NUM_RULES 230
+#define YY_END_OF_BUFFER 231
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -373,122 +373,122 @@ struct yy_trans_info
 	};
 static yyconst flex_int16_t yy_accept[1063] =
     {   0,
-        0,    0,    0,    0,    0,    0,  230,  228,  226,  226,
-      214,  228,  214,  180,  214,  214,  214,  171,  171,  220,
-      216,  218,  222,  228,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  214,
-      212,  199,  199,  208,  212,  212,  210,  210,  210,  210,
-      210,  210,  210,  183,  183,  181,  187,  221,    0,  189,
-      188,    0,  213,  176,    0,  175,  171,    0,    0,  219,
-      217,    0,  224,  225,  225,  225,  225,  225,   27,  225,
-      225,  225,   35,  225,  225,  225,  225,  225,  225,  225,
+        0,    0,    0,    0,    0,    0,  231,  229,  227,  227,
+      215,  229,  215,  181,  215,  215,  215,  172,  172,  221,
+      217,  219,  223,  229,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  215,
+      213,  200,  200,  209,  213,  213,  211,  211,  211,  211,
+      211,  211,  211,  184,  184,  182,  188,  222,    0,  190,
+      189,    0,  214,  177,    0,  176,  172,    0,    0,  220,
+      218,    0,  225,  226,  226,  226,  226,  226,   27,  226,
+      226,  226,   35,  226,  226,  226,  226,  226,  226,  226,
 
-      225,  225,   10,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-       77,   78,   85,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  101,  225,  103,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      141,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-        0,  215,    0,  198,  211,    0,  210,  210,  210,  210,
-      210,  210,  210,  210,  183,    0,  182,    0,  184,  185,
-        0,    0,    0,  213,  213,    0,    0,  197,    0,  175,
+      226,  226,   10,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+       77,   78,   85,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  102,  226,  104,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      142,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+        0,  216,    0,  199,  212,    0,  211,  211,  211,  211,
+      211,  211,  211,  211,  184,    0,  183,    0,  185,  186,
+        0,    0,    0,  214,  214,    0,    0,  198,    0,  176,
 
-        0,    0,  172,    0,  223,  223,  223,  224,  225,   22,
-       26,  225,   24,   25,   28,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,   50,  225,  225,  225,  225,  225,  225,
-      225,  225,   60,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,   69,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,   80,  225,   87,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,   96,  225,
-       98,  225,  225,  225,  225,  225,  225,    4,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
+        0,    0,  173,    0,  224,  224,  224,  225,  226,   22,
+       26,  226,   24,   25,   28,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,   50,  226,  226,  226,  226,  226,  226,
+      226,  226,   60,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,   69,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,   80,  226,   87,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,   97,  226,
+       99,  226,  226,  226,  226,  226,  226,    4,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
 
-      225,  225,  225,  225,  225,  225,  125,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,    0,  211,  210,  210,  210,
-      210,  210,  210,  210,  210,  186,    0,  185,    0,  188,
-        0,  213,    0,  213,    0,  174,    0,    0,    0,    0,
-        0,  173,  190,  223,  223,  223,  225,  225,  225,  225,
-      225,  225,   33,   34,   11,  225,   37,  225,   38,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,   47,
-      225,  225,  225,  225,  225,   53,  225,  225,   57,   58,
+      226,  226,  226,  226,  226,  226,  126,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,    0,  212,  211,  211,  211,
+      211,  211,  211,  211,  211,  187,    0,  186,    0,  189,
+        0,  214,    0,  214,    0,  175,    0,    0,    0,    0,
+        0,  174,  191,  224,  224,  224,  226,  226,  226,  226,
+      226,  226,   33,   34,   11,  226,   37,  226,   38,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,   47,
+      226,  226,  226,  226,  226,   53,  226,  226,   57,   58,
 
-       59,  225,  225,  225,  225,    8,  225,  225,  225,  225,
-      225,  225,   70,  225,   71,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,   84,   86,  155,   19,  225,
-       89,   91,  225,  225,  225,    7,  225,  225,  225,  225,
-       16,  170,  225,  225,   13,  225,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  112,  225,  225,
-      225,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      126,  225,  225,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  137,  138,  225,  225,  225,  177,  225,  225,
-      225,  146,  225,  225,  225,  225,  132,  152,  225,  225,
+       59,  226,  226,  226,  226,    8,  226,  226,  226,  226,
+      226,  226,   70,  226,   71,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,   84,   86,  156,   19,  226,
+       89,   91,  226,  226,   93,    7,  226,  226,  226,  226,
+       16,  171,  226,  226,   13,  226,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  113,  226,  226,
+      226,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      127,  226,  226,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  138,  139,  226,  226,  226,  178,  226,  226,
+      226,  147,  226,  226,  226,  226,  133,  153,  226,  226,
 
-      153,  154,    0,  210,  210,  210,  210,  210,  210,  210,
-      204,    0,  186,  185,    0,    0,  227,    0,    0,    0,
-      223,  223,  225,   23,   29,  225,  225,  225,  225,  225,
-      225,  225,   15,  225,  225,  225,  225,  225,  225,  225,
-      225,  225,  225,    0,    0,    0,  225,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,   61,  225,  225,  225,
-      225,  179,   14,   18,   66,  167,  225,  225,   72,   73,
-      225,  225,  168,   79,    5,  225,  225,  225,  225,   90,
-       92,  225,  225,  225,  225,  225,  225,  225,  225,  104,
-      105,  225,  225,  225,  225,  225,   17,  225,  225,  156,
+      154,  155,    0,  211,  211,  211,  211,  211,  211,  211,
+      205,    0,  187,  186,    0,    0,  228,    0,    0,    0,
+      224,  224,  226,   23,   29,  226,  226,  226,  226,  226,
+      226,  226,   15,  226,  226,  226,  226,  226,  226,  226,
+      226,  226,  226,    0,    0,    0,  226,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,   61,  226,  226,  226,
+      226,  180,   14,   18,   66,  168,  226,  226,   72,   73,
+      226,  226,  169,   79,    5,  226,  226,  226,  226,   90,
+       92,  226,  226,  226,  226,  226,  226,  226,  226,  105,
+      106,  226,  226,  226,  226,  226,   17,  226,  226,  157,
 
-      225,  225,  225,  225,  225,  117,  225,  225,  123,  225,
-      225,  225,  225,  166,  225,  225,  225,  130,  225,  225,
-      225,  225,  225,  135,    0,    0,    0,  225,  225,  225,
-      225,  144,  225,  225,  147,  225,  225,  225,  151,    6,
-      190,  210,  210,  202,  210,  210,  210,  210,    0,    0,
-      213,    0,    0,  223,  223,  225,  225,   31,   32,  225,
-      225,  225,  225,  225,   40,  225,   42,  225,  225,  225,
-       44,  225,   12,    0,    0,  225,  225,  225,  225,  225,
-       52,  225,  225,   56,    3,   62,  225,   64,  225,   67,
-       68,  158,   74,   75,  225,   83,  225,  225,  225,   93,
+      226,  226,  226,  226,  226,  118,  226,  226,  124,  226,
+      226,  226,  226,  167,  226,  226,  226,  131,  226,  226,
+      226,  226,  226,  136,    0,    0,    0,  226,  226,  226,
+      226,  145,  226,  226,  148,  226,  226,  226,  152,    6,
+      191,  211,  211,  203,  211,  211,  211,  211,    0,    0,
+      214,    0,    0,  224,  224,  226,  226,   31,   32,  226,
+      226,  226,  226,  226,   40,  226,   42,  226,  226,  226,
+       44,  226,   12,    0,    0,  226,  226,  226,  226,  226,
+       52,  226,  226,   56,    3,   62,  226,   64,  226,   67,
+       68,  159,   74,   75,  226,   83,  226,  226,  226,   94,
 
-      165,  225,   95,  225,  225,  100,  102,  225,  225,  225,
-      225,  225,  225,  225,  225,  225,  113,  225,  225,  116,
-      225,  121,  120,  225,  225,  225,  225,  225,  129,  131,
-      225,  133,  225,  134,  136,    0,    0,  225,  225,  225,
-      225,  225,  145,  148,  225,  225,  207,  210,  210,  210,
-      210,  206,  205,    0,    0,  223,  223,  225,   30,   33,
-       36,  225,  225,   39,   41,  106,  225,  225,  225,  225,
-      225,    0,    0,    0,  225,  225,   50,    2,   51,  225,
-      225,   63,   65,  225,   81,  225,   88,  225,  225,   99,
-      225,  225,  225,  110,  111,  225,  225,  225,  225,  114,
+      166,  226,   96,  226,  226,  101,  103,  226,  226,  226,
+      226,  226,  226,  226,  226,  226,  114,  226,  226,  117,
+      226,  122,  121,  226,  226,  226,  226,  226,  130,  132,
+      226,  134,  226,  135,  137,    0,    0,  226,  226,  226,
+      226,  226,  146,  149,  226,  226,  208,  211,  211,  211,
+      211,  207,  206,    0,    0,  224,  224,  226,   30,   33,
+       36,  226,  226,   39,   41,  107,  226,  226,  226,  226,
+      226,    0,    0,    0,  226,  226,   50,    2,   51,  226,
+      226,   63,   65,  226,   81,  226,   88,  226,  226,  100,
+      226,  226,  226,  111,  112,  226,  226,  226,  226,  115,
 
-      225,  225,  124,  225,  225,  225,  225,  169,  225,    0,
-        0,    0,  225,  140,  225,  225,  178,  225,  150,  209,
-      210,  210,  210,  197,    0,    0,  159,  223,   20,  225,
-      225,  225,  225,    9,  225,  225,    0,    0,   48,  225,
-       54,   55,  225,  225,  225,  225,  225,  108,  225,  225,
-      225,  225,   21,  115,  118,  225,  225,  127,  128,  225,
-        0,    0,  225,  142,  225,  225,  225,  210,  210,  210,
-        0,    0,  160,  225,   38,  225,  225,  225,  225,    0,
-        0,  225,  225,   82,   94,  225,  225,  109,  225,    1,
-      225,  225,  225,  225,    0,    0,  139,  225,  149,  225,
+      226,  226,  125,  226,  226,  226,  226,  170,  226,    0,
+        0,    0,  226,  141,  226,  226,  179,  226,  151,  210,
+      211,  211,  211,  198,    0,    0,  160,  224,   20,  226,
+      226,  226,  226,    9,  226,  226,    0,    0,   48,  226,
+       54,   55,  226,  226,  226,  226,  226,  109,  226,  226,
+      226,  226,   21,  116,  119,  226,  226,  128,  129,  226,
+        0,    0,  226,  143,  226,  226,  226,  211,  211,  211,
+        0,    0,  161,  226,   38,  226,  226,  226,  226,    0,
+        0,  226,  226,   82,   95,  226,  226,  110,  226,    1,
+      226,  226,  226,  226,    0,    0,  140,  226,  150,  226,
 
-      210,  210,  203,  196,  196,  161,  157,   43,   45,  225,
-        0,    0,   49,   76,   97,  107,  119,  225,  225,  225,
-      225,    0,    0,    0,    0,    0,  225,  225,  210,  210,
-      225,    0,    0,  122,  225,  225,  225,    0,    0,    0,
-        0,  143,  225,  210,  200,   46,    0,    0,  225,  225,
-      225,    0,    0,    0,    0,    0,  150,  210,    0,    0,
-      225,  225,  225,    0,    0,    0,    0,  210,    0,    0,
-      225,  225,  162,  193,    0,    0,    0,    0,  210,    0,
-        0,  225,  225,    0,    0,    0,    0,  210,  191,    0,
-      225,  225,  192,    0,  193,    0,    0,    0,  201,    0,
+      211,  211,  204,  197,  197,  162,  158,   43,   45,  226,
+        0,    0,   49,   76,   98,  108,  120,  226,  226,  226,
+      226,    0,    0,    0,    0,    0,  226,  226,  211,  211,
+      226,    0,    0,  123,  226,  226,  226,    0,    0,    0,
+        0,  144,  226,  211,  201,   46,    0,    0,  226,  226,
+      226,    0,    0,    0,    0,    0,  151,  211,    0,    0,
+      226,  226,  226,    0,    0,    0,    0,  211,    0,    0,
+      226,  226,  163,  194,    0,    0,    0,    0,  211,    0,
+        0,  226,  226,    0,    0,    0,    0,  211,  192,    0,
+      226,  226,  193,    0,  194,    0,    0,    0,  202,    0,
 
-      225,  164,    0,    0,    0,    0,  191,  163,    0,  192,
+      226,  165,    0,    0,    0,    0,  192,  164,    0,  193,
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-        0,  195,    0,    0,    0,    0,  194,    0,  195,    0,
-        0,    0,    0,  194,    0,    0,    0,    0,    0,    0,
+        0,  196,    0,    0,    0,    0,  195,    0,  196,    0,
+        0,    0,    0,  195,    0,    0,    0,    0,    0,    0,
         0,    0
     } ;
 
@@ -1436,7 +1436,7 @@ static yyconst flex_int16_t yy_chk[2908] =
     } ;
 
 /* Table of booleans, true if rule could match eol. */
-static yyconst flex_int32_t yy_rule_can_match_eol[230] =
+static yyconst flex_int32_t yy_rule_can_match_eol[231] =
     {   0,
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -1447,9 +1447,9 @@ static yyconst flex_int32_t yy_rule_can_match_eol[230] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 1, 0, 0, 0,     };
+    0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,     };
 
 /* The intent behind this definition is that it'll catch
  * any uses of REJECT which flex missed.
@@ -2397,400 +2397,405 @@ YY_RULE_SETUP
 case 93:
 YY_RULE_SETUP
 #line 261 "sql_parser.l"
-{ return LOCKED; }
+{ return LOCKWJH; }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
 #line 262 "sql_parser.l"
-{ return MEDIUMINT; }
+{ return LOCKED; }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
 #line 263 "sql_parser.l"
-{ return MEMORY; }
+{ return MEDIUMINT; }
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
 #line 264 "sql_parser.l"
-{ return MOD; }
+{ return MEMORY; }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
 #line 265 "sql_parser.l"
-{ return MODIFYTIME; }
+{ return MOD; }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
 #line 266 "sql_parser.l"
-{ return NOT; }
+{ return MODIFYTIME; }
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
 #line 267 "sql_parser.l"
-{ return NUMERIC; }
+{ return NOT; }
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
 #line 268 "sql_parser.l"
-{ return OFFSET; }
+{ return NUMERIC; }
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
 #line 269 "sql_parser.l"
-{ return ON; }
+{ return OFFSET; }
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
 #line 270 "sql_parser.l"
-{ return OPTION; }
+{ return ON; }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
 #line 271 "sql_parser.l"
-{ return OR; }
+{ return OPTION; }
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
 #line 272 "sql_parser.l"
-{ return ORDER; }
+{ return OR; }
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
 #line 273 "sql_parser.l"
-{ return OUTER; }
+{ return ORDER; }
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
 #line 274 "sql_parser.l"
-{ return COMMENT; }
+{ return OUTER; }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
 #line 275 "sql_parser.l"
-{ return PARAMETERS; }
+{ return COMMENT; }
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
 #line 276 "sql_parser.l"
-{ return PASSWORD; }
+{ return PARAMETERS; }
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
 #line 277 "sql_parser.l"
-{ return PRECISION; }
+{ return PASSWORD; }
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
 #line 278 "sql_parser.l"
-{ return PREPARE; }
+{ return PRECISION; }
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
 #line 279 "sql_parser.l"
-{ return PRIMARY; }
+{ return PREPARE; }
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
 #line 280 "sql_parser.l"
-{ return REAL; }
+{ return PRIMARY; }
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
 #line 281 "sql_parser.l"
-{ return RENAME; }
+{ return REAL; }
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
 #line 282 "sql_parser.l"
-{ return REPLACE; }
+{ return RENAME; }
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
 #line 283 "sql_parser.l"
-{ return RESTRICT; }
+{ return REPLACE; }
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
 #line 284 "sql_parser.l"
-{ return REVOKE; }
+{ return RESTRICT; }
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
 #line 285 "sql_parser.l"
-{ return RIGHT; }
+{ return REVOKE; }
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
 #line 286 "sql_parser.l"
-{ return ROLLBACK; }
+{ return RIGHT; }
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
 #line 287 "sql_parser.l"
-{ return PRIVILEGES; }
+{ return ROLLBACK; }
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
 #line 288 "sql_parser.l"
-{ return SELECT; }
+{ return PRIVILEGES; }
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
 #line 289 "sql_parser.l"
-{ return SCHEMA; }
+{ return SELECT; }
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
 #line 290 "sql_parser.l"
-{ return PROCESSLIST; }
+{ return SCHEMA; }
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
 #line 291 "sql_parser.l"
-{ return SCOPE; }
+{ return PROCESSLIST; }
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
 #line 292 "sql_parser.l"
-{ return SESSION; }
+{ return SCOPE; }
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
 #line 293 "sql_parser.l"
-{ return SET; }
+{ return SESSION; }
 	YY_BREAK
 case 126:
 YY_RULE_SETUP
 #line 294 "sql_parser.l"
-{ return SHOW; }
+{ return SET; }
 	YY_BREAK
 case 127:
 YY_RULE_SETUP
 #line 295 "sql_parser.l"
-{ return SMALLINT; }
+{ return SHOW; }
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
 #line 296 "sql_parser.l"
-{ return SNAPSHOT; }
+{ return SMALLINT; }
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
 #line 297 "sql_parser.l"
-{ return SPFILE; }
+{ return SNAPSHOT; }
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
 #line 298 "sql_parser.l"
-{ return START; }
+{ return SPFILE; }
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
 #line 299 "sql_parser.l"
-{ return STATIC; }
+{ return START; }
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
 #line 300 "sql_parser.l"
-{ return WEAK;   }
+{ return STATIC; }
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
 #line 301 "sql_parser.l"
-{ return STRONG; }
+{ return WEAK;   }
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
 #line 302 "sql_parser.l"
-{ return SYSTEM; }
+{ return STRONG; }
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
 #line 303 "sql_parser.l"
-{ return TABLE; }
+{ return SYSTEM; }
 	YY_BREAK
 case 136:
 YY_RULE_SETUP
 #line 304 "sql_parser.l"
-{ return TABLES; }
+{ return TABLE; }
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
 #line 305 "sql_parser.l"
-{ return THEN; }
+{ return TABLES; }
 	YY_BREAK
 case 138:
 YY_RULE_SETUP
 #line 306 "sql_parser.l"
-{ return TIME; }
+{ return THEN; }
 	YY_BREAK
 case 139:
 YY_RULE_SETUP
 #line 307 "sql_parser.l"
-{ return TIMESTAMP; }
+{ return TIME; }
 	YY_BREAK
 case 140:
 YY_RULE_SETUP
 #line 308 "sql_parser.l"
-{ return TINYINT; }
+{ return TIMESTAMP; }
 	YY_BREAK
 case 141:
 YY_RULE_SETUP
 #line 309 "sql_parser.l"
-{ return TO; }
+{ return TINYINT; }
 	YY_BREAK
 case 142:
 YY_RULE_SETUP
 #line 310 "sql_parser.l"
-{ return TRAILING; }
+{ return TO; }
 	YY_BREAK
 case 143:
 YY_RULE_SETUP
 #line 311 "sql_parser.l"
-{ return TRANSACTION; }
+{ return TRAILING; }
 	YY_BREAK
 case 144:
 YY_RULE_SETUP
 #line 312 "sql_parser.l"
-{ return UNION; }
+{ return TRANSACTION; }
 	YY_BREAK
 case 145:
 YY_RULE_SETUP
 #line 313 "sql_parser.l"
-{ return UPDATE; }
+{ return UNION; }
 	YY_BREAK
 case 146:
 YY_RULE_SETUP
 #line 314 "sql_parser.l"
-{ return USER; }
+{ return UPDATE; }
 	YY_BREAK
 case 147:
 YY_RULE_SETUP
 #line 315 "sql_parser.l"
-{ return USING; }
+{ return USER; }
 	YY_BREAK
 case 148:
 YY_RULE_SETUP
 #line 316 "sql_parser.l"
-{ return VALUES; }
+{ return USING; }
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
 #line 317 "sql_parser.l"
-{ return VARBINARY; }
+{ return VALUES; }
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
 #line 318 "sql_parser.l"
-{ return VARCHAR; }
+{ return VARBINARY; }
 	YY_BREAK
 case 151:
 YY_RULE_SETUP
 #line 319 "sql_parser.l"
-{ return WHERE; }
+{ return VARCHAR; }
 	YY_BREAK
 case 152:
 YY_RULE_SETUP
 #line 320 "sql_parser.l"
-{ return WHEN; }
+{ return WHERE; }
 	YY_BREAK
 case 153:
 YY_RULE_SETUP
 #line 321 "sql_parser.l"
-{ return WITH; }
+{ return WHEN; }
 	YY_BREAK
 case 154:
 YY_RULE_SETUP
 #line 322 "sql_parser.l"
-{ return WORK; }
+{ return WITH; }
 	YY_BREAK
 case 155:
 YY_RULE_SETUP
 #line 323 "sql_parser.l"
-{ return KILL; }
+{ return WORK; }
 	YY_BREAK
 case 156:
 YY_RULE_SETUP
 #line 324 "sql_parser.l"
-{ return QUERY; }
+{ return KILL; }
 	YY_BREAK
 case 157:
 YY_RULE_SETUP
 #line 325 "sql_parser.l"
-{ return CONNECTION; }
+{ return QUERY; }
 	YY_BREAK
 case 158:
 YY_RULE_SETUP
 #line 326 "sql_parser.l"
-{ return FROZEN;}
+{ return CONNECTION; }
 	YY_BREAK
 case 159:
 YY_RULE_SETUP
 #line 327 "sql_parser.l"
-{ return GLOBAL_ALIAS; }
+{ return FROZEN;}
 	YY_BREAK
 case 160:
 YY_RULE_SETUP
 #line 328 "sql_parser.l"
-{ return SESSION_ALIAS; }
+{ return GLOBAL_ALIAS; }
 	YY_BREAK
 case 161:
 YY_RULE_SETUP
 #line 329 "sql_parser.l"
-{ return CHANGE_OBI; }
+{ return SESSION_ALIAS; }
 	YY_BREAK
 case 162:
 YY_RULE_SETUP
 #line 330 "sql_parser.l"
-{ return SWITCH_CLUSTER; }
+{ return CHANGE_OBI; }
 	YY_BREAK
 case 163:
 YY_RULE_SETUP
 #line 331 "sql_parser.l"
-{ return SET_MASTER_CLUSTER; }
+{ return SWITCH_CLUSTER; }
 	YY_BREAK
 case 164:
 YY_RULE_SETUP
 #line 332 "sql_parser.l"
-{ return SET_SLAVE_CLUSTER;  }
+{ return SET_MASTER_CLUSTER; }
 	YY_BREAK
 case 165:
 YY_RULE_SETUP
 #line 333 "sql_parser.l"
-{ return MASTER; }
+{ return SET_SLAVE_CLUSTER;  }
 	YY_BREAK
 case 166:
 YY_RULE_SETUP
 #line 334 "sql_parser.l"
-{ return SLAVE;  }
+{ return MASTER; }
 	YY_BREAK
 case 167:
 YY_RULE_SETUP
 #line 335 "sql_parser.l"
-{ return FORCE;  }
+{ return SLAVE;  }
 	YY_BREAK
 case 168:
 YY_RULE_SETUP
-#line 337 "sql_parser.l"
-{ return INDEX;  }
+#line 336 "sql_parser.l"
+{ return FORCE;  }
 	YY_BREAK
 case 169:
 YY_RULE_SETUP
 #line 338 "sql_parser.l"
-{ return STORING;  }
+{ return INDEX;  }
 	YY_BREAK
 case 170:
 YY_RULE_SETUP
-#line 340 "sql_parser.l"
+#line 339 "sql_parser.l"
+{ return STORING;  }
+	YY_BREAK
+case 171:
+YY_RULE_SETUP
+#line 341 "sql_parser.l"
 {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0);
   return NULLX;
 }
 	YY_BREAK
-case 171:
+case 172:
 YY_RULE_SETUP
-#line 346 "sql_parser.l"
+#line 347 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_INT, 0); */
   ParseNode* node = NULL;
@@ -2802,13 +2807,13 @@ YY_RULE_SETUP
   return INTNUM;
 }
 	YY_BREAK
-case 172:
-#line 358 "sql_parser.l"
 case 173:
 #line 359 "sql_parser.l"
 case 174:
+#line 360 "sql_parser.l"
+case 175:
 YY_RULE_SETUP
-#line 359 "sql_parser.l"
+#line 360 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE, 0); */
   ParseNode* node = NULL;
@@ -2819,11 +2824,11 @@ YY_RULE_SETUP
   return APPROXNUM;
 }
 	YY_BREAK
-case 175:
-#line 370 "sql_parser.l"
 case 176:
+#line 371 "sql_parser.l"
+case 177:
 YY_RULE_SETUP
-#line 370 "sql_parser.l"
+#line 371 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE,  0); */
   ParseNode* node = NULL;
@@ -2834,9 +2839,9 @@ YY_RULE_SETUP
   return APPROXNUM;
 }
 	YY_BREAK
-case 177:
+case 178:
 YY_RULE_SETUP
-#line 380 "sql_parser.l"
+#line 381 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_BOOL, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_BOOL, 0);
@@ -2844,9 +2849,9 @@ YY_RULE_SETUP
   return BOOL;
 }
 	YY_BREAK
-case 178:
+case 179:
 YY_RULE_SETUP
-#line 386 "sql_parser.l"
+#line 387 "sql_parser.l"
 {
   /* Unknown is can only appears in grammer 'expr is unknown'
      * and it is equal to NULL semanticly
@@ -2857,9 +2862,9 @@ YY_RULE_SETUP
   return UNKNOWN;
 }
 	YY_BREAK
-case 179:
+case 180:
 YY_RULE_SETUP
-#line 395 "sql_parser.l"
+#line 396 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_BOOL, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_BOOL, 0);
@@ -2867,9 +2872,9 @@ YY_RULE_SETUP
   return BOOL;
 }
 	YY_BREAK
-case 180:
+case 181:
 YY_RULE_SETUP
-#line 402 "sql_parser.l"
+#line 403 "sql_parser.l"
 {
   BEGIN(sq);
   ((ParseResult*)yyextra)->start_col_ = yylloc->first_column;
@@ -2886,9 +2891,9 @@ YY_RULE_SETUP
   yylval->node->value_ = 0;
 }
 	YY_BREAK
-case 181:
+case 182:
 YY_RULE_SETUP
-#line 418 "sql_parser.l"
+#line 419 "sql_parser.l"
 {
   BEGIN(INITIAL);
   yylloc->first_column = ((ParseResult*)yyextra)->start_col_;
@@ -2899,63 +2904,63 @@ YY_RULE_SETUP
   return STRING;
 }
 	YY_BREAK
-case 182:
+case 183:
 YY_RULE_SETUP
-#line 428 "sql_parser.l"
+#line 429 "sql_parser.l"
 {
   ((ParseResult*)yyextra)->tmp_literal_[yylval->node->value_++] = '\'';
-}
-	YY_BREAK
-case 183:
-/* rule 183 can match eol */
-YY_RULE_SETUP
-#line 432 "sql_parser.l"
-{
-  memmove(((ParseResult*)yyextra)->tmp_literal_ + yylval->node->value_, yytext, yyleng);
-  yylval->node->value_ += yyleng;
 }
 	YY_BREAK
 case 184:
 /* rule 184 can match eol */
 YY_RULE_SETUP
-#line 437 "sql_parser.l"
+#line 433 "sql_parser.l"
+{
+  memmove(((ParseResult*)yyextra)->tmp_literal_ + yylval->node->value_, yytext, yyleng);
+  yylval->node->value_ += yyleng;
+}
+	YY_BREAK
+case 185:
+/* rule 185 can match eol */
+YY_RULE_SETUP
+#line 438 "sql_parser.l"
 {
   ((ParseResult*)yyextra)->tmp_literal_[yylval->node->value_++] = escaped_char(yytext[1]);
 }
 	YY_BREAK
-case 185:
+case 186:
 YY_RULE_SETUP
-#line 441 "sql_parser.l"
+#line 442 "sql_parser.l"
 {
   unsigned char c = strtoul(yytext+1, NULL, 8);
   ((ParseResult*)yyextra)->tmp_literal_[yylval->node->value_++] = c;
 }
 	YY_BREAK
-case 186:
-/* rule 186 can match eol */
+case 187:
+/* rule 187 can match eol */
 YY_RULE_SETUP
-#line 446 "sql_parser.l"
+#line 447 "sql_parser.l"
 { /* ignore */ }
 	YY_BREAK
-case 187:
+case 188:
 YY_RULE_SETUP
-#line 448 "sql_parser.l"
+#line 449 "sql_parser.l"
 {
   /* Uncatched '\' before end '\'' */
   ((ParseResult*)yyextra)->tmp_literal_[yylval->node->value_++] = yytext[0];
 }
 	YY_BREAK
 case YY_STATE_EOF(sq):
-#line 453 "sql_parser.l"
+#line 454 "sql_parser.l"
 {
   yyerror(yylloc, yyextra, "unterminated quoted string");
   return ERROR;
 
 }
 	YY_BREAK
-case 188:
+case 189:
 YY_RULE_SETUP
-#line 459 "sql_parser.l"
+#line 460 "sql_parser.l"
 {
   ParseNode* node = NULL;
   malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_IDENT, 0);
@@ -2969,20 +2974,20 @@ YY_RULE_SETUP
   return NAME;
 }
 	YY_BREAK
-case 189:
+case 190:
 *yy_cp = yyg->yy_hold_char; /* undo effects of setting up yytext */
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 472 "sql_parser.l"
+#line 473 "sql_parser.l"
 {
   yyerror(yylloc, yyextra, "Unterminated string %s", yytext);
   return ERROR;
 }
 	YY_BREAK
-case 190:
+case 191:
 YY_RULE_SETUP
-#line 477 "sql_parser.l"
+#line 478 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_BINARY, 0); */
   ParseNode* node = NULL;
@@ -3007,10 +3012,10 @@ YY_RULE_SETUP
   return STRING;
 }
 	YY_BREAK
-case 191:
-/* rule 191 can match eol */
+case 192:
+/* rule 192 can match eol */
 YY_RULE_SETUP
-#line 501 "sql_parser.l"
+#line 502 "sql_parser.l"
 {
   int year, month, day;
   struct  tm time;
@@ -3044,10 +3049,10 @@ YY_RULE_SETUP
   return DATE_VALUE;
 }
 	YY_BREAK
-case 192:
-/* rule 192 can match eol */
+case 193:
+/* rule 193 can match eol */
 YY_RULE_SETUP
-#line 534 "sql_parser.l"
+#line 535 "sql_parser.l"
 {
   int hour, minute, second, micro_sec;
   struct  tm time;
@@ -3081,10 +3086,10 @@ YY_RULE_SETUP
   return DATE_VALUE;
 }
 	YY_BREAK
-case 193:
-/* rule 193 can match eol */
+case 194:
+/* rule 194 can match eol */
 YY_RULE_SETUP
-#line 567 "sql_parser.l"
+#line 568 "sql_parser.l"
 {
   int hour, minute, second;
   struct  tm time;
@@ -3118,10 +3123,10 @@ YY_RULE_SETUP
   return DATE_VALUE;
 }
 	YY_BREAK
-case 194:
-/* rule 194 can match eol */
+case 195:
+/* rule 195 can match eol */
 YY_RULE_SETUP
-#line 601 "sql_parser.l"
+#line 602 "sql_parser.l"
 {
   int year, month, day, hour, minute, second, micro_sec;
   struct  tm time;
@@ -3156,10 +3161,10 @@ YY_RULE_SETUP
   return DATE_VALUE;
 }
 	YY_BREAK
-case 195:
-/* rule 195 can match eol */
+case 196:
+/* rule 196 can match eol */
 YY_RULE_SETUP
-#line 635 "sql_parser.l"
+#line 636 "sql_parser.l"
 {
   int year, month, day, hour, minute, second;
   struct  tm time;
@@ -3195,10 +3200,10 @@ YY_RULE_SETUP
   return DATE_VALUE;
 }
 	YY_BREAK
-case 196:
-/* rule 196 can match eol */
+case 197:
+/* rule 197 can match eol */
 YY_RULE_SETUP
-#line 670 "sql_parser.l"
+#line 671 "sql_parser.l"
 {
   size_t len = 0;
   char* dest;
@@ -3217,106 +3222,106 @@ YY_RULE_SETUP
   return HINT_VALUE;
 }
 	YY_BREAK
-case 197:
-/* rule 197 can match eol */
+case 198:
+/* rule 198 can match eol */
 YY_RULE_SETUP
-#line 688 "sql_parser.l"
+#line 689 "sql_parser.l"
 {
   BEGIN hint;
   return HINT_BEGIN;
 }
 	YY_BREAK
-case 198:
+case 199:
 YY_RULE_SETUP
-#line 692 "sql_parser.l"
+#line 693 "sql_parser.l"
 {
   BEGIN INITIAL;
   return HINT_END;
 }
 	YY_BREAK
-case 199:
-/* rule 199 can match eol */
-YY_RULE_SETUP
-#line 696 "sql_parser.l"
-{}
-	YY_BREAK
 case 200:
+/* rule 200 can match eol */
 YY_RULE_SETUP
 #line 697 "sql_parser.l"
+{}
+	YY_BREAK
+case 201:
+YY_RULE_SETUP
+#line 698 "sql_parser.l"
 {
   return READ_STATIC;
 }
 	YY_BREAK
-case 201:
+case 202:
 YY_RULE_SETUP
-#line 700 "sql_parser.l"
+#line 701 "sql_parser.l"
 {
   return READ_CONSISTENCY;
 }
 	YY_BREAK
-case 202:
+case 203:
 YY_RULE_SETUP
-#line 703 "sql_parser.l"
+#line 704 "sql_parser.l"
 {
   /* add by longfei 20151105 :b */
   return INDEX;
   /* add :e */
 }
 	YY_BREAK
-case 203:
+case 204:
 YY_RULE_SETUP
-#line 708 "sql_parser.l"
+#line 709 "sql_parser.l"
 {
     //  add by yusj 20150819  :b
     return SEMI_JOIN;
     //  add  :e
 }
 	YY_BREAK
-case 204:
+case 205:
 YY_RULE_SETUP
-#line 713 "sql_parser.l"
+#line 714 "sql_parser.l"
 {
     return WEAK;
 }
 	YY_BREAK
-case 205:
+case 206:
 YY_RULE_SETUP
-#line 716 "sql_parser.l"
+#line 717 "sql_parser.l"
 {
   return STRONG;
 }
 	YY_BREAK
-case 206:
+case 207:
 YY_RULE_SETUP
-#line 719 "sql_parser.l"
+#line 720 "sql_parser.l"
 {
   return STATIC;
 }
 	YY_BREAK
-case 207:
+case 208:
 YY_RULE_SETUP
-#line 722 "sql_parser.l"
+#line 723 "sql_parser.l"
 {
   return FROZEN;
 }
 	YY_BREAK
-case 208:
+case 209:
 YY_RULE_SETUP
-#line 725 "sql_parser.l"
+#line 726 "sql_parser.l"
 {
   return yytext[0];
 }
 	YY_BREAK
-case 209:
+case 210:
 YY_RULE_SETUP
-#line 728 "sql_parser.l"
+#line 729 "sql_parser.l"
 {
   return HOTSPOT;
 }
 	YY_BREAK
-case 210:
+case 211:
 YY_RULE_SETUP
-#line 731 "sql_parser.l"
+#line 732 "sql_parser.l"
 {
   // add by longfei
   int ret = NAME;
@@ -3341,69 +3346,69 @@ YY_RULE_SETUP
   // add :e
 }
 	YY_BREAK
-case 211:
+case 212:
 YY_RULE_SETUP
-#line 754 "sql_parser.l"
+#line 755 "sql_parser.l"
 {
 //add wenghaixing [bugfix.index_datasource] 20160122
   return NAME;
   //add e
 }
 	YY_BREAK
-case 212:
+case 213:
 YY_RULE_SETUP
-#line 759 "sql_parser.l"
+#line 760 "sql_parser.l"
 {}
 	YY_BREAK
-case 213:
-/* rule 213 can match eol */
-YY_RULE_SETUP
-#line 761 "sql_parser.l"
-{ /* ignore */ }
-	YY_BREAK
 case 214:
+/* rule 214 can match eol */
 YY_RULE_SETUP
-#line 763 "sql_parser.l"
-{ return yytext[0];}
+#line 762 "sql_parser.l"
+{ /* ignore */ }
 	YY_BREAK
 case 215:
 YY_RULE_SETUP
-#line 765 "sql_parser.l"
-{return CNNOP;}
+#line 764 "sql_parser.l"
+{ return yytext[0];}
 	YY_BREAK
 case 216:
 YY_RULE_SETUP
 #line 766 "sql_parser.l"
-{return COMP_EQ;}
+{return CNNOP;}
 	YY_BREAK
 case 217:
 YY_RULE_SETUP
 #line 767 "sql_parser.l"
-{return COMP_GE;}
+{return COMP_EQ;}
 	YY_BREAK
 case 218:
 YY_RULE_SETUP
 #line 768 "sql_parser.l"
-{return COMP_GT;}
+{return COMP_GE;}
 	YY_BREAK
 case 219:
 YY_RULE_SETUP
 #line 769 "sql_parser.l"
-{return COMP_LE;}
+{return COMP_GT;}
 	YY_BREAK
 case 220:
 YY_RULE_SETUP
 #line 770 "sql_parser.l"
-{return COMP_LT;}
+{return COMP_LE;}
 	YY_BREAK
 case 221:
 YY_RULE_SETUP
 #line 771 "sql_parser.l"
-{return COMP_NE;}
+{return COMP_LT;}
 	YY_BREAK
 case 222:
 YY_RULE_SETUP
-#line 773 "sql_parser.l"
+#line 772 "sql_parser.l"
+{return COMP_NE;}
+	YY_BREAK
+case 223:
+YY_RULE_SETUP
+#line 774 "sql_parser.l"
 {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_QUESTIONMARK, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_QUESTIONMARK, 0);
@@ -3411,9 +3416,9 @@ YY_RULE_SETUP
   return QUESTIONMARK;
 }
 	YY_BREAK
-case 223:
+case 224:
 YY_RULE_SETUP
-#line 780 "sql_parser.l"
+#line 781 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_SYSTEM_VARIABLE, 0); */
   ParseNode* node = NULL;
@@ -3426,9 +3431,9 @@ YY_RULE_SETUP
   return SYSTEM_VARIABLE;
 }
 	YY_BREAK
-case 224:
+case 225:
 YY_RULE_SETUP
-#line 792 "sql_parser.l"
+#line 793 "sql_parser.l"
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_TEMP_VARIABLE, 0); */
   ParseNode* node = NULL;
@@ -3441,9 +3446,9 @@ YY_RULE_SETUP
   return TEMP_VARIABLE;
 }
 	YY_BREAK
-case 225:
+case 226:
 YY_RULE_SETUP
-#line 804 "sql_parser.l"
+#line 805 "sql_parser.l"
 {
   int ret = NAME;
   const NonReservedKeyword *word = NULL;
@@ -3466,36 +3471,36 @@ YY_RULE_SETUP
   return ret;
 }
 	YY_BREAK
-case 226:
-/* rule 226 can match eol */
-YY_RULE_SETUP
-#line 826 "sql_parser.l"
-{}
-	YY_BREAK
 case 227:
+/* rule 227 can match eol */
 YY_RULE_SETUP
 #line 827 "sql_parser.l"
+{}
+	YY_BREAK
+case 228:
+YY_RULE_SETUP
+#line 828 "sql_parser.l"
 
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(hint):
-#line 829 "sql_parser.l"
+#line 830 "sql_parser.l"
 {return END_P;}
 	YY_BREAK
-case 228:
+case 229:
 YY_RULE_SETUP
-#line 830 "sql_parser.l"
+#line 831 "sql_parser.l"
 {
   yyerror(yylloc, yyextra, "mystery charactor '%c'", *yytext);
   return ERROR;
 }
 	YY_BREAK
-case 229:
+case 230:
 YY_RULE_SETUP
-#line 834 "sql_parser.l"
+#line 835 "sql_parser.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 3499 "sql_parser.lex.c"
+#line 3504 "sql_parser.lex.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -4619,7 +4624,7 @@ static int yy_flex_strlen (yyconst char * s , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 834 "sql_parser.l"
+#line 835 "sql_parser.l"
 
 
 
@@ -4806,99 +4811,100 @@ void yyfree (void * ptr, void * yyscanner)
      LIMIT = 380,
      LOCAL = 381,
      LOCKED = 382,
-     MEDIUMINT = 383,
-     MEMORY = 384,
-     MODIFYTIME = 385,
-     MASTER = 386,
-     NUMERIC = 387,
-     OFFSET = 388,
-     ON = 389,
-     ORDER = 390,
-     OPTION = 391,
-     OUTER = 392,
-     PARAMETERS = 393,
-     PASSWORD = 394,
-     PRECISION = 395,
-     PREPARE = 396,
-     PRIMARY = 397,
-     READ_STATIC = 398,
-     REAL = 399,
-     RENAME = 400,
-     REPLACE = 401,
-     RESTRICT = 402,
-     PRIVILEGES = 403,
-     REVOKE = 404,
-     RIGHT = 405,
-     ROLLBACK = 406,
-     KILL = 407,
-     READ_CONSISTENCY = 408,
-     SCHEMA = 409,
-     SCOPE = 410,
-     SELECT = 411,
-     SESSION = 412,
-     SESSION_ALIAS = 413,
-     SET = 414,
-     SHOW = 415,
-     SMALLINT = 416,
-     SNAPSHOT = 417,
-     SPFILE = 418,
-     START = 419,
-     STATIC = 420,
-     SYSTEM = 421,
-     STRONG = 422,
-     SET_MASTER_CLUSTER = 423,
-     SET_SLAVE_CLUSTER = 424,
-     SLAVE = 425,
-     TABLE = 426,
-     TABLES = 427,
-     THEN = 428,
-     TIME = 429,
-     TIMESTAMP = 430,
-     TINYINT = 431,
-     TRAILING = 432,
-     TRANSACTION = 433,
-     TO = 434,
-     UPDATE = 435,
-     USER = 436,
-     USING = 437,
-     VALUES = 438,
-     VARCHAR = 439,
-     VARBINARY = 440,
-     WHERE = 441,
-     WHEN = 442,
-     WITH = 443,
-     WORK = 444,
-     PROCESSLIST = 445,
-     QUERY = 446,
-     CONNECTION = 447,
-     WEAK = 448,
-     INDEX = 449,
-     STORING = 450,
-     AUTO_INCREMENT = 451,
-     CHUNKSERVER = 452,
-     COMPRESS_METHOD = 453,
-     CONSISTENT_MODE = 454,
-     EXPIRE_INFO = 455,
-     GRANTS = 456,
-     JOIN_INFO = 457,
-     MERGESERVER = 458,
-     REPLICA_NUM = 459,
-     ROOTSERVER = 460,
-     ROW_COUNT = 461,
-     SERVER = 462,
-     SERVER_IP = 463,
-     SERVER_PORT = 464,
-     SERVER_TYPE = 465,
-     STATUS = 466,
-     TABLE_ID = 467,
-     TABLET_BLOCK_SIZE = 468,
-     TABLET_MAX_SIZE = 469,
-     UNLOCKED = 470,
-     UPDATESERVER = 471,
-     USE_BLOOM_FILTER = 472,
-     VARIABLES = 473,
-     VERBOSE = 474,
-     WARNINGS = 475
+     LOCKWJH = 383,
+     MEDIUMINT = 384,
+     MEMORY = 385,
+     MODIFYTIME = 386,
+     MASTER = 387,
+     NUMERIC = 388,
+     OFFSET = 389,
+     ON = 390,
+     ORDER = 391,
+     OPTION = 392,
+     OUTER = 393,
+     PARAMETERS = 394,
+     PASSWORD = 395,
+     PRECISION = 396,
+     PREPARE = 397,
+     PRIMARY = 398,
+     READ_STATIC = 399,
+     REAL = 400,
+     RENAME = 401,
+     REPLACE = 402,
+     RESTRICT = 403,
+     PRIVILEGES = 404,
+     REVOKE = 405,
+     RIGHT = 406,
+     ROLLBACK = 407,
+     KILL = 408,
+     READ_CONSISTENCY = 409,
+     SCHEMA = 410,
+     SCOPE = 411,
+     SELECT = 412,
+     SESSION = 413,
+     SESSION_ALIAS = 414,
+     SET = 415,
+     SHOW = 416,
+     SMALLINT = 417,
+     SNAPSHOT = 418,
+     SPFILE = 419,
+     START = 420,
+     STATIC = 421,
+     SYSTEM = 422,
+     STRONG = 423,
+     SET_MASTER_CLUSTER = 424,
+     SET_SLAVE_CLUSTER = 425,
+     SLAVE = 426,
+     TABLE = 427,
+     TABLES = 428,
+     THEN = 429,
+     TIME = 430,
+     TIMESTAMP = 431,
+     TINYINT = 432,
+     TRAILING = 433,
+     TRANSACTION = 434,
+     TO = 435,
+     UPDATE = 436,
+     USER = 437,
+     USING = 438,
+     VALUES = 439,
+     VARCHAR = 440,
+     VARBINARY = 441,
+     WHERE = 442,
+     WHEN = 443,
+     WITH = 444,
+     WORK = 445,
+     PROCESSLIST = 446,
+     QUERY = 447,
+     CONNECTION = 448,
+     WEAK = 449,
+     INDEX = 450,
+     STORING = 451,
+     AUTO_INCREMENT = 452,
+     CHUNKSERVER = 453,
+     COMPRESS_METHOD = 454,
+     CONSISTENT_MODE = 455,
+     EXPIRE_INFO = 456,
+     GRANTS = 457,
+     JOIN_INFO = 458,
+     MERGESERVER = 459,
+     REPLICA_NUM = 460,
+     ROOTSERVER = 461,
+     ROW_COUNT = 462,
+     SERVER = 463,
+     SERVER_IP = 464,
+     SERVER_PORT = 465,
+     SERVER_TYPE = 466,
+     STATUS = 467,
+     TABLE_ID = 468,
+     TABLET_BLOCK_SIZE = 469,
+     TABLET_MAX_SIZE = 470,
+     UNLOCKED = 471,
+     UPDATESERVER = 472,
+     USE_BLOOM_FILTER = 473,
+     VARIABLES = 474,
+     VERBOSE = 475,
+     WARNINGS = 476
    };
 #endif
 

@@ -99,6 +99,10 @@
 #include "ob_physical_plan.h"
 #include <vector>
 //add:e
+
+//add wangjiahao [table lock] :b
+#include "ob_lock_table_stmt.h"
+//add :e
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 using namespace std;
@@ -307,6 +311,14 @@ int resolve_procedure_select_into_stmt(
     uint64_t& query_id);
 //code_coverage_zhujun
 //add:e
+
+//add wangjiahao [table lock] 20160616 :b
+int resolve_lock_table_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id);
+//add :e
+
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node)
 {
 	int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -4716,7 +4728,99 @@ int resolve_procedure_execute_stmt(
 //code_coverage_zhujun
 //add:e
 
+//add wangjiahao [table lock] 20160616 :b
+int resolve_lock_table_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ParseNode *lock_table_node = NULL;
+  OB_ASSERT(node && node->type_ == T_LOCK_TABLE);
+  query_id = OB_INVALID_ID;
 
+  ObLogicalPlan* logical_plan = NULL;
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+  if (result_plan->plan_tree_ == NULL)
+  {
+    logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
+    if (logical_plan == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObLogicalPlan");
+    }
+    else
+    {
+      logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
+      result_plan->plan_tree_ = logical_plan;
+    }
+  }
+  else
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+  }
+
+  if (ret == OB_SUCCESS)
+  {
+    ObLockTableStmt* lock_table_stmt = (ObLockTableStmt*)parse_malloc(sizeof(ObLockTableStmt), result_plan->name_pool_);
+    if (lock_table_stmt == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObLockTableStmt");
+    }
+    else
+    {
+      //ParseNode sys_table_name;
+      //sys_table_name.type_ = T_IDENT;
+
+      OB_ASSERT(node->num_child_ == 1);
+      lock_table_node = node->children_[0];
+      lock_table_stmt = new(lock_table_stmt) ObLockTableStmt(name_pool);
+      //sys_table_name.str_value_ = OB_TABLES_SHOW_TABLE_NAME;
+      query_id = logical_plan->generate_query_id();
+      lock_table_stmt->set_query_id(query_id);
+
+      if (ret == OB_SUCCESS && (ret = logical_plan->add_query(lock_table_stmt)) != OB_SUCCESS)
+      {
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not add ObLockTableStmt to logical plan");
+      }
+      if (ret != OB_SUCCESS && lock_table_stmt != NULL)
+      {
+        lock_table_stmt->~ObLockTableStmt();
+      }
+    }
+
+    if (OB_SUCCESS == ret)
+    {
+      OB_ASSERT(lock_table_node);
+      ObSchemaChecker *schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+      if (schema_checker == NULL)
+      {
+        ret = OB_ERR_SCHEMA_UNSET;
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "Schema(s) are not set");
+      }
+      int32_t len = static_cast<int32_t>(strlen(lock_table_node->str_value_));
+      ObString table_name(len, len, lock_table_node->str_value_);
+      uint64_t lock_table_id = schema_checker->get_table_id(table_name);
+      if (lock_table_id == OB_INVALID_ID)
+      {
+        ret = OB_ERR_TABLE_UNKNOWN;
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+            "Unknown table \"%s\"", lock_table_node->str_value_);
+      }
+      else
+      {
+        lock_table_stmt->set_lock_table_id(lock_table_id);
+      }
+    }
+  }
+  return ret;
+
+}
+//add :e
 ////////////////////////////////////////////////////////////////
 int resolve(ResultPlan* result_plan, ParseNode* node)
 {
@@ -5029,6 +5133,11 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 		case T_CHANGE_OBI:
 			ret = resolve_change_obi(result_plan, node, query_id);
 			break;
+    //add wangjiahao [table lock] 20160616 :b
+    case T_LOCK_TABLE:
+      ret = resolve_lock_table_stmt(result_plan, node, query_id);
+      break;
+    //add :e
 		default:
 			TBSYS_LOG(ERROR, "unknown top node type=%d", node->type_);
 			ret = OB_ERR_UNEXPECTED;

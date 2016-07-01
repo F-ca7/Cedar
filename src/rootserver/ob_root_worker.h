@@ -207,7 +207,8 @@ namespace oceanbase
          * @return OB_SUCCESS if success
          */
         int reelect_master_rootserver();
-        // add:e      private:
+        // add:e      
+      private:
         int start_as_master();
         int start_as_slave();
         template <class Queue>

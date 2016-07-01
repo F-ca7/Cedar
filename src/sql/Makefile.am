@@ -131,7 +131,8 @@ sql_parser_sources=                                    \
   ob_end_trans_stmt.h\
   ob_non_reserved_keywords.h  ob_non_reserved_keywords.c \
 	ob_priv_executor.h ob_priv_executor.cpp\
-	ob_change_obi_stmt.h ob_change_obi_stmt.cpp
+        ob_change_obi_stmt.h ob_change_obi_stmt.cpp \
+        ob_lock_table_stmt.h ob_lock_table_stmt.cpp
 
 operators_sources=                                                       \
   ob_cursor_fetch.h 		     ob_cursor_fetch.cpp\
@@ -261,7 +262,8 @@ operators_sources=                                                       \
   ob_ps_store.h         ob_ps_store.cpp      \
   ob_ps_store_item_callback.h \
 	ob_sql_character_set.h             ob_sql_character_set.cpp\
-	ob_fill_values.h	ob_fill_values.cpp
+        ob_fill_values.h	ob_fill_values.cpp  \
+        ob_ups_lock_table.h     ob_ups_lock_table.cpp
 
 
 

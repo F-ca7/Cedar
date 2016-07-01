@@ -75,6 +75,9 @@ namespace oceanbase
         T_CREATE_TABLE,
         T_DROP_TABLE,
         T_ALTER_TABLE,
+      //add wangjiahao [table lock] 20160616 :b
+        T_LOCK_TABLE,
+      //add :e
 
         // show statements
         T_SHOW_TABLES,

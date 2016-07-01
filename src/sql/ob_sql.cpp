@@ -73,6 +73,8 @@
 #include "ob_drop_index_stmt.h"
 //add e
 
+#include "sql/ob_lock_table_stmt.h" //add wangjiahao [table lock] 20160616
+
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 

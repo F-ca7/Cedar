@@ -300,6 +300,10 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_COLUMN_NOT_FOUND, "Column not found");   // SQLSTATE '42S22'
     ADD_ERROR_STR(OB_ERR_DELETE_NULL_ROWKEY, "Delete null rowkey");
     ADD_ERROR_STR(OB_ERR_INSERT_INNER_JOIN_COLUMN, "Insert inner join column error");
+    //add wangjiahao [table lock] 20160616 :b
+    ADD_ERROR_STR(OB_ERR_TABLE_EXCLUSIVE_LOCK_CONFLICT, "Table have been locked");
+    ADD_ERROR_STR(OB_ERR_TABLE_INTENTION_LOCK_CONFLICT, "Table have been locked");
+    //add :e
     ADD_ERROR_STR(OB_ERR_USER_EMPTY, "No user");
     ADD_ERROR_STR(OB_ERR_USER_NOT_EXIST, "User not exist");
     ADD_ERROR_STR(OB_ERR_NO_PRIVILEGE, "No privilege");

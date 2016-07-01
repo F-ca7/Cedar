@@ -258,6 +258,7 @@ LEFT              { return LEFT; }
 LIMIT             { return LIMIT; }
 LIKE              { return LIKE; }
 LOCAL             { return LOCAL; }
+LOCK              { return LOCKWJH; }
 LOCKED            { return LOCKED; }
 MEDIUMINT         { return MEDIUMINT; }
 MEMORY            { return MEMORY; }

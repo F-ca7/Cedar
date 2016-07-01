@@ -895,6 +895,22 @@ namespace oceanbase
                 || OB_SUCCESS != (ret = fill_return_rows_(*main_op, new_scanner, session_ctx->get_ups_result())))
         {
           session_ctx->rollback_stmt();
+          //add wangjiahao [table lock] 20160616 :b
+
+          if ((OB_ERR_TABLE_EXCLUSIVE_LOCK_CONFLICT == ret
+                || OB_ERR_TABLE_INTENTION_LOCK_CONFLICT == ret)
+                && !session_ctx->is_session_expired()
+                && !session_ctx->is_stmt_expired())
+          {
+            TBSYS_LOG(WARN, "##TEST_PRINT##rollback because of table lock ret=%d", ret);
+            if (!with_sid)
+            {
+              end_session_ret = ret;
+            }
+            give_up_lock = false;
+            need_free_task = false;
+          }
+          //add :e
           if ((OB_ERR_EXCLUSIVE_LOCK_CONFLICT == ret
                 || OB_ERR_SHARED_LOCK_CONFLICT == ret)
               && !session_ctx->is_session_expired()
