@@ -178,7 +178,9 @@ namespace oceanbase
                   ErrStat& err_stat,
                   const uint64_t& query_id,
                   ObProcedure *proc_op,
-                  SpMultiInsts *mul_inst = NULL);
+                  SpIfCtrlInsts *&elseif_ctrl,
+                  SpMultiInsts *mul_inst = NULL
+                  );
   int gen_physical_procedure_case(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,

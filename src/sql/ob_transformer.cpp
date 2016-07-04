@@ -789,9 +789,9 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_PROCEDURE_IF:
     ret = gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
-  case ObBasicStmt::T_PROCEDURE_ELSEIF:
-    ret = gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
-    break;
+//  case ObBasicStmt::T_PROCEDURE_ELSEIF:
+//    ret = gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst, NULL);
+//    break;
   case ObBasicStmt::T_PROCEDURE_LOOP:
     ret = gen_physical_procedure_loop(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
@@ -1364,7 +1364,7 @@ int ObTransformer::gen_physical_procedure_if(
         {
           uint64_t stmt_id = stmt->get_elseif_stmt(i);
 
-          if(OB_SUCCESS != gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, stmt_id, proc_op, elseif_control->get_else_block()))
+          if(OB_SUCCESS != gen_physical_procedure_elseif(logical_plan, physical_plan, err_stat, stmt_id, proc_op, elseif_control, elseif_control->get_else_block()))
           {}
         }
       }
@@ -1393,7 +1393,9 @@ int ObTransformer::gen_physical_procedure_elseif(
                 ObPhysicalPlan *physical_plan,
                 ErrStat& err_stat,
                 const uint64_t& query_id,
-                ObProcedure *proc_op, SpMultiInsts *mul_inst)
+                ObProcedure *proc_op,
+                SpIfCtrlInsts *&elseif_control,
+                SpMultiInsts *mul_inst)
 {
   int &ret = err_stat.err_code_ = OB_SUCCESS;
 
@@ -1405,7 +1407,7 @@ int ObTransformer::gen_physical_procedure_elseif(
     /*获取表达式的值*/
     uint64_t expr_id = stmt->get_expr_id();
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
-    SpIfCtrlInsts *elseif_control = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
+    elseif_control = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
     if (OB_UNLIKELY(raw_expr == NULL))
     {
       ret = OB_ERR_ILLEGAL_ID;
@@ -1428,18 +1430,15 @@ int ObTransformer::gen_physical_procedure_elseif(
 //      elseif_control->add_read_var(var_elseif_expr);
     }
 
-    if (ret == OB_SUCCESS)
+    TBSYS_LOG(TRACE, "else if then stmt size=%ld",stmt->get_then_stmt_size());
+
+    for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
     {
-      TBSYS_LOG(TRACE, "else if then stmt size=%ld",stmt->get_then_stmt_size());
+      uint64_t stmt_id=stmt->get_then_stmt(i);
 
-      for(int64_t i = 0; ret == OB_SUCCESS && i < stmt->get_then_stmt_size(); i++)
+      if ((ret != gen_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, elseif_control->get_then_block())) != OB_SUCCESS)
       {
-        uint64_t stmt_id=stmt->get_then_stmt(i);
-
-        if ((ret != gen_physical_procedure_inst(logical_plan,physical_plan,err_stat,stmt_id, proc_op, elseif_control->get_then_block())) != OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "generate procedure instruction failed at %ld", i);
-        }
+        TBSYS_LOG(WARN, "generate procedure instruction failed at %ld", i);
       }
     }
   }

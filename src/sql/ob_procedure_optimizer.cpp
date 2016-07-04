@@ -416,7 +416,7 @@ int ObProcedureOptimizer::optimize(ObProcedure &proc)
 //    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
 //  }
 //  else
-    if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
+  if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
   {
     TBSYS_LOG(INFO, "[%.*s] use general optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
   }
@@ -644,7 +644,7 @@ int ObProcedureOptimizer::do_split(SpInstList &inst_list, SpInstList &pre_inst, 
   {
     pre_inst.push_back(inst_list.at(seq.at(i)));
   }
-  for(int64_t i = pre_count; i < inst_list.count(); ++i)
+  for(int64_t i = pre_count; i < seq.count(); ++i)
   {
     post_inst.push_back(inst_list.at(seq.at(i)));
   }

@@ -1,6 +1,7 @@
 #ifndef OB_PROCEDURE_VARIABLE_TABLE_H
 #define OB_PROCEDURE_VARIABLE_TABLE_H
 
+#include "common/ob_malloc.h"
 #include "common/ob_pooled_allocator.h"
 #include "common/hash/ob_hashmap.h"
 #include "common/ob_string_buf.h"
@@ -28,7 +29,7 @@ namespace oceanbase{
 
       int write(const ObString &array_name, int64_t idx, const ObObj &val);
 
-      int write(const ObString &array_name, const ObIArray<ObObj> &other) const;
+      int write(const ObString &array_name, const ObIArray<ObObj> &other);
 
       int read(const ObString &var_name, const ObObj *&val) const;
 
