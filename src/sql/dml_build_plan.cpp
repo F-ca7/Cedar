@@ -312,6 +312,7 @@ int resolve_expr(
   ObLogicalPlan* logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
   ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
 
+  TBSYS_LOG(TRACE, "resolve expr type: %d", node->type_);
   switch (node->type_)
   {
     case T_BINARY:

@@ -153,6 +153,7 @@
 #include "ob_procedure_assgin.h"
 #include "ob_procedure_while_stmt.h"
 #include "ob_procedure_while.h"
+#include "ob_procedure_exit_stmt.h"//add by wdh
 #include "ob_procedure_case_stmt.h"
 #include "ob_procedure_case.h"
 #include "ob_procedure_casewhen_stmt.h"
@@ -765,7 +766,7 @@ int ObTransformer::gen_physical_procedure_inst(
 {
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   ObBasicStmt::StmtType type = logical_plan->get_query(query_id)->get_stmt_type();
-
+  TBSYS_LOG(DEBUG, "enter gen_physcail_procedure_inst, type=%d", type);
   switch(type)
   {
   case ObBasicStmt::T_PROCEDURE_ASSGIN:
@@ -783,6 +784,11 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_UPDATE:
     ret = gen_physical_procedure_update(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
+  //add by wangdonghui 20160623 procedure_delete :b
+  case ObBasicStmt::T_DELETE:
+    ret = gen_physical_procedure_delete(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
+    break;
+  //add :e
   case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
     ret = gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
@@ -795,6 +801,11 @@ int ObTransformer::gen_physical_procedure_inst(
   case ObBasicStmt::T_PROCEDURE_LOOP:
     ret = gen_physical_procedure_loop(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
+  //add by wdh 20160623 :b
+  case ObBasicStmt::T_PROCEDURE_EXIT:
+    ret = gen_physical_procedure_exit(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
+    break;
+  //add :e
   case ObBasicStmt::T_PROCEDURE_CASE:
     ret = gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, proc_op, mul_inst);
     break;
@@ -972,22 +983,24 @@ int ObTransformer::gen_physical_procedure_drop(
 		 {
 			 TBSYS_LOG(WARN, "result_op set proc_name error");
 		 }
-		 else
-		 {
-			 int32_t delete_idx = OB_INVALID_INDEX;
+//delete by wdh 20160629 :b
+//		 else
+//		 {
+//			 int32_t delete_idx = OB_INVALID_INDEX;
 //			 ObPhyOperator* delete_op = NULL;
-			 /*这里应该过滤一些类型的语句*/
-			 if ((ret = gen_physical_delete_new(logical_plan,physical_plan,err_stat,stmt->get_proc_delete_id(),&delete_idx)) != OB_SUCCESS)
-			 {
-				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
-			 }
+//			 /*这里应该过滤一些类型的语句*/
+//			 if ((ret = gen_physical_delete_new(logical_plan,physical_plan,err_stat,stmt->get_proc_delete_id(),&delete_idx)) != OB_SUCCESS)
+//			 {
+//				 TBSYS_LOG(ERROR, "generate_physical_plan wrong!");
+//			 }
 //			 else if ((delete_op = physical_plan->get_phy_query(delete_idx)) == NULL|| (ret = result_op->set_delete_op(*delete_op)) != OB_SUCCESS)
 //			 {
 //				 ret = OB_ERR_ILLEGAL_INDEX;
 //				 TBSYS_LOG(ERROR,"Set child of delete failed");
 //			 }
 
-		 }
+//		 }
+//delete :e
 		 //设置标志位
 		 result_op->set_if_exists(stmt->if_exists());
 	}
@@ -1462,7 +1475,13 @@ int ObTransformer::gen_physical_procedure_loop(
   SpLoopInst* loop_inst = proc_op->create_inst<SpLoopInst>(mul_inst);
 
   SpVar loop_var;
-  if( OB_SUCCESS != (ret = ob_write_string(*mem_pool_, loop_stmt->get_loop_counter_name(), loop_var.var_name_)) )
+  //add by wdh 20160624 :b
+  if(loop_stmt->get_loop_counter_name() == NULL)
+  {
+    TBSYS_LOG(DEBUG, "loop counter is null");
+  }
+  //add :e
+  else if( OB_SUCCESS != (ret = ob_write_string(*mem_pool_, loop_stmt->get_loop_counter_name(), loop_var.var_name_)) )
   {
     TBSYS_LOG(WARN, "construct loop var name fail");
   }
@@ -1470,45 +1489,63 @@ int ObTransformer::gen_physical_procedure_loop(
   {
     loop_inst->set_loop_var(loop_var);
   }
-
-  ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
-  ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
-
-  if( OB_SUCCESS != ret ) {}
-  else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
-                              loop_inst->get_lowest_expr(),
-                              this,
-                              logical_plan,
-                              physical_plan)))
+  //add by wdh 20160624 :b
+  if(loop_stmt->get_lowest_expr_id()==(uint64_t)-1)
   {
-    TBSYS_LOG(WARN, "generate lowest value expression fail");
+
+      for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
+      {
+        uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
+
+        if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
+        {
+          TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
+        }
+      }
   }
-  else if( OB_SUCCESS != (ret = highest_raw_expr->fill_sql_expression(
-                            loop_inst->get_highest_expr(),
-                            this,
-                            logical_plan,
-                            physical_plan)))
-  {
-    TBSYS_LOG(WARN, "generate highest value expression fail");
-  }
+  //add :e
   else
   {
-    loop_inst->get_lowest_expr().set_owner_op(proc_op);
-    loop_inst->get_highest_expr().set_owner_op(proc_op);
+      ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
+      ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
 
-    loop_inst->set_step_size(loop_stmt->get_step_size());
-    loop_inst->set_reverse(loop_stmt->is_reverse());
-
-    for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
-    {
-      uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
-
-      if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
+      if( OB_SUCCESS != ret ) {}
+      else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
+                                  loop_inst->get_lowest_expr(),
+                                  this,
+                                  logical_plan,
+                                  physical_plan)))
       {
-        TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
+        TBSYS_LOG(WARN, "generate lowest value expression fail");
       }
-    }
+      else if( OB_SUCCESS != (ret = highest_raw_expr->fill_sql_expression(
+                                loop_inst->get_highest_expr(),
+                                this,
+                                logical_plan,
+                                physical_plan)))
+      {
+        TBSYS_LOG(WARN, "generate highest value expression fail");
+      }
+      else
+      {
+        loop_inst->get_lowest_expr().set_owner_op(proc_op);
+        loop_inst->get_highest_expr().set_owner_op(proc_op);
+
+        loop_inst->set_step_size(loop_stmt->get_step_size());
+        loop_inst->set_reverse(loop_stmt->is_reverse());
+
+        for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
+        {
+          uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
+
+          if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
+          {
+            TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
+          }
+        }
+      }
   }
+
   return ret;
 }
 //add zt 20151128:e
@@ -1576,7 +1613,60 @@ int ObTransformer::gen_physical_procedure_while(
 }
 //add hjw 20151229:e
 
+//add by wdh 20160623 :b
+int ObTransformer::gen_physical_procedure_exit(
+          ObLogicalPlan *logical_plan,
+          ObPhysicalPlan *physical_plan,
+          ErrStat& err_stat,
+          const uint64_t& query_id,
+          ObProcedure *proc_op,
+          SpMultiInsts *mul_inst)
+ {
+    TBSYS_LOG(DEBUG, "enter gen_physical_procedure_exit");
+    int &ret = err_stat.err_code_ = OB_SUCCESS;
+    ObProcedureExitStmt *stmt = NULL;
+    get_stmt(logical_plan, err_stat, query_id, stmt);//get logic plan of whole stmts
+    if (ret == OB_SUCCESS)
+    {
+      SpExitInst* exit_inst = proc_op->create_inst<SpExitInst>(mul_inst);
+      uint64_t expr_id = stmt->get_expr_id();
+      TBSYS_LOG(DEBUG, "gen_physical_procedure_exit: expr_id[%ld]", expr_id);
+      if(expr_id==(uint64_t)-1)
+      {
 
+      }
+      else
+      {
+          ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
+          ObSqlExpression &expr = exit_inst->get_when_expr();
+          expr.set_owner_op(proc_op);
+
+          if (OB_UNLIKELY(raw_expr == NULL))
+          {
+                ret = OB_ERR_ILLEGAL_ID;
+                TBSYS_LOG(ERROR,"Wrong id = %lu to get expression, ret=%d", expr_id, ret);
+          }
+            else if ((ret = raw_expr->fill_sql_expression(
+                                                 expr,
+                                                 this,
+                                                 logical_plan,
+                                                 physical_plan)
+                                                 ) != OB_SUCCESS)
+            {
+                TBSYS_LOG(ERROR,"Generate ObSqlExpression failed, ret=%d", ret);
+            }
+            else
+            {
+                ObArray<const ObRawExpr *> var_exit_expr;
+                raw_expr->get_raw_var(var_exit_expr);
+                gen_physical_procedure_inst_var_set(exit_inst->cons_read_var_set(),var_exit_expr);
+            }
+      }
+
+    }
+    return ret;
+}
+//add :e
 int ObTransformer::gen_physical_procedure_else(
 		  ObLogicalPlan *logical_plan,
 		  ObPhysicalPlan *physical_plan,
@@ -2078,6 +2168,48 @@ int ObTransformer::gen_physical_procedure_update(
 }
 
 //code_coverage_zhujun
+//add:e
+
+//add by wangdonghui 20160623 :b
+int ObTransformer::gen_physical_procedure_delete(
+                ObLogicalPlan *logical_plan,
+                ObPhysicalPlan *physical_plan,
+                ErrStat &err_stat,
+                const uint64_t &query_id,
+                ObProcedure *proc_op, SpMultiInsts *mul_inst)
+{
+  int ret = OB_SUCCESS;
+  int32_t idx;
+  //filter expr, set expr
+  //we do not consider the when expr here
+
+  SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+  SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
+  rd_base_inst->set_rw_id(rw_delta_inst->get_id());
+  if(OB_SUCCESS != (ret = gen_physical_delete_new(logical_plan, physical_plan, err_stat, query_id, &idx, rd_base_inst, rw_delta_inst)))
+  {}
+  else
+  {
+    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
+
+    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+    OB_ASSERT(inner_plan->get_query_size() == 3);
+    for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
+    {
+      ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
+      const ObPhyOperatorType type = aux_query->get_type();
+      if( PHY_VALUES == type )
+      {
+        rd_base_inst->set_rdbase_op(aux_query, idx);
+        break;
+      }
+    }
+    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
+  }
+  return ret;
+}
 //add:e
 
 int ObTransformer::gen_physical_select(
@@ -8750,7 +8882,12 @@ int ObTransformer::gen_physical_delete_new(
     ObPhysicalPlan* physical_plan,
     ErrStat& err_stat,
     const uint64_t& query_id,
-    int32_t* index)
+    int32_t* index,
+    //add by wangdonghui 20160623 :b
+    SpRdBaseInst *rd_base_inst,
+    SpRwDeltaInst *rw_delta_inst
+    //add :e
+    )
 {
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   OB_ASSERT(logical_plan);
@@ -8797,6 +8934,11 @@ int ObTransformer::gen_physical_delete_new(
   {
     table_id = delete_stmt->get_delete_table_id();
     ups_modify->set_dml_type(OB_DML_DELETE);
+
+    //add by wangdonghui 20160623 :b
+    if( NULL != rw_delta_inst ) rw_delta_inst->set_tid(table_id);
+    if( NULL != rd_base_inst ) rd_base_inst->set_tid(table_id);
+    //add :e
   }
   ObWhenFilter *when_filter_op = NULL;
   if (OB_LIKELY(OB_SUCCESS == ret))
@@ -8868,6 +9010,14 @@ int ObTransformer::gen_physical_delete_new(
       {
         TRANS_LOG("Failed to add output column");
       }
+      //add by wangdonghui 20160623 :b
+      if( NULL != rw_delta_inst )
+      {
+        ObArray<const ObRawExpr*> var_list;
+        const_del.get_raw_var(var_list);
+        gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), var_list);
+     }
+      //add :e
     }
   }
   if (OB_LIKELY(OB_SUCCESS == ret))

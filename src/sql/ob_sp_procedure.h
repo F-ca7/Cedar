@@ -33,6 +33,7 @@ namespace oceanbase
       SP_PREGROUP_INST, //used to fetch static data
       SP_GROUP_INST, //for a block of instructions
       SP_W_INST, //while instruction
+      SP_EXIT_INST,//exit instruction
       SP_UNKOWN
     };
 
@@ -214,7 +215,7 @@ namespace oceanbase
       SpMultiInsts(SpInst *ownner) : ownner_(ownner) {}
       virtual ~SpMultiInsts();
       int add_inst(SpInst *inst) { return inst_list_.push_back(inst); }
-      int get_inst(int64_t idx, SpInst *&inst);
+      int get_inst(int64_t idx, SpInst *&inst) const;
       SpInst* get_inst(int64_t idx);
       int64_t inst_count() const { return inst_list_.count(); }
 
@@ -532,6 +533,10 @@ namespace oceanbase
       ObSqlExpression & get_lowest_expr() { return lowest_expr_; }
       ObSqlExpression & get_highest_expr() { return highest_expr_; }
 
+      //add wdh 20160324 :b
+      void set_lowest_expr(ObSqlExpression lowest_expr) { lowest_expr_=lowest_expr; }
+      void set_highest_expr(ObSqlExpression highest_expr) { highest_expr_=highest_expr; }
+      //add :e
       void set_step_size(int64_t step) { step_size_ = step; }
       void set_loop_var(const SpVar &var) { loop_counter_var_ = var; }
 
@@ -616,7 +621,33 @@ namespace oceanbase
     };
 //add hjw 20151229:e
 
+    //add wdh 20160623 :b
+    class SpExitInst : public SpInst
+    {
+     public:
+        SpExitInst():SpInst(SP_EXIT_INST){}
+        virtual ~SpExitInst();
 
+        ObSqlExpression& get_when_expr(){return when_expr_;}
+        SpVariableSet & cons_read_var_set() { return when_expr_var_set_; }
+
+
+        virtual void get_read_variable_set(SpVariableSet &read_set) const;
+        virtual void get_write_variable_set(SpVariableSet &write_set) const;
+        virtual CallType get_call_type() const;
+
+        virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos,ModuleArena &allocator,ObPhysicalPlan::OperatorStore &operators_store,ObPhyOperatorFactory *op_factory);
+        virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
+        virtual bool check_when()const;
+        virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+
+        virtual int assign(const SpInst *inst);
+
+     private:
+        ObSqlExpression when_expr_;  //exit value
+        SpVariableSet when_expr_var_set_;
+    };
+    //add :e
     class SpCaseInst;
     class SpWhenBlock : public SpMultiInsts
     {
@@ -745,6 +776,13 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
 
+    //add by wangdonghui 20160624 :b
+    template<>
+    struct sp_inst_traits<SpExitInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+    //add :e
     typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
 
     class SpInstExecStrategy

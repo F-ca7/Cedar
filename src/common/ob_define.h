@@ -167,6 +167,7 @@ namespace oceanbase
     const int OB_STMT_EXPIRED = -149;
     const int OB_DISCARD_PACKET = -150;
 
+    const int OB_SP_EXIT = -151;//add by wdh 20160624
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中

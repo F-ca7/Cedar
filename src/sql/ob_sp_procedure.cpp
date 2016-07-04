@@ -1029,7 +1029,7 @@ SpMultiInsts::~SpMultiInsts()
   }
 }
 
-int SpMultiInsts::get_inst(int64_t idx, SpInst *&inst)
+int SpMultiInsts::get_inst(int64_t idx, SpInst *&inst) const
 {
   if( idx < 0 || idx >= inst_list_.count() ) inst = NULL;
   else inst = inst_list_.at(idx);
@@ -1693,8 +1693,101 @@ bool SpLoopInst::is_simple_loop() const
     }
   }
 
+  //third check whether exit when exists
+  //add by wdh 20160626 :b
+  if( ret )
+  {
+      int64_t i=0;
+      for(; i < loop_body_.inst_count(); i++)
+      {
+          SpInst *tmp = NULL;
+          loop_body_.get_inst(i, tmp);
+          SpInstType type=tmp->get_type();
+          if(type == 10)
+          {
+              SpExitInst *inst = static_cast<SpExitInst*>(tmp);
+              if(inst->check_when()==false)
+              {
+                  TBSYS_LOG(INFO, "exit when exists");
+                  ret=false;
+                  break;
+              }
+          }
+      }
+  }
+  //add :e
+
   return ret;
 }
+
+//add by wdh 20160624:b
+
+/*=================================================
+ *                SpExitInst Defintion
+ * ================================================*/
+SpExitInst::~SpExitInst()
+{}
+
+void SpExitInst::get_read_variable_set(SpVariableSet &read_set) const
+{
+  read_set.add_var_info_set(when_expr_var_set_);
+}
+
+void SpExitInst::get_write_variable_set(SpVariableSet &write_set) const
+{
+  write_set.add_var_info_set(when_expr_var_set_);
+}
+
+int SpExitInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
+{
+    int ret = OB_SUCCESS;
+    if(OB_SUCCESS !=(ret = when_expr_.serialize(buf, buf_len,pos)))
+    {
+        TBSYS_LOG(WARN, "serialize when_expr fail");
+    }
+    return ret;
+}
+
+bool SpExitInst::check_when() const
+{
+    return when_expr_.is_empty();
+}
+
+int SpExitInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
+                                    ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
+{
+    UNUSED(allocator);
+    UNUSED(operators_store);
+    UNUSED(op_factory);
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = when_expr_.deserialize(buf, data_len, pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize while_expr fail");
+  }
+  else
+  {
+    when_expr_.set_owner_op(proc_);
+  }
+  return ret;
+}
+
+int SpExitInst::assign(const SpInst *inst)
+{
+  int ret = OB_SUCCESS;
+
+  const SpExitInst*old_inst = static_cast<const SpExitInst*>(inst);
+  when_expr_ = old_inst->when_expr_;
+  when_expr_.set_owner_op(proc_);
+  when_expr_var_set_ = old_inst->when_expr_var_set_;
+  return ret;
+}
+
+CallType SpExitInst::get_call_type() const
+{
+    return L_LPC;
+}
+//add :e
+
 
 /*=================================================
              SpWhenBlock Defintion
@@ -2305,6 +2398,11 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
   case SP_W_INST:
     new_inst = create_inst<SpWhileInst>(mul_inst);
     break;
+  //add by wdh 20160624 :b
+  case SP_EXIT_INST:
+    new_inst = create_inst<SpExitInst>(mul_inst);
+    break;
+  //add :e
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");
@@ -2707,5 +2805,15 @@ int64_t SpWhileInst::to_string(char *buf, const int64_t buf_len) const
     pos += do_body_.to_string(buf +pos, buf_len - pos);
 
     databuff_printf(buf, buf_len, pos, "End While\n");
+    return pos;
+}
+
+
+//add by wangdonghui 20160624 :b
+int64_t SpExitInst::to_string(char *buf, const int64_t buf_len) const
+{
+    int64_t pos = 0;
+    databuff_printf(buf, buf_len, pos, "type [Exit], rs: %s\n", to_cstring(when_expr_));
+    databuff_printf(buf, buf_len, pos, "\tDo\n");
     return pos;
 }
