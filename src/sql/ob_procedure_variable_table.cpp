@@ -1,4 +1,4 @@
-#include "ob_define.h"
+#include "common/ob_define.h"
 #include "ob_procedure_variable_table.h"
 
 using namespace oceanbase::sql;
@@ -42,6 +42,7 @@ int ObProcedureVariableTable::create_array(const ObString &array, const ObObjTyp
   {
     ret = OB_ERROR; //variable existed;
   }
+  return ret;
 }
 
 int ObProcedureVariableTable::write(const ObString &var_name, const ObObj &val)
@@ -98,7 +99,7 @@ int ObProcedureVariableTable::write(const ObString &array_name, int64_t idx_valu
   return ret;
 }
 
-int ObProcedureVariableTable::write(const ObString &array_name, const ObIArray<ObObj> &other) const
+int ObProcedureVariableTable::write(const ObString &array_name, const ObIArray<ObObj> &other)
 {
   int ret = OB_SUCCESS;
   const ObObj *array_idx_obj;
@@ -115,7 +116,7 @@ int ObProcedureVariableTable::write(const ObString &array_name, const ObIArray<O
     array.clear();
     for(int64_t i = 0; OB_SUCCESS == ret && i < other.count(); ++i)
     {
-      if( OB_SUCCESS != (ret = name_pool_.write_obj(val, &tmp)) )
+      if( OB_SUCCESS != (ret = name_pool_.write_obj(other.at(i), &tmp)) )
       {}
       else if( OB_SUCCESS != (ret = array.push_back(tmp)) )
       {}
@@ -157,7 +158,7 @@ int ObProcedureVariableTable::read(const ObString &array_name, int64_t idx, cons
     }
     else
     {
-      TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
+      TBSYS_LOG(WARN, "array index is invalid, %ld", idx);
       ret = OB_ERR_ILLEGAL_INDEX;
     }
   }
@@ -167,6 +168,7 @@ int ObProcedureVariableTable::read(const ObString &array_name, int64_t idx, cons
 int ObProcedureVariableTable::read(const ObString &array_name, const ObIArray<ObObj> *&array) const
 {
   int ret = OB_SUCCESS;
+  const ObObj *val = NULL;
   if( OB_SUCCESS != (ret = read(array_name, val)) )
   {}
   else
