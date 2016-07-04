@@ -43,11 +43,14 @@ namespace oceanbase
 
       int handle_group_result(SpProcedure *proc, ObUpsResult &result);
 
+      int execute_pre_group(SpPreGroupInsts *inst);
+
     private:
       //execution context
       ObLoopCounter loop_counter_;
       ObRow curr_row_;
       ObRowDesc fake_row_desc_;
+      ObStringBuf obj_pool_;
     };
 
     /**

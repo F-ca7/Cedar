@@ -639,6 +639,24 @@ int SpRwCompInst::assign(const SpInst *inst)
   return ret;
 }
 
+void SpPreGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
+{
+  inst_list_.get_read_variable_set(read_set);
+}
+
+void SpPreGroupInsts::get_write_variable_set(SpVariableSet &write_set) const
+{
+  inst_list_.get_write_variable_set(write_set);
+}
+
+int SpPreGroupInsts::add_inst(SpInst *inst)
+{
+  inst_list_.add_inst(inst);
+  inst->get_write_variable_set(write_set_);
+  return OB_SUCCESS;
+}
+
+
 /* ========================================================
  *      SpGroupInsts Definition
  * =======================================================*/

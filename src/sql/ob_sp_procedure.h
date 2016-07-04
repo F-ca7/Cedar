@@ -30,6 +30,7 @@ namespace oceanbase
       SP_D_INST, //maintain delta data
       SP_DE_INST, //maintain delta data, read into variables
       SP_A_INST, //analyse inst, read, baseline & delta, aggreation, analyze
+      SP_PREGROUP_INST, //used to fetch static data
       SP_GROUP_INST, //for a block of instructions
       SP_W_INST, //while instruction
       SP_UNKOWN
@@ -406,6 +407,28 @@ namespace oceanbase
       SpVariableSet rs_;
     };
 
+    class SpPreGroupInsts : public SpInst
+    {
+    public:
+
+        SpPreGroupInsts() : SpInst(SP_PREGROUP_INST) {}
+        virtual ~SpPreGroupInsts();
+
+        virtual void get_read_variable_set(SpVariableSet &read_set) const;
+        virtual void get_write_variable_set(SpVariableSet &write_set) const;
+
+        CallType get_call_type() const { return S_RPC; }
+
+        SpMultiInsts *get_body() { return inst_list_; }
+
+        int add_inst(SpInst *inst);
+
+        SpVariableSet & get_write_set() const { return write_set_; }
+    private:
+        SpMultiInsts inst_list_;
+        SpVariableSet write_set_;
+    };
+
     /**
      * @brief The SpInstBlock class
      * a list of each instruction, which would be sent to ups for further execution
@@ -682,6 +705,12 @@ namespace oceanbase
 
     template<>
     struct sp_inst_traits<SpRwCompInst>
+    {
+      static const bool is_sp_inst = true;
+    };
+
+    template<>
+    struct sp_inst_traits<SpPreGroupInsts>
     {
       static const bool is_sp_inst = true;
     };
