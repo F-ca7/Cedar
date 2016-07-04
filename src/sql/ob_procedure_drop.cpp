@@ -101,12 +101,19 @@ int ObProcedureDrop::open()
     }
     else if(OB_SUCCESS != (ret = rpc_->drop_procedure(if_exists_, proc_name_)))
     {
-        TBSYS_LOG(WARN, "failed to drop procedure, err=%d", ret);
+        if(if_exists_)
+        {
+            ret = OB_SUCCESS;
+        }
+        else
+        {
+            TBSYS_LOG(WARN, "failed to drop procedure, err=%d", ret);
+        }
     }
     else
     {
         TBSYS_LOG(INFO, "drop procedure succ, proc_name=[%s] if_exists=%c",
-                  to_cstring(proc_name_), if_exists_?'Y':'N');
+                      to_cstring(proc_name_), if_exists_?'Y':'N');
     }
     return ret;
     //add :e

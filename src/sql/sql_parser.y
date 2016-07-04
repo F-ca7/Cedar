@@ -3668,7 +3668,7 @@ case_else		:
 /*===========================================================
  *	Procedure's loop sentence
  *===========================================================*/
-stmt_loop		:	LOOP control_sect END LOOP ';'
+stmt_loop		:	LOOP control_sect END LOOP
 					{
             malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
                                      NULL,
@@ -3722,14 +3722,18 @@ stmt_null		: ';'
  *===========================================================*/
 stmt_exit		:	EXIT ';'
 					{
-						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT);
+                        malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT, 1, NULL);
 						$$->value_=1;
 					}
-				|	CONTINUE ';'
-					{
-						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CONTINUE);
-						$$->value_=0;
-					}
+//				|	CONTINUE ';'
+//					{
+//						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CONTINUE);
+//						$$->value_=0;
+//					}
+                |   EXIT WHEN expr ';'
+                    {
+                        malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT, 1, $3);//when_expr
+                    }//add by wangdonghui 20160623
 				;
 
 /*****************************************************************************

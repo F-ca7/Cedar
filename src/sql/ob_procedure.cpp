@@ -46,6 +46,11 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_W_INST:
     ret = execute_while(static_cast<SpWhileInst*>(inst));
     break;
+  //add by wangdonghui 20160624 :b
+  case SP_EXIT_INST:
+    ret = execute_exit(static_cast<SpExitInst*>(inst));
+    break;
+  //add :e
   default:
     TBSYS_LOG(WARN, "Unsupport execute inst[%d] on mergeserver", type);
     ret = OB_NOT_SUPPORTED;
@@ -377,7 +382,20 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   SpProcedure *proc = inst->get_ownner();
 
   fake_row.clear();
-  if( OB_SUCCESS != (ret = inst->get_lowest_expr().calc(fake_row, lowest_value)) ||  lowest_value->get_type() != ObIntType )
+  //add by wdh 20160624 :b
+  if( inst->get_lowest_expr().is_empty() )
+  {
+      while(true)
+      {
+        if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
+        {
+          break;
+        }
+      }
+      if(ret == OB_SP_EXIT) ret = OB_SUCCESS;
+  }
+  //add :e
+  else if( OB_SUCCESS != (ret = inst->get_lowest_expr().calc(fake_row, lowest_value)) ||  lowest_value->get_type() != ObIntType )
   {
     TBSYS_LOG(WARN, "unsupported loop range type: %d", lowest_value->get_type());
     ret = OB_NOT_SUPPORTED;
@@ -397,7 +415,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     {
       loop_counter_.push_back(0);
       int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
-      for(; itr < itr_end && OB_SUCCESS == ret; itr ++)
+      for(; itr <= itr_end && OB_SUCCESS == ret; itr ++)//modify wdh <= 20160624
       {
         ++counter;
         itr_var.set_int(itr);
@@ -450,6 +468,25 @@ int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
 }
 //add hjw 20151230:e
 
+//add by wdh 20160624 :b
+int SpMsInstExecStrategy::execute_exit(SpExitInst *inst)
+{
+    int ret = OB_SUCCESS;
+    common::ObRow fake_row;
+    const ObObj *flag =NULL;
+    TBSYS_LOG(INFO, "execute exit instruction");
+    if(inst->check_when())
+    {
+        ret =OB_SP_EXIT;
+    }
+    else if(OB_SUCCESS == (ret = inst->get_when_expr().calc(fake_row, flag)) && flag->is_true())
+    {
+        TBSYS_LOG(INFO,"exit when expr value: %s", to_cstring(*flag));
+        ret = OB_SP_EXIT;
+    }
+    return ret;
+}
+//add :e
 int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
 {
   int ret = OB_SUCCESS;
@@ -994,7 +1031,9 @@ int ObProcedure::open()
        end_trans(OB_SUCCESS != ret);
     }
   }
-
+  //add by wdh :b
+  if(ret == OB_SUCCESS)
+  //add :e
   if( OB_SUCCESS != (ret = return_paramters() ))
   {
     TBSYS_LOG(WARN, "fail to return paramters");

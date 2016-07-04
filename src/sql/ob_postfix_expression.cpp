@@ -668,6 +668,7 @@ namespace oceanbase
           // do calculation
           switch(type)
           {
+           TBSYS_LOG(TRACE, "variable calculation type: %ld", type);
             case COLUMN_IDX:
               if (OB_SUCCESS != (ret = expr_[idx++].get_int(value)))
               {
@@ -896,6 +897,10 @@ namespace oceanbase
              else if(OB_SUCCESS != (ret = proc->read_variable(var_name, val)) )
              {
                TBSYS_LOG(ERROR, "Variable %.*s does not exists", var_name.length(), var_name.ptr());
+             }
+             else
+             {
+                 TBSYS_LOG(TRACE, "Get variable name success, %.*s", var_name.length(), var_name.ptr());
              }
           }
         }

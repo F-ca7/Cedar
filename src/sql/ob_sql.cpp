@@ -48,6 +48,7 @@
 #include "ob_ups_executor.h"
 #include "ob_table_rpc_scan.h"
 #include "ob_get_cur_time_phy_operator.h"
+#include "ob_procedure_drop_stmt.h"
 
 #include "ob_procedure_execute_stmt.h" //add zt 20151117
 using namespace oceanbase::common;
@@ -171,6 +172,29 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
 //                    }
                     //add zt 20151117:e
                     //add :e
+
+                    //add by wdh 20160630 :b
+                    if(stmt_type == ObBasicStmt::T_PROCEDURE_DROP)
+                    {
+                        ObSQLSessionInfo *session_info = NULL;
+                        if ((session_info = context.session_info_)== NULL)
+                        {
+                          ret = OB_NOT_INIT;
+                          TBSYS_LOG(WARN,"Session info is not initiated");
+                        }
+                        else
+                        {
+                            ObProcedureDropStmt *drop_stmt=(ObProcedureDropStmt *)logic_plan->get_main_stmt();
+                            ObString  proc_name = drop_stmt->get_proc_name();
+                            uint64_t stmt_id = OB_INVALID_ID;
+                            if((session_info->plan_exists(proc_name, &stmt_id)))
+                            {
+                              session_info->remove_plan(stmt_id);
+                            }
+                        }
+                    }
+                    //add :e
+
                     if (NULL == context.transformer_allocator_)
                     {
                      //   OB_ASSERT(!context.is_prepare_protocol_);

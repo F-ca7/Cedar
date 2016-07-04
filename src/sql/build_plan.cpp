@@ -63,6 +63,7 @@
 #include "ob_procedure_assgin_stmt.h"
 #include "ob_procedure_while_stmt.h"
 #include "ob_procedure_loop_stmt.h"
+#include "ob_procedure_exit_stmt.h"
 #include "ob_procedure_case_stmt.h"
 #include "ob_procedure_casewhen_stmt.h"
 #include "ob_procedure_select_into_stmt.h"
@@ -250,6 +251,13 @@ int resolve_procedure_while_stmt(
     ParseNode* node,
     uint64_t& query_id,
 	ObProcedureStmt* ps_stmt);
+//add by wdh 20160623:b
+int resolve_procedure_exit_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+    ObProcedureStmt* ps_stmt);
+//add :e
 int resolve_procedure_case_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -574,6 +582,9 @@ int resolve_const_value(
     ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
     ObString str;
     ObObj val;
+    //add by wdh 20160702 :b
+    if(default_value.get_type()==ObNullType)
+    //add :e
     switch (def_val->type_)
     {
       case T_INT:
@@ -622,6 +633,59 @@ int resolve_const_value(
             "Illigeal type of default value");
         break;
     }
+    //add by wdh 20160702 :b
+    else
+    {
+        switch (default_value.get_type())
+        {
+        case ObIntType:
+          default_value.set_int(def_val->value_);
+          break;
+        case ObVarcharType:
+        case ObSeqType:
+          if ((ret = ob_write_string(*name_pool,
+                                      ObString::make_string(def_val->str_value_),
+                                      str)) != OB_SUCCESS)
+          {
+            PARSER_LOG("Can not malloc space for default value");
+            break;
+          }
+          default_value.set_varchar(str);
+          break;
+        case ObDateTimeType:
+          default_value.set_precise_datetime(def_val->value_);
+          break;
+        case ObFloatType:
+          default_value.set_float(static_cast<float>(atof(def_val->str_value_)));
+          break;
+        case ObDoubleType:
+          default_value.set_double(atof(def_val->str_value_));
+          break;
+        case ObDecimalType: // set as string
+          if ((ret = ob_write_string(*name_pool,
+                                      ObString::make_string(def_val->str_value_),
+                                      str)) != OB_SUCCESS)
+          {
+            PARSER_LOG("Can not malloc space for default value");
+            break;
+          }
+          default_value.set_varchar(str);
+          default_value.set_type(ObDecimalType);
+          break;
+        case ObBoolType:
+          default_value.set_bool(def_val->value_ == 1 ? true : false);
+          break;
+        case ObNullType:
+          default_value.set_type(ObNullType);
+          break;
+        default:
+          ret = OB_ERR_ILLEGAL_TYPE;
+          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+              "Illigeal type of default value");
+          break;
+        }
+    }
+    //add :e
   }
   return ret;
 }
@@ -2839,8 +2903,9 @@ int resolve_procedure_assign_stmt(
       ParseNode* var_val_node = var_val_list_node->children_[i];
       uint64_t expr_id = 0;
       //analyze the right expr
+      //modified by wdh 20160630 :b T_NONE_LIMIT T_VARIABLE_VALUE_LIMIT
       if (OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL,var_val_node->children_[1],
-                                                     expr_id,T_NONE_LIMIT)))
+                                                     expr_id,T_VARIABLE_VALUE_LIMIT)))
       {
         TBSYS_LOG(WARN, "resolve assignment expression error");
       }
@@ -2971,7 +3036,7 @@ int resolve_procedure_case_stmt(
 				//-----------------------------check exist else------------------------------------------
 				if(node->children_[2]!=NULL&&node->children_[2]->children_[0]!=NULL)
 				{
-					OB_ASSERT(node->children_[2]->children_[0]->type_ == T_PROCEDURE_ELSE);
+                    //OB_ASSERT(node->children_[2]->children_[0]->type_ == T_PROCEDURE_ELSE);
 					OB_ASSERT(node->children_[2]->type_ == T_PROCEDURE_ELSE);
 					uint64_t else_query_id = OB_INVALID_ID;
 					ParseNode* else_node = node->children_[2];
@@ -3150,6 +3215,12 @@ int resolve_procedure_if_stmt(
 							TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
 							ret = resolve_procedure_while_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
 							break;
+                        //add by wangdonghui 20160625 :b
+                        case T_PROCEDURE_EXIT:
+                            TBSYS_LOG(INFO, "type = T_PROCEDURE_EXIT");
+                            ret = resolve_procedure_exit_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
+                            break;
+                        //add :e
 						case T_PROCEDURE_CASE:
 							TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
 							ret = resolve_procedure_case_stmt(result_plan, then_node->children_[i], then_query_id,ps_stmt);
@@ -3355,6 +3426,12 @@ int resolve_procedure_elseif_stmt(
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_WHILE");
 						ret = resolve_procedure_while_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
 						break;
+                    //add by wangdonghui 20160625 :b
+                    case T_PROCEDURE_EXIT:
+                        TBSYS_LOG(INFO, "type = T_PROCEDURE_EXIT");
+                        ret = resolve_procedure_exit_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
+                        break;
+                    //add :e
 					case T_PROCEDURE_CASE:
 						TBSYS_LOG(INFO, "type = T_PROCEDURE_CASE");
 						ret = resolve_procedure_case_stmt(result_plan, vector_node->children_[i], sub_query_id,ps_stmt);
@@ -3437,7 +3514,7 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
   TBSYS_LOG(TRACE, "enter resolve_procedure_loop_stmt");
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, loop_stmt)))
   {
-    TBSYS_LOG(ERROR, "resolve_procedure_while_stmt prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(ERROR, "resolve_procedure_loop_stmt prepare_resolve_stmt have ERROR!");
   }
   else
   {
@@ -3446,7 +3523,12 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     //resolve loop_counter
     //TODO we need to solve the variable name conflict problem
     //we can check whether the variable name is declared in the procedure
-    if( node->children_[0] != NULL && node->children_[0]->type_ == T_TEMP_VARIABLE )
+    //add by wdh 20160624 :b
+    if( node->children_[0] == NULL)
+    {
+    }
+    //add :e
+    else if( node->children_[0] != NULL && node->children_[0]->type_ == T_TEMP_VARIABLE )
     {
       ObString loop_counter_name;
       if( OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), loop_counter_name)) )
@@ -3470,7 +3552,14 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     }
 
     //resolve lowest value
-    if( OB_SUCCESS == ret && node->children_[2] != NULL )
+    //add by wdh 20160624 :b
+    if(node->children_[2]==NULL)
+    {
+        uint64_t lowest_expr_id = (uint64_t)-1;
+        loop_stmt->set_lowest_expr(lowest_expr_id);
+    }
+    //add :e
+    else if( OB_SUCCESS == ret && node->children_[2] != NULL )
     {
       uint64_t lowest_expr_id;
       if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[2], lowest_expr_id, T_NONE_LIMIT)) )
@@ -3591,6 +3680,45 @@ int resolve_procedure_while_stmt(
   return ret;
 }
 //add hjw 20151229:e
+
+//add by wangdonghui 20160623 :b
+int resolve_procedure_exit_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id,
+    ObProcedureStmt* ps_stmt)
+{
+  UNUSED(ps_stmt);
+  OB_ASSERT(result_plan);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXIT && node->num_child_ == 1);
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  ObProcedureExitStmt *stmt = NULL;
+  TBSYS_LOG(INFO, "enter resolve_procedure_exit_stmt");
+  if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
+  {
+      TBSYS_LOG(ERROR, "resolve_procedure_exit_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else
+  {
+        uint64_t expr_id;
+        if(node->children_[0]==NULL)
+        {
+            TBSYS_LOG(DEBUG, "EXIT expr id = -1");
+            expr_id = (uint64_t)-1;
+            stmt->set_expr_id(expr_id);
+        }
+        else if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        {
+            TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+        }
+        else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+        {
+            TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+        }
+    }
+  return ret;
+}
+//add:e
 
 int resolve_procedure_else_stmt(
     ResultPlan* result_plan,
@@ -3943,43 +4071,45 @@ int resolve_procedure_drop_stmt(
 	  {
 		  TBSYS_LOG(ERROR, "set_proc_name have ERROR!");
 	  }
-	  else
-	  {
+//delete by wdh 20160629 :b
+//	  else
+//	  {
 
-		  /*构建一个删除存储过程的逻辑结构*/
-          //modified by wangdonghui
-		  ParseResult parse_result;
-		  uint64_t delete_query_id = OB_INVALID_ID;
-          std::string proc_delete_sql="delete from __all_procedure where proc_name='{1}'";
-		  size_t pos_1 = proc_delete_sql.find("{1}");
+//		  /*构建一个删除存储过程的逻辑结构*/
+//          //modified by wangdonghui
+//		  ParseResult parse_result;
+//		  uint64_t delete_query_id = OB_INVALID_ID;
+//          std::string proc_delete_sql="delete from __all_procedure where proc_name='{1}'";
+//		  size_t pos_1 = proc_delete_sql.find("{1}");
 
-		  proc_delete_sql.replace(pos_1,3,node->children_[0]->str_value_);
+//		  proc_delete_sql.replace(pos_1,3,node->children_[0]->str_value_);
 
 
 
-		  TBSYS_LOG(INFO, "proc_delete_sql is %s",proc_delete_sql.c_str());
+//		  TBSYS_LOG(INFO, "proc_delete_sql is %s",proc_delete_sql.c_str());
 
-		  ObString deletestmt=ObString::make_string(proc_delete_sql.c_str());
-		  parse_result.malloc_pool_=result_plan->name_pool_;
-		  if (0 != (ret = parse_init(&parse_result)))
-		  {
-			  TBSYS_LOG(WARN, "parser init err");
-			  ret = OB_ERR_PARSER_INIT;
-		  }
-		  if (parse_sql(&parse_result, deletestmt.ptr(), static_cast<size_t>(deletestmt.length())) != 0
-				|| NULL == parse_result.result_tree_)
-		  {
-			  TBSYS_LOG(WARN, "parser prco delete sql err");
-		  }
-		  else if((ret = resolve_delete_stmt(result_plan, parse_result.result_tree_->children_[0], delete_query_id))!=OB_SUCCESS)
-		  {
-			  TBSYS_LOG(WARN, "resolve_delete_stmt err");
-		  }
-		  else
-		  {
-			  ret=stmt->set_proc_delete_id(delete_query_id);
-		  }
-	  }
+//		  ObString deletestmt=ObString::make_string(proc_delete_sql.c_str());
+//		  parse_result.malloc_pool_=result_plan->name_pool_;
+//		  if (0 != (ret = parse_init(&parse_result)))
+//		  {
+//			  TBSYS_LOG(WARN, "parser init err");
+//			  ret = OB_ERR_PARSER_INIT;
+//		  }
+//		  if (parse_sql(&parse_result, deletestmt.ptr(), static_cast<size_t>(deletestmt.length())) != 0
+//				|| NULL == parse_result.result_tree_)
+//		  {
+//			  TBSYS_LOG(WARN, "parser prco delete sql err");
+//		  }
+//		  else if((ret = resolve_delete_stmt(result_plan, parse_result.result_tree_->children_[0], delete_query_id))!=OB_SUCCESS)
+//		  {
+//			  TBSYS_LOG(WARN, "resolve_delete_stmt err");
+//		  }
+//		  else
+//		  {
+//			  ret=stmt->set_proc_delete_id(delete_query_id);
+//		  }
+//	  }
+//delete :e
 	  if(node->num_child_==2)//表示用的是 DROP IF EXISTS 语法
 	  {
 		  stmt->set_if_exists(true);
@@ -3988,8 +4118,6 @@ int resolve_procedure_drop_stmt(
 	  {
 		  stmt->set_if_exists(false);
 	  }
-
-
   }
   return ret;
 }
@@ -4312,7 +4440,12 @@ int resolve_procedure_inner_stmt(
     TBSYS_LOG(DEBUG, "type = T_PROCEDURE_LOOP");
     ret = resolve_procedure_loop_stmt(result_plan, node, query_id, stmt);
     break;
-
+    //add by wangdonghui 20160623 :b
+    case T_PROCEDURE_EXIT:
+      TBSYS_LOG(DEBUG, "type = T_PROCEDURE_EXIT");
+      ret = resolve_procedure_exit_stmt(result_plan, node, query_id, stmt);
+      break;
+    //add :e
     //cursor support
   case T_CURSOR_DECLARE:
     TBSYS_LOG(DEBUG, "type = T_CURSOR_DECLARE");

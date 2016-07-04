@@ -148,6 +148,16 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  //add by wangdonghui 20160623 :b
+  int gen_physical_procedure_delete(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst
+          );
+  //add :e
   int gen_physical_procedure_select_into(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -213,6 +223,15 @@ namespace oceanbase
          SpMultiInsts* mul_inst = NULL);
   //add hjw 20151229:e
 
+  //add wdh 20160623 :b
+  int gen_physical_procedure_exit(
+         ObLogicalPlan *logical_plan,
+         ObPhysicalPlan *physical_plan,
+         ErrStat& err_stat,
+         const uint64_t& query_id,
+         ObProcedure *proc_op,
+         SpMultiInsts* mul_inst = NULL);
+  //add :e
 
         //code_coverage_zhujun
 		//add:e
@@ -593,12 +612,15 @@ namespace oceanbase
             const ObRowkeyInfo *&rowkey_info,
             common::ObSEArray<int64_t, 64> &row_desc_map,
             ErrStat& err_stat);
-        int gen_physical_delete_new(
-            ObLogicalPlan *logical_plan,
+        int gen_physical_delete_new(ObLogicalPlan *logical_plan,
             ObPhysicalPlan* physical_plan,
             ErrStat& err_stat,
             const uint64_t& query_id,
-            int32_t* index);
+            int32_t* index,
+            //add by wangdonghui 20160623 :b
+            SpRdBaseInst *rd_base_inst = NULL,
+            SpRwDeltaInst *rw_delta_inst = NULL);
+            //add :e
         int gen_physical_start_trans(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan* physical_plan,
