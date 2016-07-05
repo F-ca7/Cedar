@@ -32,7 +32,7 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
     ret = execute_rw_all(static_cast<SpRwCompInst*>(inst));
     break;
   case SP_PREGROUP_INST:
-    ret = execute_pre_group(static_cast<SpPreGroupInsts>(inst));
+    ret = execute_pre_group(static_cast<SpPreGroupInsts*>(inst));
     break;
   case SP_GROUP_INST:
     ret = execute_group(static_cast<SpGroupInsts*>(inst));
@@ -208,6 +208,11 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
         TBSYS_LOG(WARN, "write into variables fail");
       }
     }
+  }
+
+  if( row->get_column_num() != var_list.count() || OB_ITER_END != op->get_next_row(row) )
+  {
+    ret = OB_ERR_UNEXPECTED;
   }
 
   if( OB_SUCCESS != (err = op->close()))
@@ -561,7 +566,7 @@ int SpMsInstExecStrategy::execute_pre_group(SpPreGroupInsts *inst)
   int ret = OB_SUCCESS;
   //keep execution context;
   SpProcedure *context = inst->get_ownner();
-  SpVariableSet &write_set = inst->get_write_set();
+  const SpVariableSet &write_set = inst->get_write_set();
   ObSEArray<ObObj, 16> value_list;
   const ObObj *read_value = NULL;
   ObObj write_value;
@@ -575,7 +580,9 @@ int SpMsInstExecStrategy::execute_pre_group(SpPreGroupInsts *inst)
       ob_write_obj(obj_pool_, *read_value, write_value);
     }
     else
-    {}
+    {
+      //TODO handle array variable
+    }
     value_list.push_back(write_value);
   }
 

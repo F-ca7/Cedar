@@ -1421,6 +1421,7 @@ int ObTransformer::gen_physical_procedure_elseif(
     uint64_t expr_id = stmt->get_expr_id();
     ObSqlRawExpr *raw_expr = logical_plan->get_expr(expr_id);
     elseif_control = proc_op->create_inst<SpIfCtrlInsts>(mul_inst);
+    elseif_control->get_if_expr().set_owner_op(proc_op);
     if (OB_UNLIKELY(raw_expr == NULL))
     {
       ret = OB_ERR_ILLEGAL_ID;

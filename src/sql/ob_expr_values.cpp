@@ -19,6 +19,7 @@
 #include "common/ob_obj_cast.h"
 #include "common/hash/ob_hashmap.h"
 #include "ob_physical_plan.h" //add zt 20151109
+#include "ob_sp_procedure.h" //add by zt 20160704
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 ObExprValues::ObExprValues()
@@ -540,15 +541,31 @@ int ObExprValues::prepare_data()
 int ObExprValues::get_next_row_template(const common::ObRow *&row)
 {
   int ret = expr_idx_ < values_.count() ? OB_SUCCESS : OB_ITER_END;
-
   int64_t col_num = row_desc_.get_column_num();
+  char *varchar_buff = NULL;
+  ObStringBuf *buf = NULL;
+  //try to get casted buf
+  if( my_phy_plan_->get_main_query()->get_type() == PHY_PROCEDURE )
+  {
+    SpProcedure *proc = static_cast<SpProcedure*>(my_phy_plan_->get_main_query());
+    proc->get_casted_buf(varchar_buff, buf);
+  }
+  else
+  {
+    ret = OB_NOT_SUPPORTED;
+  }
+
+  ObObj casted_cell;
+  ObString varchar;
   for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
   {
+    varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+    casted_cell.set_varchar(varchar);
     const ObObj *single_value = NULL;
     uint64_t table_id = OB_INVALID_ID;
     uint64_t column_id = OB_INVALID_ID;
+    ObObj tmp_value;
     ObObj data_type;
-    ObObj casted_cell;
     ObSqlExpression &val_expr = values_.at(expr_idx_+j);
     if ((ret = val_expr.calc(row_, single_value)) != OB_SUCCESS) // the expr should be a const expr here
     {
@@ -563,7 +580,11 @@ int ObExprValues::get_next_row_template(const common::ObRow *&row)
     {
       TBSYS_LOG(WARN, "incorrect data type, err=%d", ret);
     }
-    else if ((ret = row_.set_cell(table_id, column_id, *single_value)) != OB_SUCCESS)
+    else if (OB_SUCCESS != (ret = buf->write_obj(*single_value, &tmp_value)))
+    {
+      TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
+    }
+    else if ((ret = row_.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
     {
       TBSYS_LOG(WARN, "Add value to ObRow failed");
     }

@@ -2386,6 +2386,9 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
   case SP_DE_INST:
     new_inst = create_inst<SpRwDeltaIntoVarInst>(mul_inst);
     break;
+  case SP_PREGROUP_INST:
+    new_inst = create_inst<SpPreGroupInsts>(mul_inst);
+    break;
   case SP_GROUP_INST:
     new_inst = create_inst<SpGroupInsts>(mul_inst);
     break;
@@ -2816,4 +2819,13 @@ int64_t SpExitInst::to_string(char *buf, const int64_t buf_len) const
     databuff_printf(buf, buf_len, pos, "type [Exit], rs: %s\n", to_cstring(when_expr_));
     databuff_printf(buf, buf_len, pos, "\tDo\n");
     return pos;
+}
+
+int64_t SpPreGroupInsts::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [PreGroup]\n");
+  pos += inst_list_.to_string(buf + pos, buf_len - pos);
+  databuff_printf(buf, buf_len, pos, "End PreGroup\n");
+  return pos;
 }

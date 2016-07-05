@@ -618,9 +618,9 @@ int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_li
     {
       if_inst->get_else_block()->inst_list_.push_back(else_post_inst.at(i));
     }
-  }
+    inst_list.push_back(pre_group);
 
-  inst_list.push_back(pre_group);
+  }
   inst_list.push_back(if_inst);
   return ret;
 }
