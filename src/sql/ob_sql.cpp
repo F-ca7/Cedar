@@ -941,19 +941,11 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
                 }
             }
             bufstr[index]='\0';
-//            ObString proc_name = ObString::make_string(bufstr);
-//            TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
-//            ObString proc_sour;
-//            ObStringBuf name_pool;
-//            read_procedure_source(proc_name, proc_sour, context, &name_pool);
-
-            ObString *proc_name = (ObString *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
-            *proc_name = ObString::make_string(bufstr);
-            TBSYS_LOG(DEBUG, "procedure name :%.*s %s",proc_name->length(),proc_name->ptr(),bufstr);
-
-            ObString *proc_sour = (ObString *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+            ObString proc_name = ObString::make_string(bufstr);
+            TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
+            ObString proc_sour;
             ObStringBuf name_pool;
-            if(OB_SUCCESS!=(ret = read_procedure_source(*proc_name, *proc_sour, context, &name_pool)))
+            if(OB_SUCCESS!=(ret = read_procedure_source(proc_name, proc_sour, context, &name_pool)))
             {
                 TBSYS_LOG(WARN,"procedure doesn't exist!");
             }
@@ -999,12 +991,12 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
                 OB_ASSERT(NULL != op);
                 op->set_row_desc(row_desc);
                 ObObj cells[6];
-                cells[0].set_varchar(*proc_name);
+                cells[0].set_varchar(proc_name);
 
                 ObString cell1 = ObString::make_string("STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION");
                 cells[1].set_varchar(cell1);
 
-                cells[2].set_varchar(*proc_sour);
+                cells[2].set_varchar(proc_sour);
 
                 ObString cell3 = ObString::make_string("utf8");
                 cells[3].set_varchar(cell3);
