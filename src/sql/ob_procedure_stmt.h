@@ -46,6 +46,11 @@ namespace oceanbase {
 
       int add_declare_var(const ObString &var);/*添加一个变量*/
 
+      //add by wdh 20160705 :b
+      int set_flag(const bool &flag);
+      bool get_flag() const;
+      //add :e
+
       int add_stmt(uint64_t& stmt_id);
 
       uint64_t get_stmt(int64_t index) const;
@@ -72,6 +77,9 @@ namespace oceanbase {
       ObArray<ObParamDef> params_;/*存储过程参数*/
       ObArray<ObString> declare_variable_;/*存储过程begin-end之间所有定义的变量名*/
 
+      //add by wdh 20160705 :b
+      bool is_declare_legal;
+      //add :e
       hash::ObHashMap<ObString,uint64_t,hash::NoPthreadDefendMode> cursor_hash_map_;
     };
   }

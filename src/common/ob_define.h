@@ -281,7 +281,7 @@ namespace oceanbase
     const int OB_NO_NEW_SCHEMA = -4009;        // no new schema when parse error
     const int OB_MS_SUB_REQ_TOO_MANY = -4010; // too many sub scan request
     const int OB_TOO_MANY_BLOOM_FILTER_TASK = -4011;
-
+    const int OB_PROCEDURE_DECLARE_ERROR = -4012;
     // SQL specific error code, -5000 ~ -6000
     const int OB_ERR_SQL_START = -5000;
     const int OB_ERR_PARSER_INIT = -5000;

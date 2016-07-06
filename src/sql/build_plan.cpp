@@ -639,7 +639,8 @@ int resolve_const_value(
         switch (default_value.get_type())
         {
         case ObIntType:
-          default_value.set_int(def_val->value_);
+          TBSYS_LOG(DEBUG,"wdh : %ld", static_cast<int64_t>(atof(def_val->str_value_)));
+          default_value.set_int(static_cast<int64_t>(atof(def_val->str_value_)));
           break;
         case ObVarcharType:
         case ObSeqType:
@@ -2731,7 +2732,7 @@ int resolve_procedure_select_into_stmt(
   return ret;
 }
 
-int resolve_procedure_declare_stmt(
+int  resolve_procedure_declare_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
                 uint64_t& query_id,
@@ -4137,6 +4138,9 @@ int resolve_procedure_stmt(
   }
   else
   {
+    //add by wdh 20160705 :b
+    stmt->set_flag(true);
+    //add :e
     ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
     ObString proc_name;
     OB_ASSERT(node->children_[0]->children_[0]);
@@ -4244,7 +4248,7 @@ int resolve_procedure_stmt(
       {
         ParseNode* vector_node = node->children_[1];
         /*遍历右子树的节点*/
-        resolve_procedure_proc_block_stmt(result_plan, vector_node, stmt);
+        ret=resolve_procedure_proc_block_stmt(result_plan, vector_node, stmt);
       }
     }
   }
@@ -4263,6 +4267,10 @@ int resolve_procedure_proc_block_stmt(
   {
     uint64_t sub_query_id = OB_INVALID_ID;  
     TBSYS_LOG(TRACE, "resovle stmt[%d] type[%d]", i, vector_node->children_[i]->type_);
+    if(vector_node->children_[i]->type_!=T_PROCEDURE_DECLARE)
+    {
+        stmt->set_flag(false);
+    }
     switch(vector_node->children_[i]->type_)
     {
       //sql
@@ -4290,7 +4298,14 @@ int resolve_procedure_proc_block_stmt(
       break;
     case T_PROCEDURE_DECLARE:
       TBSYS_LOG(DEBUG, "type = T_PROCEDURE_DECLARE");
-      ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      if(stmt->get_flag()==false)
+      {
+          ret = OB_PROCEDURE_DECLARE_ERROR;
+      }
+      else
+      {
+          ret = resolve_procedure_declare_stmt(result_plan, vector_node->children_[i], sub_query_id,stmt);
+      }
       break;
     case T_PROCEDURE_ASSGIN:
       TBSYS_LOG(DEBUG, "type = T_PROCEDURE_ASSGIN");

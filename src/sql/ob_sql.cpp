@@ -933,80 +933,97 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
                     flag=true;
                 }
             }
-            bufstr[index]='\0';
-            ObString proc_name = ObString::make_string(bufstr);
-            TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
-            ObString proc_sour;
-            ObStringBuf name_pool;
-            read_procedure_source(proc_name, proc_sour, context, &name_pool);
-
-            ObResultSet::Field field;
-            ObString tname = ObString::make_string("tmp_table");
-            field.tname_ = tname;
-            field.org_tname_ = tname;
-            ObString cname[6];
-            cname[0] = ObString::make_string("Procedure");
-            cname[1] = ObString::make_string("sql_mode");
-            cname[2] = ObString::make_string("Create Procedure");
-            cname[3] = ObString::make_string("character_set_client");
-            cname[4] = ObString::make_string("collation_connection");
-            cname[5] = ObString::make_string("Database Collation");
-
-            ObObjType type[6];
-            type[0] = ObVarcharType;
-            type[1] = ObVarcharType;
-            type[2] = ObVarcharType;
-            type[3] = ObVarcharType;
-            type[4] = ObVarcharType;
-            type[5] = ObVarcharType;
-
-            for (int i = 0; i < 6; i++)
+            if(!flag)
             {
-                field.cname_ = cname[i];
-                field.org_cname_ = cname[i];
-                field.type_.set_type(type[i]);
-                if(OB_SUCCESS != (ret = result.add_field_column(field)))
+                for(size_t i = show_procedure_len; i<(size_t)stmt.length(); i++)
                 {
-                    TBSYS_LOG(WARN, "fail to add field column %d", i);
-                    break;
+                    bufstr[index++] = stmt.ptr()[i];
                 }
             }
-            for(int i = 0;i < 6; i++)
+            bufstr[index]='\0';
+//            ObString proc_name = ObString::make_string(bufstr);
+//            TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
+//            ObString proc_sour;
+//            ObStringBuf name_pool;
+//            read_procedure_source(proc_name, proc_sour, context, &name_pool);
+
+            ObString *proc_name = (ObString *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+            *proc_name = ObString::make_string(bufstr);
+            TBSYS_LOG(DEBUG, "procedure name :%.*s %s",proc_name->length(),proc_name->ptr(),bufstr);
+
+            ObString *proc_sour = (ObString *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+            ObStringBuf name_pool;
+            if(OB_SUCCESS!=(ret = read_procedure_source(*proc_name, *proc_sour, context, &name_pool)))
             {
-                ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
-                OB_ASSERT(OB_SUCCESS == ret);
+                TBSYS_LOG(WARN,"procedure doesn't exist!");
             }
-            row.set_row_desc(row_desc);
-            OB_ASSERT(NULL != op);
-            op->set_row_desc(row_desc);
-            ObObj cells[6];
-            ObString cell0 = proc_name;
-            cells[0].set_varchar(cell0);
-
-            ObString cell1 = ObString::make_string("STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION");
-            cells[1].set_varchar(cell1);
-
-            ObString cell2 = proc_sour;
-            cells[2].set_varchar(cell2);
-
-            ObString cell3 = ObString::make_string("utf8");
-            cells[3].set_varchar(cell3);
-
-            ObString cell4 = ObString::make_string("utf8_general_ci");
-            cells[4].set_varchar(cell4);
-
-            ObString cell5 = ObString::make_string("latin1_swedish_ci");
-            cells[5].set_varchar(cell5);
-
-            ObRow one_row;
-            one_row.set_row_desc(row_desc);
-            for(int i = 0; i < 6; i++)
+            else
             {
-                ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
-                OB_ASSERT(OB_SUCCESS == ret);
+                ObResultSet::Field field;
+                ObString tname = ObString::make_string("tmp_table");
+                field.tname_ = tname;
+                field.org_tname_ = tname;
+                ObString cname[6];
+                cname[0] = ObString::make_string("Procedure");
+                cname[1] = ObString::make_string("sql_mode");
+                cname[2] = ObString::make_string("Create Procedure");
+                cname[3] = ObString::make_string("character_set_client");
+                cname[4] = ObString::make_string("collation_connection");
+                cname[5] = ObString::make_string("Database Collation");
+
+                ObObjType type[6];
+                type[0] = ObVarcharType;
+                type[1] = ObVarcharType;
+                type[2] = ObVarcharType;
+                type[3] = ObVarcharType;
+                type[4] = ObVarcharType;
+                type[5] = ObVarcharType;
+
+                for (int i = 0; i < 6; i++)
+                {
+                    field.cname_ = cname[i];
+                    field.org_cname_ = cname[i];
+                    field.type_.set_type(type[i]);
+                    if(OB_SUCCESS != (ret = result.add_field_column(field)))
+                    {
+                        TBSYS_LOG(WARN, "fail to add field column %d", i);
+                        break;
+                    }
+                }
+                for(int i = 0;i < 6; i++)
+                {
+                    ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
+                    OB_ASSERT(OB_SUCCESS == ret);
+                }
+                row.set_row_desc(row_desc);
+                OB_ASSERT(NULL != op);
+                op->set_row_desc(row_desc);
+                ObObj cells[6];
+                cells[0].set_varchar(*proc_name);
+
+                ObString cell1 = ObString::make_string("STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION");
+                cells[1].set_varchar(cell1);
+
+                cells[2].set_varchar(*proc_sour);
+
+                ObString cell3 = ObString::make_string("utf8");
+                cells[3].set_varchar(cell3);
+
+                ObString cell4 = ObString::make_string("utf8_general_ci");
+                cells[4].set_varchar(cell4);
+
+                ObString cell5 = ObString::make_string("latin1_swedish_ci");
+                cells[5].set_varchar(cell5);
+
+                ObRow one_row;
+                one_row.set_row_desc(row_desc);
+                for(int i = 0; i < 6; i++)
+                {
+                    ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
+                }
+                ret = op->add_values(one_row);
             }
-            ret = op->add_values(one_row);
-            OB_ASSERT(OB_SUCCESS == ret);
+
         }
 
     }

@@ -4,6 +4,7 @@
 #include "ob_ups_executor.h"
 #include "common/ob_common_stat.h"
 #include "common/ob_obj_cast.h"
+#include "math.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -520,6 +521,43 @@ int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
         else_flag = false;
         break;
       }
+      //add by wdh 20160705 :b for numerical type compare
+      else if(when_value->is_numerical()&&flag->is_numerical())
+      {
+          double val1,val2;
+          switch(when_value->get_type())
+          {
+            case ObIntType: int64_t a;when_value->get_int(a);val1=(double)a;break;
+            case ObFloatType: float b;when_value->get_float(b);val1=((double)b);break;
+            case ObDoubleType: double c;when_value->get_double(c);val1=((double)c);break;
+            default: break;
+          }
+          switch(flag->get_type())
+          {
+          case ObIntType: int64_t a;flag->get_int(a);val2=((double)a);break;
+          case ObFloatType: float b;flag->get_float(b);val2=((double)b);break;
+          case ObDoubleType: double c;flag->get_double(c);val2=((double)c);break;
+            default: break;
+          }
+          int cmp=1;
+          TBSYS_LOG(DEBUG, "a: %lf, b:%lf",val1,val2);
+          bool double_eq = fabs(val1-val2) < DOUBLE_EPSINON;
+          if (double_eq)
+          {
+            cmp = 0;
+          }
+          if(cmp==0)
+          {
+              TBSYS_LOG(TRACE, "get into when block %ld", i);
+              if( OB_SUCCESS != (ret = execute_multi_inst(when_block)) )
+              {
+                TBSYS_LOG(WARN, "fail to execute when block[%ld]", i);
+              }
+              else_flag = false;
+              break;
+          }
+      }
+      //add :e
     }
     if( else_flag )
     {

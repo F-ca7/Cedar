@@ -143,6 +143,9 @@ namespace oceanbase
         void set_val_len(const int32_t val_len);
         bool need_deep_copy()const;
         bool is_true() const;
+        //add by wdh 20160704 :b
+        bool is_numerical() const;
+        //add :e
         static const char* get_sql_type(ObObjType type);
         /*
          *   计算obj内数据的校验和
@@ -613,7 +616,14 @@ namespace oceanbase
           || (meta_.type_ == ObCreateTimeType)
           || (meta_.type_ == ObModifyTimeType));
     }
-
+    // add by wdh 20160704 :b
+    inline bool ObObj::is_numerical() const
+    {
+        return((meta_.type_ == ObIntType)
+             ||(meta_.type_ == ObFloatType)
+             ||(meta_.type_ == ObDoubleType));
+    }
+    //add :e
     inline bool ObObj::can_compare(const ObObj & other) const
     {
       bool ret = false;
