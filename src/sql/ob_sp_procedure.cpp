@@ -1,6 +1,6 @@
 #include "ob_sp_procedure.h"
 #include "ob_physical_plan.h"
-
+#include "common/ob_obj_cast.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -2060,18 +2060,34 @@ int SpProcedure::create_variable_table()
 int SpProcedure::write_variable(const ObString &var_name, const ObObj &val)
 {
   int ret = OB_SUCCESS;
-  ObString tmp_var;
+  ObString tmp_var = var_name;
   ObObj tmp_val;
+  const ObObj *res_cell = &val;
 
   if (var_name.length() <= 0)
   {
     ret = OB_ERROR;
 //    TBSYS_LOG(ERROR, "Empty variable name");
   }
-  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS //reconsider this usage
-           || (ret = name_pool_.write_obj(val, &tmp_val)) != OB_SUCCESS
+
+  const ObObj* old = var_name_val_map_.get(var_name);
+
+  if( NULL == old )
+  { //new variable name
+    ret = name_pool_.write_string(var_name, &tmp_var);
+  }
+  else if( old->get_type() != val.get_type() )
+  { //cast type
+    ObString varchar;
+    varchar.assign_ptr(casted_buff_, OB_MAX_VARCHAR_LENGTH);
+    tmp_val.set_varchar(varchar);
+    common::obj_cast(val, *old, tmp_val, res_cell);
+    TBSYS_LOG(TRACE, "before: %s; after: %s", to_cstring(val), to_cstring(*res_cell));
+  }
+
+  if ( (ret = name_pool_.write_obj(*res_cell, &tmp_val)) != OB_SUCCESS
            || ((ret = var_name_val_map_.set(tmp_var, tmp_val, 1)) != hash::HASH_INSERT_SUCC
-               && ret != hash::HASH_OVERWRITE_SUCC))
+               && ret != hash::HASH_OVERWRITE_SUCC) )
   {
     ret = OB_ERROR;
 //    TBSYS_LOG(ERROR, "Add variable %.*s error", var_name.length(), var_name.ptr());
@@ -2107,7 +2123,7 @@ int SpProcedure::write_variable(const SpVar &var, const ObObj &val)
 }
 
 int SpProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
-{
+{  //TODO be careful of the variable type
   int ret = OB_SUCCESS;
   bool find = false;
 

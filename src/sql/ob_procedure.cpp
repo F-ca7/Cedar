@@ -193,7 +193,7 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
   {
     TBSYS_LOG(WARN, "get new_row fail");
   }
-  else
+  else if( row->get_column_num() == var_list.count() )
   {
     for(int64_t var_it = 0; OB_SUCCESS == ret && var_it < var_list.count(); ++var_it)
     {
@@ -209,9 +209,13 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
       }
     }
   }
+  else
+  { //variable number and column number are not consistent
+    ret = OB_ERR_UNEXPECTED;
+  }
 
-  if( row->get_column_num() != var_list.count() || OB_ITER_END != op->get_next_row(row) )
-  {
+  if( OB_SUCCESS == ret && OB_ITER_END != op->get_next_row(row) )
+  { //more rows reterived
     ret = OB_ERR_UNEXPECTED;
   }
 
@@ -889,19 +893,26 @@ int ObProcedure::create_variables()
   int ret = OB_SUCCESS;
   if( defs_.count() > 0 )
   {
-    ObObj new_value_obj;
-    new_value_obj.set_null();
+    ObObj casted_cell;
+    const ObObj *res_cell;
+    ObString varchar;
+    varchar.assign_ptr(casted_buff_, OB_MAX_VARCHAR_LENGTH);
+    casted_cell.set_varchar(varchar);
+
     for (int64_t i = 0; i < defs_.count() && OB_SUCCESS == ret; ++i)
     {
+      ObObj new_value_obj;
       ObVariableDef &var = defs_.at(i);
-
+      new_value_obj.set_type(var.variable_type_);
       if( var.is_array_ )
       {
         ret = write_variable(var.variable_name_, 0, new_value_obj);
       }
       else if(var.is_default_)
       {
-        ret = write_variable(var.variable_name_, var.default_value_);
+        common::obj_cast(var.default_value_, new_value_obj, casted_cell, res_cell);
+        name_pool_.write_obj(*res_cell, &new_value_obj);
+        ret = write_variable(var.variable_name_, new_value_obj);
       }
       else
       {
@@ -966,8 +977,12 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
   {
     common::ObRow tmp_row;
     const ObObj *result = NULL;
-    ObObj casted_cell;
+    ObObj casted_cell, tmp;
     ObObj expected_type;
+    ObString varchar;
+    varchar.assign_ptr(casted_buff_, OB_MAX_VARCHAR_LENGTH);
+    casted_cell.set_varchar(varchar);
+
     for(int64_t i = 0; OB_SUCCESS == ret && i < params_.count(); ++i)
     {
       const ObParamDef &  param = params_.at(i);
@@ -1001,11 +1016,16 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
       {
         bool is_var_type = false;
         //save output into default value
+        tmp.set_type(param.param_type_);
         if( OB_SUCCESS != (param_expr.at(i).is_var_expr(is_var_type, params_.at(i).out_var_))
             || !is_var_type )
         {
           TBSYS_LOG(WARN, "out parameter must be a variable, %ld,  %s", i, to_cstring(param_expr.at(i)));
           ret = OB_ERR_UNEXPECTED;
+        }
+        else if( OB_SUCCESS != (ret = write_variable(param.param_name_, tmp)) )
+        {
+          TBSYS_LOG(WARN, "fill output variables");
         }
       }
     }
@@ -1016,7 +1036,12 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 int ObProcedure::return_paramters()
 {
   int ret = OB_SUCCESS;
-
+//  const ObObj *res_cell;
+//  ObObj casted_cell;
+//  ObObj type;
+//  ObString varchar;
+//  varchar.assign_ptr(casted_buff_, OB_MAX_VARCHAR_LENGTH);
+//  casted_cell.set_varchar(varchar);
   for(int64_t i = 0; i < params_.count(); ++i)
   {
     const ObParamDef &param = params_.at(i);
@@ -1024,6 +1049,7 @@ int ObProcedure::return_paramters()
     if( param.out_type_ == OUT_TYPE || param.out_type_ == INOUT_TYPE )
     {
       ObString var_name;
+//      type.set_type(param.param_type_);
       if( OB_SUCCESS != (ret = param.out_var_.get_varchar(var_name)) )
       {
         TBSYS_LOG(WARN, "out param does not receive variable name");
@@ -1033,6 +1059,10 @@ int ObProcedure::return_paramters()
       {
         TBSYS_LOG(WARN, "does not read param value, %s", to_cstring(param.param_name_));
       }
+//      else if( OB_SUCCESS != (obj_cast(*val, type, casted_cell, res_cell)) )
+//      {
+//        TBSYS_LOG(WARN, "cast failed, %s", to_cstring(*val));
+//      }
       else if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
                               get_session()->replace_variable(var_name, *val)) )
       {

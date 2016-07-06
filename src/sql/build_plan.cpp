@@ -583,7 +583,7 @@ int resolve_const_value(
     ObString str;
     ObObj val;
     //add by wdh 20160702 :b
-    if(default_value.get_type()==ObNullType)
+//    if(default_value.get_type()==ObNullType)
     //add :e
     switch (def_val->type_)
     {
@@ -634,57 +634,57 @@ int resolve_const_value(
         break;
     }
     //add by wdh 20160702 :b
-    else
-    {
-        switch (default_value.get_type())
-        {
-        case ObIntType:
-          default_value.set_int(def_val->value_);
-          break;
-        case ObVarcharType:
-        case ObSeqType:
-          if ((ret = ob_write_string(*name_pool,
-                                      ObString::make_string(def_val->str_value_),
-                                      str)) != OB_SUCCESS)
-          {
-            PARSER_LOG("Can not malloc space for default value");
-            break;
-          }
-          default_value.set_varchar(str);
-          break;
-        case ObDateTimeType:
-          default_value.set_precise_datetime(def_val->value_);
-          break;
-        case ObFloatType:
-          default_value.set_float(static_cast<float>(atof(def_val->str_value_)));
-          break;
-        case ObDoubleType:
-          default_value.set_double(atof(def_val->str_value_));
-          break;
-        case ObDecimalType: // set as string
-          if ((ret = ob_write_string(*name_pool,
-                                      ObString::make_string(def_val->str_value_),
-                                      str)) != OB_SUCCESS)
-          {
-            PARSER_LOG("Can not malloc space for default value");
-            break;
-          }
-          default_value.set_varchar(str);
-          default_value.set_type(ObDecimalType);
-          break;
-        case ObBoolType:
-          default_value.set_bool(def_val->value_ == 1 ? true : false);
-          break;
-        case ObNullType:
-          default_value.set_type(ObNullType);
-          break;
-        default:
-          ret = OB_ERR_ILLEGAL_TYPE;
-          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-              "Illigeal type of default value");
-          break;
-        }
-    }
+//    else
+//    {
+//        switch (default_value.get_type())
+//        {
+//        case ObIntType:
+//          default_value.set_int(def_val->value_);
+//          break;
+//        case ObVarcharType:
+//        case ObSeqType:
+//          if ((ret = ob_write_string(*name_pool,
+//                                      ObString::make_string(def_val->str_value_),
+//                                      str)) != OB_SUCCESS)
+//          {
+//            PARSER_LOG("Can not malloc space for default value");
+//            break;
+//          }
+//          default_value.set_varchar(str);
+//          break;
+//        case ObDateTimeType:
+//          default_value.set_precise_datetime(def_val->value_);
+//          break;
+//        case ObFloatType:
+//          default_value.set_float(static_cast<float>(atof(def_val->str_value_)));
+//          break;
+//        case ObDoubleType:
+//          default_value.set_double(atof(def_val->str_value_));
+//          break;
+//        case ObDecimalType: // set as string
+//          if ((ret = ob_write_string(*name_pool,
+//                                      ObString::make_string(def_val->str_value_),
+//                                      str)) != OB_SUCCESS)
+//          {
+//            PARSER_LOG("Can not malloc space for default value");
+//            break;
+//          }
+//          default_value.set_varchar(str);
+//          default_value.set_type(ObDecimalType);
+//          break;
+//        case ObBoolType:
+//          default_value.set_bool(def_val->value_ == 1 ? true : false);
+//          break;
+//        case ObNullType:
+//          default_value.set_type(ObNullType);
+//          break;
+//        default:
+//          ret = OB_ERR_ILLEGAL_TYPE;
+//          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+//              "Illigeal type of default value");
+//          break;
+//        }
+//    }
     //add :e
   }
   return ret;
