@@ -32,6 +32,9 @@ int SpMsInstExecStrategy::execute_inst(SpInst *inst)
   case SP_A_INST:
     ret = execute_rw_all(static_cast<SpRwCompInst*>(inst));
     break;
+  case SP_PREGROUP_INST:
+    ret = execute_pre_group(static_cast<SpPreGroupInsts*>(inst));
+    break;
   case SP_GROUP_INST:
     ret = execute_group(static_cast<SpGroupInsts*>(inst));
     break;
@@ -206,6 +209,11 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
         TBSYS_LOG(WARN, "write into variables fail");
       }
     }
+  }
+
+  if( row->get_column_num() != var_list.count() || OB_ITER_END != op->get_next_row(row) )
+  {
+    ret = OB_ERR_UNEXPECTED;
   }
 
   if( OB_SUCCESS != (err = op->close()))
@@ -591,6 +599,45 @@ int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
   return ret;
 }
 
+int SpMsInstExecStrategy::execute_pre_group(SpPreGroupInsts *inst)
+{
+  int ret = OB_SUCCESS;
+  //keep execution context;
+  SpProcedure *context = inst->get_ownner();
+  const SpVariableSet &write_set = inst->get_write_set();
+  ObSEArray<ObObj, 16> value_list;
+  const ObObj *read_value = NULL;
+  ObObj write_value;
+  for(int64_t i = 0; i < write_set.count(); ++i)
+  {
+    const SpVarInfo &info = write_set.get_var_info(i);
+
+    if( VM_TMP_VAR == info.var_type_ )
+    {
+      context->read_variable(info.var_name_, read_value);
+      ob_write_obj(obj_pool_, *read_value, write_value);
+    }
+    else
+    {
+      //TODO handle array variable
+    }
+    value_list.push_back(write_value);
+  }
+
+  ret = execute_multi_inst(inst->get_body());
+
+  //restore execution context;
+  for(int64_t i = 0; i < write_set.count(); ++i)
+  {
+    const SpVarInfo &info = write_set.get_var_info(i);
+
+    if( VM_TMP_VAR == info.var_type_ )
+    {
+      context->write_variable(info.var_name_, value_list.at(i));
+    }
+  }
+  return ret;
+}
 
 /**
  * @brief SpGroupInsts::exec

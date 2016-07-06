@@ -587,39 +587,40 @@ int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_li
 {
   int ret = OB_SUCCESS;
 
-  SpInstList post_inst, pre_inst;
 
-  pre_inst.clear();
-  post_inst.clear();
+  SpInstList then_post_inst, then_pre_inst;
+  SpInstList else_post_inst, else_pre_inst;
 
-  do_split(if_inst->get_then_block()->inst_list_, pre_inst, post_inst);
+  do_split(if_inst->get_then_block()->inst_list_, then_pre_inst, then_post_inst);
+  do_split(if_inst->get_else_block()->inst_list_, else_pre_inst, else_post_inst);
 
-  for(int64_t i = 0; i < pre_inst.count(); ++i)
+  if( then_pre_inst.count() != 0 && else_pre_inst.count() != 0 )
   {
-    inst_list.push_back(pre_inst.at(i));
+    SpPreGroupInsts *pre_group = if_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
+    for(int64_t i = 0; i < then_pre_inst.count(); ++i)
+    {
+      pre_group->add_inst(then_pre_inst.at(i));
+    }
+
+    for(int64_t i = 0; i < else_pre_inst.count(); ++i)
+    {
+      pre_group->add_inst(else_pre_inst.at(i));
+    }
+
+    if_inst->get_then_block()->inst_list_.clear();
+    for(int64_t i = 0; i < then_post_inst.count(); ++i)
+    {
+      if_inst->get_then_block()->inst_list_.push_back(then_post_inst.at(i));
+    }
+
+    if_inst->get_else_block()->inst_list_.clear();
+    for(int64_t i = 0; i < else_post_inst.count(); ++i)
+    {
+      if_inst->get_else_block()->inst_list_.push_back(else_post_inst.at(i));
+    }
+    inst_list.push_back(pre_group);
+
   }
-
-  if_inst->get_then_block()->inst_list_.clear();
-  for(int64_t i = 0; i < post_inst.count(); ++i)
-  {
-    if_inst->get_then_block()->inst_list_.push_back(post_inst.at(i));
-  }
-
-  pre_inst.clear();
-  post_inst.clear();
-  do_split(if_inst->get_else_block()->inst_list_, pre_inst, post_inst);
-
-  for(int64_t i = 0; i < pre_inst.count(); ++i)
-  {
-    inst_list.push_back(pre_inst.at(i));
-  }
-
-  if_inst->get_else_block()->inst_list_.clear();
-  for(int64_t i = 0; i < post_inst.count(); ++i)
-  {
-    if_inst->get_else_block()->inst_list_.push_back(post_inst.at(i));
-  }
-
   inst_list.push_back(if_inst);
   return ret;
 }
