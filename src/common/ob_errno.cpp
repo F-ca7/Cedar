@@ -233,8 +233,7 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_DATA_SOURCE_CONCURRENCY_FULL, "Data source concurrency full");
     ADD_ERROR_STR(OB_DATA_SOURCE_WRONG_URI_FORMAT, "Data source wrong URI format");
     ADD_ERROR_STR(OB_SSTABLE_VERSION_UNEQUAL, "SSTable version not equal");
-
-    //error code for merge server -4000 ---- -5000
+   //error code for merge server -4000 ---- -5000
     ADD_ERROR_STR(OB_INNER_STAT_ERROR, "Inner state error");     // inner stat check error
     ADD_ERROR_STR(OB_OLD_SCHEMA_VERSION, "Schema version too old");   // find old schema version
     ADD_ERROR_STR(OB_INPUT_PARAM_ERROR, "Input parameter error");    // check input param error
@@ -246,6 +245,7 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_NO_NEW_SCHEMA, "No new schema");        // no new schema when parse error
     ADD_ERROR_STR(OB_MS_SUB_REQ_TOO_MANY, "Too many scan request"); // too many sub scan request
     ADD_ERROR_STR(OB_TOO_MANY_BLOOM_FILTER_TASK, "too many bloomfilter task");
+    ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
 
     // SQL specific error code, -5000 ~ -6000
     ADD_ERROR_STR(OB_ERR_PARSER_INIT, "Failed to init SQL parser");

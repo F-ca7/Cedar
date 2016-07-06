@@ -20,6 +20,18 @@ namespace oceanbase
       return OB_SUCCESS;
     }
 
+    //add by wdh 20160705 :b
+    int ObProcedureStmt::set_flag(const bool &flag)
+    {
+      is_declare_legal=flag;
+      return OB_SUCCESS;
+    }
+    bool ObProcedureStmt::get_flag() const
+    {
+      return is_declare_legal;
+    }
+    //add :e
+
     int ObProcedureStmt::add_proc_param(const ObParamDef &proc_param)
     {
       return params_.push_back(proc_param);

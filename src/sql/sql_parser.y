@@ -3585,23 +3585,23 @@ stmt_assign		:	SET var_and_val_list ';'
 /*===========================================================
  *	Procedure's if sentence
  *===========================================================*/
-stmt_if			:	IF expr THEN control_sect stmt_elsifs stmt_else END IF
+stmt_if			:	IF expr THEN control_sect stmt_elsifs stmt_else END IF ';'//add ; by wdh
 					{
 						ParseNode *elsifs = NULL;
 						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,$6);
 					}
-				|	IF expr THEN control_sect stmt_elsifs END IF
+                |	IF expr THEN control_sect stmt_elsifs END IF ';'
 					{
 						ParseNode *elsifs = NULL;
 						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,NULL);
 					}
-				|	IF expr THEN control_sect stmt_else END IF
+                |	IF expr THEN control_sect stmt_else END IF ';'
 					{
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,$5);
 					}
-				|	IF expr THEN control_sect END IF
+                |	IF expr THEN control_sect END IF ';'
 					{
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,NULL);
 					}
@@ -3632,7 +3632,7 @@ stmt_else		:	ELSE control_sect
 /*===========================================================
  *	Procedure's case-when sentence
  *===========================================================*/
-stmt_case		: 	CASE expr case_when_list case_else END CASE
+stmt_case		: 	CASE expr case_when_list case_else END CASE ';'
 					{
 						ParseNode *casewhenlist = NULL;
 						merge_nodes(casewhenlist, result->malloc_pool_, T_PROCEDURE_CASE_WHEN_LIST, $3);
