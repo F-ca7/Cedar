@@ -573,7 +573,12 @@ int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
     }
     if( else_flag )
     {
-      if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+      if( inst->get_else_block()->inst_count() == 0 )
+      {
+        TBSYS_LOG(WARN, "case-when does not hit a branch");
+        ret = OB_ERROR; //if not case hit, return an error
+      }
+      else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
       {
         TBSYS_LOG(WARN, "fail to execute else block");
       }

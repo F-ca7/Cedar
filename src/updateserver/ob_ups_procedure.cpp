@@ -318,7 +318,12 @@ int SpUpsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
     }
     if( else_flag )
     {
-      if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
+      if( 0 == inst->get_else_block() )
+      {
+        TBSYS_LOG(WARN, "case-when does not hit a branch");
+        ret = OB_ERROR;
+      }
+      else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
       {
         TBSYS_LOG(WARN, "fail to execute else block");
       }
