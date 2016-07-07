@@ -3087,54 +3087,53 @@ int resolve_procedure_casewhen_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id,
-	ObProcedureStmt* ps_stmt
+    ObProcedureStmt* ps_stmt
 	)
 {
   OB_ASSERT(result_plan);
   OB_ASSERT(node && node->type_ == T_PROCEDURE_CASE_WHEN && node->num_child_ == 2);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureCaseWhenStmt *stmt = NULL;
+  ParseNode* vector_node = node->children_[1];
+  uint64_t expr_id;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
-	  TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt prepare_resolve_stmt have ERROR!");
+    TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt prepare_resolve_stmt have ERROR!");
+  }
+  else  if ((ret = resolve_independ_expr(result_plan, NULL, node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "resolve_independ_expr  ERROR");
+  }
+  else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+  {
+    TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+  }
+  else if( NULL != vector_node )
+  {
+    //-----------------------------resolve then stmt block-----------------------------
+    for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+    {
+      uint64_t sub_query_id = OB_INVALID_ID;
+
+      if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+      {
+        TBSYS_LOG(WARN, "case when should not contain declare stmt");
+        ret = OB_ERROR; //change to not_support code
+      }
+      else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
+      {
+        TBSYS_LOG(WARN, "resolve then stmt [%d] failed", i);
+      }
+      else if( OB_SUCCESS !=  (ret = stmt->add_then_stmt(sub_query_id)) )
+      {
+        TBSYS_LOG(WARN, "add then stmt failed");
+      }
+    }
   }
   else
   {
-
-        uint64_t expr_id;
-
-        if ((ret = resolve_independ_expr(result_plan, NULL, node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
-        {
-            TBSYS_LOG(WARN, "resolve_independ_expr  ERROR");
-        }
-        else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
-        {
-            TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
-        }
-        else
-        {
-            //-----------------------------resolve then stmt block-----------------------------
-            ParseNode* vector_node = node->children_[1];
-
-            for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
-            {
-                uint64_t sub_query_id = OB_INVALID_ID;
-
-                if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
-                {
-                    TBSYS_LOG(WARN, "case when should not contain declare stmt");
-                    ret = OB_ERROR; //change to not_support code
-                }
-                else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
-                {
-                    TBSYS_LOG(WARN, "resolve then stmt [%d] failed", i);
-                }
-                else if( OB_SUCCESS !=  (ret = stmt->add_then_stmt(sub_query_id)) )
-                {
-                    TBSYS_LOG(WARN, "add then stmt failed");
-                }
-            }
-    }
+    TBSYS_LOG(WARN, "case-when resolve err, then block should not be empty");
+    ret = OB_ERR_RESOLVE_SQL;
   }
   return ret;
 }
