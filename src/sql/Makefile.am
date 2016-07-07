@@ -100,6 +100,7 @@ sql_parser_sources=                                    \
   ob_procedure_execute.h      ob_procedure_execute.cpp \
   ob_procedure_select_into_stmt.h  ob_procedure_select_into_stmt.cpp\
   ob_procedure_select_into.h  ob_procedure_select_into.cpp\
+  ob_delta_data_handler.h      ob_delta_data_handler.cpp \
   ob_variable_set_array_value_stmt.h   ob_variable_set_array_value_stmt.cpp\
   ob_variable_set_array_value.h   ob_variable_set_array_value.cpp\
   ob_explain_stmt.h           ob_explain_stmt.cpp      \

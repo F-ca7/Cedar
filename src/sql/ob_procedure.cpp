@@ -467,16 +467,15 @@ int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
     const ObObj *flag =NULL;
     TBSYS_LOG(INFO, "execute while instruction");
     while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+    {
+      TBSYS_LOG(INFO,"while expr value: %s", to_cstring(*flag));
+      inst->get_ownner()->debug_status(inst);
+      if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
       {
-         TBSYS_LOG(INFO,"while expr value: %s", to_cstring(*flag));
-         inst->get_ownner()->debug_status(inst);
-         if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
-         {
-           TBSYS_LOG(WARN,"execute do body block failed");
-           break;
-         }
+        TBSYS_LOG(WARN,"execute do body block failed");
+        break;
       }
-
+    }
     return ret;
 }
 //add hjw 20151230:e
@@ -1173,17 +1172,15 @@ int ObProcedure::deter_exec_mode()
     }
   }
 
-  int t_node_access = 0;
+  long_trans_ = true;
+  SpMultiInsts tmp;
   for(int64_t i = 0; i < exec_list_.count(); ++i)
   {
-    SpInstType type = exec_list_.at(i)->get_type();
-    if( SP_DE_INST == type || SP_D_INST == type || SP_GROUP_INST == type )
-    {
-      ++t_node_access;
-    }
+    tmp.add_inst(exec_list_.at(i));
   }
 
-  long_trans_ = (1 < t_node_access);
+  long_trans_ = (1 < tmp.check_tnode_access());
+  tmp.clear();
   return OB_SUCCESS;
 }
 

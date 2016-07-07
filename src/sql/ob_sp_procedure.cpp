@@ -1166,6 +1166,59 @@ CallType SpMultiInsts::get_call_type() const
   return ret;
 }
 
+int64_t SpMultiInsts::check_tnode_access() const
+{
+  int64_t count = 0;
+
+  for(int64_t i = 0 ; i < inst_list_.count() && count < 2; ++i)
+  {
+    switch (inst_list_.at(i)->get_type())
+    {
+      case SP_A_INST:
+      case SP_E_INST:
+      case SP_B_INST:
+      case SP_PREGROUP_INST:
+      case SP_UNKOWN:
+      case SP_EXIT_INST:
+        break;
+
+      case SP_C_INST:
+        count += static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->get_then_block()->check_tnode_access();
+        count += static_cast<SpIfCtrlInsts*>(inst_list_.at(i))->get_else_block()->check_tnode_access();
+        break;
+      case SP_CW_INST:
+      {
+        SpCaseInst *inst = static_cast<SpCaseInst*>(inst_list_.at(i));
+        count += inst->get_else_block()->check_tnode_access();
+        for(int64_t j = 0; j < inst->get_when_count(); ++j)
+        {
+          count += inst->get_when_block(j)->check_tnode_access();
+        }
+        break;
+      }
+      case SP_L_INST:
+        count += 2 * static_cast<SpLoopInst*>(inst_list_.at(i))->get_body_block()->check_tnode_access();
+        break;
+      case SP_W_INST:
+        count += 2 * static_cast<SpWhileInst*>(inst_list_.at(i))->get_body_block()->check_tnode_access();
+        break;
+
+      case SP_D_INST:
+      case SP_DE_INST:
+      case SP_GROUP_INST:
+        ++count;
+        break;
+    }
+  }
+  if( count > 2 ) count = 2;
+  return count;
+}
+
+void SpMultiInsts::clear()
+{
+  inst_list_.clear();
+}
+
 /*================================================
  * 					SpIfContrlInsts Definition
  * ==============================================*/

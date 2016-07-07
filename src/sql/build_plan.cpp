@@ -3628,6 +3628,8 @@ int resolve_procedure_while_stmt(
   OB_ASSERT(node && node->type_ == T_PROCEDURE_WHILE && node->num_child_ == 2);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureWhileStmt *stmt = NULL;
+  ParseNode *vector_node = NULL;
+  uint64_t expr_id;
   TBSYS_LOG(INFO, "enter resolve_procedure_while_stmt");
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
   {
@@ -3635,47 +3637,48 @@ int resolve_procedure_while_stmt(
   }
   else
   {
-        uint64_t expr_id;
+    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+    }
+    else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+    }
+    else if( NULL != (vector_node = node->children_[1]) )
+    {
+      //-----------------------------while do-----------------------------
+      TBSYS_LOG(INFO, "while do num_child_=%d",vector_node->num_child_);
+      /*handle the loop body*/
+      for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
+      {
+        uint64_t sub_query_id = OB_INVALID_ID;
 
-        if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
-            TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
+          TBSYS_LOG(WARN, "while do should not contain declare stmt");
+          ret = OB_ERROR; //change to not_support code
         }
-        else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+        else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
         {
-            TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
+          TBSYS_LOG(WARN, "resolve do stmt [%d] failed", i);
+        }
+        else if( OB_SUCCESS !=  (ret = stmt->add_do_stmt(sub_query_id)) )
+        {
+          TBSYS_LOG(WARN, "add do stmt failed");
         }
         else
         {
-            //-----------------------------while do-----------------------------
-            ParseNode* vector_node = node->children_[1];
-
-            TBSYS_LOG(INFO, "while do num_child_=%d",vector_node->num_child_);
-            /*handle the loop body*/
-            for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
-            {
-                uint64_t sub_query_id = OB_INVALID_ID;
-
-                if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
-                {
-                    TBSYS_LOG(WARN, "while do should not contain declare stmt");
-                    ret = OB_ERROR; //change to not_support code
-                }
-                else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
-                {
-                    TBSYS_LOG(WARN, "resolve do stmt [%d] failed", i);
-                }
-                else if( OB_SUCCESS !=  (ret = stmt->add_do_stmt(sub_query_id)) )
-                {
-                    TBSYS_LOG(WARN, "add do stmt failed");
-                }
-                else
-                {
-                    TBSYS_LOG(INFO, "add_do_stmt stmt_id=%ld",sub_query_id);
-                }
-            }
+          TBSYS_LOG(INFO, "add_do_stmt stmt_id=%ld",sub_query_id);
         }
+      }
     }
+    else
+    {
+      TBSYS_LOG(WARN, "while block must contain some statement");
+      ret = OB_ERR_RESOLVE_SQL;
+    }
+  }
   return ret;
 }
 //add hjw 20151229:e

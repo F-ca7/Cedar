@@ -230,6 +230,9 @@ namespace oceanbase
       int optimize(SpInstList &exec_list);
       void set_in_group_exec();
 
+      int64_t check_tnode_access() const;
+
+      void clear();
       int64_t to_string(char *buf, const int64_t buf_len) const;
       int assign(const SpMultiInsts &mul_inst);
     protected:
