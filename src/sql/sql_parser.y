@@ -3668,7 +3668,7 @@ case_else		:
 /*===========================================================
  *	Procedure's loop sentence
  *===========================================================*/
-stmt_loop		:	LOOP control_sect END LOOP
+stmt_loop		:	LOOP control_sect END LOOP ';'
 					{
             malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
                                      NULL,
@@ -3704,7 +3704,7 @@ stmt_loop		:	LOOP control_sect END LOOP
 /*===========================================================
  *	Procedure's while sentence
  *===========================================================*/
-stmt_while		: 	WHILE expr DO control_sect END WHILE
+stmt_while		: 	WHILE expr DO control_sect END WHILE ';'
 					{
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_WHILE, 2, $2, $4);
 					}

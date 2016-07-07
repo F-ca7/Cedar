@@ -1503,6 +1503,12 @@ int ObTransformer::gen_physical_procedure_loop(
           TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
         }
       }
+        //add by wdh 20160707 :b
+        if(!loop_inst->get_body_block()->check_exit())
+        {
+            ret = OB_ERR_PARSE_SQL;
+        }
+        //add :e
   }
   //add :e
   else

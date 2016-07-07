@@ -1148,6 +1148,55 @@ int SpMultiInsts::optimize(SpInstList &exec_list)
   return ret;
 }
 
+//add by wdh 20160707 :b
+void SpMultiInsts::dfs(bool &flag)
+{
+    for(int64_t inst_itr = 0; inst_itr < inst_list_.count(); ++inst_itr)
+    {
+        if(flag) return;
+        SpInst *inst = inst_list_.at(inst_itr);
+        SpInstType type = inst->get_type();
+        if(type == SP_C_INST)
+        {
+            SpIfCtrlInsts *if_inst = static_cast<SpIfCtrlInsts*>(inst);
+            if(if_inst->get_then_block()!=NULL)
+            {
+                if_inst->get_then_block()->dfs(flag);
+            }
+            if(if_inst->get_else_block()!=NULL)
+            {
+                if_inst->get_else_block()->dfs(flag);
+            }
+        }
+        else if(type == SP_CW_INST)
+        {
+            SpCaseInst *case_inst = static_cast<SpCaseInst*>(inst);
+            for(int64_t size=0; size < case_inst->get_when_count(); ++size)
+            {
+                case_inst->get_when_block(size)->dfs(flag);
+            }
+            if(case_inst->get_else_block()!=NULL)
+            {
+                case_inst->get_else_block()->dfs(flag);
+            }
+        }
+        else if(type == SP_EXIT_INST)
+        {
+            flag=true;
+            return;
+        }
+    }
+    return ;
+}
+bool SpMultiInsts::check_exit()
+{
+    bool flag=false;
+    dfs(flag);
+    return flag;
+}
+
+//add :e
+
 void SpMultiInsts::set_in_group_exec()
 {
   for(int64_t i = 0; i < inst_list_.count(); ++i)
