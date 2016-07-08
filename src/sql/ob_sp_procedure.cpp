@@ -1797,25 +1797,27 @@ bool SpLoopInst::is_simple_loop() const
 
   //third check whether exit when exists
   //add by wdh 20160626 :b
+  //modify by zhutao 20160707 :be
   if( ret )
   {
-    int64_t i=0;
-    for(; i < loop_body_.inst_count(); i++)
-    {
-      SpInst *tmp = NULL;
-      loop_body_.get_inst(i, tmp);
-      SpInstType type=tmp->get_type();
-      if(type == SP_EXIT_INST)
-      {
-        SpExitInst *inst = static_cast<SpExitInst*>(tmp);
-        if(inst->check_when()==false)
-        {
-          TBSYS_LOG(INFO, "exit when exists");
-          ret=false;
-          break;
-        }
-      }
-    }
+    ret = !(lowest_expr_.is_empty() || highest_expr_.is_empty());
+//    int64_t i=0;
+//    for(; i < loop_body_.inst_count(); i++)
+//    {
+//      SpInst *tmp = NULL;
+//      loop_body_.get_inst(i, tmp);
+//      SpInstType type=tmp->get_type();
+//      if(type == SP_EXIT_INST)
+//      {
+//        SpExitInst *inst = static_cast<SpExitInst*>(tmp);
+//        if(inst->check_when()==false)
+//        {
+//          TBSYS_LOG(INFO, "exit when exists");
+//          ret=false;
+//          break;
+//        }
+//      }
+//    }
   }
   //add :e
 

@@ -399,14 +399,17 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   //add by wdh 20160624 :b
   if( inst->get_lowest_expr().is_empty() )
   {
-      while(true)
+    loop_counter_.push_back(0);
+    int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
+    while(true)
+    {
+      ++counter;
+      if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
       {
-        if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
-        {
-          break;
-        }
+        break;
       }
-      if(ret == OB_SP_EXIT) ret = OB_SUCCESS;
+    }
+    if(ret == OB_SP_EXIT) ret = OB_SUCCESS;
   }
   //add :e
   else if( OB_SUCCESS != (ret = inst->get_lowest_expr().calc(fake_row, lowest_value)) ||  lowest_value->get_type() != ObIntType )
@@ -761,6 +764,12 @@ int SpMsInstExecStrategy::handle_group_result(SpProcedure *proc, ObUpsResult &re
     {
       TBSYS_LOG(WARN, "set group execution result failed");
     }
+  }
+
+  ObSQLSessionInfo *session = proc->get_phy_plan()->get_result_set()->get_session();
+  if( result.get_trans_id().is_valid() && !session->get_autocommit() && !session->get_trans_id().is_valid() )
+  {
+    session->set_trans_id(result.get_trans_id());
   }
 
   if( OB_ITER_END == ret ) ret = OB_SUCCESS;
