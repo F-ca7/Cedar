@@ -229,7 +229,9 @@ namespace oceanbase
 
       int optimize(SpInstList &exec_list);
       void set_in_group_exec();
-
+      //add by wdh check whether have exit stmt 20160707
+      bool check_exit();
+      void dfs(bool &flag);
       int64_t check_tnode_access() const;
 
       void clear();
