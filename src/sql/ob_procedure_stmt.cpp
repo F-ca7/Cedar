@@ -34,24 +34,47 @@ namespace oceanbase
 
     int ObProcedureStmt::add_proc_param(const ObParamDef &proc_param)
     {
-      return params_.push_back(proc_param);
+      int ret = OB_SUCCESS;
+      for(int64_t i = 0; i < params_.count(); ++i)
+      {
+        if( 0 == params_.at(i).param_name_.compare(proc_param.param_name_) )
+        {
+          TBSYS_LOG(WARN, "%.*s conflict with other paramters", proc_param.param_name_.length(), proc_param.param_name_.ptr());
+          ret = -17;
+          break;
+        }
+      }
+      if( OB_SUCCESS == ret )
+      {
+        ret = params_.push_back(proc_param);
+      }
+      return ret;
     }
 
     int ObProcedureStmt::add_declare_var(const ObString &var)
     {
-      int ret=OB_SUCCESS;
+      int ret = OB_SUCCESS;
       for (int64_t i = 0;i < declare_variable_.count();i++) //is there var_name conflict
       {
-        if(declare_variable_.at(i).compare(var)==0)
+        if( 0 == declare_variable_.at(i).compare(var) )
         {
-          TBSYS_LOG(WARN, "same variable");
-          ret=-17;
+          TBSYS_LOG(WARN, "%.*s conflict with other variables", var.length(), var.ptr());
+          ret = -17;
           break;
         }
       }
-      if(ret==OB_SUCCESS)
+      for(int64_t i = 0; i < params_.count(); ++i)
       {
-        declare_variable_.push_back(var);
+        if( 0 == params_.at(i).param_name_.compare(var) )
+        {
+          TBSYS_LOG(WARN, "%.*s conflict with parameters", var.length(), var.ptr());
+          ret = -17;
+          break;
+        }
+      }
+      if(OB_SUCCESS == ret)
+      {
+        ret = declare_variable_.push_back(var);
       }
       return ret;
     }
@@ -90,11 +113,6 @@ namespace oceanbase
     {
       return declare_variable_.count();
     }
-
-//    const ObArray<ObParamDef>& ObProcedureStmt::get_params() const
-//    {
-//      return params_;
-//    }
 
     const ObParamDef &ObProcedureStmt::get_param(int64_t index) const
     {
