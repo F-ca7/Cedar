@@ -192,6 +192,7 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
   }
   else if( OB_SUCCESS != (ret = op->get_next_row(row))) //properly we need to check only one row is got
   {
+    ret = OB_SUCCESS; //if we donot get a row here, do not throw error.
     TBSYS_LOG(WARN, "get new_row fail");
   }
   else if( row->get_column_num() == var_list.count() )
@@ -300,7 +301,7 @@ int SpMsInstExecStrategy::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysic
   exec_plan.set_result_set(out_plan.get_result_set()); //need when serialize
 
   start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
-  start_new_trans = false; //a hack for payment test
+//  start_new_trans = false; //a hack for payment test
   exec_plan.set_start_trans(start_new_trans);
 
 //  common::ObTransReq &start_trans_req = exec_plan.get_trans_req();
@@ -1132,7 +1133,7 @@ int ObProcedure::open()
     pc_ = 0;
 
     bool autoCommit = my_phy_plan_->get_result_set()->get_session()->get_autocommit();
-    if( long_trans_  && autoCommit) my_phy_plan_->get_result_set()->get_session()->set_autocommit(false);
+    my_phy_plan_->get_result_set()->get_session()->set_autocommit(!long_trans_);
     for(; pc_ < exec_list_.count() && OB_SUCCESS == ret; ++pc_)
     {
       ret = strategy.execute_inst(exec_list_.at(pc_));
@@ -1143,12 +1144,11 @@ int ObProcedure::open()
         TBSYS_LOG(WARN, "execution procedure fail at inst[%ld]:\n%s", pc_, to_cstring(*this));
       }
     }
-
-    if( long_trans_ && autoCommit) my_phy_plan_->get_result_set()->get_session()->set_autocommit(true);
     if( long_trans_ )
     {
        end_trans(OB_SUCCESS != ret);
     }
+    my_phy_plan_->get_result_set()->get_session()->set_autocommit(autoCommit);
   }
   //add by wdh :b
   if(ret == OB_SUCCESS)
