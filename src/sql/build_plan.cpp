@@ -2999,8 +2999,8 @@ int resolve_procedure_case_stmt(
     if (ret == OB_SUCCESS)
     {
     	/*获取case的表达式节点*/
-    	uint64_t expr_id;
-    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        uint64_t expr_id;//modified by wdh 20160708 T_VARIABLE_VALUE_LIMIT
+        if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     	{
     		TBSYS_LOG(ERROR, "resolve_independ_expr error");
     	}
@@ -3100,7 +3100,8 @@ int resolve_procedure_casewhen_stmt(
   {
     TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt prepare_resolve_stmt have ERROR!");
   }
-  else  if ((ret = resolve_independ_expr(result_plan, NULL, node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+  // modified by wdh 20160708
+  else  if ((ret = resolve_independ_expr(result_plan, NULL, node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
   {
     TBSYS_LOG(WARN, "resolve_independ_expr  ERROR");
   }
@@ -3160,7 +3161,7 @@ int resolve_procedure_if_stmt(
     {
     	/*获取if的表达式节点*/
     	uint64_t expr_id;
-    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     	{
     		TBSYS_LOG(ERROR, "resolve_procedure_if_stmt resolve_independ_expr error");
     	}
@@ -3372,7 +3373,7 @@ int resolve_procedure_elseif_stmt(
     {
     	uint64_t expr_id;
 
-    	if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     	{
     		TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
     	}
@@ -3561,7 +3562,7 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     else if( OB_SUCCESS == ret && node->children_[2] != NULL )
     {
       uint64_t lowest_expr_id;
-      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[2], lowest_expr_id, T_NONE_LIMIT)) )
+      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[2], lowest_expr_id, T_VARIABLE_VALUE_LIMIT)) )
       {
         TBSYS_LOG(WARN, "resolve loop's lowest expression fail");
       }
@@ -3575,7 +3576,7 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     if( OB_SUCCESS == ret && node->children_[3] != NULL )
     {
       uint64_t highest_expr_id;
-      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[3], highest_expr_id, T_NONE_LIMIT)) )
+      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[3], highest_expr_id, T_VARIABLE_VALUE_LIMIT)) )
       {
         TBSYS_LOG(WARN, "resolve loop's highest expression fail");
       }
@@ -3637,7 +3638,7 @@ int resolve_procedure_while_stmt(
   }
   else
   {
-    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
     }
@@ -3709,7 +3710,7 @@ int resolve_procedure_exit_stmt(
             expr_id = (uint64_t)-1;
             stmt->set_expr_id(expr_id);
         }
-        else if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+        else if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
         {
             TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
         }
@@ -4557,7 +4558,7 @@ int resolve_procedure_execute_stmt(
 					}*/
 					uint64_t expr_id;
 
-					if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,arguments->children_[i],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+                    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,arguments->children_[i],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
 					{
 						TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
 					}
