@@ -3677,7 +3677,7 @@ stmt_loop		:	LOOP control_sect END LOOP ';'
                                      NULL,
                                      $2);
           }
-        | FOR TEMP_VARIABLE IN expr_const TO expr_const LOOP control_sect END LOOP
+        | FOR TEMP_VARIABLE IN expr_const TO expr_const LOOP control_sect END LOOP';'
             {
               malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
                                        $2,
@@ -3686,7 +3686,7 @@ stmt_loop		:	LOOP control_sect END LOOP ';'
                                        $6,
                                        $8);
             }
-        | FOR TEMP_VARIABLE IN REVERSE expr_const TO expr_const LOOP control_sect END LOOP
+        | FOR TEMP_VARIABLE IN REVERSE expr_const TO expr_const LOOP control_sect END LOOP';'
             {
               ParseNode *rev_flag = NULL;
               malloc_terminal_node(rev_flag, result->malloc_pool_, T_BOOL);
