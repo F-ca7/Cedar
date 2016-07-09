@@ -42,7 +42,7 @@ int SpUpsInstExecStrategy::pexecute_if_ctrl(SpUpsInstExecStrategy *host, SpInst 
 
 int SpUpsInstExecStrategy::pexecute_loop(SpUpsInstExecStrategy *host, SpInst *inst)
 {
-  return host->execute_ups_loop(static_cast<SpUpsLoopInst*>(inst));
+  return host->execute_loop(static_cast<SpLoopInst*>(inst));
 }
 
 int SpUpsInstExecStrategy::pexecute_casewhen(SpUpsInstExecStrategy *host, SpInst *inst)
@@ -251,32 +251,43 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
   return ret;
 }
 
-int SpUpsInstExecStrategy::execute_ups_loop(SpUpsLoopInst *inst)
+int SpUpsInstExecStrategy::execute_loop(SpLoopInst *inst)
 {
   int ret = OB_SUCCESS;
 
   ObObj itr_obj;
-  int64_t itr_value = inst->get_lowest_number();
-  int64_t loop_size = inst->get_highest_number() - itr_value;
-  const SpVar &loop_var = inst->get_loop_counter_var();
+  int64_t itr = 0, itr_inc = 1;
+  int64_t itr_begin = inst->get_lowest_number();
+  int64_t itr_end = inst->get_highest_number();
+  const SpVar &loop_var = inst->get_loop_var();
 
   loop_counter_.push_back(0);
   int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
-  for(int64_t i = 0; OB_SUCCESS == ret && i < loop_size; ++i)
+
+  if( inst->get_reverse() )
+  {
+    itr = itr_begin;
+    itr_begin = itr_end;
+    itr_end = itr;
+    itr_inc = -1;
+  }
+  for(itr = itr_begin; itr <= itr_end && OB_SUCCESS == ret; itr += itr_inc)
   {
     ++counter;
-    itr_obj.set_int(itr_value++);
+    itr_obj.set_int(itr);
     if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(loop_var, itr_obj)) )
     {
 //      TBSYS_LOG(WARN, "update loop counter var failed");
     }
-
     if( OB_SUCCESS != ret ) {}
-    else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_loop_body())) )
+    else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
     {
 //      TBSYS_LOG(WARN, "failed to execute loop body");
     }
   }
+
+  //try to clear local variables
+  inst->get_ownner()->clear_variable(loop_var);
   loop_counter_.pop_back();
   return ret;
 }
@@ -330,136 +341,6 @@ int SpUpsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
     }
   }
   return ret;
-}
-
-/*============================================================================
- *                     SpUpsLoopInst  Definition
- * ==========================================================================*/
-SpUpsLoopInst::~SpUpsLoopInst()
-{}
-
-//int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
-//{
-//  int ret = OB_SUCCESS;
-//  int64_t itr_count = 0;
-//  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &lowest_number_)) )
-//  {
-////    TBSYS_LOG(WARN, "deserialize lowest number failed");
-//  }
-//  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &highest_number_)))
-//  {
-////    TBSYS_LOG(WARN, "deserialize highest number failed");
-//  }
-//  else if( OB_SUCCESS != (ret = loop_counter_var_.deserialize(buf, data_len, pos)) )
-//  {
-////    TBSYS_LOG(WARN, "deserialize loop counter variable failed");
-//  }
-//  else
-//  {
-////    TBSYS_LOG(TRACE, "expanded loop iteration %s in (%ld  %ld)", to_cstring(loop_counter_var_), lowest_number_, highest_number_);
-//    itr_count = highest_number_ - lowest_number_;
-//    expanded_loop_body_.reserve(itr_count);
-//  }
-//  for(int64_t i = 0; OB_SUCCESS == ret && i < itr_count; ++i)
-//  {
-//    SpMultiInsts mul_inst(this);
-//    if( OB_SUCCESS != (ret = expanded_loop_body_.push_back(mul_inst)) )
-//    {
-////      TBSYS_LOG(WARN, "add iteration failed");
-//    }
-//    else if( OB_SUCCESS != (ret = expanded_loop_body_.at(expanded_loop_body_.count() - 1).
-//                            deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)) )
-//    {
-////      TBSYS_LOG(WARN, "deserialize loop body failed at iteration: %ld", i);
-//    }
-//  }
-//  return ret;
-//}
-
-int SpUpsLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
-{
-  int ret = OB_SUCCESS;
-//  int64_t itr_count = 0;
-  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &lowest_number_)) )
-  {
-//    TBSYS_LOG(WARN, "deserialize lowest number failed");
-  }
-  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &highest_number_)))
-  {
-//    TBSYS_LOG(WARN, "deserialize highest number failed");
-  }
-  else if( OB_SUCCESS != (ret = loop_counter_var_.deserialize(buf, data_len, pos)) )
-  {
-//    TBSYS_LOG(WARN, "deserialize loop counter variable failed");
-  }
-  else if( OB_SUCCESS != (ret = deserialize_loop_template(buf, data_len, pos, allocator, operators_store, op_factory)))
-  {
-//    TBSYS_LOG(TRACE, "expanded loop iteration %s in (%ld  %ld)", to_cstring(loop_counter_var_), lowest_number_, highest_number_);
-//    itr_count = highest_number_ - lowest_number_;
-//    expanded_loop_body_.reserve(itr_count);
-  }
-  return ret;
-}
-
-int SpUpsLoopInst::deserialize_loop_body(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
-{
-  int ret = OB_SUCCESS;
-  int64_t end_flag = 0;
-  int64_t body_inst_count = 0;
-  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &body_inst_count)))
-  {
-  }
-  else
-  {
-    bool flag = false;
-    flags.reserve(body_inst_count);
-    for(int64_t i = 0; OB_SUCCESS == ret && i < body_inst_count; ++i)
-    {
-      ret = serialization::decode_bool(buf, data_len, pos, &flag);
-      flags.push_back(flag);
-    }
-  }
-
-  if( OB_SUCCESS != ret ) {}
-  else if( OB_SUCCESS != (ret = expanded_loop_body_.
-        deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
-  {
-    TBSYS_LOG(WARN,	"deserialize expanded loop_body_ failed");
-  }
-  serialization::decode_i64(buf, data_len, pos, &end_flag);
-  OB_ASSERT(end_flag == 1723);
-  return ret;
-}
-
-int SpUpsLoopInst::deserialize_loop_template(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
-{
-  int ret = OB_SUCCESS;
-  if( OB_SUCCESS != (ret = expanded_loop_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
-  {
-    TBSYS_LOG(WARN, "failed to deserialize loop_body");
-  }
-  return ret;
-}
-
-int SpUpsLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
-{
-  UNUSED(buf);
-  UNUSED(buf_len);
-  UNUSED(pos);
-  return OB_NOT_SUPPORTED;
-}
-
-int64_t SpUpsLoopInst::to_string(char *buf, const int64_t buf_len) const
-{
-  UNUSED(buf);
-  UNUSED(buf_len);
-  return 0ll;
-}
-
-int SpUpsLoopInst::assign(const SpInst *inst)
-{
-  UNUSED(inst);
-  return OB_NOT_SUPPORTED;
 }
 
 /*============================================================================
@@ -682,226 +563,17 @@ void ObUpsProcedure::reuse()
   pc_ = 0;
 }
 
-/*
-int ObUpsProcedure::write_variable(const ObString &var_name, const ObObj &val)
-{
-  int ret = OB_SUCCESS;
-  ObString tmp_var;
-  ObObj tmp_val;
-  if( OB_UNLIKELY(!is_var_tab_created) )
-  {
-    if( OB_SUCCESS != (ret = create_variable_table()) )
-    {
-//      TBSYS_LOG(WARN, "create variable table fail, ret=%d", ret);
-    }
-    else
-    {
-//      TBSYS_LOG(TRACE, "create var table successful");
-      is_var_tab_created = true;
-    }
-  }
-  if( OB_SUCCESS != ret )
-  {}
-  else if (var_name.length() <= 0)
-  {
-    ret = OB_ERROR;
-//    TBSYS_LOG(ERROR, "Empty variable name");
-  }
-  else if ((ret = name_pool_.write_string(var_name, &tmp_var)) != OB_SUCCESS
-           || (ret = name_pool_.write_obj(val, &tmp_val)) != OB_SUCCESS
-           || ((ret = var_name_val_map_.set(tmp_var, tmp_val, 1)) != hash::HASH_INSERT_SUCC
-               && ret != hash::HASH_OVERWRITE_SUCC))
-  {
-    ret = OB_ERROR;
-//    TBSYS_LOG(ERROR, "Add variable %.*s error", var_name.length(), var_name.ptr());
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "write variable %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(val));
-    ret = OB_SUCCESS;
-  }
-  return ret;
-}
-
-int ObUpsProcedure::write_variable(const SpVar &var, const ObObj &val)
-{
-  int ret = OB_SUCCESS;
-  if( !var.is_array() )
-  {
-    ret = write_variable(var.var_name_, val);
-  }
-  else //write array variables
-  {
-    int64_t idx = 0;
-    if( OB_SUCCESS != (ret = read_index_value(var.idx_value_, idx)))
-    {
-//      TBSYS_LOG(WARN, "read index value failed");
-    }
-    else if( OB_SUCCESS != (ret = write_variable(var.var_name_, idx, val)))
-    {
-      TBSYS_LOG(WARN, "write %.*s[%ld] = %s failed", var.var_name_.length(), var.var_name_.ptr(), idx, to_cstring(val));
-    }
-  }
-  return ret;
-}
-
-int ObUpsProcedure::write_variable(const ObString &array_name, int64_t idx_value, const ObObj &val)
-{
-  int ret = OB_SUCCESS;
-  bool find = false;
-
-  //check array existence
-  const ObObj *array_loc_obj;
-  if( OB_SUCCESS != (ret = read_variable(array_name, array_loc_obj)) )
-  {
-    //array is not created
-  }
-  else
-  {
-    int64_t array_loc = -1;
-    find = true;
-    array_loc_obj->get_int(array_loc);
-    ObUpsArray &array = array_table_.at(array_loc);
-    if( idx_value < 0 )
-    {
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else if( idx_value >= array.array_values_.count() )
-    {
-      while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
-      {
-        ObObj tmp_obj;
-        tmp_obj.set_null();
-        ret = array.array_values_.push_back(tmp_obj);
-      }
-    }
-    if( OB_SUCCESS == ret )
-    {
-      array.array_values_.at(idx_value) = val;
-    }
-  }
-
-  if ( !find && OB_ERR_VARIABLE_UNKNOWN == ret )
-  {
-    ObUpsArray tmp_array;
-    ObObj loc;
-    tmp_array.array_name_ = array_name;
-    array_table_.push_back(tmp_array);
-    loc.set_int(array_table_.count() - 1);
-    ObUpsArray &array = array_table_.at(array_table_.count() - 1);
-    if( OB_SUCCESS != (ret = write_variable(array_name, loc)))
-    {
-      //udpate array_name location fail
-    }
-    else if( idx_value < 0 )
-    {
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-    else if( idx_value >= array.array_values_.count() )
-    {
-      while( OB_SUCCESS == ret && idx_value >= array.array_values_.count() )
-      {
-        ObObj tmp_obj;
-        tmp_obj.set_null();
-        ret = array.array_values_.push_back(tmp_obj);
-      }
-    }
-
-    if( OB_SUCCESS == ret )
-    {
-      array.array_values_.at(idx_value) = val;
-    }
-  }
-  return ret;
-}
-
-int ObUpsProcedure::read_variable(const ObString &var_name, const ObObj *&val) const
-{
-	int ret = OB_SUCCESS;
-  if( OB_UNLIKELY(!is_var_tab_created) )
-	{
-//		TBSYS_LOG(WARN, "var_table does not create");
-    ret = OB_ERR_VARIABLE_UNKNOWN;
-	}
-  else if ((val=var_name_val_map_.get(var_name)) == NULL)
-	{
-//		TBSYS_LOG(WARN, "var does not exist");
-    ret = OB_ERR_VARIABLE_UNKNOWN;
-  }
-  else
-  {
-    TBSYS_LOG(TRACE, "read var %.*s = %s", var_name.length(), var_name.ptr(), to_cstring(*val));
-  }
-	return ret;
-}
-
-int ObUpsProcedure::read_variable(const ObString &array_name, int64_t idx_value, const ObObj *&val) const
-{
-  int ret = OB_SUCCESS;
-
-  if( OB_SUCCESS != (ret = read_variable(array_name, val)))
-  {
-    //table may not exist
-  }
-  else
-  {
-    int64_t i = -1;
-    val->get_int(i);
-    const ObUpsArray &arr = array_table_.at(i);
-    if( idx_value >= 0 && idx_value < arr.array_values_.count() )
-    {
-      val = & (arr.array_values_.at(idx_value));
-    }
-    else
-    {
-      TBSYS_LOG(WARN, "array index is invalid, %ld", idx_value);
-      ret = OB_ERR_ILLEGAL_INDEX;
-    }
-  }
-  return ret;
-}
-
-
-int ObUpsProcedure::store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store)
-{
-  return static_data_mgr_.store(sdata_id, hkey, p_row_store);
-}
-
-int64_t ObUpsProcedure::get_static_data_count() const
-{
-  return static_data_mgr_.get_static_data_count();
-}
-
-int ObUpsProcedure::get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store)
-{
-  return static_data_mgr_.get(sdata_id, strategy_.hkey(sdata_id), p_row_store);
-}
-*/
-
 int64_t ObUpsProcedure::hkey(int64_t sdata_id) const
 {
   return strategy_.hkey(sdata_id);
 }
 
-SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
-{
-  SpInst *new_inst = NULL;
-  if( type == SP_L_INST )
-  { //loop have a different deserialization methods
-    void *ptr = arena_.alloc(sizeof(SpUpsLoopInst));
-    new_inst = new(ptr) SpUpsLoopInst();
-    new_inst->set_owner_procedure(this);
-    if( NULL != mul_inst )
-      mul_inst->add_inst(new_inst);
-    else
-      inst_list_.push_back(new_inst);
-  }
-  else
-  {
-    new_inst = SpProcedure::create_inst(type, mul_inst);
-  }
-  return new_inst;
-}
+//SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
+//{
+//  SpInst *new_inst = NULL;
+//  new_inst = SpProcedure::create_inst(type, mul_inst);
+//  return new_inst;
+//}
 
 int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
 {

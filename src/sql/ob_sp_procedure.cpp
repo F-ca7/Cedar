@@ -217,6 +217,21 @@ int SpVariableSet::conflict(const SpVariableSet &in_set, const SpVariableSet &ou
   return ret;
 }
 
+bool SpVariableSet::exist(const ObString &var_name) const
+{
+  bool ret = false;
+  for(int64_t i = 0; i < var_info_set_.count(); ++i)
+  {
+    const ObString var = var_info_set_.at(i).var_name_;
+    if( var_name.compare(var) == 0 )
+    {
+      ret = true;
+      break;
+    }
+  }
+  return ret;
+}
+
 /*===================================================================
  *                       SpInst Definition
  * ==================================================================*/
@@ -756,7 +771,7 @@ int SpGroupInsts::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
       {
         //try to serialize the temp variables
         const ObObj *obj;
-        if(OB_SUCCESS != (ret = proc_->read_variable(var_name, obj)) )
+        if(OB_SUCCESS != (proc_->read_variable(var_name, obj)) )
         {
           TBSYS_LOG(WARN, "serialize variables [%.*s] fails, does not get value", var_name.length(), var_name.ptr());
         }
@@ -1495,27 +1510,42 @@ SpLoopInst::~SpLoopInst()
 
 void SpLoopInst::get_read_variable_set(SpVariableSet &read_set) const
 {
+  int64_t idx = read_set.count();
   read_set.add_tmp_var(loop_counter_var_.var_name_);
   loop_body_.get_read_variable_set(read_set);
+  read_set.remove(idx);
 }
 
 void SpLoopInst::get_write_variable_set(SpVariableSet &write_set) const
 {
+  int64_t idx = write_set.count();
   write_set.add_tmp_var(loop_counter_var_.var_name_);
   loop_body_.get_write_variable_set(write_set);
+  write_set.remove(idx);
 }
 
 int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
-
-  UNUSED(buf);
-  UNUSED(data_len);
-  UNUSED(pos);
-  UNUSED(allocator);
-  UNUSED(operators_store);
-  UNUSED(op_factory);
-
+  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &lowest_number_)) )
+  {
+//    TBSYS_LOG(WARN, "deserialize lowest number failed");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &highest_number_)))
+  {
+//    TBSYS_LOG(WARN, "deserialize highest number failed");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &reverse_)))
+  {
+  }
+  else if( OB_SUCCESS != (ret = loop_counter_var_.deserialize(buf, data_len, pos)) )
+  {
+//    TBSYS_LOG(WARN, "deserialize loop counter variable failed");
+  }
+  else if( OB_SUCCESS != (ret = loop_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
+  {
+    TBSYS_LOG(WARN, "failed to deserialize loop_body");
+  }
   return ret;
 }
 
@@ -1563,137 +1593,32 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   {
     TBSYS_LOG(WARN, "serialize highest_number failed");
   }
+  else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, reverse_)))
+  {
+    TBSYS_LOG(WARN, "serialize direction failed");
+  }
   else if( OB_SUCCESS != (ret = loop_counter_var_.serialize(buf, buf_len, pos)))
   {
     TBSYS_LOG(WARN, "serialize loop counter var fail");
   }
-  else if( OB_SUCCESS != (ret = serialize_loop_template(buf, buf_len, pos)))
-  {
-    TBSYS_LOG(WARN, "serialize loop template failed");
-  }
-//  else if( OB_SUCCESS != (ret = const_cast<SpLoopInst*>(this)->serialize_loop_body(buf, buf_len, pos, itr, itr_end)))
-//  {
-//    TBSYS_LOG(WARN, "serialize loop body fail");
-//  }
-  return ret;
-}
-
-int SpLoopInst::serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const
-{
-  int ret = OB_SUCCESS;
-
-  if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
+  else if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
   {
     TBSYS_LOG(WARN, "serialize loop body template failed");
   }
   return ret;
 }
 
-//int SpLoopInst::serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end)
+//int SpLoopInst::serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const
 //{
 //  int ret = OB_SUCCESS;
 
-//  int64_t total_inst_count = 0, expanded_inst_count = 0, seri_inst_count = 0;
-//  serialization::encode_i64(buf, buf_len, pos, loop_body_.inst_count());
-
-//  //some instruction is expanded and some are not
-//  for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
+//  if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
 //  {
-//    SpInst *inst = loop_body_.get_inst(i);
-//    bool flag = need_expand(inst);
-//    ret = serialization::encode_bool(buf, buf_len, pos, flag);
-
-//    if( flag ) ++expanded_inst_count;
-//  }
-
-//  total_inst_count = expanded_inst_count * (itr_end - itr_begin - 1) + loop_body_.inst_count();
-
-//  ret = serialization::encode_i64(buf, buf_len, pos, total_inst_count);
-
-//  bool is_first_loop_iteration = true;
-//  ObObj itr_var;
-//  for(int64_t itr = itr_begin; itr < itr_end; ++itr)
-//  {
-//    itr_var.set_int(itr);
-
-//    //update the loop variable
-//    if( OB_SUCCESS != (ret = proc_->write_variable(loop_counter_var_, itr_var)))
-//    {
-//      TBSYS_LOG(WARN, "update iterate variable fail");
-//    }
-//    else
-//    {
-//      //execute loop local inst
-//      for(int64_t loop_local_inst_itr = 0; OB_SUCCESS == ret && loop_local_inst_itr < loop_local_inst_.count(); ++loop_local_inst_itr)
-//      {
-//        SpInst *pre_inst = loop_body_.get_inst(loop_local_inst_.at(loop_local_inst_itr));
-//        if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->execute_inst(pre_inst)) )
-//        {
-//          TBSYS_LOG(WARN, "process pro-loop instruction failed at %ld", loop_local_inst_itr);
-//        }
-//      }
-
-//      //loop body
-//      for(int64_t i = 0; OB_SUCCESS == ret && i < loop_body_.inst_count(); ++i)
-//      {
-//        SpInst *inst = loop_body_.get_inst(i);
-//        bool flag = need_expand(inst);
-
-//        if( flag || is_first_loop_iteration )
-//        {
-//          serialization::encode_i32(buf, buf_len, pos, inst->get_type());
-//          inst->serialize_inst(buf, buf_len, pos);
-//          ++seri_inst_count;
-//        }
-//      }
-
-//      //close inst
-////      if( OB_SUCCESS != (ret = proc_->get_exec_strategy()->close(this)) ) //close body inst operation
-////      {
-////        TBSYS_LOG(WARN, "reset loop body inst operation fail");
-////      }
-//    }
-//    is_first_loop_iteration = false;
-//  }
-//  serialization::encode_i64(buf, buf_len, pos, 1723);
-//  OB_ASSERT(seri_inst_count == total_inst_count);
-//  return ret;
-//}
-
-//bool SpLoopInst::need_expand(SpInst *inst)
-//{
-//  bool ret = inst->get_type() == SP_DE_INST ||
-//      ( inst->get_type() == SP_D_INST &&
-//        static_cast<SpRwDeltaInst*>(inst)->get_rwdelta_op()->get_type() != PHY_UPS_MODIFY);
-
-//  if( ret ) {}
-//  else if( inst->get_type() == SP_C_INST )
-//  {
-//    //make some judge
-//    SpMultiInsts *then_branch = static_cast<SpIfCtrlInsts*>(inst)->get_then_block();
-//    for(int64_t i = 0; !ret && i < then_branch->inst_count(); ++i)
-//    {
-//      if( need_expand(then_branch->get_inst(i)))
-//        ret = true;
-//    }
-//    SpMultiInsts *else_branch = static_cast<SpIfCtrlInsts*>(inst)->get_else_block();
-//    for(int64_t i = 0; !ret && i < else_branch->inst_count(); ++i)
-//    {
-//      if( need_expand(else_branch->get_inst(i)))
-//        ret = true;
-//    }
-//  }
-//  else if( inst->get_type() == SP_L_INST )
-//  {
-//    SpMultiInsts *loop_body = static_cast<SpLoopInst*>(inst)->get_body_block();
-//    for(int64_t i = 0; !ret && i < loop_body->inst_count(); ++i)
-//    {
-//      if( need_expand(loop_body->get_inst(i)))
-//        ret = true;
-//    }
+//    TBSYS_LOG(WARN, "serialize loop body template failed");
 //  }
 //  return ret;
 //}
+
 
 int SpLoopInst::assign(const SpInst *inst)
 {
@@ -2156,6 +2081,14 @@ void SpProcedure::clear_var_tab()
   var_name_val_map_.clear();
 
   name_pool_.clear();
+}
+
+void SpProcedure::clear_variable(const SpVar &var)
+{
+  if( HASH_EXIST != var_name_val_map_.erase(var.var_name_) )
+  {
+    TBSYS_LOG(WARN, "%.*s does not exist in the var_map", var.var_name_.length(), var.var_name_.ptr());
+  }
 }
 
 int SpProcedure::create_variable_table()
@@ -2796,6 +2729,7 @@ int64_t SpProcedure::to_string(char* buf, const int64_t buf_len) const
   }
   return pos;
 }
+
 
 /*=======================================================================
  * 			to_string methods

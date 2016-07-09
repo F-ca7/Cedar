@@ -79,6 +79,30 @@ namespace oceanbase
       return ret;
     }
 
+    bool ObProcedureStmt::check_var_exist(const ObString &var) const
+    {
+      bool ret = false;
+      for(int64_t i = 0; i < declare_variable_.count(); ++i)
+      {
+        if( 0 == declare_variable_.at(i).compare(var) )
+        {
+          TBSYS_LOG(WARN, "%.*s conflict with other variables", var.length(), var.ptr());
+          ret = true;
+          break;
+        }
+      }
+      for(int64_t i = 0; i < params_.count(); ++i)
+      {
+        if( 0 == params_.at(i).param_name_.compare(var) )
+        {
+          TBSYS_LOG(WARN, "%.*s conflict with other parameters", var.length(), var.ptr());
+          ret = true;
+          break;
+        }
+      }
+      return ret;
+    }
+
     int ObProcedureStmt::add_stmt(uint64_t& stmt_id)
     {
       return proc_block_.push_back(stmt_id);

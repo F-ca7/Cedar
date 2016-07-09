@@ -419,12 +419,12 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   }
   else
   {
-    int64_t itr = 0, itr_end = -1;
+    int64_t itr = 0, itr_begin = -1, itr_end = -1, itr_inc = 1;
     if( OB_SUCCESS!= (ret = inst->get_highest_expr().calc(fake_row, highest_value)) )
     {
       TBSYS_LOG(WARN, "highest value calculate failed");
     }
-    else if( OB_SUCCESS != lowest_value->get_int(itr) || OB_SUCCESS != highest_value->get_int(itr_end) )
+    else if( OB_SUCCESS != lowest_value->get_int(itr_begin) || OB_SUCCESS != highest_value->get_int(itr_end) )
     {
       TBSYS_LOG(WARN, "unsupported loop range type");
     }
@@ -432,7 +432,15 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     {
       loop_counter_.push_back(0);
       int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
-      for(; itr <= itr_end && OB_SUCCESS == ret; itr ++)//modify wdh <= 20160624
+
+      if( inst->get_reverse() )
+      {
+        itr = itr_begin;
+        itr_begin = itr_end;
+        itr_end = itr;
+        itr_inc = -1;
+      }
+      for(itr = itr_begin; itr <= itr_end && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
       {
         ++counter;
         itr_var.set_int(itr);
@@ -444,19 +452,10 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
         {
           TBSYS_LOG(WARN, "execute loop body fail");
         }
-//        else if( OB_SUCCESS != (ret = close(inst)) ) //close body inst operation
-//        {
-//          TBSYS_LOG(WARN, "reset loop body inst operation fail");
-//        }
-        else if( OB_SUCCESS != (ret = inst->get_highest_expr().calc(fake_row, highest_value)))
-        {
-          TBSYS_LOG(WARN, "calculate highest value fail");
-        }
-        else
-        {
-          highest_value->get_int(itr_end);
-        }
       }
+
+      //try to clear local variables
+      inst->get_ownner()->clear_variable(inst->get_loop_var());
       loop_counter_.pop_back();
     }
   }
@@ -1553,5 +1552,46 @@ int ObProcedure::end_trans(bool rollback)
     OB_STAT_INC(OBMYSQL, SQL_ROLLBACK_COUNT);
   }
   FILL_TRACE_LOG("trans_id=%s err=%d", to_cstring(req.trans_id_), ret);
+  return ret;
+}
+
+int ObProcedure::check_semantics() const
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; OB_SUCCESS == ret && i < inst_list_.count(); ++i)
+  {
+    SpVariableSet var_set;
+    inst_list_.at(i)->get_read_variable_set(var_set);
+    inst_list_.at(i)->get_write_variable_set(var_set);
+
+    for(int64_t j = 0; OB_SUCCESS == ret && j < var_set.count(); ++j)
+    {
+      if( !is_defined(var_set.get_var_info(j)) )
+      {
+        TBSYS_LOG(WARN, "variable %s used in %s does not define",
+                  to_cstring(var_set.get_var_info(j)),
+                  to_cstring(*(inst_list_.at(i))));
+        ret = OB_ERR_VARIABLE_UNKNOWN;
+      }
+    }
+  }
+  return ret;
+}
+
+bool ObProcedure::is_defined(const SpVarInfo &info) const
+{
+  bool ret = false;
+
+  if( info.var_type_ == VM_DB_TAB ) return true;
+
+  for(int64_t i = 0; !ret && i < params_.count(); ++i)
+  {
+    if( info.var_name_.compare(params_.at(i).param_name_) == 0 ) ret = true;
+  }
+
+  for(int64_t i = 0; !ret && i < defs_.count(); ++i)
+  {
+    if( info.var_name_.compare(defs_.at(i).variable_name_) == 0 ) ret = true;
+  }
   return ret;
 }

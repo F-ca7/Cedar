@@ -65,7 +65,8 @@ namespace oceanbase {
 
       int64_t get_declare_var_size() const;
 
-//      const ObArray<ObParamDef>& get_params();
+      bool check_var_exist(const ObString &var) const;
+
 
       const ObParamDef &get_param(int64_t index) const;
       virtual void print(FILE* fp, int32_t level, int32_t index);

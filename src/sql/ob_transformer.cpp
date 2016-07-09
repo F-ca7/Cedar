@@ -743,13 +743,19 @@ int ObTransformer::gen_physical_procedure(
 
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
       }
-      char buf[4096];
-      result_op->SpProcedure::to_string(buf, 4096);
-      ObProcedureOptimizer::optimize(*result_op);
-//      result_op->optimize();
 
-      TBSYS_LOG(INFO, "Procedure Compile: \n%s", buf);
-      TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
+      if( OB_SUCCESS != (ret = result_op->check_semantics()) )
+      {}
+      else
+      {
+        char buf[4096];
+        result_op->SpProcedure::to_string(buf, 4096);
+        ObProcedureOptimizer::optimize(*result_op);
+        //      result_op->optimize();
+
+        TBSYS_LOG(INFO, "Procedure Compile: \n%s", buf);
+        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
+      }
     }
   }
   return ret;
@@ -1513,46 +1519,57 @@ int ObTransformer::gen_physical_procedure_loop(
   //add :e
   else
   {
-      ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
-      ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
+    ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
+    ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
 
-      if( OB_SUCCESS != ret ) {}
-      else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
-                                  loop_inst->get_lowest_expr(),
-                                  this,
-                                  logical_plan,
-                                  physical_plan)))
-      {
-        TBSYS_LOG(WARN, "generate lowest value expression fail");
-      }
-      else if( OB_SUCCESS != (ret = highest_raw_expr->fill_sql_expression(
-                                loop_inst->get_highest_expr(),
-                                this,
-                                logical_plan,
-                                physical_plan)))
-      {
-        TBSYS_LOG(WARN, "generate highest value expression fail");
-      }
-      else
-      {
-        loop_inst->get_lowest_expr().set_owner_op(proc_op);
-        loop_inst->get_highest_expr().set_owner_op(proc_op);
+    if( OB_SUCCESS != ret ) {}
+    else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
+                               loop_inst->get_lowest_expr(),
+                               this,
+                               logical_plan,
+                               physical_plan)))
+    {
+      TBSYS_LOG(WARN, "generate lowest value expression fail");
+    }
+    else if( OB_SUCCESS != (ret = highest_raw_expr->fill_sql_expression(
+                              loop_inst->get_highest_expr(),
+                              this,
+                              logical_plan,
+                              physical_plan)))
+    {
+      TBSYS_LOG(WARN, "generate highest value expression fail");
+    }
+    else
+    {
+      loop_inst->get_lowest_expr().set_owner_op(proc_op);
+      loop_inst->get_highest_expr().set_owner_op(proc_op);
 
-        loop_inst->set_step_size(loop_stmt->get_step_size());
-        loop_inst->set_reverse(loop_stmt->is_reverse());
+      loop_inst->set_step_size(loop_stmt->get_step_size());
+      loop_inst->set_reverse(loop_stmt->is_reverse());
 
-        for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
+      for(int64_t i = 0; OB_SUCCESS == ret && i < loop_stmt->get_loop_body_size(); ++i)
+      {
+        uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
+
+        if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
         {
-          uint64_t stmt_id = loop_stmt->get_loop_stmt(i);
-
-          if( OB_SUCCESS != (ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, proc_op, loop_inst->get_body_block())) )
-          {
-            TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
-          }
+          TBSYS_LOG(WARN, "generate loop inst fail at %ld", i);
         }
       }
-  }
 
+      if( loop_stmt->get_loop_counter_name() != NULL )
+      {
+        //check does any inst modify the loop counter;
+        SpVariableSet write_set;
+        loop_inst->get_body_block()->get_write_variable_set(write_set);
+        if( write_set.exist(loop_stmt->get_loop_counter_name()) )
+        {
+          //some instructions try to modify the loop counter
+          ret = OB_ERR_RESOLVE_SQL;
+        }
+      }
+    }
+  }
   return ret;
 }
 //add zt 20151128:e

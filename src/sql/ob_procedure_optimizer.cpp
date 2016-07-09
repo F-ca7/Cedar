@@ -591,10 +591,17 @@ int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_li
   SpInstList then_post_inst, then_pre_inst;
   SpInstList else_post_inst, else_pre_inst;
 
-  do_split(if_inst->get_then_block()->inst_list_, then_pre_inst, then_post_inst);
-  do_split(if_inst->get_else_block()->inst_list_, else_pre_inst, else_post_inst);
+  if( if_inst->get_then_block()->inst_count() != 0 )
+  {
+    do_split(if_inst->get_then_block()->inst_list_, then_pre_inst, then_post_inst);
+  }
+  if( if_inst->get_else_block()->inst_count() != 0 )
+  {
+    do_split(if_inst->get_else_block()->inst_list_, else_pre_inst, else_post_inst);
+  }
 
-  if( then_pre_inst.count() != 0 && else_pre_inst.count() != 0 )
+  if( (if_inst->get_then_block()->inst_count() == 0 || then_pre_inst.count() != 0) &&
+      (if_inst->get_else_block()->inst_count() == 0 || else_pre_inst.count() != 0) )
   {
     SpPreGroupInsts *pre_group = if_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
     for(int64_t i = 0; i < then_pre_inst.count(); ++i)

@@ -3352,9 +3352,14 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
       {
         PARSER_LOG("Can not malloc space for loop counter name");
       }
-      else
+      else if( !proc_stmt->check_var_exist(loop_counter_name) )
       {
         loop_stmt->set_loop_count_name(loop_counter_name);
+      }
+      else
+      {
+        //variable conflict with declared ones or paramters
+        ret = OB_ENTRY_EXIST;
       }
     }
     else

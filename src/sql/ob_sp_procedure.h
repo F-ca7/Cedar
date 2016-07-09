@@ -142,6 +142,11 @@ namespace oceanbase
 
       int64_t count() const { return var_info_set_.count(); }
       const SpVarInfo & get_var_info(int64_t idx) const { return var_info_set_.at(idx); }
+
+      bool exist(const ObString &var_name) const;
+
+      void remove(int64_t idx) { var_info_set_.remove(idx); }
+
       int64_t to_string(char *buf, int64_t buf_len) const;
 
       static int conflict(const SpVariableSet &in_set, const SpVariableSet &out_set);
@@ -542,6 +547,9 @@ namespace oceanbase
       ObSqlExpression & get_lowest_expr() { return lowest_expr_; }
       ObSqlExpression & get_highest_expr() { return highest_expr_; }
 
+      int64_t get_lowest_number() const { return lowest_number_; }
+      int64_t get_highest_number() const { return highest_number_; }
+
       //add wdh 20160324 :b
       void set_lowest_expr(ObSqlExpression lowest_expr) { lowest_expr_=lowest_expr; }
       void set_highest_expr(ObSqlExpression highest_expr) { highest_expr_=highest_expr; }
@@ -550,15 +558,8 @@ namespace oceanbase
       void set_loop_var(const SpVar &var) { loop_counter_var_ = var; }
 
       void set_reverse(bool rev) { reverse_ = rev; }
+      bool get_reverse() const { return reverse_; }
       SpMultiInsts* get_body_block() { return &loop_body_; }
-
-      /**
-       * @brief add_itr_local_inst
-       * instruction used to set the temporary status of each iteration
-       * exectuted at the start of each iteration, just like increase the loop_counter_var_
-       * @param inst
-       */
-//      void add_itr_local_inst(int64_t idx) { loop_local_inst_.push_back(idx); }
 
       const SpVar & get_loop_var() const { return loop_counter_var_; }
 
@@ -576,7 +577,6 @@ namespace oceanbase
                                    ObPhysicalPlan::OperatorStore &operators_store,
                                    ObPhyOperatorFactory *op_factory);
       virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
-//      int serialize_loop_body(char *buf, int64_t buf_len, int64_t &pos, int64_t itr_begin, int64_t itr_end);
 
       int serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const;
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
@@ -585,18 +585,18 @@ namespace oceanbase
       int assign_template(const SpLoopInst *old_inst);
 
     private:
-//      static bool need_expand(SpInst *inst);
 
     private:
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
 
+      int64_t lowest_number_;
+      int64_t highest_number_;
+
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body
 
-      //executed at each iteration started
-//      ObSEArray<int64_t, 8> loop_local_inst_;
       bool reverse_;   //this variable could be elimated
     };
 
@@ -857,9 +857,7 @@ namespace oceanbase
       //only used when we build a fake procedure object
       void clear_inst_list() { inst_list_.clear(); }
       void clear_var_tab();
-
-//      void set_exec_strategy(SpInstExecStrategy *exec_strategy) { exec_strategy_ = exec_strategy; }
-//      SpInstExecStrategy * get_exec_strategy() { return exec_strategy_; }
+      void clear_variable(const SpVar &var);
 
       template<class T>
       T * create_inst(SpMultiInsts *mul_inst)

@@ -120,6 +120,8 @@ namespace oceanbase
       int set_inst_op();
 
       int end_trans(bool rollback);
+
+      int check_semantics() const;
 		private:
 			//disallow copy
 			ObProcedure(const ObProcedure &other);
@@ -127,6 +129,8 @@ namespace oceanbase
       //function members
 
       int set_inst_op(SpInst *inst);
+
+      bool is_defined(const SpVarInfo &info) const;
     private:
       ObSEArray<ObParamDef, 16> params_;
       ObSEArray<ObVariableDef, 16> defs_;
