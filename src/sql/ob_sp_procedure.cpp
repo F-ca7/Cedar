@@ -1494,7 +1494,8 @@ int SpWhileInst::assign(const SpInst *inst)
 
 CallType SpWhileInst::get_call_type() const
 {
-  return do_body_.get_call_type();
+//  return do_body_.get_call_type();
+  return S_RPC; //a trick to prevent optimize while inst
 }
 
 //add hjw 20151231:e
@@ -1815,7 +1816,8 @@ int SpExitInst::assign(const SpInst *inst)
 
 CallType SpExitInst::get_call_type() const
 {
-    return L_LPC;
+//    return L_LPC;
+  return S_RPC; //a trick to prevent optimize exit inst
 }
 //add :e
 
@@ -1985,6 +1987,8 @@ CallType SpCaseInst::get_call_type() const
   {
     ret = merge_call_type(ret, when_list_.at(i).get_call_type());
   }
+
+  if( ret != L_LPC ) ret = S_RPC; //a trick to prevent from optimizing case
   return ret;
 }
 

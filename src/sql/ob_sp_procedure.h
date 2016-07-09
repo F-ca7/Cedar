@@ -717,12 +717,14 @@ namespace oceanbase
     struct sp_inst_traits
     {
       static const bool is_sp_inst = false;
+      static const bool optimizable = false;
     };
 
     template<>
     struct sp_inst_traits<SpExprInst>
     {
       static const bool is_sp_inst = true;
+      static const bool optimizable = true;
     };
 
     template<>
@@ -735,12 +737,14 @@ namespace oceanbase
     struct sp_inst_traits<SpRwDeltaInst>
     {
       static const bool is_sp_inst = true;
+      static const bool optimizable = true;
     };
 
     template<>
     struct sp_inst_traits<SpRwDeltaIntoVarInst>
     {
       static const bool is_sp_inst = true;
+      static const bool optimizable = true;
     };
 
     template<>
@@ -765,12 +769,14 @@ namespace oceanbase
     struct sp_inst_traits<SpIfCtrlInsts>
     {
       static const bool is_sp_inst = true;
+      static const bool optimizable = true;
     };
 
     template<>
     struct sp_inst_traits<SpLoopInst>
     {
       static const bool is_sp_inst = true;
+      static const bool optimizable = true;
     };
 
     template<>
@@ -792,6 +798,9 @@ namespace oceanbase
       static const bool is_sp_inst = true;
     };
     //add :e
+
+    bool is_optimizable();
+
     typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
 
     class SpInstExecStrategy
