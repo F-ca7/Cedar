@@ -646,7 +646,9 @@ void SpPreGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
 
 void SpPreGroupInsts::get_write_variable_set(SpVariableSet &write_set) const
 {
-  inst_list_.get_write_variable_set(write_set);
+  //PreGroup executes in isolated execution context
+  UNUSED(write_set);
+//  inst_list_.get_write_variable_set(write_set);
 }
 
 int SpPreGroupInsts::add_inst(SpInst *inst)
