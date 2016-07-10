@@ -271,7 +271,7 @@ int SpUpsInstExecStrategy::execute_loop(SpLoopInst *inst)
     itr_end = itr;
     itr_inc = -1;
   }
-  for(itr = itr_begin; itr <= itr_end && OB_SUCCESS == ret; itr += itr_inc)
+  for(itr = itr_begin; itr != itr_end && OB_SUCCESS == ret; itr += itr_inc)
   {
     ++counter;
     itr_obj.set_int(itr);

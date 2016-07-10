@@ -799,7 +799,6 @@ namespace oceanbase
     };
     //add :e
 
-    bool is_optimizable();
 
     typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
 

@@ -440,7 +440,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
         itr_end = itr;
         itr_inc = -1;
       }
-      for(itr = itr_begin; itr <= itr_end && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
+      for(itr = itr_begin; itr != itr_end && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
       {
         ++counter;
         itr_var.set_int(itr);
