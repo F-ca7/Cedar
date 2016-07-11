@@ -554,6 +554,9 @@ namespace oceanbase
       void set_lowest_expr(ObSqlExpression lowest_expr) { lowest_expr_=lowest_expr; }
       void set_highest_expr(ObSqlExpression highest_expr) { highest_expr_=highest_expr; }
       //add :e
+
+      SpVariableSet & get_range_var_set() { return range_var_set_; }
+
       void set_step_size(int64_t step) { step_size_ = step; }
       void set_loop_var(const SpVar &var) { loop_counter_var_ = var; }
 
@@ -597,6 +600,7 @@ namespace oceanbase
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body
 
+      SpVariableSet range_var_set_;
       bool reverse_;   //this variable could be elimated
     };
 

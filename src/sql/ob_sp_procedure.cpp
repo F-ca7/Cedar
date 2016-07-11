@@ -1513,6 +1513,11 @@ void SpLoopInst::get_read_variable_set(SpVariableSet &read_set) const
 {
   int64_t idx = read_set.count();
   read_set.add_tmp_var(loop_counter_var_.var_name_);
+
+  //be careful of the adding order, the loop var must be added in the first.
+  //and later be removed
+  read_set.add_var_info_set(range_var_set_);
+  TBSYS_LOG(INFO, "loop var set: %s", to_cstring(range_var_set_));
   loop_body_.get_read_variable_set(read_set);
   read_set.remove(idx);
 }
@@ -1653,6 +1658,7 @@ int SpLoopInst::assign_template(const SpLoopInst *old_inst)
   highest_expr_ = old_inst->highest_expr_;
   highest_expr_.set_owner_op(proc_);
 
+  range_var_set_.add_var_info_set(old_inst->range_var_set_);
 
   step_size_ = old_inst->step_size_;
   reverse_ = old_inst->reverse_;
@@ -2835,7 +2841,8 @@ int64_t SpIfCtrlInsts::to_string(char *buf, const int64_t buf_len) const
 int64_t SpLoopInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "type [for], begin: %s, end: %s\n", to_cstring(lowest_expr_), to_cstring(highest_expr_));
+  databuff_printf(buf, buf_len, pos, "type [for], begin: %s, end: %s, ", to_cstring(lowest_expr_), to_cstring(highest_expr_));
+  databuff_printf(buf, buf_len, pos, "rs: %s\n", to_cstring(range_var_set_));
   databuff_printf(buf, buf_len, pos, "\tLoop Body\n");
 
   pos += loop_body_.to_string(buf + pos, buf_len - pos);

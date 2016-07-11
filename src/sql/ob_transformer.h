@@ -99,6 +99,8 @@ namespace oceanbase
                   SpVariableSet &var_set,
                   const ObIArray<const ObRawExpr *> & raw_expr_list
                   );
+  int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
+                  const ObSqlRawExpr *raw_expr);
 
   int gen_physical_procedure_if(
                   ObLogicalPlan *logical_plan,

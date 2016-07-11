@@ -427,6 +427,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     else if( OB_SUCCESS != lowest_value->get_int(itr_begin) || OB_SUCCESS != highest_value->get_int(itr_end) )
     {
       TBSYS_LOG(WARN, "unsupported loop range type");
+      ret = OB_NOT_SUPPORTED;
     }
     else
     {
@@ -440,8 +441,8 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
         itr_end = itr;
         itr_inc = -1;
       }
-      for(itr = itr_begin; itr != itr_end && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
-      {
+      for(itr = itr_begin; itr != (itr_end + itr_inc) && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
+      { //itr_end also need to be iterated, so loop ends when itr == itr_end + itr_inc
         ++counter;
         itr_var.set_int(itr);
         if( OB_SUCCESS != (ret = proc->write_variable(inst->get_loop_var(), itr_var )))

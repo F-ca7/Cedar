@@ -744,7 +744,8 @@ int ObTransformer::gen_physical_procedure(
         ret = gen_physical_procedure_inst(logical_plan, physical_plan, err_stat, stmt_id, result_op);
       }
 
-      if( OB_SUCCESS != (ret = result_op->check_semantics()) )
+      if( OB_SUCCESS != ret ) {}
+      else if( OB_SUCCESS != (ret = result_op->check_semantics()) )
       {}
       else
       {
@@ -829,6 +830,15 @@ int ObTransformer::gen_physical_procedure_inst(
   {
     TBSYS_LOG(WARN, "generate insturction failed, query_id %ld", query_id);
   }
+  return ret;
+}
+
+int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, const ObSqlRawExpr *raw_expr)
+{
+  int ret = OB_SUCCESS;
+  ObSEArray<const ObRawExpr *, 16> raw_expr_list;
+  raw_expr->get_raw_var(raw_expr_list);
+  ret = gen_physical_procedure_inst_var_set(var_set, raw_expr_list);
   return ret;
 }
 
@@ -1522,6 +1532,8 @@ int ObTransformer::gen_physical_procedure_loop(
     ObSqlRawExpr *lowest_raw_expr = logical_plan->get_expr(loop_stmt->get_lowest_expr_id());
     ObSqlRawExpr *highest_raw_expr = logical_plan->get_expr(loop_stmt->get_highest_expr_id());
 
+    gen_physical_procedure_inst_var_set(loop_inst->get_range_var_set(), lowest_raw_expr);
+    gen_physical_procedure_inst_var_set(loop_inst->get_range_var_set(), highest_raw_expr);
     if( OB_SUCCESS != ret ) {}
     else if( OB_SUCCESS !=  (ret = lowest_raw_expr->fill_sql_expression(
                                loop_inst->get_lowest_expr(),
