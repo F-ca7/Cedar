@@ -408,6 +408,10 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
       {
         break;
       }
+      else if( counter % 100 == 0 && inst->get_ownner()->get_phy_plan()->is_terminate(ret) )
+      {
+        break;
+      }
     }
     if(ret == OB_SP_EXIT) ret = OB_SUCCESS;
   }
@@ -428,6 +432,11 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     {
       TBSYS_LOG(WARN, "unsupported loop range type");
       ret = OB_NOT_SUPPORTED;
+    }
+    else if( check_dead_loop(itr_begin, itr_end, inst->get_reverse()) )
+    {
+      TBSYS_LOG(WARN, "detect dead loop, [%ld .. %ld, %d]", itr_begin, itr_end, inst->get_reverse() ? -1 : 1);
+      ret = OB_ERROR; //dead loop detected;
     }
     else
     {
@@ -463,24 +472,37 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   return ret;
 }
 
+bool SpMsInstExecStrategy::check_dead_loop(int64_t begin, int64_t end, bool rever) const
+{
+  if( !rever) return begin <= end;
+  else return begin >= end;
+}
+
 //add hjw 20151230:b
 int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
 {
-    int ret = OB_SUCCESS;
-    common::ObRow fake_row;
-    const ObObj *flag =NULL;
-    TBSYS_LOG(INFO, "execute while instruction");
-    while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+  int ret = OB_SUCCESS;
+  common::ObRow fake_row;
+  const ObObj *flag =NULL;
+  loop_counter_.push_back(0);
+  int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
+  while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+  {
+    TBSYS_LOG(TRACE,"while expr value: %s", to_cstring(*flag));
+    ++counter;
+    inst->get_ownner()->debug_status(inst);
+    if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
     {
-      TBSYS_LOG(INFO,"while expr value: %s", to_cstring(*flag));
-      inst->get_ownner()->debug_status(inst);
-      if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
-      {
-        TBSYS_LOG(WARN,"execute do body block failed");
-        break;
-      }
+      TBSYS_LOG(WARN,"execute do body block failed");
+      break;
     }
-    return ret;
+
+    if( counter % 100 == 0 && inst->get_ownner()->get_phy_plan()->is_terminate(ret))
+    {
+      break;
+    }
+  }
+  return ret;
 }
 //add hjw 20151230:e
 
