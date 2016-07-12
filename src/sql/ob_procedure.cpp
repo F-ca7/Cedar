@@ -445,9 +445,6 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
 
       if( inst->get_reverse() )
       {
-        itr = itr_begin;
-        itr_begin = itr_end;
-        itr_end = itr;
         itr_inc = -1;
       }
       for(itr = itr_begin; itr != (itr_end + itr_inc) && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
