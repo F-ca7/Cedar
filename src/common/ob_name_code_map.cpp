@@ -66,9 +66,19 @@ int ObNameCodeMap::put_source_code(const ObString &proc_name, const ObString &so
 
   arena_.write_string(proc_name, &name);
   arena_.write_string(sour_code, &code);
-
-  name_hash_map_.set(name, code.hash(), 0, 0, 1);
+  int64_t create_ts = tbsys::CTimeUtil::getTime();
+  name_hash_map_.set(name, create_ts, 0, 0, 1);
   return name_code_map_.set(name, code, 0, 0, 1);
+}
+
+int64_t ObNameCodeMap::get_hkey(const ObString &proc_name) const
+{
+  int64_t ret = -1;
+  if( common::hash::HASH_EXIST != name_hash_map_.get(proc_name, ret))
+  {
+    ret = -1;
+  }
+  return ret;
 }
 
 int ObNameCodeMap::del_source_code(const ObString &proc_name)

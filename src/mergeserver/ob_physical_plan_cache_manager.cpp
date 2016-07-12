@@ -136,7 +136,7 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
     }
     else
     {
-      proc_result_set.get_result_set().set_stmt_hash(proc_source_code.hash());
+      proc_result_set.get_result_set().set_stmt_hash(name_code_map_.get_hkey(proc_name));
       if ((ret = context.session_info_->store_plan(proc_name, proc_result_set.get_result_set())) != OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "Store current result failed.");

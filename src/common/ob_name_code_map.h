@@ -80,6 +80,7 @@ namespace oceanbase {
 
           const ObString * get_source_code(const ObString &proc_name);
 
+          int64_t get_hkey(const ObString &proc_name) const;
           bool is_created();
 
           bool exist(const ObString &proc_name) const;
