@@ -474,8 +474,8 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
 
 bool SpMsInstExecStrategy::check_dead_loop(int64_t begin, int64_t end, bool rever) const
 {
-  if( !rever) return begin <= end;
-  else return begin >= end;
+  if( !rever) return begin > end;
+  else return begin < end;
 }
 
 //add hjw 20151230:b
