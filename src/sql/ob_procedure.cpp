@@ -1058,6 +1058,23 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
     {
       const ObParamDef &  param = params_.at(i);
       expected_type.set_type(param.param_type_);
+      //modified by wdh 20160712
+      if( param.out_type_ == OUT_TYPE || param.out_type_ == INOUT_TYPE )
+      {
+        bool is_var_type = false;
+        //save output into default value
+        tmp.set_type(param.param_type_);
+        if( OB_SUCCESS != (param_expr.at(i).is_var_expr(is_var_type, params_.at(i).out_var_))
+            || !is_var_type )
+        {
+          TBSYS_LOG(WARN, "out parameter must be a variable, %ld,  %s", i, to_cstring(param_expr.at(i)));
+          ret = OB_ERR_UNEXPECTED;
+        }
+        else if( OB_SUCCESS != (ret = write_variable(param.param_name_, tmp)) )
+        {
+          TBSYS_LOG(WARN, "fill output variables");
+        }
+      }
 
       if( param.out_type_ ==  IN_TYPE || param.out_type_ == INOUT_TYPE )
       {
@@ -1083,22 +1100,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
         }
       }
 
-      if( param.out_type_ == OUT_TYPE || param.out_type_ == INOUT_TYPE )
-      {
-        bool is_var_type = false;
-        //save output into default value
-        tmp.set_type(param.param_type_);
-        if( OB_SUCCESS != (param_expr.at(i).is_var_expr(is_var_type, params_.at(i).out_var_))
-            || !is_var_type )
-        {
-          TBSYS_LOG(WARN, "out parameter must be a variable, %ld,  %s", i, to_cstring(param_expr.at(i)));
-          ret = OB_ERR_UNEXPECTED;
-        }
-        else if( OB_SUCCESS != (ret = write_variable(param.param_name_, tmp)) )
-        {
-          TBSYS_LOG(WARN, "fill output variables");
-        }
-      }
+
     }
   }
   return ret;
