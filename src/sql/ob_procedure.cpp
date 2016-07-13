@@ -1042,7 +1042,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 
   if( param_expr.count() != params_.count() )
   {
-    ret = OB_ERR_SP_WRONG_NO_OF_ARGS;
+    ret = OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE;
   }
   else
   {
@@ -1090,6 +1090,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
           if( OB_SUCCESS != (ret = common::obj_cast(*result, expected_type, casted_cell, result)) )
           {
             TBSYS_LOG(WARN, "fail to cast obj, orig: %s, expected type: %d", to_cstring(*result), param.param_type_);
+            ret = OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE;
           }
         }
 
@@ -1099,8 +1100,6 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
           TBSYS_LOG(WARN, "fail to set input expr");
         }
       }
-
-
     }
   }
   return ret;
