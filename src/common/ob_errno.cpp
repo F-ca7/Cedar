@@ -245,7 +245,6 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_NO_NEW_SCHEMA, "No new schema");        // no new schema when parse error
     ADD_ERROR_STR(OB_MS_SUB_REQ_TOO_MANY, "Too many scan request"); // too many sub scan request
     ADD_ERROR_STR(OB_TOO_MANY_BLOOM_FILTER_TASK, "too many bloomfilter task");
-    ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
 
     // SQL specific error code, -5000 ~ -6000
     ADD_ERROR_STR(OB_ERR_PARSER_INIT, "Failed to init SQL parser");
@@ -318,6 +317,14 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_UNKNOWN_SESSION_ID, "Unknown session ID");
     ADD_ERROR_STR(OB_ERR_PROTOCOL_NOT_RECOGNIZE, "Incorrect protocol");
     ADD_ERROR_STR(OB_ERR_WRITE_AUTH_ERROR, "Write auth packet error");
+
+    //add by zt 20160713:b
+    //error string for stored procedure
+    ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
+
+
+    //add by zt 20160713:e
+
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");
