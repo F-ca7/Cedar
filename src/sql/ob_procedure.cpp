@@ -1083,6 +1083,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
         if( OB_SUCCESS != (ret = expr.calc(tmp_row, result)) )
         {
           TBSYS_LOG(WARN, "fail to calc input expr");
+          ret = OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE;
         }
         else if( result->get_type() != param.param_type_ )
         {
