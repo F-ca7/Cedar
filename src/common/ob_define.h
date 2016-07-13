@@ -281,7 +281,7 @@ namespace oceanbase
     const int OB_NO_NEW_SCHEMA = -4009;        // no new schema when parse error
     const int OB_MS_SUB_REQ_TOO_MANY = -4010; // too many sub scan request
     const int OB_TOO_MANY_BLOOM_FILTER_TASK = -4011;
-    const int OB_PROCEDURE_DECLARE_ERROR = -4012;
+
     // SQL specific error code, -5000 ~ -6000
     const int OB_ERR_SQL_START = -5000;
     const int OB_ERR_PARSER_INIT = -5000;
@@ -360,6 +360,32 @@ namespace oceanbase
     const int OB_ERR_READ_ONLY = -5081;
 
     const int OB_ERR_SQL_END = -5999;
+
+    //add by zt 20160713:b
+    const int OB_ERR_SP_DOES_NOT_EXIST = -6001;                     //42000
+    const int OB_ERR_SP_WRONG_NO_OF_ARGS = -6002;                   //HY000
+    const int OB_ERR_TOO_MANY_ROWS = -6003;                         //42000
+    const int OB_ERR_SP_DUP_PARAM = -6004;                          //42000
+    const int OB_ERR_SP_DUP_VAR = -6005;                            //42000
+    const int OB_ERR_SP_ALREADY_EXISTS = -6007;                     //42000
+    const int OB_ERR_SP_DROP_FAILED = -6008;                        //HY000
+    const int OB_ERR_SP_STORE_FAILED = -6009;                       //HY000
+    const int OB_ERR_SP_UNINIT_VAR = -6010;                         //01000
+    const int OB_ERR_SP_BADSELECT = -6011;                          //0A000
+    const int OB_ERR_SP_BADSTATEMENT = -6012;                       //0A000
+    const int OB_ERR_SP_UNDECLARED_VAR = -6013;                     //42000
+    const int OB_ERR_SP_CASE_NOT_FOUND = -6014;                     //HY000
+    const int OB_ERR_SP_NOT_VAR_ARGS = -6015;                       //42000
+    const int OB_ERR_UNKNOWN_PROCEDURE = -6017;                     //42000
+    const int OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE = -6018;         //42000
+    const int OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE = -6019;         //HY000
+    const int OB_ERR_SP_BAD_SQLSTAT = -6020;                        //42000
+    const int OB_ERR_SP_WRONG_NAME = -6021;                         //42000
+    const int OB_PROCEDURE_DECLARE_ERROR = -6022; //the same as OB_ERR_SP_BADSTATEMENT;
+
+    //add by zt 20160713:e
+
+
 #define IS_SQL_ERR(e) ((OB_ERR_SQL_END <= e && OB_ERR_SQL_START >= e) \
                       || OB_ERR_EXCLUSIVE_LOCK_CONFLICT == e \
                       || OB_ERR_SHARED_LOCK_CONFLICT == e)
