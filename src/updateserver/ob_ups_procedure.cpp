@@ -111,23 +111,23 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
   ObPhyOperator *op = inst->get_rwdelta_op();
   const ObIArray<SpVar> &var_list_ = inst->get_var_list();
   SpProcedure *proc = inst->get_ownner();
-//  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
+  //  TBSYS_LOG(TRACE, "rw_delta_into_var inst plan: \n%s", to_cstring(*op_));
   if(NULL != op)
   {
     if( OB_SUCCESS != (ret = op->open()) )
     {
-//      TBSYS_LOG(WARN, "failed to open read_delta_into_var operator");
+      //      TBSYS_LOG(WARN, "failed to open read_delta_into_var operator");
     }
     else if( OB_SUCCESS != (ret = op->get_next_row(row)) )
     {
-//      TBSYS_LOG(WARN, "failed to get next row");
+      //      TBSYS_LOG(WARN, "failed to get next row");
     }
-//    else
-//    {
-//      TBSYS_LOG(INFO, "read row: [%s]", to_cstring(*row));
-//    }
+    //    else
+    //    {
+    //      TBSYS_LOG(INFO, "read row: [%s]", to_cstring(*row));
+    //    }
 
-  OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
+    OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
     if( ret == OB_SUCCESS )
     {
       for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
@@ -136,11 +136,11 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
         const ObObj *cell = NULL;
         if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))
         {
-//          TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
+          //          TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
         }
         else if(OB_SUCCESS !=(proc->write_variable(var, *cell)))
         {
-//          TBSYS_LOG(WARN, "write into variables fail");
+          //          TBSYS_LOG(WARN, "write into variables fail");
         }
 
       }
@@ -244,7 +244,7 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     }
     else
     {
-      ret = OB_ERR_ILLEGAL_INDEX;
+      ret = OB_ERR_UNEXPECTED;
 //      TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
     }
   }
@@ -329,7 +329,7 @@ int SpUpsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
       if( 0 == inst->get_else_block() )
       {
         TBSYS_LOG(WARN, "case-when does not hit a branch");
-        ret = OB_ERROR;
+        ret = OB_ERR_SP_CASE_NOT_FOUND;
       }
       else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
       {

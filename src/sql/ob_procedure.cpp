@@ -213,12 +213,12 @@ int SpMsInstExecStrategy::execute_rw_all(SpRwCompInst *inst)
   }
   else
   { //variable number and column number are not consistent
-    ret = OB_ERR_UNEXPECTED;
+    ret = OB_ERR_SP_WRONG_NO_OF_ARGS;
   }
 
   if( OB_SUCCESS == ret && OB_ITER_END != op->get_next_row(row) )
   { //more rows reterived
-    ret = OB_ERR_UNEXPECTED;
+    ret = OB_ERR_TOO_MANY_ROWS;
   }
 
   if( OB_SUCCESS != (err = op->close()))
@@ -436,7 +436,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
     else if( check_dead_loop(itr_begin, itr_end, inst->get_reverse()) )
     {
       TBSYS_LOG(WARN, "detect dead loop, [%ld .. %ld, %d]", itr_begin, itr_end, inst->get_reverse() ? -1 : 1);
-      ret = OB_ERROR; //dead loop detected;
+      ret = OB_ERR_SP_BAD_SQLSTAT; //dead loop detected;
     }
     else
     {
@@ -598,7 +598,7 @@ int SpMsInstExecStrategy::execute_casewhen(SpCaseInst *inst)
       if( inst->get_else_block()->inst_count() == 0 )
       {
         TBSYS_LOG(WARN, "case-when does not hit a branch");
-        ret = OB_ERROR; //if not case hit, return an error
+        ret = OB_ERR_SP_CASE_NOT_FOUND; //if not case hit, return an error
       }
       else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
       {
@@ -623,7 +623,7 @@ int SpMsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     }
     else
     {
-      ret = OB_ERR_ILLEGAL_INDEX;
+      ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
     }
   }
@@ -690,7 +690,7 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
   ObPhysicalPlan *out_plan = inst->get_ownner()->get_phy_plan();
   if( NULL == out_plan )
   {
-    ret = OB_ERROR;
+    ret = OB_ERR_UNEXPECTED;
     TBSYS_LOG(WARN, "procedure does not have physical plan");
   }
   else
@@ -1042,7 +1042,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 
   if( param_expr.count() != params_.count() )
   {
-    ret = OB_INPUT_PARAM_ERROR;
+    ret = OB_ERR_SP_WRONG_NO_OF_ARGS;
   }
   else
   {
@@ -1068,7 +1068,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
             || !is_var_type )
         {
           TBSYS_LOG(WARN, "out parameter must be a variable, %ld,  %s", i, to_cstring(param_expr.at(i)));
-          ret = OB_ERR_UNEXPECTED;
+          ret = OB_ERR_SP_NOT_VAR_ARGS;
         }
         else if( OB_SUCCESS != (ret = write_variable(param.param_name_, tmp)) )
         {
@@ -1593,7 +1593,7 @@ int ObProcedure::check_semantics() const
         TBSYS_LOG(WARN, "variable %s used in %s does not define",
                   to_cstring(var_set.get_var_info(j)),
                   to_cstring(*(inst_list_.at(i))));
-        ret = OB_ERR_VARIABLE_UNKNOWN;
+        ret = OB_ERR_SP_UNDECLARED_VAR;
       }
     }
   }
