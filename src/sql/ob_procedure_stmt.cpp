@@ -50,6 +50,10 @@ namespace oceanbase
       }
       return ret;
     }
+    void ObProcedureStmt::delete_var()//add by wdh 20160714
+    {
+        declare_variable_.pop_back();
+    }
 
     int ObProcedureStmt::add_declare_var(const ObString &var)
     {
