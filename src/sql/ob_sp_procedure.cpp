@@ -1533,13 +1533,12 @@ void SpLoopInst::get_write_variable_set(SpVariableSet &write_set) const
 int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, ModuleArena &allocator, ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory)
 {
   int ret = OB_SUCCESS;
-  if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &lowest_number_)) )
+
+  if( OB_SUCCESS != (ret = lowest_expr_.deserialize(buf, data_len, pos)))
   {
-//    TBSYS_LOG(WARN, "deserialize lowest number failed");
   }
-  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, pos, &highest_number_)))
+  else if( OB_SUCCESS != (ret = highest_expr_.deserialize(buf, data_len, pos)))
   {
-//    TBSYS_LOG(WARN, "deserialize highest number failed");
   }
   else if( OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &reverse_)))
   {
@@ -1551,6 +1550,11 @@ int SpLoopInst::deserialize_inst(const char *buf, int64_t data_len, int64_t &pos
   else if( OB_SUCCESS != (ret = loop_body_.deserialize_inst(buf, data_len, pos, allocator, operators_store, op_factory)))
   {
     TBSYS_LOG(WARN, "failed to deserialize loop_body");
+  }
+  else
+  {
+    lowest_expr_.set_owner_op(proc_);
+    highest_expr_.set_owner_op(proc_);
   }
   return ret;
 }
@@ -1567,37 +1571,13 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
 {
   int ret = OB_SUCCESS;
 
-  ObRow fake_row;
-  int64_t itr = 0, itr_end = 0;
-  const ObObj *lowest_obj = NULL, *highest_obj = NULL;
-
-  if( OB_SUCCESS != (ret = const_cast<ObSqlExpression&>(lowest_expr_).calc(fake_row, lowest_obj)))
+  if( OB_SUCCESS != (ret = lowest_expr_.serialize(buf, buf_len, pos)) )
   {
-    ret = OB_ERR_ILLEGAL_VALUE;
-    TBSYS_LOG(WARN,"calculated lowest expr failed");
+    TBSYS_LOG(WARN, "serialize lowest expr_ failed");
   }
-  else if( OB_SUCCESS != (ret = lowest_obj->get_int(itr)))
+  else if( OB_SUCCESS != (ret = highest_expr_.serialize(buf, buf_len, pos)))
   {
-    ret = OB_ERR_ILLEGAL_VALUE;
-    TBSYS_LOG(WARN, "lowest expr does not have int type, %s", to_cstring(*lowest_obj));
-  }
-  else if( OB_SUCCESS != (ret = const_cast<ObSqlExpression&>(highest_expr_).calc(fake_row, highest_obj)))
-  {
-    ret = OB_ERR_ILLEGAL_VALUE;
-    TBSYS_LOG(WARN, "calculated highest expr failed");
-  }
-  else if( OB_SUCCESS != (ret = highest_obj->get_int(itr_end)))
-  {
-    ret = OB_ERR_ILLEGAL_VALUE;
-    TBSYS_LOG(WARN, "highest expr does not have int type: %s", to_cstring(*highest_obj));
-  }
-  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, itr)) )
-  {
-    TBSYS_LOG(WARN, "serialize lowest_number failed");
-  }
-  else if( OB_SUCCESS != (ret = serialization::encode_i64(buf, buf_len, pos, itr_end)))
-  {
-    TBSYS_LOG(WARN, "serialize highest_number failed");
+    TBSYS_LOG(WARN, "serialize highest expr_ failed");
   }
   else if( OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, reverse_)))
   {
@@ -1613,17 +1593,6 @@ int SpLoopInst::serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const
   }
   return ret;
 }
-
-//int SpLoopInst::serialize_loop_template(char *buf, int64_t buf_len, int64_t &pos) const
-//{
-//  int ret = OB_SUCCESS;
-
-//  if( OB_SUCCESS != (ret = loop_body_.serialize_inst(buf, buf_len, pos)) )
-//  {
-//    TBSYS_LOG(WARN, "serialize loop body template failed");
-//  }
-//  return ret;
-//}
 
 
 int SpLoopInst::assign(const SpInst *inst)
@@ -1687,6 +1656,12 @@ void SpLoopInst::set_in_group_exec()
 CallType SpLoopInst::get_call_type() const
 {
   return loop_body_.get_call_type();
+}
+
+bool SpLoopInst::check_dead_loop(int64_t begin, int64_t end, bool rever)
+{
+  if( !rever) return begin > end;
+  else return begin < end;
 }
 
 bool SpLoopInst::is_simple_loop() const

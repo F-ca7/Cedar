@@ -46,7 +46,6 @@ namespace oceanbase
 
       int execute_pre_group(SpPreGroupInsts *inst);
 
-      bool check_dead_loop(int64_t begin, int64_t end, bool rever) const;
       bool check_stop() const { return false; }
 
     private:

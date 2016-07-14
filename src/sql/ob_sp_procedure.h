@@ -547,9 +547,6 @@ namespace oceanbase
       ObSqlExpression & get_lowest_expr() { return lowest_expr_; }
       ObSqlExpression & get_highest_expr() { return highest_expr_; }
 
-      int64_t get_lowest_number() const { return lowest_number_; }
-      int64_t get_highest_number() const { return highest_number_; }
-
       //add wdh 20160324 :b
       void set_lowest_expr(ObSqlExpression lowest_expr) { lowest_expr_=lowest_expr; }
       void set_highest_expr(ObSqlExpression highest_expr) { highest_expr_=highest_expr; }
@@ -569,6 +566,7 @@ namespace oceanbase
       int optimize(SpInstList &exec_list);
 
       bool is_simple_loop() const;
+      static bool check_dead_loop(int64_t begin, int64_t end, bool rever);
       void set_in_group_exec();
 
       CallType get_call_type() const;
@@ -593,9 +591,6 @@ namespace oceanbase
       SpVar loop_counter_var_;       //loop counter var
       ObSqlExpression lowest_expr_;  //lowest value
       ObSqlExpression highest_expr_; //highest value
-
-      int64_t lowest_number_;
-      int64_t highest_number_;
 
       int64_t step_size_;						 //step size
       SpMultiInsts loop_body_;       //loop body

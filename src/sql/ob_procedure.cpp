@@ -413,6 +413,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
         break;
       }
     }
+    loop_counter_.pop_back();
     if(ret == OB_SP_EXIT) ret = OB_SUCCESS;
   }
   //add :e
@@ -433,7 +434,7 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
       TBSYS_LOG(WARN, "unsupported loop range type");
       ret = OB_NOT_SUPPORTED;
     }
-    else if( check_dead_loop(itr_begin, itr_end, inst->get_reverse()) )
+    else if( SpLoopInst::check_dead_loop(itr_begin, itr_end, inst->get_reverse()) )
     {
       TBSYS_LOG(WARN, "detect dead loop, [%ld .. %ld, %d]", itr_begin, itr_end, inst->get_reverse() ? -1 : 1);
       ret = OB_ERR_SP_BAD_SQLSTAT; //dead loop detected;
@@ -469,11 +470,6 @@ int SpMsInstExecStrategy::execute_loop(SpLoopInst *inst)
   return ret;
 }
 
-bool SpMsInstExecStrategy::check_dead_loop(int64_t begin, int64_t end, bool rever) const
-{
-  if( !rever) return begin > end;
-  else return begin < end;
-}
 
 //add hjw 20151230:b
 int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
@@ -499,6 +495,7 @@ int SpMsInstExecStrategy::execute_while(SpWhileInst *inst)
       break;
     }
   }
+  loop_counter_.pop_back();
   return ret;
 }
 //add hjw 20151230:e

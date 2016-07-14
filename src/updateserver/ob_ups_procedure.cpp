@@ -254,38 +254,54 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
 int SpUpsInstExecStrategy::execute_loop(SpLoopInst *inst)
 {
   int ret = OB_SUCCESS;
-
-  ObObj itr_obj;
-  int64_t itr = 0, itr_inc = 1;
-  int64_t itr_begin = inst->get_lowest_number();
-  int64_t itr_end = inst->get_highest_number();
+  SpProcedure *proc = inst->get_ownner();
+  const ObObj *lowest_value, *highest_value;
+  ObObj itr_var;
+  common::ObRow &fake_row = curr_row_;
+  int64_t itr = 0, itr_inc = 1, itr_begin, itr_end;
   const SpVar &loop_var = inst->get_loop_var();
 
-  loop_counter_.push_back(0);
-  int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
-
-  if( inst->get_reverse() )
+  if( OB_SUCCESS!= (ret = inst->get_highest_expr().calc(fake_row, highest_value)) ||
+           OB_SUCCESS != (ret = inst->get_lowest_expr().calc(fake_row, lowest_value)))
   {
-    itr_inc = -1;
+    TBSYS_LOG(WARN, "range values calculate failed");
   }
-  for(itr = itr_begin; itr != (itr_end + itr_inc) && OB_SUCCESS == ret; itr += itr_inc)
+  else if( OB_SUCCESS != lowest_value->get_int(itr_begin) || OB_SUCCESS != highest_value->get_int(itr_end) )
   {
-    ++counter;
-    itr_obj.set_int(itr);
-    if( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(loop_var, itr_obj)) )
-    {
-//      TBSYS_LOG(WARN, "update loop counter var failed");
-    }
-    if( OB_SUCCESS != ret ) {}
-    else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
-    {
-//      TBSYS_LOG(WARN, "failed to execute loop body");
-    }
+    TBSYS_LOG(WARN, "unsupported loop range type");
+    ret = OB_NOT_SUPPORTED;
   }
+  else if( SpLoopInst::check_dead_loop(itr_begin, itr_end, inst->get_reverse()) )
+  {
+    TBSYS_LOG(WARN, "detect dead loop, [%ld .. %ld, %d]", itr_begin, itr_end, inst->get_reverse() ? -1 : 1);
+    ret = OB_ERR_SP_BAD_SQLSTAT; //dead loop detected;
+  }
+  else
+  {
+    loop_counter_.push_back(0);
+    int64_t &counter = loop_counter_.at(loop_counter_.count() - 1);
 
-  //try to clear local variables
-  inst->get_ownner()->clear_variable(loop_var);
-  loop_counter_.pop_back();
+    if( inst->get_reverse() )
+    {
+      itr_inc = -1;
+    }
+    for(itr = itr_begin; itr != (itr_end + itr_inc) && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
+    { //itr_end also need to be iterated, so loop ends when itr == itr_end + itr_inc
+      ++counter;
+      itr_var.set_int(itr);
+      if( OB_SUCCESS != (ret = proc->write_variable(inst->get_loop_var(), itr_var )))
+      {
+        TBSYS_LOG(WARN, "update iterate variable fail");
+      }
+      else if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())) )
+      {
+        TBSYS_LOG(WARN, "execute loop body fail");
+      }
+    }
+    //try to clear local variables
+    inst->get_ownner()->clear_variable(loop_var);
+    loop_counter_.pop_back();
+  }
   return ret;
 }
 
