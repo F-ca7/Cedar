@@ -1522,7 +1522,7 @@ int ObTransformer::gen_physical_procedure_loop(
         //add by wdh 20160707 :b
         if(!loop_inst->get_body_block()->check_exit())
         {
-            ret = OB_ERR_PARSE_SQL;
+            ret = OB_ERR_SP_BADSTATEMENT;
         }
         //add :e
   }
@@ -1577,7 +1577,7 @@ int ObTransformer::gen_physical_procedure_loop(
         if( write_set.exist(loop_stmt->get_loop_counter_name()) )
         {
           //some instructions try to modify the loop counter
-          ret = OB_ERR_RESOLVE_SQL;
+          ret = OB_ERR_SP_DUP_VAR;
         }
       }
     }

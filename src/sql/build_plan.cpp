@@ -2949,35 +2949,35 @@ int resolve_procedure_assign_stmt(
         ret = OB_NOT_SUPPORTED;
       }
 
-      bool find = false;
-      //does the variable existence check make sense here?
-      //the variable used in the expr is not checked
-      for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
+      if(ret == OB_SUCCESS)
       {
-        const ObString &declare_var=ps_stmt->get_declare_var(j);
-        if( var_name.compare(declare_var) == 0 ) //check existence
-        {
-          find = true;
-          break;
-        }
-      }
-
-      for (int64_t j = 0;  !find && j < ps_stmt->get_param_size(); j++)
-      {
-        const ObParamDef& def=ps_stmt->get_param(j);
-//        ObString param_var = def.param_name_;
-        if( var_name.compare(def.param_name_)==0 )
-        {
-          find = true;
-          break;
-        }
-      }
-
-      if( !find ) //error means the variable is not defined in variables or paramters
-      {
-        ret=-5044;
-        TBSYS_LOG(USER_ERROR, "Variable %.*s does not declare", var_name.length(), var_name.ptr());
-        break;
+          bool find = false;
+          //does the variable existence check make sense here?
+          //the variable used in the expr is not checked
+          for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
+          {
+            const ObString &declare_var=ps_stmt->get_declare_var(j);
+            if( var_name.compare(declare_var) == 0 ) //check existence
+            {
+              find = true;
+              break;
+            }
+          }
+          for (int64_t j = 0;  !find && j < ps_stmt->get_param_size(); j++)
+          {
+            const ObParamDef& def=ps_stmt->get_param(j);
+            if( var_name.compare(def.param_name_)==0 )
+            {
+              find = true;
+              break;
+            }
+          }
+          if( !find ) //error means the variable is not defined in variables or paramters
+          {
+            ret=OB_ERR_SP_UNDECLARED_VAR;
+            TBSYS_LOG(ERROR, "Variable %.*s does not declare", var_name.length(), var_name.ptr());
+            break;
+          }
       }
     }
   }
@@ -3138,7 +3138,7 @@ int resolve_procedure_casewhen_stmt(
   else
   {
     TBSYS_LOG(WARN, "case-when resolve err, then block should not be empty");
-    ret = OB_ERR_RESOLVE_SQL;
+    ret = OB_ERR_SP_BADSTATEMENT;
   }
   return ret;
 }
@@ -3164,7 +3164,8 @@ int resolve_procedure_if_stmt(
   {
     /* resolve if then block */
     uint64_t expr_id;
-    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    // modified by wdh 20160708
+    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "resolve_procedure_if_stmt resolve_independ_expr error");
     }
@@ -3181,7 +3182,7 @@ int resolve_procedure_if_stmt(
         if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
           TBSYS_LOG(WARN, "does not support stmt type[%d] in elseif", vector_node->children_[i]->type_);
-          ret = OB_ERR_PARSE_SQL;
+          ret = OB_ERR_SP_BADSTATEMENT;
         }
         if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
         {
@@ -3197,7 +3198,7 @@ int resolve_procedure_if_stmt(
     else
     {
       TBSYS_LOG(WARN, "then block does not contain any statement");
-      ret = OB_ERR_RESOLVE_SQL;
+      ret = OB_ERR_SP_BADSTATEMENT;
     }
   }
 
@@ -3281,7 +3282,8 @@ int resolve_procedure_elseif_stmt(
   else
   {
     uint64_t expr_id;
-    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_NONE_LIMIT))!= OB_SUCCESS)
+    // modified by wdh 20160708
+    if ((ret = resolve_independ_expr(result_plan,(ObStmt*)stmt,node->children_[0],expr_id,T_VARIABLE_VALUE_LIMIT))!= OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
     }
@@ -3316,7 +3318,7 @@ int resolve_procedure_elseif_stmt(
     }
     else
     {
-      ret = OB_ERR_RESOLVE_SQL;
+      ret = OB_ERR_SP_BADSTATEMENT;
     }
   }
   return ret;
@@ -3359,7 +3361,7 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
       else
       {
         //variable conflict with declared ones or paramters
-        ret = OB_ENTRY_EXIST;
+        ret = OB_ERR_SP_DUP_VAR;
       }
     }
     else
@@ -3499,7 +3501,7 @@ int resolve_procedure_while_stmt(
     else
     {
       TBSYS_LOG(WARN, "while block must contain some statement");
-      ret = OB_ERR_RESOLVE_SQL;
+      ret = OB_ERR_SP_BADSTATEMENT;
     }
   }
   return ret;
@@ -3588,7 +3590,7 @@ int resolve_procedure_else_stmt(
   else
   {
     TBSYS_LOG(WARN, "else block does not contain any statement");
-    ret = OB_ERR_RESOLVE_SQL;
+    ret = OB_ERR_SP_BADSTATEMENT;
   }
   return ret;
 }
@@ -4124,7 +4126,7 @@ int resolve_procedure_proc_block_stmt(
       TBSYS_LOG(DEBUG, "type = T_PROCEDURE_DECLARE");
       if(stmt->get_flag()==false)
       {
-          ret = OB_PROCEDURE_DECLARE_ERROR;
+          ret = OB_ERR_SP_BADSTATEMENT;
       }
       else
       {

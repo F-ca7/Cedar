@@ -270,8 +270,8 @@ int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlConte
   TBSYS_LOG(TRACE, "compile procedure[%.*s]", proc_name.length(), proc_name.ptr());
   if( !name_code_map_.exist(proc_name))
   {
-    ret = OB_ENTRY_NOT_EXIST;
-    TBSYS_LOG(WARN, "procedure %*.s does not exist", proc_name.length(), proc_name.ptr());
+    ret = OB_ERR_SP_DOES_NOT_EXIST;
+    TBSYS_LOG(WARN, "procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
   }
   else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id)) )
   {

@@ -327,6 +327,13 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_SP_CASE_NOT_FOUND, "Case no found for CASE statement");
     ADD_ERROR_STR(OB_ERR_SP_WRONG_NO_OF_ARGS, "Incorrect number of arguments");
     ADD_ERROR_STR(OB_ERR_SP_NOT_VAR_ARGS, "OUT or INOUT argument is not a variable");
+    ADD_ERROR_STR(OB_ERR_SP_DOES_NOT_EXIST, "Procedure does not exist");
+    ADD_ERROR_STR(OB_ERR_SP_BADSTATEMENT, "Bad statement is not allowed in stored procedures");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE, "Incorrect parameter count to procedure");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_PARAM, "Duplicate parameter");
+    ADD_ERROR_STR(OB_ERR_SP_UNDECLARED_VAR, "Undeclared variable");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_VAR, "Duplicate variable");
+
     //add by zt 20160713:e
 
 
