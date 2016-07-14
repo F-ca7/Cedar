@@ -3356,6 +3356,7 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
       }
       else if( !proc_stmt->check_var_exist(loop_counter_name) )
       {
+        proc_stmt->add_declare_var(loop_counter_name);//add by wdh 20160714
         loop_stmt->set_loop_count_name(loop_counter_name);
       }
       else
@@ -3436,6 +3437,10 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
           TBSYS_LOG(WARN, "loop body add stmt fail at [%d]", i);
         }
       }
+    }
+    if(ret == OB_SUCCESS)
+    {
+        proc_stmt->delete_var();//add by wdh 20160714
     }
   }
   return ret;

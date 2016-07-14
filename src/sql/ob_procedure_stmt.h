@@ -47,6 +47,7 @@ namespace oceanbase {
       int add_declare_var(const ObString &var);/*添加一个变量*/
 
       //add by wdh 20160705 :b
+      void delete_var();
       int set_flag(const bool &flag);
       bool get_flag() const;
       //add :e
