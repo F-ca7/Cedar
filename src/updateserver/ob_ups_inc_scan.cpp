@@ -428,7 +428,7 @@ namespace oceanbase
           }
           else
           {
-            int64_t cell_num = row->get_column_num();
+            int64_t cell_num = cons_get_param_with_rowkey_ ? rowkey->length() : row->get_column_num();
             for (int64_t i = 0; i < cell_num; ++i)
             {
               if (OB_SUCCESS != (ret = row->raw_get_cell(i, cell, tid, cid)))
@@ -482,6 +482,10 @@ namespace oceanbase
         else if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, (int32_t*)&scan_type_)))
         {
           TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+        }
+        else if (OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &cons_get_param_with_rowkey_)))
+        {
+          TBSYS_LOG(ERROR, "deser cons rowkey");
         }
         else if (ST_MGET == scan_type_)
         {

@@ -506,14 +506,13 @@ int SpMsInstExecStrategy::execute_exit(SpExitInst *inst)
     int ret = OB_SUCCESS;
     common::ObRow fake_row;
     const ObObj *flag =NULL;
-    TBSYS_LOG(INFO, "execute exit instruction");
     if(inst->check_when())
     {
         ret =OB_SP_EXIT;
     }
     else if(OB_SUCCESS == (ret = inst->get_when_expr().calc(fake_row, flag)) && flag->is_true())
     {
-        TBSYS_LOG(INFO,"exit when expr value: %s", to_cstring(*flag));
+        TBSYS_LOG(TRACE,"exit when expr value: %s", to_cstring(*flag));
         ret = OB_SP_EXIT;
     }
     return ret;
@@ -742,6 +741,7 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
       }
       else
       {
+        ret = result.get_error_code();
         int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
         OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_COUNT);
         OB_STAT_INC(MERGESERVER, SQL_PROC_UPS_EXECUTE_TIME, elapsed_us);

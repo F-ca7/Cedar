@@ -200,6 +200,10 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
       }
+      else if(OB_SUCCESS != (err = serialization::encode_bool(buf, buf_len, new_pos, cons_get_param_with_rowkey_)))
+      {
+        TBSYS_LOG(WARN, "serliaze rowkey cons");
+      }
       else if (ST_MGET == scan_type_)
       {
         if (OB_UNLIKELY(common::OB_INVALID_ID == values_subquery_id_))

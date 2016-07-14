@@ -88,7 +88,7 @@ int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
   int64_t start_ts = tbsys::CTimeUtil::getTime();
   if( OB_SUCCESS != (ret = inst->get_rwdelta_op()->open()) )
   {
-//    TBSYS_LOG(WARN, "execute rw_delta_inst on ups");
+    TBSYS_LOG(WARN, "execute rw_delta_inst on ups");
   }
 
   if ( OB_SUCCESS != (err = inst->get_rwdelta_op()->close() ))
@@ -167,7 +167,7 @@ int SpUpsInstExecStrategy::execute_block(SpGroupInsts* inst)
 //    TBSYS_LOG(TRACE, "execute inst[%ld]", i);
     if( OB_SUCCESS != (ret = execute_inst(inst_list_.at(i))) )
     {
-//      TBSYS_LOG(WARN, "execute instruction fail idx[%ld]", i);
+      TBSYS_LOG(WARN, "execute instruction fail idx[%ld]", i);
     }
   }
   return ret;

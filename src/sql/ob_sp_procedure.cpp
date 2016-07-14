@@ -1517,7 +1517,6 @@ void SpLoopInst::get_read_variable_set(SpVariableSet &read_set) const
   //be careful of the adding order, the loop var must be added in the first.
   //and later be removed
   read_set.add_var_info_set(range_var_set_);
-  TBSYS_LOG(INFO, "loop var set: %s", to_cstring(range_var_set_));
   loop_body_.get_read_variable_set(read_set);
   read_set.remove(idx);
 }
