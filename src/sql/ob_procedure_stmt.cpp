@@ -40,7 +40,7 @@ namespace oceanbase
         if( 0 == params_.at(i).param_name_.compare(proc_param.param_name_) )
         {
           TBSYS_LOG(WARN, "%.*s conflict with other paramters", proc_param.param_name_.length(), proc_param.param_name_.ptr());
-          ret = -17;
+          ret = OB_ERR_SP_DUP_PARAM;
           break;
         }
       }
@@ -59,7 +59,7 @@ namespace oceanbase
         if( 0 == declare_variable_.at(i).compare(var) )
         {
           TBSYS_LOG(WARN, "%.*s conflict with other variables", var.length(), var.ptr());
-          ret = -17;
+          ret = OB_ERR_SP_DUP_VAR;
           break;
         }
       }
@@ -68,7 +68,7 @@ namespace oceanbase
         if( 0 == params_.at(i).param_name_.compare(var) )
         {
           TBSYS_LOG(WARN, "%.*s conflict with parameters", var.length(), var.ptr());
-          ret = -17;
+          ret = OB_ERR_SP_DUP_VAR;
           break;
         }
       }

@@ -1042,7 +1042,7 @@ int ObProcedure::fill_parameters(ObIArray<ObSqlExpression> &param_expr)
 
   if( param_expr.count() != params_.count() )
   {
-    ret = OB_INPUT_PARAM_ERROR;
+    ret = OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE;
   }
   else
   {
@@ -1593,7 +1593,7 @@ int ObProcedure::check_semantics() const
         TBSYS_LOG(WARN, "variable %s used in %s does not define",
                   to_cstring(var_set.get_var_info(j)),
                   to_cstring(*(inst_list_.at(i))));
-        ret = OB_ERR_VARIABLE_UNKNOWN;
+        ret = OB_ERR_SP_UNDECLARED_VAR;
       }
     }
   }

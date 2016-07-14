@@ -320,8 +320,12 @@ static struct ObStrErrorInit
 
     //add by zt 20160713:b
     //error string for stored procedure
-    ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
-
+    ADD_ERROR_STR(OB_ERR_SP_DOES_NOT_EXIST, "Procedure does not exist");
+    ADD_ERROR_STR(OB_ERR_SP_BADSTATEMENT, "Bad statement is not allowed in stored procedures");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE, "Incorrect parameter count to procedure");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_PARAM, "Duplicate parameter");
+    ADD_ERROR_STR(OB_ERR_SP_UNDECLARED_VAR, "Undeclared variable");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_VAR, "Duplicate variable");
 
     //add by zt 20160713:e
 
