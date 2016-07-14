@@ -555,6 +555,7 @@ int ObProcedureOptimizer::loop_split(SpLoopInst *loop_inst, SpInstList &inst_lis
 
   if( pre_inst.count() != 0 )
   {
+    SpPreGroupInsts *pre_loop =loop_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
     SpLoopInst *new_loop = loop_inst->get_ownner()->create_inst<SpLoopInst>(NULL);
 
     new_loop->assign_template(loop_inst);
@@ -563,7 +564,8 @@ int ObProcedureOptimizer::loop_split(SpLoopInst *loop_inst, SpInstList &inst_lis
     {
       new_loop->get_body_block()->add_inst(pre_inst.at(i));
     }
-    inst_list.push_back(new_loop);
+    pre_loop->add_inst(new_loop);
+    inst_list.push_back(pre_loop);
   }
 
   loop_inst->get_body_block()->inst_list_.clear();
