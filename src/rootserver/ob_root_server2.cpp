@@ -4702,7 +4702,7 @@ int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString p
   }
   else if(exist)
   {
-      ret = OB_ENTRY_EXIST;
+      ret = OB_ERR_SP_ALREADY_EXISTS;
       TBSYS_LOG(WARN, "check procedure already exist:proc_name[%s]", proc_name.ptr());
   }
   // inner procedure operation
@@ -4778,7 +4778,7 @@ int ObRootServer2::drop_procedure(const bool if_exists, const ObString & proc_na
   // inner schema table operation
   else if(!exist)
   {
-      ret = OB_ENTRY_NOT_EXIST;
+      ret = OB_ERR_SP_DOES_NOT_EXIST;
       TBSYS_LOG(WARN, "check procedure not exist:proc_name[%.*s]", proc_name.length(), proc_name.ptr());
   }
   else if (exist)

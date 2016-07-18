@@ -559,7 +559,7 @@ int ObRootDDLOperator::create_procedure(const common::ObString & proc_name, cons
   // insert procedure to table __all_procedure
   if (true != insert_procedure_table(proc_name, proc_sourcr_code))
   {
-    ret = OB_ERROR;
+    ret = OB_ERR_SP_STORE_FAILED;
     TBSYS_LOG(ERROR, "update __all_procedure failed: proc_name[%s]", proc_name.ptr());
   }
   else
@@ -583,7 +583,7 @@ int ObRootDDLOperator::drop_procedure(const common::ObString & proc_name)
   {
     if (delete_procedure(proc_name) != true)
     {
-      ret = OB_ERROR;
+      ret = OB_ERR_SP_DROP_FAILED;
       TBSYS_LOG(WARN, "delete procedure from failed:proc_name[%.*s], ret[%d]",
           proc_name.length(), proc_name.ptr(), ret);
     }
