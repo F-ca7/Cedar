@@ -263,6 +263,10 @@ int SpMsInstExecStrategy::execute_rd_delta(SpRwDeltaIntoVarInst *inst)
   }
   else if( OB_SUCCESS != (ret = (((ObUpsExecutor *)op)->get_next_row_for_sp(row, fake_desc)))) //properly we need to check only one row is got
   {
+    if( OB_ITER_END == ret )
+    {
+      ret = OB_SUCCESS;
+    }
     TBSYS_LOG(WARN, "get next_row fail, %d", ret);
   }
   else
