@@ -151,7 +151,7 @@ do \
 %token OFFSET ON OR ORDER OPTION OUTER
 %token PARAMETERS PASSWORD PRECISION PREPARE PRIMARY
 %token READ_STATIC REAL RENAME REPLACE RESTRICT PRIVILEGES REVOKE RIGHT
-       ROLLBACK KILL READ_CONSISTENCY
+       ROLLBACK KILL READ_CONSISTENCY NO_GROUP//add by wdh 20160716
 %token SCHEMA SCOPE SELECT SESSION SESSION_ALIAS
        SET SHOW SMALLINT SNAPSHOT SPFILE START STATIC SYSTEM STRONG SET_MASTER_CLUSTER SET_SLAVE_CLUSTER SLAVE
 %token TABLE TABLES THEN TIME TIMESTAMP TINYINT TRAILING TRANSACTION TO
@@ -1906,6 +1906,10 @@ hint_option:
   | '(' opt_comma_list ')'
     {
       $$ = $2;
+    }
+  | NO_GROUP //add by wdh 20160716
+    {
+        malloc_terminal_node($$, result->malloc_pool_, T_NO_GROUP);
     }
   ;
 
@@ -3741,19 +3745,19 @@ stmt_exit		:	EXIT ';'
  *	execute  procedure  grammar
  *
  *****************************************************************************/
-exec_procedure_stmt	:	CALL NAME '(' expr_list ')'
+exec_procedure_stmt	:	CALL NAME '(' expr_list ')' opt_hint //add by wdh20160716
 						{
         					ParseNode *param_list = NULL;
             				merge_nodes(param_list, result->malloc_pool_, T_EXPR_LIST, $4);
         					
-							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, param_list);
+                            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 3, $2, param_list, $6);
 						}
 					|
-						CALL NAME '(' ')'
+                        CALL NAME '(' ')' opt_hint
 						{
 							ParseNode *params = NULL;
-							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, params);
-						}
+                            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 3, $2, params, $5);
+                        }
 					;
 
 

@@ -255,7 +255,8 @@
      USE_BLOOM_FILTER = 471,
      VARIABLES = 472,
      VERBOSE = 473,
-     WARNINGS = 474
+     WARNINGS = 474,
+       NO_GROUP = 475
    };
 #endif
 

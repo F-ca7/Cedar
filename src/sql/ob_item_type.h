@@ -252,7 +252,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
-
+  T_NO_GROUP,//add by wdh 20160716
   T_KILL,
 
   T_MAX,

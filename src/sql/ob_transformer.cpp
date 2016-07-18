@@ -1046,8 +1046,13 @@ int ObTransformer::gen_physical_procedure_execute(
     {
       TBSYS_LOG(WARN, "result_op set proc_name error");
     }
+    else if(OB_SUCCESS != (ret = result_op->set_no_group(stmt->get_no_group())))
+    {
+         TBSYS_LOG(WARN, "result_op set hint error");
+    }
     else
     {
+      TBSYS_LOG(DEBUG, "www: no_group is %d", result_op->get_no_group());//add by wdh 20160718
       ObSQLSessionInfo *session_info = NULL;
       if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
       {
@@ -1056,67 +1061,6 @@ int ObTransformer::gen_physical_procedure_execute(
       }
       else
       {
-        /** plan query
-<<<<<<< HEAD
-          //modified by wangdonghui 20160302 [pl manage] :b
-          ObSQLResultSet *sql_result_set = NULL;
-          ObResultSet *result_set = NULL;
-          int hash_ret;
-          if( hash::HASH_EXIST != (hash_ret = (sql_context_->merge_service_->
-                             get_merge_server()->get_procedure_manager().get_procedure(proc_name, sql_result_set)
-                             )))
-          {
-
-              TBSYS_LOG(WARN, "failed to get cached result_set[%.*s], ret=%d", proc_name.length(), proc_name.ptr(), hash_ret);
-              ret = OB_ERROR;
-          }
-          else
-          {
-            TBSYS_LOG(INFO, "get procedure cache \n%s", to_cstring(*(sql_result_set->get_result_set().get_physical_plan())));
-            result_set = &(sql_result_set)->get_result_set();
-          }
-          if (NULL == result_set)
-          {
-            TBSYS_LOG(WARN, "plan does not generated and cached in physical plan manager");
-            ret = OB_ENTRY_NOT_EXIST;
-          }
-          else
-          {
-              //modified :e
-
-              ObResultSet &new_result_set = result_op->get_procedure_result_set();
-              ObPhysicalPlan *new_plan = ObPhysicalPlan::alloc();
-              new_plan->set_result_set(&new_result_set);
-              if (NULL == new_plan)
-              {
-                TBSYS_LOG(ERROR, "can not alloc mem for ObPhysicalPlan");
-                ret = OB_ERR_UNEXPECTED;
-              }
-              else
-              {
-                TBSYS_LOG(DEBUG, "copy from store ob_malloc plan is %p store plan %p", new_plan, result_set->get_physical_plan());
-                //        phy_plan->set_result_set();
-                ret = ObSql::copy_physical_plan(*new_plan, *(result_set->get_physical_plan()), sql_context_);//phy_plan->assign(value->plan_);
-                if (OB_SUCCESS != ret)
-                {
-                  new_plan->clear();
-                  ObPhysicalPlan::free(new_plan);
-                  TBSYS_LOG(ERROR, "Copy Physical plan from ObPsStoreItem to Current ResultSet failed ret=%d", ret);
-                }
-                else
-                {
-                  TBSYS_LOG(TRACE, "copied plan:\n%s", to_cstring(*new_plan));
-                  new_result_set.from_prepared(*result_set);
-                  new_result_set.change_phy_plan(new_plan, true);
-                  new_result_set.set_session(sql_context_->session_info_);
-
-                  new_result_set.set_plan_from_assign(true);
-                }
-              }
-             // result_op->set_stmt_id(stmt_id);
-          }
-=======
-**/
         uint64_t stmt_id = OB_INVALID_ID;
 
         bool need_compile = !(session_info->plan_exists(stmt->get_proc_name(), &stmt_id));
@@ -1172,15 +1116,6 @@ int ObTransformer::gen_physical_procedure_execute(
             ret = OB_ERROR;
           }
         }
-
-        //add by zhujun 2015-7-10
-//        for (int64_t i = 0;i < stmt->get_variable_size(); i++)
-//        {
-//          ObString param_name;
-//          ob_write_string(*mem_pool_, stmt->get_variable_name(i), param_name);
-//          result_op->add_param_name(param_name);
-//          TBSYS_LOG(TRACE,"add_param_name %.*s", param_name.length(), param_name.ptr());
-//        }
       }
     }
   }

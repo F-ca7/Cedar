@@ -695,6 +695,9 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>READ_STATIC  {
   return READ_STATIC;
 }
+<hint>NO_GROUP  {
+    return NO_GROUP;
+  }
 <hint>READ_CONSISTENCY  {
   return READ_CONSISTENCY;
 }

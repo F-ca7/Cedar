@@ -18,10 +18,12 @@ namespace oceanbase
       {
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
+        no_group_ = false;//add by wdh 20160716 Default open optimization
       }
 
       bool    hotspot_;
       common::ObConsistencyLevel    read_consistency_;
+      bool  no_group_;//add by wdh 20160716
     };
     
     struct TableItem

@@ -41,13 +41,15 @@ class ObProcedureExecuteStmt: public ObBasicStmt {
     uint64_t get_param_expr(int64_t index) const;
 
     int64_t get_param_size() const;
-
+    int set_no_group(bool no_group);//add by wdh 20160718
+    bool get_no_group();
 	private:
 		ObString proc_name_;
 //		common::ObArray<common::ObString> variable_names_;
 		common::ObArray<uint64_t> param_list_;
 		uint64_t proc_stmt_id_;/*需要从表里面查询数据生成存储过程计划的时候对应的存储过程语句id*/
-	};
+        bool no_group_;
+    };
 
 
 }

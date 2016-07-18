@@ -62,7 +62,17 @@ namespace oceanbase{
     {
       return param_list_.count();
     }
-
+    //add by wdh 20160718 :b
+    int ObProcedureExecuteStmt::set_no_group(bool no_group)
+    {
+      no_group_ = no_group;
+      return OB_SUCCESS;
+    }
+    //add :e
+    bool ObProcedureExecuteStmt::get_no_group()
+    {
+        return no_group_;
+    }
 
   }
 }

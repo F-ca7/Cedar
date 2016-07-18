@@ -4349,7 +4349,7 @@ int resolve_procedure_execute_stmt(
     uint64_t& query_id)
 {
   OB_ASSERT(result_plan);
-  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 2);
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 3);//modify by wdh 20160716
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureExecuteStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
@@ -4394,62 +4394,23 @@ int resolve_procedure_execute_stmt(
 					else
 					{
 						stmt->add_param_expr(expr_id);
+                    }
+            }
           }
-          //delete by zt 20160117 :b
-//					if(arguments->children_[i]->type_==T_TEMP_VARIABLE)
-//					{
-//						ObString name;
-//						if ((ret = ob_write_string(*name_pool, ObString::make_string(arguments->children_[i]->str_value_), name)) != OB_SUCCESS)
-//						{
-//							PARSER_LOG("Resolve variable %s error", arguments->children_[i]->str_value_);
-//						}
-//						else if ((ret = stmt->add_variable_name(name)) != OB_SUCCESS)
-//						{
-//							PARSER_LOG("Add Using variable failed");
-//						}
-//					}
-					//add by zhujun 2015-8-4 put a null string into parameters only stay
-//					else
-//					{
-//						 ObString name=ObString::make_string("null");
-//						 stmt->add_variable_name(name);
-//					}
-          //delete by zt 20160117 :e
-			  }
+          //add by wdh 20160716 :b
+          if(ret == OB_SUCCESS && node->children_[2]!=NULL)
+          {
+            OB_ASSERT(node->children_[2]->children_[0]->type_ == T_NO_GROUP);
+            ret = stmt->set_no_group(true);
+            TBSYS_LOG(DEBUG,"www: no_group is %d", true);
+          }
+          else if(ret == OB_SUCCESS && node->children_[2]== NULL)
+          {
+              stmt->set_no_group(false);
+              TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
+          }
+          //add :e
       }
-      //delete by zt 20151117 :b
-      //here the author wants to gen logical plan for the procedure source
-      //but I believe the source should be compile some other places.
-//		  if(ret==OB_SUCCESS)
-//		  {
-//			  /*把存储过程源码生成逻辑计划*/
-//			  ParseResult parse_result;
-//			  uint64_t proc_query_id = OB_INVALID_ID;
-//			  ObString procstmt=ObString::make_string(result_plan->source_sql_);
-//			  parse_result.malloc_pool_=result_plan->name_pool_;
-//			  if (OB_SUCCESS != (ret = parse_init(&parse_result)))
-//			  {
-//				  TBSYS_LOG(WARN, "parser init err");
-//				  ret = OB_ERR_PARSER_INIT;
-//			  }
-//			  else if (parse_sql(&parse_result, procstmt.ptr(), static_cast<size_t>(procstmt.length())) != 0
-//					|| NULL == parse_result.result_tree_)
-//			  {
-//				  TBSYS_LOG(WARN, "parser procedure sql error");
-//				  ret = OB_ERR_PARSE_SQL;
-//			  }
-//			  else if((ret = resolve_procedure_stmt(result_plan, parse_result.result_tree_->children_[0], proc_query_id))!=OB_SUCCESS)
-//			  {
-//				  TBSYS_LOG(WARN, "resolve_procedure_stmt error");
-//			  }
-//			  else
-//			  {
-//				  stmt->set_proc_stmt_id(proc_query_id);
-//				  parse_free(parse_result.result_tree_);
-//			  }
-//		  }
-      //delete by zt 201151117 :e
-	  }
   }
   return ret;
 }
