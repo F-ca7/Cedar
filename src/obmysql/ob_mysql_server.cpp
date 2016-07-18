@@ -1950,12 +1950,12 @@ namespace oceanbase
             else
             {
               result->set_affected_rows(value);
-              TBSYS_LOG(INFO, "set_affected_rows num=%ld",value);
+              TBSYS_LOG(DEBUG, "set_affected_rows num=%ld",value);
             }
             session->remove_variable(affect);
           }
 
-          TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
+          TBSYS_LOG(DEBUG, "affect_row is %ld",result->get_affected_rows());
           //add:e
           // the server status must be got after the plan opened
           uint16_t server_status = 0;
@@ -1972,11 +1972,11 @@ namespace oceanbase
           bool select = result->is_with_rows();
           if(select)
           {
-        	  TBSYS_LOG(INFO, "result->is_with_rows() is true");
+              TBSYS_LOG(DEBUG, "result->is_with_rows() is true");
           }
           else
           {
-        	  TBSYS_LOG(INFO, "result->is_with_rows() is false");
+              TBSYS_LOG(DEBUG, "result->is_with_rows() is false");
           }
           if (select)
           {

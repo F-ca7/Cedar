@@ -239,7 +239,7 @@ int ObUpsExecutor::open()
 			}
 			else
 			{
-				TBSYS_LOG(INFO, "init set affect_row success var_name=%s",affect.ptr());
+                TBSYS_LOG(DEBUG, "init set affect_row success var_name=%s",affect.ptr());
 			}
 		}
 		//add:e
