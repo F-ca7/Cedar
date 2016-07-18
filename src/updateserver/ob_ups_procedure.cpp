@@ -120,15 +120,13 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
     }
     else if( OB_SUCCESS != (ret = op->get_next_row(row)) )
     {
+      if( OB_ITER_END == ret )
+      {
+        ret = OB_SUCCESS;
+      }
       //      TBSYS_LOG(WARN, "failed to get next row");
     }
-    //    else
-    //    {
-    //      TBSYS_LOG(INFO, "read row: [%s]", to_cstring(*row));
-    //    }
-
-    OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
-    if( ret == OB_SUCCESS )
+    else
     {
       for(int64_t i = 0; i < var_list_.count() && OB_SUCCESS == ret; ++i)
       {
@@ -136,15 +134,16 @@ int SpUpsInstExecStrategy::execute_rw_delta_into_var(SpRwDeltaIntoVarInst *inst)
         const ObObj *cell = NULL;
         if(OB_SUCCESS !=(ret=row->raw_get_cell(i, cell)))
         {
-          //          TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
+          //      TBSYS_LOG(WARN, "raw_get_cell %ld failed", i);
         }
         else if(OB_SUCCESS !=(proc->write_variable(var, *cell)))
         {
           //          TBSYS_LOG(WARN, "write into variables fail");
         }
-
       }
     }
+
+    OB_STAT_INC(UPDATESERVER, UPS_PROC_DW, tbsys::CTimeUtil::getTime() - start_ts);
 
     if ( OB_SUCCESS != (err = op->close() ))
     {
