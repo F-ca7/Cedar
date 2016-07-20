@@ -336,6 +336,12 @@ static struct ObStrErrorInit
 
     //add by zt 20160713:e
 
+    //add by qx 20160720:b
+    ADD_ERROR_STR(OB_ERR_SP_ALREADY_EXISTS,"Procedure already exists");
+    ADD_ERROR_STR(OB_ERR_SP_DROP_FAILED,"Failed to drop procedure");
+    ADD_ERROR_STR(OB_ERR_SP_STORE_FAILED,"Failed to create procedure");
+    //add :e
+
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");
