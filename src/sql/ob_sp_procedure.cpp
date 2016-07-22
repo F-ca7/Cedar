@@ -2234,7 +2234,14 @@ int SpProcedure::read_variable(const ObString &array_name, int64_t idx_value, co
 {
   int ret = OB_SUCCESS;
 
-  if( OB_SUCCESS != (ret = read_variable(array_name, val)))
+  if( my_phy_plan_->get_result_set() != NULL )
+  {
+    if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->get_variable_value(array_name, idx_vaule, val)))
+    {
+      TBSYS_LOG(WARN, "failed to read array value");
+    }
+  }
+  else if( OB_SUCCESS != (ret = read_variable(array_name, val)))
   {
     //table may not exist
   }
