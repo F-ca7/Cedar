@@ -48,7 +48,9 @@
 #include "ob_tablet_histogram_report_info.h"
 //add e
 #include "ob_index_black_list.h" //add longfei
-
+//add by wangdonghui 20160308 :b
+#include "common/ob_name_code_map.h"
+//add :e
 namespace oceanbase
 {
   namespace sql
@@ -159,7 +161,14 @@ namespace oceanbase
         //        @schema fetch cmd output schema data
         int fetch_schema(const int64_t timeout, const common::ObServer & root_server,
             const int64_t timestamp, const bool only_core_tables, common::ObSchemaManagerV2 & schema) const;
-
+        //add by wangdonghui 20160304 :b
+        //get procedure info through root server rpc call
+        // param  @timeout  action timeout
+        //        @root_server root server addr
+        //        @physicalplanmanager fetch cmd output physicalplanmanager data
+        int fetch_procedure(const int64_t timeout, const ObServer & root_server,
+            common::ObNameCodeMap & namecodemap) const;
+        //add :e
         // get tables schema newest version through root server rpc call
         // param  @timeout  action timeout
         //        @root_server root server addr
@@ -205,6 +214,15 @@ namespace oceanbase
         int alter_table(const int64_t timeout, const common::ObServer & root_server,
             const common::AlterTableSchema & alter_schema) const;
 
+        //add by wangdonghui 20160121 :b
+        int create_procedure(const int64_t timeout, const common::ObServer & root_server,
+            bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const;
+        //add :e
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        int drop_procedure(const int64_t timeout, const common::ObServer & root_server,
+            bool if_exists, const common::ObString &proc_name) const;
+        //add :e
         /*
          * Report tablets to RootServer, report finishes at has_more flag is off
          * @param tablets TabletReportInfoList to be reported

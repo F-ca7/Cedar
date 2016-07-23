@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_drop_stmt.cpp
-* @brief this class  present a procedure "drop" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #include "ob_procedure_drop_stmt.h"
 using namespace oceanbase::common;
 namespace oceanbase{

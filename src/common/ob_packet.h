@@ -166,6 +166,10 @@ namespace oceanbase
       OB_CS_SHOW_DISK = 247,
       OB_CS_SHOW_DISK_RESPONSE = 248,
 
+      //add by wangdonghui 20160304 :b
+      OB_FETCH_PROCEDURE = 249,
+      OB_FRTCH_PROCEDURE_RESPONSE = 250,
+      //add :e
       OB_CS_GET_MIGRATE_DEST_LOC = 260,
       OB_CS_GET_MIGRATE_DEST_LOC_RESPONSE = 261,
       OB_CS_DUMP_TABLET_IMAGE = 262,
@@ -293,6 +297,20 @@ namespace oceanbase
       OB_DROP_TABLE_RESPONSE = 503,
       OB_ALTER_TABLE = 504,
       OB_ALTER_TABLE_RESPONSE = 505,
+
+      //add by wangdonghui 20160121 :b
+      OB_CREATE_PROCEDURE = 506,
+      OB_CREATE_PROCEDURE_RESPONSE = 507,
+      OB_UPDATE_CACHE = 508,
+      OB_UPDATE_CACHE_RESPONSE = 509,
+      //add :e
+
+      //add by wangdonghui 20160225 [drop procedure] :b
+      OB_DROP_PROCEDURE = 510,
+      OB_DROP_PROCEDURE_RESPONSE = 511,
+      OB_DELETE_CACHE = 512,
+      OB_DELETE_CACHE_RESPONSE = 513,
+      //add :e
 
       // add by guojinwei [log timestamp][multi_cluster] 20150820:b
       /// get log timestamp from ups to rs

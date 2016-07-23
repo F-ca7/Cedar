@@ -297,7 +297,7 @@ int ObCompactCellIterator::next_cell()
       break;
     case DENSE_SPARSE:
     case DENSE_DENSE:
-      if(0 == step_)
+      if(0 == step_) //handle key part
       {
         ret = parse(buf_reader_, value_);
         if(OB_SUCCESS != ret && OB_ITER_END != ret)
@@ -309,9 +309,9 @@ int ObCompactCellIterator::next_cell()
           step_ = 1;
         }
       }
-      else if(1 == step_)
+      else if(1 == step_) //handle value part
       {
-        if(DENSE_SPARSE == store_type_)
+        if(DENSE_SPARSE == store_type_) //sparse value
         {
           ret = parse(buf_reader_, value_, &column_id_);
           if(OB_SUCCESS != ret && OB_ITER_END != ret)
@@ -325,7 +325,7 @@ int ObCompactCellIterator::next_cell()
         }
         else
         {
-          ret = parse(buf_reader_, value_);
+          ret = parse(buf_reader_, value_);  //dense value
           if(OB_SUCCESS != ret && OB_ITER_END != ret)
           {
             TBSYS_LOG(WARN, "parse cell fail:ret[%d]", ret);

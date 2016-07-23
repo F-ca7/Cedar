@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_while_stmt.cpp
-* @brief this class present a procedure "while" loop in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #include "ob_procedure_while_stmt.h"
 using namespace oceanbase::common;
 namespace oceanbase{
@@ -35,30 +19,25 @@ int ObProcedureWhileStmt::set_expr_id(uint64_t& expr_id)
 	return OB_SUCCESS;
 }
 
-int ObProcedureWhileStmt::add_then_stmt(uint64_t& stmt_id)
+int ObProcedureWhileStmt::add_do_stmt(uint64_t& stmt_id)
 {
-	while_then_stmts_.push_back(stmt_id);
+	while_do_stmts_.push_back(stmt_id);
 	return OB_SUCCESS;
 }
 
-
+/*while expr id*/
 uint64_t ObProcedureWhileStmt::get_expr_id()
 {
 	return expr_id_;
 }
 
-ObArray<uint64_t> ObProcedureWhileStmt::get_then_stmts()
+uint64_t& ObProcedureWhileStmt::get_do_stmt(int64_t index)
 {
-	return while_then_stmts_;
+	return while_do_stmts_.at(index);
 }
-
-uint64_t& ObProcedureWhileStmt::get_then_stmt(int64_t index)
+int64_t ObProcedureWhileStmt::get_do_stmt_size()
 {
-	return while_then_stmts_.at(index);
-}
-int64_t ObProcedureWhileStmt::get_then_stmt_size()
-{
-	return while_then_stmts_.count();
+	return while_do_stmts_.count();
 }
 
 

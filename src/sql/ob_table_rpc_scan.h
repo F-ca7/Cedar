@@ -64,6 +64,9 @@ namespace oceanbase
         virtual int close();
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+
+        int get_row_desc_template(const common::ObRowDesc *&row_desc) const; //add by zt 20160114
+
         virtual ObPhyOperatorType get_type() const;
 
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
@@ -247,6 +250,13 @@ namespace oceanbase
     {
       return 0;
     }
+
+    //add by zt 20160114:b
+    inline int ObTableRpcScan::get_row_desc_template(const ObRowDesc *&row_desc) const
+    {
+      return rpc_scan_.get_row_desc(row_desc);
+    }
+    //add by zt 20160114:e
   } // end namespace sql
 } // end namespace oceanbase
 

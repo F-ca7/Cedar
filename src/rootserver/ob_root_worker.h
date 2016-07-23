@@ -305,6 +305,18 @@ namespace oceanbase
         int rt_force_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_alter_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add by wangdonghui 20160121 :b
+        int rt_create_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add :e
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        int rt_drop_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add :e
+
+        //add by wangdonghui 20160304 :b
+        int rt_fetch_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add :e
+
         int rt_execute_sql(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_handle_trigger_event(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         

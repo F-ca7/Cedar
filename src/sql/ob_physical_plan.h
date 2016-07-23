@@ -28,10 +28,14 @@ namespace oceanbase
   namespace sql
   {
     class ObTableRpcScan;
+//    class ObProcedure; //add zt 20151110
+    class SpProcedure; //add zt 20151110
     class ObResultSet;
     class ObPhysicalPlan: public common::DLink
     {
       public:
+//      friend class ObProcedure; //add zt 20151110
+      friend class SpProcedure; //add zt 20151110
         struct ObTableVersion
         {
           ObTableVersion()
@@ -115,13 +119,25 @@ namespace oceanbase
         int32_t get_type(){return 0;};
         static ObPhysicalPlan *alloc();
         static void free(ObPhysicalPlan *plan);
+
+        //add zt 20151109 :b
+        //bind the proc_exec flag with phy_plan is not a good idea,
+        //better bind with result_set, since all operators points to the same result_set,
+        //but may binds with different physical_plans
+        bool is_group_exec() { return group_exec_mode_; }
+        void set_group_exec(bool exec_flag) { group_exec_mode_ = exec_flag; }
+        //add zt 20151109 :e
       private:
         static const int64_t COMMON_OP_NUM = 16;
         static const int64_t COMMON_SUB_QUERY_NUM = 6;
         static const int64_t COMMON_BASE_TABLE_NUM = 64;
-        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore;
+//        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore; //delete by zt 20151110
         typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_SUB_QUERY_NUM> SubQueries;
         typedef oceanbase::common::ObSEArray<ObTableVersion, COMMON_BASE_TABLE_NUM> BaseTableStore;
+        //add zt 20151110 :b
+    public:
+        typedef oceanbase::common::ObSEArray<ObPhyOperator*, COMMON_OP_NUM> OperatorStore;
+        //add zt 20151110 :e
 
       private:
         DISALLOW_COPY_AND_ASSIGN(ObPhysicalPlan);
@@ -145,6 +161,9 @@ namespace oceanbase
         bool cons_from_assign_;
         common::ObTransReq start_trans_req_;
         uint64_t next_phy_operator_id_;
+        //add zt 20151109 :b
+        bool group_exec_mode_;
+        //add zt 20151109 :e
     };
 
     inline int ObPhysicalPlan::set_operator_factory(ObPhyOperatorFactory* factory)
@@ -211,6 +230,10 @@ namespace oceanbase
       table_store_.clear();
       in_ups_executor_ = false;
       cons_from_assign_ = false;
+
+      //add zt 20151119
+      group_exec_mode_ = false;
+      //add zt 20151119
     }
 
     inline const common::ObTransID& ObPhysicalPlan::get_trans_id() const

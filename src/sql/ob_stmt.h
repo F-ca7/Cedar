@@ -115,6 +115,7 @@ namespace oceanbase
       {
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
+        no_group_ = false;//add by wdh 20160716 Default open optimization
       }
       bool has_index_hint() const
       {
@@ -128,6 +129,7 @@ namespace oceanbase
       common::ObConsistencyLevel read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_; // add by longfei [Index Hint]
       common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
+      bool  no_group_;//add by wdh 20160716
     };
     
     struct TableItem

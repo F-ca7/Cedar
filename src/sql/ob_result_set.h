@@ -50,8 +50,8 @@ namespace oceanbase
           int64_t to_string(char *buffer, int64_t length) const;
           int deep_copy(Field &other, common::ObStringBuf *str_buf);
         };
-        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
-        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
+//        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
+//        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
       public:
         ObResultSet();
         ~ObResultSet();
@@ -109,6 +109,9 @@ namespace oceanbase
         int add_field_column(const Field & field);
         int add_param_column(const Field & field);
         int pre_assign_params_room(const int64_t& size, common::ObIAllocator &alloc);
+
+//        int pre_assign_cur_time_room(common::ObObj *place_holder);  //add zt 20151121
+
         int pre_assign_cur_time_room(common::ObIAllocator &alloc);
         int fill_params(const common::ObIArray<obmysql::EMySQLFieldType>& types,
                         const common::ObIArray<common::ObObj>& values);
@@ -144,7 +147,17 @@ namespace oceanbase
         {
           plan_from_assign_ = flag;
         }
+
+        void change_phy_plan(ObPhysicalPlan *plan, bool did_own);
         void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;};
+
+        //add zt 20151201:b
+        //for postfix_expr to get procedure obj, read array variables
+        void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
+        const SpProcedure* get_running_procedure() const{ return proc_; }
+        int64_t get_stmt_hash() const { return stmt_hash_code_; }
+        void set_stmt_hash(int64_t hc) { stmt_hash_code_ = hc; }
+        //add zt 20151201:e
       private:
         // types and constants
         static const int64_t MSG_SIZE = 512;
@@ -181,6 +194,16 @@ namespace oceanbase
         common::ObArenaAllocator *ps_trans_allocator_;
         int64_t query_string_id_;
         common::ObObj *cur_time_; // only used when the sql contains fun like current_time
+
+        /**
+         * The pointer to used to the located the running procedure, then I
+         * can read variables or array from that. This is important when doing postfix_exprssion
+         * calculation. However, if we only read variables or array from ObSqlSession, Such desgin
+         * is not necessary.
+         * @brief proc_
+         */
+        SpProcedure *proc_; //add zt: 20151201
+        int64_t stmt_hash_code_;
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
@@ -213,7 +236,8 @@ namespace oceanbase
        my_session_(NULL),
        ps_trans_allocator_(NULL),
        query_string_id_(0),
-       cur_time_(NULL)
+       cur_time_(NULL),
+       proc_(NULL) //add zt 20151202
     {
       message_[0] = '\0';
     }
@@ -398,6 +422,14 @@ namespace oceanbase
       physical_plan_ = physical_plan;
       own_physical_plan_ = did_own;
     }
+
+    //add zt 20151121:b
+    inline void ObResultSet::change_phy_plan(ObPhysicalPlan *plan, bool did_own)
+    {
+      physical_plan_ = plan;
+      own_physical_plan_ = did_own;
+    }
+    //add zt 20151121:e
 
     inline void ObResultSet::fileds_clear()
     {

@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_if_stmt.cpp
-* @brief this class  present a procedure "if" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #include "ob_procedure_if_stmt.h"
 using namespace oceanbase::common;
 namespace oceanbase{
@@ -64,52 +48,53 @@ int ObProcedureIfStmt::set_have_else(bool flag)
 	return OB_SUCCESS;
 }
 
-bool ObProcedureIfStmt::have_elseif()
+bool ObProcedureIfStmt::have_elseif() const
 {
 	return have_else_if_;
 }
 
-bool ObProcedureIfStmt::have_else()
+bool ObProcedureIfStmt::have_else() const
 {
 	return have_else_;
 }
 
-uint64_t ObProcedureIfStmt::get_expr_id()
+/*if表达的id*/
+uint64_t ObProcedureIfStmt::get_expr_id() const
 {
 	return expr_id_;
 }
 
-ObArray<uint64_t> ObProcedureIfStmt::get_then_stmts()
+const ObArray<uint64_t> &ObProcedureIfStmt::get_then_stmts() const/*then语句列表*/
 {
 	return then_stmts_;
 }
 
-uint64_t& ObProcedureIfStmt::get_then_stmt(int64_t index)
+uint64_t ObProcedureIfStmt::get_then_stmt(int64_t index) const
 {
 	return then_stmts_.at(index);
 }
 
-ObArray<uint64_t> ObProcedureIfStmt::get_elseif_stmts()
+const ObArray<uint64_t> &ObProcedureIfStmt::get_elseif_stmts() const
 {
 	return elseif_stmts_;
 }
 
-uint64_t& ObProcedureIfStmt::get_elseif_stmt(int64_t index)
+uint64_t ObProcedureIfStmt::get_elseif_stmt(int64_t index) const
 {
 	return elseif_stmts_.at(index);
 }
 
-uint64_t ObProcedureIfStmt::get_else_stmt()
+uint64_t ObProcedureIfStmt::get_else_stmt() const
 {
 	return else_stmt_;
 }
 
-int64_t ObProcedureIfStmt::get_then_stmt_size()
+int64_t ObProcedureIfStmt::get_then_stmt_size() const
 {
 	return then_stmts_.count();
 }
 
-int64_t ObProcedureIfStmt::get_elseif_stmt_size()
+int64_t ObProcedureIfStmt::get_elseif_stmt_size() const
 {
 	return elseif_stmts_.count();
 }

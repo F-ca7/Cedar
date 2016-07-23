@@ -15,10 +15,11 @@
  */
 #include "ob_values.h"
 #include "common/utility.h"
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
-ObValues::ObValues()
+ObValues::ObValues() : is_open_(false), static_data_id_(-1)
 {
 }
 
@@ -31,6 +32,8 @@ void ObValues::reset()
   row_desc_.reset();
   //curr_row_.reset(false, ObRow::DEFAULT_NULL);
   row_store_.clear();
+
+  is_open_ = false; //add zt : 20151107
   ObSingleChildPhyOperator::reset();
 }
 
@@ -39,6 +42,9 @@ void ObValues::reuse()
   row_desc_.reset();
   //curr_row_.reset(false, ObRow::DEFAULT_NULL);
   row_store_.clear();
+
+  is_open_ = false; //add by zt 20151107
+  static_data_id_ = -1; //add by zt 20160118
   ObSingleChildPhyOperator::reset();
 }
 
@@ -59,12 +65,13 @@ int ObValues::open()
 {
   int ret = OB_SUCCESS;
   curr_row_.set_row_desc(row_desc_);
-  if (NULL != child_op_)
+  if (NULL != child_op_  && !is_open_ ) //modify zt 20151107
   {
     if (OB_SUCCESS != (ret = load_data()))
     {
       TBSYS_LOG(WARN, "failed to load data from child op, err=%d", ret);
     }
+    is_open_ = true; //add zt 20151107
   }
   return ret;
 }
@@ -72,6 +79,7 @@ int ObValues::open()
 int ObValues::close()
 {
   row_store_.clear();
+  is_open_ = false; //add zt 20151124, avoid reopened by ObUpsExecutor
   return OB_SUCCESS;
 }
 
@@ -97,6 +105,23 @@ int ObValues::get_row_desc(const common::ObRowDesc *&row_desc) const
   row_desc = &row_desc_;
   return OB_SUCCESS;
 }
+
+//add by zt 20160114:b
+int ObValues::get_row_desc_template(const common::ObRowDesc *&row_desc) const
+{
+  int ret = OB_SUCCESS;
+  UNUSED(row_desc);
+  if( NULL != child_op_ )
+  {
+    ret = child_op_->get_row_desc(row_desc);
+  }
+  else
+  {
+    row_desc = &row_desc_;
+  }
+  return ret;
+}
+//add by zt 20160114:e
 
 namespace oceanbase{
   namespace sql{
@@ -139,6 +164,7 @@ PHY_OPERATOR_ASSIGN(ObValues)
     }
     store_ptr->reset_iterator();
   }
+  static_data_id_ = o_ptr->static_data_id_; //add by zt 20160118
   return ret;
 }
 

@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_assgin_stmt.h
-* @brief this class present a procedure "assgin" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_ASSGIN_STMT_H_
 #define OCEANBASE_SQL_OB_PROCEDURE_ASSGIN_STMT_H_
 #include "common/ob_string.h"
@@ -22,68 +6,63 @@
 #include "ob_basic_stmt.h"
 #include "parse_node.h"
 #include "ob_sql_expression.h"
-#include <map>
 using namespace oceanbase::common;
 
 namespace oceanbase {
-namespace sql {
+  namespace sql {
 
-/**
- * @brief The ObVariableSetVal struct represent assign operator
- */
-struct ObVariableSetVal
-{
-    ObString    variable_name_;///>variable name
-    uint64_t	var_expr_id_;///> this assgin value expr's id
-    ObSqlExpression var_value_;///> the assgin value
-};
-/**
- * @brief The ObProcedureAssginStmt class represent a logical plan to assign variable value in the procedure
- */
-class ObProcedureAssginStmt: public ObBasicStmt {
-	public:
-	ObProcedureAssginStmt() :
-				ObBasicStmt(T_PROCEDURE_ASSGIN) {
-		}
-		virtual ~ObProcedureAssginStmt() {
-		}
+    struct ObRawVarAssignVal
+    {
+      ObRawVarAssignVal() : val_expr_id_(OB_INVALID_ID)
+      {
+        idx_value_.set_null();
+      }
 
+      ObString var_name_;
+      ObObj idx_value_;  //null for normal variable, int or varchar for array variable
+      uint64_t val_expr_id_;
+//      ObRawVarAssignVal() : val_expr_id_(0)
+//      {}
+    };
 
-        /**
-         * @brief add a ObVariableSetVal into this logical plan
-         * @param var_val type is ObVariableSetVal
-         * @return int
-         */
-        int add_var_val(ObVariableSetVal &var_val);
+//    struct ObRawArrAssignVal
+//    {
+//      ObString var_name_;
+//      uint64_t val_expr_id_;
+////      uint64_t idx_expr_id_;
+//      ObObj idx_value_;
 
-        /**
-         * @brief get all of the logical plan's ObVariableSetVal
-         * @return ObArray
-         */
-        ObArray<ObVariableSetVal>& get_var_val_list();
+//      ObRawArrAssignVal() : val_expr_id_(0), idx_expr_id_(0)
+//      {}
+//    };
 
-        /**
-         * @brief gets the elements of "assign" operators index location
-         * @param index
-         * @return
-         */
-        ObVariableSetVal& get_var_val(int64_t index);
-
-        /**
-         * @brief get the size of "assign" operators
-         * @return
-         */
-        int64_t get_var_val_size();
-
-		virtual void print(FILE* fp, int32_t level, int32_t index);
-	private:
-        ObArray<ObVariableSetVal> var_val_list_;///< the "assign" operators array
+    class ObProcedureAssginStmt: public ObBasicStmt {
+    public:
+      ObProcedureAssginStmt() :
+              ObBasicStmt(T_PROCEDURE_ASSGIN) {
+      }
+      virtual ~ObProcedureAssginStmt() {
+      }
 
 
-	};
+      int add_var_val(ObRawVarAssignVal &var_val);/*添加一个var_val*/
+//      int add_arr_val(ObRawArrAssignVal &arr_val); //add the array[idx] assign
 
+//      const ObArray<ObRawVarAssignVal>& get_var_val_list() const;/*返回所有赋值*/
 
-}
+      const ObRawVarAssignVal& get_var_val(int64_t index) const;/*返回一个赋值*/
+//      const ObRawArrAssignVal& get_arr_val(int64_t index) const; //get the array[idx] assign
+
+      int64_t get_var_val_size() const;/*返回变量列表大小*/
+//      int64_t get_arr_val_size() const;
+
+      virtual void print(FILE* fp, int32_t level, int32_t index);
+    private:
+//      ObArray<ObVarAssignVal> var_val_list_;/*赋值变量列表*/
+      ObArray<ObRawVarAssignVal> var_val_list_;
+//      ObArray<ObRawArrAssignVal> arr_val_list_;
+    };
+  }
 }
 
 #endif

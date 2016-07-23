@@ -275,6 +275,7 @@ namespace oceanbase
         int64_t now = tbsys::CTimeUtil::getTime();
         if (!root_server_.init(now, this))
         {
+          TBSYS_LOG(WARN, "rs init fail");
           ret = OB_ERROR;
         }
       }
@@ -1306,6 +1307,12 @@ namespace oceanbase
         case OB_MERGE_SERVER_REGISTER:
         case OB_MIGRATE_OVER:
         case OB_CREATE_TABLE:
+        //add by wangdonghui 20160121 :b
+        case OB_CREATE_PROCEDURE:
+        //add :e
+        //add by wangdonghui 20160226 [drop procedure] :b
+        case OB_DROP_PROCEDURE:
+        //add :e
         case OB_ALTER_TABLE:
         case OB_FORCE_CREATE_TABLE_FOR_EMERGENCY:
         case OB_FORCE_DROP_TABLE_FOR_EMERGENCY:
@@ -1385,6 +1392,9 @@ namespace oceanbase
         case OB_HANDLE_TRIGGER_EVENT:
         case OB_RS_ADMIN_START_IMPORT:
         case OB_RS_ADMIN_START_KILL_IMPORT:
+        //add by wangdonghui 20160304 :b
+        case OB_FETCH_PROCEDURE:
+        //add :e
 
           if (ObRoleMgr::MASTER == role_mgr_.get_role())
           {
@@ -1558,6 +1568,18 @@ namespace oceanbase
                       return_code = rt_get_column_checksum(version, *in_buf, req, channel_id, thread_buff);
                       break;
                     //add e
+                    //add by wangdonghui 20160121 :b
+                    case OB_CREATE_PROCEDURE:
+                      return_code = rt_create_procedure(version, *in_buf, req, channel_id, thread_buff);
+                      TBSYS_LOG(DEBUG, "in_buf is %s", in_buf->get_data());
+                      break;
+                    //add :e
+                    //add by wangdonghui 20160225 [drop procedure] :b
+                    case OB_DROP_PROCEDURE:
+                      return_code = rt_drop_procedure(version, *in_buf, req, channel_id, thread_buff);
+                      TBSYS_LOG(DEBUG, "in_buf is %s", in_buf->get_data());
+                      break;
+                    //add :e
                     case OB_REPORT_CAPACITY_INFO:
                       return_code = rt_report_capacity_info(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -1634,6 +1656,12 @@ namespace oceanbase
                     case OB_FETCH_SCHEMA:
                       return_code = rt_fetch_schema(version, *in_buf, req, channel_id, thread_buff);
                       break;
+
+                    //add by wangdonghui 20160304 :b
+                    case OB_FETCH_PROCEDURE:
+                      return_code = rt_fetch_procedure(version, *in_buf, req, channel_id, thread_buff);
+					  break;
+                    //add :e
                     case OB_FETCH_SCHEMA_VERSION:
                       return_code = rt_fetch_schema_version(version, *in_buf, req, channel_id, thread_buff);
                       break;
@@ -2685,6 +2713,39 @@ namespace oceanbase
       OB_STAT_INC(ROOTSERVER, INDEX_GET_SCHMEA_COUNT);
       return ret;
     }
+
+    //add by wangdonghui 20160304 :b
+    int ObRootWorker::rt_fetch_procedure(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      UNUSED(version);
+      UNUSED(in_buff);
+      static const int MY_VERSION = 1;
+      common::ObResultCode result_msg;
+      result_msg.result_code_ = OB_SUCCESS;
+      int ret = OB_SUCCESS;
+      TBSYS_LOG(INFO, "before serialize count = [%ld]", root_server_.get_name_code_map()->size());
+      if(false == root_server_.get_name_code_map()->get_state())
+      {
+          result_msg.result_code_ = OB_ERROR;
+      }
+      if (OB_SUCCESS != (ret = result_msg.serialize(out_buff.get_data(), out_buff.get_capacity(), out_buff.get_position())))
+      {
+          TBSYS_LOG(ERROR, "result_msg.serialize error");
+      }
+      else if (OB_SUCCESS != (ret = root_server_.get_name_code_map()->serialize(out_buff.get_data(),
+                             out_buff.get_capacity(), out_buff.get_position())))
+      {
+        TBSYS_LOG(ERROR, "namecodemap.serialize error");
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "namecodemap serialize succ!");
+        send_response(OB_FRTCH_PROCEDURE_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+      }
+      return ret;
+    }
+    //add :e
 
     int ObRootWorker::rt_after_restart(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
@@ -5803,6 +5864,135 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       }
       return ret;
     }
+
+    //add by wangdonghui 20160121 :b
+    int ObRootWorker::rt_create_procedure(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      static const int MY_VERSION = 1;
+      int ret = OB_SUCCESS;
+      common::ObResultCode res;
+      bool if_not_exists = false;
+      ObString proc_name;
+      ObString proc_source_code;
+      common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+        res.result_code_ = OB_ERROR_FUNC_VERSION;
+      }
+      else if (role != common::ObiRole::MASTER)
+      {
+        res.result_code_ = OB_OP_NOT_ALLOW;
+        TBSYS_LOG(WARN, "ddl operation not allowed in slave cluster");
+      }
+      else
+      {
+        if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position(), &if_not_exists)))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = proc_name.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize proc name, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = proc_source_code.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize proc source code, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = root_server_.create_procedure(if_not_exists, proc_name, proc_source_code)))
+        {
+          TBSYS_LOG(WARN, "failed to create procedure, err=%d", ret);
+        }
+        if (OB_SUCCESS != ret)
+        {
+          res.message_ = ob_get_err_msg();
+          TBSYS_LOG(WARN, "create procedure err=%.*s", res.message_.length(), res.message_.ptr());
+        }
+        res.result_code_ = ret;
+        ret = OB_SUCCESS;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // send response message
+        if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = send_response(OB_CREATE_PROCEDURE_RESPONSE, MY_VERSION, out_buff, req, channel_id)))
+        {
+          TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+        }
+        else
+        {
+          TBSYS_LOG(INFO, "send response for creating procedure, if_not_exists=%c table_name=%s ret=%d",
+              if_not_exists?'Y':'N', proc_name.ptr(), res.result_code_);
+        }
+      }
+      return ret;
+    }
+    //add :e
+
+    //add by wangdonghui 20160225 [drop procedure] :b
+    int ObRootWorker::rt_drop_procedure(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 1;
+      common::ObResultCode res;
+      common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+        res.result_code_ = OB_ERROR_FUNC_VERSION;
+      }
+      else if (role != common::ObiRole::MASTER)
+      {
+        res.result_code_ = OB_OP_NOT_ALLOW;
+        TBSYS_LOG(WARN, "ddl operation not allowed in slave cluster");
+      }
+      else
+      {
+        bool if_exists = false;
+        ObString proc_name;
+        if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position(), &if_exists)))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = proc_name.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = root_server_.drop_procedure(if_exists, proc_name)))
+        {
+          TBSYS_LOG(WARN, "failed to drop procedure, err=%d", ret);
+        }
+        res.result_code_ = ret;
+        ret = OB_SUCCESS;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // send response message
+        if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = send_response(OB_DROP_PROCEDURE_RESPONSE, MY_VERSION,
+                out_buff, req, channel_id)))
+        {
+          TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+        }
+      }
+      return ret;
+    }
+    //add :e
 
     int ObRootWorker::rt_execute_sql(const int32_t version, common::ObDataBuffer& in_buff,
         onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)

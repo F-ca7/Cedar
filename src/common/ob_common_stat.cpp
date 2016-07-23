@@ -50,6 +50,10 @@ const char *ObStatSingleton::ups_map[] = {
   "scan_time",
   "trans_time",
   "trans_wtime",
+  //add by zt 20151211:b
+//  "trans_wtime_rec_thread",
+//  "trans_wtime_thread_handle",
+  //add by zt 20151211:e
   "trans_htime",
   "trans_ctime",
   "trans_ftime",
@@ -124,11 +128,30 @@ const char *ObStatSingleton::ups_map[] = {
   "hl_trans_time",
 
   "lock_wait_time",
+  "lock_succ_count",
+  "lock_fail_count",
 
   "dml_replace_count",
   "dml_insert_count",
   "dml_update_count",
   "dml_delete_count",
+
+  //add zt by 20151214:b
+  "ups_proc_count",
+  "ups_proc_time",
+  "ups_proc_expr_time",
+  "ups_proc_delta_time",
+  "ups_proc_delta_into_time",
+  "ups_proc_if_time",
+  "ups_proc_loop_time",
+  "ups_plan_deserialize_time",
+
+  "gen_inc_scan",
+  "gen_mem_sstable",
+  "exec_inc_scan",
+  "exec_mem_sstable",
+  "exec_merge"
+  //add by zt 20151214:e
 };
 
 const char *ObStatSingleton::cs_map[] = {
@@ -192,6 +215,11 @@ const char *ObStatSingleton::ms_map[] = {
   // sql scan
   "scan_event_count",
   "scan_event_time",
+
+  //procedure ups execute
+  "procedure_ups_execute_count",
+  "procedure_ups_execute_time",
+
   // memory
   "ms_memory_limit",
   "ms_memory_total",
@@ -265,6 +293,8 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_update_time",
   "sql_delete_count",
   "sql_delete_time",
+  "sql_proc_count",
+  "sql_proc_time",
 
   "sql_query_bytes",
 
@@ -272,6 +302,10 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_rollback_count",
   "sql_autocommit_on_count",
   "sql_autocommit_off_count",
+
+  "sql_cmd_receive_count",
+  "sql_cmd_process_count",
+  "sql_cmd_wait_time_ms"
 };
 
 

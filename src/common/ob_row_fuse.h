@@ -21,10 +21,10 @@
 #include "ob_ups_row.h"
 #include "utility.h"
 
-namespace test
-{
-  class ObRowFuseTest_apply_row_test_Test;
-}
+//namespace test //comment by zt 20160125:b
+//{
+//  class ObRowFuseTest_apply_row_test_Test;
+//}
 
 namespace oceanbase
 {
@@ -32,7 +32,7 @@ namespace oceanbase
   {
     class ObRowFuse
     {
-      friend class test::ObRowFuseTest_apply_row_test_Test;
+//      friend class test::ObRowFuseTest_apply_row_test_Test; //comment by zt 20160125
 
       public:
         /*

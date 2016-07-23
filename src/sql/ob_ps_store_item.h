@@ -35,7 +35,7 @@ namespace oceanbase
       PS_ITEM_VALID                     /* plan is ok */
     };
 
-    class ObPsStoreItemValue
+    class ObPsStoreItemValue //is short for prepare stmt store
     {
       static const int64_t COMMON_PARAM_NUM = 12;
     public:

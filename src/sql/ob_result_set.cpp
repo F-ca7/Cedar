@@ -264,6 +264,13 @@ int ObResultSet::pre_assign_params_room(const int64_t& size, common::ObIAllocato
   return ret;
 }
 
+//add zt 201151121:b
+//int ObResultSet::pre_assign_cur_time_room(common::ObObj *place_holder)
+//{
+//  cur_time_ = place_holder;
+//}
+//add zt 20151121:e
+
 int ObResultSet::pre_assign_cur_time_room(common::ObIAllocator &alloc)
 {
   int ret = OB_SUCCESS;
@@ -397,6 +404,7 @@ int ObResultSet::to_prepare(ObResultSet& other)
   other.my_session_ = my_session_;
   other.ps_trans_allocator_ = ps_trans_allocator_;
   other.query_string_id_ = query_string_id_;
+  other.stmt_hash_code_ = stmt_hash_code_;
 
   this->statement_name_.reset();
   this->physical_plan_ = NULL;

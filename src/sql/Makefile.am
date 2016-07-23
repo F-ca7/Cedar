@@ -71,6 +71,11 @@ sql_parser_sources=                                    \
   ob_execute_stmt.h           ob_execute_stmt.cpp      \
   ob_procedure_stmt.h         ob_procedure_stmt.cpp   \
   ob_procedure.h              ob_procedure.cpp         \
+  ob_sp_procedure.h           ob_sp_procedure.cpp      \
+  ob_procedure_optimizer.h    ob_procedure_optimizer.cpp   \
+  ob_procedure_execution_context.h   ob_procedure_execution_context.cpp   \
+  ob_procedure_static_data_mgr.h    ob_procedure_static_data_mgr.cpp  \
+  ob_procedure_variable_table.h     ob_procedure_variable_table.cpp  \
   ob_procedure_create_stmt.h  ob_procedure_create_stmt.cpp\
   ob_procedure_create.h       ob_procedure_create.cpp  \
   ob_procedure_drop_stmt.h    ob_procedure_drop_stmt.cpp \
@@ -83,8 +88,10 @@ sql_parser_sources=                                    \
   ob_procedure_declare.h      ob_procedure_declare.cpp \
   ob_procedure_assgin_stmt.h  ob_procedure_assgin_stmt.cpp\
   ob_procedure_assgin.h       ob_procedure_assgin.cpp\
+  ob_procedure_loop_stmt.h    ob_procedure_loop_stmt.cpp\
   ob_procedure_while_stmt.h   ob_procedure_while_stmt.cpp\
   ob_procedure_while.h        ob_procedure_while.cpp\
+  ob_procedure_exit_stmt.h    ob_procedure_exit_stmt.cpp\
   ob_procedure_if_stmt.h      ob_procedure_if_stmt.cpp \
   ob_procedure_if.h           ob_procedure_if.cpp      \
   ob_procedure_elseif_stmt.h  ob_procedure_elseif_stmt.cpp\
@@ -95,6 +102,9 @@ sql_parser_sources=                                    \
   ob_procedure_execute.h      ob_procedure_execute.cpp \
   ob_procedure_select_into_stmt.h  ob_procedure_select_into_stmt.cpp\
   ob_procedure_select_into.h  ob_procedure_select_into.cpp\
+  ob_delta_data_handler.h      ob_delta_data_handler.cpp \
+  ob_variable_set_array_value_stmt.h   ob_variable_set_array_value_stmt.cpp\
+  ob_variable_set_array_value.h   ob_variable_set_array_value.cpp\
   ob_explain_stmt.h           ob_explain_stmt.cpp      \
   ob_insert_stmt.h            ob_insert_stmt.cpp       \
   ob_item_type.h                                       \

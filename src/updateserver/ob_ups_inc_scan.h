@@ -33,6 +33,7 @@
 #include "sql/ob_inc_scan.h"
 #include "ob_table_list_query.h"
 #include "ob_ups_utils.h"
+#include "sql/ob_expr_values.h" //add by zt 20160113
 
 namespace oceanbase
 {
@@ -131,6 +132,8 @@ namespace oceanbase
           result_ = NULL;
           get_iter_.reset();
           scan_iter_.reset();
+
+          input_values_.reset();
         }
       public:
         int open();
@@ -145,13 +148,27 @@ namespace oceanbase
       public:
         int get_next_row(const common::ObRow *&row);
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
+
+        //add by zt 20160113:b
+        int deserialize(const char *buf, const int64_t data_len, int64_t &pos);
+        //add by zt 20160113:e
+
       protected:
         virtual ObUpsTableMgr* get_table_mgr(); // for test
+
+        //add by zt 20160113:b
+      private:
+        int prepare_data();
+        //add by zt 20160113:e
       private:
         BaseSessionCtx *session_ctx_;
         sql::ObPhyOperator* result_;
         ObIncGetIter get_iter_;
         ObIncScanIter scan_iter_;
+
+        //add by zt 20160113
+        sql::ObExprValues input_values_;
+        bool group_exec_mode_;
     };
   } // end namespace updateserver
 } // end namespace oceanbase

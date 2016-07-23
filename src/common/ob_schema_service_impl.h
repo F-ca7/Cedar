@@ -44,7 +44,9 @@
 //add maoxx
 #include "common/ob_column_checksum.h"
 //add e
-
+//add by wangdonghui
+#include "common/nb_accessor/nb_query_res.h"
+//add e
 class TestSchemaService_assemble_table_Test;
 class TestSchemaTable_generate_new_table_name_Test;
 class TestSchemaService_assemble_column_Test;
@@ -64,6 +66,9 @@ namespace oceanbase
     static ObString privilege_table_name = OB_STR(OB_ALL_TABLE_PRIVILEGE_TABLE_NAME);
     static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei [create index]
     static ObString table_name_str = OB_STR("table_id");
+    //add by wangdonghui 20160125 :b
+    static ObString procedure_table_name = OB_STR(OB_ALL_PROCEDURE_TABLE_NAME);
+    //add :e
     static const char* const TMP_PREFIX = "tmp_";
 
     class ObSchemaServiceImpl : public ObSchemaService
@@ -75,6 +80,9 @@ namespace oceanbase
         int init(ObScanHelper* client_proxy, bool only_core_tables);
 
         virtual int get_table_schema(const ObString& table_name, TableSchema& table_schema);
+        //add by wangdonghui 20160308 :b
+        virtual int get_procedure_info(common::nb_accessor::QueryRes *&res_);
+        //add :e
         virtual int create_table(const TableSchema& table_schema);
         virtual int drop_table(const ObString& table_name);
         virtual int alter_table(const AlterTableSchema& table_schema, const int64_t old_schema_version);
@@ -85,7 +93,12 @@ namespace oceanbase
         virtual int set_max_used_table_id(const uint64_t max_used_tid);
         virtual int prepare_privilege_for_table(const nb_accessor::TableRow* table_row,
             ObMutator *mutator, const int64_t table_id);
-
+        //add by wangdonghui 20160125 :b
+        virtual int create_procedure(const common::ObString& proc_name, const common::ObString & proc_source_code);
+        //add :e
+        //add by wangdonghui 20160225 [drop procedure] :b
+        int drop_procedure(const ObString& proc_name);
+        //add :e
         friend class ::TestSchemaService_assemble_table_Test;
         friend class ::TestSchemaService_assemble_column_Test;
         friend class ::TestSchemaService_assemble_join_info_Test;
@@ -97,6 +110,10 @@ namespace oceanbase
         // for read
         int fetch_table_schema(const ObString& table_name, TableSchema& table_schema);
         int create_table_mutator(const TableSchema& table_schema, ObMutator* mutator);
+
+        //add by wangdonghui 20160125 :b
+        int create_procedure_mutator(const common::ObString & proc_name, const common::ObString & proc_source_code, ObMutator* mutator);
+        //add :e
         int alter_table_mutator(const AlterTableSchema& table_schema, ObMutator* mutator, const int64_t old_schema_version);
         int assemble_table(const nb_accessor::TableRow* table_row, TableSchema& table_schema);
         int assemble_column(const nb_accessor::TableRow* table_row, ColumnSchema& column);

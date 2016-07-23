@@ -21,6 +21,7 @@
 #include "common/ob_privilege_manager.h"
 #include "common/ob_statistics.h"
 #include "ob_get_privilege_task.h"
+#include "common/ob_name_code_map.h"
 
 namespace oceanbase
 {
@@ -63,6 +64,9 @@ namespace oceanbase
         int register_root_server(void);
 
         sql::ObSQLSessionMgr* get_sql_session_mgr() const;
+        //add by wangdonghui :b
+        ObMsSQLProxy get_sql_proxy_() const;
+        //add :e
         void set_sql_session_mgr(sql::ObSQLSessionMgr* mgr);
         void set_sql_id_mgr(sql::ObSQLIdMgr *mgr) {sql_id_mgr_ = mgr;};
         /* reload config after update local configuration succ */
@@ -88,6 +92,11 @@ namespace oceanbase
         common::ObTabletLocationCacheProxy *get_cache_proxy() const {return cache_proxy_;}
         common::ObStatManager *get_stat_manager() const { return service_monitor_; }
 
+        //add by wangdonghui 20160302 [ppc manager] :b
+        ObMergeServer *get_merge_server() const { return merge_server_; }
+
+        int fetch_source(common::ObNameCodeMap * name_code_map);
+        //add :e
         const common::ObVersion get_frozen_version() const
         {
           return frozen_version_;
@@ -200,6 +209,29 @@ namespace oceanbase
           const int64_t timeout_us);
 
 
+        //add by wangdonghui 20160122 :b
+        int ms_accept_cache(
+          const int64_t receive_time,
+          const int32_t version,
+          const int32_t channel_id,
+          easy_request_t* req,
+          common::ObDataBuffer& in_buffer,
+          common::ObDataBuffer& out_buffer,
+          const int64_t timeout_us);
+        //add :e
+
+        //add by wangdonghui 20160305 :b
+        int ms_delete_cache(
+          const int64_t receive_time,
+          const int32_t version,
+          const int32_t channel_id,
+          easy_request_t* req,
+          common::ObDataBuffer& in_buffer,
+          common::ObDataBuffer& out_buffer,
+          const int64_t timeout_us);
+
+        //add :e
+
         int send_sql_response(
           onev_request_e* req,
           common::ObDataBuffer& out_buffer,
@@ -305,6 +337,8 @@ namespace oceanbase
         common::ObPrivilegeManager *privilege_mgr_;
         ObGetPrivilegeTask update_privilege_task_;
         sql::ObSQLIdMgr *sql_id_mgr_;
+
+
     };
 
     inline void ObMergeServerService::extend_lease(const int64_t delay)
@@ -321,6 +355,12 @@ namespace oceanbase
     {
       return sql_session_mgr_;
     }
+    //add by wangdonghui 20160320 :b
+    inline ObMsSQLProxy ObMergeServerService::get_sql_proxy_() const
+    {
+        return sql_proxy_;
+    }
+    //add :e
 
     inline void ObMergeServerService::set_sql_session_mgr(sql::ObSQLSessionMgr* mgr)
     {

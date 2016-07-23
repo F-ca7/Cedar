@@ -84,6 +84,14 @@ namespace oceanbase
       // drop tables
       int drop_table(bool if_exists, const common::ObStrings & tables);
       // alter table
+
+      //add by wangdonghui 20160121 :b
+      int create_procedure(bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code);
+      //add :e
+
+      //add by wangdonghui 20160225 [drop procedure] :b
+      int drop_procedure(bool if_exists, const common::ObString & proc_name);
+      //add :e
       int alter_table(const common::AlterTableSchema & alter_schema);
       int fetch_master_ups(const ObServer &rootserver, ObServer & master_ups);
     public:

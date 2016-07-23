@@ -195,7 +195,7 @@ namespace oceanbase
         // rpc_scan_ is the leaf operator
         if (OB_SUCCESS == ret && has_rpc_)
         {
-          child_op_ = &rpc_scan_;
+          child_op_ = &rpc_scan_; //bind the child_op_ to the member field, rpc_scan_
           child_op_->set_phy_plan(my_phy_plan_);
           if (ObSqlReadStrategy::USE_GET == read_method_
             && is_skip_empty_row_)
@@ -324,6 +324,12 @@ namespace oceanbase
       if (OB_UNLIKELY(NULL == child_op_))
       {
         ret = OB_NOT_INIT;
+        //add by zt 20160115:b to get a template row desc before rpc execution
+        if( my_phy_plan_->is_group_exec() )
+        {
+          ret = rpc_scan_.get_row_desc(row_desc);
+        }
+        //add by zt 20160115:e
       }
       else
       {

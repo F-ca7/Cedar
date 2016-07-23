@@ -173,6 +173,7 @@ int ObUpsExecutor::open()
     else
     {
       ret = local_result_.get_error_code();
+//      TBSYS_LOG(INFO, "test transid, start_trans[%d], trans_id[%s]", start_new_trans, to_cstring(local_result_.get_trans_id()));
       if (start_new_trans && local_result_.get_trans_id().is_valid())
       {
         FILL_TRACE_LOG("ups_err=%d ret_trans_id=%s", ret, to_cstring(local_result_.get_trans_id()));
@@ -338,6 +339,34 @@ int ObUpsExecutor::get_next_row(const common::ObRow *&row)
   }
   return ret;
 }
+
+//add zt 20151107:b
+int ObUpsExecutor::get_next_row_for_sp(const common::ObRow *&row, const ObRowDesc &fake_row_desc)
+{
+  int ret = OB_SUCCESS;
+//  OB_ASSERT(my_phy_plan_);
+  // for session stored physical plan, my_phy_plan_->get_result_set() is the result_set who stored the plan,
+  // since the two commands are in the same session, so we can get the real result_set from session.
+  // for global stored physical plan, new coppied plan has itsown my_phy_plan_, so both my_phy_plan_->get_result_set()
+  // and my_phy_plan_->get_result_set()->get_session()->get_current_result_set() are correct
+//  ObResultSet *my_result_set = my_phy_plan_->get_result_set()->get_session()->get_current_result_set();
+//  if (OB_UNLIKELY(!my_result_set->is_with_rows()))
+//  {
+//    ret = OB_NOT_SUPPORTED;
+//  }
+  if (OB_UNLIKELY(curr_row_.get_row_desc() == NULL))
+  {
+    curr_row_.set_row_desc(fake_row_desc);
+  }
+  if (ret == OB_SUCCESS
+    && (ret = local_result_.get_scanner().get_next_row(curr_row_)) == OB_SUCCESS)
+  {
+    row = &curr_row_;
+  }
+  return ret;
+}
+//add zt 20151107:e
+
 
 int ObUpsExecutor::make_fake_desc(const int64_t column_num)
 {

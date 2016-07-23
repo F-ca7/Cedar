@@ -50,6 +50,10 @@
 #include "ob_array.h"
 #include "ob_hint.h"
 
+//add by wangdonghui 20160308 :b
+#include "common/nb_accessor/nb_query_res.h"
+//add :e
+
 namespace oceanbase
 {
   namespace common
@@ -416,7 +420,15 @@ namespace oceanbase
         virtual int init(ObScanHelper* client_proxy, bool only_core_tables) = 0;
         virtual int get_table_schema(const ObString& table_name, TableSchema& table_schema) = 0;
         virtual int create_table(const TableSchema& table_schema) = 0;
+        //add by wangdonghui 20160125 :b
+        virtual int create_procedure(const common::ObString& proc_name, const common::ObString & proc_source_code) = 0;
+        virtual int get_procedure_info(common::nb_accessor::QueryRes *&res_) = 0;
+        //add :e
         virtual int drop_table(const ObString& table_name) = 0;
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        virtual int drop_procedure(const ObString& proc_name) = 0;
+        //add :e
         virtual int alter_table(const AlterTableSchema& table_schema, const int64_t old_schema_version) = 0;
         virtual int get_table_id(const ObString& table_name, uint64_t& table_id) = 0;
         virtual int get_table_name(uint64_t table_id, ObString& table_name) = 0;

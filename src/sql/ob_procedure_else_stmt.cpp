@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_else_stmt.cpp
-* @brief this class  present a procedure "if" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #include "ob_procedure_else_stmt.h"
 using namespace oceanbase::common;
 namespace oceanbase{
@@ -33,7 +17,7 @@ int ObProcedureElseStmt::add_else_stmt(uint64_t& stmt_id)
 	return else_stmts_.push_back(stmt_id);
 }
 
-ObArray<uint64_t> ObProcedureElseStmt::get_else_stmts()
+const ObArray<uint64_t> &ObProcedureElseStmt::get_else_stmts() const
 {
 	return else_stmts_;
 }

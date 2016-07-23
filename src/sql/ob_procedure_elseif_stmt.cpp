@@ -1,19 +1,3 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_elseif_stmt.cpp
-* @brief this class present a procedure "elseif" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #include "ob_procedure_elseif_stmt.h"
 using namespace oceanbase::common;
 namespace oceanbase{
@@ -41,12 +25,13 @@ int ObProcedureElseIfStmt::add_elseif_then_stmt(uint64_t& stmt_id)
 	return OB_SUCCESS;
 }
 
+/*else if表达的id*/
 uint64_t ObProcedureElseIfStmt::get_expr_id()
 {
 	return expr_id_;
 }
 
-ObArray<uint64_t> ObProcedureElseIfStmt::get_then_stmts()
+ObArray<uint64_t> ObProcedureElseIfStmt::get_then_stmts()/*else if then语句列表*/
 {
 	return elseif_then_stmts_;
 }

@@ -41,6 +41,17 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObExprValues class
+     * ObExprValues is used by ObIncScan and ObInsertDBSemFilter and ObUpsModify(Replace semantics)
+     * > ObIncScan, uses ObExprValues to get the rowkey info and store into the get_param.
+     *	When serialization, get_param (instead of the ObExprValues) would be serialize. Serialize get_param
+     *  is safe, since the rowkey info would not change over execution.
+     * > ObUpsModify, uses ObExprValues as a child, when serialization, ObExprValues would be direct serialized,
+     *   we should serialize the raw ObSqlExpression.
+     * > ObInsertDBSemFilter, uses ObExprValues as a subquery, when serialization, ObExprValues would be direct serialize,
+     *   we should serialize the raw ObSqlExpression
+     */
     class ObExprValues: public ObNoChildrenPhyOperator
     {
       public:
@@ -71,6 +82,13 @@ namespace oceanbase
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add by zt 20160119:b
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const;
+        int deserialize_template(const char *buf, const int64_t data_len, int64_t& pos);
+        int prepare_data();
+        int get_next_row_template(const common::ObRow *&row);
+        //add by zt 20160119:e
       private:
         // types and constants
       private:
@@ -89,6 +107,8 @@ namespace oceanbase
         bool from_deserialize_;
         bool check_rowkey_duplicat_;
         bool do_eval_when_serialize_;
+        bool group_exec_;
+        int64_t expr_idx_;
     };
   } // end namespace sql
 } // end namespace oceanbase

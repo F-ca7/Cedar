@@ -17,6 +17,10 @@
 #include "ob_ms_sql_scan_request.h"
 #include "ob_ms_sql_get_request.h"
 
+//add by wangdonghui [procedure physical plan cache] 20160229 :b
+#include "mergeserver/ob_physical_plan_cache_manager.h"
+//add :e
+
 namespace oceanbase
 {
   namespace mergeserver
@@ -94,6 +98,13 @@ namespace oceanbase
         {
           return bloom_filter_queue_thread_;
         }
+        //add by wangdonghui [procedure physical plan cache] 20160229 :b
+        inline mergeserver::ObProcedureManager & get_procedure_manager()
+        {
+          return procedure_manager_;
+        }
+
+        //add :e
 
       private:
         DISALLOW_COPY_AND_ASSIGN(ObMergeServer);
@@ -124,6 +135,10 @@ namespace oceanbase
         common::ObObjPool<mergeserver::ObMsSqlScanRequest> scan_req_pool_;
         common::ObObjPool<mergeserver::ObMsSqlGetRequest> get_req_pool_;
 
+
+        //add by wangdonghui 20160229 [procedure physical plan cache] :b
+        ObProcedureManager procedure_manager_;
+        //add :e
     };
   } /* mergeserver */
 } /* oceanbase */

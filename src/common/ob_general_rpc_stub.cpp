@@ -55,6 +55,10 @@
 #include "sql/ob_ups_result.h"
 #include "sql/ob_physical_plan.h"
 
+//add by wangdonghui 20160304 :b
+#include "common/ob_name_code_map.h"
+//add :e
+
 namespace oceanbase
 {
   namespace common
@@ -180,6 +184,15 @@ namespace oceanbase
           version, only_core_tables, schema);
     }
 
+    //add by wangdonghui 20160304 fetch procedure :b
+    int ObGeneralRpcStub::fetch_procedure(
+        const int64_t timeout, const ObServer & root_server,
+        common::ObNameCodeMap & namecodemap) const
+    {
+        return send_0_return_1(root_server, timeout, OB_FETCH_PROCEDURE, NEW_VERSION, namecodemap);
+    }
+
+    //add :e
     int ObGeneralRpcStub::fetch_tablet_location(
         const int64_t timeout, const ObServer & root_server,
         const uint64_t root_table_id, const uint64_t table_id,
@@ -258,6 +271,39 @@ namespace oceanbase
       return ret;
     }
 
+    //add by wangdonghui 20160121 :b
+    int ObGeneralRpcStub::create_procedure(const int64_t timeout, const common::ObServer & root_server,
+        bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ret = send_3_return_0(root_server, timeout, OB_CREATE_PROCEDURE, DEFAULT_VERSION,
+          result_code, if_not_exists, proc_name, proc_source_code);
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_2_return_0 failed ret[%d]", ret);
+        TBSYS_LOG(USER_ERROR, "%.*s", result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+    //add :e
+
+    //add by wangdonghui 20160225 [drop procedure] :b
+    int ObGeneralRpcStub::drop_procedure(const int64_t timeout, const common::ObServer & root_server,
+        bool if_exists, const common::ObString &proc_name) const
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ret = send_2_return_0(root_server, timeout, OB_DROP_PROCEDURE, DEFAULT_VERSION,
+          result_code, if_exists, proc_name);
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_2_return_0 failed: ret[%d]", ret);
+        TBSYS_LOG(USER_ERROR, "%.*s", result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+    //add :e
     int ObGeneralRpcStub::set_obi_role(const ObServer &rs, const int64_t timeout, const ObiRole &obi_role) const
     {
       int ret = OB_SUCCESS;

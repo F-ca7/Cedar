@@ -1,38 +1,26 @@
-/**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_create.h
-* @brief this class  present a procedure "create" physical plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version __DaSE_VERSION
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_CREATE_H
 #define OCEANBASE_SQL_OB_PROCEDURE_CREATE_H
 #include "sql/ob_single_child_phy_operator.h"
 #include "ob_sql_session_info.h"
 #include "common/dlist.h"
 
+//add by wangdonghui 20160119
+#include "sql/ob_sql_context.h"
+//add :e
+
 namespace oceanbase
 {
 	namespace sql
 	{
 		class ObPhysicalPlan;
-        /**
-         * @brief The ObProcedureCreate class
-         */
 		class ObProcedureCreate : public ObSingleChildPhyOperator
 		{
 		public:
 			ObProcedureCreate();
 			virtual ~ObProcedureCreate();
+            //add by wangdonghui 20160120 init :b
+            void set_sql_context(const ObSqlContext &context);
+            //add :e
 			virtual void reset();
 			virtual void reuse();
 			virtual int open();
@@ -45,19 +33,15 @@ namespace oceanbase
 			virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
 			virtual int get_next_row(const common::ObRow *&row);
 
-            /**
-             * @brief set procedur name
-             * @param proc_name
-             * @return
-             */
-            int set_proc_name(ObString &proc_name);
+			int set_proc_name(ObString &proc_name);/*设置存储过程名*/
+            //add by wangdonghui 20160121 :b
+            int set_proc_source_code(ObString &source_code);
+            //add :e
 
-            /**
-             * @brief set insert operator
-             * @param insert_op
-             * @return
-             */
-			int set_insert_op(ObPhyOperator &insert_op);
+            //delete by wangdonghui 20160128 :b
+            //int set_insert_op(ObPhyOperator &insert_op);
+            //delete :e
+
 		private:
 			//disallow copy
 			ObProcedureCreate(const ObProcedureCreate &other);
@@ -65,14 +49,21 @@ namespace oceanbase
 			//function members
 
 		private:
-            ObString proc_name_;///> procedure name
+			ObString proc_name_;
+            //add by wangdonghui :b
+            ObString proc_source_code_;
+            //add :e
 
-            ObPhyOperator *insert_op_;///>insert operator
+            //delete by wangdonghui we dont need this operation :b
+            //ObPhyOperator *insert_op_;
+            //delete :e
 
+        //add by wangdonghui 20160119 data members :b
+        private:
+            bool if_not_exists_;
+            ObSqlContext local_context_;
 		};
-
-
-
+        //add :e
 	}
 }
 

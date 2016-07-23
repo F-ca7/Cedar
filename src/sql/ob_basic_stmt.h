@@ -122,24 +122,26 @@ namespace oceanbase
         // add e
         //longfei [drop index]
         T_DROP_INDEX,
-        //add by zhujun:b
+		//add by zhujun:b
         //code_coverage_zhujun
-        T_PROCEDURE,
-        T_PROCEDURE_CREATE,
-        T_PROCEDURE_DROP,
-        T_PROCEDURE_DECLARE,
-        T_PROCEDURE_ASSGIN,
-        T_PROCEDURE_WHILE,
-        T_PROCEDURE_LOOP,
-        T_PROCEDURE_CASE,
-        T_PROCEDURE_CASEWHEN,
-        T_PROCEDURE_IF,
-        T_PROCEDURE_ELSEIF,
-        T_PROCEDURE_ELSE,
-        T_PROCEDURE_EXEC,
-        T_PROCEDURE_SELECT_INTO
-        //code_coverage_zhujun
-        //add:e
+		T_PROCEDURE,
+		T_PROCEDURE_CREATE,
+		T_PROCEDURE_DROP,
+		T_PROCEDURE_DECLARE,
+		T_PROCEDURE_ASSGIN,
+		T_PROCEDURE_WHILE,
+		T_PROCEDURE_LOOP,
+        T_PROCEDURE_EXIT,//add by wangdonghui
+		T_PROCEDURE_CASE,
+		T_PROCEDURE_CASEWHEN,
+		T_PROCEDURE_IF,
+		T_PROCEDURE_ELSEIF,
+		T_PROCEDURE_ELSE,
+		T_PROCEDURE_EXEC,
+    T_PROCEDURE_SELECT_INTO,
+    T_VARIABLE_SET_ARRAY_VALUE
+		//code_coverage_zhujun
+		//add:e
       };
 
       ObBasicStmt()

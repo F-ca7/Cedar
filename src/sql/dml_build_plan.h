@@ -113,5 +113,13 @@ extern int generate_inner_index_table_name(
     int64_t& str_len);
 // add e
 
+//add zt 20151207:b
+extern int resolve_array_expr(
+    ResultPlan * result_plan,
+    ParseNode* node,
+    ObString &array_name,
+    ObObj &idx_value);
+//add zt 20151207:e
+
 #endif //DML_BUILD_PLAN_H_
 

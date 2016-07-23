@@ -55,6 +55,11 @@ namespace oceanbase
         int init_sql_env(ObSqlContext &context, int64_t &schema_version,
                          ObSQLResultSet &result, ObSQLSessionInfo &session);
         int cleanup_sql_env(ObSqlContext &context, ObSQLResultSet &rs);
+
+        //add by zt 20160321
+        int init_sql_env_for_cache(ObSqlContext &context, int64_t &schema_version,
+                                   ObSQLResultSet &result, ObSQLSessionInfo &session);
+
       private:
         const ObMergeServerService *ms_service_;
         // environment virable

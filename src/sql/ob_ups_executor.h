@@ -55,6 +55,11 @@ namespace oceanbase
         virtual int64_t to_string(char* buf, const int64_t buf_len) const;
 
         virtual int get_next_row(const common::ObRow *&row);
+
+        //add zt 20151107:b
+        int get_next_row_for_sp(const common::ObRow *&row, const ObRowDesc &fake_row_desc);
+        //add zt 20151107:e
+
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const {UNUSED(row_desc); return common::OB_NOT_SUPPORTED;}
         virtual enum ObPhyOperatorType get_type() const {return PHY_UPS_EXECUTOR;};
         DECLARE_PHY_OPERATOR_ASSIGN;

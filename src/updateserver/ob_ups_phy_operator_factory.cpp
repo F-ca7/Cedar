@@ -16,7 +16,7 @@
 #include "ob_ups_inc_scan.h"
 #include "ob_memtable_modify.h"
 #include "ob_memtable_lock.h" // add wangjiahao [table lock] 20160616
-
+#include "ob_ups_procedure.h" //add zt 20151111
 #define new_operator(__type__, __allocator__, ...)      \
   ({                                                    \
     __type__ *ret = NULL;                               \
@@ -65,6 +65,11 @@ namespace oceanbase
             ret = new_operator(MemTableLock, allocator, *session_ctx_, *table_mgr_);
             break;
           //add :e
+		  //add zt 20151110:b
+          case PHY_PROCEDURE:
+            ret = new_operator(ObUpsProcedure, allocator, *session_ctx_);
+            break;
+            //add zt 20151110:e
           default:
             ret = ObPhyOperatorFactory::get_one(type, allocator);
             break;
