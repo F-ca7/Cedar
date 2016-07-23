@@ -1795,7 +1795,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      onev_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
