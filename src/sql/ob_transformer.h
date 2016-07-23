@@ -59,6 +59,8 @@
 #include "ob_update_stmt.h"
 //add e
 
+#include "sql/ob_procedure.h" //add by zhutao
+
 namespace oceanbase
 {
   namespace sql
@@ -114,61 +116,158 @@ namespace oceanbase
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_if(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_elseif(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
+      int32_t* index);
         int gen_physical_procedure_else(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_declare(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_assgin(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_while(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_case(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_casewhen(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
-        int gen_physical_procedure_select_into(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-			int32_t* index);
+      int32_t* index);
+
+
+        //add zt 20151207 : help function
+  int gen_physical_procedure_inst_var_set(
+                  SpVariableSet &var_set,
+                  const ObIArray<const ObRawExpr *> & raw_expr_list
+                  );
+  int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
+                  const ObSqlRawExpr *raw_expr);
+
+  int gen_physical_procedure_if(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+
+  int gen_physical_procedure_declare(
+                  ObLogicalPlan *logical_plan,
+                  //			ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op);
+  //			int32_t* index);
+  int gen_physical_procedure_assign(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_insert(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_replace(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_update(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  //add by wangdonghui 20160623 :b
+  int gen_physical_procedure_delete(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst
+          );
+  //add :e
+  int gen_physical_procedure_select_into(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_loop(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_inst(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_elseif(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure *proc_op,
+                  SpIfCtrlInsts *&elseif_ctrl,
+                  SpMultiInsts *mul_inst = NULL
+                  );
+  int gen_physical_procedure_case(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure* proc_op,
+                  SpMultiInsts* mul_inst =NULL);
+  int gen_physical_procedure_casewhen(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat& err_stat,
+                  const uint64_t& query_id,
+                  ObProcedure* proc_op,
+                  SpMultiInsts* mul_inst =NULL);
+
+  int gen_physical_set_array_value(
+                  ObLogicalPlan *logical_plan,
+                  ObPhysicalPlan *physical_plan,
+                  ErrStat &err_stat,
+                  const uint64_t &query_id,
+                  int32_t *index
+                  );
+
+
+  //add hjw 20151229:b
+  int gen_physical_procedure_while(
+         ObLogicalPlan *logical_plan,
+         ObPhysicalPlan *physical_plan,
+         ErrStat& err_stat,
+         const uint64_t& query_id,
+         ObProcedure *proc_op,
+         SpMultiInsts* mul_inst = NULL);
+  //add hjw 20151229:e
+
+  //add wdh 20160623 :b
+  int gen_physical_procedure_exit(
+         ObLogicalPlan *logical_plan,
+         ObPhysicalPlan *physical_plan,
+         ErrStat& err_stat,
+         const uint64_t& query_id,
+         ObProcedure *proc_op,
+         SpMultiInsts* mul_inst = NULL);
+  //add :e
+
         //code_coverage_zhujun
 		//add:e
         int generate_physical_plan(
