@@ -111,7 +111,6 @@ int ObProcedureExecute::open()
   }
   else{
     result_set->set_running_procedure(proc);
-    session->set_current_result_set(result_set);//copy procedure's ResultSet to call's ResultSet
   }
   if( OB_SUCCESS != (ret = proc->fill_parameters(param_list_)) )
   {
