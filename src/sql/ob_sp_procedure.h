@@ -5,10 +5,10 @@
 #include "ob_procedure_stmt.h"
 #include "ob_procedure_assgin_stmt.h"
 #include "ob_procedure_declare_stmt.h"
-#include "ob_procedure_assgin.h"
 #include "ob_physical_plan.h"
 #include "ob_raw_expr.h"
 #include "ob_procedure_static_data_mgr.h"
+#include "ob_sql_session_info.h"
 using namespace oceanbase::common;
 
 namespace oceanbase

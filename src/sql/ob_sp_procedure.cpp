@@ -2236,7 +2236,7 @@ int SpProcedure::read_variable(const ObString &array_name, int64_t idx_value, co
 
   if( my_phy_plan_->get_result_set() != NULL )
   {
-    if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->get_variable_value(array_name, idx_vaule, val)))
+    if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->get_session()->get_variable_value(array_name, idx_value, val)))
     {
       TBSYS_LOG(WARN, "failed to read array value");
     }

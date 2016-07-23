@@ -632,9 +632,6 @@ namespace oceanbase
     const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
 
-    //add zhujun [2015-6-1]
-    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
-    //add:e
 
     //modified by wangdonghui 20151223
     //add zhujun [2015-6-1]
