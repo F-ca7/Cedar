@@ -3100,8 +3100,8 @@ int resolve_procedure_select_into_stmt(
       {
         uint64_t sub_query_id = OB_INVALID_ID;
 
-        ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
-        int32_t expr_itr = logic_plan->get_raw_expr_count();
+//        ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
+//        int32_t expr_itr = logic_plan->get_raw_expr_count();
         if((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "resolve_select_stmt error");
@@ -3112,14 +3112,14 @@ int resolve_procedure_select_into_stmt(
         }
         else
         {
-          int32_t expr_new_itr = logic_plan->get_raw_expr_count();
-          ObSelectStmt* sel_stmt = (ObSelectStmt*) logic_plan->get_query(sub_query_id);
-          for(; expr_itr < expr_new_itr; ++expr_itr)
-          {
-            ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
-            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type || T_ARRAY == raw_type)
-            sel_stmt->add_raw_var_expr(logic_plan->get_raw_expr(expr_itr));
-          }
+//          int32_t expr_new_itr = logic_plan->get_raw_expr_count();
+//          ObSelectStmt* sel_stmt = (ObSelectStmt*) logic_plan->get_query(sub_query_id);
+//          for(; expr_itr < expr_new_itr; ++expr_itr)
+//          {
+//            ObItemType raw_type = logic_plan->get_raw_expr(expr_itr)->get_expr_type();
+//            if( T_SYSTEM_VARIABLE == raw_type || T_TEMP_VARIABLE == raw_type || T_ARRAY == raw_type)
+//            sel_stmt->add_raw_var_expr(logic_plan->get_raw_expr(expr_itr));
+//          }
         }
       }
     }

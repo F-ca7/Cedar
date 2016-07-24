@@ -256,6 +256,13 @@ ObTransformer::ObTransformer(ObSqlContext &context)
   OB_ASSERT(mem_pool_);
   sql_context_ = &context;
   group_agg_push_down_param_ = false;
+
+  //add by zhutao
+  compile_procedure_ = false;
+  rw_delta_inst_ = NULL;
+  rd_base_inst_ = NULL;
+  rd_all_inst_ = NULL;
+  //add :e
 }
 
 ObTransformer::~ObTransformer()
@@ -507,24 +514,6 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
         case ObBasicStmt::T_PROCEDURE:
           ret = gen_physical_procedure(logical_plan, physical_plan, err_stat, query_id, index);
           break;
-//        case ObBasicStmt::T_PROCEDURE_IF:
-//			ret=gen_physical_procedure_if(logical_plan, physical_plan, err_stat, query_id, index);
-//			break;
-//        case ObBasicStmt::T_PROCEDURE_DECLARE:
-//        	ret=gen_physical_procedure_declare(logical_plan, physical_plan, err_stat, query_id, index);
-//        		break;
-//        case ObBasicStmt::T_PROCEDURE_ASSGIN:
-//      ret=gen_physical_procedure_assgin(logical_plan, physical_plan, err_stat, query_id, index);
-//				break;
-//        case ObBasicStmt::T_PROCEDURE_WHILE:
-//          ret=gen_physical_procedure_while(logical_plan, physical_plan, err_stat, query_id, index);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_CASE:
-//          ret=gen_physical_procedure_case(logical_plan, physical_plan, err_stat, query_id, index);
-//          break;
-//        case ObBasicStmt::T_PROCEDURE_SELECT_INTO:
-//        	ret=gen_physical_procedure_select_into(logical_plan, physical_plan, err_stat, query_id, index);
-//        	break;
         //code_coverage_zhujun
 		//add:e
 //add wangjiahao [table lock] 20160616 :b
@@ -733,7 +722,10 @@ int ObTransformer::gen_physical_procedure(
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   ObProcedure*result_op = NULL;
   ObProcedureStmt *stmt = NULL;
-  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+  get_stmt(logical_plan, err_stat, query_id, stmt);
+
+  compile_procedure_ = true;
+
   if (ret == OB_SUCCESS)
   {
     CREATE_PHY_OPERRATOR(result_op, ObProcedure, physical_plan, err_stat);
@@ -987,7 +979,7 @@ int ObTransformer::gen_physical_procedure_drop(
 	int &ret = err_stat.err_code_ = OB_SUCCESS;
 	ObProcedureDrop*result_op = NULL;
 	ObProcedureDropStmt *stmt = NULL;
-	get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+  get_stmt(logical_plan, err_stat, query_id, stmt);//
 
 	if (ret == OB_SUCCESS)
 	{
@@ -1681,6 +1673,71 @@ int ObTransformer::gen_physical_procedure_assign(
 /**************************************************************************
  *         Procedure - SQL Proxy (select, insert, update, replace, delete)
  **************************************************************************/
+
+int ObTransformer::ext_var_info_where(const ObSqlRawExpr *raw_expr, bool is_rowkey)
+{
+  int ret = OB_SUCCESS;
+  if( compile_procedure_ )
+  {
+    if( rw_delta_inst_ != NULL )
+    {
+      //it will use all where expr to read row
+      gen_physical_procedure_inst_var_set(rw_delta_inst_->cons_read_var_set(), raw_expr);
+    }
+
+    if( rd_base_inst_ != NULL && is_rowkey)
+    {
+      //it will only use rowkey expr to read row
+      gen_physical_procedure_inst_var_set(rd_base_inst_->cons_read_var_set(), raw_expr);
+    }
+
+    if( rd_all_inst_ != NULL )
+    {
+      //it will use all where expr to read row
+      gen_physical_procedure_inst_var_set(rd_all_inst_->cons_read_var_set(), raw_expr);
+    }
+  }
+  return ret;
+}
+
+int ObTransformer::ext_var_info_project(const ObSqlRawExpr *raw_expr)
+{
+  int ret = OB_SUCCESS;
+  if( compile_procedure_ )
+  {
+    if( rw_delta_inst_ != NULL )
+    {
+      gen_physical_procedure_inst_var_set(rw_delta_inst_->cons_read_var_set(), raw_expr);
+    }
+
+    if( rd_all_inst_ != NULL )
+    {
+      gen_physical_procedure_inst_var_set(rd_all_inst_->cons_read_var_set(), raw_expr);
+    }
+  }
+  return ret;
+}
+
+int ObTransformer::ext_table_id(uint64_t table_id)
+{
+  int ret = OB_SUCCESS;
+  if( rw_delta_inst_ != NULL )
+  {
+    rw_delta_inst_->set_tid(table_id);
+  }
+
+  if( rd_base_inst_ != NULL )
+  {
+    rd_base_inst_->set_tid(table_id);
+  }
+
+  if ( rd_all_inst_ != NULL )
+  {
+    rd_all_inst_->set_tid(table_id);
+  }
+  return ret;
+}
+
 int ObTransformer::gen_physical_procedure_select_into(
       ObLogicalPlan *logical_plan,
       ObPhysicalPlan *physical_plan,
@@ -1701,9 +1758,10 @@ int ObTransformer::gen_physical_procedure_select_into(
     {}
     else if(sel_stmt->is_for_update())
     {
-      SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
-      SpRwDeltaIntoVarInst* rw_delta_into_var_inst = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
-      rd_base_inst->set_rw_id(rw_delta_into_var_inst->get_id());
+      rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+      rw_delta_inst_ = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
+      rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
+      SpRwDeltaIntoVarInst *rw_delta_into_var_inst = static_cast<SpRwDeltaIntoVarInst*>(rw_delta_inst_);
       for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
       {
         const SpRawVar &raw_var = stmt->get_variable(i);
@@ -1715,7 +1773,6 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
 
       //TODO proc-op
-//      if(OB_SUCCESS != (ret = gen_phy_select_for_update(logical_plan, physical_plan, err_stat, stmt->get_declare_id(), &idx, rd_base_inst, rw_delta_into_var_inst)))
       if(OB_SUCCESS != (ret = gen_phy_select_for_update(logical_plan, physical_plan, err_stat, stmt->get_declare_id(), &idx)))
       {
         TBSYS_LOG(WARN, "generate select into for update plan failed");
@@ -1733,25 +1790,27 @@ int ObTransformer::gen_physical_procedure_select_into(
           const ObPhyOperatorType type = aux_query->get_type();
           if( PHY_VALUES == type )
           {
-            rd_base_inst->set_rdbase_op(aux_query, idx);
+            rd_base_inst_->set_rdbase_op(aux_query, idx);
             break;
           }
         }
         rw_delta_into_var_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
         rw_delta_into_var_inst->set_ups_exec_op(ups_exec, idx);
       }
+      rd_base_inst_ = NULL;
+      rw_delta_inst_ = NULL;
     }
     else
     {
-      SpRwCompInst* rw_comp_inst = proc_op->create_inst<SpRwCompInst>(mul_inst);
+      rd_all_inst_ = proc_op->create_inst<SpRwCompInst>(mul_inst);
       if (OB_SUCCESS != (ret = gen_physical_select(logical_plan,physical_plan,err_stat,stmt->get_declare_id(),&idx)))
       {
         TBSYS_LOG(WARN, "generate select into plan failed");
       }
       else
       {
-        const ObIArray<const ObRawExpr*> &raw_var_expr = sel_stmt->get_raw_var_expr();
-        gen_physical_procedure_inst_var_set(rw_comp_inst->cons_read_var_set(), raw_var_expr);
+//        const ObIArray<const ObRawExpr*> &raw_var_expr = sel_stmt->get_raw_var_expr();
+//        gen_physical_procedure_inst_var_set(rd_all_inst_->cons_read_var_set(), raw_var_expr);
 
         for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
         {
@@ -1759,11 +1818,12 @@ int ObTransformer::gen_physical_procedure_select_into(
           SpVar var;
           ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
           ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
-          rw_comp_inst->add_assign_var(var);
+          rd_all_inst_->add_assign_var(var);
         }
-        rw_comp_inst->set_rwcomp_op(physical_plan->get_phy_query(idx), idx);
-        rw_comp_inst->set_tid(sel_stmt->get_table_item(0).table_id_);
+        rd_all_inst_->set_rwcomp_op(physical_plan->get_phy_query(idx), idx);
+        rd_all_inst_->set_tid(sel_stmt->get_table_item(0).table_id_);
       }
+      rd_all_inst_ = NULL;
     }
   }
   return ret;
@@ -1792,15 +1852,15 @@ int ObTransformer::gen_physical_procedure_insert(
   ObRowDescExt row_desc_ext;
   ObSEArray<int64_t , 64> row_desc_map;
   const ObRowkeyInfo *rowkey_info = NULL;
-  bool iskey;
   uint64_t column_id = OB_INVALID_ID, tid = OB_INVALID_ID;
+
+  rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+  rw_delta_inst_ = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
   if( OB_SUCCESS != (ret = gen_physical_insert_new(logical_plan, physical_plan, err_stat, query_id, &idx)) )
   {}
   else
   {
-    SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
-    SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-    rd_base_inst->set_rw_id(rw_delta_inst->get_id());
+    rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
     ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
 
     //set the read and write variables for each instruction
@@ -1823,14 +1883,7 @@ int ObTransformer::gen_physical_procedure_insert(
           if( OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)) ) {}
           else
           {
-            iskey = false;
-            if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
-
-            OB_ASSERT(NULL != value_expr);
-            ObSEArray<const ObRawExpr *, 4> raw_exprs;
-            value_expr->get_raw_var(raw_exprs);
-            if( iskey ) gen_physical_procedure_inst_var_set(rd_base_inst->cons_read_var_set(), raw_exprs);
-            gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), raw_exprs);
+            ext_var_info_where(value_expr, rowkey_info->is_rowkey_column());
           }
         }// end for
       }
@@ -1847,16 +1900,18 @@ int ObTransformer::gen_physical_procedure_insert(
       const ObPhyOperatorType type = aux_query->get_type();
       if( PHY_VALUES == type )
       {
-        rd_base_inst->set_rdbase_op(aux_query, idx);
+        rd_base_inst_->set_rdbase_op(aux_query, idx);
         break;
       }
     }
-    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
+    rw_delta_inst_->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst_->set_ups_exec_op(ups_exec, idx);
 
-    rd_base_inst->set_tid(insert_stmt->get_table_id());
-    rw_delta_inst->set_tid(insert_stmt->get_table_id());
+    rd_base_inst_->set_tid(insert_stmt->get_table_id());
+    rw_delta_inst_->set_tid(insert_stmt->get_table_id());
   }
+  rd_base_inst_ = NULL;
+  rw_delta_inst_ = NULL;
   return ret;
 }
 
@@ -1873,14 +1928,13 @@ int ObTransformer::gen_physical_procedure_replace(
   ObRowDescExt row_desc_ext;
   ObSEArray<int64_t , 64> row_desc_map;
   const ObRowkeyInfo *rowkey_info = NULL;
-  bool iskey;
   uint64_t column_id = OB_INVALID_ID, tid = OB_INVALID_ID;
-  if( OB_SUCCESS != (ret = gen_physical_replace(logical_plan, physical_plan, err_stat, query_id, &idx)) )
+
+  rw_delta_inst_ = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
+  if( OB_SUCCESS != (ret = gen_physical_replace_new(logical_plan, physical_plan, err_stat, query_id, &idx)) )
   {}
   else
   {
-    SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-
     ObInsertStmt* insert_stmt = (ObInsertStmt*)logical_plan->get_query(query_id);
 
     //set the read and write variables for each instruction
@@ -1903,11 +1957,7 @@ int ObTransformer::gen_physical_procedure_replace(
           if( OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)) ) {}
           else
           {
-            iskey = false;
-            if( rowkey_info->is_rowkey_column(column_id) ) iskey = true;
-
-            OB_ASSERT(NULL != value_expr);
-            gen_physical_procedure_inst_var_set(rw_delta_inst->cons_read_var_set(), value_expr);
+            ext_var_info_where(value_expr, rowkey_info->is_rowkey_column(column_id));
           }
         }// end for
       }
@@ -1916,11 +1966,11 @@ int ObTransformer::gen_physical_procedure_replace(
     OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
     ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
-    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
-
-    rw_delta_inst->set_tid(insert_stmt->get_table_id());
+    rw_delta_inst_->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst_->set_ups_exec_op(ups_exec, idx);
+    rw_delta_inst_->set_tid(insert_stmt->get_table_id());
   }
+  rw_delta_inst_ = NULL;
   return ret;
 }
 
@@ -1936,34 +1986,19 @@ int ObTransformer::gen_physical_procedure_update(
   //filter expr, set expr
   //we do not consider the when expr here
 
-  SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
-  SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-  rd_base_inst->set_rw_id(rw_delta_inst->get_id());
+  rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+  rw_delta_inst_ = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
+  rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
 
   //TODO proc-op
-//  if(OB_SUCCESS != (ret = gen_physical_update_new(logical_plan, physical_plan, err_stat, query_id, &idx, rd_base_inst, rw_delta_inst)))
   if( OB_SUCCESS != (ret = gen_physical_update_new(logical_plan, physical_plan, err_stat, query_id, &idx)))
   {}
   else
   {
-    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
-    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
-
-    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
-    OB_ASSERT(inner_plan->get_query_size() == 3);
-    for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
-    {
-      ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
-      const ObPhyOperatorType type = aux_query->get_type();
-      if( PHY_VALUES == type )
-      {
-        rd_base_inst->set_rdbase_op(aux_query, idx);
-        break;
-      }
-    }
-    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
+    rw_delta_inst_->set_ups_exec_op(physical_plan->get_phy_query(idx), idx);
   }
+  rw_delta_inst_ = NULL;
+  rd_base_inst_ = NULL;
   return ret;
 }
 //code_coverage_zhujun
@@ -1981,13 +2016,11 @@ int ObTransformer::gen_physical_procedure_delete(
   int32_t idx;
   //filter expr, set expr
   //we do not consider the when expr here
-
-  SpRdBaseInst* rd_base_inst = proc_op->create_inst<SpRdBaseInst>(mul_inst);
-  SpRwDeltaInst* rw_delta_inst = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
-  rd_base_inst->set_rw_id(rw_delta_inst->get_id());
+  rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+  rw_delta_inst_ = proc_op->create_inst<SpRwDeltaInst>(mul_inst);
+  rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
 
   //TODO proc-op
-//  if(OB_SUCCESS != (ret = gen_physical_delete_new(logical_plan, physical_plan, err_stat, query_id, &idx, rd_base_inst, rw_delta_inst)))
   if(OB_SUCCESS != (ret = gen_physical_delete_new(logical_plan, physical_plan, err_stat, query_id, &idx)))
   {}
   else
@@ -2003,13 +2036,15 @@ int ObTransformer::gen_physical_procedure_delete(
       const ObPhyOperatorType type = aux_query->get_type();
       if( PHY_VALUES == type )
       {
-        rd_base_inst->set_rdbase_op(aux_query, idx);
+        rd_base_inst_->set_rdbase_op(aux_query, idx);
         break;
       }
     }
-    rw_delta_inst->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
-    rw_delta_inst->set_ups_exec_op(ups_exec, idx);
+    rw_delta_inst_->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst_->set_ups_exec_op(ups_exec, idx);
   }
+  rd_base_inst_ = NULL;
+  rw_delta_inst_ = NULL;
   return ret;
 }
 //add:e
@@ -2362,6 +2397,10 @@ int ObTransformer::gen_physical_select(
             }
           }
           select_expr->set_columnlized(true);
+
+          //add by zhutao
+          ext_var_info_project(select_expr);
+          //add :e
         }
         if (ret == OB_SUCCESS)
           result_op = project_op;
@@ -3727,6 +3766,10 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
       TRANS_LOG("Add condition to internal list failed");
       break;
     }
+
+    //add by zhutao
+    ext_var_info_where(where_expr, false);
+    //add :e
   }
 
   return ret;
@@ -9893,6 +9936,16 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
       TRANS_LOG("Failed to add base tables version, err=%d", ret);
     }
   }
+
+  //add by zhutao
+  if( ret == OB_SUCCESS )
+  { //current we donot support index modification under procedure
+    if( need_modify_index_flag && compile_procedure_ )
+    {
+      ret = OB_NOT_SUPPORTED;
+    }
+  }
+  //add :e
   return ret;
 }
 
@@ -11148,7 +11201,7 @@ int ObTransformer::gen_phy_table_for_update_more(
                && (T_OP_EQ == cond_op || T_OP_IS == cond_op)
                && rowkey_info.is_rowkey_column(cid))
       {
-	is_rowkey_simple_filter[i] = true;
+        is_rowkey_simple_filter[i] = true;
         if (OB_SUCCESS != (ret = rowkey_col_map.add_column_desc(OB_INVALID_ID, cid)))
         {
           TRANS_LOG("Failed to add column desc, err=%d", ret);
@@ -11190,6 +11243,9 @@ int ObTransformer::gen_phy_table_for_update_more(
         break;
       }
 
+      //add by zhutao
+      ext_var_info_where(cnd_expr, is_rowkey_simple_filter[i]);
+      //add :e
     } // end for
 
     //set full_rowkey_col true if all rowkey is appear
@@ -11400,6 +11456,16 @@ int ObTransformer::gen_phy_table_for_update_more(
       table_op = fuse_op;
     }
   }
+
+  //add  by zhutao
+  if( compile_procedure_ )
+  {
+    if( !full_rowkey_col )
+      ret = OB_NOT_SUPPORTED;
+    else
+      ext_table_id(table_id);
+  }
+  //add e
   return ret;
 }
 //add :e
@@ -11594,6 +11660,14 @@ int ObTransformer::gen_physical_update_new(
     table_id = update_stmt->get_update_table_id();
     ups_modify->set_dml_type(OB_DML_UPDATE);
     ups_modify->set_table_id(table_id); //add wangjiahao [table lock] 20160616
+    
+    //add zt 20151105 [procedure compilation] :b
+
+    if( compile_procedure_ && NULL != rw_delta_inst_ )
+    {
+      rw_delta_inst_->set_rwdelta_op(ups_modify);
+    }
+    //add zt 20151105:e
   }
   ObSqlExpression expr;
   // fill rowkey columns into the Project op
@@ -11697,6 +11771,11 @@ int ObTransformer::gen_physical_update_new(
           break;
         }
       }
+	  
+      //add zt 20151105 : b
+      ext_var_info_project(raw_expr);
+      //add zt 20151105 : e
+
       //add maoxx
       if(OB_LIKELY(OB_SUCCESS == ret))
       {
@@ -12039,6 +12118,7 @@ int ObTransformer::gen_physical_update_new(
     }
     //modify e
   }
+
   if (ret == OB_SUCCESS)
   {
     if ((ret = merge_tables_version(*physical_plan, *inner_plan)) != OB_SUCCESS)
@@ -12046,6 +12126,16 @@ int ObTransformer::gen_physical_update_new(
       TRANS_LOG("Failed to add base tables version, err=%d", ret);
     }
   }
+
+  //add by zhutao
+  if( compile_procedure_ )
+  {
+    if( column_hit_index_flag && ret = OB_SUCCESS )
+    {
+      ret = OB_NOT_SUPPORTED;
+    }
+  }
+  //add:e
   return ret;
 }
 
@@ -12305,6 +12395,14 @@ int ObTransformer::gen_physical_delete_new(
     if ((ret = merge_tables_version(*physical_plan, *inner_plan)) != OB_SUCCESS)
     {
       TRANS_LOG("Failed to add base tables version, err=%d", ret);
+    }
+  }
+
+  if( compile_procedure_ )
+  {
+    if( need_modify_index_flag  && OB_SUCCESS == ret )
+    {
+      ret = OB_NOT_SUPPORTED;
     }
   }
   return ret;
@@ -12771,6 +12869,14 @@ int ObTransformer::gen_physical_replace_new(
       }
     }
   }
+
+  //add by zhutao
+  if( compile_procedure_ )
+  {
+    if( need_modify_index_flag )
+      ret = OB_NOT_SUPPORTED;
+  }
+  //add :e
   return ret;
 }
 //add e
@@ -13173,6 +13279,10 @@ int ObTransformer::gen_phy_select_for_update(
     {
       TRANS_LOG("Add output column to project operator faild");
     }
+
+    //add by zhutao
+    ext_var_info_project(expr);
+    //add :e
   }
   // generate physical plan for order by
   if (ret == OB_SUCCESS && select_stmt->get_order_item_size() > 0)
