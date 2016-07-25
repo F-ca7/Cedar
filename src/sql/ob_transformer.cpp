@@ -1028,7 +1028,7 @@ int ObTransformer::gen_physical_procedure_execute(
     }
     else
     {
-      TBSYS_LOG(DEBUG, "call procedure with no_group is %d", result_op->get_no_group());//add by wdh 20160718
+      TBSYS_LOG(TRACE, "call procedure with no_group is %d", result_op->get_no_group());//add by wdh 20160718
       ObSQLSessionInfo *session_info = NULL;
       if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
       {
@@ -1058,7 +1058,7 @@ int ObTransformer::gen_physical_procedure_execute(
         if( need_compile)
         {
           if (OB_SUCCESS != (ret = sql_context_->merge_service_->get_merge_server()->
-                             get_procedure_manager().get_procedure_lazy(stmt->get_proc_name(), *sql_context_, stmt_id)))
+                             get_procedure_manager().get_procedure_lazy(stmt->get_proc_name(), *sql_context_, stmt_id, stmt->get_no_group())) )
           {
             TBSYS_LOG(WARN, "failed to execute proc[%.*s], ret=%d", stmt->get_proc_name().length(), stmt->get_proc_name().ptr(), ret);
           }

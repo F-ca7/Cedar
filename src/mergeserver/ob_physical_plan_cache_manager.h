@@ -66,7 +66,7 @@ namespace oceanbase
        * @param stmt_id
        * @return
        */
-      int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group = false);
+      int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group);
 
       bool is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group) const;
 

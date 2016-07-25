@@ -1121,6 +1121,7 @@ namespace oceanbase
                     //add by wangdonghui 20160304 :b
                     case OB_FETCH_PROCEDURE:
                       return_code = rt_fetch_procedure(version, *in_buf, req, channel_id, thread_buff);
+                      break;
                     //add :e
                     case OB_FETCH_SCHEMA_VERSION:
                       return_code = rt_fetch_schema_version(version, *in_buf, req, channel_id, thread_buff);

@@ -339,7 +339,7 @@ extern int yylex \
 #undef YY_DECL
 #endif
 
-#line 795 "sql_parser.l"
+#line 798 "sql_parser.l"
 
 
 #line 346 "sql_parser.lex.h"

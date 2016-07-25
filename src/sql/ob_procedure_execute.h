@@ -47,11 +47,11 @@ namespace oceanbase
 			//function members
 
 		private:
-			//data members
-            ObString proc_name_;
-			common::ObArray<ObSqlExpression> param_list_;
-            uint64_t stmt_id_;
-            bool no_group_;//add by wdh 20160718
+      //data members
+      ObString proc_name_;
+      common::ObArray<ObSqlExpression> param_list_;
+      uint64_t stmt_id_;
+      bool no_group_;//add by wdh 20160718
 		};
 	}
 }
