@@ -157,6 +157,8 @@ namespace oceanbase
         const SpProcedure* get_running_procedure() const{ return proc_; }
         int64_t get_stmt_hash() const { return stmt_hash_code_; }
         void set_stmt_hash(int64_t hc) { stmt_hash_code_ = hc; }
+        void set_no_group(bool no_group) { no_group_ = no_group; }
+        bool get_no_group() const { return no_group_; }
         //add zt 20151201:e
       private:
         // types and constants
@@ -204,6 +206,7 @@ namespace oceanbase
          */
         SpProcedure *proc_; //add zt: 20151201
         int64_t stmt_hash_code_;
+        bool no_group_;
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const

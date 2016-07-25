@@ -690,7 +690,7 @@ int ObTransformer::gen_physical_procedure(
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   ObProcedure*result_op = NULL;
   ObProcedureStmt *stmt = NULL;
-  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+  get_stmt(logical_plan, err_stat, query_id, stmt);
   if (ret == OB_SUCCESS)
   {
     CREATE_PHY_OPERRATOR(result_op, ObProcedure, physical_plan, err_stat);
@@ -707,7 +707,7 @@ int ObTransformer::gen_physical_procedure(
     }
     else
     {
-      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);// ???
+      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);
       for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
       {
         ObParamDef def = stmt->get_param(i);
@@ -747,16 +747,6 @@ int ObTransformer::gen_physical_procedure(
       if( OB_SUCCESS != ret ) {}
       else if( OB_SUCCESS != (ret = result_op->check_semantics()) )
       {}
-      else
-      {
-        char buf[4096];
-        result_op->SpProcedure::to_string(buf, 4096);
-        ObProcedureOptimizer::optimize(*result_op);
-        //      result_op->optimize();
-
-        TBSYS_LOG(INFO, "Procedure Compile: \n%s", buf);
-        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
-      }
     }
   }
   return ret;
@@ -906,7 +896,7 @@ int ObTransformer::gen_physical_procedure_create(
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   ObProcedureCreate*result_op = NULL;
   ObProcedureCreateStmt *stmt = NULL;
-  get_stmt(logical_plan, err_stat, query_id, stmt);//拿到整个Stmt语句和逻辑执行计划树
+  get_stmt(logical_plan, err_stat, query_id, stmt);
   //add execute insert operator
   if (ret == OB_SUCCESS)
   {
@@ -933,7 +923,6 @@ int ObTransformer::gen_physical_procedure_create(
     //add :e
     else
     {
-      /*重新生成一个操作符*/
       int32_t idx = OB_INVALID_INDEX;
       ObPhyOperator* proc_op = NULL;
       //generate the physical plan for the procedure block
@@ -946,25 +935,12 @@ int ObTransformer::gen_physical_procedure_create(
         ret = OB_ERR_ILLEGAL_INDEX;
         TBSYS_LOG(WARN,"add proc_op into proc_create fail");
       }
-
-      //delete by wangdonghui 20160128 :b
-//      else
-//      {
-//        /*生成存储过程插入数据表的insert操作符*/
-//        int32_t insert_idx = OB_INVALID_INDEX;
-//        ObPhyOperator* insert_op = NULL;
-//        /*这里应该过滤一些类型的语句*/
-//        if ((ret = gen_physical_insert_new(logical_plan,physical_plan,err_stat,stmt->get_proc_insert_id(),&insert_idx)) != OB_SUCCESS)
-//        {
-//          TBSYS_LOG(WARN, "generate proc save plan fail");
-//        }
-//        else if ((insert_op = physical_plan->get_phy_query(insert_idx)) == NULL|| (ret = result_op->set_insert_op(*insert_op)) != OB_SUCCESS)
-//        {
-//          ret = OB_ERR_ILLEGAL_INDEX;
-//          TBSYS_LOG(WARN,"add proc_save_op into proc_create fail");
-//        }
-//      }
-      //delete :e
+      else
+      {
+        //show compile result
+        ObProcedureOptimizer::optimize(static_cast<ObProcedure&>(*proc_op), false);
+        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
+      }
     }
   }
   return ret;
@@ -1052,7 +1028,7 @@ int ObTransformer::gen_physical_procedure_execute(
     }
     else
     {
-      TBSYS_LOG(DEBUG, "www: no_group is %d", result_op->get_no_group());//add by wdh 20160718
+      TBSYS_LOG(DEBUG, "call procedure with no_group is %d", result_op->get_no_group());//add by wdh 20160718
       ObSQLSessionInfo *session_info = NULL;
       if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
       {
@@ -1067,9 +1043,11 @@ int ObTransformer::gen_physical_procedure_execute(
 
         if( !need_compile )
         {
-          if (!(sql_context_->merge_service_->get_merge_server()->
-                get_procedure_manager().is_consisitent(
-                  stmt->get_proc_name(), session_info->get_plan(stmt_id)->get_stmt_hash())))
+          if (!(sql_context_->merge_service_->get_merge_server()->get_procedure_manager().is_consisitent(
+                  stmt->get_proc_name(),
+                  *(session_info->get_plan(stmt_id)),
+                  stmt->get_no_group()))
+              )
           {
             TBSYS_LOG(WARN, "detected inconsistency plan for [%.*s]", stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
             session_info->remove_plan(stmt_id); //expired

@@ -407,7 +407,7 @@ int ObProcedureOptimizer::bank_optimize(ObProcedure &proc)
   else return OB_NOT_SUPPORTED;
 }
 
-int ObProcedureOptimizer::optimize(ObProcedure &proc)
+int ObProcedureOptimizer::optimize(ObProcedure &proc, bool no_group)
 {
   int ret = OB_SUCCESS;
 
@@ -416,7 +416,14 @@ int ObProcedureOptimizer::optimize(ObProcedure &proc)
 //    TBSYS_LOG(INFO, "[%.*s] use special optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
 //  }
 //  else
-  if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
+  if( no_group )
+  {
+    if( OB_SUCCESS == (ret = no_optimize(proc)))
+    {
+      TBSYS_LOG(INFO, "[%.*s] use no optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
+    }
+  }
+  else if( OB_SUCCESS == (ret = rule_based_optimize(proc)) )
   {
     TBSYS_LOG(INFO, "[%.*s] use general optimization", proc.get_proc_name().length(), proc.get_proc_name().ptr());
   }
@@ -487,6 +494,18 @@ int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
   }
 
   group(proc, expand_list);
+  return OB_SUCCESS;
+}
+
+int ObProcedureOptimizer::no_optimize(ObProcedure &proc)
+{
+  PREP_PROC(proc);
+  UNUSED(proc_name);
+
+  for(int64_t i = 0; i < inst_list.count(); ++i)
+  {
+    exec_list.push_back(inst_list.at(i));
+  }
   return OB_SUCCESS;
 }
 
