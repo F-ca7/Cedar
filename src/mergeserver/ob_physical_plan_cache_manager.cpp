@@ -4,13 +4,14 @@
 #include "common/hash/ob_hashutils.h"
 #include "common/ob_rpc_stub.h"
 #include "ob_merge_server.h"
-#include "ob_procedure_optimizer.h"
+#include "sql/ob_procedure_optimizer.h"
 #define NAME_CACHE_MAP_BUCKET_NUM 100
 #define THREAD_SLEEP_UTIME 1000000
 
 #define LAZY_COMPILE
 
 using namespace oceanbase::mergeserver;
+using namespace oceanbase::sql;
 ObProcedureManager::ObProcedureManager() : has_init_(false)
 {
 }
@@ -116,7 +117,7 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
 {
   int ret = OB_SUCCESS;
   ObSQLResultSet proc_result_set;
-  ObProcedure *proc;
+  sql::ObProcedure *proc;
   const ObString * psource_code = name_code_map_.get_source_code(proc_name);
   if( psource_code == NULL )
   {
@@ -142,6 +143,10 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
     }
     else if( OB_SUCCESS != (ret = ObProcedureOptimizer::optimize(*proc, no_group)))
     {
+      TBSYS_LOG(WARN, "failed to optimize procedure, no_group[%d]", no_group);
+    }
+    else
+    {
       //set cache state
       proc_result_set.get_result_set().set_no_group(no_group);
       proc_result_set.get_result_set().set_stmt_hash(name_code_map_.get_hkey(proc_name));
@@ -157,7 +162,9 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
       else
       {
         TBSYS_LOG(INFO, "compile [%.*s], indexed with [%ld]", proc_name.length(), proc_name.ptr(), stmt_id);
+        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*proc));
       }
+
     }
     context.is_prepare_protocol_ = false;
   }
@@ -281,7 +288,7 @@ int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlConte
     ret = OB_ERR_SP_DOES_NOT_EXIST;
     TBSYS_LOG(WARN, "procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
   }
-  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id)) )
+  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id, no_group)) )
   {
     TBSYS_LOG(WARN, "failed to compile proc[%.*s]", proc_name.length(), proc_name.ptr());
   }

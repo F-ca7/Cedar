@@ -103,7 +103,7 @@ int ObProcedureExecute::open()
       ||  (proc = dynamic_cast<ObProcedure*>(physical_plan->get_main_query())) == NULL)
   {
     ret = OB_NOT_INIT;
-    TBSYS_LOG(ERROR, "Find stored procedure plan failed");
+    TBSYS_LOG(ERROR, "Find stored procedure plan failed, stmt_id_: %ld", stmt_id_);
   }
   else if (OB_SUCCESS != (ret = set_child(0, *proc)) )
   {
@@ -114,7 +114,8 @@ int ObProcedureExecute::open()
 
     session->set_current_result_set(result_set); 
   }
-  if( OB_SUCCESS != (ret = proc->fill_parameters(param_list_)) )
+  if ( OB_SUCCESS != ret ) {}
+  else if( OB_SUCCESS != (ret = proc->fill_parameters(param_list_)) )
   {
     TBSYS_LOG(WARN, "fill paramters fail");
   }
