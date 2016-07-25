@@ -1883,7 +1883,7 @@ int ObTransformer::gen_physical_procedure_insert(
           if( OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)) ) {}
           else
           {
-            ext_var_info_where(value_expr, rowkey_info->is_rowkey_column());
+            ext_var_info_where(value_expr, rowkey_info->is_rowkey_column(column_id));
           }
         }// end for
       }
@@ -12130,7 +12130,7 @@ int ObTransformer::gen_physical_update_new(
   //add by zhutao
   if( compile_procedure_ )
   {
-    if( column_hit_index_flag && ret = OB_SUCCESS )
+    if( column_hit_index_flag && OB_SUCCESS  == ret )
     {
       ret = OB_NOT_SUPPORTED;
     }
