@@ -70,12 +70,13 @@ namespace oceanbase
       public:
         ObProcedureOptimizer();
 
-        static int optimize(ObProcedure &proc);
+        static int optimize(ObProcedure &proc, bool no_group);
 
       private:
 
         static int rule_based_optimize(ObProcedure &proc);
         static int specialize_optimize(ObProcedure &proc);
+        static int no_optimize(ObProcedure &proc);
 
         static int tpcc_optimize(ObProcedure &proc);
         static int tatp_optimize(ObProcedure &proc);

@@ -742,7 +742,7 @@ int ObTransformer::gen_physical_procedure(
     }
     else
     {
-      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);// ???
+      result_op->set_rpc_stub(sql_context_->merger_rpc_proxy_);
       for(int64_t i=0;ret==OB_SUCCESS&&i<stmt->get_param_size();++i)
       {
         ObParamDef def = stmt->get_param(i);
@@ -769,16 +769,6 @@ int ObTransformer::gen_physical_procedure(
       if( OB_SUCCESS != ret ) {}
       else if( OB_SUCCESS != (ret = result_op->check_semantics()) )
       {}
-      else
-      {
-        char buf[4096];
-        result_op->SpProcedure::to_string(buf, 4096);
-        ObProcedureOptimizer::optimize(*result_op);
-        //      result_op->optimize();
-
-        TBSYS_LOG(INFO, "Procedure Compile: \n%s", buf);
-        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
-      }
     }
   }
   return ret;
@@ -964,6 +954,12 @@ int ObTransformer::gen_physical_procedure_create(
         ret = OB_ERR_ILLEGAL_INDEX;
         TBSYS_LOG(WARN,"add proc_op into proc_create fail");
       }
+      else
+      {
+        //show compile result
+        ObProcedureOptimizer::optimize(static_cast<ObProcedure&>(*proc_op), false);
+        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*result_op));
+      }
     }
   }
   return ret;
@@ -1032,7 +1028,7 @@ int ObTransformer::gen_physical_procedure_execute(
     }
     else
     {
-      TBSYS_LOG(DEBUG, "www: no_group is %d", result_op->get_no_group());//add by wdh 20160718
+      TBSYS_LOG(DEBUG, "call procedure with no_group is %d", result_op->get_no_group());//add by wdh 20160718
       ObSQLSessionInfo *session_info = NULL;
       if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
       {
@@ -1047,9 +1043,11 @@ int ObTransformer::gen_physical_procedure_execute(
 
         if( !need_compile )
         {
-          if (!(sql_context_->merge_service_->get_merge_server()->
-                get_procedure_manager().is_consisitent(
-                  stmt->get_proc_name(), session_info->get_plan(stmt_id)->get_stmt_hash())))
+          if (!(sql_context_->merge_service_->get_merge_server()->get_procedure_manager().is_consisitent(
+                  stmt->get_proc_name(),
+                  *(session_info->get_plan(stmt_id)),
+                  stmt->get_no_group()))
+              )
           {
             TBSYS_LOG(WARN, "detected inconsistency plan for [%.*s]", stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
             session_info->remove_plan(stmt_id); //expired
