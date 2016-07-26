@@ -128,8 +128,9 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
   {
     const ObString &proc_source_code = *psource_code;
 
-    context.transformer_allocator_ = context.session_info_->get_transformer_mem_pool_for_ps();
-
+    ObArenaAllocator* allocator = context.session_info_->get_transformer_mem_pool_for_ps();
+    context.transformer_allocator_ = allocator;
+    proc_result_set.get_result_set().set_ps_transformer_allocator(allocator);
     context.is_prepare_protocol_ = true;
     if( OB_SUCCESS != (ret = mergeserver_service_->get_sql_proxy_().execute(proc_source_code, proc_result_set, context, 0)) )
     {

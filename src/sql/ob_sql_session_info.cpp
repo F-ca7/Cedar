@@ -136,6 +136,7 @@ void ObSQLSessionInfo::destroy()
     }
     else
     {
+      TBSYS_LOG(INFO, "destory stmtid: %ld", iter->first);
       result_set_pool_.free(result_set);
       id_plan_map_.erase(iter->first);
     }
