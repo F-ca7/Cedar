@@ -123,6 +123,20 @@ bool SpVarInfo::conflict(const SpVarInfo &a, const SpVarInfo &b)
   return ret;
 }
 
+bool SpVarInfo::compare(const SpVarInfo &other) const
+{
+  bool ret = false;
+  if( var_type_ == other.var_type_ )
+  {
+    if( var_type_ == VM_DB_TAB ) ret = (idx_value_ == other.idx_value_);
+    else
+    {
+      ret = (var_name_.compare(other.var_name_) == 0 );
+    }
+  }
+  return ret;
+}
+
 int SpVariableSet::add_tmp_var(const ObString &var_name)
 {
   return add_var_info(SpVarInfo(var_name));
@@ -170,7 +184,7 @@ int SpVariableSet::add_var_info(const SpVarInfo &var_info)
   for(int64_t i = 0; i < var_info_set_.count() && !flag; ++i)
   {
     const SpVarInfo &info = var_info_set_.at(i);
-    flag = SpVarInfo::conflict(var_info, info);
+    flag = var_info.compare(info);
   }
   if( !flag ) ret = var_info_set_.push_back(var_info);
   return ret;
@@ -2291,7 +2305,16 @@ int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   int ret = OB_SUCCESS;
 
   const ObObj *idx;
-  if( OB_SUCCESS != (ret = read_variable(array_name, idx)))
+
+  if( my_phy_plan_->get_result_set() != NULL )
+  {
+    if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                       get_session()->get_variable_array_size(array_name, size)))
+    {
+      TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+    }
+  }
+  else if( OB_SUCCESS != (ret = read_variable(array_name, idx)))
   {
     TBSYS_LOG(WARN, "fail to read array idx");
   }
