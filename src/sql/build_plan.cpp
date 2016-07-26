@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,7 +15,9 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_24
  */
  
 #include "sql_parser.tab.h"
@@ -1912,6 +1914,14 @@ int resolve_variable_set_stmt(
 }
 
 //add zt 20151202:b
+/**
+ * @brief resolve_variable_set_array_stmt
+ * parse procedure's variable_set_array statement syntax tree and create ObVariableSetArrayValueStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of variable_set_array statement syntax tree
+ * @param query_id is variable_set_array_stmt's id
+ * @return error code
+ */
 int resolve_variable_set_array_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &query_id)
 {
   OB_ASSERT(result_plan);
@@ -2343,6 +2353,14 @@ int resolve_kill_stmt(
 	return ret;
 }
 //zhounan unmark:b
+/**
+ * @brief resolve_cursor_declare_stmt
+ * parse procedure's cursor_declare statement syntax tree and create ObCursorDeclareStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_declare statement syntax tree
+ * @param query_id is cursor_declare_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_declare_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2382,6 +2400,14 @@ int resolve_cursor_declare_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_open_stmt
+ * parse procedure's cursor_open statement syntax tree and create ObCursorOpenStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_open statement syntax tree
+ * @param query_id is cursor_open_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_open_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2412,7 +2438,14 @@ int resolve_cursor_open_stmt(
   }
   return ret;
 }
-
+/**
+ * @brief resolve_cursor_fetch_stmt
+ * parse procedure's cursor_fetch statement syntax tree and create ObCursorFetchStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch statement syntax tree
+ * @param query_id is cursor_fetch_stmt's id
+ * @return
+ */
 int resolve_cursor_fetch_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2445,7 +2478,14 @@ int resolve_cursor_fetch_stmt(
   return ret;
 }
 
-
+/**
+ * @brief resolve_cursor_fetch_first_into_stmt
+ * parse procedure's cursor_fetch_first_into statement syntax tree and create ObCursorFetchFirstIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_first_into statement syntax tree
+ * @param query_id is cursor_fetch_first_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_first_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2502,7 +2542,14 @@ int resolve_cursor_fetch_first_into_stmt(
   return ret;
 }
 
-
+/**
+ * @brief resolve_cursor_fetch_into_stmt
+ * parse procedure's cursor_fetch_into statement syntax tree and create ObCursorFetchIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_into statement syntax tree
+ * @param query_id is cursor_fetch_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2559,6 +2606,14 @@ int resolve_cursor_fetch_into_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_prior_stmt
+ * parse procedure's cursor_fetch_into statement syntax tree and create ObFetchPriorStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_prior statement syntax tree
+ * @param query_id is cursor_fetch_into_stmt's id
+ * @return error code
+ */
 int resolve_cursor_fetch_prior_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2591,6 +2646,14 @@ int resolve_cursor_fetch_prior_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_prior_into_stmt
+ * parse procedure's cursor_fetch_prior_into statement syntax tree and create ObCursorFetchPriorIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_prior_into statement syntax tree
+ * @param query_id is cursor_fetch_prior_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_prior_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2647,6 +2710,14 @@ int resolve_cursor_fetch_prior_into_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_first_stmt
+ * parse procedure's cursor_fetch_first statement syntax tree and create ObFetchFirstStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_first statement syntax tree
+ * @param query_id is cursor_fetch_first_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_first_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2679,6 +2750,14 @@ int resolve_cursor_fetch_first_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_last_stmt
+ * parse procedure's cursor_fetch_last statement syntax tree and create ObFetchLastStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_last statement syntax tree
+ * @param query_id is cursor_fetch_last_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_last_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2712,6 +2791,14 @@ int resolve_cursor_fetch_last_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_last_into_stmt
+ * parse procedure's cursor_fetch_last_into statement syntax tree and create ObCursorFetchLastIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_last_into statement syntax tree
+ * @param query_id is cursor_fetch_last_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_last_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2770,7 +2857,14 @@ int resolve_cursor_fetch_last_into_stmt(
 }
 
 
-
+/**
+ * @brief resolve_cursor_fetch_relative_stmt
+ * parse procedure's cursor_fetch_relative statement syntax tree and create ObFetchRelativeStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_relative statement syntax tree
+ * @param query_id is cursor_fetch_relative_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_relative_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2814,6 +2908,14 @@ int resolve_cursor_fetch_relative_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_relative_into_stmt
+ * parse procedure's cursor_fetch_relative_into statement syntax tree and create ObCursorFetchRelativeIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_relative_into statement syntax tree
+ * @param query_id is cursor_fetch_relative_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_relative_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2873,6 +2975,14 @@ int resolve_cursor_fetch_relative_into_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_absolute_stmt
+ * parse procedure's cursor_fetch_absolute statement syntax tree and create ObFetchAbsoluteStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_absolute statement syntax tree
+ * @param query_id is cursor_fetch_absolute_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_absolute_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2908,6 +3018,14 @@ int resolve_cursor_fetch_absolute_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_absolute_into_stmt
+ * parse procedure's cursor_fetch_absolute_into statement syntax tree and create ObCursorFetchAbsIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_absolute_into statement syntax tree
+ * @param query_id is cursor_fetch_absolute_into_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_absolute_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -2967,6 +3085,14 @@ int resolve_cursor_fetch_absolute_into_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_fetch_fromto_stmt
+ * parse procedure's cursor_fetch_fromto statement syntax tree and create ObFetchFromtoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_fetch_fromto statement syntax tree
+ * @param query_id is cursor_fetch_fromto_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_fetch_fromto_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3004,6 +3130,14 @@ int resolve_cursor_fetch_fromto_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_cursor_open_stmt
+ * parse procedure's cursor_close statement syntax tree and create ObCursorCloseStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of cursor_close statement syntax tree
+ * @param query_id is cursor_close_stmt's id
+ * @return errorcode.
+ */
 int resolve_cursor_close_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3041,6 +3175,15 @@ int resolve_cursor_close_stmt(
 
 //add by zhujun:b
 //code_coverage_zhujun
+/**
+ * @brief resolve_procedure_select_into_stmt
+ * parse procedure's select_into statement syntax tree and create ObProcedureSelectIntoStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of select_into statement syntax tree
+ * @param query_id is select_into_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_select_into_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
@@ -3127,6 +3270,15 @@ int resolve_procedure_select_into_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_procedure_declare_stmt
+ * parse procedure's declare statement syntax tree and create ObProcedureDeclareStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of declare statement syntax tree
+ * @param query_id is declare_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_declare_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3273,7 +3425,15 @@ int resolve_procedure_declare_stmt(
   return ret;
 }
 
-
+/**
+ * @brief resolve_procedure_assign_stmt
+ * parse procedure's assign statement syntax tree and create ObProcedureAssginStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of assign statement syntax tree
+ * @param query_id is assign_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_assign_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
@@ -3379,6 +3539,16 @@ int resolve_procedure_assign_stmt(
   }
   return ret;
 }
+
+/**
+ * @brief resolve_procedure_case_stmt
+ * parse procedure's case statement syntax tree and create ObProcedureCaseStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of case statement syntax tree
+ * @param query_id is case_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_case_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3482,6 +3652,16 @@ int resolve_procedure_case_stmt(
   } \
   expr; \
 })
+
+/**
+ * @brief resolve_procedure_casewhen_stmt
+ * parse procedure's casewhen statement syntax tree and create ObProcedureCaseWhenStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of casewhen statement syntax tree
+ * @param query_id is casewhen_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_casewhen_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3539,7 +3719,15 @@ int resolve_procedure_casewhen_stmt(
 }
 
 
-
+/**
+ * @brief resolve_procedure_if_stmt
+ * parse procedure's if statement syntax tree and create ObProcedureIfStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of if statement syntax tree
+ * @param query_id is if_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_if_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3658,7 +3846,15 @@ int resolve_procedure_if_stmt(
 
   return ret;
 }
-
+/**
+ * @brief resolve_procedure_elseif_stmt
+ * parse procedure's elseif statement syntax tree and create ObProcedureElseIfStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of elseif statement syntax tree
+ * @param query_id is elseif_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_elseif_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3719,6 +3915,15 @@ int resolve_procedure_elseif_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_procedure_loop_stmt
+ * parse procedure's loop statement syntax tree and create ObProcedureLoopStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of loop statement syntax tree
+ * @param query_id is loop_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &query_id, ObProcedureStmt *proc_stmt)
 {
   OB_ASSERT(result_plan);
@@ -3843,6 +4048,15 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
 
 
 //add hjw 20151229:b
+/**
+ * @brief resolve_procedure_while_stmt
+ * parse procedure's while statement syntax tree and create ObProcedureWhileStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of while statement syntax tree
+ * @param query_id is while_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_while_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3946,6 +4160,15 @@ int resolve_procedure_exit_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_procedure_else_stmt
+ * parse procedure's else statement syntax tree and create ObProcedureElseStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of else statement syntax tree
+ * @param query_id is else_stmt's id
+ * @param ps_stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_else_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3995,6 +4218,13 @@ int resolve_procedure_else_stmt(
 }
 
 //fix bug: add by zhujun [20150910]
+/**
+ * @brief findNumberFirst
+ * @param str
+ * @param dest
+ * @param pvec
+ * @return
+ */
 int findNumberFirst(const char *str, const char *dest, vector<int>& pvec)
 {
 	 if (str == NULL || dest == NULL)
@@ -4024,7 +4254,13 @@ int findNumberFirst(const char *str, const char *dest, vector<int>& pvec)
 
 	 return count;
 }
-
+/**
+ * @brief findNumberLast
+ * @param str
+ * @param dest
+ * @param pvec
+ * @return
+ */
 int findNumberLast(const char *str, const char *dest, vector<int> &pvec)
 {
 	 if (str == NULL || dest == NULL)
@@ -4122,7 +4358,14 @@ void replaceArray(char *str, const char *src, const char *dest)
 	 str[posAfter] = '\0';
 	 }
 }
-
+/**
+ * @brief resolve_procedure_create_stmt
+ * parse create procedure statements syntax tree and generate a create procedure logic plan
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of create procedure statements syntax tree
+ * @param query_id is index of create procedure statements stored in ObVector<ObasicStmt> stms of ObLogicalPlan class data member
+ * @return errorcode.
+ */
 int resolve_procedure_create_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -4268,6 +4511,14 @@ int resolve_procedure_create_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_procedure_drop_stmt
+ * parse drop procedure statements syntax tree and generate a drop procedure logic plan
+ * @param result_plan point generated drop procedure logical plan
+ * @param node is root node of drop procedure statements syntax tree
+ * @param query_id is index of drop procedure statements stored in ObVector<ObasicStmt> stms of ObLogicalPlan class data member
+ * @return errorcode.
+ */
 int resolve_procedure_drop_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -4345,6 +4596,14 @@ int resolve_procedure_drop_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_procedure_stmt
+ * parse create procedure parameters and construction ObProcedureStmt and call function to parse procedure body block of begin and end
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of create procedure statements syntax tree
+ * @param query_id is index of create procedure statements stored in ObVector<ObasicStmt> stms of ObLogicalPlan class data member
+ * @return errorcode.
+ */
 int resolve_procedure_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
@@ -4479,7 +4738,14 @@ int resolve_procedure_stmt(
   }
   return ret;
 }
-
+/**
+ * @brief resolve_procedure_proc_block_stmt
+ * parse create procedure body block syntax tree and set ObProcedureStmt's proc_block_
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of create procedure body block syntax tree
+ * @param stmt is a point of ObProcedureStmt object that own ObArray<uint64_t> proc_block_ data member that store all block's statement query_id
+ * @return errorcode.
+ */
 int resolve_procedure_proc_block_stmt(
                 ResultPlan* result_plan,
                 ParseNode* node,
@@ -4625,6 +4891,18 @@ int resolve_procedure_proc_block_stmt(
  * But the caller should filter some stmt by himself
  * For example, in if-then block, there should be no declare_stmt
  ***/
+/**
+ * @brief resolve_procedure_inner_stmt
+ * The name is an accident, better to be resolve_procedure_stmt which has be used
+ * Use this function to resolve a stmt inside procedure,
+ * But the caller should filter some stmt by himself
+ * For example, in if-then block, there should be no declare_stmt
+ * @param result_plan
+ * @param node
+ * @param query_id
+ * @param stmt
+ * @return error code
+ */
 int resolve_procedure_inner_stmt(
                 ResultPlan *result_plan,
                 ParseNode *node,
@@ -4737,6 +5015,14 @@ int resolve_procedure_inner_stmt(
 }
 //add zt 20151128:e
 
+/**
+ * @brief resolve_procedure_execute_stmt
+ * parse call procedure statements syntax tree and generate a call procedure logic plan
+ * @param result_plan point generated logical plan
+ * @param node is root node of call procedure statements syntax tree
+ * @param query_id is index of call procedure statements stored in ObVector<ObasicStmt> stms of ObLogicalPlan class data member
+ * @return errorcode.
+ */
 int resolve_procedure_execute_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -4905,6 +5191,13 @@ int resolve_lock_table_stmt(
 }
 //add :e
 ////////////////////////////////////////////////////////////////
+/**
+ * @brief resolve
+ * parse syntax tree and generate logic plan
+ * @param result_plan point generated logical plan
+ * @param node is root node of syntax tree
+ * @return error code.
+ */
 int resolve(ResultPlan* result_plan, ParseNode* node)
 {
 	if (!result_plan)
@@ -5008,11 +5301,11 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			break;
 		}
 		//longfei [drop index]
-    case T_DROP_INDEX:
-    {
-      ret = resolve_drop_index_stmt(result_plan, node, query_id);
-      break;
-    }
+        case T_DROP_INDEX:
+        {
+        ret = resolve_drop_index_stmt(result_plan, node, query_id);
+        break;
+        }
 		case T_SHOW_TABLES:
 		// add longfei [show index] 20151019
 		case T_SHOW_INDEX:
@@ -5252,7 +5545,12 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 	}
 	return ret;
 }
-
+/**
+ * @brief destroy_plan
+ * destroy a logic plan free memory
+ * @param result_plan point a logical plan that want to be destroyed
+ * @return
+ */
 extern void destroy_plan(ResultPlan* result_plan)
 {
 	if (result_plan->plan_tree_ == NULL)

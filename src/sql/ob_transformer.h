@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,9 @@
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -238,7 +240,16 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure* proc_op,
                   SpMultiInsts* mul_inst =NULL);
-
+  /**
+   * @brief gen_physical_set_array_value
+   * generate a physical plan of variable set array based on a logical plan of variable set array
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store variable set array
+   * @param err_stat store error status
+   * @param query_id is variable set array's id
+   * @param index physical query
+   * @return error code
+   */
   int gen_physical_set_array_value(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,

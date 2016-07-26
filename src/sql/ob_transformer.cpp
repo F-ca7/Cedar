@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,9 @@
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun<51141500091@ecnu.edu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
