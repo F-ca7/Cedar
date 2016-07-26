@@ -113,6 +113,8 @@ namespace oceanbase
 
       static bool conflict(const SpVarInfo &a, const SpVarInfo &b);
 
+      bool compare(const SpVarInfo &other) const;
+
       int64_t to_string(char *buf, const int64_t buf_len) const;
       ObString var_name_;
       ObObj    idx_value_;

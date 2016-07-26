@@ -1606,6 +1606,7 @@ bool ObProcedure::is_defined(const SpVarInfo &info) const
   bool ret = false;
 
   if( info.var_type_ == VM_DB_TAB ) return true;
+  if( info.var_type_ == VM_FUL_ARY ) return true;
 
   for(int64_t i = 0; !ret && i < params_.count(); ++i)
   {
