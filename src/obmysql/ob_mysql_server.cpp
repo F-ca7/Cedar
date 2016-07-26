@@ -1925,16 +1925,19 @@ namespace oceanbase
             {
               result->set_message("Unknown thread id");
             }
-			//zhounan unmark:b
+              /* delete by zhutao, bad hack for other input
+
+            //zhounan unmark:b
             else if (ret == OB_READ_NOTHING)
 	        {
 	         result->set_message("open error: cursor has been opened");
-	        }
+          }
             else if (ret == OB_NOT_INIT)
 	        {
 	         result->set_message("cursor error: can not find cursor plan");
 	        }
-			//add:e
+      //add:e
+           */
           }
 
           if (OB_SUCCESS != (err = send_error_packet(packet, result)))
@@ -2188,16 +2191,19 @@ namespace oceanbase
         onev_addr_e addr = get_onev_addr(req);
         ObString message = ob_get_err_msg();
         char msg_buf[64];
+        TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
         if (message.length() <= 0)
         {
           if (NULL != result && 0 < strlen(result->get_message()))
           {
             message = ObString::make_string(result->get_message());
+                    TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
           }
           else
           {
             snprintf(msg_buf, 64, "OB-%d: %s", -result->get_errcode(), ob_strerror(result->get_errcode()));
             message = ObString::make_string(msg_buf); // default error message
+                    TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
           }
         }
         //给mysql客户端发送错误包

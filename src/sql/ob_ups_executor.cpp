@@ -8,7 +8,7 @@
  * @file ob_ups_executor.cpp
  * @brief send physical plan to ups
  * modified by wangjiahao: No data to update, About it, for update_more
- * modified by zhujun：add a variable into session
+ * modified by zhujun: add a variable into session
  *
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
@@ -206,17 +206,15 @@ int ObUpsExecutor::open()
             TBSYS_LOG(WARN, "updateserver warning: %s", warn_msg);
           }
         }
-
-
+       /* delete by zhutao
         //add by zz 2015/2/3:b
-		//在session中存一个变量维护一个影响行数
 		ObString affect=ObString::make_string("affect_row_num");
 		if(session->variable_exists(affect))
 		{
             ObObj old_val;
             int64_t old_value=0;
             ObObj new_val;
-            if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)//取出旧值
+            if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)
             {
                  TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
             }
@@ -243,7 +241,8 @@ int ObUpsExecutor::open()
                 TBSYS_LOG(DEBUG, "init set affect_row success var_name=%s",affect.ptr());
 			}
 		}
-		//add:e
+    //add:e
+    */
       }
     }
   }
