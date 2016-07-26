@@ -135,6 +135,12 @@ namespace oceanbase
   int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
                   const ObSqlRawExpr *raw_expr);
 
+  int ext_var_info_where(const ObSqlRawExpr *raw_expr, bool is_rowkey);
+
+  int ext_var_info_project(const ObSqlRawExpr *raw_expr);
+
+  int ext_table_id(uint64_t table_id);
+
   int gen_physical_procedure_if(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -1091,6 +1097,13 @@ namespace oceanbase
         common::ObIAllocator *mem_pool_;
         ObSqlContext *sql_context_;
         bool group_agg_push_down_param_;
+
+        //add by zhutao [a switch from normal/procedure compilation]
+        bool compile_procedure_;
+        SpRwDeltaInst* rw_delta_inst_;
+        SpRdBaseInst* rd_base_inst_;
+        SpRwCompInst *rd_all_inst_;
+        //add :e
     };
 
     inline ObSqlContext* ObTransformer::get_sql_context()

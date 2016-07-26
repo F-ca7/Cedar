@@ -19,7 +19,6 @@
 #ifndef OB_MERGESERVER_PHYSICAL_PLAN_CAHCE_MANAGER_H_
 #define OB_MERGESERVER_PHYSICAL_PLAN_CAHCE_MANAGER_H_
 
-#include <pthread.h>
 #include "tbsys.h"
 #include "common/ob_string.h"
 #include "common/hash/ob_hashmap.h"
@@ -67,19 +66,17 @@ namespace oceanbase
        * @param stmt_id
        * @return
        */
-      int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id );
+      int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group);
 
-      bool is_consisitent(const ObString &proc_name, int64_t hash_code) const
-      {
-        return name_code_map_.exist(proc_name, hash_code);
-      }
+      bool is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group) const;
+
 
 //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
 //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
     private:
       int compile_procedure(const ObString &proc_name);
 
-      int compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id);
+      int compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group = false);
 
       sql::ObSQLResultSet * malloc_result_set()
       {

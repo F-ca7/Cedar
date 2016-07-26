@@ -4,13 +4,14 @@
 #include "common/hash/ob_hashutils.h"
 #include "common/ob_rpc_stub.h"
 #include "ob_merge_server.h"
-
+#include "sql/ob_procedure_optimizer.h"
 #define NAME_CACHE_MAP_BUCKET_NUM 100
 #define THREAD_SLEEP_UTIME 1000000
 
 #define LAZY_COMPILE
 
 using namespace oceanbase::mergeserver;
+using namespace oceanbase::sql;
 ObProcedureManager::ObProcedureManager() : has_init_(false)
 {
 }
@@ -112,10 +113,11 @@ int ObProcedureManager::compile_procedure(const ObString &proc_name)
   return ret;
 }
 
-int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id)
+int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group)
 {
   int ret = OB_SUCCESS;
   ObSQLResultSet proc_result_set;
+  sql::ObProcedure *proc;
   const ObString * psource_code = name_code_map_.get_source_code(proc_name);
   if( psource_code == NULL )
   {
@@ -134,8 +136,19 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
       TBSYS_LOG(WARN, "prepare the procedure plan fail");
       context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
     }
+    else if ( NULL == (proc = dynamic_cast<ObProcedure*>(proc_result_set.get_result_set().get_physical_plan()->get_main_query())) )
+    {
+      //failed to optimize procedure
+      ret = OB_ERR_UNEXPECTED;
+    }
+    else if( OB_SUCCESS != (ret = ObProcedureOptimizer::optimize(*proc, no_group)))
+    {
+      TBSYS_LOG(WARN, "failed to optimize procedure, no_group[%d]", no_group);
+    }
     else
     {
+      //set cache state
+      proc_result_set.get_result_set().set_no_group(no_group);
       proc_result_set.get_result_set().set_stmt_hash(name_code_map_.get_hkey(proc_name));
       if ((ret = context.session_info_->store_plan(proc_name, proc_result_set.get_result_set())) != OB_SUCCESS)
       {
@@ -149,7 +162,9 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
       else
       {
         TBSYS_LOG(INFO, "compile [%.*s], indexed with [%ld]", proc_name.length(), proc_name.ptr(), stmt_id);
+        TBSYS_LOG(INFO, "After Optimize:\n%s", to_cstring(*proc));
       }
+
     }
     context.is_prepare_protocol_ = false;
   }
@@ -263,7 +278,7 @@ int ObProcedureManager::create_procedure_lazy(const ObString &proc_name, const O
   return ret;
 }
 
-int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id)
+int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group)
 {
   int ret = OB_SUCCESS;
 
@@ -273,14 +288,12 @@ int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlConte
     ret = OB_ERR_SP_DOES_NOT_EXIST;
     TBSYS_LOG(WARN, "procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
   }
-  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id)) )
+  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id, no_group)) )
   {
     TBSYS_LOG(WARN, "failed to compile proc[%.*s]", proc_name.length(), proc_name.ptr());
   }
   return ret;
 }
-
-
 
 int ObProcedureManager::put_cache_plan(const ObString &proc_name, ObSQLResultSet *result_set)
 {
@@ -297,4 +310,16 @@ int ObProcedureManager::del_cache_plan(const ObString &proc_name)
   TBSYS_LOG(INFO, "delete [%.*s], prev[ %ld ], now[ %ld ]",
             proc_name.length(), proc_name.ptr(), count, name_cache_map_.size());
   return OB_SUCCESS;
+}
+
+bool ObProcedureManager::is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group) const
+{
+  bool ret = true;
+  ret = name_code_map_.exist(proc_name, cache_rs.get_stmt_hash());
+
+  if( ret )
+  {
+    ret = (no_group == cache_rs.get_no_group());
+  }
+  return ret;
 }
