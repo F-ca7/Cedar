@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +17,9 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_24
  */
 
 /** 
@@ -286,6 +288,16 @@ int resolve_independ_expr(
   return ret;
 }
 
+/**
+ * @brief resolve_and_exprs
+ * parse and_exprs statement syntax tree
+ * @param result_plan point generated logical plan
+ * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of and_exprs statement syntax tree
+ * @param and_exprs store generate expr_id
+ * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
+ * @return error code
+ */
 int resolve_and_exprs(
   ResultPlan * result_plan,
   ObStmt* stmt,
@@ -341,6 +353,17 @@ int resolve_and_exprs(
   expr; \
 })
 
+/**
+ * @brief resolve_expr
+ * parse expr statement syntax tree
+ * @param result_plan point generated logical plan
+ * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of expr statement syntax tree
+ * @param and_exprs store generate expr_id
+ * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
+ * @param sub_query_results_scalar is flag that the extence of sub query results
+ * @return error code
+ */
 int resolve_expr(
   ResultPlan * result_plan,
   ObStmt* stmt,
@@ -1758,6 +1781,16 @@ int resolve_when_func(
   return ret;
 }
 
+
+/**
+ * @brief resolve_agg_func
+ * parse aggregation function expr syntax tree
+ * @param result_plan point generated logical plan
+ * @param select_stmt point select_stmt that store aggregation function expr_id
+ * @param node is root node of aggregation function expr statement syntax tree
+ * @param ret_sql_expr is a point that return sql expr
+ * @return error code
+ */
 int resolve_agg_func(
     ResultPlan * result_plan,
     ObSelectStmt* select_stmt,
@@ -2758,7 +2791,14 @@ int resolve_for_update_clause(
   }
   return ret;
 }
-
+/**
+ * @brief resolve_select_stmt
+ * parse select statement syntax tree and create ObSelectStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of select statement syntax tree
+ * @param query_id is select_stmt's id
+ * @return errorcode.
+ */
 int resolve_select_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3181,6 +3221,14 @@ int resolve_semi_join(
 }
 //add end
 
+/**
+ * @brief resolve_delete_stmt
+ * parse delete statement syntax tree and create ObDeleteStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of delete statement syntax tree
+ * @param query_id is delete_stmt's id
+ * @return errorcode.
+ */
 int resolve_delete_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3397,6 +3445,14 @@ int resolve_insert_values(
   return ret;
 }
 
+/**
+ * @brief resolve_insert_stmt
+ * parse insert statement syntax tree and create ObInsertStmt object
+ * @param result_plan point generated create procedure logical plan
+ * @param node is root node of insert statement syntax tree
+ * @param query_id is insert_stmt's id
+ * @return errorcode.
+ */
 int resolve_insert_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3519,6 +3575,14 @@ int resolve_insert_stmt(
   return ret;
 }
 
+/**
+* @brief resolve_update_stmt
+* parse update statement syntax tree and create ObUpdateStmt object
+* @param result_plan point generated create procedure logical plan
+* @param node is root node of update statement syntax tree
+* @param query_id is update_stmt's id
+* @return errorcode.
+*/
 int resolve_update_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3647,6 +3711,14 @@ int resolve_update_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_when_clause
+ * parse when_clause statement syntax tree
+ * @param result_plan point generated create procedure logical plan
+ * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of when_clause statement syntax tree
+ * @return
+ */
 int resolve_when_clause(
     ResultPlan * result_plan,
     ObStmt* stmt,

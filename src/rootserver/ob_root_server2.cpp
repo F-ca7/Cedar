@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +22,9 @@
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  *//*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *

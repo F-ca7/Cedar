@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,9 @@
  *         chujiajia  <52151500014@ecnu.edu.cn>
  *         pangtianze <pangtianze@ecnu.com>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  *//*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -306,14 +308,44 @@ namespace oceanbase
         int rt_alter_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         //add by wangdonghui 20160121 :b
+        /**
+         * @brief rt_create_procedure
+         * create procedure :deserialize procedure name and source code
+         * @param version  rpc version
+         * @param in_buff  receive packet buffer
+         * @param req  packet request
+         * @param channel_id   tbnet need this packet channel_id
+         * @param out_buff databuffer
+         * @return error code
+         */
         int rt_create_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         //add :e
 
         //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief rt_drop_procedure
+         * drop procedure :deserialize procedure name
+         * @param version  rpc version
+         * @param in_buff receive packet buffer
+         * @param req  packet request
+         * @param channel_id  tbnet need this packet channel_id
+         * @param out_buff databuffer
+         * @return error code
+         */
         int rt_drop_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         //add :e
 
         //add by wangdonghui 20160304 :b
+        /**
+         * @brief rt_fetch_procedure
+         * fetch name_code_map
+         * @param version  rpc version
+         * @param in_buff receive packet buffer
+         * @param req  packet request
+         * @param channel_id  tbnet need this packet channel_id
+         * @param out_buff  databuffer
+         * @return error code
+         */
         int rt_fetch_procedure(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         //add :e
 

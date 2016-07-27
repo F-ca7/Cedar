@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,7 +12,8 @@
  *
  * @version __DaSE_VERSION
  * @author Wenghaixing <wenghaixing@ecnu.cn>
- * @date  2016_01_24
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date  2016_07_26
  */
 
 /*
@@ -65,9 +66,22 @@ namespace oceanbase
       // update max used table id
       int update_max_table_id(const uint64_t table_id);
       //add by wangdonghui 20160125 :b
+      /**
+       * @brief create_procedure
+       * insert procedure to table __all_procedure
+       * @param proc_name procedure name
+       * @param proc_sourcr_code procedure source code
+       * @return error code
+       */
       int create_procedure(const common::ObString & proc_name, const common::ObString & proc_sourcr_code);
       //add :e
 	  //add by wangdonghui 20160225 [drop procedure] :b
+      /**
+       * @brief drop_procedure
+       * delete procedure form __all_procedure
+       * @param proc_name procedure name
+       * @return
+       */
       int drop_procedure(const common::ObString & proc_name);
       //add :e
       //add wenghaixing [secondary index.static_index]20151217
@@ -97,10 +111,23 @@ namespace oceanbase
           uint64_t & max_column_id, AlterColumn & column);
 
       //add by wangdonghui 20160125 :b
+      /**
+       * @brief insert_procedure_table
+       * insert new procedure called by create_procedure function
+       * @param proc_name procedure name
+       * @param proc_source_code procedure source code
+       * @return error code
+       */
       bool insert_procedure_table(const common::ObString & proc_name, const common::ObString & proc_source_code);
       //add :e
 
       //add by wangdonghui 20160225[drop procedure] :b
+      /**
+       * @brief delete_procedure
+       * delete procedure called by drop_procedure function
+       * @param proc_name procedure name
+       * @return error code
+       */
       bool delete_procedure(const common::ObString & proc_name);
       //add :e
     private:

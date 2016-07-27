@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,9 @@
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun<51141500091@ecnu.edu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -851,14 +853,7 @@ int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, c
   return ret;
 }
 
-/**
- * @brief ObTransformer::gen_physical_procedure_inst_var_set
- * used to analyze the structure of expression, find out the variables used in the instruction
- * and update the corresponding variable set.
- * @param var_set  the variable set that variables/array added into
- * @param raw_expr_list  the expression to be analyzed
- * @return
- */
+
 int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, const ObIArray<const ObRawExpr *> &raw_expr_list)
 {
   int ret = OB_SUCCESS;
