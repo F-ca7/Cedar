@@ -393,7 +393,7 @@ namespace oceanbase
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
-      CallType get_call_type() const { return S_RPC; }
+      CallType get_call_type() const { return T_AND_S; }
 
       SpVariableSet & cons_read_var_set() { return rs_; }
 
