@@ -61,6 +61,8 @@ namespace oceanbase
         int set_row_desc(const common::ObRowDesc &row_desc, const common::ObRowDescExt &row_desc_ext);
         int add_value(const ObSqlExpression &v);
 
+        void clear_value() { values_.clear(); } //add by zhutao, debug range update
+
         void reserve_values(int64_t num) {values_.reserve(num);}
         void set_check_rowkey_duplicate(bool flag) { check_rowkey_duplicat_ = flag; }
         void set_do_eval_when_serialize(bool v) { do_eval_when_serialize_ = v;}

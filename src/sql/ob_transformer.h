@@ -62,13 +62,13 @@
 //add e
 
 #include "sql/ob_procedure.h" //add by zhutao
+#include "ob_procedure_compilation_guard.h" //add by zhutao
 
 namespace oceanbase
 {
   namespace sql
   {
-    struct ObProcedureCompilationContext; //add by zhutao
-
+    struct ObProcedureCompilationContext;
     class ObWhenFilter;
     class ObTransformer
     {
@@ -181,7 +181,8 @@ namespace oceanbase
             int32_t* index);
 
 
-        //add zt 20151207 : help function
+  //add zt 20151207 : help function
+    public:
   /**
    * @brief gen_physical_procedure_inst_var_set
    * used to analyze the structure of expression, find out the variables used in the instruction
@@ -204,6 +205,27 @@ namespace oceanbase
    */
   int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
                   const ObSqlRawExpr *raw_expr);
+
+  /**
+   * @brief gen_physical_procedure_inst_var_set
+   * used to analyze the structure of expression, find out the variables used in the instruction
+   * and update the corresponding variable set.
+   * @param var_set  the variable set that variables/array added into
+   * @param sql_raw_expr_list  the expression to be analyzed
+   * @return error code
+   */
+  int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
+                  const ObIArray<const ObSqlRawExpr *> &sql_raw_expr_list);
+  /**
+   * @brief gen_physical_procedure_inst_var_set
+   * used to analyze the table used in the sql
+   * and update the corresponding variable set.
+   * @param var_set  the variable set that variables/array added into
+   * @param table_list   the table id that used
+   * @return error code
+   */
+  int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
+                  const ObIArray<uint64_t> &table_list);
   /**
    * @brief ext_var_info_where
    * extract where expression variable information
@@ -211,6 +233,7 @@ namespace oceanbase
    * @param is_rowkey is a flag of rowkey existence
    * @return error code
    */
+    private:
   int ext_var_info_where(const ObSqlRawExpr *raw_expr, bool is_rowkey);
 
   /**
@@ -1352,63 +1375,8 @@ namespace oceanbase
         //add by zhutao [a switch from normal/procedure compilation]
         bool compile_procedure_;
         ObProcedureCompilationContext context_;
-        SpRwDeltaInst* rw_delta_inst_; ///< ups operate instruction
-        SpRdBaseInst* rd_base_inst_;   ///< read base data instruction
-        SpRwCompInst *rd_all_inst_;    ///< ups and cs operate instruction
         //add :e
     };
-
-
-    //add by zhutao
-    struct ObProcedureCompilationContext
-    {
-      bool compile_procedure_;
-      SpRwDeltaInst* rw_delta_inst_;
-      SpRdBaseInst* rd_base_inst_;
-      SpRwCompInst *rd_all_inst_;
-      SpPlainSQLInst *sql_inst_;
-
-      ObSEArray<const ObSqlRawExpr *, 16> key_where_;
-      ObSEArray<const ObSqlRawExpr *, 16> nonkey_where_;
-      ObSEArray<const ObSqlRawExpr *, 16> value_project_;
-      ObSEArray<uint64_t, 8>              access_tids_;
-    };
-
-    class ObProcedureCompilationGuard
-    {
-    public:
-      ObProcedureCompilationGuard(ObProcedureCompilationContext &context) : context_(context)
-      {
-        context_.rw_delta_inst_ = NULL;
-        context_.rd_base_inst_ = NULL;
-        context_.rd_all_inst_ = NULL;
-        context_.sql_inst_ = NULL;
-
-        context_.key_where_.clear();
-        context_.nonkey_where_.clear();
-        context_.value_project_.clear();
-        context_.access_tids_.clear();
-      }
-
-      void gather_variable_info();
-
-      virtual ~ObProcedureCompilationGuard()
-      {
-        context_.rw_delta_inst_ = NULL;
-        context_.rd_base_inst_ = NULL;
-        context_.rd_all_inst_ = NULL;
-        context_.sql_inst_ = NULL;
-
-        context_.key_where_.clear();
-        context_.nonkey_where_.clear();
-        context_.value_project_.clear();
-        context_.access_tids_.clear();
-      }
-
-    private:
-      ObProcedureCompilationContext &context_;
-    };
-    //add :e
 
     inline ObSqlContext* ObTransformer::get_sql_context()
     {

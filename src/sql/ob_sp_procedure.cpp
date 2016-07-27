@@ -1299,6 +1299,7 @@ int64_t SpMultiInsts::check_tnode_access() const
       case SP_D_INST:
       case SP_DE_INST:
       case SP_GROUP_INST:
+      case SP_SQL_INST:
         ++count;
         break;
     }
@@ -2489,6 +2490,9 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
     new_inst = create_inst<SpExitInst>(mul_inst);
     break;
   //add :e
+  case SP_SQL_INST:
+    new_inst = create_inst<SpPlainSQLInst>(mul_inst);
+    break;
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");

@@ -38,6 +38,7 @@ namespace oceanbase
       virtual int execute_casewhen(SpCaseInst *inst);
       virtual int execute_while(SpWhileInst *inst);
       virtual int execute_exit(SpExitInst *inst);
+      virtual int execute_plain_sql(SpPlainSQLInst *inst);
       virtual int execute_multi_inst(SpMultiInsts *mul_inst);
       int init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysicalPlan &out_plan);
       int set_trans_params(ObSQLSessionInfo *session, common::ObTransReq &req);
@@ -140,7 +141,7 @@ namespace oceanbase
       SpInstList exec_list_;
 //      ObProcedureStaticDataMgr static_data_mgr_;
 
-      SpMsInstExecStrategy strategy_;
+      SpMsInstExecStrategy *strategy_;
 
       bool long_trans_;
       mergeserver::ObMergerRpcProxy *rpc_;
