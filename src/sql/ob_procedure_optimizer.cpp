@@ -796,8 +796,8 @@ int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
     flow_srpc_.push_back(false);
   }
 
-  //TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
-  //          graph_.count(), degree_.count());
+  TBSYS_LOG(TRACE, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
+            graph_.count(), degree_.count());
   active_node_count_ = insts.count();
   return OB_SUCCESS;
 }
@@ -921,7 +921,7 @@ bool ObProcDepGraph::could_split() const
       */
     if( cover_trpc_.at(i) && (S_RPC == (inst_list_.at(i)->get_call_type() & S_RPC)))
     {
-      TBSYS_LOG(INFO, "can not split[%ld, %d, %d]", i, cover_trpc_.at(i), inst_list_.at(i)->get_call_type());
+      TBSYS_LOG(TRACE, "can not split[%ld, %d, %d]", i, cover_trpc_.at(i), inst_list_.at(i)->get_call_type());
       ret = false;
     }
   }
