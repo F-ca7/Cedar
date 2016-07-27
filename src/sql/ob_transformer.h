@@ -65,6 +65,8 @@ namespace oceanbase
 {
   namespace sql
   {
+    struct ObProcedureCompilationContext; //add by zhutao
+
     class ObWhenFilter;
     class ObTransformer
     {
@@ -1087,13 +1089,67 @@ namespace oceanbase
         ObSqlContext *sql_context_;
         bool group_agg_push_down_param_;
 
+
         //add by zhutao [a switch from normal/procedure compilation]
         bool compile_procedure_;
+        ObProcedureCompilationContext context_;
         SpRwDeltaInst* rw_delta_inst_;
         SpRdBaseInst* rd_base_inst_;
         SpRwCompInst *rd_all_inst_;
         //add :e
     };
+
+
+    //add by zhutao
+    struct ObProcedureCompilationContext
+    {
+      bool compile_procedure_;
+      SpRwDeltaInst* rw_delta_inst_;
+      SpRdBaseInst* rd_base_inst_;
+      SpRwCompInst *rd_all_inst_;
+      SpPlainSQLInst *sql_inst_;
+
+      ObSEArray<const ObSqlRawExpr *, 16> key_where_;
+      ObSEArray<const ObSqlRawExpr *, 16> nonkey_where_;
+      ObSEArray<const ObSqlRawExpr *, 16> value_project_;
+      ObSEArray<uint64_t, 8>              access_tids_;
+    };
+
+    class ObProcedureCompilationGuard
+    {
+    public:
+      ObProcedureCompilationGuard(ObProcedureCompilationContext &context) : context_(context)
+      {
+        context_.rw_delta_inst_ = NULL;
+        context_.rd_base_inst_ = NULL;
+        context_.rd_all_inst_ = NULL;
+        context_.sql_inst_ = NULL;
+
+        context_.key_where_.clear();
+        context_.nonkey_where_.clear();
+        context_.value_project_.clear();
+        context_.access_tids_.clear();
+      }
+
+      void gather_variable_info();
+
+      virtual ~ObProcedureCompilationGuard()
+      {
+        context_.rw_delta_inst_ = NULL;
+        context_.rd_base_inst_ = NULL;
+        context_.rd_all_inst_ = NULL;
+        context_.sql_inst_ = NULL;
+
+        context_.key_where_.clear();
+        context_.nonkey_where_.clear();
+        context_.value_project_.clear();
+        context_.access_tids_.clear();
+      }
+
+    private:
+      ObProcedureCompilationContext &context_;
+    };
+    //add :e
 
     inline ObSqlContext* ObTransformer::get_sql_context()
     {

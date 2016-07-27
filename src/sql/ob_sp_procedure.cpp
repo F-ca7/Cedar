@@ -668,6 +668,19 @@ int SpRwCompInst::assign(const SpInst *inst)
   return ret;
 }
 
+SpPlainSQLInst::~SpPlainSQLInst()
+{}
+
+void SpPlainSQLInst::get_read_variable_set(SpVariableSet &read_set) const
+{
+  read_set.add_var_info_set(rs_);
+}
+
+void SpPlainSQLInst::get_write_variable_set(SpVariableSet &write_set) const
+{
+  UNUSED(write_set);
+}
+
 void SpPreGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
 {
   inst_list_.get_read_variable_set(read_set);
@@ -2898,5 +2911,12 @@ int64_t SpPreGroupInsts::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "type [PreGroup]\n");
   pos += inst_list_.to_string(buf + pos, buf_len - pos);
   databuff_printf(buf, buf_len, pos, "End PreGroup\n");
+  return pos;
+}
+
+int64_t SpPlainSQLInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [SQL], rs: %s\n", to_cstring(rs_));
   return pos;
 }

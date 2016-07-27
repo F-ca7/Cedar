@@ -1746,6 +1746,7 @@ int ObTransformer::gen_physical_procedure_select_into(
   int &ret = err_stat.err_code_ = OB_SUCCESS;
   int32_t idx = OB_INVALID_INDEX;
   ObProcedureSelectIntoStmt *stmt = NULL;
+  ObProcedureCompilationGuard guard(context_); //init compilation context for sql
   if( OB_SUCCESS != (ret = get_stmt(logical_plan, err_stat, query_id, stmt)) )
   {
   }
@@ -1756,20 +1757,6 @@ int ObTransformer::gen_physical_procedure_select_into(
     {}
     else if(sel_stmt->is_for_update())
     {
-      rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
-      rw_delta_inst_ = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
-      rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
-      SpRwDeltaIntoVarInst *rw_delta_into_var_inst = static_cast<SpRwDeltaIntoVarInst*>(rw_delta_inst_);
-      for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
-      {
-        const SpRawVar &raw_var = stmt->get_variable(i);
-        SpVar var;
-        ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
-        ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
-
-        rw_delta_into_var_inst->add_assign_var(var);
-      }
-
       //TODO proc-op
       if(OB_SUCCESS != (ret = gen_phy_select_for_update(logical_plan, physical_plan, err_stat, stmt->get_declare_id(), &idx)))
       {
@@ -1777,6 +1764,25 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
       else
       {
+        //may be we need to check the query state here
+        //range
+
+        //point
+        context_.rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
+        context_.rw_delta_inst_ = proc_op->create_inst<SpRwDeltaIntoVarInst>(mul_inst);
+        context_.rd_base_inst_->set_rw_id(rw_delta_inst_->get_id());
+        SpRwDeltaIntoVarInst *rw_delta_into_var_inst = static_cast<SpRwDeltaIntoVarInst*>(rw_delta_inst_);
+        for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
+        {
+          const SpRawVar &raw_var = stmt->get_variable(i);
+          SpVar var;
+          ob_write_string(*mem_pool_, raw_var.var_name_, var.var_name_);
+          ob_write_obj(*mem_pool_, raw_var.idx_value_, var.idx_value_);
+
+          rw_delta_into_var_inst->add_assign_var(var);
+        }
+
+
         OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
         ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
 
@@ -1807,9 +1813,6 @@ int ObTransformer::gen_physical_procedure_select_into(
       }
       else
       {
-//        const ObIArray<const ObRawExpr*> &raw_var_expr = sel_stmt->get_raw_var_expr();
-//        gen_physical_procedure_inst_var_set(rd_all_inst_->cons_read_var_set(), raw_var_expr);
-
         for(int64_t i = 0; i < stmt->get_variable_size(); ++i)
         {
           const SpRawVar &raw_var = stmt->get_variable(i);
@@ -11674,14 +11677,6 @@ int ObTransformer::gen_physical_update_new(
     table_id = update_stmt->get_update_table_id();
     ups_modify->set_dml_type(OB_DML_UPDATE);
     ups_modify->set_table_id(table_id); //add wangjiahao [table lock] 20160616
-    
-    //add zt 20151105 [procedure compilation] :b
-
-    if( compile_procedure_ && NULL != rw_delta_inst_ )
-    {
-      rw_delta_inst_->set_rwdelta_op(ups_modify);
-    }
-    //add zt 20151105:e
   }
   ObSqlExpression expr;
   // fill rowkey columns into the Project op

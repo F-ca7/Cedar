@@ -34,6 +34,7 @@ namespace oceanbase
       SP_GROUP_INST, //for a block of instructions
       SP_W_INST, //while instruction
       SP_EXIT_INST,//exit instruction
+      SP_SQL_INST, //sql interface for all
       SP_UNKOWN
     };
 
@@ -199,7 +200,7 @@ namespace oceanbase
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
 
-      virtual int assign(const SpInst *inst) = 0;
+      virtual int assign(const SpInst *inst) { UNUSED(inst); return OB_NOT_SUPPORTED;}
     protected:
       SpInstType type_;
       int64_t id_;
@@ -418,6 +419,28 @@ namespace oceanbase
       ObSEArray<SpVar, 16> var_list_;
 
       SpVariableSet rs_;
+    };
+
+    class SpPlainSQLInst : public SpInst
+    {
+    public:
+      SpPlainSQLInst() : SpInst(SP_SQL_INST), op_(NULL), table_id_(0) {}
+      virtual ~SpPlainSQLInst();
+
+      virtual void get_read_variable_set(SpVariableSet &read_set) const;
+      virtual void get_write_variable_set(SpVariableSet &write_set) const;
+      CallType get_call_type() const { return S_RPC; } //never try to optimize this kind of SQL
+
+      SpVariableSet &cons_read_var_set() { return rs_; }
+
+      void set_main_query(ObPhyOperator *op, int32_t query_id) { op_ = op; query_id_ = query_id; }
+      ObPhyOperator * get_main_query() { return op_; }
+
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+    private:
+      ObPhyOperator *op_; //main query operator
+      int32_t query_id_;
+      SpVariableSet rs_;  //read set
     };
 
     class SpPreGroupInsts : public SpInst
