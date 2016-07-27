@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +28,9 @@
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
 
 /*===============================================================
@@ -200,10 +202,23 @@ namespace oceanbase
         int notify_switch_schema(bool only_core_tables, bool force_update = false);
 
         //add by wangdonghui 20160122 :b
+        /**
+         * @brief notify_update_cache
+         * notify all ms update cache of peocedure
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
         int notify_update_cache(const common::ObString & proc_name, const common::ObString & proc_source_code);
         //add :e
 
         //add by wangdonghui 20160305 :b
+        /**
+         * @brief notify_delete_cache
+         * notify all ms delete cache of peocedure
+         * @param proc_name procedure name
+         * @return error code
+         */
         int notify_delete_cache(const common::ObString & proc_name);
         //add :e
         void set_privilege_version(const int64_t privilege_version);
@@ -284,6 +299,12 @@ namespace oceanbase
         /// if (force_update = true && get_only_core_tables = false) then read new schema from inner table
         int get_schema(const bool froce_update, bool get_only_core_tables, common::ObSchemaManagerV2& out_schema);
         //add by wangdonghui 20160307 :b
+        /**
+         * @brief get_procedure
+         * get name_code_map_
+         * @param namecodemap  ObNameCodeMap object
+         * @return error
+         */
         int get_procedure(common::ObNameCodeMap& namecodemap);
         //add :e
         int64_t get_schema_version() const;
@@ -452,7 +473,17 @@ namespace oceanbase
         int renew_user_schema(int64_t & table_count);
 
         //add by wangdonghui 20160307 :b
+        /**
+         * @brief renew_procedure_info
+         * refresh procedure
+         * @return error code
+         */
         int renew_procedure_info();
+        /**
+         * @brief refresh_new_procedure
+         * force refresh physical plan manager
+         * @return error code
+         */
         int refresh_new_procedure();
         //add :e
         int renew_core_schema(void);
@@ -471,14 +502,34 @@ namespace oceanbase
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
 
         //add by wangdonghui 20160121 :b
+        /**
+         * @brief create_procedure
+         * create procedure throuth ddl tool
+         * @param if_exists is a flag
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
         int create_procedure(const bool if_exists, const common::ObString proc_name, const common::ObString proc_source_code);
         //add :e
 
         //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief drop_procedure
+         * drop procedure throuth ddl tool
+         * @param if_exists is a flag
+         * @param proc_name procedure name
+         * @return error code
+         */
         int drop_procedure(bool if_exists, const common::ObString &proc_name);
         //add :e
 
         //add by wangdonghui 20160304 :b
+        /**
+         * @brief get_name_code_map
+         * get name_code_map_
+         * @return  ObNameCodeMap point
+         */
         common::ObNameCodeMap* get_name_code_map();
         //add :e
         int64_t get_last_frozen_version() const;
@@ -583,6 +634,13 @@ namespace oceanbase
         int check_table_exist(const common::ObString & table_name, bool & exist);
 
         //add by wangdonghui 20160122 :b
+        /**
+         * @brief check_procedure_exist
+         * check procedure exist or not
+         * @param proc_name
+         * @param exist
+         * @return
+         */
         int check_procedure_exist(const common::ObString & proc_name, bool & exist);
         //add :e
         int delete_dropped_tables(int64_t & table_count);
@@ -706,7 +764,20 @@ namespace oceanbase
         int force_sync_schema_all_servers(const common::ObSchemaManagerV2 &schema);
 
         //add by wangdonghui 20160123 :b
+        /**
+         * @brief force_sync_cahce_all_servers
+         * sync cache to ms
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
         int force_sync_cahce_all_servers(const common::ObString proc_name, const common::ObString proc_source_code);
+        /**
+         * @brief force_delete_cahce_all_servers
+         * delete cache to ms
+         * @param proc_name procedure name
+         * @return error code
+         */
         int force_delete_cahce_all_servers(const common::ObString proc_name);
         //add :e
         int force_heartbeat_all_servers(void);
@@ -796,7 +867,7 @@ namespace oceanbase
         // add:e
 		
         //add by wangdonghui [procedure physical plan cache management] 20160229:b
-        common::ObNameCodeMap *name_code_map_;
+        common::ObNameCodeMap *name_code_map_;  ///< rootserver store name code map
         //add :e		
     };
   }

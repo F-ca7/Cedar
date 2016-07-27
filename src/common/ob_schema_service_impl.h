@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,8 @@
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Weng Haixing <wenghaixing@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
 
 /**
@@ -67,7 +68,7 @@ namespace oceanbase
     static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei [create index]
     static ObString table_name_str = OB_STR("table_id");
     //add by wangdonghui 20160125 :b
-    static ObString procedure_table_name = OB_STR(OB_ALL_PROCEDURE_TABLE_NAME);
+    static ObString procedure_table_name = OB_STR(OB_ALL_PROCEDURE_TABLE_NAME);  ///< static string procedure table name
     //add :e
     static const char* const TMP_PREFIX = "tmp_";
 
@@ -81,6 +82,12 @@ namespace oceanbase
 
         virtual int get_table_schema(const ObString& table_name, TableSchema& table_schema);
         //add by wangdonghui 20160308 :b
+        /**
+         * @brief get_procedure_info
+         * scan OB_ALL_PROCEDURE_TABLE
+         * @param res_  return Query Result
+         * @return error code
+         */
         virtual int get_procedure_info(common::nb_accessor::QueryRes *&res_);
         //add :e
         virtual int create_table(const TableSchema& table_schema);
@@ -94,9 +101,22 @@ namespace oceanbase
         virtual int prepare_privilege_for_table(const nb_accessor::TableRow* table_row,
             ObMutator *mutator, const int64_t table_id);
         //add by wangdonghui 20160125 :b
+        /**
+         * @brief create_procedure
+         * create procedure mutator and execute
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source name
+         * @return error code
+         */
         virtual int create_procedure(const common::ObString& proc_name, const common::ObString & proc_source_code);
         //add :e
         //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief drop_procedure
+         * delete row from __all_procedure
+         * @param proc_name procedure name
+         * @return error code
+         */
         int drop_procedure(const ObString& proc_name);
         //add :e
         friend class ::TestSchemaService_assemble_table_Test;
@@ -112,6 +132,14 @@ namespace oceanbase
         int create_table_mutator(const TableSchema& table_schema, ObMutator* mutator);
 
         //add by wangdonghui 20160125 :b
+        /**
+         * @brief create_procedure_mutator
+         * create procedure mutator
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @param mutator point generated mutator
+         * @return error code
+         */
         int create_procedure_mutator(const common::ObString & proc_name, const common::ObString & proc_source_code, ObMutator* mutator);
         //add :e
         int alter_table_mutator(const AlterTableSchema& table_schema, ObMutator* mutator, const int64_t old_schema_version);

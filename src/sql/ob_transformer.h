@@ -95,52 +95,148 @@ namespace oceanbase
 
         //add by zhujun 2014-12-05:b
         //code_coverage_zhujun
+        /**
+         * @brief gen_physical_procedure
+         * generate a physical plan PhyOperator of procedure body block based on a logical plan of procedure body block stmt
+         * @param logical_plan point a logical plan that used to generate physical plan
+         * @param physical_plan point a physical plan that used to store ObProcedure that procedure body block PhyOperator
+         * @param err_stat store error status
+         * @param query_id is ObProcedureStmt id
+         * @param index physical query id
+         * @return error code
+         */
         int gen_physical_procedure(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
 			int32_t* index);
+
+        /**
+         * @brief gen_physical_procedure_create
+         * generate a physical plan PhyOperator of procedure create  based on a logical plan of procedure create stmt
+         * @param logical_plan point a logical plan that used to generate physical plan
+         * @param physical_plan point a physical plan that used to store ObProcedureCreate that procedure create PhyOperator
+         * @param err_stat store error status
+         * @param query_id is ObProcedureCreateStmt id
+         * @param index physical query id
+         * @return error code
+         */
         int gen_physical_procedure_create(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
 			int32_t* index);
+
+        /**
+         * @brief gen_physical_procedure_drop
+         * generate a physical plan PhyOperator of procedure drop based on a logical plan of procedure drop stmt
+         * @param logical_plan point a logical plan that used to generate physical plan
+         * @param physical_plan point a physical plan that used to store ObProcedureDrop that procedure drop PhyOperator
+         * @param err_stat store error status
+         * @param query_id is ObProcedureDropStmt id
+         * @param index physical query id
+         * @return error code
+         */
         int gen_physical_procedure_drop(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
 			int32_t* index);
+        /**
+         * @brief gen_physical_procedure_execute
+         * generate a physical plan PhyOperator of procedure execute based on a logical plan of procedure execute
+         * @param logical_plan point a logical plan that used to generate physical plan
+         * @param physical_plan point a physical plan that used to store ObProcedureExecute that procedure execute PhyOperator
+         * @param err_stat store error status
+         * @param query_id is ObProcedureExecuteStmt id
+         * @param index physical query id
+         * @return error code
+         */
         int gen_physical_procedure_execute(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
-      int32_t* index);
+            int32_t* index);
+        /**
+         * @brief gen_physical_procedure_else
+         * generate a physical plan instruct of procedure else based on a logical plan of procedure else
+         * @param logical_plan point a logical plan that used to generate physical plan
+         * @param physical_plan point a physical plan that used to store procedure else inst
+         * @param err_stat store error status
+         * @param query_id is stmt id
+         * @param index physical query id
+         * @return error code
+         */
         int gen_physical_procedure_else(
 			ObLogicalPlan *logical_plan,
 			ObPhysicalPlan *physical_plan,
 			ErrStat& err_stat,
 			const uint64_t& query_id,
-      int32_t* index);
+            int32_t* index);
 
 
         //add zt 20151207 : help function
+  /**
+   * @brief gen_physical_procedure_inst_var_set
+   * used to analyze the structure of expression, find out the variables used in the instruction
+   * and update the corresponding variable set.
+   * @param var_set  the variable set that variables/array added into
+   * @param raw_expr_list  the expression list to be analyzed
+   * @return error code
+   */
   int gen_physical_procedure_inst_var_set(
                   SpVariableSet &var_set,
                   const ObIArray<const ObRawExpr *> & raw_expr_list
                   );
+  /**
+   * @brief gen_physical_procedure_inst_var_set
+   * used to analyze the structure of expression, find out the variables used in the instruction
+   * and update the corresponding variable set.
+   * @param var_set  the variable set that variables/array added into
+   * @param raw_expr  the expression to be analyzed
+   * @return error code
+   */
   int gen_physical_procedure_inst_var_set(SpVariableSet &var_set,
                   const ObSqlRawExpr *raw_expr);
-
+  /**
+   * @brief ext_var_info_where
+   * extract where expression variable information
+   * @param raw_expr is raw exprission
+   * @param is_rowkey is a flag of rowkey existence
+   * @return error code
+   */
   int ext_var_info_where(const ObSqlRawExpr *raw_expr, bool is_rowkey);
 
+  /**
+   * @brief ext_var_info_project
+   * extract variable information
+   * @param raw_expr is raw exprission
+   * @return error code
+   */
   int ext_var_info_project(const ObSqlRawExpr *raw_expr);
-
+  /**
+   * @brief ext_table_id
+   * set inst used table id
+   * @param table_id is table id
+   * @return error code
+   */
   int ext_table_id(uint64_t table_id);
 
+  /**
+   * @brief gen_physical_procedure_if
+   * generate a physical plan if instruction based on a logical plan of if
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureIfStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_if(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -149,7 +245,15 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
-
+  /**
+   * @brief gen_physical_procedure_declare
+   * generate a physical plan declare instruction based on a logical plan of declare
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param err_stat store error status
+   * @param query_id is ObProcedureAssginStmt index
+   * @param proc_op point ObProcedure object
+   * @return error code
+   */
   int gen_physical_procedure_declare(
                   ObLogicalPlan *logical_plan,
                   //			ObPhysicalPlan *physical_plan,
@@ -157,6 +261,18 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure *proc_op);
   //			int32_t* index);
+
+  /**
+   * @brief gen_physical_procedure_assign
+   * generate a physical plan assign instruction based on a logical plan of assign
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureAssginStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_assign(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -165,6 +281,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_insert
+   * generate a physical plan insert instruction based on a logical plan of insert
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObInsertStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_insert(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -173,6 +300,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_replace
+   * generate a physical plan replace instruction based on a logical plan of replace
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObInsertStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_replace(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -181,6 +319,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_update
+   * generate a physical plan update instruction based on a logical plan of update
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObUpdateStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_update(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -190,6 +339,17 @@ namespace oceanbase
                   SpMultiInsts *mul_inst = NULL
                   );
   //add by wangdonghui 20160623 :b
+  /**
+   * @brief gen_physical_procedure_delete
+   * generate a physical plan delete instruction based on a logical plan of delete
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObDeleteStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_delete(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -199,6 +359,17 @@ namespace oceanbase
                   SpMultiInsts *mul_inst
           );
   //add :e
+  /**
+   * @brief gen_physical_procedure_select_into
+   * generate a physical plan select_into instruction based on a logical plan of select_into
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureSelectIntoStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_select_into(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -207,6 +378,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_loop
+   * generate a physical plan loop instruction based on a logical plan of loop
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureLoopStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_loop(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -215,6 +397,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_inst
+   * generate a physical plan instruction of procedure body block based on a logical plan of procedure body block
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure  instructions
+   * @param err_stat store error status
+   * @param query_id is stmt id
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_inst(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -223,6 +416,17 @@ namespace oceanbase
                   ObProcedure *proc_op,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_elseif
+   * generate a physical plan elseif instruction based on a logical plan of elseif
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureElseIfStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_elseif(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -232,6 +436,17 @@ namespace oceanbase
                   SpIfCtrlInsts *&elseif_ctrl,
                   SpMultiInsts *mul_inst = NULL
                   );
+  /**
+   * @brief gen_physical_procedure_case
+   * generate a physical plan case instruction based on a logical plan of case
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureCaseStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_case(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -239,6 +454,17 @@ namespace oceanbase
                   const uint64_t& query_id,
                   ObProcedure* proc_op,
                   SpMultiInsts* mul_inst =NULL);
+  /**
+   * @brief gen_physical_procedure_casewhen
+   * generate a physical plan casewhen instruction based on a logical plan of casewhen
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureCaseWhenStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_casewhen(
                   ObLogicalPlan *logical_plan,
                   ObPhysicalPlan *physical_plan,
@@ -248,12 +474,12 @@ namespace oceanbase
                   SpMultiInsts* mul_inst =NULL);
   /**
    * @brief gen_physical_set_array_value
-   * generate a physical plan of variable set array based on a logical plan of variable set array
+   * generate a physical plan PhyOperator of variable set array based on a logical plan of variable set array stmt
    * @param logical_plan point a logical plan that used to generate physical plan
-   * @param physical_plan point a physical plan that used to store variable set array
+   * @param physical_plan point a physical plan that used to store variable set array PhyOperator
    * @param err_stat store error status
-   * @param query_id is variable set array's id
-   * @param index physical query
+   * @param query_id is variable set array stmt id
+   * @param index physical query id
    * @return error code
    */
   int gen_physical_set_array_value(
@@ -266,6 +492,17 @@ namespace oceanbase
 
 
   //add hjw 20151229:b
+  /**
+   * @brief gen_physical_procedure_while
+   * generate a physical plan while instruction based on a logical plan of while
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureWhileStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_while(
          ObLogicalPlan *logical_plan,
          ObPhysicalPlan *physical_plan,
@@ -276,6 +513,17 @@ namespace oceanbase
   //add hjw 20151229:e
 
   //add wdh 20160623 :b
+  /**
+   * @brief gen_physical_procedure_exit
+   * generate a physical plan exit instruction based on a logical plan of exit
+   * @param logical_plan point a logical plan that used to generate physical plan
+   * @param physical_plan point a physical plan that used to store procedure instructions
+   * @param err_stat store error status
+   * @param query_id is ObProcedureExitStmt index
+   * @param proc_op point ObProcedure object
+   * @param mul_inst store generated instructions
+   * @return error code
+   */
   int gen_physical_procedure_exit(
          ObLogicalPlan *logical_plan,
          ObPhysicalPlan *physical_plan,
@@ -1098,11 +1346,11 @@ namespace oceanbase
         ObSqlContext *sql_context_;
         bool group_agg_push_down_param_;
 
-        //add by zhutao [a switch from normal/procedure compilation]
+        ///add by zhutao [a switch from normal/procedure compilation]
         bool compile_procedure_;
-        SpRwDeltaInst* rw_delta_inst_;
-        SpRdBaseInst* rd_base_inst_;
-        SpRwCompInst *rd_all_inst_;
+        SpRwDeltaInst* rw_delta_inst_;  ///< ups operate instruction
+        SpRdBaseInst* rd_base_inst_;  ///< read base data instruction
+        SpRwCompInst *rd_all_inst_;  ///< ups and cs operate instruction
         //add :e
     };
 

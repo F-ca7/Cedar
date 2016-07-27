@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,7 +13,8 @@
  *
  * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
- * @date  2016_01_24
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date  2016_07_26
  */
 
 #include "ob_root_ddl_operator.h"

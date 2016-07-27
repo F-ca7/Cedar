@@ -1,3 +1,21 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_merge_service.h
+* @brief main entrance of build logical plan
+*
+* Created by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_26
+*/
+
 #ifndef OCEANBASE_MERGESERVER_SERVICE_H_
 #define OCEANBASE_MERGESERVER_SERVICE_H_
 
@@ -65,6 +83,11 @@ namespace oceanbase
 
         sql::ObSQLSessionMgr* get_sql_session_mgr() const;
         //add by wangdonghui :b
+        /**
+         * @brief get_sql_proxy_
+         * get sql_proxy_
+         * @return  ObMsSQLProxy sql_proxy_
+         */
         ObMsSQLProxy get_sql_proxy_() const;
         //add :e
         void set_sql_session_mgr(sql::ObSQLSessionMgr* mgr);
@@ -93,6 +116,11 @@ namespace oceanbase
         common::ObStatManager *get_stat_manager() const { return service_monitor_; }
 
         //add by wangdonghui 20160302 [ppc manager] :b
+        /**
+         * @brief get_merge_server
+         * get merge_server_
+         * @return ObMergeServer merge_server_
+         */
         ObMergeServer *get_merge_server() const { return merge_server_; }
 
         int fetch_source(common::ObNameCodeMap * name_code_map);
@@ -210,6 +238,18 @@ namespace oceanbase
 
 
         //add by wangdonghui 20160122 :b
+        /**
+         * @brief ms_accept_cache
+         * mergeserver accept procedure name and source code
+         * @param receive_time receive time
+         * @param version rpc version
+         * @param channel_id  tbnet need this packet channel_id
+         * @param req packet request
+         * @param in_buffer receive packet buffer
+         * @param out_buffer databuffer
+         * @param timeout_us timeout
+         * @return error code
+         */
         int ms_accept_cache(
           const int64_t receive_time,
           const int32_t version,
@@ -221,6 +261,18 @@ namespace oceanbase
         //add :e
 
         //add by wangdonghui 20160305 :b
+        /**
+         * @brief ms_delete_cache
+         * destroy procedure
+         * @param receive_time  receive time
+         * @param version rpc version
+         * @param channel_id  tbnet need this packet channel_id
+         * @param req packet request
+         * @param in_buffer receive packet buffer
+         * @param out_buffer databuffer
+         * @param timeout_us timeout
+         * @return error code
+         */
         int ms_delete_cache(
           const int64_t receive_time,
           const int32_t version,
@@ -356,6 +408,11 @@ namespace oceanbase
       return sql_session_mgr_;
     }
     //add by wangdonghui 20160320 :b
+    /**
+     * @brief ObMergeServerService::get_sql_proxy_
+     * get sql_proxy_
+     * @return ObMsSQLProxy sql_proxy_
+     */
     inline ObMsSQLProxy ObMergeServerService::get_sql_proxy_() const
     {
         return sql_proxy_;

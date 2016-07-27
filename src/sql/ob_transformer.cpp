@@ -853,14 +853,7 @@ int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, c
   return ret;
 }
 
-/**
- * @brief ObTransformer::gen_physical_procedure_inst_var_set
- * used to analyze the structure of expression, find out the variables used in the instruction
- * and update the corresponding variable set.
- * @param var_set  the variable set that variables/array added into
- * @param raw_expr_list  the expression to be analyzed
- * @return
- */
+
 int ObTransformer::gen_physical_procedure_inst_var_set(SpVariableSet &var_set, const ObIArray<const ObRawExpr *> &raw_expr_list)
 {
   int ret = OB_SUCCESS;
