@@ -464,7 +464,7 @@ int ObProcedureOptimizer::rule_based_optimize(ObProcedure &proc)
   PREP_PROC(proc);
   UNUSED(proc_name);
   UNUSED(exec_list);
-  TBSYS_LOG(INFO, "rule_base_optimize: %.*s", proc_name.length(), proc_name.ptr());
+  //TBSYS_LOG(INFO, "rule_base_optimize: %.*s", proc_name.length(), proc_name.ptr());
 
   SpInstList expand_list;
   SpInstList seq_list;
@@ -624,15 +624,17 @@ int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_li
   if( (if_inst->get_then_block()->inst_count() == 0 || then_pre_inst.count() != 0) &&
       (if_inst->get_else_block()->inst_count() == 0 || else_pre_inst.count() != 0) )
   {
-    SpPreGroupInsts *pre_group = if_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
+    SpPreGroupInsts *pre_then_group = if_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
+    SpPreGroupInsts *pre_else_group = if_inst->get_ownner()->create_inst<SpPreGroupInsts>(NULL);
+
     for(int64_t i = 0; i < then_pre_inst.count(); ++i)
     {
-      pre_group->add_inst(then_pre_inst.at(i));
+      pre_then_group->add_inst(then_pre_inst.at(i));
     }
 
     for(int64_t i = 0; i < else_pre_inst.count(); ++i)
     {
-      pre_group->add_inst(else_pre_inst.at(i));
+      pre_else_group->add_inst(else_pre_inst.at(i));
     }
 
     if_inst->get_then_block()->inst_list_.clear();
@@ -646,7 +648,8 @@ int ObProcedureOptimizer::ctrl_split(SpIfCtrlInsts *if_inst, SpInstList &inst_li
     {
       if_inst->get_else_block()->inst_list_.push_back(else_post_inst.at(i));
     }
-    inst_list.push_back(pre_group);
+    inst_list.push_back(pre_then_group);
+    inst_list.push_back(pre_else_group);
 
   }
   inst_list.push_back(if_inst);
@@ -747,7 +750,7 @@ void ObProcDepGraph::build_dep_graph(GraphType type)
       }
     }
   }
-  TBSYS_LOG(INFO, "%s", to_cstring(*this));
+  //TBSYS_LOG(INFO, "%s", to_cstring(*this));
   inited_ = true;
 }
 
@@ -793,8 +796,8 @@ int ObProcDepGraph::set_insts(ObIArray<SpInst *> &insts)
     flow_srpc_.push_back(false);
   }
 
-  TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
-            graph_.count(), degree_.count());
+  //TBSYS_LOG(INFO, "set_insts: %ld, inner_list_: %ld, graph_: %ld, degree_: %ld", insts.count(), inst_list_.count(),
+  //          graph_.count(), degree_.count());
   active_node_count_ = insts.count();
   return OB_SUCCESS;
 }
@@ -942,7 +945,7 @@ int ObProcDepGraph::split(ObIArray<int64_t> &seq, int64_t &pre_count)
 
     for(int64_t i = 0; i < inst_list_.count(); ++i)
     {
-      TBSYS_LOG(INFO, "%ld: %d", i, flow_srpc_.at(i));
+      //TBSYS_LOG(INFO, "%ld: %d", i, flow_srpc_.at(i));
       if( flow_srpc_.at(i) )
       {
         seq.push_back(i);

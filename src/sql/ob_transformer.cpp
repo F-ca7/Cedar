@@ -1988,7 +1988,23 @@ int ObTransformer::gen_physical_procedure_update(
   {}
   else
   {
-    rw_delta_inst_->set_ups_exec_op(physical_plan->get_phy_query(idx), idx);
+    OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
+    ObUpsExecutor *ups_exec = (ObUpsExecutor *)physical_plan->get_phy_query(idx);
+
+    ObPhysicalPlan* inner_plan = ups_exec->get_inner_plan();
+    OB_ASSERT(inner_plan->get_query_size() == 3);
+    for(int32_t i = 0; i < inner_plan->get_query_size(); ++i)
+    {
+      ObPhyOperator* aux_query = inner_plan->get_phy_query(i);
+      const ObPhyOperatorType type = aux_query->get_type();
+      if( PHY_VALUES == type )
+      {
+        rd_base_inst_->set_rdbase_op(aux_query, idx);
+        break;
+      }
+    }
+    rw_delta_inst_->set_rwdelta_op(ups_exec->get_inner_plan()->get_main_query());
+    rw_delta_inst_->set_ups_exec_op(ups_exec, idx);
   }
   rw_delta_inst_ = NULL;
   rd_base_inst_ = NULL;
