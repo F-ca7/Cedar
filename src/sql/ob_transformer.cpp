@@ -1863,6 +1863,7 @@ int ObTransformer::gen_physical_procedure_replace(
     }
     else
     {
+      OB_ASSERT(physical_plan->get_phy_query(idx)->get_type() == PHY_UPS_EXECUTOR);
       context_.sql_inst_ = proc_op->create_inst<SpPlainSQLInst>(mul_inst);
       context_.sql_inst_->set_main_query(physical_plan->get_phy_query(idx), idx);
     }

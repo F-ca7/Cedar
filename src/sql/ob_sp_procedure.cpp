@@ -678,7 +678,10 @@ void SpPlainSQLInst::get_read_variable_set(SpVariableSet &read_set) const
 
 void SpPlainSQLInst::get_write_variable_set(SpVariableSet &write_set) const
 {
-  UNUSED(write_set);
+  if(op_->get_type() == PHY_UPS_EXECUTOR)
+  { //write sql
+    write_set.add_table_id(table_id_);
+  }
 }
 
 void SpPreGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
@@ -2922,6 +2925,8 @@ int64_t SpPreGroupInsts::to_string(char *buf, const int64_t buf_len) const
 int64_t SpPlainSQLInst::to_string(char *buf, const int64_t buf_len) const
 {
   int64_t pos = 0;
-  databuff_printf(buf, buf_len, pos, "type [SQL], rs: %s\n", to_cstring(rs_));
+  SpVariableSet write_set;
+  get_write_variable_set(write_set);
+  databuff_printf(buf, buf_len, pos, "type [SQL], rs: %s, ws: %s\n", to_cstring(rs_), to_cstring(write_set));
   return pos;
 }
