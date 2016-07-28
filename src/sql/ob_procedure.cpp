@@ -1,3 +1,20 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_procedure.cpp
+* @brief main entrance of build logical plan
+*
+* Created by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_27
+*/
 #include "ob_procedure.h"
 #include "ob_result_set.h"
 #include "ob_physical_plan.h"
@@ -729,13 +746,13 @@ int SpMsInstExecStrategy::execute_group(SpGroupInsts *inst)
   else
   {
     /**
-   *  set the execution context variables for the exec_plan
-   * */
+     *  set the execution context variables for the exec_plan
+     */
     init_physical_plan(exec_plan, *out_plan);
 
     /**
-   * build the relationship between block_inst <----> proc <----> exec_plan
-   * */
+     * build the relationship between block_inst <----> proc <----> exec_plan
+     */
     proc.add_inst(inst);
     exec_plan.add_phy_query(&proc, NULL, true);
 
@@ -1310,12 +1327,7 @@ int ObProcedure::set_inst_op()
   return ret;
 }
 
-/**
- * If the procedure is constructed by assign methods,
- * each instrcution only have the query_id, the op_ filed would be null
- * we need to set the op_ according to the query_id
- * @brief ObProcedure::set_inst_op
- */
+
 int ObProcedure::set_inst_op(SpInst *inst)
 {
   int ret = OB_SUCCESS;

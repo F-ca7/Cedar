@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_postfix_expression.cpp
- * @brief postfix expression
+ * @brief postfix expression class define
  *
  * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
@@ -14,7 +14,7 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
- * @date 2016_01_22
+ * @date 2016_07_28
  */
 
 /*

@@ -163,22 +163,6 @@ namespace oceanbase
 			ErrStat& err_stat,
 			const uint64_t& query_id,
             int32_t* index);
-        /**
-         * @brief gen_physical_procedure_else
-         * generate a physical plan instruct of procedure else based on a logical plan of procedure else
-         * @param logical_plan point a logical plan that used to generate physical plan
-         * @param physical_plan point a physical plan that used to store procedure else inst
-         * @param err_stat store error status
-         * @param query_id is stmt id
-         * @param index physical query id
-         * @return error code
-         */
-        int gen_physical_procedure_else(
-			ObLogicalPlan *logical_plan,
-			ObPhysicalPlan *physical_plan,
-			ErrStat& err_stat,
-			const uint64_t& query_id,
-            int32_t* index);
 
 
   //add zt 20151207 : help function

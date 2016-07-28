@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
+* Copyright (C) 2013-2016 ECNU_DaSE.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -12,7 +12,8 @@
 *
 * @version __DaSE_VERSION
 * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @date 2016_07_27
 */
 
 /**
@@ -138,7 +139,14 @@ namespace oceanbase
         void set_hotspot(bool flag) { hotspot_ = flag; }
         int serialize(char* buf, const int64_t buf_len, int64_t& pos) const;
         int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
-
+        /**
+         * @brief serialize_template
+         * special serialize for group execution
+         * @param buf buffer
+         * @param buf_len buffer length
+         * @param pos point flag
+         * @return error code
+         */
         int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const; //add by zt 20160113
 
         int64_t get_serialize_size() const;
