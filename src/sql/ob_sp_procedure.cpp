@@ -123,6 +123,20 @@ bool SpVarInfo::conflict(const SpVarInfo &a, const SpVarInfo &b)
   return ret;
 }
 
+bool SpVarInfo::compare(const SpVarInfo &other) const
+{
+  bool ret = false;
+  if( var_type_ == other.var_type_ )
+  {
+    if( var_type_ == VM_DB_TAB ) ret = (idx_value_ == other.idx_value_);
+    else
+    {
+      ret = (var_name_.compare(other.var_name_) == 0 );
+    }
+  }
+  return ret;
+}
+
 int SpVariableSet::add_tmp_var(const ObString &var_name)
 {
   return add_var_info(SpVarInfo(var_name));
@@ -170,7 +184,7 @@ int SpVariableSet::add_var_info(const SpVarInfo &var_info)
   for(int64_t i = 0; i < var_info_set_.count() && !flag; ++i)
   {
     const SpVarInfo &info = var_info_set_.at(i);
-    flag = SpVarInfo::conflict(var_info, info);
+    flag = var_info.compare(info);
   }
   if( !flag ) ret = var_info_set_.push_back(var_info);
   return ret;
@@ -652,6 +666,19 @@ int SpRwCompInst::assign(const SpInst *inst)
     }
   }
   return ret;
+}
+
+SpPlainSQLInst::~SpPlainSQLInst()
+{}
+
+void SpPlainSQLInst::get_read_variable_set(SpVariableSet &read_set) const
+{
+  read_set.add_var_info_set(rs_);
+}
+
+void SpPlainSQLInst::get_write_variable_set(SpVariableSet &write_set) const
+{
+  UNUSED(write_set);
 }
 
 void SpPreGroupInsts::get_read_variable_set(SpVariableSet &read_set) const
@@ -1272,6 +1299,7 @@ int64_t SpMultiInsts::check_tnode_access() const
       case SP_D_INST:
       case SP_DE_INST:
       case SP_GROUP_INST:
+      case SP_SQL_INST:
         ++count;
         break;
     }
@@ -1495,7 +1523,7 @@ int SpWhileInst::assign(const SpInst *inst)
 CallType SpWhileInst::get_call_type() const
 {
 //  return do_body_.get_call_type();
-  return S_RPC; //a trick to prevent optimize while inst
+  return T_AND_S; //a trick to prevent optimize while inst
 }
 
 //add hjw 20151231:e
@@ -1797,7 +1825,7 @@ int SpExitInst::assign(const SpInst *inst)
 CallType SpExitInst::get_call_type() const
 {
 //    return L_LPC;
-  return S_RPC; //a trick to prevent optimize exit inst
+  return T_AND_S; //a trick to prevent optimize exit inst
 }
 //add :e
 
@@ -1968,7 +1996,8 @@ CallType SpCaseInst::get_call_type() const
     ret = merge_call_type(ret, when_list_.at(i).get_call_type());
   }
 
-  if( ret != L_LPC ) ret = S_RPC; //a trick to prevent from optimizing case
+  //if( ret != L_LPC ) ret = S_RPC; //a trick to prevent from optimizing case
+  ret = T_AND_S;
   return ret;
 }
 
@@ -2291,7 +2320,16 @@ int SpProcedure::read_array_size(const ObString &array_name, int64_t &size) cons
   int ret = OB_SUCCESS;
 
   const ObObj *idx;
-  if( OB_SUCCESS != (ret = read_variable(array_name, idx)))
+
+  if( my_phy_plan_->get_result_set() != NULL )
+  {
+    if( OB_SUCCESS != (ret = my_phy_plan_->get_result_set()->
+                       get_session()->get_variable_array_size(array_name, size)))
+    {
+      TBSYS_LOG(WARN, "procedure could not read array %.*s size", array_name.length(), array_name.ptr());
+    }
+  }
+  else if( OB_SUCCESS != (ret = read_variable(array_name, idx)))
   {
     TBSYS_LOG(WARN, "fail to read array idx");
   }
@@ -2452,6 +2490,9 @@ SpInst* SpProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
     new_inst = create_inst<SpExitInst>(mul_inst);
     break;
   //add :e
+  case SP_SQL_INST:
+    new_inst = create_inst<SpPlainSQLInst>(mul_inst);
+    break;
   case SP_UNKOWN:
     new_inst = NULL;
     TBSYS_LOG(WARN, "unknown type here");
@@ -2875,5 +2916,12 @@ int64_t SpPreGroupInsts::to_string(char *buf, const int64_t buf_len) const
   databuff_printf(buf, buf_len, pos, "type [PreGroup]\n");
   pos += inst_list_.to_string(buf + pos, buf_len - pos);
   databuff_printf(buf, buf_len, pos, "End PreGroup\n");
+  return pos;
+}
+
+int64_t SpPlainSQLInst::to_string(char *buf, const int64_t buf_len) const
+{
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [SQL], rs: %s\n", to_cstring(rs_));
   return pos;
 }

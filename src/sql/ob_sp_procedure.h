@@ -34,6 +34,7 @@ namespace oceanbase
       SP_GROUP_INST, //for a block of instructions
       SP_W_INST, //while instruction
       SP_EXIT_INST,//exit instruction
+      SP_SQL_INST, //sql interface for all
       SP_UNKOWN
     };
 
@@ -112,6 +113,8 @@ namespace oceanbase
         var_name_(name), idx_value_(idx), var_type_(VM_FUL_ARY) {}
 
       static bool conflict(const SpVarInfo &a, const SpVarInfo &b);
+
+      bool compare(const SpVarInfo &other) const;
 
       int64_t to_string(char *buf, const int64_t buf_len) const;
       ObString var_name_;
@@ -197,7 +200,7 @@ namespace oceanbase
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const {UNUSED(buf); UNUSED(buf_len); return 0;}
 
-      virtual int assign(const SpInst *inst) = 0;
+      virtual int assign(const SpInst *inst) { UNUSED(inst); return OB_NOT_SUPPORTED;}
     protected:
       SpInstType type_;
       int64_t id_;
@@ -362,7 +365,7 @@ namespace oceanbase
     class SpRwDeltaIntoVarInst : public SpRwDeltaInst
     {
     public:
-      SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST) {}
+      SpRwDeltaIntoVarInst() : SpRwDeltaInst(SP_DE_INST){}
       virtual ~SpRwDeltaIntoVarInst();
 
       void add_assign_var(const SpVar &var) { var_list_.push_back(var); }
@@ -370,6 +373,9 @@ namespace oceanbase
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
 
       const ObIArray<SpVar> & get_var_list() const { return var_list_;}
+
+      //for op_ == NULL, it is a range query, otherwise it is a point query
+      CallType get_call_type() const { return (op_ == NULL ? T_AND_S : T_RPC); }
 
       virtual int64_t to_string(char *buf, const int64_t buf_len) const;
 
@@ -391,7 +397,7 @@ namespace oceanbase
 
       virtual void get_read_variable_set(SpVariableSet &read_set) const;
       virtual void get_write_variable_set(SpVariableSet &write_set) const;
-      CallType get_call_type() const { return S_RPC; }
+      CallType get_call_type() const { return T_AND_S; }
 
       SpVariableSet & cons_read_var_set() { return rs_; }
 
@@ -416,6 +422,29 @@ namespace oceanbase
       ObSEArray<SpVar, 16> var_list_;
 
       SpVariableSet rs_;
+    };
+
+    class SpPlainSQLInst : public SpInst
+    {
+    public:
+      SpPlainSQLInst() : SpInst(SP_SQL_INST), op_(NULL) {}
+      virtual ~SpPlainSQLInst();
+
+      virtual void get_read_variable_set(SpVariableSet &read_set) const;
+      virtual void get_write_variable_set(SpVariableSet &write_set) const;
+      CallType get_call_type() const { return T_AND_S; } //never try to optimize this kind of SQL
+
+      SpVariableSet &cons_read_var_set() { return rs_; }
+
+      void set_main_query(ObPhyOperator *op, int32_t query_id) { op_ = op; query_id_ = query_id; }
+      ObPhyOperator * get_main_query() { return op_; }
+      int set_tid(uint64_t tid) {table_id_ = tid; return OB_SUCCESS;}
+      virtual int64_t to_string(char *buf, const int64_t buf_len) const;
+    private:
+      ObPhyOperator *op_; //main query operator
+      int32_t query_id_;
+      uint64_t table_id_;
+      SpVariableSet rs_;  //read set
     };
 
     class SpPreGroupInsts : public SpInst
@@ -712,92 +741,6 @@ namespace oceanbase
       SpMultiInsts else_branch_;
     };
 
-    template<class T>
-    struct sp_inst_traits
-    {
-      static const bool is_sp_inst = false;
-      static const bool optimizable = false;
-    };
-
-    template<>
-    struct sp_inst_traits<SpExprInst>
-    {
-      static const bool is_sp_inst = true;
-      static const bool optimizable = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRdBaseInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwDeltaInst>
-    {
-      static const bool is_sp_inst = true;
-      static const bool optimizable = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwDeltaIntoVarInst>
-    {
-      static const bool is_sp_inst = true;
-      static const bool optimizable = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpRwCompInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpPreGroupInsts>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpGroupInsts>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpIfCtrlInsts>
-    {
-      static const bool is_sp_inst = true;
-      static const bool optimizable = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpLoopInst>
-    {
-      static const bool is_sp_inst = true;
-      static const bool optimizable = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpCaseInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    template<>
-    struct sp_inst_traits<SpWhileInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-
-    //add by wangdonghui 20160624 :b
-    template<>
-    struct sp_inst_traits<SpExitInst>
-    {
-      static const bool is_sp_inst = true;
-    };
-    //add :e
-
 
     typedef ObSEArray<int64_t, 8> ObLoopCounter; //represent the instruction location, each loop would create one more counter
 
@@ -806,17 +749,6 @@ namespace oceanbase
     public:
       virtual int execute_inst(SpInst *inst) = 0; //to provide the simple routine
       static int64_t sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter &counter);
-    private:
-      virtual int execute_expr(SpExprInst *inst) = 0;
-      virtual int execute_rd_base(SpRdBaseInst *inst) = 0;
-      virtual int execute_wr_delta(SpRwDeltaInst *inst) = 0;
-      virtual int execute_rd_delta(SpRwDeltaIntoVarInst *inst) = 0;
-      virtual int execute_rw_all(SpRwCompInst *inst) = 0;
-      virtual int execute_group(SpGroupInsts *inst) = 0;
-      virtual int execute_if_ctrl(SpIfCtrlInsts *inst) = 0;
-      virtual int execute_loop(SpLoopInst *inst) = 0;
-      virtual int execute_casewhen(SpCaseInst *inst) = 0;  //TODO
-      virtual int execute_multi_inst(SpMultiInsts *mul_inst) = 0;
     };
 
 
@@ -870,22 +802,19 @@ namespace oceanbase
       T * create_inst(SpMultiInsts *mul_inst)
       {
         T * ret = NULL;
-        if( sp_inst_traits<T>::is_sp_inst )
+        void *ptr = arena_.alloc(sizeof(T));
+        if( NULL != ptr )
         {
-          void *ptr = arena_.alloc(sizeof(T));
-          if( NULL != ptr )
-          {
-            ret = new(ptr) T();
-            //inst_list_.push_back((SpInst *)ret);
-            ((SpInst*)ret)->set_owner_procedure(this);
-            if( NULL != mul_inst)
-              mul_inst->add_inst(ret);
-            else
-              inst_list_.push_back((SpInst*)ret);
+          ret = new(ptr) T();
+          //inst_list_.push_back((SpInst *)ret);
+          ((SpInst*)ret)->set_owner_procedure(this);
+          if( NULL != mul_inst)
+            mul_inst->add_inst(ret);
+          else
+            inst_list_.push_back((SpInst*)ret);
 
-            ((SpInst*)ret)->set_id(inst_store_.count());
-            inst_store_.push_back(ret);
-          }
+          ((SpInst*)ret)->set_id(inst_store_.count());
+          inst_store_.push_back(ret);
         }
         return ret;
       }

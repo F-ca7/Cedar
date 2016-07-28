@@ -137,6 +137,7 @@ namespace oceanbase
        * @return error code
        */
       virtual int execute_exit(SpExitInst *inst);
+
       /**
        * @brief execute_multi_inst
        * execute multiple instructions
@@ -405,7 +406,9 @@ namespace oceanbase
       SpInstList exec_list_;
 //      ObProcedureStaticDataMgr static_data_mgr_;
 
-      SpMsInstExecStrategy strategy_;  ///<  MS instrcution execute strategy
+
+      SpMsInstExecStrategy *strategy_;  ///<  MS instrcution execute strategy
+
 
       bool long_trans_;  ///<  long transcation that more than one group commit
       mergeserver::ObMergerRpcProxy *rpc_;  ///< ms rpc proxy
