@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_logical_plan.cpp
-* @brief logical plan class define
+* @brief logical plan class definition
 *
 * modified by zhutao: modified already delete
 *

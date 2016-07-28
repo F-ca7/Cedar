@@ -102,14 +102,12 @@ namespace oceanbase
       /*root_server_(config_), sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_))*/
       root_server_(config_), check_rselection_thread_(rs_config, root_server_),sql_proxy_(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()), const_cast<ObRootServerConfig&>(rs_config), const_cast<ObRootRpcStub&>(rt_rpc_stub_),*this)
     //mod:e
-
     {
       schema_version_ = 0;
       //add wenghaixing [secondary index.static index]20151216
       icu_.init(this);
       //add e
     }
-
 
     ObRootWorker::~ObRootWorker()
     {
@@ -665,7 +663,8 @@ namespace oceanbase
         TBSYS_LOG(WARN, "check_rselection_thread_ is not initialized! ret=%d", ret);
       }
       //add by pangtianze [rs_election] 20151120:b
-      else if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().is_valid()){
+      else if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().is_valid())
+      {
           ret = OB_RS_LEADER_SETTED_WHEN_STARTING;
       }
       //add:e

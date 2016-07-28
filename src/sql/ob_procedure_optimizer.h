@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_optimizer.h
-* @brief main entrance of build logical plan
+* @brief procedure optimizer class definition,used to adjust instactions execution sequence
 *
 * Created by zhutao
 *

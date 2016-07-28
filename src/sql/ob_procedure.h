@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure.h
-* @brief main entrance of build logical plan
+* @brief procedure phsical plan relation class definition
 *
 * Created by zhutao
 *
@@ -28,6 +28,7 @@
 #include "ob_raw_expr.h"
 #include "mergeserver/ob_ms_rpc_proxy.h"
 using namespace oceanbase::common;
+
 namespace oceanbase
 {
 	namespace sql

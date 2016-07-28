@@ -32,7 +32,7 @@ namespace oceanbase
     class ObSql
     {
       public:
-      friend class ObTransformer; //add zt 20151119 bad design, in order to visit the copy_plan function
+        friend class ObTransformer; //add zt 20151119 bad design, in order to visit the copy_plan function
         /**
          * execute the SQL statement directly
          *

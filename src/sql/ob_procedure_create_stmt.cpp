@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_create_stmt.cpp
-* @brief the ObProcedureCreateStmt class define that warp procedure create statement
+* @brief the ObProcedureCreateStmt class definition that warp procedure create statement
 *
 * Created by zhutao
 *
@@ -61,17 +61,6 @@ uint64_t& ObProcedureCreateStmt::get_proc_id()
 {
 	return proc_id_;
 }
-int ObProcedureCreateStmt::set_proc_insert_id(uint64_t& stmt_id)
-{
-	proc_insert_id_=stmt_id;
-	return OB_SUCCESS;
-}
-
-uint64_t& ObProcedureCreateStmt::get_proc_insert_id()
-{
-	return proc_insert_id_;
-}
-
 
 
 }

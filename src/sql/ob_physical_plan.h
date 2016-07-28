@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_physical_plan.h
-* @brief physical plan class define
+* @brief physical plan class definition
 *
 * modified by zhutao
 *

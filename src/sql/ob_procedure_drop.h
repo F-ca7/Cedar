@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_drop.h
-* @brief the ObProcedureDrop class define that warp procedure drop PhyOperator
+* @brief the ObProcedureDrop class definition that warp procedure drop PhyOperator
 *
 * Created by zhutao
 *
@@ -149,10 +149,10 @@ namespace oceanbase
             //delete by wangdonghui 20160225[drop procedure] :b
             //ObPhyOperator *delete_op_;
             //delete :e
-      bool  if_exists_;  ///<   if exists flag /*标识是否是if exists语法*/
-            //add by wangdonghui 20160225 [drop procedure] :b
-            mergeserver::ObMergerRootRpcProxy* rpc_;  ///<  ms rpc proxy
-            //add :e
+      bool  if_exists_;  ///<   if exists flag
+      //add by wangdonghui 20160225 [drop procedure] :b
+      mergeserver::ObMergerRootRpcProxy* rpc_;  ///<  ms rpc proxy
+      //add :e
 
 		};
 

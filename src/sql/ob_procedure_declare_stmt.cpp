@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_declare_stmt.cpp
-* @brief the ObProcedureDeclareStmt class define that warp procedure declare statement
+* @brief the ObProcedureDeclareStmt class definition that warp procedure declare statement
 *
 * Created by zhutao
 *

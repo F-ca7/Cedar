@@ -1,10 +1,30 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_procedure_stmt.cpp
+* @brief the ObProcedureStmt class definition that warp procedure statement
+*
+* Created by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_28
+*/
+
 #include "ob_procedure_stmt.h"
 using namespace oceanbase::common;
+
 namespace oceanbase
 {
   namespace sql
   {
-    void ObProcedureStmt::print(FILE* fp, int32_t level, int32_t index) {
+    void ObProcedureStmt::print(FILE* fp, int32_t level, int32_t index)
+    {
       UNUSED(index);
       print_indentation(fp, level);
       fprintf(fp, "<ObProcedureStmt %d begin>\n", index);

@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_postfix_expression.cpp
- * @brief postfix expression class define
+ * @brief postfix expression class definition
  *
  * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
