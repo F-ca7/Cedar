@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_create_stmt.h
-* @brief the ObProcedureCreateStmt class define that warp procedure create statement
+* @brief the ObProcedureCreateStmt class definition that warp procedure create statement
 *
 * Created by zhutao
 *
@@ -41,7 +41,7 @@ class ObProcedureCreateStmt: public ObBasicStmt {
     ObProcedureCreateStmt() :
 				ObBasicStmt(T_PROCEDURE_CREATE) {
 		proc_id_=common::OB_INVALID_ID;
-		proc_insert_id_=common::OB_INVALID_ID;
+    //proc_insert_id_=common::OB_INVALID_ID;
 		}
     /**
      * @brief destructor
@@ -91,9 +91,6 @@ class ObProcedureCreateStmt: public ObBasicStmt {
      */
 		uint64_t& get_proc_id();
 
-		int set_proc_insert_id(uint64_t& stmt_id);
-
-		uint64_t& get_proc_insert_id();
 
     /**
      * @brief print
@@ -107,11 +104,11 @@ class ObProcedureCreateStmt: public ObBasicStmt {
 
 	private:
     ObString proc_name_;  ///<  procedure name
-        //add by wangdonghui 20160121 :b
-        ObString proc_source_code_;  ///<  procedure code
-        //add :e
+    //add by wangdonghui 20160121 :b
+    ObString proc_source_code_;  ///<  procedure code
+    //add :e
     uint64_t proc_id_;  ///<procedure id
-    uint64_t proc_insert_id_; /*插入到存储过程数据表的语句id*/
+    //uint64_t proc_insert_id_; /*插入到存储过程数据表的语句id*/
 
 	};
 

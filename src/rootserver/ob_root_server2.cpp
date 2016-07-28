@@ -80,7 +80,6 @@
 //add :e
 using namespace oceanbase::common;
 using namespace oceanbase::rootserver;
-
 using oceanbase::common::databuff_printf;
 
 namespace oceanbase
@@ -905,23 +904,23 @@ int ObRootServer2::renew_procedure_info()
       TBSYS_LOG(INFO, "refresh procedure success.");
     }
   }
-//remark by wangdonghui 20160308 I think it needn't
-//  if (OB_SUCCESS == ret)
-//  {
-//    ret = OB_ERROR;
-//    for (int64_t i = 0; (ret != OB_SUCCESS) && (i < retry_times); ++i)
-//    {
-//      if (OB_SUCCESS != (ret = notify_update_cache(false)))
-//      {
-//        TBSYS_LOG(WARN, "fail to notify_update_cache, retry_time=%ld, ret=%d", i, ret);
-//        sleep(1);
-//      }
-//      else
-//      {
-//        TBSYS_LOG(INFO, "notify switch schema success.");
-//      }
-//    }
-//  }
+  //remark by wangdonghui 20160308 I think it needn't
+  //  if (OB_SUCCESS == ret)
+  //  {
+  //    ret = OB_ERROR;
+  //    for (int64_t i = 0; (ret != OB_SUCCESS) && (i < retry_times); ++i)
+  //    {
+  //      if (OB_SUCCESS != (ret = notify_update_cache(false)))
+  //      {
+  //        TBSYS_LOG(WARN, "fail to notify_update_cache, retry_time=%ld, ret=%d", i, ret);
+  //        sleep(1);
+  //      }
+  //      else
+  //      {
+  //        TBSYS_LOG(INFO, "notify switch schema success.");
+  //      }
+  //    }
+  //  }
   return ret;
 }
 //add :e
@@ -1537,84 +1536,84 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
   }
   else
   {
-      common::nb_accessor::QueryRes * res_ = NULL;
-      if (OB_SUCCESS != (ret = schema_service_->get_procedure_info(res_)))
+    common::nb_accessor::QueryRes * res_ = NULL;
+    if (OB_SUCCESS != (ret = schema_service_->get_procedure_info(res_)))
+    {
+      TBSYS_LOG(WARN, "failed to get procedure info, err=%d", ret);
+      ret = OB_INNER_STAT_ERROR;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "get procedure info succ!");
+      common::nb_accessor::TableRow* table_row = NULL;
+      ObCellInfo* cell_info = NULL;
+      while(OB_SUCCESS == ret && OB_SUCCESS == (ret = res_->next_row()))
       {
-        TBSYS_LOG(WARN, "failed to get procedure info, err=%d", ret);
-        ret = OB_INNER_STAT_ERROR;
-      }
-      else
-      {
-        TBSYS_LOG(INFO, "get procedure info succ!");
-        common::nb_accessor::TableRow* table_row = NULL;
-        ObCellInfo* cell_info = NULL;
-        while(OB_SUCCESS == ret && OB_SUCCESS == (ret = res_->next_row()))
+        //            ObString &proc_name = *(this->get_name_code_map()->malloc_string());
+        //            ObString &proc_source_code = *(this->get_name_code_map()->malloc_string());
+        ObString proc_name, proc_source_code;
+        if(OB_SUCCESS == ret)
         {
-          //            ObString &proc_name = *(this->get_name_code_map()->malloc_string());
-          //            ObString &proc_source_code = *(this->get_name_code_map()->malloc_string());
-          ObString proc_name, proc_source_code;
-          if(OB_SUCCESS == ret)
+          ret = res_->get_row(&table_row);
+          if(OB_SUCCESS != ret && OB_ITER_END != ret)
           {
-            ret = res_->get_row(&table_row);
-            if(OB_SUCCESS != ret && OB_ITER_END != ret)
-            {
-              TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
-            }
-          }
-          if(OB_SUCCESS == ret)
-          {
-            cell_info = table_row->get_cell_info((int64_t)(0));
-            ret = cell_info->value_.get_varchar(proc_name);
-            TBSYS_LOG(INFO, "get proc_name cell info succ! %.*s", proc_name.length(), proc_name.ptr());
-          }
-          else
-          {
-            ret = OB_ERROR;
-            TBSYS_LOG(WARN, "get proc_name cell info fail");
-          }
-
-          if(OB_SUCCESS == ret)
-          {
-            cell_info = table_row->get_cell_info((int64_t)(1));
-            cell_info->value_.get_varchar(proc_source_code);
-          }
-          else
-          {
-            ret = OB_ERROR;
-            TBSYS_LOG(WARN, "get souce_code cell info fail");
-          }
-          if(OB_SUCCESS == ret)
-          {
-            TBSYS_LOG(INFO, "get proc_source_code cell info succ! %.*s", proc_source_code.length(), proc_source_code.ptr());
-            //                int err = namecodemap.get_name_code_map()->set(proc_name, proc_source_code);
-            int err = name_code_map.put_source_code(proc_name, proc_source_code);
-            if(-1 == err)
-            {
-              ret = OB_ERROR;
-              TBSYS_LOG(WARN, "name code hash map insert error:err[%d]", err);
-            }
-            else
-            {
-              ret = OB_SUCCESS;
-              TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
-              //                  if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
-              //                  {
-              //                    TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
-              //                  }
-              //                  else
-              //                  {
-              //                    TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
-              //                        proc_name.ptr());
-              //                  }
-            }
+            TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
           }
         }
-        res_ = NULL;
+        if(OB_SUCCESS == ret)
+        {
+          cell_info = table_row->get_cell_info((int64_t)(0));
+          ret = cell_info->value_.get_varchar(proc_name);
+          TBSYS_LOG(INFO, "get proc_name cell info succ! %.*s", proc_name.length(), proc_name.ptr());
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "get proc_name cell info fail");
+        }
+
+        if(OB_SUCCESS == ret)
+        {
+          cell_info = table_row->get_cell_info((int64_t)(1));
+          cell_info->value_.get_varchar(proc_source_code);
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "get souce_code cell info fail");
+        }
+        if(OB_SUCCESS == ret)
+        {
+          TBSYS_LOG(INFO, "get proc_source_code cell info succ! %.*s", proc_source_code.length(), proc_source_code.ptr());
+          //                int err = namecodemap.get_name_code_map()->set(proc_name, proc_source_code);
+          int err = name_code_map.put_source_code(proc_name, proc_source_code);
+          if(-1 == err)
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "name code hash map insert error:err[%d]", err);
+          }
+          else
+          {
+            ret = OB_SUCCESS;
+            TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
+            //                  if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
+            //                  {
+            //                    TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
+            //                  }
+            //                  else
+            //                  {
+            //                    TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
+            //                        proc_name.ptr());
+            //                  }
+          }
+        }
       }
-      if(OB_ERROR != ret)
-      {
-          ret = OB_SUCCESS;
-      }
+      res_ = NULL;
+    }
+    if(OB_ERROR != ret)
+    {
+        ret = OB_SUCCESS;
+    }
   }
   return ret;
 }

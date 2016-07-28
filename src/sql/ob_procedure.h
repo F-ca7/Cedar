@@ -28,6 +28,7 @@
 #include "ob_raw_expr.h"
 #include "mergeserver/ob_ms_rpc_proxy.h"
 using namespace oceanbase::common;
+
 namespace oceanbase
 {
 	namespace sql

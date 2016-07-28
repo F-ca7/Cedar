@@ -50,7 +50,6 @@
 #define OCEANBASE_ROOTSERVER_OB_ROOT_SERVER2_H_
 #include <tbsys.h>
 #include <vector>
-
 #include "common/ob_define.h"
 #include "common/ob_server.h"
 #include "common/ob_array.h"
@@ -116,6 +115,7 @@ class ObDeleteReplicasTest_delete_when_rereplication_Test;
 class ObDeleteReplicasTest_delete_when_report_Test;
 class ObBalanceTest_test_shutdown_servers_Test;
 class ObRootServerTest;
+
 namespace oceanbase
 {
   namespace common

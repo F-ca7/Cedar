@@ -339,7 +339,7 @@ int ObSchemaServiceImpl::create_table_mutator(const TableSchema& table_schema, O
 }
 
 //add by wangdonghui 20160125 :b
-int ObSchemaServiceImpl::create_procedure_mutator(const common::ObString & proc_name, const common::ObString & proc_source_code, ObMutator* mutator)
+int ObSchemaServiceImpl::create_procedure_mutator(const common::ObString& proc_name, const common::ObString& proc_source_code, ObMutator* mutator)
 {
   int ret = OB_SUCCESS;
   ObObj procedure_name_value;
@@ -596,7 +596,7 @@ int ObSchemaServiceImpl::create_table(const TableSchema& table_schema)
 
 //add by wangdonghui 20160125 this is not a wise choice,
 //maybe we can build a new file which names ob_procedure_service :b
-int ObSchemaServiceImpl::create_procedure(const common::ObString & proc_name, const common::ObString & proc_source_code)
+int ObSchemaServiceImpl::create_procedure(const common::ObString& proc_name, const common::ObString& proc_source_code)
 {
   int ret = OB_SUCCESS;
 
@@ -604,38 +604,38 @@ int ObSchemaServiceImpl::create_procedure(const common::ObString & proc_name, co
 
   ObMutator* mutator = NULL;
 
-  if(OB_SUCCESS == ret)
+  if( OB_SUCCESS == ret )
   {
     mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
-    if(NULL == mutator)
+    if( NULL == mutator )
     {
       ret = OB_ALLOCATE_MEMORY_FAILED;
       TBSYS_LOG(WARN, "get thread specific Mutator fail");
     }
   }
 
-  if(OB_SUCCESS == ret)
+  if( OB_SUCCESS == ret )
   {
     ret = mutator->reset();
-    if(OB_SUCCESS != ret)
+    if( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
     }
   }
 
-  if(OB_SUCCESS == ret)
+  if( OB_SUCCESS == ret )
   {
     ret = create_procedure_mutator(proc_name, proc_source_code, mutator);
-    if(OB_SUCCESS != ret)
+    if( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "create procedures mutator fail:ret[%d]", ret);
     }
   }
 
-  if(OB_SUCCESS == ret)
+  if( OB_SUCCESS == ret )
   {
     ret = client_proxy_->mutate(*mutator);
-    if(OB_SUCCESS != ret)
+    if( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "apply mutator fail:ret[%d]", ret);
     }

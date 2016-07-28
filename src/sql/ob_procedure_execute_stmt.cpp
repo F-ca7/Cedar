@@ -1,9 +1,31 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_procedure_execute_stmt.cpp
+* @brief the ObProcedureExecuteStmt class definition that warp procedure execute statement
+*
+* Created by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_28
+*/
+
 #include "ob_procedure_execute_stmt.h"
 using namespace oceanbase::common;
-namespace oceanbase{
-  namespace sql{
 
-    void ObProcedureExecuteStmt::print(FILE* fp, int32_t level, int32_t index) {
+namespace oceanbase
+{
+  namespace sql
+  {
+
+    void ObProcedureExecuteStmt::print(FILE* fp, int32_t level, int32_t index)
+    {
       UNUSED(index);
       print_indentation(fp, level);
       fprintf(fp, "<ObProcedureExecuteStmt %d begin>\n", index);
@@ -32,21 +54,6 @@ namespace oceanbase{
     {
       return proc_stmt_id_;
     }
-
-//    int ObProcedureExecuteStmt::add_variable_name(const ObString& name)
-//    {
-//      return variable_names_.push_back(name);
-//    }
-
-//    int64_t ObProcedureExecuteStmt::get_variable_size() const
-//    {
-//      return variable_names_.count();
-//    }
-
-//    const ObString& ObProcedureExecuteStmt::get_variable_name(int64_t index) const
-//    {
-//      return variable_names_.at(index);
-//    }
 
     int ObProcedureExecuteStmt::add_param_expr(uint64_t expr_id)
     {
