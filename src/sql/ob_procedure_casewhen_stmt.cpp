@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_casewhen_stmt.h
-* @brief the ObProcedureCaseWhenStmt class define that warp procedure casewhen statement
+* @brief the ObProcedureCaseWhenStmt class definition that warp procedure casewhen statement
 *
 * Created by zhutao
 *

@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_drop.cpp
-* @brief the ObProcedureDrop class define that warp procedure drop PhyOperator
+* @brief the ObProcedureDrop class definition that warp procedure drop PhyOperator
 *
 * Created by zhutao
 *

@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_drop_stmt.cpp
-* @brief the ObProcedureDropStmt class define that warp procedure drop statement
+* @brief the ObProcedureDropStmt class definition that warp procedure drop statement
 *
 * Created by zhutao
 *

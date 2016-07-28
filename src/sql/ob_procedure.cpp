@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure.cpp
-* @brief main entrance of build logical plan
+* @brief procedure phsical plan relation class definition
 *
 * Created by zhutao
 *

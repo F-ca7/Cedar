@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_case_stmt.cpp
-* @brief the ObProcedureCaseStmt class define that warp procedure case statement
+* @brief the ObProcedureCaseStmt class definition that warp procedure case statement
 *
 * Created by zhutao
 *

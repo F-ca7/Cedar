@@ -6,7 +6,7 @@
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_declare_stmt.h
-* @brief the ObProcedureDeclareStmt class define that warp procedure declare statement
+* @brief the ObProcedureDeclareStmt class definition that warp procedure declare statement
 *
 * Created by zhutao
 *
@@ -43,7 +43,7 @@ namespace oceanbase {
     };
     /**
      * @brief The ObProcedureDeclareStmt class
-     * procedure declare statement class define
+     * procedure declare statement class definiton
      */
     class ObProcedureDeclareStmt: public ObBasicStmt {
     public:
