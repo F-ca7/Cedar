@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,7 +14,8 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
  */
 
 /**
@@ -42,6 +43,10 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObBasicStmt class
+     * basic statement class has commen data menber and function menber of sub-class
+     */
     class ObBasicStmt
     {
     public:
@@ -122,26 +127,26 @@ namespace oceanbase
         // add e
         //longfei [drop index]
         T_DROP_INDEX,
-		//add by zhujun:b
+        //add by zhujun:b
         //code_coverage_zhujun
-		T_PROCEDURE,
-		T_PROCEDURE_CREATE,
-		T_PROCEDURE_DROP,
-		T_PROCEDURE_DECLARE,
-		T_PROCEDURE_ASSGIN,
-		T_PROCEDURE_WHILE,
-		T_PROCEDURE_LOOP,
+        T_PROCEDURE,
+        T_PROCEDURE_CREATE,
+        T_PROCEDURE_DROP,
+        T_PROCEDURE_DECLARE,
+        T_PROCEDURE_ASSGIN,
+        T_PROCEDURE_WHILE,
+        T_PROCEDURE_LOOP,
         T_PROCEDURE_EXIT,//add by wangdonghui
-		T_PROCEDURE_CASE,
-		T_PROCEDURE_CASEWHEN,
-		T_PROCEDURE_IF,
-		T_PROCEDURE_ELSEIF,
-		T_PROCEDURE_ELSE,
-		T_PROCEDURE_EXEC,
-    T_PROCEDURE_SELECT_INTO,
-    T_VARIABLE_SET_ARRAY_VALUE
-		//code_coverage_zhujun
-		//add:e
+        T_PROCEDURE_CASE,
+        T_PROCEDURE_CASEWHEN,
+        T_PROCEDURE_IF,
+        T_PROCEDURE_ELSEIF,
+        T_PROCEDURE_ELSE,
+        T_PROCEDURE_EXEC,
+        T_PROCEDURE_SELECT_INTO,
+        T_VARIABLE_SET_ARRAY_VALUE
+        //code_coverage_zhujun
+        //add:e
       };
 
       ObBasicStmt()

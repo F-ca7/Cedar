@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
+* Copyright (C) 2013-2016 ECNU_DaSE.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -9,10 +9,10 @@
 * @brief for operations of expression value
 *
 * modified by maoxiaoxiao:add functions to reset iterator
-*
+* modified by zhutao:add define different serialize methods for procedure
 * @version __DaSE_VERSION
 * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
+* @date 2016_07_27
 */
 
 /**
@@ -84,9 +84,36 @@ namespace oceanbase
         NEED_SERIALIZE_AND_DESERIALIZE;
 
         //add by zt 20160119:b
+        /**
+         * @brief serialize_template
+         * serialize expression for procedure
+         * @param buf buffer
+         * @param buf_len buffer length
+         * @param pos location flag
+         * @return error code
+         */
         int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const;
+        /**
+         * @brief deserialize_template
+         * serialize expression for procedure
+         * @param buf buffer
+         * @param data_len buffer length
+         * @param pos location flag
+         * @return error code
+         */
         int deserialize_template(const char *buf, const int64_t data_len, int64_t& pos);
+        /**
+         * @brief prepare_data
+         * prepare set expression inx  0
+         * @return error code
+         */
         int prepare_data();
+        /**
+         * @brief get_next_row_template
+         * get next row
+         * @param row return ObRow object point
+         * @return error code
+         */
         int get_next_row_template(const common::ObRow *&row);
         //add by zt 20160119:e
       private:

@@ -23,7 +23,7 @@ int64_t SpVar::to_string(char *buf, const int64_t buf_len) const
 
 int SpVar::serialize(char *buf, int64_t buf_len, int64_t &pos) const
 {
-   int ret = OB_SUCCESS;
+  int ret = OB_SUCCESS;
   if( OB_SUCCESS != (ret = var_name_.serialize(buf, buf_len, pos)) )
   {
     TBSYS_LOG(WARN, "serialize var_name fail, ret=%d", ret);
@@ -449,7 +449,7 @@ int SpRwDeltaInst::set_rwdelta_op(ObPhyOperator *op)
 
 int SpRwDeltaInst::set_ups_exec_op(ObPhyOperator *op, int32_t query_id)
 {
- int ret = OB_SUCCESS;
+  int ret = OB_SUCCESS;
   OB_ASSERT(op->get_type() == PHY_UPS_EXECUTOR);
   ups_exec_op_ = op;
   query_id_ = query_id;

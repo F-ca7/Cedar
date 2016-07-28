@@ -1,4 +1,23 @@
 /**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_physical_plan.h
+* @brief physical plan class define
+*
+* modified by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+*
+* @date 2016_07_27
+*/
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -35,7 +54,7 @@ namespace oceanbase
     {
       public:
 //      friend class ObProcedure; //add zt 20151110
-      friend class SpProcedure; //add zt 20151110
+        friend class SpProcedure; //add zt 20151110
         struct ObTableVersion
         {
           ObTableVersion()
@@ -124,7 +143,17 @@ namespace oceanbase
         //bind the proc_exec flag with phy_plan is not a good idea,
         //better bind with result_set, since all operators points to the same result_set,
         //but may binds with different physical_plans
+        /**
+         * @brief is_group_exec
+         * group execute flag
+         * @return bool value
+         */
         bool is_group_exec() { return group_exec_mode_; }
+        /**
+         * @brief set_group_exec
+         * set group execute flag
+         * @param exec_flag
+         */
         void set_group_exec(bool exec_flag) { group_exec_mode_ = exec_flag; }
         //add zt 20151109 :e
       private:
@@ -162,7 +191,7 @@ namespace oceanbase
         common::ObTransReq start_trans_req_;
         uint64_t next_phy_operator_id_;
         //add zt 20151109 :b
-        bool group_exec_mode_;
+        bool group_exec_mode_;  ///< group execute flag
         //add zt 20151109 :e
     };
 

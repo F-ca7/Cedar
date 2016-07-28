@@ -1,4 +1,21 @@
 /**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_insert_dbsem_filter.cpp
+* @brief for operations of insert semantic filter
+*
+* modified by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @date 2016_07_27
+*/
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
