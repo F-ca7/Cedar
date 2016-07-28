@@ -288,10 +288,7 @@ int ObUpsExecutor::get_next_row_for_sp(const common::ObRow *&row, const ObRowDes
 //  {
 //    ret = OB_NOT_SUPPORTED;
 //  }
-  if (OB_UNLIKELY(curr_row_.get_row_desc() == NULL))
-  {
-    curr_row_.set_row_desc(fake_row_desc);
-  }
+  curr_row_.set_row_desc(fake_row_desc);
   if (ret == OB_SUCCESS
     && (ret = local_result_.get_scanner().get_next_row(curr_row_)) == OB_SUCCESS)
   {
