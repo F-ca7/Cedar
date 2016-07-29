@@ -96,6 +96,10 @@ namespace oceanbase
        * @return error code
        */
       virtual int execute_rw_all(SpRwCompInst *inst);
+
+
+      virtual int execute_plain_sql(SpPlainSQLInst *inst);
+
       /**
        * @brief execute_group
        * group instructions execution
