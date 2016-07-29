@@ -1,3 +1,21 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_sp_procedure.h
+* @brief procedure instruction and operator physical plan realation class definition
+*
+* Created by zhutao
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_28
+*/
+
 #include "ob_sp_procedure.h"
 #include "ob_physical_plan.h"
 #include "common/ob_obj_cast.h"
@@ -2004,14 +2022,6 @@ CallType SpCaseInst::get_call_type() const
   return ret;
 }
 
-
-/**
- * @brief SpInstExecStrategy::sdata_mgr_hash
- * A variation of murmurhash
- * @param sdata_id
- * @param counter
- * @return
- */
 int64_t SpInstExecStrategy::sdata_mgr_hash(int64_t sdata_id, const ObLoopCounter &counter)
 {
   uint64_t seed = (uint64_t) sdata_id;

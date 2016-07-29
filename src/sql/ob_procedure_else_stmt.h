@@ -70,7 +70,7 @@ namespace oceanbase
          * get else statement array
          * @return else statement array
          */
-        const ObArray<uint64_t> &get_else_stmts() const;		/*else语句列表*/
+        const ObArray<uint64_t> &get_else_stmts() const;
         /**
          * @brief get_else_stmt
          * get else statement id  by array index

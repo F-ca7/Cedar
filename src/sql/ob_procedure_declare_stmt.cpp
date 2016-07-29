@@ -19,9 +19,10 @@
 
 #include "ob_procedure_declare_stmt.h"
 using namespace oceanbase::common;
-namespace oceanbase{
-  namespace sql{
-
+namespace oceanbase
+{
+  namespace sql
+  {
     void ObProcedureDeclareStmt::print(FILE* fp, int32_t level, int32_t index) {
       UNUSED(index);
       print_indentation(fp, level);
@@ -36,11 +37,6 @@ namespace oceanbase{
     {
       return variables_.push_back(proc_var);
     }
-
-//    ObArray<ObVariableDef>& ObProcedureDeclareStmt::get_variables()
-//    {
-//      return variables_;
-//    }
 
     const ObVariableDef& ObProcedureDeclareStmt::get_variable(int64_t index) const
     {

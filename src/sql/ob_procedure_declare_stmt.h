@@ -27,8 +27,10 @@
 #include "ob_sql_expression.h"
 using namespace oceanbase::common;
 
-namespace oceanbase {
-  namespace sql {
+namespace oceanbase
+{
+  namespace sql
+  {
     /**
      * @brief The ObVariableDef struct
      * procedure variable define
@@ -45,52 +47,52 @@ namespace oceanbase {
      * @brief The ObProcedureDeclareStmt class
      * procedure declare statement class definiton
      */
-    class ObProcedureDeclareStmt: public ObBasicStmt {
-    public:
-      /**
-       * @brief constructor
-       */
-      ObProcedureDeclareStmt() :
-              ObBasicStmt(T_PROCEDURE_DECLARE) {
-      }
-      /**
-       * @brief destructor
-       */
-      virtual ~ObProcedureDeclareStmt() {
-      }
+    class ObProcedureDeclareStmt: public ObBasicStmt
+    {
+      public:
+        /**
+         * @brief constructor
+         */
+        ObProcedureDeclareStmt() :
+                ObBasicStmt(T_PROCEDURE_DECLARE) {
+        }
+        /**
+         * @brief destructor
+         */
+        virtual ~ObProcedureDeclareStmt() {
+        }
 
-      /**
-       * @brief add_proc_var
-       * add a procedure variable
-       * @param proc_var procedure variable
-       * @return error code
-       */
-      int add_proc_var(const ObVariableDef &proc_var);/*添加一个变量*/
+        /**
+         * @brief add_proc_var
+         * add a procedure variable
+         * @param proc_var procedure variable
+         * @return error code
+         */
+        int add_proc_var(const ObVariableDef &proc_var);
 
-//      ObArray<ObVariableDef>& get_variables();/*返回所有变量*/
-      /**
-       * @brief get_variable
-       * get procedure variable by array index
-       * @param index array index
-       * @return  procedure variable object
-       */
-      const ObVariableDef& get_variable(int64_t index) const;
-      /**
-       * @brief get_variable_size
-       * get variable size
-       * @return variable number
-       */
-      int64_t get_variable_size() const;
-      /**
-       * @brief print
-       * print procedure declare  statement info
-       * @param fp
-       * @param level
-       * @param index
-       */
-      virtual void print(FILE* fp, int32_t level, int32_t index);
-    private:
-      ObArray<ObVariableDef> variables_;  ///<  procedure variable array
+        /**
+         * @brief get_variable
+         * get procedure variable by array index
+         * @param index array index
+         * @return  procedure variable object
+         */
+        const ObVariableDef& get_variable(int64_t index) const;
+        /**
+         * @brief get_variable_size
+         * get variable size
+         * @return variable number
+         */
+        int64_t get_variable_size() const;
+        /**
+         * @brief print
+         * print procedure declare  statement info
+         * @param fp
+         * @param level
+         * @param index
+         */
+        virtual void print(FILE* fp, int32_t level, int32_t index);
+      private:
+        ObArray<ObVariableDef> variables_;  ///<  procedure variable array
     };
   }
 }

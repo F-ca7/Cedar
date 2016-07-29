@@ -33,12 +33,10 @@ namespace oceanbase
         print_indentation(fp, level);
         fprintf(fp, "<ObProcedureElseStmt %d End>\n", index);
     }
-
     int ObProcedureElseStmt::add_else_stmt(uint64_t& stmt_id)
     {
       return else_stmts_.push_back(stmt_id);
     }
-
     const ObArray<uint64_t> &ObProcedureElseStmt::get_else_stmts() const
     {
       return else_stmts_;
@@ -47,7 +45,6 @@ namespace oceanbase
     {
       return else_stmts_.at(index);
     }
-
     int64_t ObProcedureElseStmt::get_else_stmt_size()
     {
       return else_stmts_.count();

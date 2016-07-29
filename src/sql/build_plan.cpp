@@ -11,7 +11,8 @@
  * modified by longfei：
  * 1.add resolve function of create, drop and show index
  * modified by zhujun：add build procedure logic plan method
- *
+ * modified by zhutao
+ * modified by wangdonghui
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
@@ -321,38 +322,32 @@ int resolve_procedure_select_into_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id);
-
 int resolve_procedure_proc_block_stmt(
     ResultPlan *result_plan,
     ParseNode *node,
     ObProcedureStmt *stmt);
-
 int resolve_procedure_loop_stmt(
     ResultPlan *result_plan,
     ParseNode *node,
     uint64_t &query_id,
     ObProcedureStmt *stmt);
-
 int resolve_procedure_inner_stmt(
     ResultPlan *result_plan,
     ParseNode *node,
     uint64_t &query_id,
     ObProcedureStmt *stmt);
-
 int resolve_variable_set_array_stmt(
     ResultPlan *result_plan,
     ParseNode *node,
     uint64_t &query_id);
 //code_coverage_zhujun
 //add:e
-
 //add wangjiahao [table lock] 20160616 :b
 int resolve_lock_table_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
     uint64_t& query_id);
 //add :e
-
 int resolve_multi_stmt(ResultPlan* result_plan, ParseNode* node)
 {
 	int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -3161,11 +3156,11 @@ int resolve_cursor_close_stmt(
       ObString name;
       if ((ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), name)) != OB_SUCCESS)
       {
-    	PARSER_LOG("Can not malloc space for stmt name");
+        PARSER_LOG("Can not malloc space for stmt name");
       }
       else
       {
-    	stmt->set_cursor_name(name);
+        stmt->set_cursor_name(name);
       }
     }
   }
@@ -3203,7 +3198,7 @@ int resolve_procedure_select_into_stmt(
     {
       ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
       /*resolve the left vaule list*/
-      if(node->children_[0]!=NULL)
+      if (node->children_[0]!=NULL)
       {
         ParseNode* arguments=node->children_[0];
         for (int32_t i = 0;i < arguments->num_child_; i++)
@@ -3220,7 +3215,7 @@ int resolve_procedure_select_into_stmt(
               TBSYS_LOG(WARN, "add variables into stmt fail");
             }
           }
-          else if( arguments->children_[i]->type_ == T_ARRAY )
+          else if (arguments->children_[i]->type_ == T_ARRAY)
           {
             if( OB_SUCCESS != (ret = resolve_array_expr(result_plan, arguments->children_[i], raw_var.var_name_, raw_var.idx_value_)))
             {
@@ -3245,11 +3240,11 @@ int resolve_procedure_select_into_stmt(
 
 //        ObLogicalPlan *logic_plan = get_logical_plan(result_plan);
 //        int32_t expr_itr = logic_plan->get_raw_expr_count();
-        if((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
+        if ((ret =resolve_select_stmt(result_plan, node->children_[1], sub_query_id))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "resolve_select_stmt error");
         }
-        else if((ret=stmt->set_declare_id(sub_query_id))!=OB_SUCCESS)
+        else if ((ret=stmt->set_declare_id(sub_query_id))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "set_declare_id error");
         }
@@ -3303,7 +3298,7 @@ int resolve_procedure_declare_stmt(
     bool is_array = false;
 
     //variable data type
-    if( node->children_[1] != NULL )
+    if (node->children_[1] != NULL)
     {
       switch(node->children_[1]->type_)
       {
@@ -3340,10 +3335,10 @@ int resolve_procedure_declare_stmt(
     }
 
     //default value
-    if( OB_SUCCESS == ret && node->children_[2] != NULL)
+    if (OB_SUCCESS == ret && node->children_[2] != NULL)
     {
       default_value.set_type(var_type);
-      if( (ret = resolve_const_value(result_plan, node->children_[2], default_value)) != OB_SUCCESS )
+      if ((ret = resolve_const_value(result_plan, node->children_[2], default_value)) != OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "resolve_procedure_declare_stmt resolve_const_value error");
       }
@@ -3380,9 +3375,9 @@ int resolve_procedure_declare_stmt(
     }
 
     //array identifier
-    if( OB_SUCCESS == ret && node->children_[3] != NULL )
+    if (OB_SUCCESS == ret && node->children_[3] != NULL)
     {
-      if( node->children_[3]->value_ == 1 )
+      if (node->children_[3]->value_ == 1)
       {
         is_array = true;
       }
@@ -3393,7 +3388,7 @@ int resolve_procedure_declare_stmt(
     }
 
     //argument list
-    if( OB_SUCCESS == ret && node->children_[0] != NULL )
+    if ( OB_SUCCESS == ret && node->children_[0] != NULL )
     {
       ParseNode* var_node=node->children_[0];
       OB_ASSERT(var_node->type_==T_ARGUMENT_LIST);
@@ -3404,18 +3399,18 @@ int resolve_procedure_declare_stmt(
         var.is_default_ = has_default;
         var.variable_type_ = var_type;
         var.is_array_ = is_array;
-        if( has_default ) var.default_value_ = default_value;
+        if ( has_default ) var.default_value_ = default_value;
 
-        if(OB_SUCCESS != (ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->str_value_),
+        if (OB_SUCCESS != (ret=ob_write_string(*name_pool, ObString::make_string(var_node->children_[i]->str_value_),
                                               var.variable_name_)))
         {
           PARSER_LOG("Can not malloc space for variable name");
         }
-        else if((ret=stmt->add_proc_var(var))!=OB_SUCCESS) //add into the declare stmt
+        else if ((ret=stmt->add_proc_var(var))!=OB_SUCCESS) //add into the declare stmt
         {
           TBSYS_LOG(WARN, "add_proc_param have ERROR!");
         }
-        else if((ret=ps_stmt->add_declare_var(var.variable_name_))!=OB_SUCCESS) //add into the procedure stmt
+        else if ((ret=ps_stmt->add_declare_var(var.variable_name_))!=OB_SUCCESS) //add into the procedure stmt
         {
           TBSYS_LOG(WARN, "add_declare_var have ERROR!");
         }
@@ -3449,7 +3444,7 @@ int resolve_procedure_assign_stmt(
   {
     TBSYS_LOG(ERROR, "prepare_resolve_stmt have ERROR!");
   }
-  else if( node->children_[0] != NULL)
+  else if ( node->children_[0] != NULL)
   {
     ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
     /*解析assign语句参数*/
@@ -3505,7 +3500,7 @@ int resolve_procedure_assign_stmt(
         ret = OB_NOT_SUPPORTED;
       }
 
-      if(ret == OB_SUCCESS)
+      if (ret == OB_SUCCESS)
       {
           bool find = false;
           //does the variable existence check make sense here?
@@ -3513,7 +3508,7 @@ int resolve_procedure_assign_stmt(
           for (int64_t j = 0; j < ps_stmt->get_declare_var_size(); j++)
           {
             const ObString &declare_var=ps_stmt->get_declare_var(j);
-            if( var_name.compare(declare_var) == 0 ) //check existence
+            if ( var_name.compare(declare_var) == 0 ) //check existence
             {
               find = true;
               break;
@@ -3522,13 +3517,13 @@ int resolve_procedure_assign_stmt(
           for (int64_t j = 0;  !find && j < ps_stmt->get_param_size(); j++)
           {
             const ObParamDef& def=ps_stmt->get_param(j);
-            if( var_name.compare(def.param_name_)==0 )
+            if ( var_name.compare(def.param_name_)==0 )
             {
               find = true;
               break;
             }
           }
-          if( !find ) //error means the variable is not defined in variables or paramters
+          if ( !find ) //error means the variable is not defined in variables or paramters
           {
             ret=OB_ERR_SP_UNDECLARED_VAR;
             TBSYS_LOG(ERROR, "Variable %.*s does not declare", var_name.length(), var_name.ptr());
@@ -3573,14 +3568,14 @@ int resolve_procedure_case_stmt(
     	{
     		TBSYS_LOG(ERROR, "resolve_independ_expr error");
     	}
-    	else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+      else if ((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
     	{
     		TBSYS_LOG(ERROR, "set_expr_id error");
     	}
     	else
     	{
 			//-----------------------------case when list------------------------------------------
-    		if(node->children_[1]!=NULL)
+        if (node->children_[1]!=NULL)
     		{
 				ParseNode* casewhen_node = node->children_[1];/*case when 节点的*/
 
@@ -3593,24 +3588,24 @@ int resolve_procedure_case_stmt(
 						TBSYS_LOG(ERROR, "resolve_procedure_casewhen_stmt error!");
 						break;
 					}
-					else if(ret==OB_SUCCESS&&(ret=stmt->add_case_when_stmt(casewhen_query_id))!=OB_SUCCESS)
+          else if (ret==OB_SUCCESS&&(ret=stmt->add_case_when_stmt(casewhen_query_id))!=OB_SUCCESS)
 					{
 						TBSYS_LOG(ERROR, "add_case_when_stmt error!");
 						break;
 					}
 				}
     		}
-    		if(ret==OB_SUCCESS)
+        if (ret==OB_SUCCESS)
     		{
 				//-----------------------------check exist else------------------------------------------
-        if( node->children_[2]!=NULL && node->children_[2]->children_[0]!=NULL )
+        if ( node->children_[2]!=NULL && node->children_[2]->children_[0]!=NULL )
 				{
                     //OB_ASSERT(node->children_[2]->children_[0]->type_ == T_PROCEDURE_ELSE);
 					OB_ASSERT(node->children_[2]->type_ == T_PROCEDURE_ELSE);
 					uint64_t else_query_id = OB_INVALID_ID;
 					ParseNode* else_node = node->children_[2];
 
-					if((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id,ps_stmt))!=OB_SUCCESS)
+          if ((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id,ps_stmt))!=OB_SUCCESS)
 					{
 						TBSYS_LOG(ERROR, "resolve_procedure_else_stmt error!");
 					}
@@ -3684,27 +3679,27 @@ int resolve_procedure_casewhen_stmt(
   {
     TBSYS_LOG(WARN, "resolve_independ_expr  ERROR");
   }
-  else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+  else if ((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
   {
     TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
   }
-  else if( NULL != vector_node )
+  else if ( NULL != vector_node )
   {
     //-----------------------------resolve then stmt block-----------------------------
     for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
     {
       uint64_t sub_query_id = OB_INVALID_ID;
 
-      if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+      if ( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
       {
         TBSYS_LOG(WARN, "case when should not contain declare stmt");
         ret = OB_ERROR; //change to not_support code
       }
-      else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
+      else if ( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
       {
         TBSYS_LOG(WARN, "resolve then stmt [%d] failed", i);
       }
-      else if( OB_SUCCESS !=  (ret = stmt->add_then_stmt(sub_query_id)) )
+      else if ( OB_SUCCESS !=  (ret = stmt->add_then_stmt(sub_query_id)) )
       {
         TBSYS_LOG(WARN, "add then stmt failed");
       }
@@ -3756,22 +3751,22 @@ int resolve_procedure_if_stmt(
     {
       TBSYS_LOG(ERROR, "resolve_procedure_if_stmt set_expr_id error");
     }
-    else if( NULL != (vector_node = node->children_[1]) && vector_node->num_child_ != 0)
+    else if ( NULL != (vector_node = node->children_[1]) && vector_node->num_child_ != 0)
     {
       for (int32_t i = 0; ret == OB_SUCCESS && i < vector_node->num_child_; i++)
       {
         uint64_t sub_query_id = OB_INVALID_ID;
 
-        if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+        if ( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
           TBSYS_LOG(WARN, "does not support stmt type[%d] in elseif", vector_node->children_[i]->type_);
           ret = OB_ERR_SP_BADSTATEMENT;
         }
-        if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
+        if ( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
         {
           TBSYS_LOG(WARN, "resolve body stmt fail at [%d]", i);
         }
-        else if( OB_SUCCESS != (ret = stmt->add_then_stmt(sub_query_id)) )
+        else if ( OB_SUCCESS != (ret = stmt->add_then_stmt(sub_query_id)) )
         {
           TBSYS_LOG(ERROR, "foreach else if children_[1] error!");
           break;
@@ -3788,7 +3783,7 @@ int resolve_procedure_if_stmt(
   if(ret==OB_SUCCESS)
   {
     //-----------------------------check exist else if------------------------------------------
-    if(node->children_[2]!=NULL)
+    if (node->children_[2]!=NULL)
     {
       ParseNode* elseif_node = node->children_[2];/*elseif node*/
 
@@ -3799,37 +3794,37 @@ int resolve_procedure_if_stmt(
         {
           TBSYS_LOG(ERROR, "resolve_procedure_elseif_stmt error!");
         }
-        else if(ret==OB_SUCCESS&&(ret=stmt->add_else_if_stmt(elseif_query_id))!=OB_SUCCESS)
+        else if (ret==OB_SUCCESS&&(ret=stmt->add_else_if_stmt(elseif_query_id))!=OB_SUCCESS)
         {
           TBSYS_LOG(ERROR, "foreach else if children_[2] error!");
           break;
         }
       }
-      if( ret == OB_SUCCESS )
+      if ( ret == OB_SUCCESS )
       {
         ret=stmt->set_have_elseif(true);
       }
     }
-    else if((ret=stmt->set_have_elseif(false))!=OB_SUCCESS)
+    else if ((ret=stmt->set_have_elseif(false))!=OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "set_have_elseif  error!");
     }
   }
 
   //-----------------------------check exist else------------------------------------------
-  if( OB_SUCCESS == ret )
+  if ( OB_SUCCESS == ret )
   {
-    if( node->children_[3] != NULL )
+    if ( node->children_[3] != NULL )
     {
       OB_ASSERT(node->children_[3]->type_ == T_PROCEDURE_ELSE);
       uint64_t else_query_id = OB_INVALID_ID;
       ParseNode* else_node = node->children_[3];
 
-      if((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id, ps_stmt)) != OB_SUCCESS)
+      if ((ret = resolve_procedure_else_stmt(result_plan, else_node, else_query_id, ps_stmt)) != OB_SUCCESS)
       {
         TBSYS_LOG(ERROR, "resolve_procedure_else_stmt error!");
       }
-      else if((ret=stmt->set_else_stmt(else_query_id))!=OB_SUCCESS)
+      else if ((ret=stmt->set_else_stmt(else_query_id))!=OB_SUCCESS)
       {
         TBSYS_LOG(ERROR, "set_else_stmt(else_query_id) error!");
       }
@@ -3838,7 +3833,7 @@ int resolve_procedure_if_stmt(
         ret=stmt->set_have_else(true);
       }
     }
-    else if((ret=stmt->set_have_else(false)) != OB_SUCCESS)
+    else if ((ret=stmt->set_have_else(false)) != OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "set_have_else  error!");
     }
@@ -3878,11 +3873,11 @@ int resolve_procedure_elseif_stmt(
     {
       TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
     }
-    else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    else if ((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
     }
-    else if( NULL != (vector_node = node->children_[1]) && vector_node->num_child_ != 0 )
+    else if ( NULL != (vector_node = node->children_[1]) && vector_node->num_child_ != 0 )
     {
       //--------------------------else if then--------------------------
       ParseNode* vector_node = node->children_[1];
@@ -3891,16 +3886,16 @@ int resolve_procedure_elseif_stmt(
       {
         uint64_t sub_query_id = OB_INVALID_ID;
 
-        if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+        if ( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
           TBSYS_LOG(WARN, "does not support stmt type[%d] in elseif", vector_node->children_[i]->type_);
           ret = OB_ERR_PARSE_SQL;
         }
-        if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
+        if ( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
         {
           TBSYS_LOG(WARN, "resolve body stmt fail at [%d]", i);
         }
-        else if( OB_SUCCESS != (ret = stmt->add_elseif_then_stmt(sub_query_id)) )
+        else if ( OB_SUCCESS != (ret = stmt->add_elseif_then_stmt(sub_query_id)) )
         {
           TBSYS_LOG(ERROR, "foreach else if children_[1] error!");
           break;
@@ -3947,14 +3942,14 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     {
     }
     //add :e
-    else if( node->children_[0] != NULL && node->children_[0]->type_ == T_TEMP_VARIABLE )
+    else if ( node->children_[0] != NULL && node->children_[0]->type_ == T_TEMP_VARIABLE )
     {
       ObString loop_counter_name;
       if( OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->children_[0]->str_value_), loop_counter_name)) )
       {
         PARSER_LOG("Can not malloc space for loop counter name");
       }
-      else if( !proc_stmt->check_var_exist(loop_counter_name) )
+      else if ( !proc_stmt->check_var_exist(loop_counter_name) )
       {
         proc_stmt->add_declare_var(loop_counter_name);//add by wdh 20160714
         loop_stmt->set_loop_count_name(loop_counter_name);
@@ -3971,20 +3966,20 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     }
 
     //resolve reverse flag
-    if( OB_SUCCESS == ret && node->children_[1] != NULL && node->children_[1]->type_ == T_BOOL )
+    if ( OB_SUCCESS == ret && node->children_[1] != NULL && node->children_[1]->type_ == T_BOOL )
     {
       loop_stmt->set_reverse(true);
     }
 
     //resolve lowest value
     //add by wdh 20160624 :b
-    if(node->children_[2]==NULL)
+    if (node->children_[2]==NULL)
     {
         uint64_t lowest_expr_id = (uint64_t)-1;
         loop_stmt->set_lowest_expr(lowest_expr_id);
     }
     //add :e
-    else if( OB_SUCCESS == ret && node->children_[2] != NULL )
+    else if ( OB_SUCCESS == ret && node->children_[2] != NULL )
     {
       uint64_t lowest_expr_id;
       if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[2], lowest_expr_id, T_VARIABLE_VALUE_LIMIT)) )
@@ -3998,10 +3993,10 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
     }
 
     //resolve highest value
-    if( OB_SUCCESS == ret && node->children_[3] != NULL )
+    if ( OB_SUCCESS == ret && node->children_[3] != NULL )
     {
       uint64_t highest_expr_id;
-      if(OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[3], highest_expr_id, T_VARIABLE_VALUE_LIMIT)) )
+      if (OB_SUCCESS != (ret = resolve_independ_expr(result_plan, NULL, node->children_[3], highest_expr_id, T_VARIABLE_VALUE_LIMIT)) )
       {
         TBSYS_LOG(WARN, "resolve loop's highest expression fail");
       }
@@ -4023,22 +4018,22 @@ int resolve_procedure_loop_stmt(ResultPlan *result_plan, ParseNode *node, uint64
         uint64_t sub_query_id = OB_INVALID_ID;
 
         //filter some stmt here
-        if( loop_body_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+        if ( loop_body_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
           TBSYS_LOG(WARN, "dose not support stmt type[%d] in loop", loop_body_node->children_[i]->type_);
           ret = OB_ERR_PARSE_SQL;
         }
-        else if( OB_SUCCESS != ( ret = resolve_procedure_inner_stmt(result_plan, loop_body_node->children_[i], sub_query_id, proc_stmt)))
+        else if ( OB_SUCCESS != ( ret = resolve_procedure_inner_stmt(result_plan, loop_body_node->children_[i], sub_query_id, proc_stmt)))
         {
           TBSYS_LOG(WARN, "resolve body stmt fail at [%d]", i);
         }
-        else if( OB_SUCCESS != (ret = loop_stmt->add_loop_stmt(sub_query_id)))
+        else if ( OB_SUCCESS != (ret = loop_stmt->add_loop_stmt(sub_query_id)))
         {
           TBSYS_LOG(WARN, "loop body add stmt fail at [%d]", i);
         }
       }
     }
-    if(ret == OB_SUCCESS)
+    if (ret == OB_SUCCESS)
     {
         proc_stmt->delete_var();//add by wdh 20160714
     }
@@ -4080,11 +4075,11 @@ int resolve_procedure_while_stmt(
     {
       TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
     }
-    else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+    else if ((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
     {
       TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
     }
-    else if( NULL != (vector_node = node->children_[1]) )
+    else if ( NULL != (vector_node = node->children_[1]) )
     {
       //-----------------------------while do-----------------------------
       TBSYS_LOG(INFO, "while do num_child_=%d",vector_node->num_child_);
@@ -4093,16 +4088,16 @@ int resolve_procedure_while_stmt(
       {
         uint64_t sub_query_id = OB_INVALID_ID;
 
-        if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+        if ( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
         {
           TBSYS_LOG(WARN, "while do should not contain declare stmt");
           ret = OB_ERROR; //change to not_support code
         }
-        else if( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
+        else if ( OB_SUCCESS != (ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)) )
         {
           TBSYS_LOG(WARN, "resolve do stmt [%d] failed", i);
         }
-        else if( OB_SUCCESS !=  (ret = stmt->add_do_stmt(sub_query_id)) )
+        else if ( OB_SUCCESS !=  (ret = stmt->add_do_stmt(sub_query_id)) )
         {
           TBSYS_LOG(WARN, "add do stmt failed");
         }
@@ -4142,7 +4137,7 @@ int resolve_procedure_exit_stmt(
   else
   {
         uint64_t expr_id;
-        if(node->children_[0]==NULL)
+        if (node->children_[0]==NULL)
         {
             TBSYS_LOG(DEBUG, "EXIT expr id = -1");
             expr_id = (uint64_t)-1;
@@ -4152,7 +4147,7 @@ int resolve_procedure_exit_stmt(
         {
             TBSYS_LOG(ERROR, "resolve_independ_expr  ERROR");
         }
-        else if((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
+        else if ((ret=stmt->set_expr_id(expr_id))!=OB_SUCCESS)
         {
             TBSYS_LOG(ERROR, "set_expr_id have ERROR!");
         }
@@ -4184,7 +4179,7 @@ int resolve_procedure_else_stmt(
   {
 	  TBSYS_LOG(ERROR, "resolve_procedure_else_stmt prepare_resolve_stmt have ERROR!");
   }
-  else if( NULL != node->children_[0] )
+  else if ( NULL != node->children_[0] )
   {
     ParseNode* vector_node = node->children_[0];
     TBSYS_LOG(DEBUG, "vector_node->num_child_=%d",vector_node->num_child_);
@@ -4194,16 +4189,16 @@ int resolve_procedure_else_stmt(
       uint64_t sub_query_id = OB_INVALID_ID;
 
       //filter some stmt here
-      if( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
+      if ( vector_node->children_[i]->type_ == T_PROCEDURE_DECLARE )
       {
         TBSYS_LOG(WARN, "dose not support stmt type[%d] in else branch", vector_node->children_[i]->type_);
         ret = OB_ERR_PARSE_SQL;
       }
-      else if( OB_SUCCESS != ( ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)))
+      else if ( OB_SUCCESS != ( ret = resolve_procedure_inner_stmt(result_plan, vector_node->children_[i], sub_query_id, ps_stmt)))
       {
         TBSYS_LOG(WARN, "resolve else branch stmt fail at [%d]", i);
       }
-      else if( OB_SUCCESS != (ret = stmt->add_else_stmt(sub_query_id)))
+      else if ( OB_SUCCESS != (ret = stmt->add_else_stmt(sub_query_id)))
       {
         TBSYS_LOG(WARN, "else branch body add stmt fail at [%d]", i);
       }
@@ -4236,7 +4231,7 @@ int resolve_procedure_create_stmt(
   OB_ASSERT(node && node->type_ == T_PROCEDURE_CREATE && node->num_child_ == 2);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   bool is_prepare_plan = result_plan->is_prepare_;
-  if( !is_prepare_plan )
+  if ( !is_prepare_plan )
   {
     ObProcedureCreateStmt *stmt = NULL; //create stmt
     if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
@@ -4259,12 +4254,12 @@ int resolve_procedure_create_stmt(
         PARSER_LOG("Can not malloc space for stmt source code");
       }
       //add :e
-      else if((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
+      else if ((ret=stmt->set_proc_name(proc_name))!=OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "set_proc_name have ERROR!");
       }
       //add by wangdonghui 20160121 :b
-      else if((ret = stmt->set_proc_source_code(proc_source_code))!=OB_SUCCESS)
+      else if ((ret = stmt->set_proc_source_code(proc_source_code))!=OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "set_proc_source_code have ERROR!");
       }
@@ -4272,7 +4267,7 @@ int resolve_procedure_create_stmt(
       else
       {
         uint64_t proc_query_id = OB_INVALID_ID;
-        if((ret = resolve_procedure_stmt(result_plan, node, proc_query_id))!=OB_SUCCESS)
+        if ((ret = resolve_procedure_stmt(result_plan, node, proc_query_id))!=OB_SUCCESS)
         {
           TBSYS_LOG(WARN, "resolve_procedure_stmt have ERROR!");
         }
@@ -4364,7 +4359,7 @@ int resolve_procedure_create_stmt(
   }
   else
   {
-    if((ret = resolve_procedure_stmt(result_plan, node, query_id))!=OB_SUCCESS)
+    if ((ret = resolve_procedure_stmt(result_plan, node, query_id))!=OB_SUCCESS)
     {
       TBSYS_LOG(WARN, "resolve_procedure_stmt have ERROR!");
     }

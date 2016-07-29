@@ -13,6 +13,7 @@
 * @version __DaSE_VERSION
 * @author zhutao <zhutao@stu.ecnu.edu.cn>
 * @author wangdonghui <zjnuwangdonghui@163.com>
+*
 * @date 2016_07_28
 */
 
@@ -25,13 +26,13 @@ namespace oceanbase
   {
     void ObProcedureElseIfStmt::print(FILE* fp, int32_t level, int32_t index)
     {
-        UNUSED(index);
-        print_indentation(fp, level);
-        fprintf(fp, "<ObProcedureElseIfStmt %d begin>\n", index);
-        //print_indentation(fp, level + 1);
-        //fprintf(fp, "Expires Count = %d\n",(int32_t)var_val.);
-        print_indentation(fp, level);
-        fprintf(fp, "<ObProcedureElseIfStmt %d End>\n", index);
+      UNUSED(index);
+      print_indentation(fp, level);
+      fprintf(fp, "<ObProcedureElseIfStmt %d begin>\n", index);
+      //print_indentation(fp, level + 1);
+      //fprintf(fp, "Expires Count = %d\n",(int32_t)var_val.);
+      print_indentation(fp, level);
+      fprintf(fp, "<ObProcedureElseIfStmt %d End>\n", index);
     }
 
     int ObProcedureElseIfStmt::set_expr_id(uint64_t& expr_id)
@@ -46,13 +47,12 @@ namespace oceanbase
       return OB_SUCCESS;
     }
 
-    /*else if表达的id*/
     uint64_t ObProcedureElseIfStmt::get_expr_id()
     {
       return expr_id_;
     }
 
-    ObArray<uint64_t> ObProcedureElseIfStmt::get_then_stmts()/*else if then语句列表*/
+    ObArray<uint64_t> ObProcedureElseIfStmt::get_then_stmts()
     {
       return elseif_then_stmts_;
     }

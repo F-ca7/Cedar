@@ -73,8 +73,6 @@ namespace oceanbase
          * @return error code
          */
         int add_elseif_then_stmt(uint64_t& stmt_id);
-
-        /*else if表达的id*/
         /**
          * @brief get_expr_id
          * get elseif expression id
@@ -86,7 +84,7 @@ namespace oceanbase
          * get then statement id array
          * @return then statement id array
          */
-        ObArray<uint64_t> get_then_stmts();			/*else if then语句列表*/
+        ObArray<uint64_t> get_then_stmts();
         /**
          * @brief get_then_stmt
          * get then statement id by array index
