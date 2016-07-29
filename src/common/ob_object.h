@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_object.h
+ * @brief ob basic object
+ *
+ * modified by wangdonghui:add a function member is_numerical
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
+
 #ifndef OCEANBASE_COMMON_OB_OBJECT_H_
 #define OCEANBASE_COMMON_OB_OBJECT_H_
 
@@ -144,6 +163,11 @@ namespace oceanbase
         bool need_deep_copy()const;
         bool is_true() const;
         //add by wdh 20160704 :b
+        /**
+         * @brief is_numerical
+         * judge object whether is numerical type
+         * @return bool value
+         */
         bool is_numerical() const;
         //add :e
         static const char* get_sql_type(ObObjType type);

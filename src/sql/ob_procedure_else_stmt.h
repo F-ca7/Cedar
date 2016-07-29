@@ -1,21 +1,21 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_else_stmt.h
-* @brief the ObProcedureElseStmt class definition that warp procedure else statement
-*
-* Created by zhutao
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-*
-* @date 2016_07_28
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_procedure_else_stmt.h
+ * @brief the ObProcedureElseStmt class definition that warp procedure else statement
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_28
+ */
 
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_ELSE_STMT_H_
 #define OCEANBASE_SQL_OB_PROCEDURE_ELSE_STMT_H_

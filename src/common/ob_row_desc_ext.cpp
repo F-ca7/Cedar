@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_row_desc_ext.cpp
+ * @brief the ObRowDescExt class definition
+ *
+ * modified by zhutao:add deserialize and serialize functions
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -15,6 +34,7 @@
  */
 #include "ob_row_desc_ext.h"
 using namespace oceanbase::common;
+
 ObRowDescExt::ObRowDescExt()
 {
 }

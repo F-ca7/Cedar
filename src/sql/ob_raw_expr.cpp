@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_raw_expr.cpp
+ * @brief raw expression relation class definition
+ *
+ * modified by zhutao:add some functions and a class for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 #include "ob_raw_expr.h"
 #include "ob_transformer.h"
 #include "type_name.c"

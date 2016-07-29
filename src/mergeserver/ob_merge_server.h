@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_server.h
+ * @brief merge server
+ *
+ * modified by wangdonghui:add procedure manager function member and data member
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
 #ifndef OCEANBASE_MERGESERVER_MERGESERVER_H_
 #define OCEANBASE_MERGESERVER_MERGESERVER_H_
 
@@ -99,6 +118,11 @@ namespace oceanbase
           return bloom_filter_queue_thread_;
         }
         //add by wangdonghui [procedure physical plan cache] 20160229 :b
+        /**
+         * @brief get_procedure_manager
+         * get procedure manager object
+         * @return procedure manager object
+         */
         inline mergeserver::ObProcedureManager & get_procedure_manager()
         {
           return procedure_manager_;
@@ -137,7 +161,7 @@ namespace oceanbase
 
 
         //add by wangdonghui 20160229 [procedure physical plan cache] :b
-        ObProcedureManager procedure_manager_;
+        ObProcedureManager procedure_manager_;   ///<  procedure manager
         //add :e
     };
   } /* mergeserver */

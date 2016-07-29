@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,13 +13,16 @@
  * modified by guojinwei:support multiple clusters for HA by adding or modifying
  * some functions, member variables
  * modified by zhujun：add procedure related constant
+ * modified by zhutao: add procedure related constant
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_29
  */
 /*
  *   (C) 2007-2010 Taobao Inc.

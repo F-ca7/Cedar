@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_server.cpp
+ * @brief merge server
+ *
+ * modified by wangdonghui:add procedure manager function member and data member
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
 #include "common/ob_define.h"
 #include "common/ob_trace_log.h"
 #include "ob_merge_server.h"

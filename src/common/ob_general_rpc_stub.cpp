@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,12 +11,15 @@
  * modified by longfei：add rpc call for drop index and retry_failed_work
  * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
  * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
+ * modified by wangdonghui:add some function for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author WengHaixing <wenghaixing@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
  */
 
 /**
@@ -278,7 +281,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       ObResultCode result_code;
       ret = send_3_return_0(root_server, timeout, OB_CREATE_PROCEDURE, DEFAULT_VERSION,
-          result_code, if_not_exists, proc_name, proc_source_code);
+                            result_code, if_not_exists, proc_name, proc_source_code);
       if (OB_SUCCESS != ret)
       {
         TBSYS_LOG(ERROR, "send_2_return_0 failed ret[%d]", ret);
@@ -295,7 +298,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       ObResultCode result_code;
       ret = send_2_return_0(root_server, timeout, OB_DROP_PROCEDURE, DEFAULT_VERSION,
-          result_code, if_exists, proc_name);
+                            result_code, if_exists, proc_name);
       if (OB_SUCCESS != ret)
       {
         TBSYS_LOG(ERROR, "send_2_return_0 failed: ret[%d]", ret);

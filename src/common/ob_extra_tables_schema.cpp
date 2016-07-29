@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,12 +11,15 @@
  * modified by longfei：add an core table: "__all_secondary_index" for storing secondary index table
  * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  * modified by zhujun：add procedure related system table '__all_procedure' schema
+ * modified by wangdonghui : add some comment ,type
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
  */
 
 /**
@@ -997,14 +1000,14 @@ int ObExtraTablesSchema::all_procedure_schema(TableSchema &table_schema)
 {
 	 int ret = OB_SUCCESS;
 
-	  table_schema.init_as_inner_table();
-	  strcpy(table_schema.table_name_, OB_ALL_PROCEDURE_TABLE_NAME);
-	  table_schema.table_id_ = OB_ALL_PROCEDURE_TID;
-	  table_schema.rowkey_column_num_ = 1;
-      table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 5;
-	  table_schema.max_rowkey_length_ = 128;
+    table_schema.init_as_inner_table();
+    strcpy(table_schema.table_name_, OB_ALL_PROCEDURE_TABLE_NAME);
+    table_schema.table_id_ = OB_ALL_PROCEDURE_TID;
+    table_schema.rowkey_column_num_ = 1;
+    table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 5;
+    table_schema.max_rowkey_length_ = 128;
 
-	 int column_id = OB_APP_MIN_COLUMN_ID;
+   int column_id = OB_APP_MIN_COLUMN_ID;
 
 	  ADD_COLUMN_SCHEMA("proc_name", //column_name
 	      column_id ++, //column_id

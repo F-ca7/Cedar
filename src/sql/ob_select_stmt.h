@@ -1,3 +1,21 @@
+/**
+* Copyright (C) 2013-2016 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_select_stmt.h
+* @brief the select statement class definition
+*
+* modified by zhutao:add a data member
+*
+* @version __DaSE_VERSION
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @author wangdonghui <zjnuwangdonghui@163.com>
+* @date 2016_07_29
+*/
+
 #ifndef OCEANBASE_SQL_SELECTSTMT_H_
 #define OCEANBASE_SQL_SELECTSTMT_H_
 
@@ -255,8 +273,18 @@ namespace oceanbase
 
       int copy_select_items(ObSelectStmt* select_stmt);
       void print(FILE* fp, int32_t level, int32_t index = 0);
-
+      /**
+       * @brief add_raw_var_expr
+       * add a variable expression
+       * @param raw_expr variable expression
+       * @return error code
+       */
       int add_raw_var_expr(const ObRawExpr *raw_expr) { return var_expr_list_.push_back(raw_expr); }
+      /**
+       * @brief get_raw_var_expr
+       * get variable expression list
+       * @return variable expression list
+       */
       const ObIArray<const ObRawExpr *> & get_raw_var_expr() const { return var_expr_list_; }
 
     private:

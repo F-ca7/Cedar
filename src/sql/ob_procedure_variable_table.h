@@ -1,21 +1,20 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_variable_table.h
-* @brief procedure varoable table definition
-*
-* Created by zhutao
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-* @date 2016_07_28
-*/
-
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_procedure_variable_table.h
+ * @brief procedure varoable table definition
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_28
+ */
 
 #ifndef OB_PROCEDURE_VARIABLE_TABLE_H
 #define OB_PROCEDURE_VARIABLE_TABLE_H

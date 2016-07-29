@@ -1,20 +1,20 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_sp_procedure.h
-* @brief procedure instruction and operator physical plan realation class definition
-*
-* Created by zhutao
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-* @date 2016_07_28
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sp_procedure.h
+ * @brief procedure instruction and operator physical plan realation class definition
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_28
+ */
 
 
 #ifndef SPPROCEDURE_H
@@ -455,7 +455,7 @@ namespace oceanbase
          * @param buf
          * @param buf_len
          * @param pos
-         * @return
+         * @return error code
          */
         virtual int serialize_inst(char *buf, int64_t buf_len, int64_t &pos) const;
         /**
@@ -558,7 +558,7 @@ namespace oceanbase
        * @param allocator
        * @param operators_store
        * @param op_factory
-       * @return
+       * @return error code
        */
       virtual int deserialize_inst(const char *buf, int64_t data_len, int64_t &pos, common::ModuleArena &allocator,
                                    ObPhysicalPlan::OperatorStore &operators_store, ObPhyOperatorFactory *op_factory);

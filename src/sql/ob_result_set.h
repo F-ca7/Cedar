@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_result_set.cpp
+ * @brief build logic plan
+ *
+ * modified by zhujun：support procedure
+ * modified by zhutao: delete and add some function for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -50,8 +69,8 @@ namespace oceanbase
           int64_t to_string(char *buffer, int64_t length) const;
           int deep_copy(Field &other, common::ObStringBuf *str_buf);
         };
-//        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
-//        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
+        //        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
+        //        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
       public:
         ObResultSet();
         ~ObResultSet();
@@ -110,7 +129,7 @@ namespace oceanbase
         int add_param_column(const Field & field);
         int pre_assign_params_room(const int64_t& size, common::ObIAllocator &alloc);
 
-//        int pre_assign_cur_time_room(common::ObObj *place_holder);  //add zt 20151121
+        //        int pre_assign_cur_time_room(common::ObObj *place_holder);  //add zt 20151121
 
         int pre_assign_cur_time_room(common::ObIAllocator &alloc);
         int fill_params(const common::ObIArray<obmysql::EMySQLFieldType>& types,
@@ -149,15 +168,45 @@ namespace oceanbase
         }
 
         void change_phy_plan(ObPhysicalPlan *plan, bool did_own);
-        void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;};
+        void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;}
 
         //add zt 20151201:b
         //for postfix_expr to get procedure obj, read array variables
+        /**
+         * @brief set_running_procedure
+         * set running procedure
+         * @param proc SpProcedure object point
+         */
         void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
+        /**
+         * @brief get_running_procedure
+         * get running procedure
+         * @return SpProcedure object point
+         */
         const SpProcedure* get_running_procedure() const{ return proc_; }
+        /**
+         * @brief get_stmt_hash
+         * get statement hash code
+         * @return hash code
+         */
         int64_t get_stmt_hash() const { return stmt_hash_code_; }
+        /**
+         * @brief set_stmt_hash
+         * set statement hash code
+         * @param hc hash code
+         */
         void set_stmt_hash(int64_t hc) { stmt_hash_code_ = hc; }
+        /**
+         * @brief set_no_group
+         * set no group execution flag
+         * @param no_group bool value
+         */
         void set_no_group(bool no_group) { no_group_ = no_group; }
+        /**
+         * @brief get_no_group
+         * get no group execution flag
+         * @return flag
+         */
         bool get_no_group() const { return no_group_; }
         //add zt 20151201:e
       private:
@@ -204,6 +253,7 @@ namespace oceanbase
          * is not necessary.
          * @brief proc_
          */
+        /// procedure physical plan
         SpProcedure *proc_; //add zt: 20151201
         int64_t stmt_hash_code_;
         bool no_group_;
@@ -427,6 +477,12 @@ namespace oceanbase
     }
 
     //add zt 20151121:b
+    /**
+     * @brief ObResultSet::change_phy_plan
+     * change physical plan
+     * @param plan physical plan
+     * @param did_own own physical plan flag, bool value
+     */
     inline void ObResultSet::change_phy_plan(ObPhysicalPlan *plan, bool did_own)
     {
       physical_plan_ = plan;

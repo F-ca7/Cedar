@@ -211,7 +211,7 @@ namespace oceanbase
        */
       virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum);
       //add e
-	  //add wenghaixing [secondary index.static_index]20151217
+      //add wenghaixing [secondary index.static_index]20151217
       virtual int get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat);
       //virtual int fetch_index_stat(const uint64_t table_id, const int64_t cluster_id, int64_t &stat);
       virtual int get_cluster_count(int64_t &cc);

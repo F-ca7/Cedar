@@ -604,26 +604,26 @@ int ObSchemaServiceImpl::create_procedure(const common::ObString& proc_name, con
 
   ObMutator* mutator = NULL;
 
-  if( OB_SUCCESS == ret )
+  if ( OB_SUCCESS == ret )
   {
     mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
-    if( NULL == mutator )
+    if ( NULL == mutator )
     {
       ret = OB_ALLOCATE_MEMORY_FAILED;
       TBSYS_LOG(WARN, "get thread specific Mutator fail");
     }
   }
 
-  if( OB_SUCCESS == ret )
+  if ( OB_SUCCESS == ret )
   {
     ret = mutator->reset();
-    if( OB_SUCCESS != ret )
+    if ( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
     }
   }
 
-  if( OB_SUCCESS == ret )
+  if ( OB_SUCCESS == ret )
   {
     ret = create_procedure_mutator(proc_name, proc_source_code, mutator);
     if( OB_SUCCESS != ret )
@@ -632,10 +632,10 @@ int ObSchemaServiceImpl::create_procedure(const common::ObString& proc_name, con
     }
   }
 
-  if( OB_SUCCESS == ret )
+  if ( OB_SUCCESS == ret )
   {
     ret = client_proxy_->mutate(*mutator);
-    if( OB_SUCCESS != ret )
+    if ( OB_SUCCESS != ret )
     {
       TBSYS_LOG(WARN, "apply mutator fail:ret[%d]", ret);
     }
@@ -890,7 +890,7 @@ int ObSchemaServiceImpl::drop_procedure(const ObString& proc_name)
 {
   int ret = OB_SUCCESS;
 
-  if(!check_inner_stat())
+  if (!check_inner_stat())
   {
     ret = OB_ERROR;
     TBSYS_LOG(WARN, "check inner stat fail");
@@ -903,10 +903,10 @@ int ObSchemaServiceImpl::drop_procedure(const ObString& proc_name)
   proc_name_obj.set_varchar(proc_name);
   rowkey.assign(&proc_name_obj, 1);
 
-  if(OB_SUCCESS == ret)
+  if (OB_SUCCESS == ret)
   {
     ret = nb_accessor_.delete_row(OB_ALL_PROCEDURE_TABLE_NAME, rowkey);
-    if(OB_SUCCESS != ret)
+    if (OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "delete row from __all_procedure fail:ret[%d]", ret);
     }
@@ -1238,35 +1238,32 @@ int ObSchemaServiceImpl::get_table_schema(const ObString& table_name, TableSchem
 //add by wangdonghui 20160308 :b
 int ObSchemaServiceImpl::get_procedure_info(QueryRes *&res_)
 {
-    int ret = OB_SUCCESS;
-    TBSYS_LOG(TRACE, "fetch procedure info begin");
-    if(!check_inner_stat())
-    {
-      ret = OB_ERROR;
-      TBSYS_LOG(WARN, "check inner stat fail");
-    }
-    ObNewRange range;
-    range.border_flag_.unset_inclusive_start();
-    range.border_flag_.set_inclusive_end();
-    range.set_whole_range();
-    if(OB_SUCCESS != (ret = nb_accessor_.scan(res_, OB_ALL_PROCEDURE_TABLE_NAME, range, SC("proc_name")("source"))))
-    {
-      TBSYS_LOG(WARN, "nb accessor scan fail:ret[%d]", ret);
-    }
-    else
-    {
-      TBSYS_LOG(DEBUG, "scan OB_ALL_PROCEDURE_TABLE success. scanner row count =%ld", res_->get_scanner()->get_row_num());
-    }
-    if (NULL == &res_)
-    {
-      ret = OB_ERR_UNEXPECTED;
-      TBSYS_LOG(ERROR, "results is NULL");
-    }
-
-    return ret;
-
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "fetch procedure info begin");
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  ObNewRange range;
+  range.border_flag_.unset_inclusive_start();
+  range.border_flag_.set_inclusive_end();
+  range.set_whole_range();
+  if (OB_SUCCESS != (ret = nb_accessor_.scan(res_, OB_ALL_PROCEDURE_TABLE_NAME, range, SC("proc_name")("source"))))
+  {
+    TBSYS_LOG(WARN, "nb accessor scan fail:ret[%d]", ret);
+  }
+  else
+  {
+    TBSYS_LOG(DEBUG, "scan OB_ALL_PROCEDURE_TABLE success. scanner row count =%ld", res_->get_scanner()->get_row_num());
+  }
+  if (NULL == &res_)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    TBSYS_LOG(ERROR, "results is NULL");
+  }
+  return ret;
 }
-
 //add :e
 
 

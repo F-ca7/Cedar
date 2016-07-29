@@ -1,20 +1,20 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_logical_plan.h
-* @brief logical plan class definition
-*
-* modified by zhutao:modified already delete
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-* @date 2016_07_27
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_logical_plan.h
+ * @brief logical plan class definition
+ *
+ * modified by zhutao:modified already delete
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
+ */
 
 #ifndef OCEANBASE_SQL_LOGICALPLAN_H_
 #define OCEANBASE_SQL_LOGICALPLAN_H_

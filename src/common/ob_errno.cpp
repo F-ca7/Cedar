@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -9,12 +9,16 @@
  * @brief error code
  *
  * modified by longfei：add an error code: OB_INDEX_NOT_EXIST for secondary index
+ * modified by zhutao: add some error code information
+ * modified by quxing: add some error code information
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author quxing <tianjiqx@126.com>
+ *
+ * @date 2016_07_29
  */
-
 
 /**
  * (C) 2010-2013 Alibaba Group Holding Limited.

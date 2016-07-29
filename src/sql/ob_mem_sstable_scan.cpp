@@ -1,21 +1,21 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_mem_sstable_scan.cpp
-* @brief for operations of memory sstable scan
-*
-* modified by maoxiaoxiao:add functions to reset iterator
-* modified by zhutao:add serialize deserialize for procedure
-* @version __DaSE_VERSION
-* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-*
-* @date 2016_07_27
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mem_sstable_scan.cpp
+ * @brief for operations of memory sstable scan
+ *
+ * modified by maoxiaoxiao:add functions to reset iterator
+ * modified by zhutao:add serialize deserialize for procedure
+ * @version __DaSE_VERSION
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_27
+ */
 
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.

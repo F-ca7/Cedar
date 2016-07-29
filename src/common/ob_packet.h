@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,6 +16,8 @@
  * 1. add the packet_code OB_RS_GET_ALL_CLUSTERS_INFO, used in set majority_count
  * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag
  *
+ * modified by wangdonghui:add some constant value for procedure
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
@@ -23,7 +25,9 @@
  *         liubozhong <51141500077@ecnu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
  */
 
 #ifndef OCEANBASE_PACKET_H_

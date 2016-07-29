@@ -1,20 +1,20 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_sp_procedure.h
-* @brief procedure instruction and operator physical plan realation class definition
-*
-* Created by zhutao
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-* @date 2016_07_28
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sp_procedure.h
+ * @brief procedure instruction and operator physical plan realation class definition
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_28
+ */
 
 #include "ob_sp_procedure.h"
 #include "ob_physical_plan.h"
@@ -2917,10 +2917,10 @@ int64_t SpWhileInst::to_string(char *buf, const int64_t buf_len) const
 //add by wangdonghui 20160624 :b
 int64_t SpExitInst::to_string(char *buf, const int64_t buf_len) const
 {
-    int64_t pos = 0;
-    databuff_printf(buf, buf_len, pos, "type [Exit], rs: %s\n", to_cstring(when_expr_));
-    databuff_printf(buf, buf_len, pos, "\tDo\n");
-    return pos;
+  int64_t pos = 0;
+  databuff_printf(buf, buf_len, pos, "type [Exit], rs: %s\n", to_cstring(when_expr_));
+  databuff_printf(buf, buf_len, pos, "\tDo\n");
+  return pos;
 }
 
 int64_t SpPreGroupInsts::to_string(char *buf, const int64_t buf_len) const
