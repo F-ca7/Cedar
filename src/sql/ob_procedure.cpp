@@ -1177,7 +1177,7 @@ int ObProcedure::open()
     }
     if( long_trans_ )
     {
-       end_trans(OB_SUCCESS != ret);
+       ret = end_trans(OB_SUCCESS != ret);
     }
     my_phy_plan_->get_result_set()->get_session()->set_autocommit(autoCommit);
   }
