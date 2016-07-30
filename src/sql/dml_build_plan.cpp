@@ -13,11 +13,13 @@
  * 2.resolve user's hint for using secondary index in select
  *
  * modified by yushengjuan: reslove syntax tree to logical plan
+ * modified by maoxiaoxiao: reslove syntax tree to logical plan
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
- * @date 2016_01_21
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 
 /** 
@@ -163,6 +165,20 @@ int resolve_semi_join(
 		ObStmt* stmt,
 		ParseNode* hint_node);
 //add end
+/*add maoxx [bloomfilter_join] 20160406*/
+/**
+ * @brief generate_join_hint
+ * generate join hint for bloomfilter join or merge join
+ * @param result_plan
+ * @param stmt
+ * @param hint_node
+ * @return OB_SUCCESS or other ERROR
+ */
+int generate_join_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node);
+/*add e*/
 static int add_all_rowkey_columns_to_stmt(ResultPlan* result_plan, uint64_t table_id, ObStmt *stmt)
 {
   int ret = OB_SUCCESS;
@@ -3049,7 +3065,14 @@ int resolve_hints(
 	    case T_SEMI_JOIN:
 	      ret = resolve_semi_join(result_plan, stmt, hint_node);
 	      break;
-	    //add end       
+      //add end
+
+        /*add maoxx [bloomfilter_join] 20160406*/
+        case T_JOIN_OP_TYPE_LIST:
+        ret = generate_join_hint(result_plan, stmt, hint_node);
+        break;
+        /*add e*/
+
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -3776,3 +3799,31 @@ int generate_index_hint(
 }
 // add:e
 //add e
+
+/*add maoxx [bloomfilter_join] 20160406*/
+int generate_join_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node)
+{
+  int ret = OB_SUCCESS;
+  ObJoinOPTypeArray join_node;
+  ObQueryHint& query_hint = stmt->get_query_hint();
+
+  if(query_hint.join_op_type_array_.size() > 0)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "too much join hint");
+    TBSYS_LOG(ERROR, "too much join hint, ret=[%d]", ret);
+  }
+
+  for(int32_t i = 0; OB_SUCCESS == ret && i < hint_node->num_child_; i++ )
+  {
+    join_node.join_op_type_ = hint_node->children_[i]->type_ ;
+    join_node.index_ = i;
+    query_hint.join_op_type_array_.push_back(join_node);
+  }
+
+  return ret;
+}
+/*add e*/
