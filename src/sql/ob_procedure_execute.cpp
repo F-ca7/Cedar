@@ -68,7 +68,7 @@ int ObProcedureExecute::set_no_group(bool no_group)
 }
 bool ObProcedureExecute::get_no_group()
 {
-    return no_group_;
+  return no_group_;
 }
 //add :e
 void ObProcedureExecute::reset()

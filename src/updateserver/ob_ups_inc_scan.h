@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
+* Copyright (C) 2013-2016 ECNU_DaSE.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -10,9 +10,13 @@
 *
 * modified by maoxiaoxiao:add functions to reset iterator
 *
+* modified by zhutao:add some context for procedure group execution
+*
 * @version __DaSE_VERSION
 * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+*
+* @date 2016_07_30
 */
 
 /**
@@ -150,6 +154,14 @@ namespace oceanbase
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
 
         //add by zt 20160113:b
+        /**
+         * @brief deserialize
+         * deserialize object
+         * @param buf
+         * @param data_len
+         * @param pos
+         * @return error code
+         */
         int deserialize(const char *buf, const int64_t data_len, int64_t &pos);
         //add by zt 20160113:e
 
@@ -158,6 +170,11 @@ namespace oceanbase
 
         //add by zt 20160113:b
       private:
+        /**
+         * @brief prepare_data
+         * prepare data for group execution
+         * @return error code
+         */
         int prepare_data();
         //add by zt 20160113:e
       private:
@@ -167,8 +184,8 @@ namespace oceanbase
         ObIncScanIter scan_iter_;
 
         //add by zt 20160113
-        sql::ObExprValues input_values_;
-        bool group_exec_mode_;
+        sql::ObExprValues input_values_;  ///<  input variable values
+        bool group_exec_mode_;  ///< group exection flag
     };
   } // end namespace updateserver
 } // end namespace oceanbase

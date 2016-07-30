@@ -1,20 +1,21 @@
 /**
-* Copyright (C) 2013-2016 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_merge_service.h
-* @brief main entrance of build logical plan
-*
-* Created by zhutao
-*
-* @version __DaSE_VERSION
-* @author zhutao <zhutao@stu.ecnu.edu.cn>
-* @author wangdonghui <zjnuwangdonghui@163.com>
-* @date 2016_07_26
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_service.h
+ * @brief merge server support service,deal request from other server
+ *
+ * modified by wangdonghui:add 3 functions for procedure cache management in ms
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_26
+ */
 
 #ifndef OCEANBASE_MERGESERVER_SERVICE_H_
 #define OCEANBASE_MERGESERVER_SERVICE_H_
@@ -122,7 +123,12 @@ namespace oceanbase
          * @return ObMergeServer merge_server_
          */
         ObMergeServer *get_merge_server() const { return merge_server_; }
-
+        /**
+         * @brief fetch_source
+         * return procedure name code map
+         * @param name_code_map
+         * @return error code
+         */
         int fetch_source(common::ObNameCodeMap * name_code_map);
         //add :e
         const common::ObVersion get_frozen_version() const

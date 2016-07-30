@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,10 +11,13 @@
  * modified by longfei：
  * 1.set timeout of drop table with index
  * 2.add rpc function: drop_index()
+ * modified by wangdonghui: add create and drop procedure functions in root server rpc proxy
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
  */
 #include "common/ob_schema.h"
 #include "common/ob_scanner.h"

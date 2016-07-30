@@ -10,10 +10,12 @@
  *
  * modified by Wenghaixing:modify main procedure of create table, only when table is not index or index switch is on ,
  *                         root server will create tablet for table
+ * modified by wangdonghui:add some functions for procedure create and drop in rs
  *
  * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date  2016_07_26
  */
 
@@ -608,12 +610,12 @@ int ObRootDDLOperator::drop_procedure(const common::ObString & proc_name)
     {
       ret = OB_ERR_SP_DROP_FAILED;
       TBSYS_LOG(WARN, "delete procedure from failed:proc_name[%.*s], ret[%d]",
-          proc_name.length(), proc_name.ptr(), ret);
+                proc_name.length(), proc_name.ptr(), ret);
     }
     else
     {
       TBSYS_LOG(INFO, "delete procedure succ:proc_name[%.*s]",
-          proc_name.length(), proc_name.ptr());
+                proc_name.length(), proc_name.ptr());
     }
   }
   return ret;

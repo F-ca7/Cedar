@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql.h
+ * @brief the ObSql class definition
+ *
+ * mofied by zhutao:add some friend classes and two functions
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -32,7 +51,8 @@ namespace oceanbase
     class ObSql
     {
       public:
-        friend class ObTransformer; //add zt 20151119 bad design, in order to visit the copy_plan function
+        //add zt 20151119 bad design, in order to visit the copy_plan function
+        friend class ObTransformer;  ///< friend class in order to visit the copy_plan function
         /**
          * execute the SQL statement directly
          *
@@ -111,7 +131,23 @@ namespace oceanbase
         static bool no_enough_memory();
 
         //add zt 20151117:b
+        /**
+         * @brief make_procedure_cache_check
+         * check whether the procedure is compiled and cached in local session
+         * @param stmt the procedure stmt
+         * @param context sql context
+         * @return error code
+         */
         static int make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context);
+        /**
+         * @brief read_procedure_source
+         * get procedure source code
+         * @param proc_name procedure name
+         * @param proc_sour procedure sopurce code
+         * @param context sql context
+         * @param name_pool name pool
+         * @return error code
+         */
         static int read_procedure_source(const ObString &proc_name, ObString &proc_sour, ObSqlContext &context, ObStringBuf* name_pool);
         //add zt 20151117:e
       private:

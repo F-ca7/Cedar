@@ -13,6 +13,7 @@
  * modified by fanqiushi: add some functions to create an phsical plan for semijoin
  * modified by wangjiahao: add method to generate physical plan for update_more
  * modified by zhujun: add method to generate physical plan for procedure
+ * modified by wangdonghui: add some function to generate physical plan for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -22,6 +23,7 @@
  * @author zhujun<51141500091@ecnu.edu.cn>
  * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date 2016_07_26
  */
 
@@ -994,10 +996,10 @@ int ObTransformer::gen_physical_procedure_drop(
 	   CREATE_PHY_OPERRATOR(result_op, ObProcedureDrop, physical_plan, err_stat);
 	   if (ret == OB_SUCCESS)
 	   {
-           //add by wangdonghui 20160226 [drop procedure] :b
-           result_op->set_rpc_stub(sql_context_->rs_rpc_proxy_);
-           //add :e
-	       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
+       //add by wangdonghui 20160226 [drop procedure] :b
+       result_op->set_rpc_stub(sql_context_->rs_rpc_proxy_);
+       //add :e
+       ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, stmt, result_op, index);
 	   }
 	}
 	if (ret == OB_SUCCESS)
@@ -1925,7 +1927,7 @@ int ObTransformer::gen_physical_procedure_delete(
   {}
   else
   {
-    if( context_.is_full_key_ && !context_.using_index_)
+    if ( context_.is_full_key_ && !context_.using_index_)
     {
       context_.rd_base_inst_ = proc_op->create_inst<SpRdBaseInst>(mul_inst);
       context_.rw_delta_inst_ = proc_op->create_inst<SpRwDeltaInst>(mul_inst);

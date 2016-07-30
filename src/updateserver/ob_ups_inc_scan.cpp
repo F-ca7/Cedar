@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_inc_scan.cpp
+ * @brief for operations of update server increment scan
+ *
+ * modified by zhutao:add some context for procedure group execution
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -11,14 +30,17 @@
  *   yuanqi <yuanqi.xhf@taobao.com>
  *     - some work details if you want
  */
+
 #include "common/ob_new_scanner_helper.h"
 #include "ob_ups_inc_scan.h"
 #include "ob_update_server_main.h"
 #include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 
-namespace oceanbase{
-  namespace updateserver{
+namespace oceanbase
+{
+  namespace updateserver
+  {
     REGISTER_CREATOR(oceanbase::sql::ObPhyOperatorGFactory, oceanbase::sql::ObPhyOperator, ObIncGetIter, oceanbase::sql::PHY_INC_GET_ITER);
   }
 }

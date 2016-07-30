@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_phy_operator.cpp
+ * @brief set the default sql_env when a sql is executed in an transaction.
+ *
+ * mofied by zhutao:add function process for procedure physical plan operator
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -65,7 +84,7 @@ namespace oceanbase
             ret = new_operator(MemTableLock, allocator, *session_ctx_, *table_mgr_);
             break;
           //add :e
-		  //add zt 20151110:b
+          //add zt 20151110:b
           case PHY_PROCEDURE:
             ret = new_operator(ObUpsProcedure, allocator, *session_ctx_);
             break;

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -9,11 +9,12 @@
  * @brief send physical plan to ups
  * modified by wangjiahao: No data to update, About it, for update_more
  * modified by zhujun: add a variable into session
+ * modified by zhutao:add a get_next_row_for_sp function
  *
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2015_12_30
+ * @date 2016_07_30
  */
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -306,16 +307,16 @@ int ObUpsExecutor::get_next_row(const common::ObRow *&row)
 int ObUpsExecutor::get_next_row_for_sp(const common::ObRow *&row, const ObRowDesc &fake_row_desc)
 {
   int ret = OB_SUCCESS;
-//  OB_ASSERT(my_phy_plan_);
+  //  OB_ASSERT(my_phy_plan_);
   // for session stored physical plan, my_phy_plan_->get_result_set() is the result_set who stored the plan,
   // since the two commands are in the same session, so we can get the real result_set from session.
   // for global stored physical plan, new coppied plan has itsown my_phy_plan_, so both my_phy_plan_->get_result_set()
   // and my_phy_plan_->get_result_set()->get_session()->get_current_result_set() are correct
-//  ObResultSet *my_result_set = my_phy_plan_->get_result_set()->get_session()->get_current_result_set();
-//  if (OB_UNLIKELY(!my_result_set->is_with_rows()))
-//  {
-//    ret = OB_NOT_SUPPORTED;
-//  }
+  //  ObResultSet *my_result_set = my_phy_plan_->get_result_set()->get_session()->get_current_result_set();
+  //  if (OB_UNLIKELY(!my_result_set->is_with_rows()))
+  //  {
+  //    ret = OB_NOT_SUPPORTED;
+  //  }
   curr_row_.set_row_desc(fake_row_desc);
   if (ret == OB_SUCCESS
     && (ret = local_result_.get_scanner().get_next_row(curr_row_)) == OB_SUCCESS)

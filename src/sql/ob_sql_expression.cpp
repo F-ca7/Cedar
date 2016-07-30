@@ -1,3 +1,26 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_expression.cpp
+ * @brief sql expression class
+ *
+ * modified by longfei：
+ * 1.add function: set_table_id()
+ * modified by Qiushi FAN: add some functions to create a new expression
+ *
+ * modified by zhutao:modified alloc and free function
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_30
+ */
 /*
  * (C) 2007-2012 Taobao Inc.
  *
@@ -349,7 +372,7 @@ ObSqlExpression* ObSqlExpression::alloc()
   int64_t tid = (gettid() & 0xf); //redistribute to different alloc
   ObSqlExpression *ret = SQL_EXPR_ALLOC[tid].alloc();
   //add by zt, e
-//  ObSqlExpression *ret = SQL_EXPR_ALLOC.alloc(); //delete by zt
+  //  ObSqlExpression *ret = SQL_EXPR_ALLOC.alloc(); //delete by zt
   if (OB_UNLIKELY(NULL == ret))
   {
     TBSYS_LOG(ERROR, "failed to allocate expression object");
@@ -373,7 +396,7 @@ void ObSqlExpression::free(ObSqlExpression* ptr)
   int64_t tid = (gettid() & 0xf);
   SQL_EXPR_ALLOC[tid].free(ptr);
   //add by zt, e
-//  SQL_EXPR_ALLOC.free(ptr); //delete by zt
+  //  SQL_EXPR_ALLOC.free(ptr); //delete by zt
   atomic_inc(&FREE_TIMES);
   if (FREE_TIMES % 1000000 == 0)
   {

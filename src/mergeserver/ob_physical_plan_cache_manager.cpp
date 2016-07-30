@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_physical_plan_cache_manager.cpp
+ * @brief procedure physical plan cache management class definition
+ *
+ * create by wangdonghui
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
 #include "ob_physical_plan_cache_manager.h"
 #include "common/hash/ob_hashmap.h"
 #include "common/hash/ob_hashtable.h"
@@ -21,34 +40,34 @@ ObProcedureManager::~ObProcedureManager()
 }
 int ObProcedureManager::init()
 {
-    int ret =  OB_SUCCESS;
-    ret = name_cache_map_.create(NAME_CACHE_MAP_BUCKET_NUM);
-    if(OB_SUCCESS != ret)
-    {
-        TBSYS_LOG(WARN, "create cache hash map fail:ret[%d]", ret);
-    }
-    else
-    {
-        TBSYS_LOG(INFO, "create cache hash map succ");
-    }
+  int ret =  OB_SUCCESS;
+  ret = name_cache_map_.create(NAME_CACHE_MAP_BUCKET_NUM);
+  if(OB_SUCCESS != ret)
+  {
+      TBSYS_LOG(WARN, "create cache hash map fail:ret[%d]", ret);
+  }
+  else
+  {
+      TBSYS_LOG(INFO, "create cache hash map succ");
+  }
 
-    if( OB_SUCCESS != (ret = session_.init(block_allocator_)))
-    {
-        TBSYS_LOG(WARN, "failed to init session");
-    }
+  if( OB_SUCCESS != (ret = session_.init(block_allocator_)))
+  {
+      TBSYS_LOG(WARN, "failed to init session");
+  }
 
-    ret = name_code_map_.init();
-    if(OB_SUCCESS != ret)
-    {
-        TBSYS_LOG(WARN, "create code hash map fail:ret[%d]", ret);
-    }
-    else
-    {
-        has_init_ = true;
-        TBSYS_LOG(INFO, "create code hash map succ");
-    }
+  ret = name_code_map_.init();
+  if(OB_SUCCESS != ret)
+  {
+      TBSYS_LOG(WARN, "create code hash map fail:ret[%d]", ret);
+  }
+  else
+  {
+      has_init_ = true;
+      TBSYS_LOG(INFO, "create code hash map succ");
+  }
 
-    return ret;
+  return ret;
 }
 
 
@@ -172,12 +191,6 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
   return ret;
 }
 
-/**
- * @brief ObProcedureManager::run
- * at the start of mergeserver, it will try to fetch the whole name_code_map from rootserver.
- * @param thread
- * @param arg
- */
 void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
 {
   UNUSED(thread);

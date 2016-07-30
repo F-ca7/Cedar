@@ -9,10 +9,11 @@
  * @brief for operations of table in rootserver
  *
  * modified by Wenghaixing:add some fuction for secondary index construction
- *
+ * modified by wangdonghui:add some functions for procedure create and drop in rs
  * @version __DaSE_VERSION
  * @author Wenghaixing <wenghaixing@ecnu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date  2016_07_26
  */
 
@@ -80,7 +81,7 @@ namespace oceanbase
        * @brief drop_procedure
        * delete procedure form __all_procedure
        * @param proc_name procedure name
-       * @return
+       * @return error code
        */
       int drop_procedure(const common::ObString & proc_name);
       //add :e

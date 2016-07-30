@@ -19,6 +19,7 @@
  *   1.add the auto_elect_flag to election process.
  *   2.modify the election state.
  *   3.add the majority_count setting in rootserver.
+ * modified by wangdonghui:add some process statements and functions for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -29,8 +30,11 @@
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date 2016_07_26
- *//*===============================================================
+ */
+
+/*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
  *

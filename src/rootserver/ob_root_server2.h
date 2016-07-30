@@ -21,6 +21,7 @@
  * modified by guojinwei,chujiajia and zhangcd:
  *         support multiple clusters for HA by adding or modifying
  *        some functions, member variables
+ * modified by wangdonghui:add some functions for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -30,6 +31,7 @@
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date 2016_07_26
  */
 

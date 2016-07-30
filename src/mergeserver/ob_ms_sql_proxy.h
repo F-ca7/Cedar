@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ms_sql_proxy.h
+ * @brief set the default sql_env when a sql is executed in an transaction.
+ *
+ * mofied by zhutao:add function declaration for procedure cache management init sql envrinment
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -39,7 +58,7 @@ namespace oceanbase
     {
       public:
         ObMsSQLProxy();
-        virtual ~ObMsSQLProxy() {};
+        virtual ~ObMsSQLProxy() {}
 
        int execute(const ObString &cmd,
                     ObSQLResultSet &rs,
@@ -57,6 +76,15 @@ namespace oceanbase
         int cleanup_sql_env(ObSqlContext &context, ObSQLResultSet &rs);
 
         //add by zt 20160321
+        /**
+         * @brief init_sql_env_for_cache
+         * init sql envrinment for procedure cache
+         * @param context sql context
+         * @param schema_version schema version
+         * @param result sql result
+         * @param session sql session
+         * @return error code
+         */
         int init_sql_env_for_cache(ObSqlContext &context, int64_t &schema_version,
                                    ObSQLResultSet &result, ObSQLSessionInfo &session);
 

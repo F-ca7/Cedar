@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_variable_set_array_value.cpp
+ * @brief the ObVariableSetArrayValue class definition
+ *
+ * create by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
 #include "ob_variable_set_array_value.h"
 #include "ob_phy_operator.h"
 #include "ob_sql_session_info.h"
@@ -43,8 +62,10 @@ namespace oceanbase
   }
 }
 
-namespace oceanbase{
-  namespace sql{
+namespace oceanbase
+{
+  namespace sql
+  {
     REGISTER_PHY_OPERATOR(ObVariableSetArrayValue, PHY_VARIABLE_SET_ARRAY);
   }
 }

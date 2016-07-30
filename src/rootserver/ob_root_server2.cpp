@@ -15,6 +15,7 @@
  *        support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *        parse the cmd_rs_cluster_ips_ into clusters info array.
+ * modified by wangdonghui:add some functions for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -24,8 +25,11 @@
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date 2016_07_26
- *//*===============================================================
+ */
+
+/*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
  *
@@ -5145,22 +5149,22 @@ int ObRootServer2::check_procedure_exist(const common::ObString & proc_name, boo
   TBSYS_LOG(INFO, "check procedure exist proc_name: %s %c", proc_name.ptr(), exist? 'Y': 'N');
   tbsys::CRLockGuard guard(schema_manager_rwlock_);
   if( !name_code_map_->is_created() )
-//  if (name_code_map_->get_name_code_map()->created() == false)
+  //  if (name_code_map_->get_name_code_map()->created() == false)
   {
     TBSYS_LOG(WARN, "check physical plan manager failed");
     ret = OB_INNER_STAT_ERROR;
   }
   else
   {
-//    const ObString *source_code = name_code_map_->get_name_code_map()->get(proc_name);
-//    if (NULL == source_code)
-//    {
-//      exist = false;
-//    }
-//    else
-//    {
-//      exist = true;
-//    }
+    //    const ObString *source_code = name_code_map_->get_name_code_map()->get(proc_name);
+    //    if (NULL == source_code)
+    //    {
+    //      exist = false;
+    //    }
+    //    else
+    //    {
+    //      exist = true;
+    //    }
     exist = name_code_map_->exist(proc_name);
   }
   return ret;
@@ -7124,33 +7128,33 @@ int ObRootServer2::force_sync_cahce_all_servers(const common::ObString proc_name
 //add by wangdonghui 20160305 :b
 int ObRootServer2::force_delete_cahce_all_servers(const common::ObString proc_name)
 {
-    int ret = OB_SUCCESS;
-    ObServer tmp_server;
-    if (this->is_master())
+  int ret = OB_SUCCESS;
+  ObServer tmp_server;
+  if (this->is_master())
+  {
+    ObChunkServerManager::iterator it = this->server_manager_.begin();
+    for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
     {
-      ObChunkServerManager::iterator it = this->server_manager_.begin();
-      for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
+      if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
       {
-        if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
+        //hb to ms
+        tmp_server = it->server_;
+        tmp_server.set_port(it->port_ms_);
+        ret = this->worker_->get_rpc_stub().delete_cache(tmp_server,
+            proc_name, config_.network_timeout);
+        if (OB_SUCCESS == ret)
         {
-          //hb to ms
-          tmp_server = it->server_;
-          tmp_server.set_port(it->port_ms_);
-          ret = this->worker_->get_rpc_stub().delete_cache(tmp_server,
-              proc_name, config_.network_timeout);
-          if (OB_SUCCESS == ret)
-          {
-            // do nothing
-            TBSYS_LOG(DEBUG, "delete cache to ms %s, proc name [%s]", to_cstring(tmp_server), proc_name.ptr());
-          }
-          else
-          {
-            TBSYS_LOG(WARN, "delete cache to ms %s failed", to_cstring(tmp_server));
-          }
+          // do nothing
+          TBSYS_LOG(DEBUG, "delete cache to ms %s, proc name [%s]", to_cstring(tmp_server), proc_name.ptr());
         }
-      } //end for
-    } //end if master
-    return ret;
+        else
+        {
+          TBSYS_LOG(WARN, "delete cache to ms %s failed", to_cstring(tmp_server));
+        }
+      }
+    } //end for
+  } //end if master
+  return ret;
 }
 //add :e
 

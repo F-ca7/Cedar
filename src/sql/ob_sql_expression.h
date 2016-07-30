@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,10 +12,14 @@
  * 1.add function: set_table_id()
  * modified by Qiushi FAN: add some functions to create a new expression
  *
+ * modified by zhutao:add a is_var_expr function
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_30
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -110,8 +114,14 @@ namespace oceanbase
         */
         inline void set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
         //add:e
-		
-		inline int is_var_expr(bool &is_var_type, ObObj &var_name) const; //add by zt 20160617
+        /**
+         * @brief is_var_expr
+         * judge whether is variable expression
+         * @param is_var_type returned flag
+         * @param var_name variable name
+         * @return error code
+         */
+        inline int is_var_expr(bool &is_var_type, ObObj &var_name) const; //add by zt 20160617
 
         inline int is_column_index_expr(bool &is_idx_type) const;
         inline int is_simple_condition(bool &is_simple_cond_type) const;

@@ -165,10 +165,14 @@ namespace oceanbase
         int fetch_schema(const int64_t timeout, const common::ObServer & root_server,
             const int64_t timestamp, const bool only_core_tables, common::ObSchemaManagerV2 & schema) const;
         //add by wangdonghui 20160304 :b
-        //get procedure info through root server rpc call
-        // param  @timeout  action timeout
-        //        @root_server root server addr
-        //        @physicalplanmanager fetch cmd output physicalplanmanager data
+        /**
+         * @brief fetch_procedure
+         * get procedure info through root server rpc call
+         * @param timeout  action timeout
+         * @param root_server root server addr
+         * @param namecodemap returned name code map
+         * @return
+         */
         int fetch_procedure(const int64_t timeout, const ObServer & root_server,
             common::ObNameCodeMap & namecodemap) const;
         //add :e
@@ -218,11 +222,30 @@ namespace oceanbase
             const common::AlterTableSchema & alter_schema) const;
 
         //add by wangdonghui 20160121 :b
+        /**
+         * @brief create_procedure
+         * create a procedure
+         * @param timeout action timeout
+         * @param root_server root server addr
+         * @param if_not_exists if exists flag
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
         int create_procedure(const int64_t timeout, const common::ObServer & root_server,
-        bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const;
+                             bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const;
         //add :e
 
         //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief drop_procedure
+         * delete a procedure
+         * @param timeout action timeout
+         * @param root_server root server addr
+         * @param if_exists if exists flag
+         * @param proc_name procedure name
+         * @return error code
+         */
         int drop_procedure(const int64_t timeout, const common::ObServer & root_server,
                            bool if_exists, const common::ObString &proc_name) const;
         //add :e

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_procedure.cpp
+ * @brief ups SpUpsInstExecStrategy and ObUpsProcedure class definition
+ *
+ * create by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
 #include "ob_ups_procedure.h"
 #include "common/ob_common_stat.h"
 #include "common/ob_row_fuse.h"
@@ -64,13 +83,13 @@ int SpUpsInstExecStrategy::execute_expr(SpExprInst *inst)
 {
   int ret = OB_SUCCESS;
   int64_t start_ts = tbsys::CTimeUtil::getTime();
-//  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(inst->get_val()));
+  //  TBSYS_LOG(TRACE, "expr plan: \n%s", to_cstring(inst->get_val()));
   common::ObRow &input_row = curr_row_;
   const ObObj *val = NULL;
   input_row.clear();
   if((ret= inst->get_val().calc(input_row, val))!=OB_SUCCESS)
   {
-//    TBSYS_LOG(WARN, "sp expr compute failed");
+    //    TBSYS_LOG(WARN, "sp expr compute failed");
   }
   //update the varialbe here
   else if ( OB_SUCCESS != (ret = inst->get_ownner()->write_variable(inst->get_var(), *val)) )
@@ -84,7 +103,7 @@ int SpUpsInstExecStrategy::execute_rw_delta(SpRwDeltaInst *inst)
   int ret = OB_SUCCESS;
   int err = OB_SUCCESS;
   //it should be a ObUpsModify
-//  TBSYS_LOG(TRACE, "rw delta inst plan: \n%s", to_cstring(*(inst->get_rwdelta_op())));
+  //  TBSYS_LOG(TRACE, "rw delta inst plan: \n%s", to_cstring(*(inst->get_rwdelta_op())));
   int64_t start_ts = tbsys::CTimeUtil::getTime();
   if( OB_SUCCESS != (ret = inst->get_rwdelta_op()->open()) )
   {
@@ -160,10 +179,10 @@ int SpUpsInstExecStrategy::execute_block(SpGroupInsts* inst)
 {
   int ret = OB_SUCCESS;
   ObIArray<SpInst*>& inst_list_ = inst->get_inst_list();
-//  const SpProcedure *proc_ = inst->get_ownner();
+  //  const SpProcedure *proc_ = inst->get_ownner();
   for(int64_t i = 0; i < inst_list_.count() && OB_SUCCESS == ret; ++i)
   {
-//    TBSYS_LOG(TRACE, "execute inst[%ld]", i);
+    //    TBSYS_LOG(TRACE, "execute inst[%ld]", i);
     if( OB_SUCCESS != (ret = execute_inst(inst_list_.at(i))) )
     {
       TBSYS_LOG(WARN, "execute instruction fail idx[%ld]", i);
@@ -179,25 +198,27 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
   common::ObRow &fake_row = curr_row_;
   const ObObj *flag = NULL;
   fake_row.clear();
-//  TBSYS_LOG(TRACE, "if_ctrl inst:\n%s", to_cstring(inst->get_if_expr()));
+  //  TBSYS_LOG(TRACE, "if_ctrl inst:\n%s", to_cstring(inst->get_if_expr()));
   if(OB_SUCCESS != (ret = inst->get_if_expr().calc(fake_row, flag)) )
   {
-//    TBSYS_LOG(WARN, "if expr evalute failed");
+    //    TBSYS_LOG(WARN, "if expr evalute failed");
   }
   OB_STAT_INC(UPDATESERVER, UPS_PROC_IF, tbsys::CTimeUtil::getTime() - start_ts);
   if( OB_SUCCESS != ret ) {}
   else if( flag->is_true() )
-  { //execute the then branch
+  {
+    //execute the then branch
     if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_then_block())) )
     {
-//      TBSYS_LOG(WARN, "execute then block fail");
+      //      TBSYS_LOG(WARN, "execute then block fail");
     }
   }
   else
-  { //execute the fail branch
+  {
+    //execute the fail branch
     if( OB_SUCCESS != (ret = execute_multi_inst(inst->get_else_block())) )
     {
-//      TBSYS_LOG(WARN, "execute else block fail");
+      //      TBSYS_LOG(WARN, "execute else block fail");
     }
   }
   return ret;
@@ -209,21 +230,21 @@ int SpUpsInstExecStrategy::execute_if_ctrl(SpIfCtrlInsts *inst)
  * ==========================================================================*/
 int SpUpsInstExecStrategy::execute_while(SpWhileInst *inst)
 {
-    int ret =OB_SUCCESS;
-    common::ObRow &fake_row = curr_row_;
-    const ObObj *flag = NULL;
-    fake_row.clear();
-    TBSYS_LOG(TRACE,"while inst:\n%s", to_cstring(inst->get_while_expr()));
-    while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
-      {
-         TBSYS_LOG(TRACE,"while expr value: %s", to_cstring(*flag));
-         if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
-         {
-           TBSYS_LOG(WARN,"execute do body block failed");
-           break;
-         }
-      }
-   return ret;
+  int ret =OB_SUCCESS;
+  common::ObRow &fake_row = curr_row_;
+  const ObObj *flag = NULL;
+  fake_row.clear();
+  TBSYS_LOG(TRACE,"while inst:\n%s", to_cstring(inst->get_while_expr()));
+  while(OB_SUCCESS == (ret = inst->get_while_expr().calc(fake_row, flag)) && flag->is_true())//execute do body
+    {
+       TBSYS_LOG(TRACE,"while expr value: %s", to_cstring(*flag));
+       if(OB_SUCCESS != (ret = execute_multi_inst(inst->get_body_block())))
+       {
+         TBSYS_LOG(WARN,"execute do body block failed");
+         break;
+       }
+    }
+ return ret;
 
 }
 //add hjw 20151231:e
@@ -244,7 +265,7 @@ int SpUpsInstExecStrategy::execute_multi_inst(SpMultiInsts *mul_inst)
     else
     {
       ret = OB_ERR_UNEXPECTED;
-//      TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
+      //      TBSYS_LOG(WARN, "does not fetch inst[%ld]", pc);
     }
   }
   return ret;
@@ -285,7 +306,8 @@ int SpUpsInstExecStrategy::execute_loop(SpLoopInst *inst)
       itr_inc = -1;
     }
     for(itr = itr_begin; itr != (itr_end + itr_inc) && OB_SUCCESS == ret; itr += itr_inc)//modify wdh <= 20160624
-    { //itr_end also need to be iterated, so loop ends when itr == itr_end + itr_inc
+    {
+      //itr_end also need to be iterated, so loop ends when itr == itr_end + itr_inc
       ++counter;
       itr_var.set_int(itr);
       if( OB_SUCCESS != (ret = proc->write_variable(inst->get_loop_var(), itr_var )))
@@ -382,9 +404,9 @@ ObUpsProcedure::~ObUpsProcedure()
 int ObUpsProcedure::open()
 {
   int ret = OB_SUCCESS;
-//  SpUpsInstExecStrategy strategy;
+  //  SpUpsInstExecStrategy strategy;
   int64_t start_proc_exec_ts = tbsys::CTimeUtil::getTime();
-//  TBSYS_LOG(TRACE, "UpsProcedure open, inst list:\n %s", to_cstring(*this));
+  //  TBSYS_LOG(TRACE, "UpsProcedure open, inst list:\n %s", to_cstring(*this));
   pc_ = 0;
   //we need only to execute the block instructions
 
@@ -403,7 +425,7 @@ int ObUpsProcedure::open()
 
 int ObUpsProcedure::close()
 {
-//  static_data_mgr_.clear();
+  //  static_data_mgr_.clear();
   return SpProcedure::close();
 }
 
@@ -411,11 +433,11 @@ void ObUpsProcedure::reset()
 {
   pc_ = 0;
 
-//  static_data_mgr_.clear();
+  //  static_data_mgr_.clear();
   var_row_.clear();
   SpProcedure::reset();
-//  name_pool_.clear();
-//  var_name_val_map_.destroy();
+  //  name_pool_.clear();
+  //  var_name_val_map_.destroy();
 }
 
 void ObUpsProcedure::reuse()
@@ -427,13 +449,6 @@ int64_t ObUpsProcedure::hkey(int64_t sdata_id) const
 {
   return strategy_.hkey(sdata_id);
 }
-
-//SpInst * ObUpsProcedure::create_inst(SpInstType type, SpMultiInsts *mul_inst)
-//{
-//  SpInst *new_inst = NULL;
-//  new_inst = SpProcedure::create_inst(type, mul_inst);
-//  return new_inst;
-//}
 
 int64_t ObUpsProcedure::to_string(char *buf, const int64_t buf_len) const
 {

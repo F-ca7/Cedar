@@ -5323,30 +5323,29 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_execute_stmt(result_plan, node, query_id);
 			break;
 		}
-		 //add by zhujun:b
-      //code_coverage_zhujun
-      case T_VAR_ARRAY_VAL:
-      {
-        ret = resolve_variable_set_array_stmt(result_plan, node, query_id);
-        break;
-      }
-      case T_PROCEDURE_CREATE:
-      {
-         ret = resolve_procedure_create_stmt(result_plan, node, query_id);
-         break;
-      }
-      case T_PROCEDURE_DROP:
+    //add by zhujun:b
+    //code_coverage_zhujun
+    case T_VAR_ARRAY_VAL:
+    {
+      ret = resolve_variable_set_array_stmt(result_plan, node, query_id);
+      break;
+    }
+    case T_PROCEDURE_CREATE:
+    {
+       ret = resolve_procedure_create_stmt(result_plan, node, query_id);
+       break;
+    }
+    case T_PROCEDURE_DROP:
 		{
 		   ret = resolve_procedure_drop_stmt(result_plan, node, query_id);
 		   break;
 		}
-      case T_PROCEDURE_EXEC:
-      {
-		 ret = resolve_procedure_execute_stmt(result_plan, node, query_id);
-
-		 break;
-      }
-      //code_coverage_zhujun
+    case T_PROCEDURE_EXEC:
+    {
+      ret = resolve_procedure_execute_stmt(result_plan, node, query_id);
+      break;
+    }
+    //code_coverage_zhujun
 	  //add:e
 		case T_DEALLOCATE:
 		{

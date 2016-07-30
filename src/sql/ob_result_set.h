@@ -255,8 +255,8 @@ namespace oceanbase
          */
         /// procedure physical plan
         SpProcedure *proc_; //add zt: 20151201
-        int64_t stmt_hash_code_;
-        bool no_group_;
+        int64_t stmt_hash_code_;  ///<  statement hash code_
+        bool no_group_;  ///< no group excution flag
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const

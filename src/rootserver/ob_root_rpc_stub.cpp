@@ -12,13 +12,16 @@
  * modified by guojinwei:add some remote process control function to the ObRootRpcStub class.
  *                       ObRootRpcStub support multiple clusters for HA by adding or modifying
  *                       some functions, member variables
+ * modified by wangdonghui:add update and delete procedure cache functions
  *
  * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date  2016_01_24
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date  2016_07_30
  */
 
 #include "rootserver/ob_root_worker.h"
@@ -114,7 +117,7 @@ int ObRootRpcStub::slave_register(const ObServer& master, const ObServer& slave_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// ÉèÖÃ±¸rsµÄ½ÇÉ«µÄÔ¶³Ìµ÷ÓÃ
+// ï¿½ï¿½ï¿½Ã±ï¿½rsï¿½Ä½ï¿½É«ï¿½ï¿½Ô¶ï¿½Ìµï¿½ï¿½ï¿½
 int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRole &role, const int64_t timeout)
 {
   int err = OB_SUCCESS;
@@ -170,7 +173,7 @@ int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRo
 // add:e
 
 // add by zcd [multi_cluster] 20150416:b
-// bootstrapÃüÁîµÄÔ¶³Ìµ÷ÓÃ
+// bootstrapï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½Ìµï¿½ï¿½ï¿½
 int ObRootRpcStub::boot_strap(const common::ObServer& server)
 {
   int ret = OB_SUCCESS;
@@ -288,7 +291,7 @@ int ObRootRpcStub::get_row_checksum(const common::ObServer& server, const int64_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// Ô¶³ÌÉèÖÃÆäËûserverµÄconfigÐÅÏ¢µÄµ÷ÓÃ¹ý³Ì
+// Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½serverï¿½ï¿½configï¿½ï¿½Ï¢ï¿½Äµï¿½ï¿½Ã¹ï¿½ï¿½ï¿½
 int ObRootRpcStub::set_config(const common::ObServer& server, const ObString& config_str, int64_t timeout_us)
 {
   int ret = OB_SUCCESS;

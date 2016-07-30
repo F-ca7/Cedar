@@ -12,10 +12,13 @@
  * add member variables and member function for using index in select
  *
  * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
- * 
+ * modified by zhutao: add process in get_row_desc function
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
  * @date 2016_01_22
  */
 

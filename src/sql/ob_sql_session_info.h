@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_session_info.h
+ * @brief sql session information
+ *
+ * mofied by zhutao:add functions for procedure array variable operation
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
 /*
  *
  * This program is free software; you can redistribute it and/or modify
@@ -187,10 +206,46 @@ namespace oceanbase
         int remove_variable(const common::ObString& var);
 
         //add zt 20151202:b
+        /**
+         * @brief replace_vararray
+         * replace array variable
+         * @param var  array variable name
+         * @param val new variable array
+         * @return
+         */
         int replace_vararray(const common::ObString& var, const common::ObArray<ObObj> &val);
+        /**
+         * @brief replace_vararray
+         * replace a variable array element
+         * @param var variable name
+         * @param idx_value array index
+         * @param val variable array element object
+         * @return error code
+         */
         int replace_vararray(const ObString &var, int64_t idx_value, const ObObj &val);
+        /**
+         * @brief get_variable_array_size
+         * get array variable size
+         * @param array_name array name
+         * @param array_size returned array size
+         * @return error code
+         */
         int get_variable_array_size(const common::ObString &array_name, int64_t &array_size) const;
+        /**
+         * @brief remove_vararray
+         * remove array variable
+         * @param var variable name
+         * @return error code
+         */
         int remove_vararray(const common::ObString& var);
+        /**
+         * @brief get_variable_value
+         * get array variable element value by array index
+         * @param var variable name
+         * @param idx array index
+         * @param val array variable element value
+         * @return error code
+         */
         int get_variable_value(const common::ObString &var, int64_t idx, const common::ObObj* &val) const;
         //add zt 20151202:e
 
@@ -290,12 +345,12 @@ namespace oceanbase
         //add zt 20151202:b
         struct ObVarArray
         {
-          ObString var_array_name_;
-          ObArray<ObObj> value_;
+          ObString var_array_name_;  ///< array variable name
+          ObArray<ObObj> value_;  ///<  value stack
         };
 
-        const static int VAR_ARRAY_COUNT = 5;
-        ObSEArray<ObVarArray, VAR_ARRAY_COUNT>  var_arrays_;
+        const static int VAR_ARRAY_COUNT = 5;  ///<  array variable count
+        ObSEArray<ObVarArray, VAR_ARRAY_COUNT>  var_arrays_;  ///<  variable array
         //add zt 20151202:e
     };
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,10 +8,15 @@
  * @file ob_ms_sql_proxy.cpp
  * @brief set the default sql_env when a sql is executed in an transaction.
  *
+ * modified by wangdonghui:add function definition for procedure cache management init sql envrinment
+ *
  * @version __DaSE_VERSION
  * @author zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2015_12_30
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
  */
+
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
