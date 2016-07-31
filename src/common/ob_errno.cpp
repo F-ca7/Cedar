@@ -369,6 +369,15 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_SP_STORE_FAILED,"Failed to create procedure");
     //add :e
 
+    //add by qx 20160731:b
+    // they not be used
+    ADD_ERROR_STR(OB_ERR_SP_UNINIT_VAR,"Referring to uninitialized variable");
+    ADD_ERROR_STR(OB_ERR_SP_BADSELECT,"Procedure can't return a result set in the given context");
+    ADD_ERROR_STR(OB_ERR_UNKNOWN_PROCEDURE,"Unknown procedure");
+    ADD_ERROR_STR(OB_ERR_SP_WRONG_NAME,"Incorrect routine name");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE,"Incorrect parameters to procedure");
+    //add :e
+
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");

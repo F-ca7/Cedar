@@ -26,13 +26,13 @@ namespace oceanbase
   {
     void ObProcedureIfStmt::print(FILE* fp, int32_t level, int32_t index)
     {
-        UNUSED(index);
-        print_indentation(fp, level);
-        fprintf(fp, "<ObProcedureIfStmt %d begin>\n", index);
-        //print_indentation(fp, level + 1);
-        //fprintf(fp, "Expires Count = %d\n",(int32_t)var_val.);
-        print_indentation(fp, level);
-        fprintf(fp, "<ObProcedureIfStmt %d End>\n", index);
+      UNUSED(index);
+      print_indentation(fp, level);
+      fprintf(fp, "<ObProcedureIfStmt %d begin>\n", index);
+      //print_indentation(fp, level + 1);
+      //fprintf(fp, "Expires Count = %d\n",(int32_t)var_val.);
+      print_indentation(fp, level);
+      fprintf(fp, "<ObProcedureIfStmt %d End>\n", index);
     }
 
 
@@ -81,13 +81,12 @@ namespace oceanbase
       return have_else_;
     }
 
-    /*if表达的id*/
     uint64_t ObProcedureIfStmt::get_expr_id() const
     {
       return expr_id_;
     }
 
-    const ObArray<uint64_t> &ObProcedureIfStmt::get_then_stmts() const/*then语句列表*/
+    const ObArray<uint64_t> &ObProcedureIfStmt::get_then_stmts() const
     {
       return then_stmts_;
     }

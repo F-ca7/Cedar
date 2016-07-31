@@ -292,7 +292,7 @@ namespace oceanbase
                         );
         /**
          * @brief gen_physical_procedure_insert
-         * generate a physical plan insert instruction based on a logical plan of insert
+         * wrap the insert physical plan into the stored procedure instruction
          * @param logical_plan point a logical plan that used to generate physical plan
          * @param physical_plan point a physical plan that used to store procedure instructions
          * @param err_stat store error status

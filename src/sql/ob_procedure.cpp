@@ -921,7 +921,7 @@ int ObProcedure::get_next_row(const common::ObRow *&row)
 }
 
 /**
-  create declared variables for the procedure
+ * create declared variables for the procedure
  * @brief ObProcedure::create_variables
  * @return
  */
@@ -953,7 +953,7 @@ int ObProcedure::create_variables()
       }
       else
       {
-//        new_value_obj.set_type(var.variable_type_);
+        //        new_value_obj.set_type(var.variable_type_);
         ret = write_variable(var.variable_name_, new_value_obj);
       }
     }

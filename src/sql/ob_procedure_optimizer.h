@@ -35,7 +35,8 @@ namespace oceanbase
     {
       public:
         const static int MAX_GRAPH_SIZE = 128;   ///< max instruction number in graph
-        enum GraphType {
+        enum GraphType
+        {
           Forward,
           Backward
         };
