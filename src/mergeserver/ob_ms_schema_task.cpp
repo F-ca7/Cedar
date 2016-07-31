@@ -19,6 +19,7 @@
 #include "ob_ms_schema_proxy.h"
 #include "common/ob_schema_manager.h"
 #include "common/ob_malloc.h"
+#include "ob_physical_plan_cache_manager.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::mergeserver;
@@ -63,6 +64,39 @@ void ObMergerSchemaTask::runTimerTask(void)
         TBSYS_LOG(INFO, "fetch new schema succ:local[%ld], new[%ld]",
             local_version_, remote_version_);
       }
+    }
+  }
+  else
+  {
+    TBSYS_LOG(WARN, "check new version lt than local version:local[%ld], new[%ld]",
+        local_version_, remote_version_);
+  }
+}
+
+ObMergerProcedureTask::ObMergerProcedureTask()
+{
+  pp_mgr_ = NULL;
+  local_version_ = 0;
+  remote_version_ = 0;
+}
+
+ObMergerProcedureTask::~ObMergerProcedureTask()
+{
+}
+
+void ObMergerProcedureTask::runTimerTask(void)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(DEBUG, "%s", "###TEST_PRINT_WJH### procedure timer task run.");
+  if (true != check_inner_stat())
+  {
+    TBSYS_LOG(ERROR, "%s", "check procedure timer task inner stat failed");
+  }
+  else if (remote_version_ > local_version_)
+  {
+    if (OB_SUCCESS != (ret = pp_mgr_->refresh_name_node_map()))
+    {
+      TBSYS_LOG(WARN, "%s", "check procedure timer task inner stat failed");
     }
   }
   else

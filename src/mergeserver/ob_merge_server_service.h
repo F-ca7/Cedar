@@ -384,6 +384,7 @@ namespace oceanbase
         ObMergerRootRpcProxy * root_rpc_;
         ObMergerUpsTask fetch_ups_task_;
         ObMergerSchemaTask fetch_schema_task_;
+        ObMergerProcedureTask fetch_procedure_task_;  //add wangdonghui [dev compile] 20160730
         ObMergerLeaseTask check_lease_task_;
         ObMergerMonitorTask monitor_task_;
         ObTabletLocationCache *location_cache_;

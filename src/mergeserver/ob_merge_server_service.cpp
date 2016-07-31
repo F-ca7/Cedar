@@ -904,6 +904,9 @@ namespace oceanbase
       static const int32_t MS_HEARTBEAT_LEASE_SCHEMA_VERSION = 3;
       static const int32_t MS_HEARTBEAT_PRIVILEGE_VERSION = 4;
       static const int32_t MS_HEARTBEAT_CONFIG_VERSION = 4;
+      //add wangdonghui [dev_compile] 20160730 :b
+      static const int32_t MS_HEARTBEAT_PROCEDURE_VERSION = 3;
+      //add :e
 
       FILL_TRACE_LOG("step 1. start process heartbeat");
       ObResultCode rc;
@@ -1060,6 +1063,48 @@ namespace oceanbase
           }
         }
       }
+
+      //add wangdonghui [dev_compile] 20160730 :b
+      if (version > MS_HEARTBEAT_PROCEDURE_VERSION)
+      {
+        int64_t local_version = 0;
+        int64_t procedure_version = 0;
+        if (OB_SUCCESS == rc.result_code_)
+        {
+          rc.result_code_ = serialization::decode_vi64(in_buffer.get_data(),
+                                                       in_buffer.get_capacity(),
+                                                       in_buffer.get_position(),
+                                                       &procedure_version);
+          if (OB_SUCCESS != rc.result_code_)
+          {
+            TBSYS_LOG(ERROR, "parse heartbeat schema version failed:ret[%d]",
+                      rc.result_code_);
+          }
+        }
+
+        // fetch new procedure in a temp timer task
+        if (OB_SUCCESS == rc.result_code_)
+        {
+          local_version = /*merge_server_->get_procedure_version()*/0;
+          if ((local_version > procedure_version) && (procedure_version != 0))
+          {
+            rc.result_code_ = OB_ERROR;
+            TBSYS_LOG(ERROR, "check schema local version gt than new version:"
+                "local[%ld], new[%ld]", local_version, procedure_version);
+          }
+          else if (!fetch_procedure_task_.is_scheduled()
+                   && local_version < procedure_version)
+          {
+            fetch_procedure_task_.init(&(merge_server_->get_procedure_manager()));
+            fetch_procedure_task_.set_version(local_version, procedure_version);
+            srand(static_cast<int32_t>(tbsys::CTimeUtil::getTime()));
+            merge_server_->get_timer().schedule(fetch_procedure_task_,
+                            random() % FETCH_SCHEMA_INTERVAL, false);
+            fetch_procedure_task_.set_scheduled();
+          }
+        }
+      }
+      //add :e
 
       FILL_TRACE_LOG("step 3. process heartbeat finish:ret[%d]", err);
       CLEAR_TRACE_LOG();

@@ -130,6 +130,13 @@ namespace oceanbase
 
         //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
         //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
+        /**
+         * @brief refresh_name_node_map
+         * refresh name_node_map
+         * @return error code
+         */
+        int refresh_name_node_map();
+
       private:
         /**
          * @brief compile_procedure

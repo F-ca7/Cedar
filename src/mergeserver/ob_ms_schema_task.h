@@ -30,6 +30,7 @@ namespace oceanbase
   namespace mergeserver
   {
     class ObMergerSchemaProxy;
+    class ObProcedureManager;
     /// @brief check and fetch new schema timer task
     class ObMergerSchemaTask : public common::ObTimerTask
     {
@@ -74,6 +75,53 @@ namespace oceanbase
     inline bool ObMergerSchemaTask::check_inner_stat(void) const
     {
       return ((NULL != schema_proxy_) && (NULL != schema_));
+    }
+
+    class ObMergerProcedureTask : public common::ObTimerTask
+    {
+    public:
+      ObMergerProcedureTask();
+      ~ObMergerProcedureTask();
+
+    public:
+      /// init set
+      void init(ObProcedureManager* pp_mgr);
+
+      /// set fetch new version
+      void set_version(const int64_t local, const int64_t remote);
+
+      // main routine
+      void runTimerTask(void);
+      inline bool is_scheduled() const { return task_scheduled_; }
+      inline void set_scheduled() { task_scheduled_ = true; }
+      inline void unset_scheduled() { task_scheduled_ = false; }
+
+    private:
+      bool check_inner_stat(void) const;
+
+    public:
+      bool task_scheduled_;
+      volatile int64_t local_version_;
+      volatile int64_t remote_version_;
+      ObProcedureManager* pp_mgr_;
+    };
+
+    inline void ObMergerProcedureTask::init(ObProcedureManager *pp_mgr)
+    {
+      local_version_ = 0;
+      remote_version_ = 0;
+      pp_mgr_ = pp_mgr;
+    }
+
+    inline void ObMergerProcedureTask::set_version(const int64_t local, const int64_t server)
+    {
+      local_version_ = local;
+      remote_version_ = server;
+    }
+
+    inline bool ObMergerProcedureTask::check_inner_stat(void) const
+    {
+      return (NULL != pp_mgr_);
     }
   }
 }
