@@ -337,3 +337,14 @@ bool ObProcedureManager::is_consisitent(const ObString &proc_name, const ObResul
   }
   return ret;
 }
+
+
+int ObProcedureManager::refresh_name_node_map()
+{
+  int ret = OB_SUCCESS;
+  if( OB_SUCCESS != (ret = mergeserver_service_->fetch_source(&name_code_map_)))
+  {
+    TBSYS_LOG(WARN, "fail to fecth procedure source, retry after 1 seconds");
+  }
+  return ret;
+}
