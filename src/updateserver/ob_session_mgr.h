@@ -416,8 +416,8 @@ namespace oceanbase
         common::PriorityPacketQueueThread::QueuePriority priority_;
         int64_t last_proc_time_;
         // add by guojinwei [repeatable read] 20160417:b
-        int64_t trans_start_time_;    // only for repeatable read
-        uint32_t trans_descriptor_;   // only for repeatable read
+        int64_t trans_start_time_;    ///< only for repeatable read
+        uint32_t trans_descriptor_;   ///< only for repeatable read
         // add:e
     };
 

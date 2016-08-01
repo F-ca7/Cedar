@@ -421,6 +421,7 @@ namespace oceanbase
             break;
           }
           // modify by guojinwei [repeatable read] 20160417:b
+          // return pvalue for traversing uncommitted value list, though committed value list is null
           /*
           if (pvalue_->is_empty())
           {

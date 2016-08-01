@@ -1093,7 +1093,7 @@ namespace oceanbase
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
         // add by guojinwei [repeatable read] 20160418:b
-        TBSYS_LOG(INFO, "ISOLATION_LEVEL = %d, guojinwei", get_param.get_trans_id().isolation_level_);
+        TBSYS_LOG(DEBUG, "ISOLATION_LEVEL = %d, guojinwei", get_param.get_trans_id().isolation_level_);
         if (common::REPEATABLE_READ == get_param.get_trans_id().isolation_level_
             && get_param.get_trans_id().is_valid()
             && 0 != get_param.get_trans_id().start_time_us_)
@@ -1205,7 +1205,7 @@ namespace oceanbase
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
         // add by guojinwei [repeatable read] 20160418:b
-        TBSYS_LOG(INFO, "ISOLATION_LEVEL = %d, guojinwei", scan_param.get_trans_id().isolation_level_);
+        TBSYS_LOG(DEBUG, "ISOLATION_LEVEL = %d, guojinwei", scan_param.get_trans_id().isolation_level_);
         if (common::REPEATABLE_READ == scan_param.get_trans_id().isolation_level_
             && scan_param.get_trans_id().is_valid()
             && 0 != scan_param.get_trans_id().start_time_us_)
