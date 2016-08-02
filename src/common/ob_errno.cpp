@@ -349,7 +349,7 @@ static struct ObStrErrorInit
     //error string for stored procedure
     ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
 
-    ADD_ERROR_STR(OB_ERR_TOO_MANY_ROWS, "Result concisted of more than on row");
+    ADD_ERROR_STR(OB_ERR_TOO_MANY_ROWS, "Result consisted of more than one row");
     ADD_ERROR_STR(OB_ERR_SP_BAD_SQLSTAT, "Bad SQLSTATE");
     ADD_ERROR_STR(OB_ERR_SP_CASE_NOT_FOUND, "Case no found for CASE statement");
     ADD_ERROR_STR(OB_ERR_SP_WRONG_NO_OF_ARGS, "Incorrect number of arguments");

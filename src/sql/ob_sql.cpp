@@ -148,6 +148,10 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
   else
   {
     ResultPlan result_plan;
+    //add by qx 20160802:b
+    // initlize result_plan.err_stat_.err_msg_ ,prohibit result_plan.err_stat_.err_msg_ have illegal content caused to show wrong error message
+    result_plan.err_stat_.err_msg_[0]  ='\0';
+    //add :e
     ObMultiPhyPlan multi_phy_plan;
     ObMultiLogicPlan *multi_logic_plan = NULL;
     ObLogicalPlan *logic_plan = NULL;
@@ -350,6 +354,10 @@ int ObSql::generate_physical_plan(ObSqlContext & context, ResultPlan &result_pla
   int ret = OB_SUCCESS;
   ObTransformer trans(context);
   ErrStat err_stat;
+  //add by qx 20160802:b
+  // initlize err_stat.err_msg_ ,prohibit err_stat.err_msg_ have illegal content caused to show wrong error message
+  err_stat.err_msg_[0]='\0';
+  //add :e
   ObMultiLogicPlan *multi_logic_plan = static_cast<ObMultiLogicPlan*>(result_plan.plan_tree_);
   PFILL_ITEM_START(logicalplan_to_physicalplan);
   if (OB_SUCCESS != (ret = trans.generate_physical_plans(*multi_logic_plan, multi_phy_plan, err_stat)))
