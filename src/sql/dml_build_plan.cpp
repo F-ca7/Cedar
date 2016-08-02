@@ -13,6 +13,7 @@
  * 2.resolve user's hint for using secondary index in select
  *
  * modified by yushengjuan: reslove syntax tree to logical plan
+ * modified by zhutao: add a resolve_array_expr function
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -430,7 +431,7 @@ int resolve_expr(
       break;
     }
     //add zt 20151125:b
-  case T_ARRAY:
+    case T_ARRAY:
     {
       ObArrayRawExpr *array_expr = NULL;
       if (CREATE_RAW_EXPR(array_expr, ObArrayRawExpr, result_plan) == NULL)
@@ -438,7 +439,7 @@ int resolve_expr(
       array_expr->set_result_type(ObVarcharType);
       ObString array_name;
       ObObj index_value;
-      if( OB_SUCCESS != (ret = resolve_array_expr(result_plan, node, array_name, index_value)))
+      if ( OB_SUCCESS != (ret = resolve_array_expr(result_plan, node, array_name, index_value)))
       {
         TBSYS_LOG(WARN, "resolve array expr failed");
       }
@@ -3717,7 +3718,7 @@ int resolve_update_stmt(
  * @param result_plan point generated create procedure logical plan
  * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
  * @param node is root node of when_clause statement syntax tree
- * @return
+ * @return error code
  */
 int resolve_when_clause(
     ResultPlan * result_plan,
@@ -3743,6 +3744,15 @@ int resolve_when_clause(
 }
 
 //add zt 20151207:b
+/**
+ * @brief resolve_array_expr
+ * resolve arry expression
+ * @param result_plan reslut plan
+ * @param node root node of syntax tree
+ * @param array_name returned array name
+ * @param idx_value returned array index
+ * @return error code
+ */
 int resolve_array_expr(ResultPlan *result_plan, ParseNode *node, ObString &array_name, ObObj &idx_value)
 {
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;

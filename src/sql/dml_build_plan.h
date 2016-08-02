@@ -11,11 +11,12 @@
  * modified by longfei：
  * 1.generate inner index table name
  * 2.resolve user's hint for using secondary index in select
- *
+ * modified by zhutao: add a resolve_array_expr function
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
  * @date 2016_07_24
  */
 

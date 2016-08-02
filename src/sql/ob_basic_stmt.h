@@ -45,7 +45,7 @@ namespace oceanbase
   {
     /**
      * @brief The ObBasicStmt class
-     * basic statement class has commen data menber and function menber of sub-class
+     * basic statement class of logical plan has commen data menber and function menber of sub-class
      */
     class ObBasicStmt
     {
@@ -174,8 +174,8 @@ namespace oceanbase
       void print_indentation(FILE* fp, int32_t level) const;
 
     private:
-      StmtType  stmt_type_;
-      uint64_t  query_id_;
+      StmtType  stmt_type_;  ///<  statement type
+      uint64_t  query_id_;  ///<  query id
     };
 
     inline void ObBasicStmt::set_stmt_type(StmtType stmt_type)

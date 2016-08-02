@@ -86,14 +86,14 @@ namespace oceanbase
          * @param proc_param  procedure paramer
          * @return error code
          */
-        int add_proc_param(const ObParamDef &proc_param);/*添加一个参数*/
+        int add_proc_param(const ObParamDef &proc_param);
         /**
          * @brief add_declare_var
          * add a procedure declare variable
          * @param var declare variable
          * @return error code
          */
-        int add_declare_var(const ObString &var);/*添加一个变量*/
+        int add_declare_var(const ObString &var);
 
         //add by wdh 20160705 :b
         /**

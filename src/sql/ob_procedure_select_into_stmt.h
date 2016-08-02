@@ -25,8 +25,10 @@
 #include "parse_node.h"
 using namespace oceanbase::common;
 
-namespace oceanbase {
-  namespace sql {
+namespace oceanbase
+{
+  namespace sql
+  {
     /**
      * @brief The SpRawVar struct
      * procedure raw variable
@@ -35,7 +37,7 @@ namespace oceanbase {
     {
       ObString var_name_;  ///< variable name
       ObObj idx_value_;   ///<  variable value index
-//      uint64_t idx_expr_id_;
+      //      uint64_t idx_expr_id_;
       /**
        * @brief SpRawVar constructor
        */
@@ -57,7 +59,7 @@ namespace oceanbase {
           declare_query_id_=common::OB_INVALID_ID;
         }
         /**
-         * @brief destrctor
+         * @brief destructor
          */
         virtual ~ObProcedureSelectIntoStmt()
         {

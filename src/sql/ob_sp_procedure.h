@@ -2154,7 +2154,7 @@ namespace oceanbase
         virtual int execute_inst(SpInst *inst) = 0;
         /**
          * @brief sdata_mgr_hash
-         * static data manager throught use hash
+         * static data manager throught the use of hash
          * @param sdata_id static data id
          * @param counter loop counter
          * @return hash value

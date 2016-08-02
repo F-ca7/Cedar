@@ -422,9 +422,9 @@ DEFINE_DESERIALIZE(ObExprValues)
   {
     TBSYS_LOG(WARN, "fail to deseriazlie proc_exec flag");
   }
-  else if( group_exec_ )
+  else if ( group_exec_ )
   {
-    if( OB_SUCCESS != (ret = deserialize_template(buf, data_len, tmp_pos)))
+    if ( OB_SUCCESS != (ret = deserialize_template(buf, data_len, tmp_pos)))
     {
       TBSYS_LOG(WARN, "fail to deserialize template version");
     }
@@ -455,7 +455,7 @@ DEFINE_DESERIALIZE(ObExprValues)
 DEFINE_GET_SERIALIZE_SIZE(ObExprValues)
 {
   //delete by zt 20151109 :b
-//  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
+  //  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
   //delete by zt 20151109 :e
   bool group_exec = false;
   if( NULL != my_phy_plan_ && my_phy_plan_->is_group_exec() ) group_exec = true;
@@ -479,20 +479,20 @@ int ObExprValues::serialize_template(char *buf, const int64_t buf_len, int64_t &
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  if( OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+  if ( OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
   {
     TBSYS_LOG(WARN, "serialize row_desc fail");
   }
-  else if( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
+  else if ( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
   {
     TBSYS_LOG(WARN, "serialzie row_desc ext fail");
   }
   else
   {
     serialization::encode_i64(buf, buf_len, tmp_pos, values_.count());
-    for(int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
+    for (int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
     {
-      if( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
+      if ( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
       {
         TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
         break;

@@ -185,7 +185,7 @@ namespace oceanbase
 
         uint64_t else_stmt_;	 ///<  else statement id
 
-      };
+    };
 
   }
 }

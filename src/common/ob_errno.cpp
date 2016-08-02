@@ -349,7 +349,7 @@ static struct ObStrErrorInit
     //error string for stored procedure
     ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
 
-    ADD_ERROR_STR(OB_ERR_TOO_MANY_ROWS, "Result concisted of more than on row");
+    ADD_ERROR_STR(OB_ERR_TOO_MANY_ROWS, "Result consisted of more than one row");
     ADD_ERROR_STR(OB_ERR_SP_BAD_SQLSTAT, "Bad SQLSTATE");
     ADD_ERROR_STR(OB_ERR_SP_CASE_NOT_FOUND, "Case no found for CASE statement");
     ADD_ERROR_STR(OB_ERR_SP_WRONG_NO_OF_ARGS, "Incorrect number of arguments");
@@ -367,6 +367,15 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_SP_ALREADY_EXISTS,"Procedure already exists");
     ADD_ERROR_STR(OB_ERR_SP_DROP_FAILED,"Failed to drop procedure");
     ADD_ERROR_STR(OB_ERR_SP_STORE_FAILED,"Failed to create procedure");
+    //add :e
+
+    //add by qx 20160731:b
+    // they not be used
+    ADD_ERROR_STR(OB_ERR_SP_UNINIT_VAR,"Referring to uninitialized variable");
+    ADD_ERROR_STR(OB_ERR_SP_BADSELECT,"Procedure can't return a result set in the given context");
+    ADD_ERROR_STR(OB_ERR_UNKNOWN_PROCEDURE,"Unknown procedure");
+    ADD_ERROR_STR(OB_ERR_SP_WRONG_NAME,"Incorrect routine name");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE,"Incorrect parameters to procedure");
     //add :e
 
 
