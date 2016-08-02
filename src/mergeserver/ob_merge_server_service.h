@@ -290,6 +290,17 @@ namespace oceanbase
 
         //add :e
 
+        //add by wdh 20160730 :b
+        int ms_update_all_procedure(
+                const int64_t receive_time,
+                const int32_t version,
+                const int32_t channel_id,
+                onev_request_e* req,
+                common::ObDataBuffer& in_buffer,
+                common::ObDataBuffer& out_buffer,
+                const int64_t timeout_us);
+
+        //add :e
         int send_sql_response(
           onev_request_e* req,
           common::ObDataBuffer& out_buffer,

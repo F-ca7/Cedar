@@ -415,7 +415,7 @@ int ObRootRpcStub::switch_schema(const common::ObServer& server, const common::O
 }
 
 //add by wangdonghui 20160122 :b
-int ObRootRpcStub::update_cache(const common::ObServer& server, const common::ObString& proc_name, const common::ObString & proc_source_code, const int64_t timeout_us)
+int ObRootRpcStub::update_cache(const common::ObServer& server, const common::ObString& proc_name, const common::ObString & proc_source_code, const int64_t local_version, const int64_t timeout_us)
 {
   int ret = OB_SUCCESS;
   ObDataBuffer msgbuf;
@@ -438,6 +438,10 @@ int ObRootRpcStub::update_cache(const common::ObServer& server, const common::Ob
   else if (OB_SUCCESS != (ret = proc_source_code.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
   {
     TBSYS_LOG(ERROR, "failed to serialize proc source code, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), local_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
   }
   else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_UPDATE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
   {
@@ -465,8 +469,58 @@ int ObRootRpcStub::update_cache(const common::ObServer& server, const common::Ob
 }
 //add :e
 
+//add by wangdonghui 20160730 :b
+int ObRootRpcStub::update_whole_cache(const common::ObServer& server, common::ObNameCodeMap* name_code_map, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(DEBUG, "before rpc ms %s", to_cstring(server));
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = name_code_map->serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize name code map, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), name_code_map->get_local_version())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_UPDATE_ALL_PROCEDURE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to sync all procedure, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send sync all procedure, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
 //add by wangdonghui 20160305 :b
-int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::ObString& proc_name, const int64_t timeout_us)
+int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::ObString& proc_name, const int64_t local_version, const int64_t timeout_us)
 {
   int ret = OB_SUCCESS;
   ObDataBuffer msgbuf;
@@ -485,6 +539,10 @@ int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::Ob
   else if (OB_SUCCESS != (ret = proc_name.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
   {
     TBSYS_LOG(ERROR, "failed to serialize proc name, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), local_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
   }
   else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_DELETE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
   {

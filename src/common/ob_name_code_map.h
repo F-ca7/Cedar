@@ -198,6 +198,50 @@ namespace oceanbase
         void set_state(bool sta){
             is_ready_ = sta;
         }
+        /**
+         * @brief reset
+         * reset name_code_map_
+         */
+        int reset(){
+            local_version = 0;
+            common::hash::ObHashMap<common::ObString, common::ObString >::const_iterator iter = name_code_map_.begin();
+            for(;iter != name_code_map_.end(); iter++)
+            {
+                ObString name = iter->first;
+                TBSYS_LOG(WARN, "reseting name code map iter->first=%s", name.ptr());
+                name_code_map_.erase(name);
+            }
+            common::hash::ObHashMap<ObString, int64_t >::const_iterator iter1 = name_hash_map_.begin();
+            for(; iter1 != name_hash_map_.end(); iter1++)
+            {
+                ObString name = iter1->first;
+                TBSYS_LOG(WARN, "reseting name hash map iter->first=%s", name.ptr());
+                name_hash_map_.erase(name);
+            }
+            return OB_SUCCESS;
+        }
+        /**
+         * @brief get_local_version
+         * @return local_version
+         */
+        int64_t get_local_version(){
+            return local_version;
+        }
+        /**
+         * @brief set_local_version
+         * @param version
+         */
+        void set_local_version(int version){
+            local_version = version;
+        }
+        /**
+         * @brief get_name_code_map
+         * @return
+         */
+        hash::ObHashMap<ObString, ObString> * get_name_code_map()
+        {
+            return &name_code_map_;
+        }
 
     private:
       /**
@@ -210,6 +254,7 @@ namespace oceanbase
       ObProcHashCache name_hash_map_;  ///< name hash map
       common::ObStringBuf arena_;  ///<  buffer allotter
       bool is_ready_;  ///<  ready flag
+      int64_t local_version; ///<  local name code version
     };
   }
 }

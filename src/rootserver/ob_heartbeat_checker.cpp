@@ -172,7 +172,7 @@ void ObHeartbeatChecker::run(tbsys::CThread * thread, void * arg)
                     root_server_->get_obi_role(),
                     root_server_->get_privilege_version(),
                     root_server_->get_config_version(),
-                    /*root_server_->get_procedure_version()*/0))
+                    root_server_->get_name_code_map()->get_local_version()))
               {
                 TBSYS_LOG(WARN, "heartbeat to ms fail, ms:[%s]", to_cstring(tmp_server));
               }

@@ -44,6 +44,7 @@
 #include "sql/ob_sql_scan_param.h"
 #include "ob_daily_merge_checker.h"
 #include "common/ob_schema_service.h"
+#include "common/ob_name_code_map.h"
 
 namespace oceanbase
 {
@@ -67,8 +68,10 @@ namespace oceanbase
         virtual int switch_schema(const common::ObServer& server, const common::ObSchemaManagerV2& schema_manager, const int64_t timeout_us);
 
         //add by wangdonghui 20160122 :b
-        virtual int update_cache(const common::ObServer& server, const common::ObString & proc_name, const common::ObString & proc_source_code, const int64_t timeout_us);
-        virtual int delete_cache(const common::ObServer& server, const common::ObString & proc_name, const int64_t timeout_us);
+        virtual int update_cache(const common::ObServer& server, const common::ObString & proc_name, const common::ObString & proc_source_code, const int64_t local_version, const int64_t timeout_us);
+        virtual int delete_cache(const common::ObServer& server, const common::ObString & proc_name, const int64_t local_version, const int64_t timeout_us);
+        virtual int update_whole_cache(const common::ObServer& server, common::ObNameCodeMap* name_code_map, const int64_t timeout_us);
+
         //add :e
 
         virtual int migrate_tablet(const common::ObServer& src_cs, const common::ObDataSourceDesc& desc, const int64_t timeout_us);

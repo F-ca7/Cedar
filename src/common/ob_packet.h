@@ -172,7 +172,7 @@ namespace oceanbase
 
       //add by wangdonghui 20160304 :b
       OB_FETCH_PROCEDURE = 249,
-      OB_FRTCH_PROCEDURE_RESPONSE = 250,
+      OB_FETCH_PROCEDURE_RESPONSE = 250,
       //add :e
       OB_CS_GET_MIGRATE_DEST_LOC = 260,
       OB_CS_GET_MIGRATE_DEST_LOC_RESPONSE = 261,
@@ -315,6 +315,11 @@ namespace oceanbase
       OB_DELETE_CACHE = 512,
       OB_DELETE_CACHE_RESPONSE = 513,
       //add :e
+      //add by wdh 20160730 :b
+      OB_UPDATE_ALL_PROCEDURE = 514, //slave rs to send all procedure to ms
+      OB_UPDATE_ALL_PROCEDURE_RESPONSE = 515,
+      //add :e
+
 
       // add by guojinwei [log timestamp][multi_cluster] 20150820:b
       /// get log timestamp from ups to rs
@@ -342,6 +347,8 @@ namespace oceanbase
       //longfei [drop index]
       OB_DROP_INDEX = 562,
       OB_DROP_INDEX_RESPONSE = 563,      // trigger event
+
+      // trigger event
       OB_HANDLE_TRIGGER_EVENT = 600,
       OB_HANDLE_TRIGGER_EVENT_RESPONSE = 601,
 

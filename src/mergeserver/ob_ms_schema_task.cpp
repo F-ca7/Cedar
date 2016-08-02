@@ -104,5 +104,6 @@ void ObMergerProcedureTask::runTimerTask(void)
     TBSYS_LOG(WARN, "check new version lt than local version:local[%ld], new[%ld]",
         local_version_, remote_version_);
   }
+  unset_scheduled();
 }
 

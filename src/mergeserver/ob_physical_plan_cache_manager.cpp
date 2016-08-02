@@ -243,7 +243,7 @@ void ObProcedureManager::run(tbsys::CThread *thread, void *arg)
 int ObProcedureManager::create_procedure(const ObString  &name, const ObString &source_code)
 {
   int ret = OB_SUCCESS;
-  delete_procedure(name); //clear old one
+  //delete_procedure(name); //clear old one
   lock_.lock();
   name_code_map_.put_source_code(name, source_code);
 

@@ -908,23 +908,6 @@ int ObRootServer2::renew_procedure_info()
       TBSYS_LOG(INFO, "refresh procedure success.");
     }
   }
-  //remark by wangdonghui 20160308 I think it needn't
-  //  if (OB_SUCCESS == ret)
-  //  {
-  //    ret = OB_ERROR;
-  //    for (int64_t i = 0; (ret != OB_SUCCESS) && (i < retry_times); ++i)
-  //    {
-  //      if (OB_SUCCESS != (ret = notify_update_cache(false)))
-  //      {
-  //        TBSYS_LOG(WARN, "fail to notify_update_cache, retry_time=%ld, ret=%d", i, ret);
-  //        sleep(1);
-  //      }
-  //      else
-  //      {
-  //        TBSYS_LOG(INFO, "notify switch schema success.");
-  //      }
-  //    }
-  //  }
   return ret;
 }
 //add :e
@@ -1202,13 +1185,12 @@ int ObRootServer2::after_restart()
         }
         else
         {
-                break;
+           break;
         }
       }
     }
     else
     {
-      TBSYS_LOG(INFO, "renew procedure info succ!!");
 
       // renew schema version and config version succ
       // start service right now
@@ -1553,8 +1535,6 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
       ObCellInfo* cell_info = NULL;
       while(OB_SUCCESS == ret && OB_SUCCESS == (ret = res_->next_row()))
       {
-        //            ObString &proc_name = *(this->get_name_code_map()->malloc_string());
-        //            ObString &proc_source_code = *(this->get_name_code_map()->malloc_string());
         ObString proc_name, proc_source_code;
         if(OB_SUCCESS == ret)
         {
@@ -1588,8 +1568,6 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
         }
         if(OB_SUCCESS == ret)
         {
-          TBSYS_LOG(INFO, "get proc_source_code cell info succ! %.*s", proc_source_code.length(), proc_source_code.ptr());
-          //                int err = namecodemap.get_name_code_map()->set(proc_name, proc_source_code);
           int err = name_code_map.put_source_code(proc_name, proc_source_code);
           if(-1 == err)
           {
@@ -1600,15 +1578,6 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
           {
             ret = OB_SUCCESS;
             TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
-            //                  if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
-            //                  {
-            //                    TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
-            //                  }
-            //                  else
-            //                  {
-            //                    TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
-            //                        proc_name.ptr());
-            //                  }
           }
         }
       }
@@ -5676,36 +5645,14 @@ int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString p
   }
   if (OB_SUCCESS == ret)
   {
-//      ObString name;
-//      ObString source_code;
-
-      //delete by zhutao 20160517 :b
-//      name_code_map_->arena_.write_string(proc_name, &name);
-//      name_code_map_->arena_.write_string(proc_source_code, &source_code);
-//      int hash_ret=name_code_map_->get_name_code_map()->set(name, source_code);
-      //delete by zhutao 20160517 :e
-
-      //add by zhutao 20160517:b
-      int hash_ret = name_code_map_->put_source_code(proc_name, proc_source_code);
-      //add by zhutao 20160517:e
-      if(hash::HASH_INSERT_SUCC != hash_ret)
+      ret = name_code_map_->put_source_code(proc_name, proc_source_code);
+      if(ret == OB_SUCCESS)
       {
-          if(hash::HASH_EXIST == hash_ret)
-          {
-              TBSYS_LOG(WARN, "proc name code has existed! proc name: [%s]", proc_name.ptr());
-          }
-          else
-          {
-              ret = OB_ERROR;
-              TBSYS_LOG(WARN, "insert into name code map fail! proc name: [%s]",
-                         proc_name.ptr());
-          }
-      }
-      else
-      {
-          TBSYS_LOG(INFO, "proc name code insert hashmap succ!: [%s]", proc_name.ptr());
+          TBSYS_LOG(DEBUG, "proc name code insert hashmap succ!: [%s]", proc_name.ptr());
       }
   }
+  //notify all mergeserver to synchronize procedure
+
   if (OB_SUCCESS == ret)
   {
       if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
@@ -5718,6 +5665,19 @@ int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString p
             proc_name.ptr());
       }
   }
+
+  //add by wdh 20160730 :b
+  // fire an event to tell all clusters
+  if(OB_SUCCESS == ret)
+  {
+    err = ObRootTriggerUtil::create_procedure(root_trigger_);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "trigger event for create procedure failed:err[%d], ret[%d]", err, ret);
+      ret = err;
+    }
+  }
+  //add :e
   return ret;
 }
 //add :e
@@ -5754,7 +5714,6 @@ int ObRootServer2::drop_procedure(const bool if_exists, const ObString & proc_na
   int err = 0;
   if(OB_SUCCESS == ret)
   {
-//    err = name_code_map_->get_name_code_map()->erase(proc_name);
     if(-1 == (err = name_code_map_->del_source_code(proc_name)))
     {
       ret = OB_ERROR;
@@ -5773,6 +5732,18 @@ int ObRootServer2::drop_procedure(const bool if_exists, const ObString & proc_na
           proc_name.ptr());
     }
   }
+  //add by wdh 20160730 :b
+  // fire an event to tell all clusters
+  if(OB_SUCCESS == ret)
+  {
+    err = ObRootTriggerUtil::drop_procedure(root_trigger_);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "trigger event for drop procedure failed:err[%d], ret[%d]", err, ret);
+      ret = err;
+    }
+  }
+  //add :e
   return ret;
 }
 //add :e
@@ -7106,7 +7077,7 @@ int ObRootServer2::force_sync_cahce_all_servers(const common::ObString proc_name
           tmp_server = it->server_;
           tmp_server.set_port(it->port_ms_);
           ret = this->worker_->get_rpc_stub().update_cache(tmp_server,
-              proc_name, proc_source_code, config_.network_timeout);
+              proc_name, proc_source_code, name_code_map_->get_local_version(), config_.network_timeout);
           if (OB_SUCCESS == ret)
           {
             // do nothing
@@ -7123,7 +7094,34 @@ int ObRootServer2::force_sync_cahce_all_servers(const common::ObString proc_name
 }
 
 //add :e
+//add by wdh 20160730 :b
+int ObRootServer2::sync_proc_all_ms(void)
+{
+    int ret = OB_SUCCESS;
+    ObServer tmp_server;
+    ObChunkServerManager::iterator it = this->server_manager_.begin();
+    for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
+    {
+      if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
+      {
+        tmp_server = it->server_;
+        tmp_server.set_port(it->port_ms_);
+        ret = this->worker_->get_rpc_stub().update_whole_cache(tmp_server,
+            name_code_map_, config_.network_timeout);
+        if (OB_SUCCESS == ret)
+        {
+          TBSYS_LOG(DEBUG, "sync all cache to ms succ");
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "sync all cache to ms %s failed", to_cstring(tmp_server));
+        }
+      }
+    }
+    return ret;
+}
 
+//add :e
 
 //add by wangdonghui 20160305 :b
 int ObRootServer2::force_delete_cahce_all_servers(const common::ObString proc_name)
@@ -7141,7 +7139,7 @@ int ObRootServer2::force_delete_cahce_all_servers(const common::ObString proc_na
         tmp_server = it->server_;
         tmp_server.set_port(it->port_ms_);
         ret = this->worker_->get_rpc_stub().delete_cache(tmp_server,
-            proc_name, config_.network_timeout);
+            proc_name, name_code_map_->get_local_version(), config_.network_timeout);
         if (OB_SUCCESS == ret)
         {
           // do nothing
@@ -8949,7 +8947,25 @@ int ObRootServer2::clean_column_checksum(int64_t current_version)
     }
     return ret;
 }
-
+//add by wdh 20160730 :b
+int ObRootServer2::trigger_create_procedure()
+{
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS == ret)
+  {
+    name_code_map_->reset();
+    if (OB_SUCCESS != (ret = get_procedure(*name_code_map_)))
+    {
+      TBSYS_LOG(WARN, "fail to renew procedure cache. ret=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = sync_proc_all_ms()))
+    {
+      TBSYS_LOG(WARN, "fail to sync to all ms. ret=%d", ret);
+    }
+  }
+  return ret;
+}
+//add :e
 int ObRootServer2::get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum)
 {
     int ret = OB_SUCCESS;

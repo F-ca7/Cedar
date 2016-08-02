@@ -2744,7 +2744,7 @@ namespace oceanbase
       else
       {
         TBSYS_LOG(INFO, "namecodemap serialize succ!");
-        send_response(OB_FRTCH_PROCEDURE_RESPONSE, MY_VERSION, out_buff, req, channel_id);
+        send_response(OB_FETCH_PROCEDURE_RESPONSE, MY_VERSION, out_buff, req, channel_id);
       }
       return ret;
     }
@@ -6151,6 +6151,19 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
             TBSYS_LOG(INFO, "[TRIGGER][slave_drop_table] done. ret=%d", ret);
             break;
           }
+        //add by wdh 20160730 :b
+      case CREATE_PROCEDURE_TRIGGER:
+      case DROP_PROCEDURE_TRIGGER:
+          if (role != common::ObiRole::MASTER)
+          {
+              if(OB_SUCCESS != (ret = root_server_.trigger_create_procedure()))
+              {
+                  TBSYS_LOG(WARN, "fail to create procedure for slave obi master, ret=%d", ret);
+              }
+          }
+          TBSYS_LOG(INFO, "[TRIGGER][slave_create_procedure] done.");
+          break;
+        //add :e
         default:
           {
             TBSYS_LOG(WARN, "get unknown trigger event msg:type[%ld]", msg.type);

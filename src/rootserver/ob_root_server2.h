@@ -266,6 +266,10 @@ namespace oceanbase
         int force_create_table(const uint64_t table_id);
         int force_drop_table(const uint64_t table_id);
         int check_schema();
+
+        //add by wdh 20160730 :b
+        int trigger_create_procedure();
+        //add :e
         /*
          * 从本地读取新schema, 判断兼容性
          */
@@ -766,6 +770,8 @@ namespace oceanbase
         int force_sync_schema_all_servers(const common::ObSchemaManagerV2 &schema);
 
         //add by wangdonghui 20160123 :b
+
+        int sync_proc_all_ms(void);
         /**
          * @brief force_sync_cahce_all_servers
          * sync cache to ms

@@ -27,6 +27,7 @@ using namespace oceanbase::common;
 
 ObNameCodeMap::ObNameCodeMap()
 {
+    local_version=0;
 }
 ObNameCodeMap::~ObNameCodeMap()
 {
@@ -45,6 +46,7 @@ int ObNameCodeMap::init()
   else
   {
       is_ready_ = false;
+      local_version=0;
       TBSYS_LOG(INFO, "create name code map succ");
   }
   return ret;
@@ -81,13 +83,24 @@ int64_t ObNameCodeMap::size() const
 
 int ObNameCodeMap::put_source_code(const ObString &proc_name, const ObString &sour_code)
 {
+  int ret = OB_SUCCESS;
+
   ObString name, code;
 
   arena_.write_string(proc_name, &name);
   arena_.write_string(sour_code, &code);
   int64_t create_ts = tbsys::CTimeUtil::getTime();
-  name_hash_map_.set(name, create_ts, 0, 0, 1);
-  return name_code_map_.set(name, code, 0, 0, 1);
+  if (hash::HASH_INSERT_SUCC != (ret = name_hash_map_.set(name, create_ts, 0, 0, 1)))
+  {
+      TBSYS_LOG(DEBUG, "QAQ: name_hash_map_.set ret=%d", ret);
+  }
+  if (hash::HASH_INSERT_SUCC != (ret = name_code_map_.set(name, code, 0, 0, 1)))
+  {
+      TBSYS_LOG(DEBUG, "QAQ: name_code_map_.set ret=%d", ret);
+  }
+  local_version = local_version + (int64_t)1;
+  TBSYS_LOG(DEBUG, "QAQ: current version is %ld", local_version);
+  return OB_SUCCESS;
 }
 
 int64_t ObNameCodeMap::get_hkey(const ObString &proc_name) const
@@ -102,8 +115,18 @@ int64_t ObNameCodeMap::get_hkey(const ObString &proc_name) const
 
 int ObNameCodeMap::del_source_code(const ObString &proc_name)
 {
-  name_hash_map_.erase(proc_name);
-  return name_code_map_.erase(proc_name);
+  int ret = OB_SUCCESS;
+  if(hash::HASH_INSERT_SUCC != (ret = name_hash_map_.erase(proc_name)))
+  {
+      TBSYS_LOG(DEBUG, "QAQ: name_hash_map_.erase ret=%d", ret);
+  }
+  if(hash::HASH_INSERT_SUCC != (ret = name_code_map_.erase(proc_name)))
+  {
+      TBSYS_LOG(DEBUG, "QAQ: name_code_map_.erase ret=%d", ret);
+  }
+  local_version = local_version + (int64_t)1;
+  TBSYS_LOG(DEBUG, "QAQ: current version is %ld", local_version);
+  return OB_SUCCESS;
 }
 
 const ObString * ObNameCodeMap::get_source_code(const ObString &proc_name)
@@ -140,6 +163,14 @@ int ObNameCodeMap::serialize(char* buf, const int64_t buf_len, int64_t& pos) con
                   ret, buf_len, pos);
       }
     }
+    if(ret == OB_SUCCESS)
+    {
+        if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, local_version)))
+        {
+          TBSYS_LOG(WARN, "failed to serialize local version, err=%d buf_len=%ld pos=%ld",
+                    ret, buf_len, pos);
+        }
+    }
   }
   return ret;
 }
@@ -157,6 +188,7 @@ int ObNameCodeMap::deserialize(const char* buf, const int64_t buf_len, int64_t& 
   else
   {
     TBSYS_LOG(INFO, "the name code map size is %ld", size);
+    ret = reset();
     for (int64_t i = 0; i < size; i ++)
     {
       //ObString &proc_name = *(this->malloc_string());
@@ -176,10 +208,15 @@ int ObNameCodeMap::deserialize(const char* buf, const int64_t buf_len, int64_t& 
         TBSYS_LOG(INFO, "deserialize proc name %.*s", proc_name.length(), proc_name.ptr());
         TBSYS_LOG(INFO, "deserialize proc source code %.*s", proc_source_code.length(), proc_source_code.ptr());
         put_source_code(proc_name, proc_source_code);
-        //              ob_write_string(arena_, proc_source_code, proc_source_code);
-        //              ob_write_string(arena_, proc_name, proc_name);
-        //              name_code_map_.set(proc_name, proc_source_code);
       }
+    }
+    if(ret == OB_SUCCESS)
+    {
+        if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, buf_len, pos, &local_version)))
+        {
+            TBSYS_LOG(WARN, "failed to decode version, err=%d buf_len=%ld pos=%ld",
+                      ret, buf_len, pos);
+        }
     }
   }
   return ret;

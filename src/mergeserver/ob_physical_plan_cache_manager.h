@@ -135,7 +135,30 @@ namespace oceanbase
          * refresh name_node_map
          * @return error code
          */
+        /**
+         * @brief refresh_name_node_map
+         * @return
+         */
         int refresh_name_node_map();
+        /**
+         * @brief reset
+         * @return
+         */
+        int reset(){return name_code_map_.reset();}
+        /**
+         * @brief get_version
+         * @return local version
+         */
+        int64_t get_version()
+        {
+            return name_code_map_.get_local_version();
+        }
+        mutable tbsys::CThreadMutex lock_;  ///<  thread lock
+
+        ObNameCodeMap * get_name_code_map()
+        {
+            return &name_code_map_;
+        }
 
       private:
         /**
@@ -195,7 +218,6 @@ namespace oceanbase
          */
         const ObProcedureManager & operator = (const ObProcedureManager &);
 
-        mutable tbsys::CThreadMutex lock_;  ///<  thread lock
         ModuleArena arena_;  ///< result memery allocator
         ObStringBuf proc_name_buf_;  ///<  procedure name buffer
         mergeserver::ObMergeServerService * mergeserver_service_;  ///<  merge server service object point
