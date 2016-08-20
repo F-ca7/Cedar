@@ -157,7 +157,7 @@ namespace oceanbase
         int64_t get_hkey(const ObString &proc_name) const;
         /**
          * @brief is_created
-         * check whether procedure already create
+         * check whether name_code_map_ already create
          * @return bool value
          */
         bool is_created();
@@ -203,22 +203,22 @@ namespace oceanbase
          * reset name_code_map_
          */
         int reset(){
-            local_version = 0;
-            common::hash::ObHashMap<common::ObString, common::ObString >::const_iterator iter = name_code_map_.begin();
-            for(;iter != name_code_map_.end(); iter++)
-            {
-                ObString name = iter->first;
-                TBSYS_LOG(WARN, "reseting name code map iter->first=%s", name.ptr());
-                name_code_map_.erase(name);
-            }
-            common::hash::ObHashMap<ObString, int64_t >::const_iterator iter1 = name_hash_map_.begin();
-            for(; iter1 != name_hash_map_.end(); iter1++)
-            {
-                ObString name = iter1->first;
-                TBSYS_LOG(WARN, "reseting name hash map iter->first=%s", name.ptr());
-                name_hash_map_.erase(name);
-            }
-            return OB_SUCCESS;
+          local_version = 0;
+          common::hash::ObHashMap<common::ObString, common::ObString >::const_iterator iter = name_code_map_.begin();
+          for(;iter != name_code_map_.end(); iter++)
+          {
+              ObString name = iter->first;
+              TBSYS_LOG(WARN, "reseting name code map iter->first=%s", name.ptr());
+              name_code_map_.erase(name);
+          }
+          common::hash::ObHashMap<ObString, int64_t >::const_iterator iter1 = name_hash_map_.begin();
+          for(; iter1 != name_hash_map_.end(); iter1++)
+          {
+              ObString name = iter1->first;
+              TBSYS_LOG(WARN, "reseting name hash map iter->first=%s", name.ptr());
+              name_hash_map_.erase(name);
+          }
+          return OB_SUCCESS;
         }
         /**
          * @brief get_local_version

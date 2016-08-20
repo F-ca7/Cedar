@@ -125,7 +125,7 @@ namespace oceanbase
         ObMergeServer *get_merge_server() const { return merge_server_; }
         /**
          * @brief fetch_source
-         * return procedure name code map
+         * fecth procedure name code map when ms start or restart
          * @param name_code_map
          * @return error code
          */
