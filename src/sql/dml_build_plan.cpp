@@ -3068,7 +3068,7 @@ int resolve_hints(
       //add end
 
         /*add maoxx [bloomfilter_join] 20160406*/
-        case T_JOIN_OP_TYPE_LIST:
+      case T_JOIN_OP_TYPE_LIST:
         ret = generate_join_hint(result_plan, stmt, hint_node);
         break;
         /*add e*/

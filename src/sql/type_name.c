@@ -9,10 +9,12 @@
  * @brief get type name
  *
  * modified by longfei：add some case
+ * modified by maoxiaoxiao: add some case
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_22
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 
 #include "ob_item_type.h"
@@ -227,6 +229,13 @@ const char* get_type_name(int type)
 	case T_INDEX_STORING_LIST : return "T_INDEX_STORING_LIST";
 	case T_INDEX_OPTION_LIST : return "T_INDEX_OPTION_LIST";
 	// add e
+
+  /*add maoxx [bloomfilter_join] 20160406*/
+  case T_JOIN_OP_TYPE_LIST : return "T_JOIN_OP_TYPE_LIST";
+  case T_BLOOMFILTER_JOIN : return "T_BLOOMFILTER_JOIN";
+  case T_MERGE_JOIN : return "T_MERGE_JOIN";
+  /*add e*/
+
 	default:return "Unknown";
 	}
 }

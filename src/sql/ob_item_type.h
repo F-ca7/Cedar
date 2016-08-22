@@ -10,11 +10,13 @@
  *
  * modified by longfei：add items for secondary index
  * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
+ * modified by maoxiaoxiao: add items for bloomfilter join or merge join
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
- * @date 2016_01_22
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
@@ -317,6 +319,11 @@ typedef enum ObItemType
   T_SELECT_INTO,/*select into sentence*/
   //add:e
 
+  /*add maoxx [bloomfilter_join] 20160406*/
+  T_JOIN_OP_TYPE_LIST,
+  T_BLOOMFILTER_JOIN,
+  T_MERGE_JOIN,
+  /*add e*/
 
 } ObItemType;
 

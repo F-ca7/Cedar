@@ -10,6 +10,7 @@
  *
  * modified by longfei：generate physical plan for create, drop, index in select
  * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
+ *                         modify some functions to generate a physicl plan for bloomfilter join
  * modified by fanqiushi: add some functions to create an phsical plan for semijoin
  * modified by wangjiahao: add method to generate physical plan for update_more
  * modified by zhujun: add method to generate physical plan for procedure
@@ -20,7 +21,7 @@
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun<51141500091@ecnu.edu.cn>
- * @date 2016_01_22
+ * @date 2016_07_27
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -208,6 +209,9 @@
 #include "ob_procedure_select_into.h"
 //code_coverage_zhujun
 //add:e
+/*add maoxx [bloomfilter_join] 20160406*/
+#include "ob_bloomfilter_join.h"
+/*add e*/
 //add wangjiahao [table lock] 20160616 :b
 #include "ob_lock_table_stmt.h"
 #include "ob_ups_lock_table.h"
@@ -1838,7 +1842,9 @@ int ObTransformer::gen_physical_select(ObLogicalPlan *logical_plan, ObPhysicalPl
 
       // 2. Join all tables
       if (ret == OB_SUCCESS && phy_table_list.size() > 1)
-        ret = gen_phy_joins(logical_plan, physical_plan, err_stat, select_stmt, phy_table_list, bitset_list, remainder_cnd_list, none_columnlize_alias);
+        ret = gen_phy_joins(logical_plan, physical_plan, err_stat, select_stmt,
+                            ObJoin::INNER_JOIN, //add maoxx [bloomfilter_join] 20160417
+                            phy_table_list, bitset_list, remainder_cnd_list, none_columnlize_alias);
       if (ret == OB_SUCCESS)
         phy_table_list.pop_front(result_op);
 
@@ -2801,6 +2807,9 @@ int ObTransformer::gen_phy_joins(
     ObPhysicalPlan *physical_plan,
     ErrStat& err_stat,
     ObSelectStmt *select_stmt,
+    /*add maoxx [bloomfilter_join] 20160417*/
+    ObJoin::JoinType join_type,
+    /*add e*/
     oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
     oceanbase::common::ObList<ObBitSet<> >& bitset_list,
     oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
@@ -2810,10 +2819,32 @@ int ObTransformer::gen_phy_joins(
   {
     ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
     ObMergeJoin *join_op = NULL;
-    CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
+    /*add maoxx [bloomfilter_join] 20160415*/
+    ObBloomFilterJoin *bloomfilter_join_op = NULL;
+    bool use_bloomfilter_join_op = false;
+    if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
+    {
+      ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
+      if(tmp.join_op_type_ == T_BLOOMFILTER_JOIN && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN))
+        use_bloomfilter_join_op = true;
+    }
+    if(use_bloomfilter_join_op)
+    {
+      CREATE_PHY_OPERRATOR(bloomfilter_join_op, ObBloomFilterJoin, physical_plan, err_stat);
+      bloomfilter_join_op->set_join_type(join_type);
+    }
+    else
+    {
+      CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
+      join_op->set_join_type(join_type);
+    }
+    /*add e*/
+    /*modify maoxx [bloomfilter_join] 20160415*/
+    //CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
     if (ret != OB_SUCCESS)
       break;
-    join_op->set_join_type(ObJoin::INNER_JOIN);
+    //join_op->set_join_type(ObJoin::INNER_JOIN);
+    /*modify e*/
 
     ObBitSet<> join_table_bitset;
     ObBitSet<> left_table_bitset;
@@ -2914,11 +2945,29 @@ int ObTransformer::gen_phy_joins(
         ObSqlExpression join_op_cnd;
         if ((ret = (*cnd_it)->fill_sql_expression(join_op_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS)
           break;
-        if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add condition of join plan faild");
+//          break;
+//        }
+        if(use_bloomfilter_join_op)
         {
-          TRANS_LOG("Add condition of join plan faild");
-          break;
+          if ((ret = bloomfilter_join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
         }
+        else
+        {
+          if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        /*modify e*/
         join_table_bitset.add_members(left_table_bitset);
         join_table_bitset.add_members(right_table_bitset);
 
@@ -2956,11 +3005,31 @@ int ObTransformer::gen_phy_joins(
           break;
         }
         ObSqlExpression join_op_cnd;
-        if ((ret = ((*cnd_it)->fill_sql_expression(join_op_cnd, this, logical_plan, physical_plan))) != OB_SUCCESS || (ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Add condition of join plan faild");
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = ((*cnd_it)->fill_sql_expression(join_op_cnd, this, logical_plan, physical_plan))) != OB_SUCCESS || (ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add condition of join plan faild");
+//          break;
+//        }
+        if ((ret = (*cnd_it)->fill_sql_expression(join_op_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS)
           break;
+        if(use_bloomfilter_join_op)
+        {
+          if ((ret = bloomfilter_join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
         }
+        else
+        {
+          if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        /*modify e*/
         del_it = cnd_it;
         cnd_it++;
         if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
@@ -2972,11 +3041,31 @@ int ObTransformer::gen_phy_joins(
       else if ((*cnd_it)->get_tables_set().is_subset(join_table_bitset) && !((*cnd_it)->is_contain_alias() && (*cnd_it)->get_tables_set().overlap(left_table_bitset) && (*cnd_it)->get_tables_set().overlap(right_table_bitset)))
       {
         ObSqlExpression join_other_cnd;
-        if ((ret = ((*cnd_it)->fill_sql_expression(join_other_cnd, this, logical_plan, physical_plan))) != OB_SUCCESS || (ret = join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Add condition of join plan faild");
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = ((*cnd_it)->fill_sql_expression(join_other_cnd, this, logical_plan, physical_plan))) != OB_SUCCESS || (ret = join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add condition of join plan faild");
+//          break;
+//        }
+        if ((ret = (*cnd_it)->fill_sql_expression(join_other_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS)
           break;
+        if(use_bloomfilter_join_op)
+        {
+          if ((ret = bloomfilter_join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
         }
+        else
+        {
+          if ((ret = join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        /*modify e*/
         del_it = cnd_it;
         cnd_it++;
         if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
@@ -2998,42 +3087,118 @@ int ObTransformer::gen_phy_joins(
         // find a join condition, a merge join will be used here
         OB_ASSERT(left_sort != NULL);
         OB_ASSERT(right_sort != NULL);
-        if ((ret = join_op->set_child(0, *left_sort)) != OB_SUCCESS)
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = join_op->set_child(0, *left_sort)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add child of join plan faild");
+//          break;
+//        }
+//        if ((ret = join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add child of join plan faild");
+//          break;
+//        }
+        if(use_bloomfilter_join_op)
         {
-          TRANS_LOG("Add child of join plan faild");
-          break;
+          if ((ret = bloomfilter_join_op->set_child(0, *left_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = bloomfilter_join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
         }
-        if ((ret = join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+        else
         {
-          TRANS_LOG("Add child of join plan faild");
-          break;
+          if ((ret = join_op->set_child(0, *left_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
         }
+        /*modify e*/
       }
       else
       {
         // Can not find a join condition, a product join will be used here
         // FIX me, should be ObJoin, it will be fixed when Join is supported
         ObPhyOperator *op = NULL;
-        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Generate join plan faild");
+//          break;
+//        }
+//        if ((ret = join_op->set_child(0, *op)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add child of join plan faild");
+//          break;
+//        }
+//        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Generate join plan faild");
+//          break;
+//        }
+//        if ((ret = join_op->set_child(1, *op)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add child of join plan faild");
+//          break;
+//        }
+        if(use_bloomfilter_join_op)
         {
-          TRANS_LOG("Generate join plan faild");
-          break;
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = bloomfilter_join_op->set_child(0, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = bloomfilter_join_op->set_child(1, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
         }
-        if ((ret = join_op->set_child(0, *op)) != OB_SUCCESS)
+        else
         {
-          TRANS_LOG("Add child of join plan faild");
-          break;
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = join_op->set_child(0, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = join_op->set_child(1, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
         }
-        if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Generate join plan faild");
-          break;
-        }
-        if ((ret = join_op->set_child(1, *op)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Add child of join plan faild");
-          break;
-        }
+        /*modify e*/
 
         bitset_list.pop_front(left_table_bitset);
         join_table_bitset.add_members(left_table_bitset);
@@ -3052,11 +3217,31 @@ int ObTransformer::gen_phy_joins(
       else if ((*cnd_it)->get_tables_set().is_subset(join_table_bitset))
       {
         ObSqlExpression other_cnd;
-        if ((ret = (*cnd_it)->fill_sql_expression(other_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS || (ret = join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
-        {
-          TRANS_LOG("Add condition of join plan faild");
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        if ((ret = (*cnd_it)->fill_sql_expression(other_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS || (ret = join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+//        {
+//          TRANS_LOG("Add condition of join plan faild");
+//          break;
+//        }
+        if ((ret = (*cnd_it)->fill_sql_expression(other_cnd, this, logical_plan, physical_plan)) != OB_SUCCESS)
           break;
+        if(use_bloomfilter_join_op)
+        {
+          if ((ret = bloomfilter_join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
         }
+        else
+        {
+          if ((ret = join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        /*modify e*/
         del_it = cnd_it;
         cnd_it++;
         if ((ret = remainder_cnd_list.erase(del_it)) != OB_SUCCESS)
@@ -3093,11 +3278,29 @@ int ObTransformer::gen_phy_joins(
           CREATE_PHY_OPERRATOR(project_op, ObAddProject, physical_plan, err_stat);
           if (ret != OB_SUCCESS)
             break;
-          if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
+          /*modify maoxx [bloomfilter_join] 20160417*/
+//          if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
+//          {
+//            TRANS_LOG("Generate project operator on join plan faild");
+//            break;
+//          }
+          if(use_bloomfilter_join_op)
           {
-            TRANS_LOG("Generate project operator on join plan faild");
-            break;
+            if ((ret = project_op->set_child(0, *bloomfilter_join_op)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate project operator on join plan faild");
+              break;
+            }
           }
+          else
+          {
+            if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate project operator on join plan faild");
+              break;
+            }
+          }
+          /*modify e*/
         }
         ObSqlExpression alias_expr;
         if ((ret = (*alias_it)->fill_sql_expression(alias_expr, this, logical_plan, physical_plan)) != OB_SUCCESS || (ret = project_op->add_output_column(alias_expr)) != OB_SUCCESS)
@@ -3123,7 +3326,15 @@ int ObTransformer::gen_phy_joins(
     {
       ObPhyOperator *result_op = NULL;
       if (project_op == NULL)
-        result_op = join_op;
+        /*modify maoxx [bloomfilter_join] 20160417*/
+//        result_op = join_op;
+      {
+        if(use_bloomfilter_join_op)
+          result_op = bloomfilter_join_op;
+        else
+          result_op = join_op;
+      }
+      /*modify e*/
       else
         result_op = project_op;
       if ((ret = phy_table_list.push_back(result_op)) != OB_SUCCESS || (ret = bitset_list.push_back(join_table_bitset)) != OB_SUCCESS)
@@ -3134,6 +3345,9 @@ int ObTransformer::gen_phy_joins(
       join_table_bitset.clear();
     }
   }
+  /*add maoxx [bloomfilter_join] 20160417*/
+  select_stmt->get_query_hint().join_op_type_array_.remove(0);
+  /*add e*/
 
   return ret;
 }
@@ -3259,6 +3473,32 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
         // Now we don't optimize outer join
         // outer_join_cnds is empty, we will do something when optimizing.
 
+        /*add maoxx [bloomfilter_join] 20160417*/
+        ObJoin::JoinType join_type = ObJoin::INNER_JOIN;
+        if(OB_SUCCESS == ret)
+        {
+          switch (joined_table->join_types_.at(j - 1))
+          {
+          case JoinedTable::T_FULL:
+            join_type = ObJoin::FULL_OUTER_JOIN;
+            break;
+          case JoinedTable::T_LEFT:
+            join_type = ObJoin::LEFT_OUTER_JOIN;
+            break;
+          case JoinedTable::T_RIGHT:
+            join_type = ObJoin::RIGHT_OUTER_JOIN;
+            break;
+          case JoinedTable::T_INNER:
+            join_type = ObJoin::INNER_JOIN;
+            break;
+          default:
+            /* won't be here */
+            join_type = ObJoin::INNER_JOIN;
+            break;
+          }
+        }
+        /*add e*/
+
         //add fanqiushi [semi_join] [0.1] 20150826:b
         bool is_do_semi_join = 0;
         //add fanqiushi [semi_join] [0.1] 20150829:b
@@ -3304,6 +3544,9 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
                             physical_plan,
                             err_stat,
                             select_stmt,
+                            /*add maoxx [bloomfilter_join] 20160417*/
+                            join_type,
+                            /*add e*/
                             outer_join_tabs,
                             outer_join_bitsets,
                             outer_join_cnds,

@@ -10,11 +10,13 @@
  *
  * modified by longfei：add struct ObQueryHint for user use hint in select
  * modified by yu shengjuan : storing such as table_id column_id table_name and other information from sql
+ * modified by maoxiaoxiao: add struct ObQueryHint for user to use hint for bloomfilter join or merge join
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author   yu shengjuan <51141500090@ecnu.cn>
- * @date 2016_01_22
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 #ifndef OCEANBASE_SQL_STMT_H_
 #define OCEANBASE_SQL_STMT_H_
@@ -80,6 +82,19 @@ namespace oceanbase
       char right_col_buf[OB_MAX_TABLE_NAME_LENGTH];
      };
      //add e
+
+     /*add maoxx [bloomfilter_join] 20160406*/
+     struct ObJoinOPTypeArray
+     {
+         ObItemType join_op_type_;
+         int32_t index_;
+         ObJoinOPTypeArray()
+         {
+           join_op_type_ = T_INVALID;
+           index_ = 0;
+         }
+     };
+     /*add e*/
   }
 
   namespace common
@@ -105,6 +120,19 @@ namespace oceanbase
       typedef const value_type* const_iterator;
       typedef int32_t difference_type;
     };
+
+    /*add maoxx [bloomfilter_join] 20160406*/
+    template <>
+      struct ob_vector_traits<oceanbase::sql::ObJoinOPTypeArray>
+      {
+        typedef oceanbase::sql::ObJoinOPTypeArray* pointee_type;
+        typedef oceanbase::sql::ObJoinOPTypeArray value_type;
+        typedef const oceanbase::sql::ObJoinOPTypeArray const_value_type;
+        typedef value_type* iterator;
+        typedef const value_type* const_iterator;
+        typedef int32_t difference_type;
+      };
+    /*add e*/
   }
 
   namespace sql
@@ -128,6 +156,9 @@ namespace oceanbase
       common::ObConsistencyLevel read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_; // add by longfei [Index Hint]
       common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
+      /*add maoxx [bloomfilter_join] 20160406*/
+      common::ObVector<ObJoinOPTypeArray> join_op_type_array_;
+      /*add e*/
     };
     
     struct TableItem

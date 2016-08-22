@@ -338,6 +338,11 @@ FORCE             { return FORCE;  }
 INDEX		  { return INDEX;  }
 STORING		  { return STORING;  }
 
+ /* add maoxx [bloomfilter_join] 20160406 */
+BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
+MERGE_JOIN  { return  MERGE_JOIN; }
+ /* add e */
+
 NULL   {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0); */
   malloc_new_node(yylval->node, ((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0);
@@ -706,10 +711,25 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
   return INDEX;
   /* add :e */
 }
+<hint>JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return JOIN;
+    /* add e */
+}
 <hint>SEMI_JOIN  {
     //  add by yusj 20150819  :b
     return SEMI_JOIN;
     //  add  :e
+}
+<hint>BLOOMFILTER_JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return BLOOMFILTER_JOIN;
+    /* add e */
+}
+<hint>MERGE_JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return MERGE_JOIN;
+    /* add e */
 }
 <hint>WEAK  {
     return WEAK;

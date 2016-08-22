@@ -10,11 +10,13 @@
  *
  * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
+ * modified by maoxiaoxiao: modify the if condition because of the added enum type "QUERY_ID"
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
- * @date 2016_01_22
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 
 /*
@@ -274,7 +276,8 @@ namespace oceanbase
        did_int_div_as_double_(false),
        str_buf_(ObModIds::OB_SQL_EXPR, DEF_STRING_BUF_SIZE),
        owner_op_(NULL),
-       calc_buf_(ObModIds::OB_SQL_EXPR_CALC, DEF_STRING_BUF_SIZE)
+       calc_buf_(ObModIds::OB_SQL_EXPR_CALC, DEF_STRING_BUF_SIZE),
+       bloom_filter_(NULL) //add weixing [implementation of sub_query]20160111
     {
     }
 
@@ -318,6 +321,9 @@ namespace oceanbase
             }
           }
         }
+        //add weixing [implementation of sub_query]20160111
+        this->bloom_filter_ = other.bloom_filter_;
+        //add e
       }
       return *this;
     }
@@ -494,8 +500,20 @@ namespace oceanbase
           {}
           break;
         case T_REF_QUERY:
-          TBSYS_LOG(ERROR, "TODO... not implement yet");
-          ret = OB_NOT_SUPPORTED;
+        // mod weixing [implementation of sub_query]20160119:b
+//          TBSYS_LOG(ERROR, "TODO... not implement yet");
+//          ret = OB_NOT_SUPPORTED;
+        item_type.set_int(QUERY_ID);
+        obj.set_int(item.value_.int_);
+        if(OB_SUCCESS != (ret = expr_.push_back(item_type)))
+        {
+          TBSYS_LOG(ERROR,"expr_ push back item_type failed");
+        }
+        if(OB_SUCCESS != (ret = expr_.push_back(obj)))
+        {
+          TBSYS_LOG(ERROR,"expr_ push back obj failed");
+        }
+        //mod 20160119:e
           break;
         case T_OP_EXISTS:
         case T_OP_POS:
@@ -747,7 +765,10 @@ namespace oceanbase
       return ret;
     }
 
-    int ObPostfixExpression::calc(const common::ObRow &row, const ObObj *&composite_val)
+    //mod weixing [implementation of sub_query]20160111
+    //int ObPostfixExpression::calc(const common::ObRow &row, const ObObj *&composite_val)
+    int ObPostfixExpression::calc(const common::ObRow &row, const ObObj *&composite_val, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, bool second_check)
+    //mod e
     {
       int ret = OB_SUCCESS;
       int64_t type = 0;
@@ -757,6 +778,9 @@ namespace oceanbase
       int idx = 0;
       ObExprObj result;
       int idx_i = 0;
+      //add weixing [implementation of sub_query]20160116
+      int sub_query_idx = 0;
+      //add e
       ObPostExprExtraParams *extra_params = GET_TSI_MULT(ObPostExprExtraParams, TSI_SQL_EXPR_EXTRA_PARAMS_1);
       // get the stack for calculation
       ObPostfixExpressionCalcStack *stack = GET_TSI_MULT(ObPostfixExpressionCalcStack, TSI_SQL_EXPR_STACK_1);
@@ -782,7 +806,10 @@ namespace oceanbase
           ret = OB_ERR_UNEXPECTED;
           break;
         }
-        else if(type <= BEGIN_TYPE || type >= END_TYPE)
+        /*modify maoxx [bloomfilter_join] 20160714*/
+        //else if(type <= BEGIN_TYPE || type >= END_TYPE)
+        else if(type <= BEGIN_TYPE || type > QUERY_ID)
+        /*modify e*/
         {
           TBSYS_LOG(WARN, "unsupported operand type [type:%ld]", value);
           ret = OB_ERR_UNEXPECTED;
@@ -914,19 +941,54 @@ namespace oceanbase
                 }
                 else
                 {
-                  if (OB_LIKELY(OB_SUCCESS == (ret = (this->call_func[value - T_MIN_OP - 1])(stack_, idx_i, result, *extra_params))))
+                  //add weixing [implementation of sub_query]20160111
+                  bool special_process = false;
+                  if ((T_OP_IN == value ||T_OP_NOT_IN == value) && (NULL != bloom_filter_ || NULL != hash_map))
                   {
-                    stack_[idx_i++] = result;
+                    int64_t right_elem_count = 0;
+                    if (OB_SUCCESS != (ret = stack_[idx_i-1].get_int(right_elem_count)))
+                    {
+                      TBSYS_LOG(WARN, "fail to get_int from stack. top=%d, ret=%d", idx_i, ret);
+                    }
+                    else if(-1 == right_elem_count)
+                    {
+                      special_process = true;
+                      if (OB_LIKELY(OB_SUCCESS == (ret = this->in_sub_query_func(stack_, idx_i, result, *extra_params, bloom_filter_, hash_map, sub_query_idx, second_check))))
+                      {
+                        if(T_OP_NOT_IN == value)
+                        {
+                          result.lnot(result);
+                        }
+                        stack_[idx_i++] = result;
+                      }
+                      else if (OB_NO_RESULT == ret)
+                      {
+                        ret = OB_SUCCESS;
+                      }
+                      else
+                      {
+                        TBSYS_LOG(WARN, "call calculation function error [value:%ld, idx_i:%d, err:%d]",
+                                  value, idx_i, ret);
+                      }
+                    }
                   }
-                  else if (OB_NO_RESULT == ret)
+                  if(!special_process)
                   {
-                    // nop
-                    ret = OB_SUCCESS;
-                  }
-                  else
-                  {
-                    TBSYS_LOG(WARN, "call calculation function error [value:%ld, idx_i:%d, err:%d]",
-                              value, idx_i, ret);
+                    //add e
+                    if (OB_LIKELY(OB_SUCCESS == (ret = (this->call_func[value - T_MIN_OP - 1])(stack_, idx_i, result, *extra_params))))
+                    {
+                      stack_[idx_i++] = result;
+                    }
+                    else if (OB_NO_RESULT == ret)
+                    {
+                      // nop
+                      ret = OB_SUCCESS;
+                    }
+                    else
+                    {
+                      TBSYS_LOG(WARN, "call calculation function error [value:%ld, idx_i:%d, err:%d]",
+                                value, idx_i, ret);
+                    }
                   }
                 }
               }
@@ -941,6 +1003,20 @@ namespace oceanbase
                 stack_[idx_i++] = result;
               }
               break;
+            //add weixing [implementation of sub_query]20160116
+            case QUERY_ID:
+              if(OB_SUCCESS != (ret = expr_[idx++].get_int(value)))
+              {
+                TBSYS_LOG(WARN,"get_int error [err:%d]", ret);
+              }
+              else
+              {
+                int64_t temp_value = -1;
+                result.set_int(temp_value);
+                stack_[idx_i++] = result;
+              }
+              break;
+            //add e
             default:
               ret = OB_ERR_UNEXPECTED;
               TBSYS_LOG(WARN,"unexpected [type:%ld]", type);
@@ -1476,7 +1552,10 @@ namespace oceanbase
           {
             num = 3;
           }
-          else if (type == CONST_OBJ)
+          // mod weixing [implementation of sub_query]20160119:b
+          //else if (type == CONST_OBJ)
+          else if (type == CONST_OBJ||type == QUERY_ID)
+          //mod e
           {
             num = 2;
           }
@@ -2402,6 +2481,47 @@ namespace oceanbase
       return ret;
     }
 
+    //add weixing [implementatioin of sub_query]20160116
+    inline int ObPostfixExpression::in_sub_query_func(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params, ObBloomFilterV1* bloom_filter, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, int &sub_query_idx, bool second_check)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == stack_i)
+      {
+        TBSYS_LOG(WARN, "stack pointer is NULL.");
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else if (idx_i < 2)
+      {
+        TBSYS_LOG(WARN, "no enough operand in the stack. current size:%d", idx_i);
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+         int64_t right_elem_count = 0;
+         if (OB_SUCCESS != (ret = stack_i[idx_i-1].get_int(right_elem_count)))
+        {
+          TBSYS_LOG(WARN, "fail to get_int from stack. top=%d, ret=%d", idx_i, ret);
+        }
+        else if(-1 == right_elem_count)
+        {
+
+          if(OB_SUCCESS != (ret = get_result(stack_i, idx_i, result, params, bloom_filter, hash_map, sub_query_idx, second_check)))
+          {
+            TBSYS_LOG(WARN, "fail to get IN operation result. ret=%d", ret);
+          }
+
+        }
+        else
+        {
+          //should not be here
+          TBSYS_LOG(WARN, "invialid argument");
+          ret = OB_INVALID_ARGUMENT;
+        }
+      }
+      return ret;
+    }
+    //add e
+
     int ObPostfixExpression::not_like_func(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params)
     {
       int err = OB_SUCCESS;
@@ -2931,6 +3051,111 @@ namespace oceanbase
       return err;
     }
 
+    //add weixing [implementation of sub_query]20160116
+    int ObPostfixExpression::get_result(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params,
+    common::ObBloomFilterV1* bloom_filter,
+    hash::ObHashMap<common::ObRowkey,
+    common::ObRowkey,
+    common::hash::NoPthreadDefendMode>* hash_map, int &sub_query_idx, bool second_check)
+    {
+        int ret = OB_SUCCESS;
+        ObArray<ObExprObj> &vec_ = const_cast<ObPostExprExtraParams &>(params).in_row_operator_.vec_;
+        int64_t left_start_idx = 0;
+        int64_t right_elem_count = 0;
+        int64_t width = 0;
+        int64_t dim = 0;
+        int64_t vec_top = 0;
+        ObExprObj width_obj;
+
+        OB_ASSERT(NULL != stack_i);
+        OB_ASSERT(idx_i >= 2);
+
+        if (OB_SUCCESS != (ret = stack_i[--idx_i].get_int(right_elem_count)))
+        {
+          TBSYS_LOG(WARN, "fail to get_int from stack. top=%d, ret=%d", idx_i, ret);
+        }
+        else if (OB_SUCCESS != (ret = stack_i[--idx_i].get_int(dim)))
+        {
+          TBSYS_LOG(WARN, "fail to get_int from stack. top=%d, ret=%d", idx_i, ret);
+        }
+        else
+        {
+          vec_top = vec_.count();
+          if (OB_SUCCESS != (ret = vec_.at(vec_top - 1, width_obj)))
+          {
+            TBSYS_LOG(WARN, "fail to get width_obj from array. vec_top=%ld, ret=%d", vec_top, ret);
+          }
+          else if (OB_SUCCESS != (ret = width_obj.get_int(width)))
+          {
+           TBSYS_LOG(WARN, "fail to get_int from stack. top=%d, ret=%d", idx_i, ret);
+          }
+          else
+          {
+            left_start_idx  = vec_top - 1 - width;
+            //Reverse order output
+            ObObj *value = new ObObj[width];
+            for(int i = 0; i < width; i++)
+            {
+              ObExprObj temp_obj;
+              ObObj temp_value;
+              if (OB_SUCCESS != (ret = vec_.at(left_start_idx+i, temp_obj)))
+              {
+                TBSYS_LOG(WARN, "fail to get width_obj from array. vec_top=%ld, ret=%d", vec_top, ret);
+              }
+              else if(OB_SUCCESS != (ret = temp_obj.to(temp_value)))
+              {
+                TBSYS_LOG(WARN, "fail to chang ObExprObj to ObObj. ");
+              }
+              value[width-1-i] = temp_value;
+            }
+
+            if(OB_SUCCESS != ret )
+            {
+              TBSYS_LOG(WARN, "get result ,get data error");
+            }
+            else if(second_check)
+            {
+              ObRowkey p;
+              p.assign(value, width);
+              if(NULL != hash_map[sub_query_idx ].get(p) )
+              {
+                result.set_bool(true);
+              }
+              else
+              {
+                result.set_bool(false);
+              }
+              sub_query_idx ++;
+            }
+            else if(NULL == bloom_filter)
+            {
+              TBSYS_LOG(WARN,"bloom filter should not be null");
+            }
+            else
+            {
+              if(bloom_filter->may_contain(value, width) )
+              {
+                result.set_bool(true);
+              }
+              else
+              {
+                result.set_bool(false);
+              }
+            }
+
+            delete [] value;
+            vec_.pop_back();//left param num
+
+            for(int i = 0; i < width; i++)
+            {
+              vec_.pop_back();//left param
+            }
+          }
+        }
+     return ret;
+    }
+    //add e
+
     int ObPostfixExpression::arg_case_func(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params)
     {
       int ret = OB_SUCCESS;
@@ -3163,6 +3388,18 @@ namespace oceanbase
               }
             }
             break;
+          //weixing [implementation of sub_query]20160119:b
+          case QUERY_ID:
+            if (OB_SUCCESS  != (err = expr_[idx++].get_int(value)))
+            {
+              TBSYS_LOG(WARN,"get_int error [err:%d]", err);
+            }
+            else
+            {
+              databuff_printf(buf, buf_len, pos, "sub_query_select_num<%ld>|", value);
+            }
+            break;
+          //add e
           default:
             databuff_printf(buf, buf_len, pos, "unexpected [type:%ld]", type);
             err = OB_ERR_UNEXPECTED;

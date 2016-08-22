@@ -11,11 +11,13 @@
  * modified by longfei：
  * 1.add function: set_table_id()
  * modified by Qiushi FAN: add some functions to create a new expression
+ * modified by maoxiaoxiao: add interface: get_decoded_expression_v3()
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
- * @date 2016_01_22
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -86,6 +88,13 @@ namespace oceanbase
         //add wenghaixing for fix insert bug decimal key 2014/10/11
         inline  ObPostfixExpression &get_decoded_expression_v2() ;
         //add e
+        /*add maoxx [bloomfilter_join] 20160722*/
+        /**
+         * @brief get_decoded_expression_v3
+         * @return &post_expr_
+         */
+        inline ObPostfixExpression *get_decoded_expression_v3();
+        /*add e*/
         inline bool is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const;
         /**
          * 根据表达式语义对row的值进行计算
@@ -95,7 +104,10 @@ namespace oceanbase
          *
          * @return error code
          */
-        int calc(const common::ObRow &row, const common::ObObj *&result);
+        //mod weixing [implementation of sub_query]20160116
+        //int calc(const common::ObRow &row, const common::ObObj *&result);
+        int calc(const common::ObRow &row, const common::ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map = NULL, bool second_check = false);
+        //mod e
         /// 打印表达式
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
@@ -123,6 +135,12 @@ namespace oceanbase
         inline void set_owner_op(ObPhyOperator *owner_op);
         inline ObPhyOperator* get_owner_op();
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add weixing [implementation of sub_query]20160106
+        void set_has_bloomfilter();
+        int get_bloom_filter(ObBloomFilterV1 *& bloom_filter) {bloom_filter = &bloom_filter_; return OB_SUCCESS;}
+        //add e
+
       public:
         static ObSqlExpression* alloc();
         static void free(ObSqlExpression* ptr);
@@ -135,6 +153,12 @@ namespace oceanbase
         bool is_aggr_func_;
         bool is_distinct_;
         ObItemType aggr_func_;
+
+        //add weixing [implement of sub_query]20160106
+        common::ObBloomFilterV1 bloom_filter_;
+        bool use_bloom_filter_;
+        //add e
+
       private:
         // method
         int serialize_basic_param(char* buf, const int64_t buf_len, int64_t& pos) const;
@@ -159,6 +183,13 @@ namespace oceanbase
       column_id_ = OB_INVALID_ID;
       table_id_ = OB_INVALID_ID;
       is_aggr_func_ = is_distinct_ = false;
+      //add weixing [implementation of sub_query]20160106
+      if(use_bloom_filter_)
+      {
+        bloom_filter_.destroy();
+        use_bloom_filter_ = false;
+      }
+      //add e
     }
 
     inline void ObSqlExpression::set_int_div_as_double(bool did)
@@ -222,6 +253,13 @@ namespace oceanbase
     {
       return post_expr_;
     }
+
+    /*add maoxx [bloomfilter_join] 20160722*/
+    inline ObPostfixExpression *ObSqlExpression::get_decoded_expression_v3()
+    {
+      return &post_expr_;
+    }
+    /*add e*/
 
     inline bool ObSqlExpression::is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const
     {

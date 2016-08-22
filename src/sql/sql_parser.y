@@ -159,6 +159,9 @@ do \
 %token VALUES VARCHAR VARBINARY
 %token WHERE WHEN WITH WORK PROCESSLIST QUERY CONNECTION WEAK
 %token INDEX STORING /* add longfei [create index] [secondaryindex reconstruct] 20150917 e */
+/* add maoxx [bloomfilter_join] 20160406 */
+%token BLOOMFILTER_JOIN MERGE_JOIN
+/* add e */
 
 %token <non_reserved_keyword>
        AUTO_INCREMENT CHUNKSERVER COMPRESS_METHOD CONSISTENT_MODE
@@ -238,6 +241,10 @@ do \
 
 /* add longfei [drop index] 20151024 :b */
 %type <node> drop_index_stmt index_list table_name
+/* add e */
+
+/* add maoxx [bloomfilter_join] 20160406 */
+%type <node> join_op_type_list join_op_type
 /* add e */
 
 %start sql_stmt
@@ -2022,6 +2029,12 @@ hint_option:
     {
       $$ = $2;
     }
+    /* add maoxx [bloomfilter_join] 20160406 */
+  | JOIN '(' join_op_type_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_JOIN_OP_TYPE_LIST, $3);
+    }
+    /* add e */
   ;
 
 opt_comma_list:
@@ -2034,6 +2047,30 @@ opt_comma_list:
       $$ = NULL;
     }
   ;
+
+/* add maoxx [bloomfilter_join] 20160406 */
+join_op_type_list:
+    join_op_type
+    {
+      $$ = $1;
+    }
+  | join_op_type_list ',' join_op_type
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+   ;
+
+join_op_type:
+    BLOOMFILTER_JOIN
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_BLOOMFILTER_JOIN);
+    }
+  | MERGE_JOIN
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_MERGE_JOIN);
+    }
+   ;
+/* add e */
  
 consistency_level:
   WEAK

@@ -150,6 +150,7 @@ operators_sources=                                                       \
   ob_aggregate_function.h            ob_aggregate_function.cpp           \
   ob_alter_sys_cnf.h                 ob_alter_sys_cnf.cpp                \
   ob_alter_table.h                   ob_alter_table.cpp                  \
+  ob_bloomfilter_join.h              ob_bloomfilter_join.cpp             \
   ob_column_group_scanner.h          ob_column_group_scanner.cpp         \
   ob_create_table.h                  ob_create_table.cpp                 \
   ob_create_user_stmt.h ob_create_user_stmt.cpp                          \

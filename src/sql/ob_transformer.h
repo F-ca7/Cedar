@@ -10,6 +10,7 @@
  *
  * modified by longfei：generate physical plan for create, drop, index in select
  * modified by maoxiaoxiao:add and modify some functions to generate a correct physicl plan if a table with index has a insert, delete, update, replace and alter operation
+ *                         modify some functions to generate a physicl plan for bloomfilter join
  * modified by fanqiushi: add some functions to create an phsical plan for semijoin
  * modified by wangjiahao: add method to generate physical plan for update_more
  *
@@ -18,7 +19,7 @@
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author wangjiahao <51151500051@ecnu.edu.cn>
- * @date 2016_01_22
+ * @date 2016_07_27
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -58,6 +59,9 @@
 //add maoxx
 #include "ob_update_stmt.h"
 //add e
+/*add maoxx [bloomfilter_join] 20160417*/
+#include "ob_join.h"
+/*add e*/
 
 namespace oceanbase
 {
@@ -395,6 +399,9 @@ namespace oceanbase
             ObPhysicalPlan *physical_plan,
             ErrStat& err_stat,
             ObSelectStmt *select_stmt,
+            /*add maoxx [bloomfilter_join] 20160417*/
+            ObJoin::JoinType join_type,
+            /*add e*/
             oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
             oceanbase::common::ObList<ObBitSet<> >& bitset_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
