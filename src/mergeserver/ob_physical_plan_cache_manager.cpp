@@ -105,6 +105,7 @@ int ObProcedureManager::compile_procedure(const ObString &proc_name)
       else
       {
         TBSYS_LOG(TRACE, "MS ExecutionPlan: \n%s", to_cstring(*(rs.get_result_set().get_physical_plan())));
+        rs.get_result_set().set_cur_schema_version(schema_version);//add by wdh 20160822
         int hash_ret = put_cache_plan(proc_name, &rs);
         if(hash::HASH_INSERT_SUCC != hash_ret)
         {
@@ -170,6 +171,8 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
       //set cache state
       proc_result_set.get_result_set().set_no_group(no_group);
       proc_result_set.get_result_set().set_stmt_hash(name_code_map_.get_hkey(proc_name));
+      proc_result_set.get_result_set().set_cur_schema_version(mergeserver_service_->get_merge_server()->get_schema_mgr()->get_latest_version());//add by wdh 20160822
+      TBSYS_LOG(DEBUG, "ob_transformer current schema version for [%.*s] is %ld", proc_name.length(), proc_name.ptr(), proc_result_set.get_result_set().get_cur_schema_version());
       if ((ret = context.session_info_->store_plan(proc_name, proc_result_set.get_result_set())) != OB_SUCCESS)
       {
         TBSYS_LOG(WARN, "Store current result failed.");

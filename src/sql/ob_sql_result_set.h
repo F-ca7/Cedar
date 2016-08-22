@@ -106,6 +106,7 @@ namespace oceanbase
           sqlstr_ = sqlstr;
         }
         void clear();
+
       private:
         sql::ObResultSet rs_;
         FieldArray fields_;
@@ -115,6 +116,7 @@ namespace oceanbase
         int errno_;
         /* which should serilize before rows in sql result set. */
         const ObRow *extra_row_;
+
     };
 
     inline void ObSQLResultSet::clear()

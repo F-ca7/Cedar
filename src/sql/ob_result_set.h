@@ -209,6 +209,10 @@ namespace oceanbase
          */
         bool get_no_group() const { return no_group_; }
         //add zt 20151201:e
+        //add by wdh 20160822 :b
+        void set_cur_schema_version(int64_t cur_schema_version) {cur_schema_version_ = cur_schema_version;}
+        int64_t get_cur_schema_version() const {return cur_schema_version_;}
+        //add :e
       private:
         // types and constants
         static const int64_t MSG_SIZE = 512;
@@ -257,6 +261,8 @@ namespace oceanbase
         SpProcedure *proc_; //add zt: 20151201
         int64_t stmt_hash_code_;  ///<  statement hash code_
         bool no_group_;  ///< no group excution flag
+        int64_t cur_schema_version_; // add by wdh 20160822 [dev compile] used in cache manage
+
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
