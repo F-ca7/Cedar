@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_memtable.cpp
+ * @brief MemTableGetIter
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     modify memtable query mechanisms with RR
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 ////===================================================================
  //
  // ob_memtable.cpp updateserver / Oceanbase
@@ -1900,7 +1918,10 @@ namespace oceanbase
       {
         if (!read_uncommited_data_()
             && NULL != session_ctx
-            && list_head->modify_time > session_ctx->get_trans_id())
+            // modify by guojinwei [repeatable read] 20160417:b
+            //&& list_head->modify_time > session_ctx->get_trans_id())
+            && list_head->modify_time > session_ctx->get_trans_start_time())
+            // modify:e
         {
           cell_iter_.set_rne();
         }
@@ -2002,9 +2023,15 @@ namespace oceanbase
         int64_t v = 0;
         value.get_modifytime(v);
         if (NULL != session_ctx_
-            && v > session_ctx_->get_trans_id())
+            // modify by guojinwei [repeatable read] 20160417:b
+            //&& v > session_ctx_->get_trans_id())
+            && v > session_ctx_->get_trans_start_time())
+            // modify:e
         {
-          TBSYS_LOG(DEBUG, "trans_end v=%ld trans_id=%ld", v, session_ctx_->get_trans_id());
+          // modify by guojinwei [repeatable read] 20160417:b
+          //TBSYS_LOG(DEBUG, "trans_end v=%ld trans_id=%ld", v, session_ctx_->get_trans_id());
+          TBSYS_LOG(DEBUG, "trans_end v=%ld trans_start_time=%ld", v, session_ctx_->get_trans_start_time());
+          // modify:e
           bret = true;
         }
       }
@@ -2071,8 +2098,12 @@ namespace oceanbase
         {
           break;
         }
-        TBSYS_LOG(DEBUG, "NEXT_CELL: tid=%ld value=%p node=%p %s",
-                  NULL == session_ctx_ ? 0 : session_ctx_->get_trans_id(), te_value_, node_iter_, print_cellinfo(&ci_));
+        // modify by guojinwei [repeatable read] 20160417:b
+        //TBSYS_LOG(DEBUG, "NEXT_CELL: tid=%ld value=%p node=%p %s",
+        //          NULL == session_ctx_ ? 0 : session_ctx_->get_trans_id(), te_value_, node_iter_, print_cellinfo(&ci_));
+        TBSYS_LOG(DEBUG, "NEXT_CELL: trans_start_time=%ld value=%p node=%p %s",
+                  NULL == session_ctx_ ? 0 : session_ctx_->get_trans_start_time(), te_value_, node_iter_, print_cellinfo(&ci_));
+        // modify:e
         if (trans_end_(ci_.value_))
         {
           ret = OB_ITER_END;
@@ -2093,7 +2124,10 @@ namespace oceanbase
             if (INT64_MAX == v
                 && read_uncommited_data_())
             {
-              ci_.value_.set_modifytime(session_ctx_->get_trans_id());
+              // modify by guojinwei [repeatable read] 20160417:b
+              //ci_.value_.set_modifytime(session_ctx_->get_trans_id());
+              ci_.value_.set_modifytime(session_ctx_->get_trans_start_time());
+              // modify:e
             }
           }
           else if (ObCreateTimeType == ci_.value_.get_type())
@@ -2103,7 +2137,10 @@ namespace oceanbase
             if (INT64_MAX == v
                 && read_uncommited_data_())
             {
-              ci_.value_.set_createtime(session_ctx_->get_trans_id());
+              // modify by guojinwei [repeatable read] 20160417:b
+              //ci_.value_.set_createtime(session_ctx_->get_trans_id());
+              ci_.value_.set_createtime(session_ctx_->get_trans_start_time());
+              // modify:e
             }
           }
           iter_counter_++;
@@ -2155,7 +2192,10 @@ namespace oceanbase
       bool bret = false;
       if (NULL != session_ctx_
           && NULL != te_value_
-          && te_value_->row_lock.is_exclusive_locked_by(session_ctx_->get_session_descriptor()))
+          // modify by guojinwei [repeatable read] 20160417:b
+          //&& te_value_->row_lock.is_exclusive_locked_by(session_ctx_->get_session_descriptor()))
+          && te_value_->row_lock.is_exclusive_locked_by(session_ctx_->get_trans_descriptor()))
+          // modify:e
       {
         bret = true;
       }
@@ -2170,14 +2210,20 @@ namespace oceanbase
         if (NULL != session_ctx_
             && ST_READ_ONLY == session_ctx_->get_type()
             && NULL != te_value_->list_head
-            && session_ctx_->get_trans_id() < te_value_->list_head->modify_time)
+            // modify by guojinwei [repeatable read] 20160417:b
+            //&& session_ctx_->get_trans_id() < te_value_->list_head->modify_time)
+            && session_ctx_->get_trans_start_time() < te_value_->list_head->modify_time)
+            // modify:e
         {
           // need to lookup undo list
           ObUndoNode *iter = te_value_->undo_list;
           while (NULL != iter)
           {
             if (NULL != iter->head
-                && session_ctx_->get_trans_id() >= iter->head->modify_time)
+                // modify by guojinwei [repeatable read] 20160417:b
+                //&& session_ctx_->get_trans_id() >= iter->head->modify_time)
+                && session_ctx_->get_trans_start_time() >= iter->head->modify_time)
+                // modify:e
             {
               ret = iter->head;
               break;

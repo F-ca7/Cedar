@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_log_mgr.h
+ * @brief
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add RRLockInfo
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 ////===================================================================
  //
  // ob_lock_mgr.h updateserver / Oceanbase
@@ -101,6 +119,12 @@ namespace oceanbase
       public:
         int on_trans_begin();
         int on_read_begin(const TEKey &key, TEValue &value);
+        /**
+         * @brief lock a key-value pair
+         * @param[in] key, key of target record
+         * @param[in] value, value of target record
+         * @return boolean, 0 for success, 1 for error.
+         */
         int on_write_begin(const TEKey &key, TEValue &value);
         void on_trans_end();
         void on_precommit_end();
@@ -111,6 +135,28 @@ namespace oceanbase
         RowExclusiveUnlocker row_exclusive_unlocker_;
         CallbackMgr callback_mgr_;
     };
+
+    // add by guojinwei [repeatable read] 20160307:b
+    class RRLockInfo : public ILockInfo // Repeatable read lock info
+    {
+      static const int64_t LOCK_WAIT_TIME = 10L * 1000L; // 10ms
+      public:
+        RRLockInfo(RWSessionCtx &session_ctx);
+        ~RRLockInfo();
+      public:
+        int on_trans_begin();
+        int on_read_begin(const TEKey &key, TEValue &value);
+        int on_write_begin(const TEKey &key, TEValue &value);
+        void on_trans_end();
+        void on_precommit_end();
+      public:
+        int cb_func(const bool rollback, void *data, BaseSessionCtx &session);
+      private:
+        RWSessionCtx &session_ctx_;
+        RowExclusiveUnlocker row_exclusive_unlocker_;
+        CallbackMgr callback_mgr_;
+    };
+    // add:e
 
     class LockMgr
     {

@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_scan.h
+ * @brief ObUpsScan
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add set_trans_id()
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,6 +39,9 @@
 #include "common/ob_sql_ups_rpc_proxy.h"
 #include "common/ob_scan_param.h"
 #include "common/ob_range.h"
+// add by guojinwei [repeatable read] 20160312:b
+#include "common/ob_transaction.h"
+// add:e
 
 
 namespace oceanbase
@@ -63,6 +84,13 @@ namespace oceanbase
          */
         virtual int set_range(const ObNewRange &range);
         void set_version_range(const ObVersionRange &version_range);
+        // add by guojinwei [repeatable read] 20160312:b
+        /*
+         * @brief set function of transaction ID for scan parameter
+         * @param[in] trans_id, transantion ID
+         */
+        void set_trans_id(const ObTransID & trans_id);
+        // add:e
 
         bool is_result_empty() const;
 

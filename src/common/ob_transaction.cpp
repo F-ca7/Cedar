@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transaction.cpp
+ * @brief ObTransID
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     complete ObTransID serialization and deserialization, etc.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -131,6 +149,10 @@ namespace oceanbase
       descriptor_ = INVALID_SESSION_ID;
       ups_.reset();
       start_time_us_ = 0;
+      // add by guojinwei [repeatable read] 20160310:b
+      trans_start_time_us_ = 0;
+      isolation_level_ = READ_COMMITED;  ///< default isolation level is READ_COMMITTED
+      // add:e
     }
 
     bool ObTransID::is_valid() const
@@ -141,8 +163,12 @@ namespace oceanbase
     int64_t ObTransID::to_string(char* buf, int64_t len) const
     {
       int64_t pos = 0;
-      databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld)",
-                      descriptor_, ups_.to_cstring(), start_time_us_);
+      // modify by guojinwei [repeatable read] 20160310:b
+      //databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld)",
+      //                descriptor_, ups_.to_cstring(), start_time_us_);
+      databuff_printf(buf, len, pos, "TransID(sd=%u,ups=%s,start=%ld,trans_start_time=%ld,isolation=%x)",
+                      descriptor_, ups_.to_cstring(), start_time_us_, trans_start_time_us_, isolation_level_);
+      // modify:e
       return pos;
     }
 
@@ -158,6 +184,16 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      else if (OB_SUCCESS != (err = serialization::encode_i64(buf, buf_len, new_pos, trans_start_time_us_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      else if (OB_SUCCESS != (err = serialization::encode_i32(buf, buf_len, new_pos, isolation_level_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      // add:e
       else if (OB_SUCCESS != (err = ups_.serialize(buf, buf_len, new_pos)))
       {
         TBSYS_LOG(ERROR, "ups.serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
@@ -181,6 +217,16 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      else if (OB_SUCCESS != (err = serialization::decode_i64(buf, data_len, new_pos, &trans_start_time_us_)))
+      {
+        TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+      }
+      else if (OB_SUCCESS != (err = serialization::decode_i32(buf, data_len, new_pos, &isolation_level_)))
+      {
+        TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+      }
+      // add:e
       else if (OB_SUCCESS != (err = ups_.deserialize(buf, data_len, new_pos)))
       {
         TBSYS_LOG(ERROR, "ups.deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -196,6 +242,10 @@ namespace oceanbase
     {
       return serialization::encoded_length_i32(descriptor_)
         + serialization::encoded_length_i64(start_time_us_)
+      // add by guojinwei [repeatable read] 20160310:b
+        + serialization::encoded_length_i64(trans_start_time_us_)
+        + serialization::encoded_length_i32(isolation_level_)
+      // add:e
         + ups_.get_serialize_size();
     }
 

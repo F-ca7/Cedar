@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_session_mgr.h
+ * @brief BaseSessionCtx
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add transaction information
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 ////===================================================================
  //
  // ob_session_mgr.h updateserver / Oceanbase
@@ -127,6 +145,10 @@ namespace oceanbase
           CLEAR_TRACE_BUF(tlog_buffer_);
           priority_ = common::PriorityPacketQueueThread::NORMAL_PRIV;
           last_proc_time_ = 0;
+          // add by guojinwei [repeatable read] 20160417:b
+          trans_start_time_ = INT64_MAX;
+          trans_descriptor_ = UINT32_MAX;
+          // add:e
         };
         virtual void kill()
         {
@@ -296,8 +318,18 @@ namespace oceanbase
         int64_t to_string(char* buf, int64_t len) const
         {
           int64_t pos = 0;
-          common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld last_active_time=%ld descriptor=%d",
-                          type_, trans_id_, session_start_time_, session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_, last_active_time_, session_descriptor_);
+          // modify by guojinwei [repeatable read] 20160417:b
+          //common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld last_active_time=%ld descriptor=%d",
+          //                type_, trans_id_, session_start_time_, session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_, last_active_time_, session_descriptor_);
+          common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld "
+                                  "timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld "
+                                  "last_active_time=%ld descriptor=%d"
+                                  "trans_start_time=%ld trans_descriptor=%d",
+                                  type_, trans_id_, session_start_time_,
+                                  session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_,
+                                  last_active_time_, session_descriptor_,
+                                  trans_start_time_, trans_descriptor_);
+          // modify:e
           return pos;
         }
 
@@ -345,6 +377,24 @@ namespace oceanbase
         {
           return last_proc_time_;
         };
+        // add by guojinwei [repeatable read] 20160417:b
+        void set_trans_start_time(const int64_t trans_start_time)
+        {
+          trans_start_time_ = trans_start_time;
+        };
+        int64_t get_trans_start_time() const
+        {
+          return trans_start_time_;
+        };
+        uint32_t get_trans_descriptor() const
+        {
+          return trans_descriptor_;
+        };
+        void set_trans_descriptor(const uint32_t trans_descriptor)
+        {
+          trans_descriptor_ = trans_descriptor;
+        };
+        // add:e
 
       private:
         const SessionType type_;
@@ -365,6 +415,10 @@ namespace oceanbase
         int64_t conflict_processor_index_;
         common::PriorityPacketQueueThread::QueuePriority priority_;
         int64_t last_proc_time_;
+        // add by guojinwei [repeatable read] 20160417:b
+        int64_t trans_start_time_;    ///< only for repeatable read
+        uint32_t trans_descriptor_;   ///< only for repeatable read
+        // add:e
     };
 
     class CallbackMgr
