@@ -1068,7 +1068,23 @@ int ObTransformer::gen_physical_procedure_execute(
             need_compile = true;
           }
         }
-
+        //add by wdh 20160822 :b
+        if( !need_compile )
+        {
+            int64_t compile_schema_version = session_info->get_plan(stmt_id)->get_cur_schema_version();
+            if(sql_context_->merge_service_->get_schema_mgr()->get_latest_version() != compile_schema_version)
+            {
+                TBSYS_LOG(WARN, "detected schema changed from[%ld] to[%ld] for [%.*s]", compile_schema_version,
+                          sql_context_->merge_service_->get_schema_mgr()->get_latest_version(), stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
+                session_info->remove_plan(stmt_id); //expired
+                need_compile = true;
+            }
+            else
+            {
+                TBSYS_LOG(DEBUG, "current schema version is %ld", compile_schema_version);
+            }
+        }
+        //add :e
         if( need_compile)
         {
           if (OB_SUCCESS != (ret = sql_context_->merge_service_->get_merge_server()->
