@@ -1577,7 +1577,7 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
           else
           {
             ret = OB_SUCCESS;
-            TBSYS_LOG(INFO, "add [%s] to name code map", proc_name.ptr());
+            TBSYS_LOG(INFO, "add [%.*s] to name code map",proc_name.length(), proc_name.ptr());
           }
         }
       }
