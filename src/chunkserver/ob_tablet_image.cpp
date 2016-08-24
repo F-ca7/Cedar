@@ -906,17 +906,19 @@ namespace oceanbase
       range.set_rowkey_info(ri);
 
       it = tablet_list_.lower_bound(range, compare_tablet_range);
-      //add longfei 2016-03-30 19:16:57
-      //看看找到的tablet是什么样的
-      TBSYS_LOG(DEBUG, "debug::longfei>>>scan_direction[%s]", scan_direction == 0 ? "forward" : "backward");
-      TBSYS_LOG(INFO, "====dump tablet begin====");
-      for (ObSortedVector<ObTablet*>::iterator j = tablet_list_.begin(); j != tablet_list_.end(); j++)
-      {
-        ObTablet* tablet_dis = *j;
-        tablet_dis->dump(true);
-      }
-      TBSYS_LOG(INFO, "====dump tablet end====");
-      //add e
+      //delete by guojinwei 20160824:b
+      ////add longfei 2016-03-30 19:16:57
+      ////看看找到的tablet是什么样的
+      //TBSYS_LOG(DEBUG, "debug::longfei>>>scan_direction[%s]", scan_direction == 0 ? "forward" : "backward");
+      //TBSYS_LOG(INFO, "====dump tablet begin====");
+      //for (ObSortedVector<ObTablet*>::iterator j = tablet_list_.begin(); j != tablet_list_.end(); j++)
+      //{
+      //  ObTablet* tablet_dis = *j;
+      //  tablet_dis->dump(true);
+      //}
+      //TBSYS_LOG(INFO, "====dump tablet end====");
+      ////add e
+      // delete:e
       if (it == tablet_list_.end())
       {
         //                       start_key
@@ -961,12 +963,14 @@ namespace oceanbase
       {
         ret = OB_CS_TABLET_NOT_EXIST;
       }
-      //add else longfei 2016-03-30 19:31:54
-      else
-      {
-        tablet->dump(true);
-      }
-      //add e
+      // delete by guojinwei 20160824:b
+      ////add else longfei 2016-03-30 19:31:54
+      //else
+      //{
+      //  tablet->dump(true);
+      //}
+      ////add e
+      // delete:e
 
       return ret;
     }
