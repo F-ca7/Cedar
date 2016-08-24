@@ -589,7 +589,7 @@ int ObRootDDLOperator::create_procedure(const common::ObString & proc_name, cons
   }
   else
   {
-    TBSYS_LOG(INFO, "update __all_procedure failed: proc_name[%s]", proc_name.ptr());
+    TBSYS_LOG(INFO, "update __all_procedure succ: proc_name[%s]", proc_name.ptr());
   }
   return ret;
 }
