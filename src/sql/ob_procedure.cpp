@@ -1142,7 +1142,13 @@ int ObProcedure::open()
     }
     if( long_trans_ )
     {
-       ret = end_trans(OB_SUCCESS != ret);
+      //add by qx 20160825:b
+      //avoid  execution error code was covered
+      int temp_ret=ret;
+      ret = end_trans(OB_SUCCESS != ret);
+      if(ret==OB_SUCCESS)
+        ret=temp_ret;
+      //add :e
     }
     my_phy_plan_->get_result_set()->get_session()->set_autocommit(autoCommit);
   }
