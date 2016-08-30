@@ -103,6 +103,13 @@ namespace oceanbase
          * @return leader exist flag, true of false
          */
         bool get_is_exist_leader();
+        //add chujiajia [log synchronization][multi_cluster] 20160603:b
+        /**
+         * @brief get is_pre_leader flag, this flag marks if the node was the pre-leader
+         * @return is_pre_leader flag, true of false
+         */
+        bool get_is_pre_leader();
+        //add:e
         /**
          * @brief get timeout mark of election
          * @return timeout mark, true or false
@@ -205,6 +212,13 @@ namespace oceanbase
          * @param is_exist_leader
          */
         void set_is_exist_leader(bool is_exist_leader);
+        //add chujiajia [log synchronization][multi_cluster] 20160603:b
+        /**
+         * @brief set is_pre_leader flag
+         * @param is_pre_leader
+         */
+        void set_is_pre_leader(bool is_pre_leader);
+        //add:e
         /**
          * @brief set leader rootserver info
          * @param the leader rootserver
@@ -221,9 +235,9 @@ namespace oceanbase
          * @param lease
          */
         void set_lease(int64_t lease);
-        // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+        //delete chujiajia [rs_election][multi_cluster] 20150902:b
         //void set_current_term(int64_t x);
-        // delete:e
+        //delete:e
         /**
          * @brief set timeout mark
          * @param timeout_mark, true or false
@@ -318,9 +332,9 @@ namespace oceanbase
         bool is_exist_leader_;              ///< leader exist in system or not
         common::ObServer leaderinfo_;
         int64_t lease_;                     ///< the lease beturn rootoserver
-        // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+        //delete chujiajia [rs_election][multi_cluster] 20150902:b
         //int64_t current_term_;
-        // delete:e
+        //delete:e
         bool timeout_mark_;                 ///< last election is timeout or not
         bool extendlease_mark_;             ///< had extend lease or not
         common::ObMsgRsElection msg_rselection_;
@@ -328,6 +342,9 @@ namespace oceanbase
         std::vector<ObServer> available_slave_rs_;
         bool is_send_init_broadcast_;       ///< if init broadcast finished or not
         bool is_extendlease_;               ///< allow extend lease or not
+        //add chujiajia [log synchronization][multi_cluster] 20160603:b
+        bool is_pre_leader_;                ///< if the RS was former leader or not
+        //add:e
         // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
         bool auto_elect_flag;               ///< allow election of not, leader rs will set this variable in all rs
         // add:e

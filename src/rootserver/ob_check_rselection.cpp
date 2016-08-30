@@ -28,7 +28,7 @@ using namespace oceanbase::common;
 using namespace oceanbase::rootserver;
 
 //modify by pangtianze [rs_election] 20160106:b
-// modify by chujiajia [rs_election][multi_cluster] 20150929:b
+//modify chujiajia [rs_election][multi_cluster] 20150929:b
 //ObCheckRsElection::ObCheckRsElection(ObRootServerConfig &rs_config):rs_election_random_wait_time_(rs_config.rs_election_random_wait_time)
 //{
 //  // TODO Auto-generated constructor stub
@@ -56,7 +56,7 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
   UNUSED(arg);
   while (!_stop)
   {
-    // delete by chujiajia [rs_election][multi_cluster] 20150910:b
+    //delete chujiajia [rs_election][multi_cluster] 20150910:b
     // int64_t now = tbsys::CTimeUtil::getTime();
     // if (ob_election_node_.get_role() == OB_LEADER
     // && ((ob_election_node_.get_lease() - now) >= election_protection_time_us)
@@ -84,7 +84,7 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
     // if (ob_election_node_.get_is_send_init_broadcast())
     // {
     //   set_is_run_election(true);
-    //   // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //   //add chujiajia [rs_election][multi_cluster] 20150909:b
     //   if (!ob_election_node_.get_is_exist_leader())
     //   {
     //     ob_election_node_.root_server_->set_election_role_with_state(
@@ -190,8 +190,8 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
     //     }
     //   }
     // }
-    // delete:e
-    // add by chujiajia [rs_election][multi_cluster] 20150910:b
+    //delete:e
+    //add chujiajia [rs_election][multi_cluster] 20150910:b
     if (ob_election_node_.get_role() == OB_LEADER)
     {
       int64_t now = tbsys::CTimeUtil::getTime();
@@ -210,6 +210,7 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
         /// if expired, reset election state
           char info1[ELECTION_ARRAY_SIZE] = "NO";
           msg_rselection_.type_ = OB_EXPIRE;
+          ob_election_node_.set_is_pre_leader(true);
           ob_election_node_.get_rt_rpc_stub()->rs_election(
               ob_election_node_.get_my_rs(), msg_rselection_, info1,
               election_message_time_out_us);
@@ -264,11 +265,18 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
               && ob_election_node_.get_votefor().get_ipv4() == 0)
           {
             /// cal random time for waiting before excute election
-        	// modify by chujiajia [rs_election][multi_cluster] 20150929:b
+            //add chujiajia [log synchronization][multi_cluster] 20160603:b
+            if(ob_election_node_.get_is_pre_leader())
+            {
+              usleep(defalut_pre_leader_wait_time_us);
+              ob_election_node_.set_is_pre_leader(false);
+            }
+            //add:e
+            //modify chujiajia [rs_election][multi_cluster] 20150929:b
         	TBSYS_LOG(INFO, "rs_election_random_wait_time_:%d ms", ((int)(rs_election_random_wait_time_))/1000);
             int t = rand() % (((int)(rs_election_random_wait_time_))/1000);
             t = t*1000 + (int)(rs_election_random_wait_time_);
-            // modify:e
+            //modify:e
             if (ob_election_node_.get_is_lower_log())
             {
               /// means ups has lower log, so waif for more time before election
@@ -362,13 +370,13 @@ void ObCheckRsElection::run(tbsys::CThread* thread, void* arg)
       // add:e
     }
     // add:e
-    //modify by chujiajia [rs_election][multi_cluster] 20151025:b
+    //modify chujiajia [rs_election][multi_cluster] 20151025:b
     usleep(static_cast<useconds_t>(rs_election_check_period_));
     //modify:e
   }
 }
 
-//modify by chujiajia [rs_election][multi_cluster] 20151026:b
+//modify chujiajia [rs_election][multi_cluster] 20151026:b
 //int ObCheckRsElection::init(const int64_t check_period,
 //                            rootserver::ObRootServer2 &root_server,
 //                            common::ObClientManager &client_manager,
@@ -386,7 +394,7 @@ int ObCheckRsElection::init(rootserver::ObRootServer2 &root_server,
   int ret = OB_SUCCESS;
   ob_election_node_.init(root_server, client_manager, rt_rpc_stub, my_rs,
       my_ups, other_rs);
-  //modify by chujiajia [rs_election][multi_cluster] 20151026:b
+  //modify chujiajia [rs_election][multi_cluster] 20151026:b
   rs_election_check_period_ = defalut_rs_election_check_period_us;
   //check_period_ = check_period;
   //modify:e
@@ -494,7 +502,7 @@ int ObCheckRsElection::handle_vote_request(const common::ObMsgRsElection &msg, c
     if(!get_is_run_election())
     {
       set_is_run_election(true);
-      // add by chujiajia [rs_election][multi_cluster] 20150909:b
+      //add chujiajia [rs_election][multi_cluster] 20150909:b
       /// set election state
       if(!get_ob_election_node().get_is_exist_leader())
       {
@@ -552,7 +560,7 @@ int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg
   if(!get_is_run_election())
   {
     set_is_run_election(true);
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     if(!get_ob_election_node().get_is_exist_leader())
     {
       root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -564,7 +572,7 @@ int ObCheckRsElection::handle_rs_extend_lease(const common::ObMsgRsElection &msg
     // add:e
     TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
   }
-  //add by chujiajia [rs_election][multi_cluster] 20150923:b
+  //add chujiajia [rs_election][multi_cluster] 20150923:b
   int64_t max_log_timestamp = -1;
   /// get ups_max_log from ups
   if (OB_SUCCESS != (ret = root_server_.get_rpc_stub().get_ups_max_log_timestamp(
@@ -608,7 +616,7 @@ int ObCheckRsElection::handle_broadcast(const common::ObMsgRsElection &msg, char
   if(!get_is_run_election())
   {
     set_is_run_election(true);
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     if(!get_ob_election_node().get_is_exist_leader())
     {
       root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -628,22 +636,22 @@ int ObCheckRsElection::handle_broadcast(const common::ObMsgRsElection &msg, char
     get_ob_election_node().set_role(OB_FOLLOWER);
     get_ob_election_node().set_is_leader(false);
     get_ob_election_node().set_is_exist_leader(true);
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
     root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
     // add:e
     get_ob_election_node().set_is_lower_log(false);
     get_ob_election_node().set_lease(msg.lease_);
-    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    //delete chujiajia [rs_election][multi_cluster] 20150902:b
     // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
-    // delete:e
+    //delete:e
     strcpy(responseinfo, "YES");
-    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    //delete chujiajia [rs_election][multi_cluster] 20150902:b
     // TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld,term=%ld",
     //                 ip_tmp,
     //                 check_rselection_thread_.get_ob_election_node().get_lease(),
     //                 check_rselection_thread_.get_ob_election_node().get_current_term());
-    // delete:e
+    //delete:e
     TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld",
                     ip_tmp,
                     get_ob_election_node().get_lease());

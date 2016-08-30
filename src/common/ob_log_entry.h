@@ -121,6 +121,16 @@ namespace oceanbase
        * @param [in] data_len 缓冲区长度
        */
       int fill_header(const char* log_data, const int64_t data_len);
+      //add chujiajia [log synchronization][multi_cluster] 20160328:b
+      /**
+       * @brief fill ups log header
+       * @param [in] log_data log content
+       * @param [in] data_len the length of the log_data
+       * @param [in] max_cmt_id max commited log id
+       * @return OB_SUCCESS if success
+       */
+      int fill_header(const char* log_data, const int64_t data_len, const int64_t max_cmt_id);
+      //add:e
 
       /**
        * @brief 计算日志序号+LogCommand+日志内容的校验和

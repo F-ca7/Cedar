@@ -8555,7 +8555,7 @@ std::vector<common::ObServer> ObRootServer2::get_slave_root_cluster_ip()
 }
 // add:e
 
-// add by chujiajia [rs_election][multi_cluster] 20150823:b
+//add chujiajia [rs_election][multi_cluster] 20150823:b
 bool ObRootServer2::get_is_have_inited()
 {
   return have_inited_;

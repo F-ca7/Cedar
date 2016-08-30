@@ -64,6 +64,40 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len)
   return ret;
 }
 
+//add chujiajia [log synchronization][multi_cluster] 20160328:b
+//fill ups_commit_log header
+int ObLogEntry::fill_header(const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+{
+  int ret = OB_SUCCESS;
+
+  if ((NULL == log_data && data_len != 0)
+      || (NULL != log_data && data_len <= 0))
+  {
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else
+  {
+    header_.set_magic_num(MAGIC_NUMER);
+    header_.header_length_ = OB_RECORD_HEADER_LENGTH;
+    header_.version_ = LOG_VERSION;
+    header_.timestamp_ = tbsys::CTimeUtil::getTime();
+    header_.max_cmt_id_ = max_cmt_id;
+    header_.data_length_ = static_cast<int32_t>(sizeof(uint64_t) + sizeof(LogCommand) + data_len);
+    header_.data_zlength_ = header_.data_length_;
+    if (NULL != log_data)
+    {
+      header_.data_checksum_ = calc_data_checksum(log_data, data_len);
+    }
+    else
+    {
+      header_.data_checksum_ = 0;
+    }
+    header_.set_header_checksum();
+  }
+  return ret;
+}
+//add:e
+
 int64_t ObLogEntry::calc_data_checksum(const char* log_data, const int64_t data_len) const
 {
   uint64_t data_checksum = 0;

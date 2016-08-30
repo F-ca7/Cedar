@@ -49,6 +49,9 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, char *&log
   // add by zhangcd [log_reader] 20151215:b
   timestamp_ = 0;
   // add:e
+  //add chujiajia [log synchronization][multi_cluster] 20160326:b
+  max_cmt_id_ = 0;
+  //add:e
   ObLogEntry entry;
   if (!is_initialized_)
   {
@@ -173,6 +176,9 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, char *&log
       // add by zhangcd [log_reader] 20151215:b
       timestamp_ = entry.header_.timestamp_;
       // add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160326:b
+      max_cmt_id_ = entry.header_.max_cmt_id_;
+      //add:e
       log_data = log_buffer_.get_data() + log_buffer_.get_position();
       data_len = entry.get_log_data_len();
       log_buffer_.get_position() += data_len;
@@ -206,3 +212,20 @@ int ObRepeatedLogReader::read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& t
 }
 //add:e
 
+//add chujiajia [log synchronization][multi_cluster] 20160419:b
+int ObRepeatedLogReader::read_log_for_cmt_id(LogCommand &cmd, uint64_t &log_seq, int64_t& cmt_id)
+{
+  UNUSED(cmd);
+  UNUSED(log_seq);
+  UNUSED(cmt_id);
+  return OB_SUCCESS;
+}
+
+int ObRepeatedLogReader::read_log_for_data_checksum(LogCommand &cmd, uint64_t &log_seq, int64_t& data_checksum)
+{
+  UNUSED(cmd);
+  UNUSED(log_seq);
+  UNUSED(data_checksum);
+  return OB_SUCCESS;
+}
+//add:e

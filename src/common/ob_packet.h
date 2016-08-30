@@ -510,7 +510,7 @@ namespace oceanbase
       OB_RS_NOTIFY_SWITCH_SCHEMA = 9015,
       OB_RS_NOTIFY_SWITCH_SCHEMA_RESPONSE = 9016,
 
-      // add by chujiajia [rs_election][multi_cluster] 20150823:b
+      //add chujiajia [rs_election][multi_cluster] 20150823:b
       OB_RS_ELECTION = 9600,
       OB_RS_ELECTION_RESPONSE = 9601,
       OB_RS_GET_UPS_RS_LEASE = 9602,

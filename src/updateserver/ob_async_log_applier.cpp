@@ -389,7 +389,10 @@ namespace oceanbase
       }
       else
       {
-        err = log_mgr_->write_log_as_slave(task.batch_buf_, task.batch_buf_len_);
+        //modify chujiajia [log synchronization][multi_cluster] 20160703:b
+        //err = log_mgr_->write_log_as_slave(task.batch_buf_, task.batch_buf_len_);
+        err = log_mgr_->write_log_as_slave(task.log_id_, task.batch_buf_, task.batch_buf_len_);
+        //modify:e
       }
       task.profile_.end_flush();
       return err;

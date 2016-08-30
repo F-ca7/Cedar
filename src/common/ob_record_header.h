@@ -71,6 +71,9 @@ namespace oceanbase
       //add by lbzhong [Max Log Timestamp] 20150824:b
       int64_t timestamp_;       // reserved,must be 0
       //add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160326:b
+      int64_t max_cmt_id_;     ///< max commited log id
+      //add:e
       int32_t data_length_;    // length before compress
       int32_t data_zlength_;   // length after compress, if without compresssion 
                                // data_length_= data_zlength_
@@ -81,9 +84,13 @@ namespace oceanbase
       {
         int64_t pos = 0;
         databuff_printf(buf, buf_len, pos, "[RecordHeader] magic=%hd header_length=%hd version=%hd "
-                        "header_checksum=%hd reserved=%ld data_length=%d data_zlength=%d",
+                        "header_checksum=%hd timestamp=%ld max_cmt_id=%ld, data_length=%d data_zlength=%d",
                         magic_, header_length_, version_,
-                        header_checksum_, timestamp_, data_length_, data_zlength_);
+                        header_checksum_, timestamp_,
+                        //add chujiajia [log synchronization][multi_cluster] 20160326:b
+                        max_cmt_id_,
+                        //add:e
+                        data_length_, data_zlength_);
         return pos;
       }
       

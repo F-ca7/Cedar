@@ -748,7 +748,10 @@ namespace oceanbase
         }
         else
         {
-          if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size)))
+          //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+          //if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size)))
+          if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size, log_mgr.get_flushed_clog_id_without_update())))
+          //modify:e
           {
             TBSYS_LOG(WARN, "write log fail log_command=%d log_buffer_=%p serialize_size=%ld ret=%d",
                       log_command, log_buffer_, serialize_size, ret);
@@ -1879,7 +1882,10 @@ namespace oceanbase
       {
         FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
         ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
-        if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator)))
+        //modify chujiajia [log synchronization][multi_cluster] 20160525:b
+        //if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator)))
+        if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, log_mgr.get_flushed_clog_id_without_update())))
+        //modify:e
         {
           TBSYS_LOG(INFO, "log buffer full");
           ret = OB_EAGAIN;
@@ -1919,7 +1925,10 @@ namespace oceanbase
       {
         FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
         ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
-        if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, log_buffer_, serialize_size)))
+        //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+        //if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, log_buffer_, serialize_size)))
+        if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, log_mgr.get_flushed_clog_id_without_update())))
+        //modify:e
         {
           TBSYS_LOG(INFO, "log buffer full");
           ret = OB_EAGAIN;

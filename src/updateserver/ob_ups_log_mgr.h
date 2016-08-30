@@ -138,9 +138,11 @@ namespace oceanbase
       int init(const char* log_dir, const int64_t log_file_max_size,
                ObLogReplayWorker* replay_worker_, ObReplayLogSrc* replay_log_src, ObUpsTableMgr* table_mgr,
                ObUpsSlaveMgr *slave_mgr, ObiRole* obi_role, ObUpsRoleMgr *role_mgr, int64_t log_sync_type
+               //delete chujiajia [log synchronization][multi_cluster] 20160625:b
                //add by lbzhong [Commit Point] 20150824:b
-               , ObCommitPointRunnable* commit_point_thread
+               //, ObCommitPointRunnable* commit_point_thread
                //add:e
+               //delete:e
                );
 
       /// @brief set new replay point
@@ -202,6 +204,13 @@ namespace oceanbase
       public: // 主要接口
         // UPS刚启动，重放本地日志任务的函数
       int replay_local_log();
+      //add chujiajia [log synchronization][multi_cluster] 20160603:b
+      /**
+       * @brief update replay cursor after master switch to slave
+       * @return OB_SUCCESS if success
+       */
+      int update_tmp_log_cursor();
+      //add:e
       int start_log(const ObLogCursor& start_cursor);
         // 重放完本地日志之后，主UPS调用start_log_for_master_write()，
         //主要是初始化log_writer写日志的起始点
@@ -228,7 +237,10 @@ namespace oceanbase
       bool has_nothing_in_buf_to_replay() const;
       bool has_log_to_replay() const;
       int64_t wait_new_log_to_replay(const int64_t timeout_us);
-      int write_log_as_slave(const char* buf, const int64_t len);
+      //modify chujiajia [log synchronization][multi_cluster] 20160625:b
+      //int write_log_as_slave(const char* buf, const int64_t len);
+      int write_log_as_slave(int64_t start_id, const char* buf, const int64_t len);
+      //modify:e
       int64_t to_string(char* buf, const int64_t len) const;
       //add lbzhong [Commit Point] 20150820:b
       /**
@@ -241,8 +253,10 @@ namespace oceanbase
        * @brief [overwrite]
        * @return OB_SUCCESS if success
        */
-      int store_log(const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
-
+      //modify chujiajia [log synchronization][multi_cluster] 20160625:b
+      //int store_log(const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
+      int store_log(int64_t start_id, const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
+      //modify:e
       /**
        * @brief [overwrite]
        * If the ups is master master, it will update was_master to true in this function.
@@ -283,6 +297,15 @@ namespace oceanbase
        * @return OB_SUCCESS if success
        */
       int get_max_log_timestamp_in_buffer(int64_t& max_timestamp) const;
+      //add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+      /**
+       * @brief get max commited log id from log file
+       * @param[out] cmt_id  max commited log id from log file
+       * @param[out] tmp_end_cursor  cursor relevant to the max commited log
+       * @return OB_SUCCESS if success
+       */
+      int get_max_cmt_id_in_file(int64_t& cmt_id, ObLogCursor &tmp_end_cursor) const;
       //add:e
       //delete by lbzhong [Commit point] 20150820:b
       //move this function to public
@@ -387,6 +410,11 @@ namespace oceanbase
       //add lbzhong [Max Log Timestamp] 20150820:b
       int64_t local_max_log_timestamp_when_start_;
       int64_t local_max_log_timestamp_;
+      //add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+      int64_t local_max_cmt_id_when_start_;  ///< max commited log id from log file when server started
+      common::ObLogCursor local_max_log_cursor_;  ///< cursor relevant to the max local log
+      common::ObLogCursor local_commited_max_cursor_;  ///< cursor relevant to the max commited log
       //add:e
     };
   } // end namespace updateserver

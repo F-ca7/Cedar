@@ -46,13 +46,13 @@ int ObMsgRsElection::serialize(char* buf, const int64_t buf_len,
   {
     TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
   }
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // else if (OB_SUCCESS
   // != (ret = serialization::encode_vi64(buf, buf_len, pos, term_)))
   // {
   // TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
   // }
-  // delete:e
+  //delete:e
   else if (OB_SUCCESS
       != (ret = serialization::encode_vi64(buf, buf_len, pos, type_)))
   {
@@ -98,14 +98,14 @@ int ObMsgRsElection::deserialize(const char* buf, const int64_t data_len,
     TBSYS_LOG(ERROR, "deserialize error");
     ret = OB_INVALID_ARGUMENT;
   }
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // else if (OB_SUCCESS
   // != (ret = serialization::decode_vi64(buf, data_len, pos, &term_)))
   // {
   //   TBSYS_LOG(ERROR, "deserialize error");
   //   ret = OB_INVALID_ARGUMENT;
   // }
-  // delete:e
+  //delete:e
   else if (OB_SUCCESS
       != (ret = serialization::decode_vi64(buf, data_len, pos, &type_)))
   {

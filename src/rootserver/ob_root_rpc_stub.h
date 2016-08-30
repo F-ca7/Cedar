@@ -154,7 +154,7 @@ namespace oceanbase
         virtual int set_import_status(const common::ObServer& rs, const common::ObString& table_name,
             const uint64_t table_id, const int32_t status, const int64_t timeout);
         virtual int notify_switch_schema(const common::ObServer& rs, const int64_t timeout);
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         /**
          * @brief send rootserver election message 
          * @param[in] root_server  the rs server of the cluster

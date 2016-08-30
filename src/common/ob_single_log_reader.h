@@ -106,6 +106,25 @@ namespace oceanbase
       virtual  int read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp) = 0;
       //add:e
 
+      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+      /**
+       * @brief read log timestamp from commit log
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      virtual int read_log_for_cmt_id(LogCommand &cmd, uint64_t &log_seq, int64_t& cmt_id) = 0;
+      /**
+       * @brief read log timestamp from commit log
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] data_checksum  data checksum
+       * @return OB_SUCCESS if success
+       */
+      virtual int read_log_for_data_checksum(LogCommand &cmd, uint64_t &log_seq, int64_t& data_checksum) = 0;
+      // add:e
+
       inline uint64_t get_cur_log_file_id()
       {
         return file_id_;

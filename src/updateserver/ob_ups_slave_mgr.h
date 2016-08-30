@@ -74,6 +74,12 @@ namespace oceanbase
         int post_log_to_slave(const common::ObLogCursor& start_cursor, const common::ObLogCursor& end_cursor, const char* data, const int64_t length);
         int wait_post_log_to_slave(const char* data, const int64_t length, int64_t& delay);
         int64_t get_acked_clog_id() const;
+        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        inline int64_t get_acked_clog_id_without_update()
+        {
+          return acked_clog_id_;
+        }
+        //add:e
         int get_slaves(ObServer* slaves, int64_t limit, int64_t& slave_count);
 
         int grant_keep_alive();
@@ -91,6 +97,9 @@ namespace oceanbase
         int64_t n_slave_last_post_;
         ObUpsRoleMgr *role_mgr_;
         ObAckQueue ack_queue_;
+        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        int64_t acked_clog_id_;
+        //add:e
     };
   } // end namespace common
 } // end namespace oceanbase

@@ -86,7 +86,7 @@ namespace oceanbase
         int32_t cmd_port_;
         int32_t cmd_inner_port_;
         int32_t cmd_obmysql_port_;
-        // add by chujiajia [rs_election][multi_cluster] 20150929:b
+        //add chujiajia [rs_election][multi_cluster] 20150929:b
         int64_t cmd_rs_election_random_wait_time_;
         // add:e
         char cmd_ms_type_[OB_MAX_MS_TYPE_LENGTH];

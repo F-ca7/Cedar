@@ -383,7 +383,7 @@ namespace oceanbase
         TBSYS_LOG(INFO, "[NOTICE] master start-up finished");
         root_server_.dump_root_table();
 
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         ObServer current_cluster_ups;
         while(OB_ENTRY_NOT_EXIST == (ret = root_server_.get_master_ups(current_cluster_ups, false)))
         {
@@ -402,7 +402,7 @@ namespace oceanbase
           TBSYS_LOG(INFO, "other_rs_tmp=%s",to_cstring(other_rs_tmp.at(i)));
           other_rs.push_back(other_rs_tmp[i]);
         }
-        //modify by chujiajia [rs_election][multi_cluster] 20151026:b
+        //modify chujiajia [rs_election][multi_cluster] 20151026:b
         //check_rselection_thread_.init(config_.vip_check_period,
         //                              root_server_,
         //                              client_manager,
@@ -1337,7 +1337,7 @@ namespace oceanbase
             ps = false;
           }
           break;
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         case OB_RS_ELECTION:
           ps = write_thread_queue_.push(packet,
                                         (int32_t) config_.write_queue_size,
@@ -1505,7 +1505,7 @@ namespace oceanbase
                   TBSYS_LOG(DEBUG, "handle packet, packe code is %d", packet_code);
                   switch(packet_code)
                   {
-                    // add by chujiajia [rs_election][multi_cluster] 20150823:b
+                    //add chujiajia [rs_election][multi_cluster] 20150823:b
                     case OB_RS_ELECTION:
                       return_code = rt_rs_election(version, *in_buf, req,channel_id, thread_buff);
                       break;
@@ -1862,7 +1862,7 @@ namespace oceanbase
     }
     //del by pangtianze [rs_election] 20160106:b
     /*
-    // add by chujiajia [rs_election][multi_cluster] 20150823:b
+    //add chujiajia [rs_election][multi_cluster] 20150823:b
     int ObRootWorker::rt_rs_election(const int32_t version,
                                      common::ObDataBuffer& in_buff,
                                      onev_request_e
@@ -1911,7 +1911,7 @@ namespace oceanbase
             if(!check_rselection_thread_.get_is_run_election())
             {
               check_rselection_thread_.set_is_run_election(true);
-              // add by chujiajia [rs_election][multi_cluster] 20150909:b
+              //add chujiajia [rs_election][multi_cluster] 20150909:b
               if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
               {
                 root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -1924,11 +1924,11 @@ namespace oceanbase
               TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
             }
             int64_t max_log_timestamp = -1;
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // TBSYS_LOG(INFO, "rt_rs_election:msg.term_=%ld", msg.term_);
             // TBSYS_LOG(INFO, "rt_rs_election:check_rselection_thread_.get_ob_election_node().get_current_term()=%ld",
             //                check_rselection_thread_.get_ob_election_node().get_current_term());
-            // delete:e
+            //delete:e
             TBSYS_LOG(INFO, "rt_rs_election:msg.log_max_timestamp_=%ld", msg.max_log_timestamp_);
             if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_max_log_timestamp(
                                check_rselection_thread_.get_ob_election_node().get_my_ups(),
@@ -1939,12 +1939,12 @@ namespace oceanbase
             TBSYS_LOG(INFO, "rt_rs_election:get_ups_max_log_timestamp=%ld", max_log_timestamp);
             if(((int64_t)(max_log_timestamp)) >= 0)
             {
-              // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+              //delete chujiajia [rs_election][multi_cluster] 20150902:b
               // if ((msg.term_ >= check_rselection_thread_.get_ob_election_node().get_current_term())
               //                    && (msg.max_log_timestamp_ >= max_log_timestamp)
               //                    && (check_rselection_thread_.get_ob_election_node().get_votefor().get_ipv4()
               //                    == 0))
-              // delete:e
+              //delete:e
               if ((msg.max_log_timestamp_ >= max_log_timestamp)
                    && (check_rselection_thread_.get_ob_election_node().get_votefor().get_ipv4() == 0))
               {
@@ -1959,14 +1959,14 @@ namespace oceanbase
                 TBSYS_LOG(INFO, "rt_rs_election:msg.max_log_timestamp_<max_log_timestamp, LOWER_LOG");
                 strcpy(responseinfo, "LOWER_LOG");
               }
-              // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+              //delete chujiajia [rs_election][multi_cluster] 20150902:b
               // else
               // {
               //  sprintf(responseinfo, "%d",(int) check_rselection_thread_.get_ob_election_node().get_current_term());
               //  TBSYS_LOG(INFO, "rt_rs_election:msg.term_<current_term_,responseinfo_current_term()=%ld",
               //                   check_rselection_thread_.get_ob_election_node().get_current_term());
               // }
-              // delete:e
+              //delete:e
             }
           }
         }
@@ -1975,7 +1975,7 @@ namespace oceanbase
           if(!check_rselection_thread_.get_is_run_election())
           {
             check_rselection_thread_.set_is_run_election(true);
-            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            //add chujiajia [rs_election][multi_cluster] 20150909:b
             if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
             {
               root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -1995,22 +1995,22 @@ namespace oceanbase
             check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
             check_rselection_thread_.get_ob_election_node().set_is_leader(false);
             check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
-            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            //add chujiajia [rs_election][multi_cluster] 20150909:b
             root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
             root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-            // add:e
+            //add:e
             check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
             check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
-            // delete:e
+            //delete:e
             strcpy(responseinfo, "YES");
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld,term=%ld",
             //                 ip_tmp,
             //                 check_rselection_thread_.get_ob_election_node().get_lease(),
             //                 check_rselection_thread_.get_ob_election_node().get_current_term());
-            // delete:e
+            //delete:e
             TBSYS_LOG(INFO, "Receive broadcast,leader is %s,lease=%ld",
                             ip_tmp,
                             check_rselection_thread_.get_ob_election_node().get_lease());
@@ -2028,7 +2028,7 @@ namespace oceanbase
           if(!check_rselection_thread_.get_is_run_election())
           {
             check_rselection_thread_.set_is_run_election(true);
-            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            //add chujiajia [rs_election][multi_cluster] 20150909:b
             if(!check_rselection_thread_.get_ob_election_node().get_is_exist_leader())
             {
               root_server_.set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -2040,7 +2040,7 @@ namespace oceanbase
             // add:e
             TBSYS_LOG(INFO, "slave check_rselection_thread is run!");
           }
-          //add by chujiajia [rs_election][multi_cluster] 20150923:b
+          //add chujiajia [rs_election][multi_cluster] 20150923:b
           int64_t max_log_timestamp = -1;
           if (OB_SUCCESS != (ret = rt_rpc_stub_.get_ups_max_log_timestamp(
                             check_rselection_thread_.get_ob_election_node().get_my_ups(),
@@ -2102,28 +2102,28 @@ namespace oceanbase
           }
           // modify 20151128:e
           //add:e
-          //delete by chujiajia [rs_election][multi_cluster] 20150923:b
+          //delete chujiajia [rs_election][multi_cluster] 20150923:b
           //if (check_rselection_thread_.get_ob_election_node().get_leaderinfo().get_ipv4() == 0)
           //{
           //  check_rselection_thread_.get_ob_election_node().set_leaderinfo(ip_receive, msg.addr_.get_port());
           //   check_rselection_thread_.get_ob_election_node().set_is_exist_leader(true);
           //  check_rselection_thread_.get_ob_election_node().set_role(OB_FOLLOWER);
-            // add by chujiajia [rs_election][multi_cluster] 20150909:b
+            //add chujiajia [rs_election][multi_cluster] 20150909:b
           //  root_server_.set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
           //  root_server_.set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
             // add:e
           //  check_rselection_thread_.get_ob_election_node().set_is_leader(false);
           //  check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
          //   check_rselection_thread_.get_ob_election_node().set_is_lower_log(false);
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // check_rselection_thread_.get_ob_election_node().set_current_term(int(msg.term_));
             // delete:e
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld,term=%ld",
             //               ip_receive,
             //               check_rselection_thread_.get_ob_election_node().get_lease(),
             //               check_rselection_thread_.get_ob_election_node().get_current_term());
-            // delete:e
+            //delete:e
          //   TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
          //                   ip_receive,
          //                   check_rselection_thread_.get_ob_election_node().get_lease());
@@ -2133,13 +2133,13 @@ namespace oceanbase
          // {
          //   strcpy(responseinfo, "YES");
          //   check_rselection_thread_.get_ob_election_node().set_lease(msg.lease_);
-            // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+            //delete chujiajia [rs_election][multi_cluster] 20150902:b
             // TBSYS_LOG(INFO,
             //          "Receive extend_lease request! leader is %s,lease=%ld,term=%ld",
             //          ip_tmp,
             //          check_rselection_thread_.get_ob_election_node().get_lease(),
             //          check_rselection_thread_.get_ob_election_node().get_current_term());
-            // delete:e
+            //delete:e
         //    TBSYS_LOG(INFO,"Receive extend_lease request! leader is %s,lease=%ld",
         //                   ip_tmp,
         //                   check_rselection_thread_.get_ob_election_node().get_lease());

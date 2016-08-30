@@ -33,9 +33,9 @@ namespace oceanbase
         ObServer addr_;
         int64_t lease_;
         int64_t max_log_timestamp_;
-        // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+        //delete chujiajia [rs_election][multi_cluster] 20150902:b
         //int64_t term_;
-        // delete:e
+        //delete:e
         int64_t type_;
         char server_version_[OB_SERVER_VERSION_LENGTH];
         // add by zhangcd [rs_election][auto_elect_flag] 20151129:b

@@ -140,6 +140,24 @@ int ObLogWriter::write_log(const LogCommand cmd, const char* log_data, const int
   return ret;
 }
 
+//add chujiajia [log synchronization][multi_cluster] 20160328:b
+int ObLogWriter::write_log(const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+{
+  int ret = check_inner_stat();
+
+  if (OB_SUCCESS != ret)
+  {
+    TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = log_generator_.write_log(cmd, log_data, data_len, max_cmt_id))
+           && OB_BUF_NOT_ENOUGH != ret)
+  {
+    TBSYS_LOG(WARN, "log_generator.write_log(cmd=%d, buf=%p[%ld], max_cmt_id=%ld)=>%d", cmd, log_data, data_len, max_cmt_id, ret);
+  }
+  return ret;
+}
+//add:e
+
 inline int64_t get_align_padding_size(const int64_t x, const int64_t mask)
 {
   return -x & mask;
@@ -153,10 +171,16 @@ int64_t ObLogWriter::to_string(char* buf, const int64_t len) const
   return pos;
 }
 
-int ObLogWriter::write_keep_alive_log()
+//modify chujiajia [log synchronization][multi_cluster] 20160328:b
+//int ObLogWriter::write_keep_alive_log()
+int ObLogWriter::write_keep_alive_log(const bool is_ups_nop, const int64_t max_cmt_id)
+//modify:e
 {
   int err = OB_SUCCESS;
-  if (OB_SUCCESS != (err = log_generator_.gen_keep_alive()))
+  //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+  //if (OB_SUCCESS != (err = log_generator_.gen_keep_alive()))
+  if (OB_SUCCESS != (err = log_generator_.gen_keep_alive(is_ups_nop, max_cmt_id)))
+  //modify:e
   {
     TBSYS_LOG(ERROR, "write_keep_alive_log()=>%d", err);
   }
@@ -192,7 +216,10 @@ int ObLogWriter::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
   {
     TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
   }
-  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
+  //modify:e
   {
     TBSYS_LOG(ERROR, "log_generator.get_log()=>%d", ret);
   }
@@ -260,7 +287,10 @@ int ObLogWriter::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
   {
     TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
   }
-  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
+  //modify:e
   {
     TBSYS_LOG(ERROR, "log_generator.get_log()=>%d", ret);
   }
@@ -341,7 +371,10 @@ int ObLogWriter::write_and_flush_log(const LogCommand cmd, const char* log_data,
     ret = OB_LOG_NOT_CLEAR;
     TBSYS_LOG(ERROR, "log_buffer not empty.");
   }
-  else if (OB_SUCCESS != (ret = write_log(cmd, log_data, data_len)))
+  //modify chujiajia [log synchronization][multi_cluster] 20160627:b
+  //else if (OB_SUCCESS != (ret = write_log(cmd, log_data, data_len)))
+  else if (OB_SUCCESS != (ret = write_log(cmd, log_data, data_len, get_flushed_clog_id_without_update())))
+  //modify:e
   {
     TBSYS_LOG(ERROR, "write_log(cmd=%d, log_data=%p[%ld])", cmd, log_data, data_len);
   }

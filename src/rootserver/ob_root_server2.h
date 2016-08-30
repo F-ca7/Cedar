@@ -175,7 +175,7 @@ namespace oceanbase
 
         bool init(const int64_t now, ObRootWorker* worker);
 
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         bool is_master_ups_lease_valid();
         bool get_is_have_inited();
         // add:e

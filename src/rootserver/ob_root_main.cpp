@@ -137,7 +137,7 @@ namespace oceanbase
       }
       // add:e
 
-      // add by chujiajia [rs_election][multi_cluster] 20150929:b
+      //add chujiajia [rs_election][multi_cluster] 20150929:b
       if (cmd_rs_election_random_wait_time_ > 0)
       {
         rs_config_.rs_election_random_wait_time = cmd_rs_election_random_wait_time_; /* listen port */

@@ -381,3 +381,140 @@ int ObLogReader::read_log_(LogCommand& cmd, uint64_t &log_seq, int64_t& timestam
   return ret;
 }
 //add:e
+
+//add chujiajia [log synchronization][multi_cluster] 20160419:b
+int ObLogReader::read_log_for_cmt_id(uint64_t &log_seq, int64_t& cmt_id)
+{
+  int ret = OB_SUCCESS;
+  int open_err = OB_SUCCESS;
+  LogCommand cmd = OB_LOG_UNKNOWN;
+  if (!is_initialized_)
+  {
+    TBSYS_LOG(ERROR, "ObLogReader has not been initialized");
+    ret = OB_NOT_INIT;
+  }
+  else if (NULL == log_file_reader_)
+  {
+    TBSYS_LOG(ERROR, "log_file_reader_ is NULL, this should not be reached");
+    ret = OB_ERROR;
+  }
+  else
+  {
+    if (!log_file_reader_->is_opened())
+    {
+      ret = open_log_(cur_log_file_id_);
+    }
+    if (OB_SUCCESS == ret)
+    {
+      ret = read_log_for_cmt_id_(cmd, log_seq, cmt_id);
+      if (OB_SUCCESS == ret)
+      {
+        cur_log_seq_id_ = log_seq;
+      }
+      if (OB_SUCCESS == ret && OB_LOG_SWITCH_LOG == cmd)
+      {
+        TBSYS_LOG(INFO, "reach the end of log[cur_log_file_id_=%lu]", cur_log_file_id_);
+        if (OB_SUCCESS != (ret = log_file_reader_->close()))
+        {
+          TBSYS_LOG(ERROR, "log_file_reader_ close error[ret=%d]", ret);
+        }
+        else if (OB_SUCCESS != (open_err = open_log_(++cur_log_file_id_, log_seq))
+                 && OB_READ_NOTHING != open_err)
+        {
+          TBSYS_LOG(WARN, "open_log(file_id=%ld, seq=%ld)=>%d", cur_log_file_id_, log_seq, open_err);
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+int ObLogReader::read_log_for_cmt_id_(LogCommand& cmd, uint64_t &log_seq, int64_t& cmt_id)
+{
+  int ret = OB_SUCCESS;
+
+  if (NULL == log_file_reader_)
+  {
+    TBSYS_LOG(ERROR, "log_file_reader_ is NULL, this should not be reached");
+    ret = OB_ERROR;
+  }
+  else
+  {
+    ret = log_file_reader_->read_log_for_cmt_id(cmd, log_seq, cmt_id);
+    if (OB_SUCCESS != ret && OB_READ_NOTHING != ret)
+    {
+      TBSYS_LOG(WARN, "log_file_reader_ read_log error[ret=%d]", ret);
+    }
+  }
+
+  return ret;
+}
+
+int ObLogReader::read_log_for_data_checksum(uint64_t &log_seq, int64_t& data_checksum)
+{
+  int ret = OB_SUCCESS;
+  int open_err = OB_SUCCESS;
+  LogCommand cmd = OB_LOG_UNKNOWN;
+  if (!is_initialized_)
+  {
+    TBSYS_LOG(ERROR, "ObLogReader has not been initialized");
+    ret = OB_NOT_INIT;
+  }
+  else if (NULL == log_file_reader_)
+  {
+    TBSYS_LOG(ERROR, "log_file_reader_ is NULL, this should not be reached");
+    ret = OB_ERROR;
+  }
+  else
+  {
+    if (!log_file_reader_->is_opened())
+    {
+      ret = open_log_(cur_log_file_id_);
+    }
+    if (OB_SUCCESS == ret)
+    {
+      ret = read_log_for_data_checksum_(cmd, log_seq, data_checksum);
+      if (OB_SUCCESS == ret)
+      {
+        cur_log_seq_id_ = log_seq;
+      }
+      if (OB_SUCCESS == ret && OB_LOG_SWITCH_LOG == cmd)
+      {
+        TBSYS_LOG(INFO, "reach the end of log[cur_log_file_id_=%lu]", cur_log_file_id_);
+        if (OB_SUCCESS != (ret = log_file_reader_->close()))
+        {
+          TBSYS_LOG(ERROR, "log_file_reader_ close error[ret=%d]", ret);
+        }
+        else if (OB_SUCCESS != (open_err = open_log_(++cur_log_file_id_, log_seq))
+                 && OB_READ_NOTHING != open_err)
+        {
+          TBSYS_LOG(WARN, "open_log(file_id=%ld, seq=%ld)=>%d", cur_log_file_id_, log_seq, open_err);
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+int ObLogReader::read_log_for_data_checksum_(LogCommand& cmd, uint64_t &log_seq, int64_t& data_checksum)
+{
+  int ret = OB_SUCCESS;
+
+  if (NULL == log_file_reader_)
+  {
+    TBSYS_LOG(ERROR, "log_file_reader_ is NULL, this should not be reached");
+    ret = OB_ERROR;
+  }
+  else
+  {
+    ret = log_file_reader_->read_log_for_data_checksum(cmd, log_seq, data_checksum);
+    if (OB_SUCCESS != ret && OB_READ_NOTHING != ret)
+    {
+      TBSYS_LOG(WARN, "log_file_reader_ read_log error[ret=%d]", ret);
+    }
+  }
+  return ret;
+}
+// add:e
+
+

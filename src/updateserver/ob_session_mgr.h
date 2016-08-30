@@ -582,7 +582,59 @@ namespace oceanbase
         IncSeq& get_trans_seq() { return trans_seq_; }
         void enable_start_write_session(){ allow_start_write_session_ = true; }
         void disable_start_write_session(){ allow_start_write_session_ = false; }
-
+        //add chujiajia [log synchronization][multi_cluster] 20160606:b
+        inline int reset(int32_t max_ro_num, int32_t max_rp_num, int32_t max_rw_num)
+        {
+          int ret = common::OB_SUCCESS;
+          ctx_map_.destroy();
+          for (int i = 0; i < SESSION_TYPE_NUM; i++)
+          {
+            BaseSessionCtx *ctx = NULL;
+            while (common::OB_SUCCESS == ctx_list_[i].pop(ctx))
+            {
+              if (NULL != ctx
+                  && NULL != factory_)
+              {
+                factory_->free(ctx);
+              }
+            }
+            ctx_list_[i].destroy();
+          }
+          if (common::OB_SUCCESS != (ret = ctx_map_.init(max_ro_num + max_rp_num + max_rw_num)))
+          {
+            TBSYS_LOG(WARN, "init ctx_map fail, ret=%d num=%u", ret, max_ro_num + max_rp_num + max_rw_num);
+          }
+          else
+          {
+            const int64_t MAX_CTX_NUM[SESSION_TYPE_NUM] = {max_ro_num, max_rp_num, max_rw_num};
+            BaseSessionCtx *ctx = NULL;
+            for (int i = 0; i < SESSION_TYPE_NUM; i++)
+            {
+              if (common::OB_SUCCESS != (ret = ctx_list_[i].init(MAX_CTX_NUM[i])))
+              {
+                TBSYS_LOG(WARN, "init ctx_list fail, ret=%d type=%d max_ctx_num=%ld", ret, i, MAX_CTX_NUM[i]);
+                break;
+              }
+              for (int64_t j = 0; common::OB_SUCCESS == ret && j < MAX_CTX_NUM[i]; j++)
+              {
+                if (NULL == (ctx = factory_->alloc((SessionType)i, *this)))
+                {
+                  TBSYS_LOG(WARN, "alloc ctx fail, type=%d", i);
+                  ret = common::OB_MEM_OVERFLOW;
+                  break;
+                }
+                if (common::OB_SUCCESS != (ret = ctx_list_[i].push(ctx)))
+                {
+                  TBSYS_LOG(WARN, "push ctx to list fail, ret=%d ctx=%p", ret, ctx);
+                  break;
+                }
+              }
+            }
+          }
+          inited_ = true;
+          return ret;
+        }
+        //add:e
       private:
         BaseSessionCtx *alloc_ctx_(const SessionType type);
         void free_ctx_(BaseSessionCtx *ctx);

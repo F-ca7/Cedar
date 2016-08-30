@@ -91,12 +91,40 @@ namespace oceanbase
       /// @retval OB_BUF_NOT_ENOUGH 内部缓冲区已满
       /// @retval otherwise 失败
       int write_log(const LogCommand cmd, const char* log_data, const int64_t data_len);
-
+      //add chujiajia [log synchronization][multi_cluster] 20160328:b
+      /**
+       * @brief write log
+       * @param[in] cmd  log command
+       * @param[in] log_data  log content
+       * @param[in] data_len  the length of the log data
+       * @param[in] max_cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      int write_log(const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id);
+      /**
+       * @brief write log
+       * @param[in] cmd  log command
+       * @param[in] data  log content
+       * @param[in] max_cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      template<typename T>
+      int write_log(const LogCommand cmd, const T& data, const int64_t max_cmt_id);
+      /**
+       * @brief get flushed commited max log id without updating the flushed_clog_id
+       * @return flushed commited  max log id
+       */
+      inline int64_t get_flushed_clog_id_without_update()
+      {
+        return slave_mgr_->get_acked_clog_id_without_update();
+      }
+      //add:e
       template<typename T>
       int write_log(const LogCommand cmd, const T& data);
-
-      int write_keep_alive_log();
-
+      //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+      //int write_keep_alive_log()
+      int write_keep_alive_log(const bool is_ups_nop, const int64_t max_cmt_id);
+      //modify:e
         int async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
         int64_t get_flushed_clog_id();
       /// @brief 将缓冲区中的日志写入磁盘
@@ -183,7 +211,29 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add chujiajia [log synchronization][multi_cluster] 20160603:b
+    /**
+     * @brief write log with input parameters
+     * @param[out] cmd  log command
+     * @param[out] data  log content
+     * @param[out] max_cmt_id  max commited log id
+     * @return OB_SUCCESS if success
+     */
+    template<typename T>
+    int ObLogWriter::write_log(const LogCommand cmd, const T& data, const int64_t max_cmt_id)
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS != (ret = check_inner_stat()))
+      {
+        TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
+      }
+      else if(OB_SUCCESS != (ret = log_generator_.write_log(cmd, data, max_cmt_id)))
+      {
+        TBSYS_LOG(WARN, "log_generator.write_log(cmd=%d, data=%p)=>%d", cmd, &data, ret);
+      }
+      return ret;
+    }
+    //add:e
   } // end namespace common
 } // end namespace oceanbase
 

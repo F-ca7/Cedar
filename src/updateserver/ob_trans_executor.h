@@ -241,6 +241,13 @@ namespace oceanbase
         void log_trans_info() const;
         int &thread_errno();
         int64_t &batch_start_time();
+        //add chujiajia [log synchronization][multi_cluster] 20160606:b
+        /**
+         * @brief handle uncommited session list after master switch to slave
+         * @return OB_SUCCESS if success
+         */
+        int handle_uncommited_session_list_after_switch();
+        //add:e
       private:
         bool handle_in_situ_(const int pcode);
         int push_task_(Task &task);

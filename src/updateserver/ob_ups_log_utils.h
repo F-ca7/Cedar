@@ -296,6 +296,22 @@ namespace oceanbase
                               common::ObLogCursor& end_cursor, IObLogApplier* log_applier);
     int replay_log_in_buf_func(const char* log_data, int64_t data_len, IObLogApplier* log_applier);
 
+    //add chujiajia [log synchronization][multi_cluster] 20160524:b
+    /**
+     * @brief get tmp log data checksum
+     * @param[in] log_dir  log directory
+     * @param[out] seq  log id
+     * @param[out] tmp_data_checksum  uncertain log data checksum
+     * @param[in] start_cursor  start cursor
+     * @param[out] end_cursor  end cursor
+     * @return OB_SUCCESS if success
+     */
+    int get_tmp_log_data_checksum(const char* log_dir,
+                                 uint64_t &seq,
+                                 int64_t &tmp_data_checksum,
+                                 const ObLogCursor& start_cursor,
+                                 ObLogCursor& end_cursor);
+    //add:e
 
     int serialize_log_entry(char* buf, const int64_t len, int64_t& pos, common::ObLogEntry& entry,
                             const char* log_data, const int64_t data_len);
@@ -307,11 +323,23 @@ namespace oceanbase
                             const char* log_data, const int64_t data_len);
 
     int parse_log_buffer(const char* log_data, const int64_t len,
-                         int64_t& start_id, int64_t& end_id);
+                         int64_t& start_id, int64_t& end_id
+                         //add chujiajia [log synchronization][multi_cluster] 20160530:b
+                         , int64_t& master_cmt_log_id
+                         //add:e
+                         );
     int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos,
-                        int64_t& start_id, int64_t& end_id);
+                        int64_t& start_id, int64_t& end_id
+                        //add chujiajia [log synchronization][multi_cluster] 20160530:b
+                        , int64_t& master_cmt_log_id
+                        //add:e
+                        );
     int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos,
-                        int64_t& start_id, int64_t& end_id, bool& is_file_end);
+                        int64_t& start_id, int64_t& end_id,
+                        //add chujiajia [log synchronization][multi_cluster] 20160530:b
+                        int64_t& master_cmt_log_id,
+                        //add:e
+                        bool& is_file_end);
     int trim_log_buffer(const int64_t offset, const int64_t align_bits,
                         const char* log_data, const int64_t len, int64_t& end_pos,
                         int64_t& start_id, int64_t& end_id, bool& is_file_end);
@@ -364,6 +392,12 @@ namespace oceanbase
      * @return OB_SUCCESS if success
      */
     int get_max_timestamp_from_log_buffer(const char* log_data, const int64_t data_len, const common::ObLogCursor& start_cursor, int64_t& max_timestamp);
+    //add:e
+    //add chujiajia [log synchronization][multi_cluster] 20150419:b
+    int get_local_max_cmt_id_func(const char* log_dir, const uint64_t log_file_id_by_sst, int64_t& cmt_id, ObLogCursor &tmp_end_cursor);
+    int get_local_max_cmt_id_func(const char* log_dir, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor, int64_t& cmt_id);
+    int get_cursor_by_log_id(const char* log_dir, const int64_t log_id, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor);
+    int get_checksum_by_log_id(const char* log_dir, const int64_t log_id, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor, int64_t &checksum);
     //add:e
  } // end namespace updateserver
 } // end namespace oceanbase

@@ -23,7 +23,11 @@ namespace oceanbase
     /// modify the reserve_ to timestamp_
     ObRecordHeader::ObRecordHeader()
       :magic_(0), header_length_(0), version_(0), header_checksum_(0)
-       , timestamp_(0), data_length_(0), data_zlength_(0), data_checksum_(0)
+       , timestamp_(0),
+        //add chujiajia [log synchronization][multi_cluster] 20160326:b
+        max_cmt_id_(0),
+        //add:e
+        data_length_(0), data_zlength_(0), data_checksum_(0)
     // modify:e
     {
     }
@@ -40,6 +44,9 @@ namespace oceanbase
       /// modify the reserve_ to timestamp_
       checksum = static_cast<int16_t>(checksum ^ timestamp_);
       // modify:e
+      //add chujiajia [log synchronization][multi_cluster] 20160326:b
+      format_i64(max_cmt_id_, checksum);
+      //add:e
       format_i32(data_length_, checksum);
       format_i32(data_zlength_, checksum);
       format_i64(data_checksum_, checksum);
@@ -59,6 +66,9 @@ namespace oceanbase
       /// modify the reserve_ to timestamp_
       checksum = static_cast<int16_t>(checksum ^ timestamp_);
       // modify:e
+      //add chujiajia [log synchronization][multi_cluster] 20160326:b
+      format_i64(max_cmt_id_, checksum);
+      //add:e
       format_i32(data_length_, checksum);
       format_i32(data_zlength_, checksum);
       format_i64(data_checksum_, checksum);
@@ -283,6 +293,9 @@ namespace oceanbase
           /// modify the reserve_ to timestamp_
           && (OB_SUCCESS == serialization::encode_i64(buf, buf_len, pos, timestamp_))
           // modify:e
+          //add chujiajia [log synchronization][multi_cluster] 20160326:b
+          && (OB_SUCCESS == serialization::encode_i64(buf, buf_len, pos, max_cmt_id_))
+          //add:e
           && (OB_SUCCESS == serialization::encode_i32(buf, buf_len, pos, data_length_))
           && (OB_SUCCESS == serialization::encode_i32(buf, buf_len, pos, data_zlength_))
           && (OB_SUCCESS == serialization::encode_i64(buf, buf_len, pos, data_checksum_)))
@@ -316,6 +329,9 @@ namespace oceanbase
           /// modify the reserve_ to timestamp_
           && (OB_SUCCESS == serialization::decode_i64(buf, data_len, pos, &timestamp_))
           // modify:e
+          //add chujiajia [log synchronization][multi_cluster] 20160326:b
+          && (OB_SUCCESS == serialization::decode_i64(buf, data_len, pos, &max_cmt_id_))
+          //add:e
           && (OB_SUCCESS == serialization::decode_i32(buf, data_len, pos, &data_length_))
           && (OB_SUCCESS == serialization::decode_i32(buf, data_len, pos, &data_zlength_))
           && (OB_SUCCESS == serialization::decode_i64(buf, data_len, pos, &data_checksum_)))
@@ -340,6 +356,9 @@ namespace oceanbase
         /// modify the reserve_ to timestamp_
         + serialization::encoded_length_i64(timestamp_)
         // modify:e
+        //add chujiajia [log synchronization][multi_cluster] 20160326:b
+        + serialization::encoded_length_i64(max_cmt_id_)
+        //add:e
         + serialization::encoded_length_i32(data_length_) 
         + serialization::encoded_length_i32(data_zlength_) 
         + serialization::encoded_length_i64(data_checksum_));

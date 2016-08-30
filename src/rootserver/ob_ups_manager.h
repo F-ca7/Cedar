@@ -99,7 +99,7 @@ namespace oceanbase
                      // modify:e
         virtual ~ObUpsManager();
 
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         /**
          * @brief if master ups lease valid
          * @return true or false
@@ -140,9 +140,9 @@ namespace oceanbase
         bool did_ups_exist(const common::ObServer &addr) const;
         bool is_ups_master(const common::ObServer &addr) const;
         bool has_master() const;
-        // del by chujiajia [rs_election][multi_cluster] 20150823:b
+        //delete chujiajia [rs_election][multi_cluster] 20150823:b
         // bool is_master_lease_valid() const;
-        // del:e
+        //delete:e
         bool need_grant(int64_t now, const ObUps &ups) const;
         int send_granting_msg(const common::ObServer &addr, common::ObMsgUpsHeartbeat &msg);
         int select_new_ups_master();

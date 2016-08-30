@@ -640,6 +640,53 @@ namespace oceanbase
       return err;
     }
 
+    //add chujiajia [log synchronization][multi_cluster] 20160524:b
+    int get_tmp_log_data_checksum(const char* log_dir,
+                                  uint64_t &seq,
+                                  int64_t &tmp_data_checksum,
+                                  const ObLogCursor& start_cursor,
+                                  ObLogCursor& end_cursor)
+    {
+      int err = OB_SUCCESS;
+      ObLogReader log_reader;
+      ObDirectLogReader direct_reader;
+      end_cursor = start_cursor;
+      if (NULL == log_dir || start_cursor.file_id_ < 0 || start_cursor.log_id_ < 0 || start_cursor.offset_ < 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "invalid argument: log_dir=%s, log_cursor=%s", log_dir, start_cursor.to_str());
+      }
+      else if (OB_SUCCESS != (err = log_reader.init(&direct_reader, log_dir, start_cursor.file_id_, start_cursor.log_id_-1, false)))
+      {
+        TBSYS_LOG(ERROR, "ObLogReader init error[err=%d]", err);
+      }
+      while (OB_SUCCESS == err && end_cursor.log_id_ <= static_cast<int64_t>(seq))
+      {
+        //TBSYS_LOG(INFO, "log_cursor=%s", end_cursor.to_str());
+        if (OB_SUCCESS != (err = log_reader.read_log_for_data_checksum(seq, tmp_data_checksum)))
+        {
+          TBSYS_LOG(ERROR, "ObLogReader read error[ret=%d]", err);
+          break;
+        }
+        else if (static_cast<int64_t>(seq) == end_cursor.log_id_)
+        {
+          TBSYS_LOG(INFO, "tmp_data_checksum:%ld, seq:%ld", tmp_data_checksum, static_cast<int64_t>(seq));
+          TBSYS_LOG(INFO, "compare_tmp_log, log_dir:%s, file_id:%ld, log_id:%ld", log_dir, end_cursor.file_id_, end_cursor.log_id_);
+          break;
+        }
+        if (OB_SUCCESS != (err = log_reader.get_next_cursor(end_cursor)))
+        {
+          TBSYS_LOG(ERROR, "log_reader.get_cursor()=>%d",  err);
+          break;
+        }
+      }
+      TBSYS_LOG(INFO, "compare_tmp_log start_cursor.log_id_:%ld, end_cursor.log_id_:%ld", start_cursor.log_id_, end_cursor.log_id_);
+      TBSYS_LOG(INFO, "tmp_data_checksum:%ld, seq:%ld", tmp_data_checksum, static_cast<int64_t>(seq));
+      err = OB_SUCCESS;
+      return err;
+    }
+    //add:e
+
     int replay_log_in_buf_func(const char* log_data, int64_t data_len, IObLogApplier* log_applier)
     {
       int err = OB_SUCCESS;
@@ -792,11 +839,17 @@ namespace oceanbase
       return err;
     }
 
-    int parse_log_buffer(const char* log_data, const int64_t len, int64_t& start_id, int64_t& end_id)
+    //modify chujiajia [log synchronization][multi_cluster] 20160530:b
+    //int parse_log_buffer(const char* log_data, const int64_t len, int64_t& start_id, int64_t& end_id)
+    int parse_log_buffer(const char* log_data, const int64_t len, int64_t& start_id, int64_t& end_id, int64_t& master_cmt_log_id)
+    //modify:e
     {
       int err = OB_SUCCESS;
       int64_t end_pos = 0;
-      if (OB_SUCCESS != (err = trim_log_buffer(log_data, len, end_pos, start_id, end_id)))
+      //modify chujiajia [log synchronization][multi_cluster] 20160530:b
+      //if (OB_SUCCESS != (err = trim_log_buffer(log_data, len, end_pos, start_id, end_id)))
+      if (OB_SUCCESS != (err = trim_log_buffer(log_data, len, end_pos, start_id, end_id, master_cmt_log_id)))
+      //modify:e
       {
         TBSYS_LOG(ERROR, "trim_log_buffer(log_data=%p[%ld])=>%d", log_data, len, err);
       }
@@ -807,15 +860,22 @@ namespace oceanbase
       return err;
     }
 
-    int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos,
-                        int64_t& start_id, int64_t& end_id)
+    //modify chujiajia [log synchronization][multi_cluster] 20160530:b
+    //int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos, int64_t& start_id, int64_t& end_id)
+    int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos, int64_t& start_id, int64_t& end_id, int64_t& master_cmt_log_id)
+    //modify:e
     {
       bool is_file_end = false;
-      return trim_log_buffer(log_data, len, end_pos, start_id, end_id, is_file_end);
+      //modify chujiajia [log synchronization][multi_cluster] 20160530:b
+      //return trim_log_buffer(log_data, len, end_pos, start_id, end_id, is_file_end);
+      return trim_log_buffer(log_data, len, end_pos, start_id, end_id, master_cmt_log_id, is_file_end);
+      //modify:e
     }
 
-    int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos,
-                        int64_t& start_id, int64_t& end_id, bool& is_file_end)
+    //modify chujiajia [log synchronization][multi_cluster] 20160530:b
+    //int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos, int64_t& start_id, int64_t& end_id, bool& is_file_end)
+    int trim_log_buffer(const char* log_data, const int64_t len, int64_t& end_pos, int64_t& start_id, int64_t& end_id, int64_t& master_cmt_log_id, bool& is_file_end)
+    //modify:e
     {
       int err = OB_SUCCESS;
       int64_t pos = 0;
@@ -845,6 +905,12 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "log_entry.check_data_integrity()=>%d", err);
         }
+        //add chujiajia [log synchronization][multi_cluster] 20160530:b
+        else if(log_entry.header_.max_cmt_id_ > master_cmt_log_id)
+        {
+          master_cmt_log_id = log_entry.header_.max_cmt_id_;
+	    }
+        //add:e
 
         if (OB_SUCCESS != err)
         {}
@@ -1302,5 +1368,204 @@ namespace oceanbase
       return err;
     }
     //add:e
+    //add chujiajia [log synchronization][multi_cluster] 20150419:b
+    int get_local_max_cmt_id_func(const char* log_dir, const uint64_t log_file_id_by_sst, int64_t& cmt_id, ObLogCursor &tmp_end_cursor)
+    {
+      int err = OB_SUCCESS;
+      ObLogCursor new_cursor;
+      int64_t max_log_file_id = 0;
+      ObLogDirScanner scanner;
+      ObLogCursor log_cursor;
+      set_cursor(log_cursor, 0, 0, 0);
+      if (NULL == log_dir)
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "log_dir == NULL");
+      }
+      else if (OB_SUCCESS != (err = scanner.init(log_dir)) && OB_DISCONTINUOUS_LOG != err)
+      {
+        TBSYS_LOG(ERROR, "scanner.init(log_dir=%s)=>%d", log_dir, err);
+      }
+      else if (OB_SUCCESS != (err = scanner.get_max_log_id((uint64_t&)max_log_file_id)) && OB_ENTRY_NOT_EXIST != err)
+      {
+        TBSYS_LOG(ERROR, "get_max_log_file_id error[ret=%d]", err);
+      }
+      else
+      {
+        err = OB_SUCCESS;
+        if (OB_INVALID_ID != log_file_id_by_sst)
+        {
+          max_log_file_id = max(max_log_file_id, log_file_id_by_sst);
+        }
+        TBSYS_LOG(INFO, "max_log_file_id=%ld, log_file_id_by_sst=%ld", max_log_file_id, log_file_id_by_sst);
+        log_cursor.file_id_ = max(max_log_file_id, 0);
+        if (log_cursor.file_id_ >0 && OB_SUCCESS != (err = get_local_max_cmt_id_func(log_dir, log_cursor, new_cursor, cmt_id)))
+        {
+          TBSYS_LOG(ERROR, "get_local_max_cmt_id_func(file_id=%ld)=>%d", log_cursor.file_id_, err);
+        }
+        else
+        {
+          log_cursor = new_cursor;
+        }
+        if (OB_SUCCESS == err && log_cursor.log_id_ <= 0 && log_cursor.file_id_ - 1 > 0 && cmt_id <= 0)
+        {
+          ObLogCursor tmp_cursor = log_cursor;
+          tmp_cursor.file_id_--;
+          if (OB_SUCCESS != (err = get_local_max_cmt_id_func(log_dir, tmp_cursor, new_cursor, cmt_id)))
+          {
+            TBSYS_LOG(ERROR, "get_local_max_cmt_id_func(): try previous file[id=%ld]=>%d", log_cursor.file_id_, err);
+          }
+          else if (new_cursor.log_id_ > 0)
+          {
+            log_cursor = new_cursor;
+          }
+        }
+      }
+      tmp_end_cursor = log_cursor;
+      return err;
+    }
+
+    int get_local_max_cmt_id_func(const char* log_dir, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor, int64_t& cmt_id)
+    {
+      int err = OB_SUCCESS;
+      ObLogReader log_reader;
+      ObDirectLogReader direct_reader;
+      uint64_t seq;
+      end_cursor = start_cursor;
+
+      if (NULL == log_dir || start_cursor.file_id_ < 0 || start_cursor.log_id_ < 0 || start_cursor.offset_ < 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "invalid argument: log_dir=%s, log_cursor=%s", log_dir, start_cursor.to_str());
+      }
+      else if (OB_SUCCESS != (err = log_reader.init(&direct_reader, log_dir, start_cursor.file_id_, 0, false)))
+      {
+        TBSYS_LOG(ERROR, "ObLogReader init error[err=%d]", err);
+      }
+      while (OB_SUCCESS == err)
+      {
+        if (OB_SUCCESS != (err = log_reader.read_log_for_cmt_id(seq, cmt_id)) &&
+            OB_FILE_NOT_EXIST != err && OB_READ_NOTHING != err && OB_LAST_LOG_RUINNED != err)
+        {
+          TBSYS_LOG(ERROR, "ObLogReader read error[ret=%d]", err);
+        }
+        if (OB_LAST_LOG_RUINNED == err)
+        {
+          TBSYS_LOG(WARN, "last_log[%s] broken!", end_cursor.to_str());
+          err = OB_ITER_END;
+        }
+        else if (OB_SUCCESS != err)
+        {
+          err = OB_ITER_END; // replay all
+        }
+        else if (OB_SUCCESS != (err = log_reader.get_next_cursor(end_cursor)))
+        {
+          TBSYS_LOG(ERROR, "log_reader.get_cursor()=>%d",  err);
+        }
+      }
+      if (OB_ITER_END == err)
+      {
+        err = OB_SUCCESS;
+      }
+      return err;
+    }
+
+    int get_cursor_by_log_id(const char* log_dir, const int64_t log_id, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor)
+    {
+      int err = OB_SUCCESS;
+      ObLogReader log_reader;
+      ObDirectLogReader direct_reader;
+      uint64_t seq = 1;
+      end_cursor = start_cursor;
+      int64_t cmt_id = 0;
+      if (NULL == log_dir || start_cursor.file_id_ < 0 || start_cursor.log_id_ < 0 || start_cursor.offset_ < 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "invalid argument: log_dir=%s, log_cursor=%s", log_dir, start_cursor.to_str());
+      }
+      else if (OB_SUCCESS != (err = log_reader.init(&direct_reader, log_dir, start_cursor.file_id_, 0, false)))
+      {
+        TBSYS_LOG(ERROR, "ObLogReader init error[err=%d]", err);
+      }
+      while (OB_SUCCESS == err)
+      {
+        if (OB_SUCCESS != (err = log_reader.read_log_for_cmt_id(seq, cmt_id)) &&
+            OB_FILE_NOT_EXIST != err && OB_READ_NOTHING != err && OB_LAST_LOG_RUINNED != err)
+        {
+          TBSYS_LOG(ERROR, "ObLogReader read error[ret=%d]", err);
+        }
+        if (OB_LAST_LOG_RUINNED == err)
+        {
+          TBSYS_LOG(WARN, "last_log[%s] broken!", end_cursor.to_str());
+          err = OB_ITER_END;
+        }
+        else if (OB_SUCCESS != err)
+        {
+          err = OB_ITER_END; // replay all
+        }
+        else if(static_cast<int64_t>(seq) == log_id)
+        {
+           break;
+        }
+        else if (OB_SUCCESS != (err = log_reader.get_next_cursor(end_cursor)))
+        {
+          TBSYS_LOG(ERROR, "log_reader.get_cursor()=>%d",  err);
+        }
+      }
+      if (OB_ITER_END == err)
+      {
+        err = OB_SUCCESS;
+      }
+      return err;
+    }
+
+    int get_checksum_by_log_id(const char* log_dir, const int64_t log_id, const common::ObLogCursor& start_cursor, common::ObLogCursor& end_cursor, int64_t &checksum)
+    {
+      int err = OB_SUCCESS;
+      ObLogReader log_reader;
+      ObDirectLogReader direct_reader;
+      uint64_t seq = 1;
+      end_cursor = start_cursor;
+      if (NULL == log_dir || start_cursor.file_id_ < 0 || start_cursor.log_id_ < 0 || start_cursor.offset_ < 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "invalid argument: log_dir=%s, log_cursor=%s", log_dir, start_cursor.to_str());
+      }
+      else if (OB_SUCCESS != (err = log_reader.init(&direct_reader, log_dir, start_cursor.file_id_, 0, false)))
+      {
+        TBSYS_LOG(ERROR, "ObLogReader init error[err=%d]", err);
+      }
+      while (OB_SUCCESS == err)
+      {
+        if (OB_SUCCESS != (err = log_reader.read_log_for_data_checksum(seq, checksum)) &&
+            OB_FILE_NOT_EXIST != err && OB_READ_NOTHING != err && OB_LAST_LOG_RUINNED != err)
+        {
+          TBSYS_LOG(ERROR, "ObLogReader read error[ret=%d]", err);
+        }
+        if (OB_LAST_LOG_RUINNED == err)
+        {
+          TBSYS_LOG(WARN, "last_log[%s] broken!", end_cursor.to_str());
+          err = OB_ITER_END;
+        }
+        else if (OB_SUCCESS != err)
+        {
+          err = OB_ITER_END; // replay all
+        }
+        else if(static_cast<int64_t>(seq) == log_id)
+        {
+           break;
+        }
+        else if (OB_SUCCESS != (err = log_reader.get_next_cursor(end_cursor)))
+        {
+          TBSYS_LOG(ERROR, "log_reader.get_cursor()=>%d",  err);
+        }
+      }
+      if (OB_ITER_END == err)
+      {
+        err = OB_SUCCESS;
+      }
+      return err;
+    }
+    // add:e
   } // end namespace updateserver
 } // end namespace oceanbase

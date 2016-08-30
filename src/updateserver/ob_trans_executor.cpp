@@ -1654,19 +1654,21 @@ namespace oceanbase
       int64_t flushed_clog_id = UPS.get_log_mgr().get_flushed_clog_id();
       int64_t flush_seq = 0;
       Task *task = NULL;
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
-      int64_t last_commit_point = 0;
-      if (OB_SUCCESS != (err = UPS.get_log_mgr().get_last_commit_point(last_commit_point)))
-      {
-        TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
-      }
-      else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type) 
-               && (flushed_clog_id > last_commit_point))
-      {
-        TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
-        UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
-      }
+      //int64_t last_commit_point = 0;
+      //if (OB_SUCCESS != (err = UPS.get_log_mgr().get_last_commit_point(last_commit_point)))
+      //{
+      //  TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
+      //}
+      //else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type)
+      //         && (flushed_clog_id > last_commit_point))
+      //{
+      //  TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
+      //  UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
+      //}
       // add:e
+      //delete:e
       while(true)
       {
         if (OB_SUCCESS != (err = flush_queue_.tail(flush_seq, (void*&)task))
@@ -2186,5 +2188,70 @@ namespace oceanbase
       //TBSYS_LOG(INFO, "handle nop");
       return false;
     }
+
+    //add chujiajia [log synchronization][multi_cluster] 20160606:b
+    int TransExecutor::handle_uncommited_session_list_after_switch()
+    {
+      int ret =OB_SUCCESS;
+      bool rollback = true;
+      int64_t i = 0;
+      ObList<Task*>::iterator iter;
+      for (iter = uncommited_session_list_.begin(); iter != uncommited_session_list_.end(); iter++, i++)
+      {
+        Task *task = *iter;
+        TBSYS_LOG(INFO, "task->sid[%d]", task->sid.descriptor_);
+        task->pkt.set_packet_code(OB_COMMIT_END);
+        if (OB_SUCCESS != (ret = CommitEndHandlePool::push(task)))
+        {
+          TBSYS_LOG(ERROR, "push(task=%p)=>%d, will kill self", task, ret);
+          kill(getpid(), SIGTERM);
+        }
+        continue;
+        if (NULL == task)
+        {
+          TBSYS_LOG(ERROR, "unexpected task null pointer batch=%ld, will kill self", uncommited_session_list_.size());
+          kill(getpid(), SIGTERM);
+        }
+        else
+        {
+          int ret_ok = OB_SUCCESS;
+          SessionGuard session_guard(session_mgr_, lock_mgr_, ret_ok);
+          RWSessionCtx *session_ctx = NULL;
+          if (OB_SUCCESS != (ret = session_guard.fetch_session(task->sid, session_ctx)))
+          {
+            TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", ret, to_cstring(task->sid));
+            kill(getpid(), SIGTERM);
+          }
+          else
+          {
+            FILL_TRACE_BUF(session_ctx->get_tlog_buffer(), "%sbatch=%ld:%ld", TraceLog::get_logbuffer().buffer, i, uncommited_session_list_.size());
+            ups_result_buffer_.set_data(ups_result_memory_, OB_MAX_PACKET_LENGTH);
+            session_ctx->get_ups_result().serialize(ups_result_buffer_.get_data(),
+                                                    ups_result_buffer_.get_capacity(),
+                                                    ups_result_buffer_.get_position());
+          }
+        }
+        if (OB_SUCCESS != (ret = session_mgr_.end_session(task->sid.descriptor_, rollback)))
+        {
+           TBSYS_LOG(ERROR, "unexpected end_session fail ret=%d %s, will kill self", ret, to_cstring(task->sid));
+           kill(getpid(), SIGTERM);
+        }
+        ret = rollback ? OB_TRANS_ROLLBACKED : ret;
+        if (OB_PHY_PLAN_EXECUTE == task->pkt.get_packet_code()
+            && OB_SUCCESS == ret)
+        {
+          UPS.response_buffer(ret, task->pkt, ups_result_buffer_);
+        }
+        else
+        {
+          UPS.response_result(ret, task->pkt);
+        }
+        allocator_.free(task);
+        task = NULL;
+      }
+      uncommited_session_list_.clear();
+      return ret;
+    }
+    //add:e
   }
 }

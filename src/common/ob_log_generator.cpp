@@ -316,6 +316,18 @@ namespace oceanbase
       return err;
     }
 
+    //add chujiajia [log synchronization][multi_cluster] 20160625:b
+    void ObLogGenerator:: set_start_cursor(ObLogCursor& log_cursor)
+    {
+      start_cursor_ = log_cursor;
+    }
+
+    void ObLogGenerator:: set_end_cursor(ObLogCursor& log_cursor)
+    {
+      end_cursor_ = log_cursor;
+    }
+    //add:e
+	
     static int serialize_log_entry(char* buf, const int64_t len, int64_t& pos, ObLogEntry& entry,
                             const char* log_data, const int64_t data_len)
     {
@@ -402,6 +414,91 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add chujiajia [log synchronization][multi_cluster] 20160328:b
+    static int generate_log(char* buf, const int64_t len, int64_t& pos, ObLogCursor& cursor, const LogCommand cmd,
+                            const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+    {
+      int err = OB_SUCCESS;
+      ObLogEntry entry;
+      if (NULL == buf || 0 >= len || pos > len || NULL == log_data || 0 >= data_len || !cursor.is_valid())
+      {
+        err = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "generate_log(buf=%p, len=%ld, pos=%ld, log_data=%p, data_len=%ld, cursor=%s)=>%d",
+                  buf, len, pos, log_data, data_len, to_cstring(cursor), err);
+      }
+      else if (entry.get_serialize_size() + data_len > len)
+      {
+        err = OB_LOG_TOO_LARGE;
+        TBSYS_LOG(WARN, "header[%ld] + data_len[%ld] > len[%ld]", entry.get_serialize_size(), data_len, len);
+      }
+      else if (OB_SUCCESS != (err = cursor.next_entry(entry, cmd, log_data, data_len, max_cmt_id)))
+      {
+        TBSYS_LOG(ERROR, "cursor[%s].next_entry()=>%d", to_cstring(cursor), err);
+      }
+      else if (OB_SUCCESS != (err = serialize_log_entry(buf, len, pos, entry, log_data, data_len)))
+      {
+        TBSYS_LOG(DEBUG, "serialize_log_entry(buf=%p, len=%ld, entry[id=%ld], data_len=%ld)=>%d",
+                  buf, len, entry.seq_, data_len, err);
+      }
+      else if (OB_SUCCESS != (err = cursor.advance(entry)))
+      {
+        TBSYS_LOG(ERROR, "cursor[id=%ld].advance(entry.id=%ld)=>%d", cursor.log_id_, entry.seq_, err);
+      }
+      return err;
+    }
+
+    int ObLogGenerator:: do_write_log(const LogCommand cmd, const char* log_data, const int64_t data_len,
+                                      const int64_t reserved_len, const int64_t max_cmt_id)
+    {
+      int err = OB_SUCCESS;
+      if (OB_SUCCESS != (err = check_state()))
+      {
+        TBSYS_LOG(ERROR, "check_state()=>%d", err);
+      }
+      else if (NULL == log_data || data_len <= 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+      }
+      else if (is_frozen_)
+      {
+        err = OB_STATE_NOT_MATCH;
+        TBSYS_LOG(ERROR, "log_generator is frozen, cursor=[%s,%s]", to_cstring(start_cursor_), to_cstring(end_cursor_));
+      }
+      else if (OB_SUCCESS != (err = generate_log(log_buf_, log_buf_len_ - reserved_len, pos_,
+                                                 end_cursor_, cmd, log_data, data_len, max_cmt_id))
+               && OB_BUF_NOT_ENOUGH != err)
+      {
+        TBSYS_LOG(WARN, "generate_log(pos=%ld)=>%d", pos_, err);
+      }
+      return err;
+    }
+
+    int ObLogGenerator:: write_log(const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+    {
+      int err = OB_SUCCESS;
+      if (OB_SUCCESS != (err = check_state()))
+      {
+        TBSYS_LOG(ERROR, "check_state()=>%d", err);
+      }
+      else if (NULL == log_data || data_len <= 0)
+      {
+        err = OB_INVALID_ARGUMENT;
+      }
+      else if (is_frozen_)
+      {
+        err = OB_BUF_NOT_ENOUGH;
+        TBSYS_LOG(WARN, "log_buf is frozen, end_cursor=%s", to_cstring(end_cursor_));
+      }
+      else if (OB_SUCCESS != (err = do_write_log(cmd, log_data, data_len, LOG_BUF_RESERVED_SIZE, max_cmt_id))
+               && OB_BUF_NOT_ENOUGH != err)
+      {
+        TBSYS_LOG(WARN, "do_write_log(cmd=%d, pos=%ld, len=%ld)=>%d", cmd, pos_, data_len, err);
+      }
+
+      return err;
+    }
+    //add:e
 
     static int parse_log_buffer(const char* log_data, int64_t data_len, const ObLogCursor& start_cursor, ObLogCursor& end_cursor, bool check_data_integrity = false)
     {
@@ -598,9 +695,15 @@ namespace oceanbase
       return err;
     }
 
-    int ObLogGenerator::gen_keep_alive()
+    //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+    //int ObLogGenerator::gen_keep_alive()
+    int ObLogGenerator::gen_keep_alive(const bool is_ups_nop, const int64_t max_cmt_id)
+    //modify:e
     {
-      return write_nop(/*force_write*/true);
+      //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+      //return write_nop(/*force_write*/true);
+      return write_nop(is_ups_nop, max_cmt_id, /*force_write*/true);
+      //modify:e
     }
 
     int ObLogGenerator::append_eof()
@@ -659,6 +762,42 @@ namespace oceanbase
       return err;
     }
 
+    //add chujiajia [log synchronization][multi_cluster] 20160328:b
+    int ObLogGenerator:: write_nop(const bool is_ups_nop, const int64_t max_cmt_id, const bool force_write)
+    {
+      int err = OB_SUCCESS;
+      int64_t pos = 0;
+      TBSYS_LOG(TRACE, "try write nop: pos=%ld, force_write=%s", pos_, STR_BOOL(force_write));
+      if (is_aligned(pos_, LOG_FILE_ALIGN_MASK) && !force_write)
+      {
+        TBSYS_LOG(TRACE, "The log is aligned");
+      }
+      else if (OB_SUCCESS != (err = debug_log_.advance()))
+      {
+        TBSYS_LOG(ERROR, "debug_log.advance()=>%d", err);
+      }
+      else if (OB_SUCCESS != (err = debug_log_.serialize(nop_log_, sizeof(nop_log_), pos)))
+      {
+        TBSYS_LOG(ERROR, "serialize_nop_log(%s)=>%d", to_cstring(end_cursor_), err);
+      }
+      else if(is_ups_nop)
+      {
+        if (OB_SUCCESS != (err = do_write_log(OB_LOG_NOP, nop_log_, calc_nop_log_len(pos_, pos), 0, max_cmt_id)))
+        {
+          TBSYS_LOG(ERROR, "write_log(OB_LOG_NOP, len=%ld)=>%d", calc_nop_log_len(pos_, pos), err);
+        }
+      }
+      else
+      {
+        if (OB_SUCCESS != (err = do_write_log(OB_LOG_NOP, nop_log_, calc_nop_log_len(pos_, pos), 0)))
+        {
+          TBSYS_LOG(ERROR, "write_log(OB_LOG_NOP, len=%ld)=>%d", calc_nop_log_len(pos_, pos), err);
+        }
+      }
+      return err;
+    }
+    //add:e
+
     int ObLogGenerator:: switch_log(int64_t& new_file_id)
     {
       int err = OB_SUCCESS;
@@ -687,14 +826,20 @@ namespace oceanbase
       return pos_ != 0;
     }
 
-    int ObLogGenerator:: get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len)
+    //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+    //int ObLogGenerator:: get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len)
+    int ObLogGenerator:: get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len, const int64_t max_cmt_id)
+    //modify:e
     {
       int err = OB_SUCCESS;
       if (OB_SUCCESS != (err = check_state()))
       {
         TBSYS_LOG(ERROR, "check_state()=>%d", err);
       }
-      else if (!is_frozen_ && OB_SUCCESS != (err = write_nop(has_log())))
+      //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+      //else if (!is_frozen_ && OB_SUCCESS != (err = write_nop(has_log())))
+      else if (!is_frozen_ && OB_SUCCESS != (err = write_nop(true, max_cmt_id, has_log())))
+      //modify:e
       {
         TBSYS_LOG(ERROR, "write_nop()=>%d", err);
       }

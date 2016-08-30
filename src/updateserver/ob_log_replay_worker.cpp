@@ -13,7 +13,8 @@
  */
 #include "ob_log_replay_worker.h"
 #include "ob_ups_log_utils.h"
-
+#include "ob_update_server_main.h"
+#define UPS ObUpdateServerMain::get_instance()->get_update_server()
 namespace oceanbase
 {
   namespace updateserver
@@ -61,6 +62,9 @@ namespace oceanbase
         queue_len_ = queue_len;
         flying_trans_no_limit_ = queue_len;
         log_applier_ = log_applier;
+        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        master_cmt_log_id_ = 0;
+        //add:e
         setThreadCount(1);
       }
       if (OB_SUCCESS != err)
@@ -133,6 +137,20 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add chujiajia [log synchronization][multi_cluster] 20160625:b
+    int ObLogReplayWorker::update_replay_cursor_after_switch(const ObLogCursor& cursor)
+    {
+      int err = OB_SUCCESS;
+      commit_queue_.update_after_switch(cursor.log_id_);
+      last_barrier_log_id_ = cursor.log_id_ - 1;
+      next_submit_log_id_ = cursor.log_id_;
+      set_next_commit_log_id(cursor.log_id_);
+      set_next_flush_log_id(cursor.log_id_);
+      replay_cursor_ = cursor;
+      return err;
+    }
+	//add:e
 
     int ObLogReplayWorker::start_log(const ObLogCursor& log_cursor)
     {
@@ -210,6 +228,12 @@ namespace oceanbase
       }
       else if (0 == thread_id)
       {
+        //add chujiajia
+        while(!(ObiRole::MASTER == UPS.get_obi_role().get_role()) && master_cmt_log_id_ < next_commit_log_id_)
+        {
+
+        }
+        //add:e
         if (OB_SUCCESS != (err = do_commit(thread_id)))
         {
           TBSYS_LOG(ERROR, "do_commit(%ld)=>%d", thread_id, err);
@@ -276,17 +300,21 @@ namespace oceanbase
           set_next_commit_log_id(task->log_id_ + 1);
           if (task->is_last_log_of_batch())
           {
-            if (RT_APPLY == task->replay_type_ && OB_SUCCESS != (err = log_applier_->flush(*task)))
-            {
+            //delete chujiajia [log synchronization][multi_cluster] 20160422:b
+            //if (RT_APPLY == task->replay_type_ && OB_SUCCESS != (err = log_applier_->flush(*task)))
+            //{
               // 失败之后不释放
-              TBSYS_LOG(ERROR, "flush(end_id=%ld, %p[%ld])=>%d", task->log_id_,
-                        task->batch_buf_, task->batch_buf_len_, err);
-            }
-            else
-            {
-              set_next_flush_log_id(task->log_id_ + 1);
+            //  TBSYS_LOG(ERROR, "flush(end_id=%ld, %p[%ld])=>%d", task->log_id_,
+            //            task->batch_buf_, task->batch_buf_len_, err);
+            //}
+            //else
+            //{
+            //  set_next_flush_log_id(task->log_id_ + 1);
+            //delete:e
               allocator_.free((void*)task->batch_buf_);
-            }
+            //delete chujiajia [log synchronization][multi_cluster] 20160422:b
+            //}
+            //delete:e
           }
           if (OB_SUCCESS == err)
           {
@@ -574,6 +602,13 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add chujiajia [log synchronization][multi_cluster] 20160530:b
+    int64_t& ObLogReplayWorker::get_master_cmt_log_id()
+    {
+      return master_cmt_log_id_;
+    }
+    //add:e
 
     int ObLogReplayWorker::submit_batch(int64_t& log_id, const char* buf, int64_t len, const ReplayType replay_type)
     {

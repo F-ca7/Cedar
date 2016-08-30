@@ -215,5 +215,17 @@ namespace oceanbase
       }
       return err;
     }
+    //add chujiajia [log synchronization][multi_cluster] 20160625:b
+    int ObSeqQueue::update_after_switch(const int64_t seq)
+    {
+      int err = OB_SUCCESS;
+      tbsys::CThreadCond* cond = get_cond(seq_);
+      cond->lock();
+      seq_ = seq;
+      cond->signal();
+      cond->unlock();
+      return err;
+    }
+	//add:e
   }; // end namespace common
 }; // end namespace oceanbase

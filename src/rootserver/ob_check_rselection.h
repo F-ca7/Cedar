@@ -31,8 +31,9 @@
 #include "common/ob_election_role_mgr.h"
 #include "rootserver/ob_election_node.h"
 
-//add by chujiajia [rs_election][multi_cluster] 20151026:b
+//add chujiajia [rs_election][multi_cluster] 20151026:b
 const int64_t defalut_rs_election_check_period_us = 20 * 1000;
+const int64_t defalut_pre_leader_wait_time_us = 10 * 1000 * 1000;
 //add:e
 
 namespace oceanbase
@@ -54,7 +55,7 @@ public:
   //mod:e
 	virtual ~ObCheckRsElection();
 	virtual void run(tbsys::CThread* thread, void* arg);
-	//modify by chujiajia [rs_election][multi_cluster] 20151026:b
+    //modify chujiajia [rs_election][multi_cluster] 20151026:b
   //int init(const int64_t check_period, rootserver::ObRootServer2 &root_server,
   //		   common::ObClientManager &client_manager,
   //		   rootserver::ObRootRpcStub &rt_rpc_stub, common::ObServer& my_rs,
@@ -147,24 +148,24 @@ public:
   int handle_electiontimeout(char responseinfo[]);
   //add:e
 protected:
-	//modify by chujiajia [rs_election][multi_cluster] 20151026:b
-	//int64_t check_period_;
+  //modify chujiajia [rs_election][multi_cluster] 20151026:b
+  //int64_t check_period_;
   int64_t election_protection_time_us_;    ///< the ahead of time before leader lease expiration
   int64_t rs_election_check_period_;       ///< check election state interval
-	//modify:e
-	rootserver::ObElectionNode ob_election_node_;
+  //modify:e
+  rootserver::ObElectionNode ob_election_node_;
   common::ObMsgRsElection msg_rselection_; ///< election message
   time_t starttime_;                       ///< election start time
   time_t endtime_;                         ///< election start time
   bool is_run_election_;                   ///< mark the election_thread is running or not
-	bool is_inited_;
-	// add by chujiajia [rs_election][multi_cluster] 20150929:b
+  bool is_inited_;
+  //add chujiajia [rs_election][multi_cluster] 20150929:b
   const int64_t &rs_election_random_wait_time_; ///< the min interval before start vote
-	// add:e
+  // add:e
   //add by pangtianze [rs_election] 20160106:b
   ObRootServer2 &root_server_;
   //add:e
 };
 } // end namespace common
-} // end namespace oceanbase// add by chujiajia [rs_election][multi_cluster] 20150929:b
+} // end namespace oceanbase//add chujiajia [rs_election][multi_cluster] 20150929:b
 #endif /* OB_CHECK_RSELECTION_H_ */

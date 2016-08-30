@@ -348,9 +348,11 @@ namespace oceanbase
                                                     &obi_role_,
                                                     &role_mgr_,
                                                     config_.log_sync_type
+                                                    //delete chujiajia [log synchronization][multi_cluster] 20160625:b
                                                     //add by lbzhong [Commit Point] 20150824:b
-                                                    , &commit_point_thread_
+                                                    //, &commit_point_thread_
                                                     //add:e
+                                                    //delete:e
                                                     )))
         {
           TBSYS_LOG(WARN, "failed to init log mgr, path=%s, log_file_size=%ld, err=%d",
@@ -491,9 +493,11 @@ namespace oceanbase
       role_mgr_.set_state(ObUpsRoleMgr::STOP);
       log_mgr_.signal_stop();
       replay_worker_.stop();
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
-      commit_point_thread_.stop();
+      //commit_point_thread_.stop();
       //add:e
+      //delete:e
       ObBaseServer::destroy();
     }
 
@@ -517,9 +521,11 @@ namespace oceanbase
       ///日志回放线程
       log_replay_thread_.stop();
 
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
-      commit_point_thread_.stop();
+      //commit_point_thread_.stop();
       //add:e
+      //delete:e
 
       replay_worker_.wait();
 
@@ -538,9 +544,11 @@ namespace oceanbase
       ///日志回放线程
       log_replay_thread_.wait();
 
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
-      commit_point_thread_.wait();
+      //commit_point_thread_.wait();
       //add:e
+      //delete:e
 
       timer_.destroy();
       config_timer_.destroy();
@@ -702,22 +710,24 @@ namespace oceanbase
       {
         err = start_timer_schedule();
       }
+
       //add lbzhong [Commit Point] 20150820:b
       /*
        * waiting util the role of the ups is clear
        */
-      bool was_master = false;
-      if(OB_SUCCESS != (err = log_mgr_.get_was_master(was_master))) {
-        TBSYS_LOG(ERROR, "log_mgr_.get_was_master()=>%d", err);
-      }
-      if(was_master) {
-        while(ObUpsRoleMgr::STOP != role_mgr_.get_state() && ObUpsRoleMgr::FATAL != role_mgr_.get_state()
-            && !has_master_ups_)
-        {
-          usleep(30 * 1000);
-        }
-      }
-
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+      //bool was_master = false;
+      //if(OB_SUCCESS != (err = log_mgr_.get_was_master(was_master))) {
+      //  TBSYS_LOG(ERROR, "log_mgr_.get_was_master()=>%d", err);
+      //}
+      //if(was_master) {
+      //  while(ObUpsRoleMgr::STOP != role_mgr_.get_state() && ObUpsRoleMgr::FATAL != role_mgr_.get_state()
+      //      && !has_master_ups_)
+      //  {
+      //    usleep(30 * 1000);
+      //  }
+      //}
+      //delete:e
       if (OB_SUCCESS == err)
       {
         err = submit_replay_commit_log();
@@ -971,10 +981,25 @@ namespace oceanbase
       {
         usleep(static_cast<useconds_t>(wait_us));
       }
-      while(!stoped_ && OB_SUCCESS != (err = trans_executor_.get_session_mgr().wait_write_session_end_and_lock(wait_write_session_end_timeout_us)))
+      //add chujiajia [log synchronization][multi_cluster] 20160703:b
+      if(OB_SUCCESS != (err = trans_executor_.handle_uncommited_session_list_after_switch()))
       {
-        TBSYS_LOG(INFO, "master_switch_to_slave wait session end.");
+        TBSYS_LOG(ERROR, "err = %d", err);
       }
+      if(OB_SUCCESS != (err = log_mgr_.update_tmp_log_cursor()))
+      {
+        TBSYS_LOG(ERROR, "update_tmp_log_cursor err->%d", err);
+      }
+	  //add:e
+      //delete chujiajia [log synchronization][multi_cluster] 20160703:b
+      //while(!stoped_ && OB_SUCCESS != (err = trans_executor_.get_session_mgr().wait_write_session_end_and_lock(wait_write_session_end_timeout_us)))
+      //{
+      //  TBSYS_LOG(INFO, "master_switch_to_slave wait session end.");
+      //}
+      //delete:e
+      //add chujiajia [log synchronization][multi_cluster] 20160703:b
+      trans_executor_.get_session_mgr().reset(100000, 10000, 40000);
+      //add:e
       if (OB_SUCCESS != err)
       {
         TBSYS_LOG(ERROR, "wait_write_session_end_and_lock(timeout=%ld)=>%d, log_mgr=%s, switch_to_slave fail, will kill self",
@@ -2572,7 +2597,10 @@ namespace oceanbase
                   STR_BOOL(is_lease_valid()), STR_BOOL(is_rs_election_lease_valid()));
         // modify:e
       }
-      else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log()))
+      //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+      //else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log()))
+      else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log(true, log_mgr_.get_flushed_clog_id_without_update())))
+      //modify:e
       {
         TBSYS_LOG(ERROR, "log_mgr.write_keep_alive_log()=>%d", err);
       }
@@ -4317,8 +4345,12 @@ namespace oceanbase
         {
           if (ObiRole::MASTER == obi_role_.get_role())
           {
-            TBSYS_LOG(WARN, "master rs election lease timeout, need restart updateserver! \
-                lease=%ld, cur_time=%ld", rs_election_lease_, cur_time_us);
+            //modify chujiajia [log synchronization][multi_cluster] 20160527:b
+            //TBSYS_LOG(WARN, "master rs election lease timeout, need restart updateserver!
+            //    lease=%ld, cur_time=%ld", rs_election_lease_, cur_time_us);
+            TBSYS_LOG(WARN, "master rs election lease timeout, need switch to slave updateserver! \
+                      lease=%ld, cur_time=%ld", rs_election_lease_, cur_time_us);
+            //modify:e
             err = master_switch_to_slave(true, false);
             if (OB_SUCCESS != err)
             {
@@ -4328,13 +4360,15 @@ namespace oceanbase
             {
               TBSYS_LOG(INFO, "obi master ups change to slave ups success!");
             }
-            int64_t log_id = 0;
-            log_mgr_.get_max_log_seq_replayable(log_id);
-            TBSYS_LOG(INFO, "log seq num is %ld before restart.", log_id);
-            if (false == is_restarting_)
-            {
-              submit_async_task_(OB_UPS_RESTART_SERVER, read_thread_queue_, read_task_queue_size_);
-            }
+            //delete chujiajia [log synchronization][multi_cluster] 20160527:b
+            //int64_t log_id = 0;
+            //log_mgr_.get_max_log_seq_replayable(log_id);
+            //TBSYS_LOG(INFO, "log seq num is %ld before restart.", log_id);
+            //if (false == is_restarting_)
+            //{
+            //  submit_async_task_(OB_UPS_RESTART_SERVER, read_thread_queue_, read_task_queue_size_);
+            //}
+            //delete:e
           }
         }
         // add:e
@@ -5880,7 +5914,9 @@ namespace oceanbase
            {
              TBSYS_LOG(INFO, "master_master_ups change to slave_slave_ups success!");
            }
-           need_restart_ = true;
+           //delete chujiajia [lease between rs and ups][multi_cluster] 20160527:b
+           //need_restart_ = true;
+           //delete:e
            // add:e
          }
          else if (ObiRole::SLAVE == obi_role_.get_role()
@@ -5916,7 +5952,9 @@ namespace oceanbase
              {
                TBSYS_LOG(INFO, "master_master_ups change to slave_master_ups success!");
              }
-             need_restart_ = true;
+             //delete chujiajia [log synchronization][multi_cluster] 20160527:b
+             //need_restart_ = true;
+             //delete:e
              // add:e
            }
            else
@@ -6173,16 +6211,18 @@ namespace oceanbase
         }
       }
       onev_request_wakeup(req);
+      //delete chujiajia [log synchronization][multi_cluster] 20160527:b
       // add by guojinwei [lease between rs and ups][multi_cluster] 20150914:b
-      if (true == need_restart_
-          && false == is_restarting_)
-      {
-        int64_t log_id = 0;
-        log_mgr_.get_max_log_seq_replayable(log_id);
-        TBSYS_LOG(INFO, "log seq num is %ld before restart.", log_id);
-        submit_async_task_(OB_UPS_RESTART_SERVER, read_thread_queue_, read_task_queue_size_);
-      }
+      //if (true == need_restart_
+      //    && false == is_restarting_)
+      //{
+      //  int64_t log_id = 0;
+      //  log_mgr_.get_max_log_seq_replayable(log_id);
+      //  TBSYS_LOG(INFO, "log seq num is %ld before restart.", log_id);
+      //  submit_async_task_(OB_UPS_RESTART_SERVER, read_thread_queue_, read_task_queue_size_);
+      //}
       // add:e
+      //delete:e
       return err;
     }
 

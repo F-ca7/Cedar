@@ -5,7 +5,7 @@
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
- * @file ob_log_date_writer.h
+ * @file ob_log_data_writer.h
  * @brief support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *
@@ -74,6 +74,17 @@ namespace oceanbase
         int get_cursor(ObLogCursor& cursor) const;
         inline int64_t get_file_size() const {return file_size_;};
         int64_t to_string(char* buf, const int64_t len) const;
+        //add chujiajia [log synchronization][multi_cluster] 20160625:b
+        /**
+         * @brief set end_cursor_
+         * @param[in] cursor  a specific log cursor
+         * @return OB_SUCCESS if success
+         */
+        inline void set_end_cursor(ObLogCursor &cursor)
+        {
+          end_cursor_ = cursor;
+        }
+		//add:e
         //add lbzhong [Commit Point] 20150820:b
         /**
          * @brief write eof in specific position of log file

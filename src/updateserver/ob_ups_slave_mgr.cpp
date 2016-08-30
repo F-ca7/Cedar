@@ -40,6 +40,9 @@ ObUpsSlaveMgr::ObUpsSlaveMgr()
   is_initialized_ = false;
   n_slave_last_post_ = -1;
   slave_num_ = 0;
+  //add chujiajia [log synchronization][multi_cluster] 20160627:b
+  acked_clog_id_ = 0;
+  //add:e
   rpc_stub_ = NULL;
   role_mgr_ = NULL;
 }

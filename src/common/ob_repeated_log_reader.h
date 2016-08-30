@@ -67,9 +67,30 @@ namespace oceanbase
        */
       int read_log(LogCommand &cmd, uint64_t &log_seq, int64_t& timestamp);
       //add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+      /**
+       * @brief [overwrite] read max commited log id from commit log
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_cmt_id(LogCommand &cmd, uint64_t &log_seq, int64_t& cmt_id);
+      /**
+       * @brief [overwrite] read data checksum from commit log
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] data_checksum  data checksum
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_data_checksum(LogCommand &cmd, uint64_t &log_seq, int64_t& data_checksum);
+      // add:e
       // add by zhangcd [log_reader] 20151215:b
       int64_t timestamp_;
       // add:e
+      //add chujiajia [log synchronization][multi_cluster] 20160326:b
+      int64_t max_cmt_id_;  ///< max commited log id
+      //add:e
     };
   } // end namespace common
 } // end namespace oceanbase

@@ -103,6 +103,26 @@ namespace oceanbase
       return err;
     }
 
+    //add chujiajia [log synchronization][multi_cluster] 20160328:b
+    int ObLogCursor::next_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id) const
+    {
+      int err = OB_SUCCESS;
+      entry.set_log_seq(log_id_);
+      entry.set_log_command(cmd);
+      err = entry.fill_header(log_data, data_len, max_cmt_id);
+      return err;
+    }
+
+    int ObLogCursor::this_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id) const
+    {
+      int err = OB_SUCCESS;
+      entry.set_log_seq(log_id_);
+      entry.set_log_command(cmd);
+      err = entry.fill_header(log_data, data_len, max_cmt_id);
+      return err;
+    }
+    //add:e
+
     int ObLogCursor:: advance(LogCommand cmd, int64_t seq, const int64_t data_len)
     {
       int err = OB_SUCCESS;
@@ -110,7 +130,10 @@ namespace oceanbase
       if(log_id_ > 0 && seq != log_id_)
       {
         err = OB_DISCONTINUOUS_LOG;
-        TBSYS_LOG(ERROR, "entry.advance(old_id=%ld, log_id=%ld)=>%d", log_id_, entry.seq_, err);
+        //modify chujiajia [log synchronization][multi_cluster] 20160625:b
+		//TBSYS_LOG(ERROR, "entry.advance(old_id=%ld, log_id=%ld)=>%d", log_id_, entry.seq_, err);
+        TBSYS_LOG(ERROR, "entry.advance(old_id=%ld, log_id=%ld)=>%d", log_id_, seq, err);
+        //modify:e
       }
       else
       {

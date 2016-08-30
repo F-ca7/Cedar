@@ -61,9 +61,9 @@ namespace oceanbase
     BaseMain::BaseMain(const bool daemon)
       : cmd_cluster_id_(0), cmd_rs_port_(0), cmd_master_rs_port_(0), cmd_port_(0),
         cmd_inner_port_(0), cmd_obmysql_port_(0),
-        // modify by chujiajia [rs_election][multi_cluster] 20150929:b
+        //modify chujiajia [rs_election][multi_cluster] 20150929:b
         cmd_rs_election_random_wait_time_(0),pid_dir_(DEFAULT_PID_DIR),
-        // modify:e
+        //modify:e
         log_dir_(DEFAULT_LOG_DIR), server_name_(NULL), use_daemon_(daemon)
     {
       setlocale(LC_ALL, "");

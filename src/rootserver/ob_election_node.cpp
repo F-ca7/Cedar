@@ -47,7 +47,7 @@ int ObElectionNode::init(rootserver::ObRootServer2 &root_server,
     is_slave_rs_online_[i] = true;
   }
   role_ = OB_FOLLOWER;
-  // add by chujiajia [rs_election][multi_cluster] 20150909:b
+  //add chujiajia [rs_election][multi_cluster] 20150909:b
   root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
   root_server_->set_election_role_with_state(common::ObElectionRoleMgr::INIT);
   TBSYS_LOG(INFO, "role:%d",root_server_->get_election_role().get_role());
@@ -61,15 +61,16 @@ int ObElectionNode::init(rootserver::ObRootServer2 &root_server,
   count_extendlease_reject_ = 0;
   is_leader_ = false;
   is_exist_leader_ = false;
+  is_pre_leader_ = false;
   lease_ = 0;
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // current_term_ = 0;
-  // delete:e
+  //delete:e
   timeout_mark_ = true;
   extendlease_mark_ = false;
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // msg_rselection_.term_ = 0;
-  // delete:e
+  //delete:e
   msg_rselection_.lease_ = 0;
   msg_rselection_.type_ = OB_VOTEREQUEST;
   my_rs_.ip_to_string(ip_tmp, ELECTION_ARRAY_SIZE);
@@ -123,6 +124,13 @@ bool ObElectionNode::get_is_exist_leader()
 {
   return is_exist_leader_;
 }
+
+//add chujiajia [log synchronization][multi_cluster] 20160603:b
+bool ObElectionNode::get_is_pre_leader()
+{
+  return is_pre_leader_;
+}
+//add:e
 
 bool ObElectionNode::get_is_lower_log()
 {
@@ -207,6 +215,13 @@ void ObElectionNode::set_is_exist_leader(bool is_exist_leader)
   is_exist_leader_ = is_exist_leader;
 }
 
+//add chujiajia [log synchronization][multi_cluster] 20160603:b
+void ObElectionNode::set_is_pre_leader(bool is_pre_leader)
+{
+  is_pre_leader_ = is_pre_leader;
+}
+//add:e
+
 void ObElectionNode::set_is_lower_log(bool is_lower_log)
 {
   is_lower_log_ = is_lower_log;
@@ -243,12 +258,12 @@ void ObElectionNode::set_lease(int64_t lease)
   lease_ = lease;
 }
 
-// delete by chujiajia [rs_election][multi_cluster] 20150902:b
+//delete chujiajia [rs_election][multi_cluster] 20150902:b
 // void ObElectionNode::set_current_term(int64_t x)
 // {
 //   current_term_ = x;
 // }
-// delete:e
+//delete:e
 
 void ObElectionNode::set_timeoutmark(bool timeout_mark)
 {
@@ -279,7 +294,7 @@ int ObElectionNode::rs_vote()   //candidate send vote_request and handle the res
   }
   else
   {
-    //modify by chujiajia[rs_election][multi_cluster] 20150923:b
+    //modify chujiajia[rs_election][multi_cluster] 20150923:b
     TBSYS_LOG(INFO, "get_ups_max_log_timestamp suc! max_log_timestamp:%ld",
         max_log_timestamp);
     //modify:e
@@ -288,11 +303,11 @@ int ObElectionNode::rs_vote()   //candidate send vote_request and handle the res
   {
     ///change to candidate
     role_ = OB_CANDIDATE;
-    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    //delete chujiajia [rs_election][multi_cluster] 20150902:b
     // current_term_++;
     // msg_rselection_.term_ = current_term_;
-    // delete:e
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //delete:e
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_CANDIDATE);
     root_server_->set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
     // add:e
@@ -339,7 +354,7 @@ int ObElectionNode::rs_vote()   //candidate send vote_request and handle the res
         {
           is_lower_log_ = true;
         }
-        // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+        //delete chujiajia [rs_election][multi_cluster] 20150902:b
         // else if (strcmp(response_info[i + 1], "NO") != 0
         // && (atoi(response_info[i + 1]) >= 0)
         // && (current_term_ < atoi(response_info[i + 1])))
@@ -349,10 +364,10 @@ int ObElectionNode::rs_vote()   //candidate send vote_request and handle the res
         // "rs_vote:change current_term=atoi(response_info %ld),currrent_term_=%ld",
         // i + 1, current_term_);
         // }
-        // delete:e
+        //delete:e
       }
     }
-    //modify by chujiajia [rs_election][multi_cluster] 20151110:b
+    //modify chujiajia [rs_election][multi_cluster] 20151110:b
     //if (count_vote_ >= ((slave_rs_count_ + 2) / 2))
     ///get mjority granted response or not
     if (count_vote_ >= ((slave_rs_count_ + 1) / 2 + 1))
@@ -381,9 +396,9 @@ int ObElectionNode::rs_init_selected_leader_broadcast()  //leader set by adminis
     strcpy(response_info[i], "NO");
   }
   msg_rselection_.type_ = OB_BROADCAST;
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // msg_rselection_.term_ = current_term_;
-  // delete:e
+  //delete:e
   int64_t now;
   now = tbsys::CTimeUtil::getTime();
   msg_rselection_.lease_ = now + election_set_leader_lease_length_us;
@@ -414,7 +429,7 @@ int ObElectionNode::rs_init_selected_leader_broadcast()  //leader set by adminis
     TBSYS_LOG(WARN,
         "rs_init_selected_leader_broadcast:not all slave receive selected leader's broadcast!");
   }
-  //modify by chujiajia [rs_election][multi_cluster] 20151110:b
+  //modify chujiajia [rs_election][multi_cluster] 20151110:b
   //if (count_broadcast_ >= ((slave_rs_count_ + 2) / 2))
   ///get majority granted response or not
   if (count_broadcast_ >= ((slave_rs_count_ + 1) / 2 + 1))
@@ -429,24 +444,24 @@ int ObElectionNode::rs_init_selected_leader_broadcast()  //leader set by adminis
     is_leader_ = true;
     is_exist_leader_ = true;
     is_extendlease_ = true;
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     ///change to leader
     root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_LEADER);
     root_server_->set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-    // add:e
-    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    //add:e
+    //delete chujiajia [rs_election][multi_cluster] 20150902:b
     // current_term_ = msg_rselection_.term_;
-    // delete:e
+    //delete:e
     TBSYS_LOG(INFO,
         "rs_init_selected_leader_broadcast:leader exist,leader is mine!");
     is_send_init_broadcast_ = true;
     ret = OB_SUCCESS;
-    // modify by chujiajia [rs_election][multi_cluster] 20150902:b
+    //modify chujiajia [rs_election][multi_cluster] 20150902:b
     while (!is_init_ || !root_server_->get_is_have_inited())
     {
       usleep(1000 * 10);
     }
-    // modify:e
+    //modify:e
     if (OB_SUCCESS != (ret = root_server_->grant_ups_lease(true)))
     {
       TBSYS_LOG(WARN, "root_server_->grant_ups_lease() error!");
@@ -467,9 +482,9 @@ int ObElectionNode::rs_broadcast()   //candidate who succeed in vote phase send 
     strcpy(response_info[i], "NO");
   }
   msg_rselection_.type_ = OB_BROADCAST;
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   // msg_rselection_.term_ = current_term_;
-  // delete:e
+  //delete:e
   int64_t now;
   now = tbsys::CTimeUtil::getTime();
   msg_rselection_.lease_ = now + election_lease_length_us;
@@ -495,7 +510,7 @@ int ObElectionNode::rs_broadcast()   //candidate who succeed in vote phase send 
       }
     }
   }
-  //modify by chujiajia [rs_election][multi_cluster] 20151110:b
+  //modify chujiajia [rs_election][multi_cluster] 20151110:b
   //if (count_broadcast_ >= ((slave_rs_count_ + 2) / 2))
   ///get mjority granted response or not
   if (count_broadcast_ >= ((slave_rs_count_ + 1) / 2 + 1))
@@ -509,23 +524,23 @@ int ObElectionNode::rs_broadcast()   //candidate who succeed in vote phase send 
     is_leader_ = true;
     is_exist_leader_ = true;
     is_extendlease_ = true;
-    // add by chujiajia [rs_election][multi_cluster] 20150909:b
+    //add chujiajia [rs_election][multi_cluster] 20150909:b
     ///change to leader
     root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_LEADER);
     root_server_->set_election_role_with_state(common::ObElectionRoleMgr::AFTER_ELECTION);
-    // add:e
-    // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+    //add:e
+    //delete chujiajia [rs_election][multi_cluster] 20150902:b
     // current_term_ = msg_rselection_.term_;
-    // delete:e
+    //delete:e
     TBSYS_LOG(INFO, "rs_broadcast:leader exist,leader is mine!");
     now = tbsys::CTimeUtil::getTime();
     ret = OB_SUCCESS;
-    // modify by chujiajia [rs_election][multi_cluster] 20150902:b
+    //modify chujiajia [rs_election][multi_cluster] 20150902:b
     while (!is_init_ || !root_server_->get_is_have_inited())
     {
       usleep(1000 * 10);
     }
-    // modify:e
+    //modify:e
     if (OB_SUCCESS != (ret = root_server_->grant_ups_lease(true)))
     {
       TBSYS_LOG(WARN, "root_server_->grant_ups_lease() error!");
@@ -545,9 +560,9 @@ int ObElectionNode::rs_extendlease()    //leader send extendlease_request to all
     strcpy(response_info[i], "NO");
   }
   msg_rselection_.type_ = OB_EXTENDLEASE;
-  // delete by chujiajia [rs_election][multi_cluster] 20150902:b
+  //delete chujiajia [rs_election][multi_cluster] 20150902:b
   //msg_rselection_.term_ = current_term_;
-  // delete:e
+  //delete:e
   msg_rselection_.lease_ = lease_ + election_lease_length_us;
   // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
   msg_rselection_.auto_elect_flag = auto_elect_flag;
@@ -576,7 +591,7 @@ int ObElectionNode::rs_extendlease()    //leader send extendlease_request to all
         count_extendlease_vote_++;
       }
     }
-    //modify by chujiajia [rs_election][multi_cluster] 20151110:b
+    //modify chujiajia [rs_election][multi_cluster] 20151110:b
     //if (count_extendlease_vote_ >= ((slave_rs_count_ + 2) / 2))
     if (count_extendlease_vote_ >= ((slave_rs_count_ + 1) / 2 + 1))
     //modify:e
@@ -600,12 +615,12 @@ int ObElectionNode::rs_extendlease()    //leader send extendlease_request to all
   return ret;
 }
 
-// delete by chujiajia [rs_election][multi_cluster] 20150902:b
+//delete chujiajia [rs_election][multi_cluster] 20150902:b
 // int64_t ObElectionNode::get_current_term()
 // {
 // return current_term_;
 // }
-// delete:e
+//delete:e
 
 int ObElectionNode::timeout_reset()
 {
@@ -624,7 +639,7 @@ int ObElectionNode::timeout_reset()
   lease_ = 0;
   extendlease_mark_ = false;
   timeout_mark_ = true;
-  // add by chujiajia [rs_election][multi_cluster] 20150909:b
+  //add chujiajia [rs_election][multi_cluster] 20150909:b
   ///change to follower
   root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
   root_server_->set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
@@ -648,14 +663,14 @@ int ObElectionNode::expire_reset()
   leaderinfo_.reset();
   lease_ = 0;
   extendlease_mark_ = false;
-  // modify by chujiajia [rs_election][multi_cluster] 20150912:b
+  //modify chujiajia [rs_election][multi_cluster] 20150912:b
   timeout_mark_ = true;
-  // modify:e
-  // add by chujiajia [rs_election][multi_cluster] 20150909:b
+  //modify:e
+  //add chujiajia [rs_election][multi_cluster] 20150909:b
   ///change to follower
   root_server_->set_election_role_with_role(common::ObElectionRoleMgr::OB_FOLLOWER);
   root_server_->set_election_role_with_state(common::ObElectionRoleMgr::DURING_ELECTION);
-  // add:e
+  //add:e
   return ret;
 }
 

@@ -90,6 +90,39 @@ namespace oceanbase
       int read_log(uint64_t &log_seq, int64_t& timestamp);
       //add:e
 
+      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+      /**
+       * @brief get max commited log id
+       * @param[out] log_seq  LSN
+       * @param[out] cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_cmt_id(uint64_t &log_seq, int64_t& cmt_id);
+      /**
+       * @brief get max commited log id
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] cmt_id  max commited log id
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_cmt_id_(LogCommand& cmd, uint64_t &log_seq, int64_t& cmt_id);
+      /**
+       * @brief get data_checksum
+       * @param[out] log_seq  LSN
+       * @param[out] data_checksum  data checksum
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_data_checksum(uint64_t &log_seq, int64_t& data_checksum);
+      /**
+       * @brief get data_checksum
+       * @param[out] cmd  log command
+       * @param[out] log_seq  LSN
+       * @param[out] data_checksum  data checksum
+       * @return OB_SUCCESS if success
+       */
+      int read_log_for_data_checksum_(LogCommand& cmd, uint64_t &log_seq, int64_t& data_checksum);
+      // add:e
+
       //重新打开一个新的文件，并定位到当前日志的下一位
       int reset_file_id(const uint64_t log_id_start, const uint64_t log_seq_start);
 

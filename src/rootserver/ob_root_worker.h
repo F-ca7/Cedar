@@ -221,7 +221,7 @@ namespace oceanbase
               const uint32_t channel_id, const int64_t timeout);
 
         // notice that in_buff can not be const.
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         int rt_rs_election(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         // add:e
         int rt_get_update_server_info(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff,
@@ -424,7 +424,7 @@ namespace oceanbase
         common::ObRoleMgr role_mgr_;
         common::ObSlaveMgr slave_mgr_;
         common::ObCheckRunnable check_thread_;
-        // add by chujiajia [rs_election][multi_cluster] 20150823:b
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
         rootserver::ObCheckRsElection check_rselection_thread_; ///< check election thread, excute election operation
         // add:e
         ObRootFetchThread fetch_thread_;
