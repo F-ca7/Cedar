@@ -145,7 +145,7 @@ namespace oceanbase
          * @brief fill_sql_expression
          * fill sql expression
          * @param inter_expr sql expression
-         * @param transformer ObTransformer object point
+         * @param transformer ObTransformer object pointer
          * @param logical_plan logical plan
          * @param physical_plan physical plan
          * @return error code

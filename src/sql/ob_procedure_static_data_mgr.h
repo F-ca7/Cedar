@@ -54,7 +54,7 @@ namespace oceanbase
          * store static data
          * @param sdata_id static data id
          * @param hkey the hash value of the iteration number of the corresponding cycle
-         * @param p_row_store ObRowStore object point
+         * @param p_row_store ObRowStore object pointer
          * @return error code
          */
         int store(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
@@ -63,7 +63,7 @@ namespace oceanbase
          * read static data
          * @param sdata_id static data id
          * @param hkey the hash value of the iteration number of the corresponding cycle
-         * @param p_row_store  ObRowStore object point
+         * @param p_row_store  ObRowStore object pointer
          * @return error code
          */
         int get(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
@@ -73,7 +73,7 @@ namespace oceanbase
          * @param idx static data store array index
          * @param sdata_id  static data id
          * @param hkey the hash value of the iteration number of the corresponding cycle
-         * @param p_row_store  ObRowStore object point
+         * @param p_row_store  ObRowStore object pointer
          * @return  error code
          */
         int get(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store) const;

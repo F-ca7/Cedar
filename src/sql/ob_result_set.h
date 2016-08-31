@@ -175,13 +175,13 @@ namespace oceanbase
         /**
          * @brief set_running_procedure
          * set running procedure
-         * @param proc SpProcedure object point
+         * @param proc SpProcedure object pointer
          */
         void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
         /**
          * @brief get_running_procedure
          * get running procedure
-         * @return SpProcedure object point
+         * @return SpProcedure object pointer
          */
         const SpProcedure* get_running_procedure() const{ return proc_; }
         /**
