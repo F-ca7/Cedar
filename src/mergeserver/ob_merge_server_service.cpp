@@ -90,6 +90,10 @@ namespace oceanbase
 
       lease_expired_time_ = tbsys::CTimeUtil::getTime() + DEFAULT_LEASE_TIME;
       sql_id_mgr_ = NULL;
+
+      //add by qx 20160830 :b
+      ups_state_ = true;
+      //add :e
     }
 
     ObMergeServerService::~ObMergeServerService()
@@ -912,6 +916,9 @@ namespace oceanbase
       //add wangdonghui [dev_compile] 20160730 :b
       static const int32_t MS_HEARTBEAT_PROCEDURE_VERSION = 3;
       //add :e
+      //add qx 20160830 :b
+      static const int32_t MS_HEARTBEAT_UPS_VERSION = 3;
+      //add :e
 
       FILL_TRACE_LOG("step 1. start process heartbeat");
       ObResultCode rc;
@@ -1112,6 +1119,32 @@ namespace oceanbase
         }
       }
       //add :e
+
+     //add by qx 20160830 :b
+     if (version > MS_HEARTBEAT_UPS_VERSION)
+     {
+       bool ups_state=true;
+
+       if (OB_SUCCESS == rc.result_code_)
+       {
+         rc.result_code_ = serialization::decode_bool(in_buffer.get_data(),
+                                                      in_buffer.get_capacity(),
+                                                      in_buffer.get_position(),
+                                                      &ups_state);
+
+         if (OB_SUCCESS != rc.result_code_)
+         {
+           TBSYS_LOG(ERROR, "parse heartbeat ups state failed:ret[%d]",
+                     rc.result_code_);
+         }else if (ups_state != get_ups_state())
+         {
+           // set ups state
+           set_ups_state(ups_state);
+           TBSYS_LOG(INFO, "change ups state flag,now ups_state_=%d",ups_state);
+         }
+       }
+     }
+     //add :e
 
       FILL_TRACE_LOG("step 3. process heartbeat finish:ret[%d]", err);
       CLEAR_TRACE_LOG();

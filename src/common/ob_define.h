@@ -435,6 +435,10 @@ namespace oceanbase
 
     //add by zt 20160713:e
 
+    //add by qx 20160829:b
+    const int OB_PROCEDURE_PROHIBIT_CALL = -6023;
+    //add :e
+
 
 #define IS_SQL_ERR(e) ((OB_ERR_SQL_END <= e && OB_ERR_SQL_START >= e) \
                       || OB_ERR_EXCLUSIVE_LOCK_CONFLICT == e \

@@ -1049,6 +1049,14 @@ int ObTransformer::gen_physical_procedure_execute(
         ret = OB_NOT_INIT;
         TBSYS_LOG(WARN,"Session info is not initiated");
       }
+      //add by qx 20160829 :b
+      //judge RS and UPS whether online,if RS and UPS is offline,we should prohibt call procedure because MS's procedures may be unconsistent
+      else if (sql_context_->merge_service_!=NULL&&(!sql_context_->merge_service_->check_lease()||!sql_context_->merge_service_->get_ups_state()))
+      {
+        ret=OB_PROCEDURE_PROHIBIT_CALL;
+        TBSYS_LOG(WARN,"RS or UPS is offline,prohibt call procedure");
+      }
+      //add :e
       else
       {
         uint64_t stmt_id = OB_INVALID_ID;

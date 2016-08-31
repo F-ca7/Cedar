@@ -133,7 +133,8 @@ namespace oceanbase
                                     const common::ObiRole &role,
                                     const int64_t privilege_version,
                                     const int64_t config_version,
-                                    const int64_t procedure_version);
+                                    const int64_t procedure_version,
+                                    const bool all_ups_state);
 
         virtual int grant_lease_to_ups(const common::ObServer& ups,
                                        common::ObMsgUpsHeartbeat &msg);

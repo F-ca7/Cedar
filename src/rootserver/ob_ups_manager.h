@@ -133,6 +133,27 @@ namespace oceanbase
          */
         int send_rs_election_lease(bool did_force = false);
         // add:e
+
+        //add by qx 20160830 :b
+        /**
+         * @brief get_all_ups_state
+         * get ups state of online or offline
+         * @return ups state
+         */
+        inline bool get_all_ups_state() const
+        {
+          return all_ups_state_;
+        }
+        /**
+         * @brief set_all_ups_state
+         * set ups state of online or offline
+         * @param ups_state
+         */
+        inline void set_all_ups_state(bool ups_state)
+        {
+          all_ups_state_= ups_state;
+        }
+        //add :e
       private:
         // change the ups status and then log this change
         void change_ups_stat(const int32_t index, const ObUpsStatus new_stat);
@@ -207,6 +228,10 @@ namespace oceanbase
         // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
         const common::ObElectionRoleMgr& election_role_;    ///< the information of rs election
         // add:e
+
+        //add by qx 20160830 :b
+        bool all_ups_state_;   ///<  ups online(ture) or offline(false) flag
+        //add :e
     };
  } // end namespace rootserver
 } // end namespace oceanbase

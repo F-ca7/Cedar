@@ -920,7 +920,8 @@ int ObRootRpcStub::heartbeat_to_cs_with_index(const ObServer &cs, const int64_t 
 //add e
 
 int ObRootRpcStub::heartbeat_to_ms(const common::ObServer& ms, const int64_t lease_time, const int64_t frozen_mem_version,
-    const int64_t schema_version, const common::ObiRole &role, const int64_t privilege_version, const int64_t config_version, const int64_t procedure_version)
+                                   const int64_t schema_version, const common::ObiRole &role, const int64_t privilege_version,
+                                   const int64_t config_version, const int64_t procedure_version, const bool all_ups_state)
 {
   int ret = OB_SUCCESS;
   ObDataBuffer msgbuf;
@@ -963,6 +964,12 @@ int ObRootRpcStub::heartbeat_to_ms(const common::ObServer& ms, const int64_t lea
   {
     TBSYS_LOG(ERROR, "failed to serialize procedure_version, err=%d", ret);
   }
+  //add by qx 20160830 :b
+  else if (OB_SUCCESS != (ret = common::serialization::encode_bool(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), all_ups_state)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize all_ups_state, err=%d", ret);
+  }
+  //add :e
   else if (OB_SUCCESS != (ret = client_mgr_->post_request(ms, OB_REQUIRE_HEARTBEAT, MY_VERSION, msgbuf)))
   {
     TBSYS_LOG(WARN, "failed to send request, err=%d", ret);

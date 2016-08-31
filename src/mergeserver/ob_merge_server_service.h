@@ -131,6 +131,28 @@ namespace oceanbase
          */
         int fetch_source(common::ObNameCodeMap * name_code_map);
         //add :e
+
+        //add by qx 20160830 :b
+        /**
+         * @brief get_ups_state
+         * get ups online or offline state
+         * @return ups state
+         */
+        inline bool get_ups_state() const
+        {
+          return ups_state_;
+        }
+        /**
+         * @brief set_ups_state
+         * set ups online or offline state
+         * @param ups_state
+         */
+        inline void set_ups_state(bool ups_state)
+        {
+          ups_state_=ups_state;
+        }
+        //add :e
+
         const common::ObVersion get_frozen_version() const
         {
           return frozen_version_;
@@ -378,6 +400,10 @@ namespace oceanbase
         int64_t lease_expired_time_;
         // instance role type
         common::ObiRole instance_role_;
+
+        //add by qx 20160830 :b
+        bool ups_state_;  ///<  ups online or offline state flag
+        //add :e
 
       private:
         static const uint64_t MAX_INNER_TABLE_COUNT = 32;

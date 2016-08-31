@@ -378,6 +378,10 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE,"Incorrect parameters to procedure");
     //add :e
 
+    //add by qx 20160829:b
+    ADD_ERROR_STR(OB_PROCEDURE_PROHIBIT_CALL,"Procedure is prohibited call now");
+    //add :e
+
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");

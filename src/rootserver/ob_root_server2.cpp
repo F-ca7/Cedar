@@ -6990,7 +6990,7 @@ int ObRootServer2::force_heartbeat_all_servers(void)
         ret = worker_->get_rpc_stub().heartbeat_to_ms(tmp_server,
             config_.cs_lease_duration_time, last_frozen_mem_version_,
             get_schema_version(), get_obi_role(),
-            get_privilege_version(), get_config_version(),/*root_server_->get_procedure_version()*/0);
+            get_privilege_version(), get_config_version(),/*root_server_->get_procedure_version()*/0,true);
         if (OB_SUCCESS == ret)
         {
           TBSYS_LOG(INFO, "force hearbeat to ms %s", to_cstring(tmp_server));

@@ -223,6 +223,21 @@ namespace oceanbase
          */
         int notify_delete_cache(const common::ObString & proc_name);
         //add :e
+
+
+        //add by qx 20160830 :b
+        /**
+         * @brief get_UpsManager
+         * get ObUpsManager object
+         * @return ObUpsManager pointer
+         */
+        inline ObUpsManager * get_ups_manager() const
+        {
+          return ups_manager_;
+        }
+        //add :e
+
+
         void set_privilege_version(const int64_t privilege_version);
         // commit update inner table task
         void commit_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
