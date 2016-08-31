@@ -392,7 +392,7 @@ namespace oceanbase
         /**
          * @brief get_ownner
          * get procedure
-         * @return SpProcedure object point
+         * @return SpProcedure object pointer
          */
         SpProcedure *get_ownner() const { return proc_; }
         /**
@@ -2315,7 +2315,7 @@ namespace oceanbase
          * store static data
          * @param sdata_id static data id
          * @param hkey the hash value of the iteration number of the corresponding cycle
-         * @param p_row_store ObRowStore object point
+         * @param p_row_store ObRowStore object pointer
          * @return error code
          */
         int store_static_data(int64_t sdata_id, int64_t hkey, ObRowStore *&p_row_store);
@@ -2323,7 +2323,7 @@ namespace oceanbase
          * @brief get_static_data_by_id
          * get static data by id
          * @param sdata_id static data id
-         * @param p_row_store returned ObRowStore object point
+         * @param p_row_store returned ObRowStore object pointer
          * @return error code
          */
         int get_static_data_by_id(int64_t sdata_id, ObRowStore *&p_row_store);
@@ -2333,7 +2333,7 @@ namespace oceanbase
          * @param idx index
          * @param sdata_id static data id
          * @param hkey the hash value of the iteration number of the corresponding cycle
-         * @param p_row_store returned ObRowStore object point
+         * @param p_row_store returned ObRowStore object pointer
          * @return error code
          */
         int get_static_data(int64_t idx, int64_t &sdata_id, int64_t &hkey, const ObRowStore *&p_row_store);

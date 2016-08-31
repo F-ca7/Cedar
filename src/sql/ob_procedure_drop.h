@@ -102,7 +102,7 @@ namespace oceanbase
         /**
          * @brief get_next_row
          * get next row
-         * @param row ObRow object point
+         * @param row ObRow object pointer
          * @return error code
          */
         virtual int get_next_row(const common::ObRow *&row);

@@ -145,7 +145,7 @@ namespace oceanbase
         /**
          * @brief pexecute_expr
          * static function appoint a SpUpsInstExecStrategy object to execute expression instruction
-         * @param host SpUpsInstExecStrategy object point
+         * @param host SpUpsInstExecStrategy object pointer
          * @param inst expression instruction
          * @return error code
          */
@@ -153,7 +153,7 @@ namespace oceanbase
         /**
          * @brief pexecute_rw_delta
          * static function appoint a SpUpsInstExecStrategy object to execute read read and weite delta data instruction
-         * @param host SpUpsInstExecStrategy object point
+         * @param host SpUpsInstExecStrategy object pointer
          * @param inst read read and weite delta data instruction
          * @return error code
          */
@@ -161,7 +161,7 @@ namespace oceanbase
         /**
          * @brief pexecute_rw_delta_into_var
          * static function appoint a SpUpsInstExecStrategy object to execute read read and weite delta data into variable instruction
-         * @param host SpUpsInstExecStrategy object point
+         * @param host SpUpsInstExecStrategy object pointer
          * @param inst read read and weite delta data into variable instruction
          * @return error code
          */
@@ -169,7 +169,7 @@ namespace oceanbase
         /**
          * @brief pexecute_if_ctrl
          * static function appoint a SpUpsInstExecStrategy object to execute read if contriol instruction
-         * @param host SpUpsInstExecStrategy object point
+         * @param host SpUpsInstExecStrategy object pointer
          * @param inst if contriol instruction
          * @return error code
          */
@@ -177,7 +177,7 @@ namespace oceanbase
         /**
          * @brief pexecute_loop
          * static function appoint a SpUpsInstExecStrategy object to execute loop instruction
-         * @param host SpUpsInstExecStrategy object point
+         * @param host SpUpsInstExecStrategy object pointer
          * @param inst loop instruction
          * @return error code
          */
@@ -185,7 +185,7 @@ namespace oceanbase
         /**
          * @brief pexecute_block
          * static function appoint a SpUpsInstExecStrategy object to execute group instruction
-         * @param host host SpUpsInstExecStrategy object point
+         * @param host host SpUpsInstExecStrategy object pointer
          * @param inst group instruction
          * @return error code
          */
@@ -193,7 +193,7 @@ namespace oceanbase
         /**
          * @brief pexecute_casewhen
          * static function appoint a SpUpsInstExecStrategy object to execute case when instruction
-         * @param host host SpUpsInstExecStrategy object point
+         * @param host host SpUpsInstExecStrategy object pointer
          * @param inst case when instruction
          * @return error code
          */
@@ -264,7 +264,7 @@ namespace oceanbase
         /**
          * @brief get_next_row
          * get next row
-         * @param row returned ObRow object point
+         * @param row returned ObRow object pointer
          * @return error code
          */
         virtual int get_next_row(const common::ObRow *&row);

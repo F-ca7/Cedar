@@ -85,7 +85,7 @@ namespace oceanbase
         /**
          * @brief get_row_desc
          * get row descriptor
-         * @param row_desc row descriptor point
+         * @param row_desc row descriptor pointer
          * @return error code
          */
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;

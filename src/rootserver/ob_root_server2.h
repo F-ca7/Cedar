@@ -549,7 +549,7 @@ namespace oceanbase
         /**
          * @brief get_name_code_map
          * get name_code_map_
-         * @return  ObNameCodeMap point
+         * @return  ObNameCodeMap pointer
          */
         common::ObNameCodeMap* get_name_code_map();
         //add :e

@@ -292,8 +292,8 @@ int resolve_independ_expr(
 /**
  * @brief resolve_and_exprs
  * parse and_exprs statement syntax tree
- * @param result_plan point generated logical plan
- * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param result_plan pointer generated logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
  * @param node is root node of and_exprs statement syntax tree
  * @param and_exprs store generate expr_id
  * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
@@ -357,8 +357,8 @@ int resolve_and_exprs(
 /**
  * @brief resolve_expr
  * parse expr statement syntax tree
- * @param result_plan point generated logical plan
- * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param result_plan pointer generated logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
  * @param node is root node of expr statement syntax tree
  * @param and_exprs store generate expr_id
  * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
@@ -1786,10 +1786,10 @@ int resolve_when_func(
 /**
  * @brief resolve_agg_func
  * parse aggregation function expr syntax tree
- * @param result_plan point generated logical plan
- * @param select_stmt point select_stmt that store aggregation function expr_id
+ * @param result_plan pointer generated logical plan
+ * @param select_stmt pointer select_stmt that store aggregation function expr_id
  * @param node is root node of aggregation function expr statement syntax tree
- * @param ret_sql_expr is a point that return sql expr
+ * @param ret_sql_expr is a pointer that return sql expr
  * @return error code
  */
 int resolve_agg_func(
@@ -2795,7 +2795,7 @@ int resolve_for_update_clause(
 /**
  * @brief resolve_select_stmt
  * parse select statement syntax tree and create ObSelectStmt object
- * @param result_plan point generated create procedure logical plan
+ * @param result_plan pointer generated create procedure logical plan
  * @param node is root node of select statement syntax tree
  * @param query_id is select_stmt's id
  * @return errorcode.
@@ -3225,7 +3225,7 @@ int resolve_semi_join(
 /**
  * @brief resolve_delete_stmt
  * parse delete statement syntax tree and create ObDeleteStmt object
- * @param result_plan point generated create procedure logical plan
+ * @param result_plan pointer generated create procedure logical plan
  * @param node is root node of delete statement syntax tree
  * @param query_id is delete_stmt's id
  * @return errorcode.
@@ -3449,7 +3449,7 @@ int resolve_insert_values(
 /**
  * @brief resolve_insert_stmt
  * parse insert statement syntax tree and create ObInsertStmt object
- * @param result_plan point generated create procedure logical plan
+ * @param result_plan pointer generated create procedure logical plan
  * @param node is root node of insert statement syntax tree
  * @param query_id is insert_stmt's id
  * @return errorcode.
@@ -3579,7 +3579,7 @@ int resolve_insert_stmt(
 /**
 * @brief resolve_update_stmt
 * parse update statement syntax tree and create ObUpdateStmt object
-* @param result_plan point generated create procedure logical plan
+* @param result_plan pointer generated create procedure logical plan
 * @param node is root node of update statement syntax tree
 * @param query_id is update_stmt's id
 * @return errorcode.
@@ -3715,8 +3715,8 @@ int resolve_update_stmt(
 /**
  * @brief resolve_when_clause
  * parse when_clause statement syntax tree
- * @param result_plan point generated create procedure logical plan
- * @param stmt point upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param result_plan pointer generated create procedure logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
  * @param node is root node of when_clause statement syntax tree
  * @return error code
  */

@@ -175,7 +175,7 @@ namespace oceanbase
         /**
          * @brief handle_group_result
          * handle the group execution result
-         * @param proc point SpProcedure object
+         * @param proc pointer SpProcedure object
          * @param result ups execute result
          * @return error code
          */
@@ -263,14 +263,14 @@ namespace oceanbase
         /**
          * @brief set_rpc_stub
          * set rpc proxy
-         * @param rpc point ObMergerRpcProxy object
+         * @param rpc pointer ObMergerRpcProxy object
          * @return  error code
          */
         int set_rpc_stub(mergeserver::ObMergerRpcProxy *rpc) { rpc_ = rpc; return OB_SUCCESS;}
         /**
          * @brief get_rpc_stub
          * get rpc proxy
-         * @return  ObMergerRpcProxy object point
+         * @return  ObMergerRpcProxy object pointer
          */
         mergeserver::ObMergerRpcProxy * get_rpc_stub() { return rpc_; }
         /**
