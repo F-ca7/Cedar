@@ -595,6 +595,8 @@ int ObUpsLogMgr::update_tmp_log_cursor()
   ObLogCursor end_cursor;
   int64_t commit_seq = 0;
   commit_seq = slave_mgr_->get_acked_clog_id_without_update();
+  replay_worker_->get_replay_cursor(start_cursor_);
+  TBSYS_LOG(INFO, "update_tmp_log_cursor:start_cursor_.log_id_:%ld, start_cursor_.file_id_:%ld.", start_cursor_.log_id_, start_cursor_.file_id_);
   if (!is_inited())
   {
     err = OB_NOT_INIT;

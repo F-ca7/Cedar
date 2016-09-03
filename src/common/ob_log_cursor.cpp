@@ -103,7 +103,7 @@ namespace oceanbase
       return err;
     }
 
-    //add chujiajia [log synchronization][multi_cluster] 20160328:b
+    //add by chujiajia [log synchronization][multi_cluster] 20160328:b
     int ObLogCursor::next_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id) const
     {
       int err = OB_SUCCESS;

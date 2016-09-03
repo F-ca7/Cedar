@@ -73,8 +73,11 @@ namespace oceanbase
         int set_log_sync_timeout_us(const int64_t timeout);
         int post_log_to_slave(const common::ObLogCursor& start_cursor, const common::ObLogCursor& end_cursor, const char* data, const int64_t length);
         int wait_post_log_to_slave(const char* data, const int64_t length, int64_t& delay);
-        int64_t get_acked_clog_id() const;
-        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        //mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+        //int64_t get_acked_clog_id() const;
+        int64_t get_acked_clog_id();
+        //mod:e
+        //add by chujiajia [log synchronization][multi_cluster] 20160627:b
         inline int64_t get_acked_clog_id_without_update()
         {
           return acked_clog_id_;

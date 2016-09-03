@@ -40,7 +40,7 @@ namespace oceanbase
       int64_t to_string(char* buf, const int64_t len) const;
       int this_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len) const;
       int next_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len) const;
-      //add chujiajia [log synchronization][multi_cluster] 20160328:b
+      //add by chujiajia [log synchronization][multi_cluster] 20160328:b
       int this_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id) const;
       int next_entry(ObLogEntry& entry, const LogCommand cmd, const char* log_data, const int64_t data_len, const int64_t max_cmt_id) const;
       //add:e

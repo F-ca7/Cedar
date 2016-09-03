@@ -698,7 +698,7 @@ namespace oceanbase
     //modify chujiajia [log synchronization][multi_cluster] 20160328:b
     //int ObLogGenerator::gen_keep_alive()
     int ObLogGenerator::gen_keep_alive(const bool is_ups_nop, const int64_t max_cmt_id)
-    //modify:e
+    //mod:e
     {
       //modify chujiajia [log synchronization][multi_cluster] 20160328:b
       //return write_nop(/*force_write*/true);
@@ -829,7 +829,7 @@ namespace oceanbase
     //modify chujiajia [log synchronization][multi_cluster] 20160328:b
     //int ObLogGenerator:: get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len)
     int ObLogGenerator:: get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len, const int64_t max_cmt_id)
-    //modify:e
+    //mod:e
     {
       int err = OB_SUCCESS;
       if (OB_SUCCESS != (err = check_state()))

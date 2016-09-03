@@ -171,7 +171,10 @@ namespace oceanbase
         }
         else
         {
-          err = OB_INIT_TWICE;
+          //del chujiajia [log synchronization][multi_cluster] 20160625:b
+          //err = OB_INIT_TWICE;
+          //del:e
+          TBSYS_LOG(WARN, "start_log(log_cursor=%s): ALREADY STARTED. start_log_=%s", log_cursor.to_str(), replay_cursor_.to_str());
         }
       }
       else if (OB_SUCCESS != (err = update_replay_cursor(log_cursor)))
@@ -595,6 +598,9 @@ namespace oceanbase
                && OB_EAGAIN != err)
       {
         TBSYS_LOG(ERROR, "submit(next_submit_id=%ld)=>%d", next_submit_log_id_, err);
+        //add chujiajia [log synchronization][multi_cluster] 20160901:b
+        err = OB_EAGAIN;
+        //add:e
       }
       else if (OB_EAGAIN == err)
       {

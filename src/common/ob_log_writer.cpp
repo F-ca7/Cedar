@@ -174,7 +174,7 @@ int64_t ObLogWriter::to_string(char* buf, const int64_t len) const
 //modify chujiajia [log synchronization][multi_cluster] 20160328:b
 //int ObLogWriter::write_keep_alive_log()
 int ObLogWriter::write_keep_alive_log(const bool is_ups_nop, const int64_t max_cmt_id)
-//modify:e
+//mod:e
 {
   int err = OB_SUCCESS;
   //modify chujiajia [log synchronization][multi_cluster] 20160328:b

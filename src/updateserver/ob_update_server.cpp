@@ -4160,11 +4160,13 @@ namespace oceanbase
               {
                 TBSYS_LOG(ERROR, "[PER_5_MIN] keep_alive msg timeout, last_time = %ld, cur_time = %ld, duration_time = %ld", last_keep_alive_time,  cur_time_us, keep_alive_valid_interval_);
               }
-              if (ObUpsRoleMgr::ACTIVE == role_mgr_.get_state())
-              {
-                TBSYS_LOG(WARN, "slave_ups can't connect with master_ups. set state to REPLAYING_LOG");
-                role_mgr_.set_state(ObUpsRoleMgr::REPLAYING_LOG);
-              }
+              //del chujiajia [log synchronization][multi_cluster] 20160524:b
+              //if (ObUpsRoleMgr::ACTIVE == role_mgr_.get_state())
+              //{
+              //  TBSYS_LOG(WARN, "slave_ups can't connect with master_ups. set state to REPLAYING_LOG");
+              //  role_mgr_.set_state(ObUpsRoleMgr::REPLAYING_LOG);
+              //}
+              //del:e
             }
             else
             {

@@ -110,10 +110,6 @@ namespace oceanbase
        */
       template<typename T>
       int write_log(const LogCommand cmd, const T& data, const int64_t max_cmt_id);
-      /**
-       * @brief get flushed commited max log id without updating the flushed_clog_id
-       * @return flushed commited  max log id
-       */
       inline int64_t get_flushed_clog_id_without_update()
       {
         return slave_mgr_->get_acked_clog_id_without_update();
@@ -124,7 +120,7 @@ namespace oceanbase
       //modify chujiajia [log synchronization][multi_cluster] 20160328:b
       //int write_keep_alive_log()
       int write_keep_alive_log(const bool is_ups_nop, const int64_t max_cmt_id);
-      //modify:e
+      //mod:e
         int async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
         int64_t get_flushed_clog_id();
       /// @brief 将缓冲区中的日志写入磁盘

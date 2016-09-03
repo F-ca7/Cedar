@@ -197,9 +197,16 @@ int ObUpsSlaveMgr::wait_post_log_to_slave(const char* data, const int64_t length
   return ret;
 }
 
-int64_t ObUpsSlaveMgr::get_acked_clog_id() const
+//mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+//int64_t ObUpsSlaveMgr::get_acked_clog_id() const
+int64_t ObUpsSlaveMgr::get_acked_clog_id()
+//mod:e
 {
-  return const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  //mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+  //return const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  acked_clog_id_ = const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  return acked_clog_id_;
+  //mod:e
 }
 
 int ObUpsSlaveMgr::grant_keep_alive()

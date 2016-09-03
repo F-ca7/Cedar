@@ -453,6 +453,9 @@ namespace oceanbase
         }
         else
         {
+          //add by chujiajia [log synchronization][multi_cluster] 20160625:b
+          replay_worker.set_next_flush_log_id(end_id + 1);
+          //add:e
           start_location = end_location;
         }
       }
@@ -909,7 +912,7 @@ namespace oceanbase
         else if(log_entry.header_.max_cmt_id_ > master_cmt_log_id)
         {
           master_cmt_log_id = log_entry.header_.max_cmt_id_;
-	    }
+        }
         //add:e
 
         if (OB_SUCCESS != err)

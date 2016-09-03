@@ -82,14 +82,14 @@ namespace oceanbase
         //modify chujiajia [log synchronization][multi_cluster] 20160328:b
         //int get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len);
         int get_log(ObLogCursor& start_cursor, ObLogCursor& end_cursor, char*& buf, int64_t& len, const int64_t max_cmt_id);
-        //modify:e
+        //mod:e
         int commit(const ObLogCursor& end_cursor);
         int switch_log(int64_t& new_file_id);
         int check_point(int64_t& cur_log_file_id);
         //modify chujiajia [log synchronization][multi_cluster] 20160328:b
         //int gen_keep_alive();
         int gen_keep_alive(const bool is_ups_nop, const int64_t max_cmt_id);
-        //modify:e
+        //mod:e
         bool is_clear() const;
         int64_t to_string(char* buf, const int64_t len) const;
         static bool is_eof(const char* buf, int64_t len);
