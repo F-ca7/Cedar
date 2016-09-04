@@ -150,6 +150,15 @@ namespace oceanbase
          */
         static int read_procedure_source(const ObString &proc_name, ObString &proc_sour, ObSqlContext &context, ObStringBuf* name_pool);
         //add zt 20151117:e
+        //add by qx 20160903 :b
+        /**
+         * @brief deblank
+         * remove extra space in string
+         * @param string srcouce string
+         */
+        static void deblank(ObString &string);
+        //add :e
+
       private:
         // data members
     };

@@ -734,6 +734,14 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
     ObValues *op = NULL;
     ObPhysicalPlan *phy_plan = NULL;
 
+    //add by qx 20160903 :b
+    // remove extra space in stmt string
+    char * bufstmt=(char *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+    common::ObString t_stmt(stmt.length(),0,bufstmt);
+    t_stmt.clone(stmt);
+    deblank(t_stmt);
+    //add :e
+
     if (stmt.length() >= select_collation_len && 0 == strncasecmp(stmt.ptr(), select_collation, select_collation_len))
     {
         /*
@@ -912,24 +920,24 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
         }
     }
     //add by wangdonghui 20151224 :b it's a sad thing to process show create procedure
-    else if(stmt.length() >= show_procedure_len && 0 == strncasecmp(stmt.ptr(), show_procedure, show_procedure_len))
+    else if(t_stmt.length() >= show_procedure_len && 0 == strncasecmp(t_stmt.ptr(), show_procedure, show_procedure_len))
     {
-        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(t_stmt.length());
         if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
         {
         }
         else
         {
-            TBSYS_LOG(TRACE, "special stmt: %.*s", stmt.length(), stmt.ptr());
+            TBSYS_LOG(TRACE, "special stmt: %.*s", t_stmt.length(), t_stmt.ptr());
             int index=0;
             bool flag=false;
-            for(size_t i = 0; i<(size_t)stmt.length()-1; i++)
+            for(size_t i = 0; i<(size_t)t_stmt.length()-1; i++)
             {
                 if(flag)
                 {
-                    bufstr[index++] = stmt.ptr()[i];
+                    bufstr[index++] = t_stmt.ptr()[i];
                 }
-                if(stmt.ptr()[i] == '.')
+                if(t_stmt.ptr()[i] == '.')
                 {
                     i++;
                     flag=true;
@@ -937,9 +945,12 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
             }
             if(!flag)
             {
-                for(size_t i = show_procedure_len; i<(size_t)stmt.length(); i++)
+                for(size_t i = show_procedure_len; i<(size_t)t_stmt.length(); i++)
                 {
-                    bufstr[index++] = stmt.ptr()[i];
+                  if(t_stmt.ptr()[i] !=' ' && t_stmt.ptr()[i] != ';')
+                    bufstr[index++] = t_stmt.ptr()[i];
+                  else
+                    break;
                 }
             }
             bufstr[index]='\0';
@@ -1975,3 +1986,34 @@ int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour,
   return ret;
 }
 //add zt 20151117:e
+
+//add by qx 20160903 :b
+void ObSql::deblank(ObString &string)
+{
+  char *p = string.ptr();
+  char *q = string.ptr();
+  int32_t len1 = 1;  // src string length pointer
+  while (len1 <= string.length() && *p ==' ')
+  {
+    p++;
+    len1++;
+  }
+  int32_t len2 = 0;  // dest string length pointer
+  while (len1<=string.length())
+  {
+    *q = *p++;
+    len1++;
+    len2++;
+    while (len1<=string.length() && *q==' ' && *p == ' ')
+    {
+      p++;
+      len1++;
+    }
+    q++;
+  }
+  if(*(q-1) == ' ')
+    len2--;
+  string.set_length(len2);
+}
+
+//add :e
