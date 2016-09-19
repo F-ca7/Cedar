@@ -1,5 +1,25 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_rpc_scan.cpp
+ * @brief table rpc scan operator
+ *
+ * modified by longfei：
+ * add member variables and member function for using index in select
+ *
+ * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
+ * 
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
+ */
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,7 +68,10 @@ namespace oceanbase
       rpc_scan_(), scalar_agg_(NULL), group_(NULL), group_columns_sort_(), limit_(),
       has_rpc_(false), has_scalar_agg_(false), has_group_(false),
       has_group_columns_sort_(false), has_limit_(false), is_skip_empty_row_(true),
-      read_method_(ObSqlReadStrategy::USE_SCAN)
+      read_method_(ObSqlReadStrategy::USE_SCAN),
+      is_use_index_rpc_scan_(false),is_use_index_for_storing_(false),is_use_index_for_storing_for_tostring_(false),
+      index_tid_for_storing_for_tostring_(OB_INVALID_ID),is_use_index_without_storing_for_tostring_(false),
+      index_tid_without_storing_for_tostring_(OB_INVALID_ID)
     {
     }
 
@@ -106,6 +129,14 @@ namespace oceanbase
       empty_row_filter_.reset();
       is_skip_empty_row_ = true;
       read_method_ = ObSqlReadStrategy::USE_SCAN;
+      //add longfei
+      is_use_index_rpc_scan_=false;
+      is_use_index_for_storing_=false;
+      is_use_index_for_storing_for_tostring_=false;
+      index_tid_for_storing_for_tostring_=OB_INVALID_ID;
+      is_use_index_without_storing_for_tostring_=false;
+      index_tid_without_storing_for_tostring_=OB_INVALID_ID;
+      //add:e
       ObTableScan::reset();
     }
 
@@ -145,6 +176,14 @@ namespace oceanbase
       }
       empty_row_filter_.reuse();
       is_skip_empty_row_ = true;
+      //add longfei
+      is_use_index_rpc_scan_=false;
+      is_use_index_for_storing_=false;
+      is_use_index_for_storing_for_tostring_=false;
+      index_tid_for_storing_for_tostring_=OB_INVALID_ID;
+      is_use_index_without_storing_for_tostring_=false;
+      index_tid_without_storing_for_tostring_=OB_INVALID_ID;
+      //add e
       read_method_ = ObSqlReadStrategy::USE_SCAN;
     }
 
@@ -165,6 +204,13 @@ namespace oceanbase
             select_get_filter_.set_child(0, empty_row_filter_);
             child_op_ = &select_get_filter_;
           }
+          //add longfei
+          else if(ObSqlReadStrategy::USE_SCAN == read_method_ && is_use_index_rpc_scan_)
+          {
+              select_get_filter_.set_child(0, *child_op_);
+              child_op_ = &select_get_filter_;
+          }
+          //add e
         }
         else
         {
@@ -310,6 +356,123 @@ namespace oceanbase
       return ret;
     }
 
+    //add longfei [secondary index select] 20151116 :b
+    void ObTableRpcScan::set_main_tid(uint64_t tid)
+    {
+      //is_use_index_rpc_scan_=true;
+      main_tid_= tid;
+      rpc_scan_.set_main_tid(tid);
+    }
+
+    void ObTableRpcScan::set_is_index_for_storing(bool is_use, uint64_t tid)
+    {
+      is_use_index_for_storing_for_tostring_ = is_use;
+      index_tid_for_storing_for_tostring_ = tid;
+    }
+
+    void ObTableRpcScan::set_is_index_without_storing(bool is_use, uint64_t tid)
+    {
+      is_use_index_without_storing_for_tostring_ = is_use;
+      index_tid_without_storing_for_tostring_ = tid;
+    }
+
+    void ObTableRpcScan::set_is_use_index_without_storing()
+    {
+      is_use_index_rpc_scan_=true;
+    }
+
+    void ObTableRpcScan::set_is_use_index_for_storing(uint64_t tid,ObRowDesc &row_desc)
+    {
+      is_use_index_for_storing_ = true;
+      rpc_scan_.set_is_use_index_for_storing(tid, row_desc);
+    }
+
+    void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo rowkey_info)
+    {
+      rpc_scan_.set_main_rowkey_info(rowkey_info);
+    }
+
+    int ObTableRpcScan::cons_second_row_desc(ObRowDesc &row_desc)
+    {
+      int ret = OB_SUCCESS;
+
+      if (OB_SUCCESS == ret)
+      {
+        const common::ObSEArray<ObSqlExpression, OB_PREALLOCATED_NUM, common::ModulePageAllocator, ObArrayExpressionCallBack<ObSqlExpression> > &columns = main_project_.get_output_columns();
+        for (int64_t i = 0; OB_SUCCESS == ret && i < columns.count(); i ++)
+        {
+          const ObSqlExpression &expr = columns.at(i);
+          if (OB_SUCCESS != (ret = row_desc.add_column_desc(expr.get_table_id(), expr.get_column_id())))
+          {
+            TBSYS_LOG(WARN, "fail to add column desc:ret[%d]", ret);
+          }
+        }
+      }
+      return ret;
+    }
+    int ObTableRpcScan::set_second_row_desc(ObRowDesc *row_desc)
+    {
+      int ret = OB_SUCCESS;
+
+      ret=rpc_scan_.set_second_rowdesc(row_desc);
+      return ret;
+    }
+
+    int ObTableRpcScan::add_main_output_column(const ObSqlExpression& expr)
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS == ret)
+      {
+        // add output column to scan param
+        ret = main_project_.add_output_column(expr);
+        ret=rpc_scan_.add_main_output_column(expr);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "fail to add column to rpc scan operator. ret=%d", ret);
+        }
+      }
+      return ret;
+    }
+
+    int ObTableRpcScan::add_main_filter(ObSqlExpression* expr)
+    {
+      int ret = OB_SUCCESS;
+      //ret = main_filter_.add_filter(expr);
+      ObSqlExpression* expr_clone = ObSqlExpression::alloc(); // @todo temporary work around
+      if (NULL == expr_clone)
+      {
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+        TBSYS_LOG(WARN, "no memory");
+      }
+      else
+      {
+        *expr_clone = *expr;
+        ret=rpc_scan_.add_main_filter(expr_clone);
+      }
+      return ret;
+    }
+
+    int ObTableRpcScan::add_index_filter(ObSqlExpression* expr)
+    {
+      int ret = OB_SUCCESS;
+      ObSqlExpression* expr_clone = ObSqlExpression::alloc(); // @todo temporary work around
+      if (NULL == expr_clone)
+      {
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+        TBSYS_LOG(WARN, "no memory");
+      }
+      else
+      {
+        *expr_clone = *expr;
+        if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
+        {
+          TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
+        }
+      }
+      return ret;
+    }
+    //add:e
+
     int ObTableRpcScan::add_output_column(const ObSqlExpression& expr)
     {
       int ret = OB_SUCCESS;
@@ -447,6 +610,18 @@ namespace oceanbase
       return ret;
     }
 
+    //add fanqiushi [semi_join] [0.1] 20150910:b
+        int ObTableRpcScan::add_filter_set_for_semijoin(ObSqlExpression *expr)
+        {
+            int ret = OB_SUCCESS;
+            if (OB_SUCCESS != (ret = rpc_scan_.add_filter(expr)))
+            {
+              TBSYS_LOG(WARN, "fail to add filter to rpc scan operator. ret=%d", ret);
+            }
+            return ret;
+        }
+    //add:e
+
     int ObTableRpcScan::add_filter(ObSqlExpression *expr)
     {
       int ret = OB_SUCCESS;
@@ -463,9 +638,23 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "fail to add filter to rpc scan operator. ret=%d", ret);
         }
+        /* del longfei 20151116:b
         else if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
         {
           TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
+        }
+        del e */
+        else
+        {
+          //modify by longfei
+          if(!is_use_index_rpc_scan_)   //如果回表，这里不能再把表达式存到select_get_filter_里了，因为我在函数add_index_filter里已经放进去过了。
+          {
+            if (OB_SUCCESS != (ret = select_get_filter_.add_filter(expr_clone)))
+            {
+              TBSYS_LOG(WARN, "fail to add filter to filter for select get. ret=%d", ret);
+            }
+          }
+          //modify:e
         }
       }
       return ret;
@@ -515,7 +704,16 @@ namespace oceanbase
     int64_t ObTableRpcScan::to_string(char* buf, const int64_t buf_len) const
     {
       int64_t pos = 0;
-      databuff_printf(buf, buf_len, pos, "TableRpcScan(read_method=%s, ", read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN":"GET");
+      //modify longfei [secondary index select] 20151120 :b
+      //databuff_printf(buf, buf_len, pos, "TableRpcScan(read_method=%s, ", read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN":"GET");
+      databuff_printf(buf, buf_len, pos,
+          "TableRpcScan(read_method=%s, is use index for storing=%d,index tid=%ld; is use index without storing=%d,index tid=%ld",
+          read_method_ == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET",
+          is_use_index_for_storing_for_tostring_,
+          index_tid_for_storing_for_tostring_,
+          is_use_index_without_storing_for_tostring_,
+          index_tid_without_storing_for_tostring_);
+      //modify e
       if (has_limit_)
       {
         databuff_printf(buf, buf_len, pos, "limit=<");
@@ -621,6 +819,9 @@ namespace oceanbase
         has_group_columns_sort_ = o_ptr->has_group_columns_sort_;
         has_limit_ = o_ptr->has_limit_;
         is_skip_empty_row_ = o_ptr->is_skip_empty_row_;
+        //add longfei
+        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+        //add e
         read_method_ = o_ptr->read_method_;
       }
       return ret;

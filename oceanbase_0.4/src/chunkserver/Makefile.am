@@ -1,5 +1,5 @@
 AM_CPPFLAGS := $(AM_CPPFLAGS) -I${TBLIB_ROOT}/include/tbsys \
-              -I${EASY_ROOT}/include/easy   \
+              -I${ONEV_ROOT}/include/onev   \
               -I${top_srcdir}/include       \
               -I${top_srcdir}/src
 
@@ -15,7 +15,7 @@ LDADD = $(top_builddir)/src/sstable/libsstable.a                \
         $(top_builddir)/src/common/libcommon.a                  \
         $(top_builddir)/src/sql/libsql.a                        \
 				$(top_builddir)/src/common/timezone/libtimezone.a       \
-        ${EASY_LIB_PATH}/libeasy.a                              \
+        ${ONEV_LIB_PATH}/libonev.a                              \
         ${TBLIB_ROOT}/lib/libtbsys.a
 
 
@@ -80,7 +80,17 @@ libchunkserver_a_SOURCES =                                               \
  ob_tablet_service.h              ob_tablet_service.cpp                  \
  ob_tablet_writer.h               ob_tablet_writer.cpp                   \
  ob_tablet_reader.h               ob_tablet_reader.cpp                   \
- ob_chunk_reload_config.h         ob_chunk_reload_config.cpp
+ ob_chunk_reload_config.h         ob_chunk_reload_config.cpp             \
+ ob_cs_interactive_cell_stream.h  ob_cs_interactive_cell_stream.cpp      \
+ ob_cs_interactive_scan.h         ob_cs_interactive_scan.cpp             \
+ ob_global_index_handler.h        ob_global_index_handler.cpp            \
+ ob_local_index_handler.h         ob_local_index_handler.cpp             \
+ ob_index_handle_pool.h           ob_index_handle_pool.cpp               \
+ ob_index_interactive_agent.h     ob_index_interactive_agent.cpp         \
+ ob_index_local_agent.h           ob_index_local_agent.cpp               \
+ ob_index_handler.h               ob_index_handler.cpp                   \
+ ob_index_reporter.h              ob_index_reporter.cpp
+
 
 bin_PROGRAMS = chunkserver
 chunkserver_SOURCES = ob_disk_path.cpp main.cpp ${libchunkserver_a_SOURCES}

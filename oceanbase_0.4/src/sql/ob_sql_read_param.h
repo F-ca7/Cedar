@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_read_param.h
+ * @brief ObSqlReadParam
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add ObTranID variable to ObSqlReadParam
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 #ifndef OCEANBASE_SQL_READ_PARAM_H_
 #define OCEANBASE_SQL_READ_PARAM_H_
 
@@ -12,6 +30,9 @@
 #include "ob_scalar_aggregate.h"
 #include "ob_merge_groupby.h"
 #include "ob_sort.h"
+// add by guojinwei [repeatable read] 20160310:b
+#include "common/ob_transaction.h"
+// add:e
 
 
 namespace oceanbase
@@ -36,6 +57,10 @@ namespace oceanbase
       virtual inline int set_table_id(const uint64_t& renamed_table_id, const uint64_t& table_id);
       virtual inline uint64_t get_renamed_table_id() const;
       virtual inline uint64_t get_table_id() const;
+      // add by guojinwei [repeatable read] 20160310:b
+      virtual inline int set_trans_id(const ObTransID& trans_id);
+      virtual const ObTransID &get_trans_id() const;
+      // add:e
       // operator fields
       virtual int set_project(const ObProject &project);
       virtual int add_output_column(const ObSqlExpression& expr);
@@ -67,6 +92,9 @@ namespace oceanbase
       virtual int assign(const ObSqlReadParam* other);
       VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
 
+
+      int reset_project_and_filter();
+
     protected:
       // RESERVE_PARAM_FIELD
       int serialize_reserve_param(char * buf, const int64_t buf_len, int64_t & pos) const;
@@ -85,6 +113,9 @@ namespace oceanbase
       uint64_t table_id_;
       uint64_t renamed_table_id_;
       bool only_static_data_;
+      // add by guojinwei [repeatable read] 20160310:b
+      ObTransID trans_id_;
+      // add:e
 
       ObProject project_;
       ObScalarAggregate *scalar_agg_;
@@ -157,6 +188,20 @@ namespace oceanbase
     {
       return table_id_;
     }
+
+    // add by guojinwei [repeatable read] 20160310:b
+    inline int ObSqlReadParam::set_trans_id(const ObTransID& trans_id)
+    {
+      int err = OB_SUCCESS;
+      trans_id_ = trans_id;
+      return err;
+    }
+
+    inline const ObTransID & ObSqlReadParam::get_trans_id() const
+    {
+      return trans_id_;
+    }
+    // add:e
 
     inline bool ObSqlReadParam::has_project() const
     {

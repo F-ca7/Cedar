@@ -1,5 +1,26 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_expression.h
+ * @brief sql expression class
+ *
+ * modified by longfei：
+ * 1.add function: set_table_id()
+ * modified by Qiushi FAN: add some functions to create a new expression
+ * modified by maoxiaoxiao: add interface: get_decoded_expression_v3()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,6 +62,12 @@ namespace oceanbase
         const uint64_t get_column_id() const;
         const uint64_t get_table_id() const;
 
+        /**
+         * @brief set_table_id
+         * @param tid
+         */
+        void set_table_id(uint64_t tid); // add longfei [secondary index select] 20151102 e
+
         void set_aggr_func(ObItemType aggr_fun, bool is_distinct);
         int get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const;
         /**
@@ -58,6 +85,16 @@ namespace oceanbase
          * 获取解码后的表达式
          */
         inline const ObPostfixExpression &get_decoded_expression() const;
+        //add wenghaixing for fix insert bug decimal key 2014/10/11
+        inline  ObPostfixExpression &get_decoded_expression_v2() ;
+        //add e
+        /*add maoxx [bloomfilter_join] 20160722*/
+        /**
+         * @brief get_decoded_expression_v3
+         * @return &post_expr_
+         */
+        inline ObPostfixExpression *get_decoded_expression_v3();
+        /*add e*/
         inline bool is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const;
         /**
          * 根据表达式语义对row的值进行计算
@@ -67,12 +104,24 @@ namespace oceanbase
          *
          * @return error code
          */
-        int calc(const common::ObRow &row, const common::ObObj *&result);
+        //mod weixing [implementation of sub_query]20160116
+        //int calc(const common::ObRow &row, const common::ObObj *&result);
+        int calc(const common::ObRow &row, const common::ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map = NULL, bool second_check = false);
+        //mod e
         /// 打印表达式
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
         // check expression type
         inline int is_const_expr(bool &is_const_type) const;
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief create a new expression to filter the data of right table.
+        * @param an array of distinct values of left table,tid and cid of join column.
+        * @param void.
+        * @return void.
+        */
+        inline void set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
+        //add:e
         inline int is_column_index_expr(bool &is_idx_type) const;
         inline int is_simple_condition(bool &is_simple_cond_type) const;
         inline int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const;
@@ -86,6 +135,12 @@ namespace oceanbase
         inline void set_owner_op(ObPhyOperator *owner_op);
         inline ObPhyOperator* get_owner_op();
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add weixing [implementation of sub_query]20160106
+        void set_has_bloomfilter();
+        int get_bloom_filter(ObBloomFilterV1 *& bloom_filter) {bloom_filter = &bloom_filter_; return OB_SUCCESS;}
+        //add e
+
       public:
         static ObSqlExpression* alloc();
         static void free(ObSqlExpression* ptr);
@@ -98,6 +153,12 @@ namespace oceanbase
         bool is_aggr_func_;
         bool is_distinct_;
         ObItemType aggr_func_;
+
+        //add weixing [implement of sub_query]20160106
+        common::ObBloomFilterV1 bloom_filter_;
+        bool use_bloom_filter_;
+        //add e
+
       private:
         // method
         int serialize_basic_param(char* buf, const int64_t buf_len, int64_t& pos) const;
@@ -122,6 +183,13 @@ namespace oceanbase
       column_id_ = OB_INVALID_ID;
       table_id_ = OB_INVALID_ID;
       is_aggr_func_ = is_distinct_ = false;
+      //add weixing [implementation of sub_query]20160106
+      if(use_bloom_filter_)
+      {
+        bloom_filter_.destroy();
+        use_bloom_filter_ = false;
+      }
+      //add e
     }
 
     inline void ObSqlExpression::set_int_div_as_double(bool did)
@@ -144,6 +212,13 @@ namespace oceanbase
     {
       return table_id_;
     }
+
+    // add longfei [secondary index select] 20151102 :b
+    inline void ObSqlExpression::set_table_id(uint64_t tid)
+    {
+            table_id_ = tid;
+    }
+    // add e
 
     inline int ObSqlExpression::get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const
     {
@@ -174,6 +249,18 @@ namespace oceanbase
       return post_expr_;
     }
 
+    inline ObPostfixExpression &ObSqlExpression::get_decoded_expression_v2()
+    {
+      return post_expr_;
+    }
+
+    /*add maoxx [bloomfilter_join] 20160722*/
+    inline ObPostfixExpression *ObSqlExpression::get_decoded_expression_v3()
+    {
+      return &post_expr_;
+    }
+    /*add e*/
+
     inline bool ObSqlExpression::is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const
     {
       return post_expr_.is_equijoin_cond(c1, c2);
@@ -182,6 +269,14 @@ namespace oceanbase
     {
       return post_expr_.is_const_expr(is_const_type);
     }
+
+    //add fanqiushi [semi_join] [0.1] 20150910:b
+    inline void ObSqlExpression::set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid)
+    {
+      post_expr_.set_for_semi_join(tmp_set,tid,cid);
+    }
+
+    //add:e
 
     inline int ObSqlExpression::get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const
     {

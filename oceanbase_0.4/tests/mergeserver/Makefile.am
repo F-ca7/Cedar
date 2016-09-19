@@ -1,7 +1,7 @@
 #SUBDIRS=olap
 #DIST_SUBDIRS=olap
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-			  -I${EASY_ROOT}/include/easy \
+			  -I${ONEV_ROOT}/include/onev \
 			  -I${top_srcdir}/include \
 			  -I${top_srcdir}/src \
 			  -I${top_srcdir}/src/common \
@@ -18,7 +18,7 @@ LDADD = $(top_builddir)/src/mergeserver/libmergeserver.a \
 				$(top_builddir)/src/sql/libsql.a \
 				$(top_builddir)/src/common/libcommon.a \
 				$(top_builddir)/src/common/btree/libbtree.a \
-				${EASY_LIB_PATH}/libeasy.a \
+				${ONEV_LIB_PATH}/libonev.a \
 				${TBLIB_ROOT}/lib/libtbsys.a
 
 CXXFLAGS += -D_MS_MOCK_WHOLE_  -D_BTREE_ENGINE_ -D__UNIT_TEST__

@@ -668,7 +668,7 @@ public class QueryTestCaseForItem extends BaseCase {
 
 		addColumns(Info);
 
-		Info.addOrderBy(ColumnInfo[5], false);// take the first column£¬reverse
+		Info.addOrderBy(ColumnInfo[5], false);// take the first columnï¿½ï¿½reverse
 												// order
 		queryResult = obClient.query(itemInfoTable.getTableName(), Info);
 
@@ -711,7 +711,7 @@ public class QueryTestCaseForItem extends BaseCase {
 
 		addColumns(Info);
 
-		Info.addOrderBy(ColumnInfo[5], true);// take the first column£¬positive
+		Info.addOrderBy(ColumnInfo[5], true);// take the first columnï¿½ï¿½positive
 												// order
 		result = obClient.query(itemInfoTable.getTableName(), Info);
 

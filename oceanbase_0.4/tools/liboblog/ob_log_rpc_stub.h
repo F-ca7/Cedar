@@ -70,8 +70,8 @@ namespace oceanbase
         bool inited_;
         common::ThreadSpecificBuffer buffer_;
         common::ObClientManager client_;
-        easy_io_t *eio_;
-        easy_io_handler_pt client_handler_;
+        onev_io_e *eio_;
+        onev_io_handler_pe client_handler_;
     };
   }
 }

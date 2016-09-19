@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_session_mgr.h
+ * @brief BaseSessionCtx
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add transaction information
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 ////===================================================================
  //
  // ob_session_mgr.h updateserver / Oceanbase
@@ -69,6 +87,7 @@ namespace oceanbase
         virtual void free(BaseSessionCtx *ptr) = 0;
     };
 
+    class SessionTableLockInfo;
     class BaseSessionCtx
     {
       public:
@@ -126,6 +145,10 @@ namespace oceanbase
           CLEAR_TRACE_BUF(tlog_buffer_);
           priority_ = common::PriorityPacketQueueThread::NORMAL_PRIV;
           last_proc_time_ = 0;
+          // add by guojinwei [repeatable read] 20160417:b
+          trans_start_time_ = INT64_MAX;
+          trans_descriptor_ = UINT32_MAX;
+          // add:e
         };
         virtual void kill()
         {
@@ -141,6 +164,17 @@ namespace oceanbase
           UNUSED(isolation);
           return common::OB_SUCCESS;
         };
+        //add wangjiahao [tablelock] 20160616 :b
+        virtual int init_table_lock_info()
+        {
+          return common::OB_SUCCESS;
+        }
+
+        virtual SessionTableLockInfo* get_tblock_info()
+        {
+          return NULL;
+        }
+        //add :e
         virtual int add_publish_callback(ISessionCallback *callback, void *data)
         {
           UNUSED(callback);
@@ -284,8 +318,18 @@ namespace oceanbase
         int64_t to_string(char* buf, int64_t len) const
         {
           int64_t pos = 0;
-          common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld last_active_time=%ld descriptor=%d",
-                          type_, trans_id_, session_start_time_, session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_, last_active_time_, session_descriptor_);
+          // modify by guojinwei [repeatable read] 20160417:b
+          //common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld last_active_time=%ld descriptor=%d",
+          //                type_, trans_id_, session_start_time_, session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_, last_active_time_, session_descriptor_);
+          common::databuff_printf(buf, len, pos, "Session type=%d trans_id=%ld start_time=%ld "
+                                  "timeout=%ld stmt_start_time=%ld stmt_timeout=%ld idle_time=%ld "
+                                  "last_active_time=%ld descriptor=%d"
+                                  "trans_start_time=%ld trans_descriptor=%d",
+                                  type_, trans_id_, session_start_time_,
+                                  session_timeout_, stmt_start_time_, stmt_timeout_, session_idle_time_,
+                                  last_active_time_, session_descriptor_,
+                                  trans_start_time_, trans_descriptor_);
+          // modify:e
           return pos;
         }
 
@@ -333,6 +377,24 @@ namespace oceanbase
         {
           return last_proc_time_;
         };
+        // add by guojinwei [repeatable read] 20160417:b
+        void set_trans_start_time(const int64_t trans_start_time)
+        {
+          trans_start_time_ = trans_start_time;
+        };
+        int64_t get_trans_start_time() const
+        {
+          return trans_start_time_;
+        };
+        uint32_t get_trans_descriptor() const
+        {
+          return trans_descriptor_;
+        };
+        void set_trans_descriptor(const uint32_t trans_descriptor)
+        {
+          trans_descriptor_ = trans_descriptor;
+        };
+        // add:e
 
       private:
         const SessionType type_;
@@ -353,6 +415,10 @@ namespace oceanbase
         int64_t conflict_processor_index_;
         common::PriorityPacketQueueThread::QueuePriority priority_;
         int64_t last_proc_time_;
+        // add by guojinwei [repeatable read] 20160417:b
+        int64_t trans_start_time_;    ///< only for repeatable read
+        uint32_t trans_descriptor_;   ///< only for repeatable read
+        // add:e
     };
 
     class CallbackMgr
@@ -516,7 +582,59 @@ namespace oceanbase
         IncSeq& get_trans_seq() { return trans_seq_; }
         void enable_start_write_session(){ allow_start_write_session_ = true; }
         void disable_start_write_session(){ allow_start_write_session_ = false; }
-
+        //add chujiajia [log synchronization][multi_cluster] 20160606:b
+        inline int reset(int32_t max_ro_num, int32_t max_rp_num, int32_t max_rw_num)
+        {
+          int ret = common::OB_SUCCESS;
+          ctx_map_.destroy();
+          for (int i = 0; i < SESSION_TYPE_NUM; i++)
+          {
+            BaseSessionCtx *ctx = NULL;
+            while (common::OB_SUCCESS == ctx_list_[i].pop(ctx))
+            {
+              if (NULL != ctx
+                  && NULL != factory_)
+              {
+                factory_->free(ctx);
+              }
+            }
+            ctx_list_[i].destroy();
+          }
+          if (common::OB_SUCCESS != (ret = ctx_map_.init(max_ro_num + max_rp_num + max_rw_num)))
+          {
+            TBSYS_LOG(WARN, "init ctx_map fail, ret=%d num=%u", ret, max_ro_num + max_rp_num + max_rw_num);
+          }
+          else
+          {
+            const int64_t MAX_CTX_NUM[SESSION_TYPE_NUM] = {max_ro_num, max_rp_num, max_rw_num};
+            BaseSessionCtx *ctx = NULL;
+            for (int i = 0; i < SESSION_TYPE_NUM; i++)
+            {
+              if (common::OB_SUCCESS != (ret = ctx_list_[i].init(MAX_CTX_NUM[i])))
+              {
+                TBSYS_LOG(WARN, "init ctx_list fail, ret=%d type=%d max_ctx_num=%ld", ret, i, MAX_CTX_NUM[i]);
+                break;
+              }
+              for (int64_t j = 0; common::OB_SUCCESS == ret && j < MAX_CTX_NUM[i]; j++)
+              {
+                if (NULL == (ctx = factory_->alloc((SessionType)i, *this)))
+                {
+                  TBSYS_LOG(WARN, "alloc ctx fail, type=%d", i);
+                  ret = common::OB_MEM_OVERFLOW;
+                  break;
+                }
+                if (common::OB_SUCCESS != (ret = ctx_list_[i].push(ctx)))
+                {
+                  TBSYS_LOG(WARN, "push ctx to list fail, ret=%d ctx=%p", ret, ctx);
+                  break;
+                }
+              }
+            }
+          }
+          inited_ = true;
+          return ret;
+        }
+        //add:e
       private:
         BaseSessionCtx *alloc_ctx_(const SessionType type);
         void free_ctx_(BaseSessionCtx *ctx);

@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_item_type.h
+ * @brief all items
+ *
+ * modified by longfei：add items for secondary index
+ * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
+ * modified by maoxiaoxiao: add items for bloomfilter join or merge join
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author yu shengjuan <51141500090@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
 #define OCEANBASE_SQL_OB_ITEM_TYPE_H_
 
@@ -9,6 +29,27 @@ typedef enum ObItemType
 {
   T_INVALID = 0,  // Min tag
 
+    /* Cursor type tags */
+  //zhounan unmark:b
+  T_CURSOR_DECLARE,
+  T_CURSOR_FETCH,
+  T_CURSOR_FETCH_INTO,
+  T_CURSOR_FETCH_PRIOR,
+  T_CURSOR_FETCH_PRIOR_INTO,
+  T_CURSOR_FETCH_FIRST,
+  T_CURSOR_FETCH_FIRST_INTO,
+  T_CURSOR_FETCH_LAST,
+  T_CURSOR_FETCH_LAST_INTO,
+  T_CURSOR_FETCH_RELATIVE,
+  T_CURSOR_FETCH_RELATIVE_INTO,
+  T_CURSOR_FETCH_ABSOLUTE,
+  T_CURSOR_FETCH_ABS_INTO,
+  T_CURSOR_FETCH_FROMTO,
+  T_CURSOR_OPEN,
+  T_CURSOR_CLOSE,
+  T_CURSOR_FETCH_NEXT,
+  T_CURSOR_FETCH_NEXT_INTO,
+	//add:e
   /* Literal data type tags */
   T_INT,
   T_STRING,
@@ -147,8 +188,12 @@ typedef enum ObItemType
   T_WHEN,
 
   T_CREATE_TABLE,
+  T_CREATE_INDEX, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_TABLE_ELEMENT_LIST,
+  T_INDEX_ELEMENT_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
+  T_INDEX_STORING_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150921:e
   T_TABLE_OPTION_LIST,
+  T_INDEX_OPTION_LIST, // add longfei [create index] [secondaryindex reconstruct] 20150916:e
   T_PRIMARY_KEY,
   T_COLUMN_DEFINITION,
   T_COLUMN_ATTRIBUTES,
@@ -171,6 +216,8 @@ typedef enum ObItemType
   T_CONSISTENT_MODE,
   T_DROP_TABLE,
   T_TABLE_LIST,
+  T_DROP_INDEX, // add longfei [drop index] 20151024:e
+  T_INDEX_LIST, // add longfei [drop index] 20151024:e
 
   T_ALTER_TABLE,
   T_ALTER_ACTION_LIST,
@@ -191,6 +238,9 @@ typedef enum ObItemType
   T_SERVER_ADDRESS,
 
   T_SHOW_TABLES,
+  // add longfei [show index] 20151019
+  T_SHOW_INDEX,
+  // add e
   T_SHOW_VARIABLES,
   T_SHOW_COLUMNS,
   T_SHOW_SCHEMA,
@@ -231,10 +281,49 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
-
+  T_USE_INDEX,// add longfei
+  T_UNKOWN_HINT,// add longfei
+  T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
   T_KILL,
-
   T_MAX,
+  T_LOCK_TABLE, // add wangjiahao [table lock] 20160616
+  //add by zhujun 2014-11-27
+  T_PROCEDURE_CREATE,//add zz for test 2014-11-27
+  T_PROCEDURE_DECL,
+  T_PARAM_DEFINITION,
+  T_IN_PARAM_DEFINITION,
+  T_OUT_PARAM_DEFINITION,
+  T_INOUT_PARAM_DEFINITION,
+  T_PARAM_LIST,
+  T_PROCEDURE_BLOCK,
+  T_PROCEDURE_STMTS,
+  T_PROCEDURE_IF,
+  T_PROCEDURE_ELSEIFS,
+  T_PROCEDURE_ELSEIF,
+  T_PROCEDURE_ELSE,
+  T_PROCEDURE_EXEC,
+  T_PROCEDURE_DECLARE,
+  T_PROCEDURE_ASSGIN,
+  T_VAR_TYPE_LIST,
+  T_VAR_DEFINITION,
+  T_VAR_VAL_LIST,
+  T_PROCEDURE_WHILE,
+  T_PROCEDURE_LOOP,
+  T_PROCEDURE_DROP,
+  T_PROCEDURE_SHOW,
+  T_PROCEDURE_CASE,
+  T_PROCEDURE_CASE_WHEN_LIST,
+  T_PROCEDURE_CASE_WHEN,
+  T_PROCEDURE_EXIT,
+  T_PROCEDURE_CONTINUE,
+  T_SELECT_INTO,/*select into sentence*/
+  //add:e
+
+  /*add maoxx [bloomfilter_join] 20160406*/
+  T_JOIN_OP_TYPE_LIST,
+  T_BLOOMFILTER_JOIN,
+  T_MERGE_JOIN,
+  /*add e*/
 
 } ObItemType;
 

@@ -264,12 +264,12 @@ namespace oceanbase
 
       private:
         int send_response_packet(int packet_code, int version, ObLsyncPacket* packet,
-                                 easy_request_t* req, const uint32_t channel_id);
-        int handleRequest(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
-        int handleRequestMayNeedRetry(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
-        int ups_slave_register(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf);
-        int send_log(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
-        int send_log_(ObFetchLogRequest& req, easy_request_t* request, const uint32_t channel_id, int64_t timeout);
+                                 onev_request_e* req, const uint32_t channel_id);
+        int handleRequest(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
+        int handleRequestMayNeedRetry(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
+        int ups_slave_register(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf);
+        int send_log(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout);
+        int send_log_(ObFetchLogRequest& req, onev_request_e* request, const uint32_t channel_id, int64_t timeout);
         int get_log(ObFetchLogRequest& req, char* buf, int64_t limit, int64_t& pos, int64_t timeout);
         bool is_registered(uint64_t id);
         int get_thread_buffer_(ObDataBuffer& data_buff);

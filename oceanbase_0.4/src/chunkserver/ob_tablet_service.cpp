@@ -44,6 +44,11 @@ void ObTabletService::reset()
 int ObTabletService::open(const sql::ObSqlReadParam &sql_read_param)
 {
   int ret = OB_SUCCESS;
+  //add longfei 2016-03-30 15:35:16
+  //cs管理teblet
+  TBSYS_LOG(DEBUG, "debug::longfei>>>cs scan data for table[%ld].", sql_read_param.get_table_id());
+  //add e
+
   common::ObMergerSchemaManager *merger_schema_mgr = NULL;
   const ObSchemaManagerV2 *schema_mgr = NULL;
   cur_row_ = NULL;

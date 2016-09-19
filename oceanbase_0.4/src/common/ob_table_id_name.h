@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_id_name.h
+ * @brief get all the table schema in the database
+ *
+ * modified by longfei：get "__all_secondary_index"
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -51,15 +68,19 @@ namespace oceanbase
 
       private:
         bool check_inner_stat();
-        int normal_get(ObTableIdName** table_info);
+        int normal_get(ObTableIdName** table_info, bool index = false);
         int internal_get(ObTableIdName** table_info);
       protected:
         bool need_scan_;
         bool only_core_tables_;
+        // longfei [create index] for schema in secondary index core table
+        bool index; ///< flag for get row from res2
         int32_t table_idx_;
         nb_accessor::ObNbAccessor nb_accessor_;
         ObScanHelper* client_proxy_;
         nb_accessor::QueryRes* res_;
+        //longfei [create index] for schema in secondary index core table
+        nb_accessor::QueryRes* res2_; ///< for schema in secondary index core table
         ObTableIdName table_id_name_;
     };
   }

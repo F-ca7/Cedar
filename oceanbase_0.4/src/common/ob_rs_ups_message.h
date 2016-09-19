@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rs_ups_message.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -19,6 +35,9 @@
 #include "data_buffer.h"
 #include "ob_result.h"
 #include "ob_obi_role.h"
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+#include "ob_election_role_mgr.h"
+// add:e
 namespace oceanbase
 {
   namespace common
@@ -31,6 +50,12 @@ namespace oceanbase
       ObiRole obi_role_;
       int64_t schema_version_;
       int64_t config_version_;
+      // add by guojinwei [lease between rs and ups][multi_cluster] 20150819:b
+      int64_t rs_election_lease_;
+      // add:e
+      // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+      ObElectionRoleMgr election_role_;
+      // add:e
       int serialize(char* buf, const int64_t buf_len, int64_t& pos) const;
       int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
     };

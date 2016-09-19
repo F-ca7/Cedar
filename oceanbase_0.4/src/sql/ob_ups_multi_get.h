@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_multi_get.h
+ * @brief
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add header files
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,6 +39,9 @@
 #include "common/ob_sql_ups_rpc_proxy.h"
 #include "ob_rowkey_phy_operator.h"
 #include "common/ob_row.h"
+// add by guojinwei [repeatable read] 20160312:b
+#include "common/ob_transaction.h"
+// add:e
 
 namespace oceanbase
 {

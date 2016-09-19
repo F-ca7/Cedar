@@ -1,3 +1,24 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_postfix_expression.h
+ * @brief postfix expression
+ *
+ * modified by longfei：add interface: get_expr()
+ * modified by Qiushi FAN: add some functions to craete a new expression
+ * modified by maoxiaoxiao: add interface: get_expr_v2()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
+
 /*
  * (C) 2007-2011 Taobao Inc.
  *
@@ -14,9 +35,6 @@
  *     - 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
  *
  */
-
-
-
 #ifndef OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #define OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
 #include "ob_item_type.h"
@@ -30,6 +48,11 @@
 #include "common/ob_expr_obj.h"
 #include "common/ob_se_array.h"
 #include "ob_phy_operator.h"
+
+//add weixing [implementation of sub_query]20160111
+#include "common/bloom_filter.h"
+//add e
+
 using namespace oceanbase::common;
 
 namespace oceanbase
@@ -309,7 +332,8 @@ namespace oceanbase
           CUR_TIME_OP,
           UPS_TIME_OP,
           END, /* postfix expression terminator */
-          END_TYPE
+          END_TYPE,
+          QUERY_ID //add weixing [implementation of sub_query]20160116
         };
       public:
         ObPostfixExpression();
@@ -322,10 +346,22 @@ namespace oceanbase
         int add_expr_obj(const common::ObObj &obj);
         int add_expr_item(const ExprItem &item);
         int add_expr_item_end();
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief create a new expression for right table scan.
+        * @param an array of distinct values of left table,tid and cid of join column.
+        * @param void.
+        * @return Error code.
+        */
+        int set_for_semi_join(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
+        //add:e
         void reset(void);
 
         /* 将row中的值代入到expr计算结果 */
-        int calc(const common::ObRow &row, const ObObj *&result);
+        //mod weixing [impplementation of sub_query]20160116
+        //int calc(const common::ObRow &row, const ObObj *&result);
+        int calc(const common::ObRow &row, const ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, bool second_check);
+        //mod e
 
         /*
          * 判断表达式类型：是否是const, column_index, etc
@@ -350,6 +386,27 @@ namespace oceanbase
         static int get_sys_func_param_num(const common::ObString& name, int32_t& param_num);
         // print the postfix expression
         int64_t to_string(char* buf, const int64_t buf_len) const;
+
+        //add weixing [implementation of sub_query]20160111
+        void set_has_bloomfilter(ObBloomFilterV1 *bloom_filter) {bloom_filter_ = bloom_filter;}
+        //add e
+
+      public:
+        // add longfei [secondary index select]
+        /**
+         * @brief get_type_num: get different ObPostExprNodeType's params number
+         * @param idx
+         * @param type
+         * @return error code
+         */
+        int64_t get_type_num(int64_t idx,int64_t type) const;
+        /**
+         * @brief get_expr_by_index
+         * @param index
+         * @return expr_
+         */
+        ObObj& get_expr_by_index(int64_t index);
+        // add e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
       private:
@@ -429,6 +486,12 @@ namespace oceanbase
         static inline int sys_func_unhex(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params);
         static inline int sys_func_ip_to_int(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params);
         static inline int sys_func_int_to_ip(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params);
+
+        //add weixing [implementation of sub_query]20160116
+        static inline int in_sub_query_func(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params, ObBloomFilterV1* bloom_filter, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, int &sub_query_idx, bool second_check);
+        static int get_result(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params, common::ObBloomFilterV1* bloom_filter, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, int &sub_query_idx, bool second_check);
+        //add e
+
         // 辅助函数，检查表达式是否表示const或者column index
         int check_expr_type(const int64_t type_val, bool &is_type, const int64_t stack_len) const;
         int get_sys_func(const common::ObString &sys_func, ObSqlSysFunc &func_type) const;
@@ -442,6 +505,29 @@ namespace oceanbase
         static int32_t SYS_FUNCS_ARGS_NUM[SYS_FUNC_NUM];
       public:
         typedef ObSEArray<ObObj, BASIC_SYMBOL_COUNT> ExprArray;
+      public:
+        // add longfei [secondary index select] 20151031 :b
+        // to my opinion, sometimes we need to know what the actually expr_ is, so i add this interface
+        // and i used this in the series of secondary index service functions
+        /**
+         * @brief get_expr
+         * @return expr_
+         */
+        const ExprArray& get_expr() const
+        {
+          return expr_;
+        }
+        // add e
+        /*add maoxx [bloomfilter_join] 20160722*/
+        /**
+         * @brief get_expr_v2
+         * @return &expr_
+         */
+        ExprArray* get_expr_v2()
+        {
+          return &expr_;
+        }
+        /*add e*/
       private:
         ExprArray expr_;
         ObExprObj *stack_;
@@ -450,7 +536,11 @@ namespace oceanbase
         ObStringBuf str_buf_;
         ObPhyOperator *owner_op_;
         ObStringBuf calc_buf_;
+        //add weixing [implementation of sub_query]20160111
+        common::ObBloomFilterV1 *bloom_filter_;
+        //add e
     }; // class ObPostfixExpression
+
     inline void ObPostfixExpression::set_int_div_as_double(bool did)
     {
       did_int_div_as_double_ = did;

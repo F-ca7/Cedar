@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_scan_param.cpp
+ * @brief parameters for scan operator
+ *
+ * modified by longfei：add member variables fake_range_, need_fake_range_ and some function about those member
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 #include "ob_action_flag.h"
 #include "ob_malloc.h"
 #include "ob_scan_param.h"
@@ -43,9 +59,9 @@ namespace oceanbase
       is_binary_rowkey_format_ = false;
     }
 
-    // ObScanParam
     ObScanParam::ObScanParam() : table_id_(OB_INVALID_ID),
-    table_name_(), range_(), scan_size_(0), scan_flag_(), schema_manager_(NULL), is_binary_rowkey_format_(false)
+    table_name_(), range_(),/*add longfei*/ fake_range_(), need_fake_range_(false),/*add e*/ scan_size_(0),
+      scan_flag_(), schema_manager_(NULL), is_binary_rowkey_format_(false)
     {
       limit_offset_ = 0;
       limit_count_ = 0;
@@ -403,6 +419,37 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add longfei [cons static index] 151204:b
+    int ObScanParam::set_fake_range(const ObNewRange &fake_range)
+    {
+      int err = OB_SUCCESS;
+      fake_range_ = fake_range;
+      //table_id_ = fake_range_.table_id_;
+      if (deep_copy_args_)
+      {
+        if ((OB_SUCCESS == err)
+            && (OB_SUCCESS
+                != (err = buffer_pool_.write_string(fake_range.start_key_,
+                                                    &(fake_range_.start_key_)))))
+        {
+          TBSYS_LOG(WARN, "fail to copy range.start_key_ to local buffer [err:%d]", err);
+        }
+        if ((OB_SUCCESS == err)
+            && (OB_SUCCESS
+                != (err = buffer_pool_.write_string(fake_range.end_key_,
+                                                    &(fake_range_.end_key_)))))
+        {
+          TBSYS_LOG(WARN, "fail to copy range.end_key_ to local buffer [err:%d]", err);
+        }
+      }
+      return err;
+    }
+    void ObScanParam::set_copy_args(bool arg)
+    {
+      deep_copy_args_ = arg;
+    }
+    //add e
 
     int ObScanParam::set(const uint64_t& table_id, const ObString& table_name, const ObNewRange& range, bool deep_copy_args)
     {
@@ -851,6 +898,33 @@ namespace oceanbase
         }
       }
 
+      //add longfei 151230 
+      if (OB_SUCCESS == ret)
+      {
+        int32_t tmp = need_fake_range_ ? 1 : 0;
+        ret = serialization::encode_i32(buf, buf_len, pos, tmp);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::encode_i64(buf, buf_len, pos, (int64_t)fake_range_.table_id_);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        obj.set_int(fake_range_.border_flag_.get_data());
+        ret = obj.serialize(buf, buf_len, pos);
+        if (OB_SUCCESS == ret)
+        {
+          ret = set_rowkey_obj_array(buf, buf_len, pos,
+              fake_range_.start_key_.get_obj_ptr(), fake_range_.start_key_.get_obj_cnt());
+        }
+        if (OB_SUCCESS == ret)
+        {
+          ret = set_rowkey_obj_array(buf, buf_len, pos,
+              fake_range_.end_key_.get_obj_ptr(), fake_range_.end_key_.get_obj_cnt());
+        }
+      }
+      //add e
+
       // scan range
       if (OB_SUCCESS == ret)
       {
@@ -922,6 +996,83 @@ namespace oceanbase
       {
         get_rowkey_info_from_sm(schema_manager_, range_.table_id_, table_name_, rowkey_info);
       }
+
+      //add longfei decode
+      //1.decode need_fake_range_
+      int32_t bl = 0;
+      int64_t tid = OB_INVALID_ID;
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::decode_i32(buf, data_len, pos, &bl);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        need_fake_range_ = bl == 1 ? true : false;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::decode_i64(buf, data_len, pos, &tid);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        fake_range_.table_id_ = (uint64_t)tid;
+      }
+      //2.decode fake_range
+      if (OB_SUCCESS == ret)
+      {
+        // border flag
+        if (OB_SUCCESS == ret)
+        {
+          ret = obj.deserialize(buf, data_len, pos);
+          if (OB_SUCCESS == ret)
+          {
+            ret = obj.get_int(int_value);
+            if (OB_SUCCESS == ret)
+            {
+              border_flag = static_cast<int8_t>(int_value);
+              fake_range_.border_flag_.set_data(static_cast<int8_t>(int_value));
+            }
+          }
+        }
+
+        // start key
+        if (OB_SUCCESS == ret)
+        {
+          int_value = OB_MAX_COLUMN_NUMBER;
+          ret = get_rowkey_compatible(buf, data_len, pos,
+              rowkey_info, fake_start_rowkey_obj_array_, int_value, is_binary_rowkey_format_);
+          if (OB_SUCCESS == ret)
+          {
+            fake_range_.start_key_.assign(fake_start_rowkey_obj_array_, int_value);
+          }
+        }
+
+        // end key
+        if (OB_SUCCESS == ret)
+        {
+          int_value = OB_MAX_COLUMN_NUMBER;
+          ret = get_rowkey_compatible(buf, data_len, pos,
+              rowkey_info, fake_end_rowkey_obj_array_, int_value, is_binary_rowkey_format_);
+          if (OB_SUCCESS == ret)
+          {
+            fake_range_.end_key_.assign(fake_end_rowkey_obj_array_, int_value);
+          }
+        }
+
+        // compatible: old client may send request with min/max borderflag info.
+        if (OB_SUCCESS == ret)
+        {
+          if (ObBorderFlag::MIN_VALUE & border_flag)
+          {
+            fake_range_.start_key_.set_min_row();
+          }
+          if (ObBorderFlag::MAX_VALUE& border_flag)
+          {
+            fake_range_.end_key_.set_max_row();
+          }
+        }
+      }
+      //add e
 
       // scan range
       if (OB_SUCCESS == ret)
@@ -1024,6 +1175,23 @@ namespace oceanbase
         obj.set_int(table_id_);
       }
       total_size += obj.get_serialize_size();
+
+      //add longfei 计算序列化大小
+      //Added two int32, and a range of serialization size
+      total_size += sizeof(int32_t);
+      total_size += sizeof(int64_t);
+      // scan range
+      obj.set_int(range_.border_flag_.get_data());
+      total_size += obj.get_serialize_size();
+
+      // start_key_
+      total_size += get_rowkey_obj_array_size(
+          fake_range_.start_key_.get_obj_ptr(), fake_range_.start_key_.get_obj_cnt());
+
+      // end_key_
+      total_size += get_rowkey_obj_array_size(
+          fake_range_.end_key_.get_obj_ptr(), fake_range_.end_key_.get_obj_cnt());
+      //add e
 
       // scan range
       obj.set_int(range_.border_flag_.get_data());

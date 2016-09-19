@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_multi_get.h
+ * @brief ObUpsMultiGet
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     set_trans_id for get_param in next_get_param()
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -225,6 +243,9 @@ int ObUpsMultiGet::next_get_param()
   cur_get_param_.reset();
   cur_get_param_.set_version_range(get_param_->get_version_range());
   cur_get_param_.set_is_read_consistency(get_param_->get_is_read_consistency());
+  // add by guojinwei [repeatable read] 20160312:b
+  cur_get_param_.set_trans_id(get_param_->get_trans_id());
+  // add:e
 
   ObGetParam::ObRowIndex row_idx;
 

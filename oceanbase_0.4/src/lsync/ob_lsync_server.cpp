@@ -145,7 +145,7 @@ namespace oceanbase
 
       if (OB_SUCCESS == err)
       {
-        memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
         server_handler_.encode = ObTbnetCallback::encode;
         server_handler_.decode = ObTbnetCallback::decode;
         server_handler_.process = ObLsyncCallback::process;
@@ -176,7 +176,7 @@ namespace oceanbase
       reader_.stop();
     }
 
-    int ObLsyncServer::ups_slave_register(easy_request_t* req, const uint32_t channel_id, int packet_code,
+    int ObLsyncServer::ups_slave_register(onev_request_e* req, const uint32_t channel_id, int packet_code,
                                             ObDataBuffer* buf)
     {
       int ret = OB_SUCCESS;
@@ -234,7 +234,7 @@ namespace oceanbase
         && (id & 0xffffffff) == (slave_id_ & 0xffffffff);
     }
 
-    int ObLsyncServer::send_log(easy_request_t* request, const uint32_t channel_id,
+    int ObLsyncServer::send_log(onev_request_e* request, const uint32_t channel_id,
                                 int packet_code, ObDataBuffer* buf, int64_t timeout)
     {
       int ret = OB_SUCCESS;
@@ -271,7 +271,7 @@ namespace oceanbase
       return ret;
     }
 
-    int ObLsyncServer::send_log_(ObFetchLogRequest& req, easy_request_t* request, const uint32_t channel_id, int64_t timeout)
+    int ObLsyncServer::send_log_(ObFetchLogRequest& req, onev_request_e* request, const uint32_t channel_id, int64_t timeout)
     {
       int ret = OB_SUCCESS;
       int64_t start_us = tbsys::CTimeUtil::getTime();
@@ -377,7 +377,7 @@ namespace oceanbase
       return OB_SUCCESS;
     }
 
-    int ObLsyncServer::handleRequest(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout)
+    int ObLsyncServer::handleRequest(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout)
     {
       int err = handleRequestMayNeedRetry(req, channel_id, packet_code, buf, timeout);
       if (OB_NEED_RETRY == err)
@@ -387,11 +387,11 @@ namespace oceanbase
       return err;
     }
 
-    int ObLsyncServer::handleRequestMayNeedRetry(easy_request_t* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout)
+    int ObLsyncServer::handleRequestMayNeedRetry(onev_request_e* req, const uint32_t channel_id, int packet_code, ObDataBuffer* buf, int64_t timeout)
     {
       int err = OB_SUCCESS;
       uint64_t id = 0;
-      easy_connection_t* conn = req->ms->c;
+      onev_connection_e* conn = req->ms->c;
       id = convert_addr_to_server(conn->addr);
 
       switch(state_)
@@ -454,14 +454,14 @@ namespace oceanbase
       }*/
 
     int ObLsyncServer::send_response_packet(int packet_code, int version, ObLsyncPacket* packet,
-                                   easy_request_t* req, const uint32_t channel_id)
+                                   onev_request_e* req, const uint32_t channel_id)
     {
       ObDataBuffer out_buff;
       int err = OB_SUCCESS;
       char cbuf[OB_LSYNC_MAX_STR_LEN];
       TBSYS_LOG(DEBUG, "send_response(%s)", packet->str(cbuf, sizeof(cbuf)));
       UNUSED(packet_code);
-      easy_connection_t* conn = req->ms->c;
+      onev_connection_e* conn = req->ms->c;
       if (OB_SUCCESS != (err = get_thread_buffer(thread_buffer_, out_buff)))
       {
         TBSYS_LOG(WARN, "get_buffer_()=>%d", err);

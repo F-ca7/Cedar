@@ -16,7 +16,7 @@
 #include "ob_ms_ups_task.h"
 #include "ob_ms_sql_proxy.h"
 #include "ob_query_cache.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "ob_merge_server_config.h"
 #include "common/ob_privilege_manager.h"
 #include "common/ob_statistics.h"
@@ -73,7 +73,7 @@ namespace oceanbase
           const int32_t packet_code,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -107,14 +107,14 @@ namespace oceanbase
         int ms_list_sessions(
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer);
         // list sessions
         int ms_kill_session(
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer);
         // kill sql session
@@ -122,7 +122,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us
@@ -132,7 +132,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -141,7 +141,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -150,7 +150,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -159,7 +159,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -168,7 +168,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -177,7 +177,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -185,7 +185,7 @@ namespace oceanbase
           const int64_t start_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -194,14 +194,14 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
 
 
         int send_sql_response(
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& out_buffer,
           ObSQLResultSet &result,
           int32_t channel_id,
@@ -211,7 +211,7 @@ namespace oceanbase
           const int64_t start_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -219,7 +219,7 @@ namespace oceanbase
         int do_timeouted_req(
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer);
 
@@ -228,7 +228,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -238,7 +238,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -247,7 +247,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);
@@ -256,7 +256,7 @@ namespace oceanbase
           const int64_t receive_time,
           const int32_t version,
           const int32_t channel_id,
-          easy_request_t* req,
+          onev_request_e* req,
           common::ObDataBuffer& in_buffer,
           common::ObDataBuffer& out_buffer,
           const int64_t timeout_us);

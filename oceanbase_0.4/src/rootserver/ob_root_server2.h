@@ -1,3 +1,36 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_server2.h
+ * @brief root server
+ *
+ * modified by longfei：add create_index() and drop_indexs()
+ * 
+ * modified by wenghaixing: add some function for secondary index construction
+ * 1.int get_init_index(const int64_t version, ObArray<uint64_t> *list);  ///< get all int index to list
+ * 2.int get_table_from_index(int64_t index_id, uint64_t &table_id);      ///< get original table for index
+ * 3.int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);///< write tablet into roottable
+ * 4.bool check_static_index_over(); ///< check if static index build over
+ *
+ * modified by maoxiaoxiao:add functions to check column checksum, clean column checksum and get column checksum in root server
+ *
+ * modified by guojinwei,chujiajia and zhangcd:
+ *         support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2016_01_21
+ */
+
 /*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -14,6 +47,7 @@
 #ifndef OCEANBASE_ROOTSERVER_OB_ROOT_SERVER2_H_
 #define OCEANBASE_ROOTSERVER_OB_ROOT_SERVER2_H_
 #include <tbsys.h>
+#include <vector>
 
 #include "common/ob_define.h"
 #include "common/ob_server.h"
@@ -59,6 +93,13 @@
 #include "ob_schema_service_ups_provider.h"
 #include "rootserver/ob_root_operation_helper.h"
 #include "rootserver/ob_root_timer_task.h"
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+#include "common/ob_election_role_mgr.h"
+#include "common/ob_cluster_mgr.h"
+// add:e
+//add wenghaixing [secondary index.static_index]20151211
+#include "common/ob_tablet_histogram_report_info.h"
+//add e
 
 class ObBalanceTest;
 class ObBalanceTest_test_n_to_2_Test;
@@ -133,6 +174,11 @@ namespace oceanbase
         virtual ~ObRootServer2();
 
         bool init(const int64_t now, ObRootWorker* worker);
+
+        //add chujiajia [rs_election][multi_cluster] 20150823:b
+        bool is_master_ups_lease_valid();
+        bool get_is_have_inited();
+        // add:e
         int start_master_rootserver();
         int init_first_meta();
         int init_boot_state();
@@ -154,6 +200,20 @@ namespace oceanbase
         void commit_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
                          const char* server_version, const int32_t cluster_role = 0);
         // for monitor info
+        // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+        /**
+         * @brief commit a inner table task with cluster id
+         * @param[in] type  task type
+         * @param[in] role  server type
+         * @param[in] server  server
+         * @param[in] sql_port  port
+         * @param[in] server_version  the string of server type
+         * @param[in] cluster_id  cluster id
+         * @param[in] cluster_role  cluster role
+         */
+        void commit_cluster_task(const ObTaskType type, const common::ObRole role, const common::ObServer & server, int32_t sql_port,
+                                 const char* server_version, const int64_t cluster_id, const int32_t cluster_role = 0);
+        // add:e
         int64_t get_table_count(void) const;
         void get_tablet_info(int64_t & tablet_count, int64_t & row_count, int64_t & date_size) const;
         int change_table_id(const int64_t table_id, const int64_t new_table_id=0);
@@ -234,6 +294,12 @@ namespace oceanbase
         int find_statement_table_key(const common::ObGetParam& get_param, common::ObScanner& scanner);
         int find_root_table_range(const common::ObScanParam& scan_param, common::ObScanner& scanner);
         virtual int report_tablets(const common::ObServer& server, const common::ObTabletReportInfoList& tablets, const int64_t time_stamp);
+        //add wenghaixing [secondary index.static_index]20151118
+        int get_init_index(const int64_t version, ObArray<uint64_t> *list);
+        int get_table_from_index(int64_t index_id, uint64_t &table_id);
+        int write_tablet_info_list_to_rt(ObTabletInfoList **tablet_info_list, const int32_t list_size);
+        bool check_static_index_over();
+        //add e
         int receive_hb(const common::ObServer& server, const int32_t sql_port, const bool is_listen_ms, const common::ObRole role);
         common::ObServer get_update_server_info(bool use_inner_port) const;
         int add_range_for_load_data(const common::ObList<common::ObNewRange*> &range);
@@ -261,6 +327,25 @@ namespace oceanbase
         bool is_master() const;
         common::ObFirstTabletEntryMeta* get_first_meta();
         void dump_root_table() const;
+        //add wenghaixing [secondary index.static index]20151207
+        void dump_root_table(const int32_t index) const;
+       // int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+       // int get_meta_index(const common::ObTabletInfo &tablet_info, int32_t &meta_index);
+        tbsys::CRWLock& get_root_table_lock(){return root_table_rwlock_;}
+        ObRootTable2* get_root_table(){return root_table_;}
+        tbsys::CThreadMutex& get_root_table_build_lock(){return root_table_build_mutex_;}
+        tbsys::CThreadMutex& get_ddl_lock(){return ddl_tool_.get_ddl_lock();}
+        int modify_index_stat(const uint64_t index_tid, const IndexStatus stat);
+        int modify_index_stat(const ObArray<uint64_t> &index_tid_list, const IndexStatus stat);
+        int modify_index_stat_amd();//after merge done
+        int modify_init_index();
+        int modify_staging_index();
+        int check_tablet_version_v2(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const;
+        int clean_old_checksum(int64_t current_version);
+        int check_column_checksum(const int64_t index_table_id);
+        int modify_index_process_info(const uint64_t index_tid, const IndexStatus stat);
+        int get_rt_tablet_info(const int32_t meta_index, const ObTabletInfo *&tablet_info) const;
+        //add e
         bool check_root_table(const common::ObServer &expect_cs) const;
         int dump_cs_tablet_info(const common::ObServer & cs, int64_t &tablet_num) const;
         void dump_unusual_tablets() const;
@@ -296,6 +381,56 @@ namespace oceanbase
         int serialize_ms_list(char* buf, const int64_t buf_len, int64_t& pos) const;
         int serialize_proxy_list(char* buf, const int64_t buf_len, int64_t& pos) const;
         int grant_eternal_ups_lease();
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        /**
+         * @brief grant ups lease
+         * @param[in] did_force  whether it is necessary
+         * @return OB_SUCCESS if success
+         */
+        int grant_ups_lease(bool did_force = false);
+
+        /**
+         * @brief get election role manager
+         * @return the reference of election_role_
+         */
+        const common::ObElectionRoleMgr &get_election_role() const;
+
+        /**
+         * @brief update election role
+         * @param[in] role  election role
+         * @return OB_SUCCESS if success
+         */
+        int set_election_role_with_role(const common::ObElectionRoleMgr::Role &role);
+
+        /**
+         * @brief update election state
+         * @param[in] state  election state
+         * @return OB_SUCCESS if success
+         */
+        int set_election_role_with_state(const common::ObElectionRoleMgr::State &state);
+        // add:e
+        // add by guojinwei [obi role switch][multi_cluster] 20150915:b
+        /**
+         * @brief update cluster role of slave clusters in inner table
+         * @return OB_SUCCESS if success
+         */
+        int set_slave_cluster_obi_role();
+        // add:e
+        // add by guojinwei [reelect][multi_cluster] 20151129:b
+        /**
+         * @brief get cluster manager
+         * @param[out] cluster_mgr  the pointer reference of ObClusterMgr
+         * @return OB_SUCCESS if success
+         */
+        int get_cluster_mgr(ObClusterMgr *&cluster_mgr);
+
+        /**
+         * @brief whether the clusters are ready for election
+         * This function is only called by master cluster.
+         * @return OB_SUCCESS if the clusters are ready for election
+         */
+        int is_clusters_ready_for_election();
+        // add:e
         int cs_import_tablets(const uint64_t table_id, const int64_t tablet_version);
         /// force refresh the new schmea manager through inner table scan
         int refresh_new_schema(int64_t & table_count);
@@ -316,6 +451,77 @@ namespace oceanbase
         int alter_table(common::AlterTableSchema &tschema);
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
         int64_t get_last_frozen_version() const;
+        // add by zcd [multi_cluster] 20150416:b
+        // 返回slave_array_的内容
+        std::vector<common::ObServer> get_slave_root_cluster_ip();
+        // 从slave_array_中移除当前rs的地址
+        int remove_current_rs_from_slaves_array();
+        int parse_string_to_ips(const char *str, std::vector<ObServer>& slave_array);
+        // add:e
+        // longfei [create index]
+        //secodary index service
+        /**
+         * @brief create_index: sql api
+         * @param if_not_exists
+         * @param tschema
+         * @return error code
+         */
+        int create_index(const bool if_not_exists, const common::TableSchema &tschema);
+        /**
+         * @brief drop_indexs: sql api
+         * @param if_exists
+         * @param indexs
+         * @return error code
+         */
+        int drop_indexs(const bool if_exists, const common::ObStrings &indexs);
+        /**
+         * @brief drop_one_index: drop index from inner and syn schema
+         * @param if_exists
+         * @param table_name
+         * @param refresh
+         * @return
+         */
+        int drop_one_index(const bool if_exists, const ObString &table_name, bool &refresh);
+
+        //add maoxx
+        /**
+         * @brief check_column_checksum
+         * check column checksum
+         * @param index_table_id
+         * @param column_checksum_flag
+         * @return OB_SUCCESS or other ERROR
+         */
+        int check_column_checksum(const int64_t index_table_id, bool &column_checksum_flag);
+
+        /**
+         * @brief clean_column_checksum
+         * clean column checksum
+         * @param current_version
+         * @return OB_SUCCESS or other ERROR
+         */
+        int clean_column_checksum(int64_t current_version);
+
+        /**
+         * @brief get_column_checksum
+         * get column checksum
+         * @param range
+         * @param required_version
+         * @param column_checksum
+         * @return OB_SUCCESS or other ERROR
+         */
+        int get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum);
+        //add e
+
+        //add longfei [cons static index] 151216:b
+        /**
+         * @brief get_local_schema
+         * @return schema_manager_for_cache_
+         */
+        inline ObSchemaManagerV2* get_local_schema() const
+        {
+          return schema_manager_for_cache_;;
+        }
+        //add e
 
         //for bypass process begin
         ObRootOperationHelper* get_bypass_operation();
@@ -537,6 +743,15 @@ namespace oceanbase
         ObRootOperationHelper operation_helper_;
         ObRootOperationDuty operation_duty_;
         common::ObTimer timer_;
+
+        // add by zcd [multi_cluster] 20150416:b
+        std::vector<common::ObServer> slave_array_;
+        // add:e
+
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+        common::ObElectionRoleMgr election_role_;    ///< the information of rs election
+        common::ObClusterMgr cluster_mgr_;           ///< the information of clusters
+        // add:e
     };
   }
 }

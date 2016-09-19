@@ -27,10 +27,19 @@ ObSqlExpression::ObSqlExpression()
   : column_id_(0), table_id_(0), is_aggr_func_(false), is_distinct_(false)
   , aggr_func_(T_INVALID)
 {
+  //add weixing [implementation of sub_query]20160106
+  use_bloom_filter_ = false;
+  //add e
 }
 
 ObSqlExpression::~ObSqlExpression()
 {
+  //add weixing [implementation of sub_query]20160106
+  if(use_bloom_filter_)
+  {
+    bloom_filter_.destroy();
+  }
+  //add e
 }
 
 ObSqlExpression::ObSqlExpression(const ObSqlExpression &other)
@@ -49,6 +58,13 @@ ObSqlExpression& ObSqlExpression::operator=(const ObSqlExpression &other)
     is_aggr_func_ = other.is_aggr_func_;
     is_distinct_ = other.is_distinct_;
     aggr_func_ = other.aggr_func_;
+    //add weixing [implementation of sub_query]20160106
+    use_bloom_filter_ = other.use_bloom_filter_;
+    if(use_bloom_filter_)
+    {
+      bloom_filter_.deep_copy(other.bloom_filter_);
+    }
+    //add e
     // @note we do not copy the members of DLink on purpose
   }
   return *this;
@@ -69,6 +85,14 @@ int ObSqlExpression::add_expr_item_end()
   return post_expr_.add_expr_item_end();
 }
 
+//add weixing [implementation of sub_query]20160106
+void ObSqlExpression::set_has_bloomfilter()
+{
+    use_bloom_filter_ = true;
+    post_expr_.set_has_bloomfilter(&bloom_filter_);
+}
+//add e
+
 static ObObj OBJ_ZERO;
 static struct obj_zero_init
 {
@@ -78,7 +102,10 @@ static struct obj_zero_init
   }
 } obj_zero_init;
 
-int ObSqlExpression::calc(const common::ObRow &row, const common::ObObj *&result)
+//mod weixing [implementation of sub_query]20160116
+//int ObSqlExpression::calc(const common::ObRow &row, const common::ObObj *&result)
+int ObSqlExpression::calc(const common::ObRow &row, const common::ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, bool second_check)
+//mod e
 {
   int err = OB_SUCCESS;
   if (OB_UNLIKELY(is_aggr_func_ && T_FUN_COUNT == aggr_func_ && post_expr_.is_empty()))
@@ -89,7 +116,10 @@ int ObSqlExpression::calc(const common::ObRow &row, const common::ObObj *&result
   }
   else
   {
-    err = post_expr_.calc(row, result);
+    //mod weixing [implementation of sub_query]20160116
+    //err = post_expr_.calc(row, result);
+    err = post_expr_.calc(row, result, hash_map, second_check);
+    //mod e
   }
   return err;
 }
@@ -107,7 +137,7 @@ int64_t ObSqlExpression::to_string(char* buf, const int64_t buf_len) const
   }
   if (is_aggr_func_)
   {
-	databuff_printf(buf, buf_len, pos, "%s(%s", ob_aggr_func_str(aggr_func_), is_distinct_ ? "DISTINCT " : "");
+    databuff_printf(buf, buf_len, pos, "%s(%s", ob_aggr_func_str(aggr_func_), is_distinct_ ? "DISTINCT " : "");
   }
   if (post_expr_.is_empty())
   {
@@ -121,7 +151,7 @@ int64_t ObSqlExpression::to_string(char* buf, const int64_t buf_len) const
   }
   if (is_aggr_func_)
   {
-	databuff_printf(buf, buf_len, pos, ")");
+    databuff_printf(buf, buf_len, pos, ")");
   }
   return pos;
 }
@@ -139,6 +169,22 @@ DEFINE_SERIALIZE(ObSqlExpression)
   }
   else
   {
+    //add weixing [implementation of sub_query]20160106
+    ObObj use_bloom_filter;
+    use_bloom_filter.set_bool(use_bloom_filter_);
+    if(OB_SUCCESS != (ret = use_bloom_filter.serialize(buf, buf_len, pos)))
+    {
+      TBSYS_LOG(WARN, "fail to serialize sub query num. ret=%d", ret);
+    }
+    else if(use_bloom_filter_)
+    {
+      if(OB_SUCCESS != (ret = bloom_filter_.serialize(buf, buf_len, pos)))
+      {
+        TBSYS_LOG(WARN, "fail to eserialize bloomfilter. ret=%d", ret);
+      }
+      TBSYS_LOG(WARN, "serialize bloomfilter success");
+    }
+    //add e
 	// success
 	//TBSYS_LOG(INFO, "success serialize one ObSqlExpression. pos=%ld", pos);
   }
@@ -158,6 +204,29 @@ DEFINE_DESERIALIZE(ObSqlExpression)
   }
   else
   {
+    //add weixing [implementation of sub_query]20160106
+    ObObj use_bloom_filter;
+    if(OB_SUCCESS != (ret = use_bloom_filter.deserialize(buf, data_len, pos)))
+    {
+      TBSYS_LOG(WARN, "fail to deserialize sub query num. ret=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = use_bloom_filter.get_bool(use_bloom_filter_)))
+    {
+      TBSYS_LOG(WARN, "fail to get expr_count. ret=%d", ret);
+    }
+    else if(use_bloom_filter_)
+    {
+      if(OB_SUCCESS != (ret = bloom_filter_.deserialize(buf, data_len, pos)))
+      {
+        TBSYS_LOG(WARN, "fail to serialize bloomfilter. ret=%d", ret);
+      }
+      else
+      {
+        //pass bloomfilter address to postfix ....
+        set_has_bloomfilter();
+      }
+    }
+    //add e
 	// success
   }
   return ret;
@@ -290,6 +359,16 @@ DEFINE_GET_SERIALIZE_SIZE(ObSqlExpression)
   int64_t size = 0;
   size += get_basic_param_serialize_size();
   size += post_expr_.get_serialize_size();
+  //add weixing [implementation of sub_query]20160106
+  ObObj use_bloom_filter;
+  use_bloom_filter.set_bool(use_bloom_filter_);
+  size += use_bloom_filter.get_serialize_size();
+  if(use_bloom_filter_)
+  {
+    size += bloom_filter_.get_serialize_size();
+    TBSYS_LOG(WARN, "add bloonfilter size in get serialize size %ld",bloom_filter_.get_serialize_size());
+  }
+  //add e
   return size;
 }
 

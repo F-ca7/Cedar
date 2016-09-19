@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_log_data_writer.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -59,6 +74,25 @@ namespace oceanbase
         int get_cursor(ObLogCursor& cursor) const;
         inline int64_t get_file_size() const {return file_size_;};
         int64_t to_string(char* buf, const int64_t len) const;
+        //add chujiajia [log synchronization][multi_cluster] 20160625:b
+        /**
+         * @brief set end_cursor_
+         * @param[in] cursor  a specific log cursor
+         * @return OB_SUCCESS if success
+         */
+        inline void set_end_cursor(ObLogCursor &cursor)
+        {
+          end_cursor_ = cursor;
+        }
+		//add:e
+        //add lbzhong [Commit Point] 20150820:b
+        /**
+         * @brief write eof in specific position of log file
+         * @param[in] cursor  a specific log cursor
+         * @return OB_SUCCESS if success
+         */
+        int write_eof(const ObLogCursor cursor);
+        //add:e
       protected:
         int check_eof_after_log_cursor(const ObLogCursor& cursor);
         int prepare_fd(const int64_t file_id);

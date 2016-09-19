@@ -6,14 +6,14 @@ namespace oceanbase
 {
   namespace lsync
   {
-    int ObLsyncCallback::process(easy_request_t* r)
+    int ObLsyncCallback::process(onev_request_e* r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
 
       if (NULL == r || NULL == r->ipacket)
       {
         TBSYS_LOG(WARN, "request is NULL, r = %p, r->ipacket = %p", r, r->ipacket);
-        ret = EASY_BREAK;
+        ret = ONEV_BREAK;
       }
       else
       {
@@ -21,10 +21,10 @@ namespace oceanbase
         ObPacket* packet = (ObPacket*)r->ipacket;
         packet->set_request(r);
         r->ms->c->pool->ref++;
-        easy_atomic_inc(&r->ms->pool->ref);
-        easy_pool_set_lock(r->ms->pool);
+        onev_atomic_inc(&r->ms->pool->ref);
+        onev_pool_set_lock(r->ms->pool);
         server->handlePacket(packet);
-        ret = EASY_AGAIN;
+        ret = ONEV_AGAIN;
       }
       return ret;
     }

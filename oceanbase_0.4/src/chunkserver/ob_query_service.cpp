@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_query_service.cpp
+ * @brief for query(get or scan), do merge, join,
+ * group by, order by, limit, topn operation and so on.
+ *
+ * modify by Wenghaixing: modify scan query procedure to fit secondary index construction's global stage
+ *
+ * @version __DaSE_VERSION
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -277,7 +295,22 @@ namespace oceanbase
            * version, chunkserver will not read dynamic data from
            * udpateserver.
            */
-          if (table_schema->get_consistency_level() == STATIC)
+          //add wenghaixing [secondary index static_index_build.cs_scan] 20151231
+          if(scan_param.if_need_fake())
+          {
+            version_range.start_version_ = 0;
+            version_range.end_version_ = 0;
+            version_range.border_flag_.inclusive_start();
+            version_range.border_flag_.inclusive_end();
+            const_cast<ObScanParam&>(scan_param).set_version_range(version_range);
+          }
+          //add e
+          //modify wenghaixing [secondary index static_index_build.cs_scan]20150326
+          //if (table_schema->get_consistency_level() == STATIC) //old code
+          //这里添加了如果scan_param包含了局部索引的range的情况，这个时候是不需要ups的数据的
+          else if (table_schema->get_consistency_level() == STATIC)
+          //if (table_schema->get_consistency_level() == STATIC)
+          //modify e
           {
             org_version_range = scan_param.get_version_range();
             is_full_dump =

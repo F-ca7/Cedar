@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys					\
 							-I${TBLIB_ROOT}/include/tbnet         \
-							-I${EASY_ROOT}/include/easy           \
+							-I${ONEV_ROOT}/include/onev           \
 							-I${top_srcdir}/tools   	            \
 							-I${top_srcdir}/src   	              \
 							-I${top_srcdir}/src/common						\
@@ -9,7 +9,7 @@ AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys					\
 AM_LDFLAGS = -L${top_srcdir}/tools/liboblog/.libs -loblog 		\
 						 -lgtest -lssl
 
-LDADD = ${EASY_LIB_PATH}/libeasy.a
+LDADD = ${ONEV_LIB_PATH}/libonev.a
 CXXFLAGS += -g -D__DENSE_AVAILABLE__
 
 if COVERAGE

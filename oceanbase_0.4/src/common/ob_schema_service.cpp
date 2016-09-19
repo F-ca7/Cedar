@@ -1,3 +1,29 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_schema_service.cpp
+ * @brief schema service
+ *
+ * modified by longfei：
+ * 1.add two more member variables in TableSchema(struct) and their serialize() series function
+ * 2.add IndexBeat for construct static secondary index CS <==heart beat==> RS
+ *
+ * modified by WengHaixing:
+ * 1.add some function to fit secondary index constrution
+ *
+ * modified by maoxiaoxiao:
+ * 1.add functions to check column checksum, clean column checksum and get column checksum
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+ 
 #include "ob_schema_service.h"
 #include "common/utility.h"
 #include "common/ob_common_param.h"
@@ -285,6 +311,15 @@ DEFINE_SERIALIZE(TableSchema)
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, max_rowkey_length_)))
   {
   }
+
+  // longfei [create index]
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, original_table_id_)))
+  {
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi32(buf, buf_len, pos, index_status_)))
+  {
+  }
+
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, merge_write_sstable_version_)))
   {
   }
@@ -410,6 +445,17 @@ DEFINE_DESERIALIZE(TableSchema)
   {
     TBSYS_LOG(WARN, "deserialize error here");
   }
+
+  // longfei [create index]
+  else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&original_table_id_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else if (OB_SUCCESS != (ret = serialization::decode_vi32(buf, data_len, pos, reinterpret_cast<int32_t*>(&index_status_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+
   else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, &merge_write_sstable_version_)))
   {
     TBSYS_LOG(WARN, "deserialize error here");
@@ -647,3 +693,91 @@ DEFINE_DESERIALIZE(AlterTableSchema)
   }
   return ret;
 }
+
+//add longfei [cons static index] 151120:b
+DEFINE_SERIALIZE(IndexBeat)
+{
+  int ret=OB_SUCCESS;
+  if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, idx_tid_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, hist_width_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, status_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_i32(buf, buf_len, pos, stage_)))
+  {
+    TBSYS_LOG(WARN, "fail to serialize:ret[%d]", ret);
+  }
+
+  return ret;
+}
+
+DEFINE_DESERIALIZE(IndexBeat)
+{
+  int ret = OB_SUCCESS;
+  int32_t status = 0;
+  int32_t stage = 0;
+  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&idx_tid_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, reinterpret_cast<int64_t*>(&hist_width_))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&status))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else  if (OB_SUCCESS != (ret = serialization::decode_i32(buf, data_len, pos, reinterpret_cast<int32_t*>(&stage))))
+  {
+    TBSYS_LOG(WARN, "deserialize error here");
+  }
+  else
+  {
+    if(0 == status)
+    {
+      status_ = NOT_AVALIBALE;
+    }
+    else if(1 == status)
+    {
+      status_ = AVALIBALE;
+    }
+    else if(3 == status)
+    {
+      status_ = WRITE_ONLY;
+    }
+    else if(4 == status)
+    {
+      status_ = INDEX_INIT;
+    }
+    else
+    {
+      status_ = ERROR;
+    }
+
+    if (0 == stage)
+    {
+      stage_ = LOCAL_INDEX_STAGE;
+    }
+    else if (1 == stage)
+    {
+      stage_ = GLOBAL_INDEX_STAGE;
+    }
+  }
+  //debugb longfei 2016-03-18 14:32:14
+//  TBSYS_LOG(WARN, "debug::longfei>>>IndexBeat decode result: idx_tid_[%ld], hist_width_[%ld], status[%d], stage[%d]",
+//            idx_tid_,
+//            hist_width_,
+//            status,
+//            stage);
+  //debuge
+  return ret;
+}
+// add e

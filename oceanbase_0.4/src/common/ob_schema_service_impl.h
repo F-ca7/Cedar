@@ -1,4 +1,25 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_schema_service_impl.h
+ * @brief implementation of schema service
+ *
+ * modified by longfei：add some function for new a core table
+ * modified by WengHaixing: add some funcfion for secondary index status/columnchecksum
+ * modified by maoxiaoxiao:add implementations of functions to check column checksum, clean column checksum and get column checksum
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Weng Haixing <wenghaixing@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -20,6 +41,9 @@
 #include "common/ob_table_id_name.h"
 #include "common/ob_schema_service.h"
 #include "common/hash/ob_hashmap.h"
+//add maoxx
+#include "common/ob_column_checksum.h"
+//add e
 
 class TestSchemaService_assemble_table_Test;
 class TestSchemaTable_generate_new_table_name_Test;
@@ -38,6 +62,7 @@ namespace oceanbase
     static ObString column_table_name = OB_STR(OB_ALL_COLUMN_TABLE_NAME);
     static ObString joininfo_table_name = OB_STR(OB_ALL_JOININFO_TABLE_NAME);
     static ObString privilege_table_name = OB_STR(OB_ALL_TABLE_PRIVILEGE_TABLE_NAME);
+    static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei [create index]
     static ObString table_name_str = OB_STR("table_id");
     static const char* const TMP_PREFIX = "tmp_";
 
@@ -85,6 +110,68 @@ namespace oceanbase
         int reset_schema_version_mutator(ObMutator* mutator, const AlterTableSchema & schema, const int64_t old_schema_version);
         int init_id_name_map();
       int generate_new_table_name(char* buf, const uint64_t lenght, const char* table_name, const uint64_t table_name_length);
+
+      // longfei [create index]
+      // secondary index service
+      /**
+       * @brief create_index_mutator: 根据table_schema构造mutator
+       * @param [in] table_schema
+       * @param [out] mutator
+       * @return error code
+       */
+      int create_index_mutator(const TableSchema& table_schema, ObMutator* mutator);
+      /**
+       * @brief is_index_table_or_not: 判断是否是索引表
+       * @param table_name
+       * @return true for yes or false for not
+       */
+      bool is_index_table_or_not(const ObString& table_name);
+      /**
+       * @brief assemble_index_table: get schema from table row
+       * @param [in] table_row
+       * @param [out] table_schema
+       * @return
+       */
+      int assemble_index_table(const nb_accessor::TableRow* table_row, TableSchema& table_schema);
+      //add maoxx
+      /**
+       * @brief check_column_checksum
+       * check column checksum
+       * @param orginal_table_id
+       * @param index_table_id
+       * @param cluster_id
+       * @param current_version
+       * @param column_checksum_flag
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int check_column_checksum(const int64_t orginal_table_id, const int64_t index_table_id, const int64_t cluster_id, const int64_t current_version, bool &column_checksum_flag);
+
+      /**
+       * @brief clean_column_checksum
+       * clean column checksum
+       * @param max_draution_of_version
+       * @param current_version
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int clean_column_checksum(const int64_t max_draution_of_version, const int64_t current_version);
+
+      /**
+       * @brief get_column_checksum
+       * get column checksum
+       * @param range
+       * @param cluster_id
+       * @param required_version
+       * @param column_checksum
+       * @return OB_SUCCESS or other ERROR
+       */
+      virtual int get_column_checksum(const ObNewRange range, const int64_t cluster_id, const int64_t required_version, ObString& column_checksum);
+      //add e
+	  //add wenghaixing [secondary index.static_index]20151217
+      virtual int get_index_stat(const uint64_t table_id, const int64_t cluster_count, IndexStatus &stat);
+      //virtual int fetch_index_stat(const uint64_t table_id, const int64_t cluster_id, int64_t &stat);
+      virtual int get_cluster_count(int64_t &cc);
+      //add e
+
 
 
       private:

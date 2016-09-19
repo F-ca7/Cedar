@@ -19,7 +19,7 @@
 
 #include "common/data_buffer.h"
 #include "ob_mysql_packet_header.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_define.h"
 #include "common/ob_string.h"
 
@@ -71,11 +71,11 @@ namespace oceanbase
         return type_;
       }
 
-      int set_request(easy_request_t* req);
+      int set_request(onev_request_e* req);
 
       void set_command(char* command, const int32_t length);
 
-      inline easy_request_t* get_request() const
+      inline onev_request_e* get_request() const
       {
         return req_;
       }
@@ -89,7 +89,7 @@ namespace oceanbase
       ObMySQLPacketHeader header_;
       uint8_t type_;
       common::ObString command_;
-      easy_request_t* req_;                 //request pointer for send response
+      onev_request_e* req_;                 //request pointer for send response
       ObMySQLCommandPacket* next_;
       int64_t receive_ts_;
     };
@@ -109,7 +109,7 @@ namespace oceanbase
       uint32_t version_;        // version of this struct
       int socket_fd_;
       int cseq_;
-      easy_addr_t addr_;
+      onev_addr_e addr_;
       uint32_t pkt_length_;         /* MySQL packet length not include packet header */
       uint8_t  pkt_seq_;            /* MySQL packet sequence */
       uint8_t cmd_type_;

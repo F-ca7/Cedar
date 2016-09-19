@@ -24,7 +24,7 @@ liboblog_la_CPPFLAGS = -g -fPIC 																				\
 											 -D__DENSE_AVAILABLE__														\
                        -I${TBLIB_ROOT}/include/tbsys 										\
                        -I${TBLIB_ROOT}/include/tbnet 										\
-											 -I${EASY_ROOT}/include/easy											\
+											 -I${ONEV_ROOT}/include/onev											\
                        -I${top_srcdir}/src															\
                        -I${top_srcdir}/src/common												\
 											 -I${DRC_ROOT}/include/drcmessage
@@ -40,7 +40,7 @@ liboblog_la_LIBADD = -lpthread -lrt -lcurl -llua												\
 										 -L$(top_builddir)/src/updateserver/ -lupdateserver	\
 										 -L$(top_builddir)/src/obmysql/ -lobmysql						\
 										 -L$(top_builddir)/src/common/ -lcommon							\
-										 ${EASY_LIB_PATH}/libeasy.a													\
+										 ${ONEV_LIB_PATH}/libonev.a													\
 										 ${TBLIB_ROOT}/lib/libtbsys.a												\
 										 ${TBLIB_ROOT}/lib/libtbnet.a
 

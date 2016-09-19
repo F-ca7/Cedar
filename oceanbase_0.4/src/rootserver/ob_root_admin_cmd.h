@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add OB_RS_ADMIN_SET_OBI_MASTER_RS and OB_RS_ADMIN_SET_OBI_MASTER_FIRST
+ *        to rs_admin processing.
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -40,6 +58,14 @@ namespace oceanbase
     static const int OB_RS_ADMIN_INIT_CLUSTER = 19;
     static const int OB_RS_ADMIN_CLEAN_ROOT_TABLE = 20;
     static const int OB_RS_ADMIN_CHECK_SCHEMA = 21;
+    // add by zcd [multi_cluster] 20150416:b
+    /// allocate two numbers for the rs_admin tools
+    static const int OB_RS_ADMIN_SET_OBI_MASTER_RS = 22;
+    static const int OB_RS_ADMIN_SET_OBI_MASTER_FIRST = 23;
+    // add:e
+    // add by guojinwei [new rs_admin command]{multi_cluster} 20150901:b
+    static const int OB_RS_ADMIN_REELECT = 24;
+    // add:e
   } // end namespace rootserver
 } // end namespace oceanbase
 

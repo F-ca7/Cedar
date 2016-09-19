@@ -2,7 +2,7 @@
 #include "liboblog/ob_log_fetcher.h"
 #include "liboblog/ob_log_partitioner.h"
 #include "liboblog/ob_log_router.h"
-#include "easy_io.h"
+#include "onev_io.h"
 #include "common/ob_tbnet_callback.h"
 
 using namespace oceanbase;
@@ -57,21 +57,21 @@ class RS : public IObLogRpcStub, public ObRpcStub
     RS()
     {
       eio_ = NULL;
-      eio_ = easy_eio_create(eio_, 1);
+      eio_ = onev_create_io(eio_, 1);
       EXPECT_EQ(true, NULL != eio_);
-      memset(&client_handler_, 0, sizeof(easy_io_handler_pt));
+      memset(&client_handler_, 0, sizeof(onev_io_handler_pe));
       client_handler_.encode = ObTbnetCallback::encode;
       client_handler_.decode = ObTbnetCallback::decode;
       client_handler_.get_packet_id = ObTbnetCallback::get_packet_id;
       EXPECT_EQ(OB_SUCCESS, client_.initialize(eio_, &client_handler_));
-      EXPECT_EQ(EASY_OK, easy_eio_start(eio_));
+      EXPECT_EQ(ONEV_OK, onev_start_io(eio_));
       ObRpcStub::init(&buffer_, &client_);
     };
     ~RS()
     {
-      easy_eio_stop(eio_);
-      easy_eio_wait(eio_);
-      easy_eio_destroy(eio_);
+      onev_stop_io(eio_);
+      onev_wait_io(eio_);
+      onev_destroy_io(eio_);
     };
   public:
     int fetch_log(const common::ObServer &ups,
@@ -84,8 +84,8 @@ class RS : public IObLogRpcStub, public ObRpcStub
   private:
     ThreadSpecificBuffer buffer_;
     ObClientManager client_;
-    easy_io_t *eio_;
-    easy_io_handler_pt client_handler_;
+    onev_io_e *eio_;
+    onev_io_handler_pe client_handler_;
 };
 
 class LP : public IObLogPartitioner

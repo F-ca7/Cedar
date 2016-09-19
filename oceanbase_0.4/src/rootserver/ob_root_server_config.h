@@ -1,4 +1,27 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_root_server_config.h
+ * @brief config for rootserver
+ *
+ * modified by Wenghaixing: add two config for rootserver
+ * modified by chujiajia and zhangcd: we add a system param for election
+ *        add a rootserver config item
+ *        set_auto_elect_flag_delay, which represent the delay
+ *        time of set auto_elect_falg after rootserver start.
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @author chujiajia <52151500014@ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date   2016_01_24
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -50,6 +73,12 @@ namespace oceanbase
         DEF_TIME(monitor_row_checksum_interval, "1800s", "compare row checksum between master cluster and slave master");
         DEF_TIME(monitor_row_checksum_timeout, "3s", "get master checksum timeout");
         DEF_TIME(monitor_drop_table_interval, "600s", "[1s,]", "delete droped table in daily merge check interval");
+        //add wenghaixing, [secondary index.static_index] 20151216:b
+        DEF_TIME(monitor_create_index_timeout, "1800s", "[1s,]", "create single static index timeout");
+        //add:e
+        //add wenghaixing, [secondary index.static_index] 20150119:b
+        DEF_INT(index_immediate_effect, "0","[0,1]" ,"create index while merge");
+        //add e
         DEF_INT(tablet_replicas_num, "3", "[1,3]", "tablet replicas num");
         DEF_INT(io_thread_count, "4", "[1,100]", "io thread count");
         DEF_INT(read_thread_count, "20", "[10,100]", "read thread count");
@@ -112,6 +141,19 @@ namespace oceanbase
 
         DEF_IP(master_root_server_ip, "0.0.0.0", "master OceanBase instance vip address");
         DEF_INT(master_root_server_port, "0", "master OceanBase instance listen port");
+
+        // add by zcd [multi_cluster] 20150416:b
+        // 加入rootserver的config条目__all_cluster_rs_ip
+        DEF_STR(all_cluster_rs_ip, "0.0.0.0:0", "all_cluster_rs_ip");
+        // add:e
+        // add by chujiajia [rs_election][multi_cluster] 20150929:b
+        DEF_TIME(rs_election_random_wait_time, "300ms", "rs_election_random_wait_time");
+        DEF_TIME(rs_election_protection_time_us, "200ms", "rs_election_protection_time_us");
+        // add:e
+        // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        DEF_INT(set_auto_elect_flag_delay, "10000000", "set auto_elect_flag delay after timer start");
+        // add:e
+
     };
   }
 }

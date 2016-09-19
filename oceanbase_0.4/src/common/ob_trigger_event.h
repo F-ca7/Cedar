@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_trigger_event.h
+ * @brief log all trigger event
+ *
+ * modified by longfei：change trigger event timeout from 2s to 5s
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*
  * (C) 2007-2012 Taobao Inc.
  *
@@ -75,7 +92,12 @@ namespace oceanbase
           return ret;
         }
       private:
-        static const int64_t timeout = 2 * 1000L * 1000L; // 2s
+        //mod longfei 160118:b
+        //debug:trigger event执行replace时间超过2s
+        //static const int64_t timeout = 2 * 1000L * 1000L; // 2s
+        static const int64_t timeout = 5 * 1000L * 1000L; ///<  change trigger event timeout from 2s to 5s
+        //mod e
+
         ObMsProvider *ms_provider_;
         ObGeneralRpcStub *rpc_stub_;
     };

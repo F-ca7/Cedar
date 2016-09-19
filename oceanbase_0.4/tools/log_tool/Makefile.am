@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-			  -I${EASY_ROOT}/include/easy \
+			  -I${ONEV_ROOT}/include/onev \
 			  -I${top_srcdir}/include \
         -I${top_srcdir}/tests/updateserver \
         -I${top_srcdir}/tests/common \
@@ -18,11 +18,11 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
 	$(top_builddir)/src/common/libcommon.a \
 		$(top_builddir)/src/common/compress/libcomp.a \
 		$(top_builddir)/src/common/btree/libbtree.a \
-		${EASY_LIB_PATH}/libeasy.a \
+		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
 AM_LDFLAGS = -O2 -lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl ${GCOV_LIB}
-CXXFLAGS += -g -O2 -DROWKEY_IS_OBJ=1 -DUSE_LIBEASY=1
+CXXFLAGS += -g -O2 -DROWKEY_IS_OBJ=1 -DUSE_LIBONEV=1
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

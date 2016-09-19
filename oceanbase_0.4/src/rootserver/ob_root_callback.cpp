@@ -1,7 +1,7 @@
 #include "ob_root_callback.h"
 #include "tblog.h"
 #include "rootserver/ob_root_worker.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_packet.h"
 
 using namespace oceanbase::common;
@@ -9,13 +9,13 @@ namespace oceanbase
 {
   namespace rootserver
   {
-    int ObRootCallback::process(easy_request_t *r)
+    int ObRootCallback::process(onev_request_e *r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == r || NULL == r->ipacket)
       {
         char buff[32];
-        easy_addr_t addr = r->ms->c->addr;
+        onev_addr_e addr = r->ms->c->addr;
         if (NULL == r)
         {
           TBSYS_LOG(ERROR, "request is empty, r = %p", r);
@@ -24,8 +24,8 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "request is empty, r->ipacket = %p", r->ipacket);
         }
-        TBSYS_LOG(ERROR, "receive packet from server:%s faild", easy_inet_addr_to_str(&addr, buff, 32));
-        ret = EASY_BREAK;
+        TBSYS_LOG(ERROR, "receive packet from server:%s faild", onev_inet_addr_to_str(&addr, buff, 32));
+        ret = ONEV_BREAK;
       }
       else
       {
@@ -38,16 +38,16 @@ namespace oceanbase
         if (OB_SUCCESS == ret)
         {
           r->ms->c->pool->ref ++;
-          easy_atomic_inc(&r->ms->pool->ref);
-          easy_pool_set_lock(r->ms->pool);
-          ret = EASY_AGAIN;
+          onev_atomic_inc(&r->ms->pool->ref);
+          onev_pool_set_lock(r->ms->pool);
+          ret = ONEV_AGAIN;
 
         }
         else
         {
           TBSYS_LOG(WARN, "can not push packet(src is %s, pcode is %u) to packet queue", 
                     inet_ntoa_r(r->ms->c->addr), req->get_packet_code());
-          ret = EASY_OK;
+          ret = ONEV_OK;
         }
       }
       return ret;

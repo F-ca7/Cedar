@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        add CHANGE_MASTER_CLUSTER_ROOTSERVER to TaskType
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -36,6 +53,16 @@ namespace oceanbase
       LMS_ONLINE = 6,
       OBI_ROLE_CHANGE = 7,
       ROLE_CHANGE = 5,
+      // add by zcd [multi_cluster] 20150405:b
+      /// represent the task which update inner table __all_sys_config
+      /// In this table there are two records master_root_server_ip and
+      /// master_root_server_port, the task is used to modify the two records
+      /// value.
+      CHANGE_MASTER_CLUSTER_ROOTSERVER = 8,
+      // add:e
+      // add by guojinwei [obi role switch][multi_cluster] 20150916:b
+      CLUSTER_OBI_ROLE_CHANGE = 9,
+      // add:e
     };
     // only safe for one thread head first then pop one task
     // multi-thread can push tasks safely

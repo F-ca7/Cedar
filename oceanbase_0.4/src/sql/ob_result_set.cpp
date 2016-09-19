@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_result_set.cpp
+ * @brief build logic plan
+ *
+ * modified by zhujun：support procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -139,6 +155,10 @@ int ObResultSet::open()
       if (OB_SUCCESS != ret)
       {
         TBSYS_LOG(WARN, "failed to open pre_query, ret=%d", ret);
+      }
+      else
+      {
+    	  TBSYS_LOG(INFO, "open pre_query success");
       }
     }
 

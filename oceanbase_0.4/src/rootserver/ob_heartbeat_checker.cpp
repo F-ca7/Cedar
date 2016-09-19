@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_heartbeat_checker.cpp
+ * @brief for heartbeat check
+ *
+ * modified by Wenghaixing:modify some fuction so that when handle heart beat it can analysis index mission
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
+
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -19,7 +37,9 @@
 #include "ob_root_server2.h"
 #include "ob_root_worker.h"
 #include "ob_heartbeat_checker.h"
-
+//add wengahixing [secondary index.static_index]20151217
+#include "ob_index_cs_handler.h"
+//add e
 using namespace oceanbase::common;
 using namespace oceanbase::rootserver;
 
@@ -68,7 +88,8 @@ void ObHeartbeatChecker::run(tbsys::CThread * thread, void * arg)
               it->hb_retry_times_ ++;
               tmp_server = it->server_;
               tmp_server.set_port(it->port_cs_);
-              if (root_server_->worker_->get_rpc_stub()
+              //modify wenghaixing [secondary index.static_index]20151130
+              /*if (root_server_->worker_->get_rpc_stub()
                   .heartbeat_to_cs(tmp_server,
                     root_server_->config_.cs_lease_duration_time,
                     root_server_->get_frozen_version_for_cs_heartbeat(),
@@ -77,7 +98,20 @@ void ObHeartbeatChecker::run(tbsys::CThread * thread, void * arg)
               {
                 TBSYS_LOG(WARN, "heartbeat to cs fail, cs:[%s]", to_cstring(tmp_server));
                 //do nothing
-              }
+              }*/
+              IndexBeat beat = root_server_->worker_->get_icu().get_cs_handler().cs_hit_hashmap(tmp_server)
+                                    ? root_server_->worker_->get_icu().get_cs_handler().get_beat()
+                                    : root_server_->worker_->get_icu().get_cs_handler().get_default_beat();
+              if (root_server_->worker_->get_rpc_stub().heartbeat_to_cs_with_index(tmp_server,
+                                  root_server_->config_.cs_lease_duration_time,
+                                  root_server_->get_frozen_version_for_cs_heartbeat(),
+                                  root_server_->get_schema_version(),
+                                  root_server_->get_config_version(),beat) != OB_SUCCESS)
+                            {
+                              TBSYS_LOG(WARN, "heartbeat to cs fail, cs:[%s]", to_cstring(tmp_server));
+                              //do nothing
+                            }
+              //modify e
             }
           }
           else
@@ -106,6 +140,13 @@ void ObHeartbeatChecker::run(tbsys::CThread * thread, void * arg)
                     it - root_server_->server_manager_.begin());
               }
             }
+            //add wenghaixing [secondary index.static_index]20151130
+            int err = OB_SUCCESS;
+            if(OB_SUCCESS != (err = root_server_->worker_->get_icu().get_cs_handler().server_off_line(cs)))
+            {
+              TBSYS_LOG(WARN, "failed to handle server offline,err = %d",err);
+            }
+            //add e
             if (master)
             {
               root_server_->commit_task(SERVER_OFFLINE, OB_CHUNKSERVER, it->server_, 0, "hb server version null");

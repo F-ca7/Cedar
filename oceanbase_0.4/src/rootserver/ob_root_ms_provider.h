@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_ms_provider.h
+ * @brief modify the process of the rs get the master rs.
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,13 +38,19 @@ namespace oceanbase
 {
   namespace rootserver
   {
+    // add by zcd [multi_cluster] 20150416:b
+    class ObRootWorker;
+    // add:e
+
     // thread safe simple ronud-robin merge server provider
     class ObRootMsProvider:public common::ObMsProvider
     {
     public:
       ObRootMsProvider(ObChunkServerManager & server_manager);
       virtual ~ObRootMsProvider();
-      void init(ObRootServerConfig & config, ObRootRpcStub & rpc_stub);
+      // modify by zcd [multi_cluster] 20150416:b
+      void init(ObRootServerConfig & config, ObRootRpcStub & rpc_stub, ObRootWorker &root_worker);
+      // modify:e
     public:
       int get_ms(common::ObServer & server);
       int get_ms(common::ObServer & server, const bool query_master_cluster);
@@ -50,6 +70,9 @@ namespace oceanbase
       ObChunkServerManager & server_manager_;
       ObRootServerConfig *config_;
       ObRootRpcStub *rpc_stub_;
+      // add by zcd [multi_cluster] 20150416:b
+      ObRootWorker *root_worker_;
+      // add:e
     };
   } // end namespace rootserver
 } // end namespace oceanbase

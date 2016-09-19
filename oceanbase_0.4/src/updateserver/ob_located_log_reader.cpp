@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_located_log_reader.cpp
+ * @brief ObLocatedLogReader
+ *     modify by liubozhong: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -114,5 +130,27 @@ namespace oceanbase
       }
       return err;
     }
+    //add lbzhong [Commit Point] 20150820:b
+    int ObLocatedLogReader::read_log(const int64_t file_id, const int64_t offset,
+                                             int64_t& start_id, int64_t& end_id,
+                                             char* buf, const int64_t len, int64_t& read_count, bool& is_file_end, bool& has_committed_end, const int64_t commit_seq)
+    {
+      int err = OB_SUCCESS;
+      if (!is_inited())
+      {
+        err = OB_NOT_INIT;
+      }
+      else if (OB_SUCCESS != (err = read_log_file_by_location(log_dir_, file_id, offset, buf, len, read_count, dio_)))
+      {
+        TBSYS_LOG(ERROR, "read_log_file_by_location(%s/%ld, offset=%ld)=>%d", log_dir_, file_id, offset, err);
+      }
+      else if (OB_SUCCESS != (err = trim_log_buffer(offset, OB_DIRECT_IO_ALIGN_BITS,
+                                                    buf, read_count, read_count, start_id, end_id, is_file_end, has_committed_end, commit_seq)))
+      {
+        TBSYS_LOG(ERROR, "trim_log_buffer()=>%d", err);
+      }
+      return err;
+    }
+    //add:e
   }; // end namespace updateserver
 }; // end namespace oceanbase

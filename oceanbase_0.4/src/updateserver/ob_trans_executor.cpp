@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_trans_executor.cpp
+ * @brief TransExecutor
+ *     modify by guojinwei: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 ////===================================================================
  //
  // ob_trans_executor.cpp updateserver / Oceanbase
@@ -153,6 +169,12 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       bool queue_rebalance = true;
       bool dynamic_rebalance = true;
+      // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+      message_residence_time_us_ = 1000;
+      message_residence_protection_us_ = UPS.get_param().message_residence_protection_time;
+      message_residence_max_us_ = UPS.get_param().message_residence_max_time;
+      last_commit_log_time_us_ = 0;
+      // add:e
       TransHandlePool::set_cpu_affinity(trans_thread_start_cpu, trans_thread_end_cpu);
       TransCommitThread::set_cpu_affinity(commit_thread_cpu);
       if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE)))
@@ -211,7 +233,7 @@ namespace oceanbase
       if (0 > pcode
           || OB_PACKET_NUM <= pcode)
       {
-        easy_request_t *req = pkt.get_request();
+        onev_request_e *req = pkt.get_request();
         TBSYS_LOG(ERROR, "invalid packet code=%d src=%s",
                   pcode, NULL == req ? NULL : get_peer_ip(req));
         ret = OB_UNKNOWN_PACKET;
@@ -228,7 +250,7 @@ namespace oceanbase
         {
           task->reset();
           task->pkt = pkt;
-          task->src_addr = get_easy_addr(pkt.get_request());
+          task->src_addr = get_onev_addr(pkt.get_request());
           char *data_buffer = (char*)task + sizeof(Task);
           memcpy(data_buffer, pkt.get_buffer()->get_data(), pkt.get_buffer()->get_capacity());
           task->pkt.get_buffer()->set_data(data_buffer, pkt.get_buffer()->get_capacity());
@@ -873,6 +895,22 @@ namespace oceanbase
                 || OB_SUCCESS != (ret = fill_return_rows_(*main_op, new_scanner, session_ctx->get_ups_result())))
         {
           session_ctx->rollback_stmt();
+          //add wangjiahao [table lock] 20160616 :b
+
+          if ((OB_ERR_TABLE_EXCLUSIVE_LOCK_CONFLICT == ret
+                || OB_ERR_TABLE_INTENTION_LOCK_CONFLICT == ret)
+                && !session_ctx->is_session_expired()
+                && !session_ctx->is_stmt_expired())
+          {
+            TBSYS_LOG(WARN, "##TEST_PRINT##rollback because of table lock ret=%d", ret);
+            if (!with_sid)
+            {
+              end_session_ret = ret;
+            }
+            give_up_lock = false;
+            need_free_task = false;
+          }
+          //add :e
           if ((OB_ERR_EXCLUSIVE_LOCK_CONFLICT == ret
                 || OB_ERR_SHARED_LOCK_CONFLICT == ret)
               && !session_ctx->is_session_expired()
@@ -1054,6 +1092,19 @@ namespace oceanbase
         session_ctx->set_stmt_start_time(pkt.get_receive_ts());
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
+        // add by guojinwei [repeatable read] 20160418:b
+        TBSYS_LOG(DEBUG, "ISOLATION_LEVEL = %d, guojinwei", get_param.get_trans_id().isolation_level_);
+        if (common::REPEATABLE_READ == get_param.get_trans_id().isolation_level_
+            && get_param.get_trans_id().is_valid()
+            && 0 != get_param.get_trans_id().start_time_us_)
+        {
+          session_ctx->set_trans_start_time(get_param.get_trans_id().trans_start_time_us_);
+        }
+        if (get_param.get_trans_id().is_valid())
+        {
+          session_ctx->set_trans_descriptor(get_param.get_trans_id().descriptor_);
+        }
+        // add:e
         if (OB_NEW_GET_REQUEST == pkt.get_packet_code())
         {
           new_scanner.reuse();
@@ -1153,6 +1204,19 @@ namespace oceanbase
         session_ctx->set_stmt_start_time(pkt.get_receive_ts());
         session_ctx->set_stmt_timeout(process_timeout);
         session_ctx->set_priority((PriorityPacketQueueThread::QueuePriority)pkt.get_packet_priority());
+        // add by guojinwei [repeatable read] 20160418:b
+        TBSYS_LOG(DEBUG, "ISOLATION_LEVEL = %d, guojinwei", scan_param.get_trans_id().isolation_level_);
+        if (common::REPEATABLE_READ == scan_param.get_trans_id().isolation_level_
+            && scan_param.get_trans_id().is_valid()
+            && 0 != scan_param.get_trans_id().start_time_us_)
+        {
+          session_ctx->set_trans_start_time(scan_param.get_trans_id().trans_start_time_us_);
+        }
+        if (scan_param.get_trans_id().is_valid())
+        {
+          session_ctx->set_trans_descriptor(scan_param.get_trans_id().descriptor_);
+        }
+        // add:e
         if (OB_NEW_SCAN_REQUEST == pkt.get_packet_code())
         {
           new_scanner.reuse();
@@ -1522,10 +1586,22 @@ namespace oceanbase
           kill(getpid(), SIGTERM);
         }
       }
+      // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+      int64_t cur_time_us = tbsys::CTimeUtil::getTime();
+      // add:e
       if (OB_SUCCESS == ret
-          && (0 == TransCommitThread::get_queued_num()
-              || MAX_BATCH_NUM <= uncommited_session_list_.size()))
+      // modify by guojinwei [log synchronization][multi_cluster] 20151028:b
+      //    && (0 == TransCommitThread::get_queued_num()
+      //        || MAX_BATCH_NUM <= uncommited_session_list_.size()))
+          && (0 == TransCommitThread::get_queued_num())
+          && ((message_residence_time_us_<message_residence_max_us_?
+                (message_residence_time_us_+message_residence_protection_us_):message_residence_max_us_) 
+              <= (cur_time_us - last_commit_log_time_us_)))
+      // modify:e
       {
+        // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+        last_commit_log_time_us_ = tbsys::CTimeUtil::getTime();
+        // add:e
         ret = commit_log_();
       }
       if (OB_SUCCESS != ret)
@@ -1554,6 +1630,9 @@ namespace oceanbase
       else
       {
         UPS.get_log_mgr().get_clog_stat().add_net_us(node.start_seq_, node.end_seq_, node.get_delay());
+        // add by guojinwei [log synchronization][multi_cluster] 20151028:b
+        message_residence_time_us_ = (message_residence_time_us_ >> 1) + (node.message_residence_time_us_ >> 1);
+        // add:e
       }
       return ret;
     }
@@ -1575,6 +1654,21 @@ namespace oceanbase
       int64_t flushed_clog_id = UPS.get_log_mgr().get_flushed_clog_id();
       int64_t flush_seq = 0;
       Task *task = NULL;
+      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+      // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
+      //int64_t last_commit_point = 0;
+      //if (OB_SUCCESS != (err = UPS.get_log_mgr().get_last_commit_point(last_commit_point)))
+      //{
+      //  TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
+      //}
+      //else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type)
+      //         && (flushed_clog_id > last_commit_point))
+      //{
+      //  TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
+      //  UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
+      //}
+      // add:e
+      //delete:e
       while(true)
       {
         if (OB_SUCCESS != (err = flush_queue_.tail(flush_seq, (void*&)task))
@@ -1793,9 +1887,16 @@ namespace oceanbase
           }
         }
         uncommited_session_list_.clear(); */
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
-        OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, tbsys::CTimeUtil::getTime() - batch_start_time());
-        batch_start_time() = 0;
+        // debug by guojinwei [inner table error][multi_cluster] 20150919:b
+        if (0 != batch_start_time())
+        {
+        // debug:e
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, tbsys::CTimeUtil::getTime() - batch_start_time());
+          batch_start_time() = 0;
+        // debug by guojinwei [inner table error][multi_custer] 20150919:b
+        }
+        // debug:e
       }
       try_submit_auto_freeze_();
       return ret;
@@ -2087,5 +2188,70 @@ namespace oceanbase
       //TBSYS_LOG(INFO, "handle nop");
       return false;
     }
+
+    //add chujiajia [log synchronization][multi_cluster] 20160606:b
+    int TransExecutor::handle_uncommited_session_list_after_switch()
+    {
+      int ret =OB_SUCCESS;
+      bool rollback = true;
+      int64_t i = 0;
+      ObList<Task*>::iterator iter;
+      for (iter = uncommited_session_list_.begin(); iter != uncommited_session_list_.end(); iter++, i++)
+      {
+        Task *task = *iter;
+        TBSYS_LOG(INFO, "task->sid[%d]", task->sid.descriptor_);
+        task->pkt.set_packet_code(OB_COMMIT_END);
+        if (OB_SUCCESS != (ret = CommitEndHandlePool::push(task)))
+        {
+          TBSYS_LOG(ERROR, "push(task=%p)=>%d, will kill self", task, ret);
+          kill(getpid(), SIGTERM);
+        }
+        continue;
+        if (NULL == task)
+        {
+          TBSYS_LOG(ERROR, "unexpected task null pointer batch=%ld, will kill self", uncommited_session_list_.size());
+          kill(getpid(), SIGTERM);
+        }
+        else
+        {
+          int ret_ok = OB_SUCCESS;
+          SessionGuard session_guard(session_mgr_, lock_mgr_, ret_ok);
+          RWSessionCtx *session_ctx = NULL;
+          if (OB_SUCCESS != (ret = session_guard.fetch_session(task->sid, session_ctx)))
+          {
+            TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", ret, to_cstring(task->sid));
+            kill(getpid(), SIGTERM);
+          }
+          else
+          {
+            FILL_TRACE_BUF(session_ctx->get_tlog_buffer(), "%sbatch=%ld:%ld", TraceLog::get_logbuffer().buffer, i, uncommited_session_list_.size());
+            ups_result_buffer_.set_data(ups_result_memory_, OB_MAX_PACKET_LENGTH);
+            session_ctx->get_ups_result().serialize(ups_result_buffer_.get_data(),
+                                                    ups_result_buffer_.get_capacity(),
+                                                    ups_result_buffer_.get_position());
+          }
+        }
+        if (OB_SUCCESS != (ret = session_mgr_.end_session(task->sid.descriptor_, rollback)))
+        {
+           TBSYS_LOG(ERROR, "unexpected end_session fail ret=%d %s, will kill self", ret, to_cstring(task->sid));
+           kill(getpid(), SIGTERM);
+        }
+        ret = rollback ? OB_TRANS_ROLLBACKED : ret;
+        if (OB_PHY_PLAN_EXECUTE == task->pkt.get_packet_code()
+            && OB_SUCCESS == ret)
+        {
+          UPS.response_buffer(ret, task->pkt, ups_result_buffer_);
+        }
+        else
+        {
+          UPS.response_result(ret, task->pkt);
+        }
+        allocator_.free(task);
+        task = NULL;
+      }
+      uncommited_session_list_.clear();
+      return ret;
+    }
+    //add:e
   }
 }

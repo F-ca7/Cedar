@@ -1,4 +1,21 @@
 /**
+* Copyright (C) 2013-2015 ECNU_DaSE.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 2 as published by the Free Software Foundation.
+*
+* @file ob_filter.cpp
+* @brief for operations of filter
+*
+* modified by maoxiaoxiao:add functions to reset iterator
+*
+* @version __DaSE_VERSION
+* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+* @date 2016_01_21
+*/
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -15,6 +32,7 @@
  */
 #include "ob_filter.h"
 #include "common/utility.h"
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -146,6 +164,17 @@ int64_t ObFilter::to_string(char* buf, const int64_t buf_len) const
   return pos;
 }
 
+//add maoxx
+void ObFilter::reset_iterator()
+{
+  if(child_op_ && PHY_MULTIPLE_GET_MERGE == child_op_->get_type())
+  {
+    ObMultipleGetMerge *fuse_op = NULL;
+    fuse_op = static_cast<ObMultipleGetMerge*>(child_op_);
+    fuse_op->reset_iterator();
+  }
+}
+//add e
 
 DEFINE_SERIALIZE(ObFilter)
 {

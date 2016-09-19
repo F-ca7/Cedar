@@ -126,6 +126,11 @@ do \
 %left '(' ')'
 %left '.'
 
+/*add by zhujun*/
+%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL
+/*zhounan unmark*/
+%token CURSOR OPEN FETCH CLOSE NEXT PRIOR FIRST LAST ABSOLUTE RELATIVE 
+
 %token ADD AND ANY ALL ALTER AS ASC
 %token BETWEEN BEGI BIGINT BINARY BOOLEAN BOTH BY
 %token CASCADE CASE CHARACTER CLUSTER CNNOP COMMENT COMMIT
@@ -138,9 +143,9 @@ do \
 %token GLOBAL GLOBAL_ALIAS GRANT GROUP
 %token HAVING HINT_BEGIN HINT_END HOTSPOT
 %token IDENTIFIED IF IN INNER INTEGER INTERSECT INSERT INTO IS
-%token JOIN
+%token JOIN SEMI_JOIN
 %token KEY
-%token LEADING LEFT LIMIT LIKE LOCAL LOCKED
+%token LEADING LEFT LIMIT LIKE LOCAL LOCKED LOCKWJH
 %token MEDIUMINT MEMORY MOD MODIFYTIME MASTER
 %token NOT NUMERIC
 %token OFFSET ON OR ORDER OPTION OUTER
@@ -153,6 +158,10 @@ do \
 %token UNION UPDATE USER USING
 %token VALUES VARCHAR VARBINARY
 %token WHERE WHEN WITH WORK PROCESSLIST QUERY CONNECTION WEAK
+%token INDEX STORING /* add longfei [create index] [secondaryindex reconstruct] 20150917 e */
+/* add maoxx [bloomfilter_join] 20160406 */
+%token BLOOMFILTER_JOIN MERGE_JOIN
+/* add e */
 
 %token <non_reserved_keyword>
        AUTO_INCREMENT CHUNKSERVER COMPRESS_METHOD CONSISTENT_MODE
@@ -160,6 +169,18 @@ do \
        MERGESERVER REPLICA_NUM ROOTSERVER ROW_COUNT SERVER SERVER_IP
        SERVER_PORT SERVER_TYPE STATUS TABLE_ID TABLET_BLOCK_SIZE TABLET_MAX_SIZE
        UNLOCKED UPDATESERVER USE_BLOOM_FILTER VARIABLES VERBOSE WARNINGS
+/*add by zhujun*/
+%type <node> create_procedure_stmt proc_decl proc_block 
+%type <node> proc_sect proc_stmts proc_stmt control_sect control_stmts control_stmt
+%type <node> proc_parameter_list proc_parameter
+%type <node> stmt_if stmt_elsifs stmt_elsif stmt_else
+%type <node> exec_procedure_stmt stmt_declare
+%type <node> stmt_assign stmt_while stmt_null drop_procedure_stmt show_procedure_stmt 
+%type <node> stmt_loop stmt_case case_when_list case_else case_when stmt_exit select_into_clause
+/*zhounan unmark*/
+%type <node> cursor_declare_stmt cursor_open_stmt cursor_fetch_stmt cursor_close_stmt cursor_name fetch_prior_stmt fetch_first_stmt fetch_last_stmt  fetch_relative_stmt fetch_absolute_stmt fetch_fromto_stmt next_or_prior
+%type <node> cursor_fetch_into_stmt cursor_fetch_next_into_stmt cursor_fetch_first_into_stmt cursor_fetch_last_into_stmt cursor_fetch_prior_into_stmt cursor_fetch_absolute_into_stmt cursor_fetch_relative_into_stmt
+
 
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
@@ -213,6 +234,18 @@ do \
 %type <non_reserved_keyword> unreserved_keyword
 %type <ival> consistency_level
 %type <node> opt_comma_list hint_options
+%type <node> lock_table_stmt
+/* add [secondaryindex reconstruct] 20150925 longfei [create index] :b */
+%type <node> create_index_stmt opt_index_columns opt_storing opt_index_option_list opt_storing_columns index_option
+/* add e */
+
+/* add longfei [drop index] 20151024 :b */
+%type <node> drop_index_stmt index_list table_name
+/* add e */
+
+/* add maoxx [bloomfilter_join] 20160406 */
+%type <node> join_op_type_list join_op_type
+/* add e */
 
 %start sql_stmt
 %%
@@ -241,12 +274,32 @@ stmt_list:
   ;
 
 stmt:
-    select_stmt       { $$ = $1; }
+	create_procedure_stmt { $$ = $1; }
+  | exec_procedure_stmt   { $$ = $1; }
+  | show_procedure_stmt   { $$ = $1; }
+  | drop_procedure_stmt   { $$ = $1; }
+ 
+  
+  |cursor_declare_stmt       { $$ = $1; }
+  |cursor_open_stmt          { $$ = $1; }
+  |cursor_fetch_stmt         { $$ = $1; }
+  |cursor_close_stmt         { $$ = $1; }
+  |fetch_prior_stmt   { $$ = $1; }
+
+  |fetch_first_stmt   { $$ = $1; }
+  |fetch_last_stmt   { $$ = $1; } 
+  |fetch_relative_stmt   { $$ = $1; }
+  |fetch_absolute_stmt   { $$ = $1; } 
+  |fetch_fromto_stmt   { $$ = $1; }
+  
+  | select_stmt       { $$ = $1; }
   | insert_stmt       { $$ = $1; }
   | create_table_stmt { $$ = $1; }
+  | create_index_stmt { $$ = $1; }
   | update_stmt       { $$ = $1; }
   | delete_stmt       { $$ = $1; }
   | drop_table_stmt   { $$ = $1; }
+  | drop_index_stmt   { $$ = $1; }
   | explain_stmt      { $$ = $1; }
   | show_stmt         { $$ = $1; }
   | prepare_stmt      { $$ = $1; }
@@ -266,6 +319,7 @@ stmt:
   | commit_stmt { $$ = $1;}
   | rollback_stmt {$$ = $1;}
   | kill_stmt {$$ = $1;}
+  | lock_table_stmt {$$ = $1;}
   | /*EMPTY*/   { $$ = NULL; }
   ;
 
@@ -740,6 +794,398 @@ update_asgn_factor:
   ;
 
 
+// add longfei [create index] [secondaryindex reconstruct] 20150915:b 
+/*****************************************************************************
+ *
+ *	create secondary index grammar 
+ *
+ *****************************************************************************/
+create_index_stmt:
+	CREATE INDEX opt_if_not_exists relation_factor ON relation_factor opt_index_columns
+	opt_storing opt_index_option_list
+	{
+		ParseNode *index_options = NULL;
+		merge_nodes(index_options, result->malloc_pool_, T_INDEX_OPTION_LIST, $9);
+		malloc_non_terminal_node($$, result->malloc_pool_, T_CREATE_INDEX, 6,
+								  $3, /* if not exists */
+								  $6, /* table name */
+								  $4, /* index name */ 
+		                          $7, /* index columns */
+		                          $8, /* storing list */
+		                          index_options /* option list */
+		                        );
+	};
+		  	
+opt_index_columns:
+    '(' column_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_COLUMN_LIST, $2);
+    }
+  ;
+  
+opt_storing:
+  	STORING opt_storing_columns 
+  	{
+  		$$=$2;
+  	}
+  |
+  	/*empty*/
+  	{
+  		$$=NULL;
+  	}
+  ;
+  
+opt_storing_columns:
+   '(' column_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_COLUMN_LIST, $2);
+    }
+  ;
+  
+opt_index_option_list:
+    index_option
+    {
+      $$ = $1;
+    }
+  | opt_index_option_list ',' index_option
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  | /*EMPTY*/
+    {
+      $$ = NULL;
+    }
+  ;
+
+index_option:
+	table_option
+	{
+		$$ = $1;
+	}
+  ;
+// add e
+
+
+
+
+/*****************************************************************************
+ * 
+ *
+ *           	declare cursor grammar
+ *
+ *****************************************************************************/
+ cursor_declare_stmt: 
+     DECLARE cursor_name CURSOR FOR select_stmt
+     {					 
+       malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_DECLARE, 2,
+                                        $2,		/*cursor name*/
+                                        $5		/*result from select_stmt*/
+					             ); 
+	 }
+	;
+	 
+ 
+cursor_name:
+    column_label
+    { $$ = $1; } 
+    ;
+
+  
+
+/*****************************************************************************
+ *  
+ *                     open grammar
+ *
+ *****************************************************************************/
+
+cursor_open_stmt: 
+   OPEN cursor_name
+           {
+            malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_OPEN, 1,
+            $2     /* cursor_name*/
+                                    );
+            }
+            ;
+
+ 
+
+/*****************************************************************************
+ *
+ *	                    fetch grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_stmt:	
+    FETCH cursor_name
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH, 1,
+                   $2     /* cursor_name*/
+                                       );
+            }
+   | FETCH cursor_name NEXT
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH, 1,
+                   $2     /* cursor_name*/
+                                       );
+            }
+            
+            ;
+/*****************************************************************************
+ *
+ *	                    fetch into grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_into_stmt:	
+    FETCH cursor_name INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH, 1, $2);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $4);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_INTO, 2, fetch, args);
+            }
+           ;
+/*****************************************************************************
+ *
+ *	                    fetch next into grammar
+ *
+ *****************************************************************************/
+cursor_fetch_next_into_stmt:	
+    FETCH cursor_name NEXT INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_NEXT, 1, $2);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_NEXT_INTO, 2, fetch, args);
+            }
+           ;          
+/*****************************************************************************
+ *
+ *	                    fetch first into grammar
+ *
+ *****************************************************************************/
+cursor_fetch_first_into_stmt:	
+    FETCH cursor_name FIRST INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_FIRST, 1, $2);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_FIRST_INTO, 2, fetch, args);
+            }
+           ;
+
+/*****************************************************************************
+ *
+ *	                    fetch prior into grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_prior_into_stmt:	
+    FETCH cursor_name PRIOR INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_PRIOR, 1, $2);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_PRIOR_INTO, 2, fetch, args);
+            }
+           ;
+
+/*****************************************************************************
+ *
+ *	                    fetch last into grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_last_into_stmt:	
+    FETCH cursor_name LAST INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_LAST, 1, $2);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_LAST_INTO, 2, fetch, args);
+            }
+           ;
+
+/*****************************************************************************
+ *
+ *	                    fetch absolute into grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_absolute_into_stmt:	
+    FETCH cursor_name ABSOLUTE INTNUM INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_ABSOLUTE, 2, $2, $4);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $6);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_ABS_INTO, 2, fetch, args);
+            }
+           ;
+
+
+/*****************************************************************************
+ *
+ *	                    fetch relative into grammar
+ *
+ *****************************************************************************/
+ cursor_fetch_relative_into_stmt:	
+    FETCH cursor_name next_or_prior RELATIVE INTNUM INTO argument_list
+           {
+           	  ParseNode* args = NULL;
+           	  ParseNode* fetch = NULL;
+           	  malloc_non_terminal_node(fetch, result->malloc_pool_, T_CURSOR_FETCH_RELATIVE, 3, $2, $3, $5);
+			  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $7);
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_RELATIVE_INTO, 2, fetch, args);
+            }
+           ;
+
+/*****************************************************************************
+ *
+ *	                    fetch prior grammar
+ *
+ *****************************************************************************/
+ fetch_prior_stmt:	
+    FETCH cursor_name PRIOR
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_PRIOR, 1,
+                   $2     /* cursor_name*/
+                    
+                    
+                    
+                                       );
+            }
+            
+            
+            ;
+
+
+                       
+/*****************************************************************************
+ *
+ *	                    fetch first grammar
+ *
+ *****************************************************************************/
+ fetch_first_stmt:	
+    FETCH cursor_name FIRST
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_FIRST, 1,
+                   $2     /* cursor_name*/
+                                       );
+            }
+            
+            
+            ;
+
+
+
+
+/*****************************************************************************
+ *
+ *	                    fetch last grammar
+ *
+ *****************************************************************************/
+ fetch_last_stmt:	
+    FETCH cursor_name LAST
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_LAST, 1,
+                   $2     /* cursor_name*/
+                                       );
+            }
+            
+            
+            ;
+  
+
+/*****************************************************************************
+ *
+ *	                    fetch relative grammar
+ *
+ *****************************************************************************/
+ fetch_relative_stmt:	
+    FETCH cursor_name next_or_prior RELATIVE INTNUM
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_RELATIVE, 3,
+                   $2,     /* cursor_name*/
+                   $3,                  
+                   $5                  
+                                       );
+            }
+            
+            
+            ;
+  
+  next_or_prior:
+    NEXT
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_BOOL);
+      $$->value_ = 1;
+    }
+  | PRIOR
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_BOOL);
+      $$->value_ = 0;
+    }
+  ;
+  
+  
+ 
+/*****************************************************************************
+ *
+ *	                    fetch absolute grammar
+ *
+ *****************************************************************************/
+ fetch_absolute_stmt:	
+    FETCH cursor_name ABSOLUTE INTNUM
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_ABSOLUTE, 2,
+                   $2,     /* cursor_name*/
+                   $4
+                                       );
+            }
+            
+            
+            ; 
+  
+/*****************************************************************************
+ *
+ *	                    fetch fromto grammar
+ *
+ *****************************************************************************/
+ fetch_fromto_stmt:	
+    FETCH cursor_name FROM INTNUM TO INTNUM
+           {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_FETCH_FROMTO, 3,
+                   $2,     /* cursor_name*/
+                   $4,
+                   $6
+                                       );
+            }
+            
+            
+            ; 
+  
+  
+
+/*****************************************************************************
+ *
+ *                    close grammar
+ *
+ *****************************************************************************/
+cursor_close_stmt: 
+    CLOSE cursor_name
+           {
+             malloc_non_terminal_node($$, result->malloc_pool_, T_CURSOR_CLOSE, 1,
+                   $2     /* cursor_name*/
+                                      );
+             }
+             ;
+
+
+
+
+
+
 /*****************************************************************************
  *
  *	create grammar
@@ -1029,8 +1475,8 @@ opt_equal_mark:
     COMP_EQ     { $$ = NULL; }
   | /*EMPTY*/   { $$ = NULL; }
   ;
-
-
+ 
+ 
 /*****************************************************************************
  *
  *	drop table grammar
@@ -1064,6 +1510,41 @@ table_list:
     }
   ;
 
+/*****************************************************************************
+ *
+ *	drop index grammar
+ *	@author:longfei [drop index]
+ *
+ *****************************************************************************/
+
+drop_index_stmt:
+    DROP INDEX opt_if_exists index_list ON table_name
+    {
+      ParseNode *indexs = NULL;
+      merge_nodes(indexs, result->malloc_pool_, T_INDEX_LIST, $4);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_DROP_INDEX, 3, $3, indexs, $6);
+    }
+  ;
+
+index_list:
+    /* EMPTY */
+    { $$ = NULL; } 
+  |
+    relation_factor
+    {
+      $$ = $1;
+    }
+  | index_list ',' relation_factor
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  ;
+  
+table_name:
+	relation_factor
+	{
+	  $$ = $1;
+	}
 
 /*****************************************************************************
  *
@@ -1289,6 +1770,42 @@ select_clause:
   | select_with_parens	        { $$ = $1; }
   ;
 
+
+/*Add by zz 2014-11-20 to apply select * into var from ....*/
+/*===========================================================
+ *	Select Into sentence
+ *===========================================================*/
+select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
+						{
+						  ParseNode* project_list = NULL;
+						  ParseNode* from_list = NULL;
+						  ParseNode* select = NULL;
+						  ParseNode* args = NULL;
+						  merge_nodes(project_list, result->malloc_pool_, T_PROJECT_LIST, $2);
+						  merge_nodes(from_list, result->malloc_pool_, T_FROM_LIST, $6);
+						  malloc_non_terminal_node(select, result->malloc_pool_, T_SELECT, 16,
+                              NULL,           /* 1. distinct */
+                              project_list,   /* 2. select clause */
+                              from_list,      /* 3. from clause */
+                              $7,             /* 4. where */
+                              NULL,           /* 5. group by */
+                              NULL,           /* 6. having */
+                              NULL,           /* 7. set operation */
+                              NULL,           /* 8. all specified? */
+                              NULL,           /* 9. former select stmt */
+                              NULL,           /* 10. later select stmt */
+                              NULL,           /* 11. order by */
+                              NULL,             /* 12. limit */
+                              $8,           /* 13. for update */
+                              NULL,             /* 14 hints */
+                              NULL            /* 15 when clause */
+                              ,NULL
+                              );
+						  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $4);
+						  malloc_non_terminal_node($$,result->malloc_pool_, T_SELECT_INTO, 2, args, select);
+						}
+					;
+
 simple_select:
     SELECT opt_hint opt_distinct select_expr_list
     FROM from_list
@@ -1485,15 +2002,39 @@ hint_option:
     {
       malloc_terminal_node($$, result->malloc_pool_, T_HOTSPOT);
     }
+  | SEMI_JOIN '(' relation_factor ',' relation_factor ',' relation_factor '.' relation_factor ',' relation_factor '.' relation_factor ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_SEMI_JOIN, 6, $3, $5, $7, $9, $11, $13);
+    }
   | READ_CONSISTENCY '(' consistency_level ')'
     {
       malloc_terminal_node($$, result->malloc_pool_, T_READ_CONSISTENCY);
       $$->value_ = $3;
+    }  
+    // add longfei 20151106
+  | INDEX '(' relation_factor relation_factor ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_USE_INDEX, 2, $3, $4);
     }
+    // add e
+    // add by zcd 20150601:b
+  | NAME '(' NAME ')'
+    {
+	  (void)($1);
+	  (void)($3);
+      malloc_terminal_node($$, result->malloc_pool_, T_UNKOWN_HINT);
+    }
+    // add by zcd 20150601:e
   | '(' opt_comma_list ')'
     {
       $$ = $2;
     }
+    /* add maoxx [bloomfilter_join] 20160406 */
+  | JOIN '(' join_op_type_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_JOIN_OP_TYPE_LIST, $3);
+    }
+    /* add e */
   ;
 
 opt_comma_list:
@@ -1506,6 +2047,30 @@ opt_comma_list:
       $$ = NULL;
     }
   ;
+
+/* add maoxx [bloomfilter_join] 20160406 */
+join_op_type_list:
+    join_op_type
+    {
+      $$ = $1;
+    }
+  | join_op_type_list ',' join_op_type
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+   ;
+
+join_op_type:
+    BLOOMFILTER_JOIN
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_BLOOMFILTER_JOIN);
+    }
+  | MERGE_JOIN
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_MERGE_JOIN);
+    }
+   ;
+/* add e */
  
 consistency_level:
   WEAK
@@ -1848,11 +2413,14 @@ opt_verbose:
 /*****************************************************************************
  *
  *	show grammar
+ *  add show index : longfei [show index]
  *
  *****************************************************************************/
 show_stmt:
     SHOW TABLES opt_show_condition
     { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_TABLES, 1, $3); }
+  | SHOW INDEX ON relation_factor opt_show_condition
+    {  malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_INDEX, 2, $4, $5); }
   | SHOW COLUMNS FROM relation_factor opt_show_condition
     { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_COLUMNS, 2, $4, $5); }
   | SHOW COLUMNS IN relation_factor opt_show_condition
@@ -1869,7 +2437,7 @@ show_stmt:
   | SHOW SCHEMA
     { malloc_terminal_node($$, result->malloc_pool_, T_SHOW_SCHEMA); }
   | SHOW CREATE TABLE relation_factor
-    { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_CREATE_TABLE, 1, $4); }
+    { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_CREATE_TABLE, 1, $4); }					
   | DESCRIBE relation_factor opt_like_condition
     { malloc_non_terminal_node($$, result->malloc_pool_, T_SHOW_COLUMNS, 2, $2, $3); }
   | DESC relation_factor opt_like_condition
@@ -1905,7 +2473,12 @@ show_stmt:
       $$->value_ = $2;
     }
   ;
-
+lock_table_stmt:
+    LOCKWJH TABLE relation_factor
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LOCK_TABLE, 1, $3);
+    }
+  ;
 opt_limit:
     LIMIT INTNUM ',' INTNUM
     {
@@ -1965,6 +2538,7 @@ opt_full:
   | FULL
     { $$ = 1; }
   ;
+
 /*****************************************************************************
  *
  *	create user grammar
@@ -2052,6 +2626,7 @@ opt_for_user:
       $$ = NULL;
     }
 ;
+
 /*****************************************************************************
  *
  *	rename user grammar
@@ -2079,6 +2654,7 @@ rename_list:
       malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
     }
 ;
+
 /*****************************************************************************
  *
  *	lock user grammar
@@ -2102,6 +2678,7 @@ lock_spec:
       $$->value_ = 0;
     }
 ;
+
 /*****************************************************************************
 *
 *  begin/start transaction grammer
@@ -2138,6 +2715,7 @@ begin_stmt:
       malloc_terminal_node($$, result->malloc_pool_, T_BEGIN);
       $$->value_ = $3;
     }
+
 /*****************************************************************************
 *
 *  commit grammer
@@ -2309,6 +2887,7 @@ priv_level:
       malloc_non_terminal_node($$, result->malloc_pool_, T_PRIV_LEVEL, 1, $1);
     }
 ;
+
 /*****************************************************************************
  *
  *	revoke grammar
@@ -2364,6 +2943,7 @@ opt_on_priv_level:
       $$ = NULL;
     }
 
+
 /*****************************************************************************
  *
  *	prepare grammar
@@ -2392,6 +2972,7 @@ preparable_stmt:
   | delete_stmt
     { $$ = $1; }
   ;
+
 
 
 /*****************************************************************************
@@ -2851,6 +3432,402 @@ unreserved_keyword:
   | WARNINGS
   ;
 
+/*Add by zz 2014-11-20,this part was used by analyse prodedure*/
+
+/*****************************************************************************
+ *
+ *	create store procedure  grammar
+ *
+ *****************************************************************************/
+create_procedure_stmt	:	proc_decl proc_block
+							{
+								malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CREATE, 2, $1, $2);
+							}
+						;
+proc_decl	:	CREATE PROCEDURE  NAME '(' proc_parameter_list ')'
+				{
+					ParseNode *params = NULL;
+        			merge_nodes(params, result->malloc_pool_, T_PARAM_LIST, $5);
+					malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECL, 2, $3, params);
+				}
+			|
+				CREATE PROCEDURE  NAME '(' ')'
+				{
+					ParseNode *params = NULL;
+					malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECL, 2, $3, params);
+				}
+               
+			
+			;
+proc_parameter_list	:	proc_parameter_list ',' proc_parameter
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+					}
+				|	proc_parameter
+					{
+						$$ = $1;
+					}
+				;
+proc_parameter	:	TEMP_VARIABLE data_type
+					{
+      					malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 2, $1, $2);
+					}
+				|	IN TEMP_VARIABLE data_type
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 2, $2, $3);
+					}
+				|	OUT TEMP_VARIABLE data_type
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 2, $2, $3);
+					}
+				|   INOUT TEMP_VARIABLE data_type
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 2, $2, $3);
+					}
+				;
+proc_block	: 	BEGI proc_sect END
+				{ 
+					//malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_BLOCK, 1, $2);
+					$$=$2;
+				}
+			;
+proc_sect	:		
+				{ 
+					$$=NULL;
+				}
+			| 	proc_stmts	
+				{ 
+        			merge_nodes($$, result->malloc_pool_, T_PROCEDURE_STMTS, $1);
+				}
+			;
+proc_stmts	: 	proc_stmts proc_stmt
+				{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $2);
+				}
+			| 	proc_stmt
+				{
+					$$=$1;
+				}
+			;
+proc_stmt		: stmt_if
+						{ $$ = $1; }
+				| stmt_case
+						{ $$ = $1; }
+				| stmt_while
+						{ $$ = $1; }
+				| stmt_loop
+						{ $$ = $1; }
+				| stmt_declare
+						{ $$ = $1; }
+				| stmt_assign
+						{ $$ = $1; }
+				| select_into_clause ';'
+						{ $$ = $1; }
+				| insert_stmt ';'
+						{ $$ = $1; }
+				| update_stmt ';'
+						{ $$ = $1; }
+				| delete_stmt ';'
+						{ $$ = $1; }
+				| select_stmt ';'
+						{ $$ = $1; }
+				| cursor_declare_stmt ';'
+						{ $$ = $1; }
+  				| cursor_open_stmt ';'
+						{ $$ = $1; }
+				| cursor_close_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_next_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_first_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_last_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_prior_into_stmt ';'
+						{ $$ = $1; }						
+				| cursor_fetch_absolute_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_relative_into_stmt ';'
+						{ $$ = $1; }
+
+				| stmt_exit
+						{ $$ =$1; }
+				| stmt_null
+						{ $$ = $1; }
+				;
+/*===========================================================
+ *	Procedure's control body sentence didn't contain declare
+ *===========================================================*/
+control_sect	:		
+				control_stmts	
+				{ 
+        			merge_nodes($$, result->malloc_pool_, T_PROCEDURE_STMTS, $1);
+				}
+			;
+control_stmts	: 	control_stmts control_stmt
+				{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $2);
+				}
+			| 	control_stmt
+				{
+					$$=$1;
+				}
+			;
+control_stmt	: stmt_if
+						{ $$ = $1; }
+				| stmt_case
+						{ $$ = $1; }
+				| stmt_while
+						{ $$ = $1; }
+				| stmt_loop
+						{ $$ = $1; }
+				| stmt_assign
+						{ $$ = $1; }
+				| select_into_clause ';'
+						{ $$ = $1; }
+				| insert_stmt ';'
+						{ $$ = $1; }
+				| update_stmt ';'
+						{ $$ = $1; }
+				| delete_stmt ';'
+						{ $$ = $1; }
+				| select_stmt ';'
+						{ $$ = $1; }
+				| cursor_declare_stmt ';'
+						{ $$ = $1; }
+  				| cursor_open_stmt ';'
+						{ $$ = $1; }
+				| cursor_close_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_next_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_first_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_last_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_prior_into_stmt ';'
+						{ $$ = $1; }						
+				| cursor_fetch_absolute_into_stmt ';'
+						{ $$ = $1; }
+				| cursor_fetch_relative_into_stmt ';'
+						{ $$ = $1; }
+					
+				| stmt_exit
+						{ $$ =$1; }
+				| stmt_null
+						{ $$ = $1; }
+				;
+
+/*===========================================================
+ *	Procedure's declare variable sentence
+ *===========================================================*/
+ 
+stmt_declare	:	DECLARE argument_list data_type ';'
+					{
+						ParseNode *args = NULL;
+						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, NULL);
+					}
+				|	DECLARE argument_list data_type DEFAULT expr_const ';'
+					{
+						ParseNode *args = NULL;
+						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, $5);
+					}
+				;
+
+				
+/*===========================================================
+ *	Procedure's assign variable a value sentence
+ *===========================================================*/
+stmt_assign		:	SET var_and_val_list ';'
+					{
+						ParseNode *var_list = NULL;
+						merge_nodes(var_list, result->malloc_pool_, T_VAR_VAL_LIST, $2);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_ASSGIN, 1,var_list);
+					}
+				;
+
+
+/*===========================================================
+ *	Procedure's if sentence
+ *===========================================================*/
+stmt_if			:	IF expr THEN control_sect stmt_elsifs stmt_else END IF ';'
+					{
+						ParseNode *elsifs = NULL;
+						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,$6);
+					}
+				|	IF expr THEN control_sect stmt_elsifs END IF ';'
+					{
+						ParseNode *elsifs = NULL;
+						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,NULL);
+					}
+				|	IF expr THEN control_sect stmt_else END IF ';'
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,$5);
+					}
+				|	IF expr THEN control_sect END IF ';'
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,NULL);
+					}
+				;
+stmt_elsifs		:	stmt_elsif
+					{
+						$$=$1;
+					}
+				| 	stmt_elsifs stmt_elsif
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $2);
+					}
+				;
+stmt_elsif		:	ELSEIF expr THEN control_sect
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_ELSEIF, 2, $2, $4);
+					}
+				;
+				
+stmt_else		:	ELSE control_sect
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_ELSE, 1, $2);
+						//$$ = $2;
+					}
+				;
+
+
+/*===========================================================
+ *	Procedure's case-when sentence
+ *===========================================================*/
+stmt_case		: 	CASE expr case_when_list case_else END CASE ';'
+					{
+						ParseNode *casewhenlist = NULL;
+						merge_nodes(casewhenlist, result->malloc_pool_, T_PROCEDURE_CASE_WHEN_LIST, $3);
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CASE, 3, $2, casewhenlist, $4);
+					}
+				;
+case_when_list	: 	case_when_list case_when
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $2);
+					}
+				| 	case_when
+					{
+						$$=$1;
+					}
+			;
+case_when		: 	WHEN expr THEN control_sect
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CASE_WHEN, 2, $2, $4);
+					}
+				;
+case_else		:
+					{
+						$$ = NULL;
+					}
+				| 	ELSE control_sect
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_ELSE, 1, $2);
+						//$$ = $2;
+					}
+				;
+
+
+/*===========================================================
+ *	Procedure's loop sentence
+ *===========================================================*/
+stmt_loop		:	LOOP control_sect END LOOP ';'
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 1, $2);
+					}
+				;
+
+
+/*===========================================================
+ *	Procedure's while sentence
+ *===========================================================*/
+stmt_while		: 	WHILE expr DO control_sect END WHILE ';'
+					{
+						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_WHILE, 2, $2, $4);
+					}
+				;
+
+stmt_null		: ';'
+					{
+						/* We do not bother building a node for NULL */
+						$$ = NULL;
+					}
+				;
+
+/*===========================================================
+ *	Procedure's exit sentence can exit and continue
+ *===========================================================*/
+stmt_exit		:	EXIT ';'
+					{
+						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT);
+						$$->value_=1;
+					}
+				|	CONTINUE ';'
+					{
+						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CONTINUE);
+						$$->value_=0;
+					}
+				;
+
+/*****************************************************************************
+ *
+ *	execute  procedure  grammar
+ *
+ *****************************************************************************/
+exec_procedure_stmt	:	CALL NAME '(' expr_list ')'
+						{
+        					ParseNode *param_list = NULL;
+            				merge_nodes(param_list, result->malloc_pool_, T_EXPR_LIST, $4);
+        					
+							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, param_list);
+						}
+					|
+						CALL NAME '(' ')'
+						{
+							ParseNode *params = NULL;
+							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, params);
+						}
+					;
+
+
+/*****************************************************************************
+ *
+ *	drop store procedure  grammar
+ *
+ *****************************************************************************/
+drop_procedure_stmt	:	DROP PROCEDURE IF EXISTS NAME
+						{
+							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DROP, 2, $5,$5);
+						}
+					|	DROP PROCEDURE NAME
+						{
+							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DROP, 1, $3);
+						}
+					;
+
+
+/*****************************************************************************
+ *
+ *	show  procedure status  grammar
+ *
+ *****************************************************************************/
+
+
+show_procedure_stmt	:	SHOW PROCEDURE NAME
+						{
+							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_SHOW, 1, $3);
+						}
+					;
+					
+									
 
 %%
 

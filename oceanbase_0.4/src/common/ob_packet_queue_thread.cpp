@@ -14,7 +14,7 @@
 
 #include "ob_packet_queue_thread.h"
 #include "ob_atomic.h"
-#include "easy_io.h"
+#include "onev_io.h"
 #include "ob_profile_log.h"
 #include "ob_profile_type.h"
 #include "ob_tsi_factory.h"
@@ -193,8 +193,8 @@ bool ObPacketQueueThread::wakeup_next_thread(ObPacket* packet)
   if (hash::HASH_EXIST != hash_ret)
   {
     // no thread wait for this packet;
-    // packet will not handled by server just tell libeasy request is done
-    easy_request_wakeup(packet->get_request());
+    // packet will not handled by server just tell libonev request is done
+    onev_request_wakeup(packet->get_request());
     ret = false;
   }
   else

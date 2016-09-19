@@ -98,9 +98,9 @@ bool ob_packet_encode_future(char* output, int64_t len)
 TEST(tbnet_decode, decode)
 {
   char buf[BUFSIZ];
-  easy_buf_t b; b.pos = b.last = buf; b.end = buf + BUFSIZ;
-  easy_message_t m;
-  m.pool = easy_pool_create(BUFSIZ);
+  onev_buf_e b; b.pos = b.last = buf; b.end = buf + BUFSIZ;
+  onev_message_e m;
+  m.pool = onev_create_pool(BUFSIZ);
   m.input = &b;
   ob_packet_header_size = sizeof(ob_packet_header_size) + sizeof(int16_t)/* api_version_ */ + sizeof(int64_t) /* session_id_ */ + sizeof(int32_t)/* timeout_ */ + sizeof(uint64_t)/* trace_id_ */ + sizeof(uint64_t) /* req_sign_ */;
   packet_len = static_cast<int32_t>(inner_buffer.get_position() + ob_packet_header_size);

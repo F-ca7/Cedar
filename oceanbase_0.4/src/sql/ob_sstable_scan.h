@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sstable_scan.h
+ * @brief for sstable scan
+ *
+ * modified by longfei：
+ * 1.add function: open_scan_context_local_idx() && init_sstable_scanner_for_local_idx()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -84,6 +102,28 @@ namespace oceanbase
         virtual int get_tablet_range(ObNewRange &range);
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
         int get_last_rowkey(const ObRowkey *&rowkey);
+
+      public:
+        //add longfei [cons static index] 151202:b
+        /**
+         * @brief open_scan_context_local_idx: scan second sstable of the tablet
+         * @param param
+         * @param context
+         * @param fake_range
+         * @return return code
+         */
+        int open_scan_context_local_idx(
+            const sstable::ObSSTableScanParam& param,
+            const ScanContext& context, ObNewRange &fake_range);
+        /**
+         * @brief init_sstable_scanner_for_local_idx
+         * 1.find_loc_idx_sstable
+         * 2.set_scan_param
+         * @param fake_range
+         * @return return code
+         */
+        int init_sstable_scanner_for_local_idx(ObNewRange &fake_range);
+        //add e
 
       private:
         int init_sstable_scanner();

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "ob_define.h"
+#include <tblog.h>
 
 namespace oceanbase
 {

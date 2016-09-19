@@ -1263,9 +1263,19 @@ JNIEXPORT jint JNICALL Java_com_taobao_mrsstable_SSTableBuilder_init
    jstring syntax, jstring table_id_in, jboolean is_skip_invalid_row_in)
 {
   jint ret = 0;
-  const char *schema_file = env->GetStringUTFChars(schema, JNI_FALSE);
-  const char *syntax_file = env->GetStringUTFChars(syntax, JNI_FALSE);
-  const char *table_id_str = env->GetStringUTFChars(table_id_in, JNI_FALSE);
+  //mod longfei 2016-03-09 17:07:23:b
+//----old-->
+//  const char *schema_file = env->GetStringUTFChars(schema, JNI_FALSE);
+//  const char *syntax_file = env->GetStringUTFChars(syntax, JNI_FALSE);
+//  const char *table_id_str = env->GetStringUTFChars(table_id_in, JNI_FALSE);
+  //--------
+  jboolean jb = JNI_FALSE;
+  jboolean *pjb = &jb;
+  const char *schema_file = env->GetStringUTFChars(schema, pjb);
+  const char *syntax_file = env->GetStringUTFChars(syntax, pjb);
+  const char *table_id_str = env->GetStringUTFChars(table_id_in, pjb);
+//<----new---
+  //mod e
   bool is_skip_invalid_row = is_skip_invalid_row_in;
   (void)arg;
 

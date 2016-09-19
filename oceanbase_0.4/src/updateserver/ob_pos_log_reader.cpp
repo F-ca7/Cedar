@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_pos_log_reader.cpp
+ * @brief ObPosLogReader
+ *     modify by liubozhong: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -105,5 +121,53 @@ namespace oceanbase
       }
       return err;
     }
+
+    //add lbzhong [Commit Point] 20150820:b
+    int ObPosLogReader::get_log(const int64_t start_id, ObLogLocation& start_location, ObLogLocation& end_location,
+                                            char* buf, const int64_t len, int64_t& read_count, bool& has_committed_end, const int64_t commit_seq)
+    {
+      int err = OB_SUCCESS;
+      bool is_file_end = false;
+      if (!is_inited())
+      {
+        err = OB_NOT_INIT;
+      }
+      else if (0 >= start_id || NULL == buf || 0 > len)
+      {
+        err = OB_INVALID_ARGUMENT;
+      }
+      else if ((!start_location.is_valid() || start_location.log_id_ != start_id)
+               && OB_SUCCESS != (err = on_disk_log_locator_.get_location(start_id, start_location)))
+      {
+        if (OB_ENTRY_NOT_EXIST != err)
+        {
+          TBSYS_LOG(ERROR, "get_location(start_id=%ld)=>%d", start_location.log_id_, err);
+        }
+        else
+        {
+          err = OB_DATA_NOT_SERVE;
+        }
+      }
+      else if (OB_SUCCESS != (err = located_log_reader_.read_log(start_location.file_id_, start_location.offset_,
+                                                                 start_location.log_id_, end_location.log_id_,
+                                                                 buf, len, read_count, is_file_end, has_committed_end, commit_seq)))
+      {
+        TBSYS_LOG(ERROR, "located_log_reader.read_log(file=%ld:+%ld, start_id=%ld, buf=%p[%ld])=>%d",
+                  start_location.file_id_, start_location.offset_, start_location.log_id_, buf, len, err);
+      }
+      else if (is_file_end)
+      {
+        end_location.file_id_ = start_location.file_id_ + 1;
+        end_location.offset_ = 0;
+      }
+      else
+      {
+        end_location.file_id_ = start_location.file_id_;
+        end_location.offset_ = start_location.offset_ + read_count;
+      }
+      return err;
+    }
+    //add:e
+
   }; // end namespace updateserver
 }; // end namespace oceanbase

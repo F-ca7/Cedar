@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file observer.h
+ * @brief add two hash functin for observer hasing
+ *
+ * Modified by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
 
 /*
  *   (C) 2007-2010 Taobao Inc.
@@ -31,6 +48,7 @@ namespace oceanbase
       public:
         static const int32_t IPV4 = 4;
         static const int32_t IPV6 = 6;
+        static const int64_t MAX_IP_PORT_SQL_LENGTH = MAX_IP_ADDR_LENGTH + 10;      // copy from 0.5
 
         ObServer()
           : version_(IPV4), port_(0)
@@ -59,7 +77,16 @@ namespace oceanbase
         int64_t to_string(char* buffer, const int64_t size) const;
         bool ip_to_string(char* buffer, const int32_t size) const;
         const char* to_cstring() const; // use this carefully, the content of the returned buffer will be modified by the next call
-
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief set_ipv6_addr
+         * convert the ip_str which is stored as a string to current type
+         * @param ip
+         * @param port
+         * @return
+         */
+        bool set_ipv6_addr(const char* ip, const int32_t port);     // copy from 0.5
+        // add:e
         bool set_ipv4_addr(const char* ip, const int32_t port);
         bool set_ipv4_addr(const int32_t ip, const int32_t port);
 
@@ -77,9 +104,29 @@ namespace oceanbase
         uint64_t get_ipv6_low() const;
         void set_port(int32_t port);
         void set_max();
-
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief is_valid
+         * check if the address is valid
+         * @return true if the address is valid
+         */
+        bool is_valid() const;
+        // add:e
         void reset_ipv4_10(int ip = 10);
+        // add by zhangcd [rs_election] 20151129:b
+        /**
+         * @brief parse_from_cstring
+         * convert the ip address stored as the string format to current type.
+         * @param ip_str ip address stored as string.
+         * @return OB_SUCCESS if success
+         */
+        int parse_from_cstring(const char* ip_str);   // copy from 0.5
+        // add:e
 
+        //add wenghaixing [secondary index.static_index]20151217
+        int64_t hash() const;   // for ob_hashtable.h
+        uint32_t murmurhash2(const uint32_t hash) const;
+        //add e
         NEED_SERIALIZE_AND_DESERIALIZE;
 
       private:
@@ -90,6 +137,12 @@ namespace oceanbase
           uint32_t v6_[4];
         } ip;
     };
+    //add wenghaixing [secondary index.static_index]20151217
+    inline int64_t ObServer::hash() const
+    {
+      return this->murmurhash2(0);
+    }
+    //add e
   } // end namespace common
 } // end namespace oceanbase
 

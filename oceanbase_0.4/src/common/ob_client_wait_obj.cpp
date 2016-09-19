@@ -13,7 +13,7 @@
  */
 #include "ob_client_wait_obj.h"
 #include "tbsys.h"
-#include "easy_io.h"
+#include "onev_io.h"
 
 namespace oceanbase
 {
@@ -114,9 +114,9 @@ namespace oceanbase
       return err;
     }
 
-    int ObClientWaitObj::on_receive_response(easy_request_t* r)
+    int ObClientWaitObj::on_receive_response(onev_request_e* r)
     {
-      int ret = EASY_OK;
+      int ret = ONEV_OK;
       if (NULL == r || NULL == r->ms)
       {
         TBSYS_LOG(WARN, "request is null or r->ms is null");
@@ -132,7 +132,7 @@ namespace oceanbase
       }
       if (NULL != r && NULL != r->ms)
       {
-        easy_session_destroy(r->ms);
+        onev_destroy_session(r->ms);
       }
       return ret;
     }

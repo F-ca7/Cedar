@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ms_sql_sub_get_request.cpp
+ * @brief ObMsSqlSubGetRequest
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     complete get_next_param_()
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -122,6 +140,9 @@ int ObMsSqlSubGetRequest::get_next_param_(ObSqlGetParam & get_param)const
   if (OB_SUCCESS == err)
   {
     get_param.set_table_id(pget_param_->get_renamed_table_id(), pget_param_->get_table_id());
+    // add by guojinwei [repeatable read] 20160311:b
+    get_param.set_trans_id(pget_param_->get_trans_id());
+    // add:e
   }
   if ((OB_SUCCESS == err) && (received_row_count_ >= row_idx_in_org_param_.size()))
   {

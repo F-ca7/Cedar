@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_stmt.h
+ * @brief basic structure and functions
+ *
+ * modified by longfei：add struct ObQueryHint for user use hint in select
+ * modified by yu shengjuan : storing such as table_id column_id table_name and other information from sql
+ * modified by maoxiaoxiao: add struct ObQueryHint for user to use hint for bloomfilter join or merge join
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author   yu shengjuan <51141500090@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
 #ifndef OCEANBASE_SQL_STMT_H_
 #define OCEANBASE_SQL_STMT_H_
 #include "common/ob_row_desc.h"
@@ -9,7 +29,112 @@
 #include "parse_node.h"
 
 namespace oceanbase
-{
+{ 
+  namespace sql
+  {
+    using namespace common;
+    //add longfei [Index Hint]
+    struct IndexTableNamePair
+    {
+      common::ObString src_table_name_;
+      common::ObString index_table_name_;
+      uint64_t src_table_id_;
+      uint64_t index_table_id_;
+      IndexTableNamePair()
+      {
+        src_table_id_ = common::OB_INVALID_ID;
+        index_table_id_ = common::OB_INVALID_ID;
+        src_table_name_.assign_buffer(src_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+        index_table_name_.assign_buffer(index_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+      }
+    private:
+      char src_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+      char index_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+    };
+    //add e
+
+     // add by yusj[SEMI_JOIN] 20150819
+     struct ObSemiTableList
+     {
+     	common::ObString join_left_table_name_;
+     	common::ObString join_left_column_name;
+     	common::ObString join_right_table_name_;
+     	common::ObString join_right_column_name;
+     	uint64_t left_table_id_;
+     	uint64_t right_table_id_;
+     	uint64_t left_column_id_;
+     	uint64_t right_column_id_;
+     	ObSemiTableList()
+     	{
+     		left_table_id_ = common::OB_INVALID_ID;
+     		right_table_id_ = common::OB_INVALID_ID;
+     		left_column_id_ = common::OB_INVALID_ID;
+     		right_column_id_ = common::OB_INVALID_ID;
+     		join_left_table_name_.assign_buffer(left_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_right_table_name_.assign_buffer(right_tb_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_left_column_name.assign_buffer(left_col_buf, OB_MAX_TABLE_NAME_LENGTH);
+     		join_right_column_name.assign_buffer(right_col_buf, OB_MAX_TABLE_NAME_LENGTH);
+     	}
+     private:
+     	char left_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+     	char right_tb_buf[OB_MAX_TABLE_NAME_LENGTH];
+      char left_col_buf[OB_MAX_TABLE_NAME_LENGTH];
+      char right_col_buf[OB_MAX_TABLE_NAME_LENGTH];
+     };
+     //add e
+
+     /*add maoxx [bloomfilter_join] 20160406*/
+     struct ObJoinOPTypeArray
+     {
+         ObItemType join_op_type_;
+         int32_t index_;
+         ObJoinOPTypeArray()
+         {
+           join_op_type_ = T_INVALID;
+           index_ = 0;
+         }
+     };
+     /*add e*/
+  }
+
+  namespace common
+  {
+    template <>
+    struct ob_vector_traits<oceanbase::sql::IndexTableNamePair>
+    {
+      typedef oceanbase::sql::IndexTableNamePair* pointee_type;
+      typedef oceanbase::sql::IndexTableNamePair value_type;
+      typedef const oceanbase::sql::IndexTableNamePair const_value_type;
+      typedef value_type* iterator;
+      typedef const value_type* const_iterator;
+      typedef int32_t difference_type;
+    };
+
+    template <>
+    struct ob_vector_traits<oceanbase::sql::ObSemiTableList>
+    {
+      typedef oceanbase::sql::ObSemiTableList* pointee_type;
+      typedef oceanbase::sql::ObSemiTableList value_type;
+      typedef const oceanbase::sql::ObSemiTableList const_value_type;
+      typedef value_type* iterator;
+      typedef const value_type* const_iterator;
+      typedef int32_t difference_type;
+    };
+
+    /*add maoxx [bloomfilter_join] 20160406*/
+    template <>
+      struct ob_vector_traits<oceanbase::sql::ObJoinOPTypeArray>
+      {
+        typedef oceanbase::sql::ObJoinOPTypeArray* pointee_type;
+        typedef oceanbase::sql::ObJoinOPTypeArray value_type;
+        typedef const oceanbase::sql::ObJoinOPTypeArray const_value_type;
+        typedef value_type* iterator;
+        typedef const value_type* const_iterator;
+        typedef int32_t difference_type;
+      };
+    /*add e*/
+  }
+
   namespace sql
   {
     struct ObQueryHint
@@ -19,9 +144,21 @@ namespace oceanbase
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
       }
-
-      bool    hotspot_;
-      common::ObConsistencyLevel    read_consistency_;
+      bool has_index_hint() const
+      {
+        return use_index_array_.size() > 0 ? true : false;
+      }
+      bool has_semi_join_hint() const
+      {
+        return use_join_array_.size() > 0 ? true:false;
+      }
+      bool hotspot_;
+      common::ObConsistencyLevel read_consistency_;
+      common::ObVector<IndexTableNamePair> use_index_array_; // add by longfei [Index Hint]
+      common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
+      /*add maoxx [bloomfilter_join] 20160406*/
+      common::ObVector<ObJoinOPTypeArray> join_op_type_array_;
+      /*add e*/
     };
     
     struct TableItem
@@ -35,9 +172,9 @@ namespace oceanbase
       
       enum TableType
     	{
-    	  BASE_TABLE,
-        ALIAS_TABLE,
-        GENERATED_TABLE,
+        BASE_TABLE, //0
+        ALIAS_TABLE, //1
+        GENERATED_TABLE, //2
     	};
 
       // if real table id, it is valid for all threads,
@@ -216,8 +353,8 @@ namespace oceanbase
 
     protected:
       common::ObStringBuf* name_pool_;
-      common::ObVector<TableItem>    table_items_;
-      common::ObVector<ColumnItem>   column_items_;
+      common::ObVector<TableItem>    table_items_;  // from (what)
+      common::ObVector<ColumnItem>   column_items_; // select (what)
 
     private:
       //uint64_t  where_expr_id_;

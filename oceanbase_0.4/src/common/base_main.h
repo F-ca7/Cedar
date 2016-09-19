@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file base_main.h
+ * @brief base main for all servers
+ *   support multiple clusters for HA by adding or modifying
+ *   some functions, member variables
+ *   modify the command line parameters of rootserver,
+ *   add the -s/--all_root_servers to command line.
+ *
+ * @version __DaSE_VERSION
+ * @author chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -55,12 +74,21 @@ namespace oceanbase
         char cmd_appname_[OB_MAX_APP_NAME_LENGTH];
         char cmd_devname_[OB_MAX_APP_NAME_LENGTH];
         char cmd_extra_config_[OB_MAX_EXTRA_CONFIG_LENGTH];
+
+        // add by zcd [multi_cluster] 20150416:b
+        // 保存当前-s选项的内容
+        char cmd_rs_cluster_ips_[1024];
+        // add:e
+
         int32_t cmd_cluster_id_;
         int32_t cmd_rs_port_;
         int32_t cmd_master_rs_port_;
         int32_t cmd_port_;
         int32_t cmd_inner_port_;
         int32_t cmd_obmysql_port_;
+        //add chujiajia [rs_election][multi_cluster] 20150929:b
+        int64_t cmd_rs_election_random_wait_time_;
+        // add:e
         char cmd_ms_type_[OB_MAX_MS_TYPE_LENGTH];
         const char *pid_dir_;
         const char *log_dir_;

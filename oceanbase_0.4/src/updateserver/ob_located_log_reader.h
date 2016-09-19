@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_located_log_reader.h
+ * @brief ObLocatedLogReader
+ *     modify by liubozhong: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,6 +43,25 @@ namespace oceanbase
         virtual int read_log(const int64_t file_id, const int64_t offset,
                             int64_t& start_id, int64_t& end_id,
                              char* buf, const int64_t len, int64_t& read_count, bool& is_file_end) = 0;
+        //add lbzhong [Commit Point] 20150820:b
+        /**
+         * @brief read commit log from log file
+         * @param[in] file_id  the id of log file
+         * @param[in] offset  the offset in the log file
+         * @param[out] start_id  start log id of this read
+         * @param[out] end_id  end log id of this read
+         * @param[out] buf  the log buffer
+         * @param[out] len  the limit of log buffer
+         * @param[out] read_count  the number of bytes of this read
+         * @param[out] is_file_end  whether to the end of log file
+         * @param[out] has_committed_end  whether to the commit point
+         * @param[in] commit_seq  the commit point
+         * @return OB_SUCCESS if success
+         */
+        virtual int read_log(const int64_t file_id, const int64_t offset,
+                            int64_t& start_id, int64_t& end_id,
+                             char* buf, const int64_t len, int64_t& read_count, bool& is_file_end, bool& has_committed_end, const int64_t commit_seq) = 0;
+        //add:e
     };
 
 // 实现为每次重新打开指定的文件，定位到给定的偏移，读取日志，读取的日志拷贝到给定的缓冲区内.
@@ -47,6 +82,25 @@ namespace oceanbase
         virtual int read_log(const int64_t file_id, const int64_t offset,
                             int64_t& start_id, int64_t& end_id,
                              char* buf, const int64_t len, int64_t& read_count, bool& is_file_end);
+        //add lbzhong [Commit Point] 20150820:b
+        /**
+         * @brief [overwrite] read commit log from log file
+         * @param[in] file_id  the id of log file
+         * @param[in] offset  the offset in the log file
+         * @param[out] start_id  start log id of this read
+         * @param[out] end_id  end log id of this read
+         * @param[out] buf  the log buffer
+         * @param[out] len  the limit of log buffer
+         * @param[out] read_count the number of bytes of this read
+         * @param[out] is_file_end  whether to the end of log file
+         * @param[out] has_committed_end  whether to the commit point
+         * @param[in] commit_seq  the commit point
+         * @return OB_SUCCESS if success
+         */
+        virtual int read_log(const int64_t file_id, const int64_t offset,
+                            int64_t& start_id, int64_t& end_id,
+                             char* buf, const int64_t len, int64_t& read_count, bool& is_file_end, bool& has_committed_end, const int64_t commit_seq);
+        //add:e
       protected:
         bool is_inited() const;
       private:

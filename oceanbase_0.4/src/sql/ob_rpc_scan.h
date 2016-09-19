@@ -1,4 +1,27 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_rpc_scan.h
+ * @brief 用于MS进行全表扫描
+ *
+ * modified by longfei：add some member variables and some rule for Query Optimization
+ *
+ * modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ * add header files
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ *         guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ *       2016_06_16
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -34,6 +57,10 @@
 #include "mergeserver/ob_frozen_data_cache.h"
 #include "sql/ob_sql_read_strategy.h"
 #include "mergeserver/ob_insert_cache.h"
+// add by guojinwei [repeatable read] 20160310:b
+#include "common/ob_transaction.h"
+// add:e
+
 
 namespace oceanbase
 {
@@ -59,6 +86,65 @@ namespace oceanbase
         virtual ObPhyOperatorType get_type() const { return PHY_RPC_SCAN; }
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+
+        //add longfei
+        /**
+         * @brief set_main_tid: 设置原表tid
+         * @param main_tid
+         * @return OB_SUCCESS
+         */
+        int set_main_tid(uint64_t main_tid);
+        /**
+         * @brief set_is_use_index_for_storing: 设置行描述
+         * @param main_tid
+         * @param [in] row_desc
+         * @return
+         */
+        int set_is_use_index_for_storing(uint64_t main_tid,common::ObRowDesc &row_desc);
+        /**
+         * @brief get_next_compact_row_for_index 第一次scan索引表，返回索引表的数据
+         * @param row
+         * @return error code
+         */
+        int get_next_compact_row_for_index(const common::ObRow *&row);
+        /**
+         * @brief set_main_rowkey_info
+         * @param rowkey_info
+         * @return err code
+         */
+        int set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        /**
+         * @brief add_main_output_column: 第二次get原表时的输出列
+         * @param expr
+         * @return err code
+         */
+        int add_main_output_column(const ObSqlExpression& expr);
+        /**
+         * @brief add_main_filter: 第二次get原表时用做过滤
+         * @param expr
+         * @return err code
+         */
+        int add_main_filter(ObSqlExpression* expr);
+        /**
+         * @brief get_other_row_desc: 获得第二次get时的行描述
+         * @param row_desc
+         * @return err code
+         */
+        int get_other_row_desc(const common::ObRowDesc *&row_desc);
+        /**
+         * @brief set_second_rowdesc: 回表时，第二次get原表时用到的行描述
+         * @param row_desc
+         * @return err code
+         */
+        int set_second_rowdesc(common::ObRowDesc *row_desc);
+        /**
+         * @brief fill_read_param_for_first_scan 设置第一次读表参数
+         * @param dest_param
+         * @return err code
+         */
+        int fill_read_param_for_first_scan(ObSqlReadParam &dest_param);
+        //add:e
+
         /**
          * 添加一个需输出的column
          *
@@ -86,6 +172,7 @@ namespace oceanbase
          * @return OB_SUCCESS或错误码
          */
         int add_filter(ObSqlExpression* expr);
+
         int add_group_column(const uint64_t tid, const uint64_t cid);
         int add_aggr_column(const ObSqlExpression& expr);
 
@@ -141,12 +228,59 @@ namespace oceanbase
         int cons_get_rows(ObSqlGetParam &get_param);
         void set_hint(const common::ObRpcScanHint &hint);
         void cleanup_request();
+
+        //add longfei
+        /**
+         * @brief create_get_param_for_index: 生成第二次get原表时的get_param
+         * @param get_param
+         * @return error code
+         */
+        int create_get_param_for_index(ObSqlGetParam &get_param);
+        /**
+         * @brief fill_read_param_for_index
+         * @param dest_param
+         * @return err code
+         */
+        int fill_read_param_for_index(ObSqlReadParam &dest_param);
+        /**
+         * @brief cons_get_rows_for_index: 根据第一次scan索引表返回的数据，构造第二次get原表的主键的范围
+         * @param get_param
+         * @return error code
+         */
+        int cons_get_rows_for_index(ObSqlGetParam &get_param);
+        /**
+         * @brief reset_read_param_for_index 重置一下read_param
+         * @return error code
+         */
+        int reset_read_param_for_index();
+        /**
+         * @brief cons_index_row_desc: 生成第二次get原表时用到的行描述
+         * @param sql_get_param
+         * @param row_desc
+         * @return err code
+         */
+        int cons_index_row_desc(const ObSqlGetParam &sql_get_param, ObRowDesc &row_desc);
+        //add:e
+
       private:
         static const int64_t REQUEST_EVENT_QUEUE_SIZE = 8192;
         // 等待结果返回的超时时间
         int64_t timeout_us_;
         mergeserver::ObMsSqlScanRequest *sql_scan_request_;
         mergeserver::ObMsSqlGetRequest *sql_get_request_;
+
+        //add longfei
+        //mergeserver::ObMsSqlGetRequest *index_sql_get_request_;
+        bool is_use_index_;         ///< 是否使用回表的索引
+        bool is_use_index_for_storing_;  ///< 是否使用不回表的索引
+        uint64_t main_table_id_;    ///< 主表的tid
+        int64_t get_next_row_count_;    ///< 判断是否是第一次调用get_new_row
+        ObProject main_project;     ///< 第二次get原表时的输出列
+        ObFilter main_filter_;      ///< where条件中如果有不在索引表中的列的表达式，就把它存到这里，第二次get原表时用做过滤。
+        common::ObRowkeyInfo main_rowkey_info_;    ///< 主表的主键信息
+        common::ObRowDesc second_row_desc_;  ///< 回表时，第二次get原表时用到的行描述
+        //add:e
+
         ObSqlScanParam *scan_param_;
         ObSqlGetParam *get_param_;
         ObSqlReadParam *read_param_;
@@ -162,6 +296,12 @@ namespace oceanbase
         common::ObObj start_key_objs_[OB_MAX_ROWKEY_COLUMN_NUMBER];
         common::ObObj end_key_objs_[OB_MAX_ROWKEY_COLUMN_NUMBER];
         common::ObRow cur_row_;
+
+        //add longfei
+        common::ObRow cur_row_for_storing_;  ///< 在不回表的查询中，需要对CS返回的数据修改tid，修改后的行存到cur_row_for_storing_里面
+        common::ObRowDesc cur_row_desc_for_storing; ///< cur_row_for_storing_行描述
+        //add:e
+
         common::ObRowDesc cur_row_desc_;
         uint64_t table_id_;
         uint64_t base_table_id_;

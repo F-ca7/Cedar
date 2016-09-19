@@ -1,5 +1,29 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_bootstrap.cpp
+ * @brief for boot strap
+ *
+ * modified by longfei：boot the new core table "__all_secondary_index"
+ * modified by Wenghaixing：boot the new core table
+ * modified by guojinwei,zhangcd: support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *        modify the construction function of class ObBootstrap.
+ * modified by zhujun：add create __all_procedure table schema 
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,7 +54,12 @@
 using namespace oceanbase::rootserver;
 using namespace oceanbase::common;
 
-ObBootstrap::ObBootstrap(ObRootServer2 & root_server):root_server_(root_server), log_worker_(NULL)
+
+// modify by zcd [multi_cluster] 20150406:b
+/// add the parameter root_worker
+//ObBootstrap::ObBootstrap(ObRootServer2 & root_server):root_server_(root_server), log_worker_(NULL)
+ObBootstrap::ObBootstrap(ObRootServer2 & root_server, ObRootWorker &root_worker):root_server_(root_server), log_worker_(NULL), root_worker_(&root_worker)
+// modify:e
 {
   core_table_count_ = 0;
   sys_table_count_ = 0;
@@ -115,6 +144,20 @@ int ObBootstrap::create_all_core_tables()
     else
     {
       TBSYS_LOG(INFO, "create all_all_join_info tablet success.");
+    }
+  }
+  //3.create all_secondary_index tablet longfei [create index]
+  if (OB_SUCCESS == ret)
+  {
+    ObServerArray cs;
+    ret = create_core_table(OB_ALL_SECONDARY_INDEX_TID, cs);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "fail to create all_secondary_index's tablet. err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "create all_secondary_index tablet success.");
     }
   }
   //4.init meta file
@@ -413,6 +456,46 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create table for __all_statement, err=%d", ret);
     }
   }
+  //add wenghaixing [secondary index.static_index]20151117
+  if (OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = ObExtraTablesSchema::all_index_service_schema(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of __all_index_service,err=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for __all_index_service,err=%d",ret);
+    }
+  }
+
+  if (OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = ObExtraTablesSchema::all_column_checksum_stat(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of all_column_checksum_stat,err=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for all_column_checksum_stat,err=%d",ret);
+    }
+  }
+  //add e
+  
+  //add by zhujun 2015-3-11:b
+  // create table __all_procedure
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_procedure_schema(table_schema)))
+    {
+       TBSYS_LOG(WARN, "failed to get schema for __all_procedure, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create empty tablet for __all_procedure, err=%d", ret);
+    }
+  }
+  //add:e
   return ret;
 }
 
@@ -516,8 +599,11 @@ int ObBootstrap::init_all_cluster()
   {
     ObServer server;
     ObRootMsProvider ms_provider(const_cast<ObChunkServerManager&>(root_server_.get_server_manager()));
+    // modify by zcd [multi_cluster] 20150406:b
     ms_provider.init(const_cast<ObRootServerConfig&>(config),
-        const_cast<ObRootRpcStub&>(root_server_.get_rpc_stub()));
+        /*const_cast<ObRootRpcStub&>(root_server_.get_rpc_stub()));*/
+        const_cast<ObRootRpcStub&>(root_server_.get_rpc_stub()), *root_worker_);
+    // modify:e
     for (int64_t i = 0; i < config.retry_times; i++)
     {
       if (OB_SUCCESS != (ret = ms_provider.get_ms(server)))
@@ -765,7 +851,11 @@ int ObBootstrap::init_all_sys_param()
         acc,
         OB_READ_CONSISTENCY,
         ObIntType,
-        "3",
+
+        // modify by guojinwei [multi_cluster] 20151020:b
+        //"3",
+        "4",
+        // modify:e
         "read consistency level:4=STRONG, 3=WEAK, 2=FROZEN, 1=STATIC, 0=NONE");
     char version_comment[256];
     snprintf(version_comment, 256, "OceanBase %s (r%s) (Built %s %s)",

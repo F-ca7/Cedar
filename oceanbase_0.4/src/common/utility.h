@@ -20,9 +20,9 @@
 #include <execinfo.h>
 #include <unistd.h>
 #include "tbsys.h"
-#include "easy_define.h"
-#include "easy_define.h"
-#include "easy_io_struct.h"
+#include "onev_define.h"
+#include "onev_define.h"
+#include "onev_struct.h"
 #include "ob_server.h"
 #include "ob_object.h"
 #include "ob_malloc.h"
@@ -111,6 +111,7 @@ namespace oceanbase
         const char del, int32_t *array, int32_t& size);
     int32_t hex_to_str(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
     int32_t str_to_hex(const void* in_data, const int32_t data_length, void* buff, const int32_t buff_size);
+
     int64_t lower_align(int64_t input, int64_t align);
     int64_t upper_align(int64_t input, int64_t align);
     bool is2n(int64_t input);
@@ -128,7 +129,7 @@ namespace oceanbase
       pos += obj.to_string(buf + pos, buf_len - pos);
     }
     const char *inet_ntoa_r(const uint64_t ipport);
-    const char *inet_ntoa_r(easy_addr_t addr);
+    const char *inet_ntoa_r(onev_addr_e addr);
     const char* strtype(ObObjType type);
     void print_rowkey(FILE *fd, ObString &rowkey);
     void print_root_table(FILE* fd, ObScanner &scanner);
@@ -180,8 +181,8 @@ namespace oceanbase
       return double_expand_storage(oldp, old_size, limit_size, new_size, allocator);
     }
 
-    easy_addr_t convert_addr_from_server(const ObServer *server);
-    int64_t convert_addr_to_server(easy_addr_t addr);
+    onev_addr_e convert_addr_from_server(const ObServer *server);
+    int64_t convert_addr_to_server(onev_addr_e addr);
 
     extern const char *print_role(const common::ObRole role);
     extern const char *print_obj(const common::ObObj &obj);
@@ -195,7 +196,7 @@ namespace oceanbase
     extern void dump_scanner(const common::ObScanner &scanner,
         const int32_t log_level = TBSYS_LOG_LEVEL_DEBUG, const int32_t type = 1);
 
-    inline const char* get_peer_ip(easy_request_t *req)
+    inline const char* get_peer_ip(onev_request_e *req)
     {
       static char mess[8] = "unknown";
       if (OB_LIKELY(NULL != req
@@ -210,7 +211,7 @@ namespace oceanbase
       }
     }
 
-    inline const char* get_peer_ip(easy_connection_t *c)
+    inline const char* get_peer_ip(onev_connection_e *c)
     {
       static char mess[8] = "unknown";
       if (OB_LIKELY(NULL != c))
@@ -223,7 +224,7 @@ namespace oceanbase
       }
     }
 
-    inline int get_fd(easy_request_t *req)
+    inline int get_fd(onev_request_e *req)
     {
       if (OB_LIKELY(NULL != req
                     && NULL != req->ms
@@ -237,7 +238,7 @@ namespace oceanbase
       }
     }
 
-    inline void init_easy_buf(easy_buf_t *buf, char* data, easy_request_t *req, uint64_t size)
+    inline void init_onev_buf(onev_buf_e *buf, char* data, onev_request_e *req, uint64_t size)
     {
       if (NULL != buf && NULL != data)
       {
@@ -250,13 +251,13 @@ namespace oceanbase
           buf->args = req->ms->pool;
         }
         buf->flags = 0;
-        easy_list_init(&buf->node);
+        onev_list_init(&buf->node);
       }
     }
 
-    inline easy_addr_t get_easy_addr(easy_request_t *req)
+    inline onev_addr_e get_onev_addr(onev_request_e *req)
     {
-      static easy_addr_t empty = {0, 0, {0}, 0};
+      static onev_addr_e empty = {0, 0, {0}, 0};
       if (OB_LIKELY(NULL != req
                     && NULL != req->ms
                     && NULL != req->ms->c))

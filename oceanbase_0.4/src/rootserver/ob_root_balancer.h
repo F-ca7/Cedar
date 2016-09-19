@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_root_balancer.h
+ * @brief for data balance
+ *
+ * modified by Wenghaixing:add a function to check if index finished
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -112,7 +129,9 @@ namespace oceanbase
         void nb_print_balance_infos(char *buf, const int64_t buf_len, int64_t& pos); // for monitor
         void dump_migrate_info() const; // for monitor
         void nb_print_shutting_down_progress(char *buf, const int64_t buf_len, int64_t& pos); // for monitor
-
+        //add wenghaixing [secondary index.static_index]20151216
+        bool check_create_index_over();
+        //add e
         // testing functions
         bool nb_is_all_tables_balanced(const common::ObServer &except_cs); // only for testing
         bool nb_is_all_tablets_replicated(int32_t expected_replicas_num);    // only for testing

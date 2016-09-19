@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_scan.cpp
+ * @brief ObUpsScan
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add set_trans_id() for scan_param
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
 
 #include "ob_ups_scan.h"
 #include "common/utility.h"
@@ -199,6 +216,12 @@ void ObUpsScan::set_version_range(const ObVersionRange &version_range)
 {
   cur_scan_param_.set_version_range(version_range);
 }
+// add by guojinwei [repeatable read] 20160312:b
+void ObUpsScan::set_trans_id(const ObTransID &trans_id)
+{
+  cur_scan_param_.set_trans_id(trans_id);
+}
+// add:e
 
 int ObUpsScan::set_child(int32_t child_idx, ObPhyOperator &child_operator)
 {

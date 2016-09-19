@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_manager.cpp
+ * @brief ObUpsManager
+ *     modify by guojinwei, chujiajia, pangtianze: support multiple
+ *     clusters for HA by adding or modifying some functions,
+ *     member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2011 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -40,13 +57,20 @@ ObUpsManager::ObUpsManager(ObRootRpcStub &rpc_stub, ObRootWorker *worker,
                            int64_t waiting_ups_register_duration,
                            const ObiRole &obi_role,
                            const volatile int64_t& schema_version,
-                           const volatile int64_t &config_version)
+                           // modify by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+                           //const volatile int64_t &config_version)
+                           const volatile int64_t &config_version,
+                           const ObElectionRoleMgr &election_role)
+                           // modify:e
   :queue_(NULL), rpc_stub_(rpc_stub), worker_(worker), obi_role_(obi_role), revoke_rpc_timeout_us_(revoke_rpc_timeout_us),
    lease_duration_us_(lease_duration), lease_reserved_us_(lease_reserved_us),
    ups_master_idx_(-1), waiting_ups_register_duration_(waiting_ups_register_duration),
    waiting_ups_finish_time_(0), schema_version_(schema_version), config_version_(config_version),
    master_master_ups_read_percentage_(-1), slave_master_ups_read_percentage_(-1),
    is_flow_control_by_ip_(false)
+   // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+   , election_role_(election_role)
+   // add:e
 {
 }
 
@@ -327,6 +351,13 @@ int ObUpsManager::grant_lease(bool did_force /*=false*/)
         msg.obi_role_ = obi_role_;
         msg.schema_version_ = schema_version_;
         msg.config_version_ = config_version_;
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+        msg.election_role_.set_role(election_role_.get_role());
+        msg.election_role_.set_state(election_role_.get_state());
+        // add:e
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+        msg.rs_election_lease_ = get_rs_election_lease();
+        // add:e
 
         int ret2 = send_granting_msg(ups_array_[i].addr_, msg);
         if (OB_SUCCESS != ret2)
@@ -1037,3 +1068,75 @@ int ObUpsManager::send_obi_role()
   reset_ups_read_percent();
   return ret;
 }
+
+// add by guojinwei [lease between rs and ups][multi_cluster] 20150820:b
+int ObUpsManager::send_rs_election_lease(bool did_force/*=false*/)
+{
+  int ret = OB_SUCCESS;
+  tbsys::CThreadGuard guard(&ups_array_mutex_);
+  ObServer master;
+  if (has_master())
+  {
+    master = ups_array_[ups_master_idx_].addr_;
+  }
+  int64_t now = tbsys::CTimeUtil::getTime();
+  for (int32_t i = 0; i < MAX_UPS_COUNT; ++i)
+  {
+    if (UPS_STAT_OFFLINE != ups_array_[i].stat_)
+    {
+      if (need_renew_rs_election_lease(now, ups_array_[i]) || did_force)
+      {
+        ups_array_[i].did_renew_received_ = false;
+        // ups_array_[i].lease_ = lease_duration_us_;
+
+        ObMsgUpsHeartbeat msg;
+        msg.ups_master_ = master;
+        msg.self_lease_ = ups_array_[i].lease_;
+        msg.obi_role_ = obi_role_;
+        msg.schema_version_ = schema_version_;
+        msg.config_version_ = config_version_;
+        // add by guojinwei [lease between rs and ups][multi_cluster] 20150908:b
+        msg.election_role_.set_role(election_role_.get_role());
+        msg.election_role_.set_state(election_role_.get_state());
+        // add:e
+        msg.rs_election_lease_ = get_rs_election_lease();
+
+        int ret2 = send_granting_msg(ups_array_[i].addr_, msg);
+        if (OB_SUCCESS != ret2)
+        {
+          TBSYS_LOG(WARN, "send rs election lease to ups error, err=%d ups=%s",
+                    ret2, ups_array_[i].addr_.to_cstring());
+          // don't remove the ups right now
+        }
+      }
+      else
+      {
+        TBSYS_LOG(DEBUG, "did_renew_received=%c ups=%s", ups_array_[i].did_renew_received_?'Y':'N',
+                  ups_array_[i].addr_.to_cstring());
+      }
+    }
+  }
+  return ret;
+}
+
+int64_t ObUpsManager::get_rs_election_lease() const
+{
+  return worker_->get_rs_election_lease();
+}
+
+bool ObUpsManager::need_renew_rs_election_lease(int64_t now, const ObUps &ups) const
+{
+  bool ret = false;
+
+  if (!ups.did_renew_received_)
+  {
+    if (now < get_rs_election_lease())
+    {
+      ret = true;
+    }
+  }
+
+  return ret;
+}
+
+// add:e

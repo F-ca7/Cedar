@@ -1,3 +1,13 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * @file     ob_root_admin2.h
+ * @brief    add a rs_admin command parameters to set the
+ *           auto_elect_flag in the master rootserver
+ * @version __DaSE_VERSION
+ * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date     2015-12-25
+ */
+
 /*
  * Copyright (C) 2007-2012 Taobao Inc.
  *
@@ -34,6 +44,9 @@ namespace oceanbase
     // declare all the handlers here
     int do_get_obi_role(ObBaseClient &client, Arguments &args);
     int do_set_obi_role(ObBaseClient &client, Arguments &args);
+    // add by zcd [multi_cluster] 20150416:b
+    int do_set_master_obi_role(ObBaseClient &client, Arguments &args);
+    // add:e
     int do_rs_admin(ObBaseClient &client, Arguments &args);
     int do_change_log_level(ObBaseClient &client, Arguments &args);
     int do_rs_stat(ObBaseClient &client, Arguments &args);
@@ -59,6 +72,9 @@ namespace oceanbase
     int do_kill_import(ObBaseClient &client, Arguments &args);
     int do_create_table_for_emergency(ObBaseClient &client, Arguments &args);
     int do_drop_table_for_emergency(ObBaseClient &client, Arguments &args);
+    // add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+    int do_set_auto_elect_flag(ObBaseClient &client, Arguments &args);
+    // add:e
     struct Command
     {
       const char* cmdstr;

@@ -1,13 +1,13 @@
 AM_CPPFLAGS=  -I${TBLIB_ROOT}/include/tbsys\
-			 -I${EASY_ROOT}/include/easy\
-			  -I${EASY_ROOT}/include/easy \
+			 -I${ONEV_ROOT}/include/onev\
+			  -I${ONEV_ROOT}/include/onev \
 			 -I${top_srcdir}/include \
 			 -I${top_srcdir}/src \
 			 -I${top_srcdir}/src/common \
 			 -I${top_srcdir}/src/common/hash
 
 LDADD=$(top_builddir)/src/common/libcommon.a \
-    ${EASY_LIB_PATH}/libeasy.a \
+    ${ONEV_LIB_PATH}/libonev.a \
 	  ${TBLIB_ROOT}/lib/libtbsys.a 
 
 AM_LDFLAGS=-lpthread -lc -lm  -lgtest -lcrypt -ldl -lrt ${GCOV_LIB}

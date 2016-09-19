@@ -46,7 +46,7 @@ int ObCommitLogReceiver::init(common::ObLogWriter *log_writer, common::ObBaseSer
 }
 
 int ObCommitLogReceiver::receive_log(const int32_t version, common::ObDataBuffer& in_buff,
-    easy_request_t* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
 {
   int ret = OB_SUCCESS;
 
@@ -241,7 +241,7 @@ int ObCommitLogReceiver::start_receiving_log()
   return ret;
 }
 
-int ObCommitLogReceiver::end_receiving_log(const int32_t version, easy_request_t* req, const int32_t channel_id, common::ObDataBuffer& out_buff)
+int ObCommitLogReceiver::end_receiving_log(const int32_t version, onev_request_e* req, const int32_t channel_id, common::ObDataBuffer& out_buff)
 {
   int ret = OB_SUCCESS;
 

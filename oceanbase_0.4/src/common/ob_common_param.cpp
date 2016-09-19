@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_common_param.cpp
+ * @brief ObReadParam
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     complete ObReadParam functions
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 #include "ob_object.h"
 #include "ob_action_flag.h"
 #include "ob_common_param.h"
@@ -26,6 +44,9 @@ namespace oceanbase
       is_result_cached_ = 0;
       version_range_.start_version_ = 0;
       version_range_.end_version_ = 0;
+      // add by guojinwei [repeatable read] 20160312:b
+      trans_id_.reset();
+      // add:e
     }
 
     ObReadParam::~ObReadParam()
@@ -61,6 +82,17 @@ namespace oceanbase
     {
       return version_range_;
     }
+    // add by guojinwei [repeatable read] 20160311:b
+    void ObReadParam::set_trans_id(const ObTransID& trans_id)
+    {
+      trans_id_ = trans_id;
+    }
+
+    ObTransID ObReadParam::get_trans_id(void) const
+    {
+      return trans_id_;
+    }
+    // add:e
 
     int ObReadParam::serialize_reserve_param(char * buf, const int64_t buf_len, int64_t & pos) const
     {
@@ -128,6 +160,16 @@ namespace oceanbase
           ret = obj.serialize(buf, buf_len, pos);
         }
       }
+      // add by guojinwei [repeatable read] 20160312:b
+      // trans id
+      if (ret == OB_SUCCESS)
+      {
+        if (OB_SUCCESS != (ret = trans_id_.serialize(buf, buf_len, pos)))
+        {
+          TBSYS_LOG(WARN, "fail to serialize trans id:ret[%d]", ret);
+        }
+      }
+      // add:e
 
       return ret;
     }
@@ -190,6 +232,16 @@ namespace oceanbase
           }
         }
       }
+      // add by guojinwei [repeatable read] 20160312:b
+      // trans id
+      if (ret == OB_SUCCESS)
+      {
+        if (OB_SUCCESS != (ret = trans_id_.deserialize(buf, data_len, pos)))
+        {
+          TBSYS_LOG(WARN, "fail to deserialize trans id:ret[%d]", ret);
+        }
+      }
+      // add:e
 
       return ret;
     }
@@ -208,6 +260,10 @@ namespace oceanbase
       total_size += obj.get_serialize_size();
       obj.set_int(version_range_.end_version_);
       total_size += obj.get_serialize_size();
+      // add by guojinwei [repeatable read] 20160312:b
+      // trans id
+      total_size += trans_id_.get_serialize_size();
+      // add:e
 
       return total_size;
     }

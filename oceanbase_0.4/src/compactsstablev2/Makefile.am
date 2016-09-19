@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
-							-I${EASY_ROOT}/include/easy \
+							-I${ONEV_ROOT}/include/onev \
 						  -I${top_srcdir}/include \
 							-I${top_srcdir}/src \
 						  -fPIC \

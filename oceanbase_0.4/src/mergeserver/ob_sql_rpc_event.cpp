@@ -55,7 +55,7 @@ void ObCommonSqlRpcEvent::set_result_code(const int32_t code)
   result_code_ = code;
 }
 
-easy_io_process_pt* ObCommonSqlRpcEvent::get_handler() const
+onev_io_process_pe* ObCommonSqlRpcEvent::get_handler() const
 {
   return handler_;
 }

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_log_entry.cpp
+ * @brief support multiple clusters for HA by adding or modifying
+ *        some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2015_12_30
+ */
 /*
  *   (C) 2010-2010 Taobao Inc.
  *
@@ -30,7 +45,9 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len)
     header_.set_magic_num(MAGIC_NUMER);
     header_.header_length_ = OB_RECORD_HEADER_LENGTH;
     header_.version_ = LOG_VERSION;
-    header_.reserved_ = 0;
+    //add by lbzhong [Max Log Timestamp] 20150824:b
+    header_.timestamp_ = tbsys::CTimeUtil::getTime();
+    //add:e
     header_.data_length_ = static_cast<int32_t>(sizeof(uint64_t) + sizeof(LogCommand) + data_len);
     header_.data_zlength_ = header_.data_length_;
     if (NULL != log_data)
@@ -46,6 +63,40 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len)
 
   return ret;
 }
+
+//add chujiajia [log synchronization][multi_cluster] 20160328:b
+//fill ups_commit_log header
+int ObLogEntry::fill_header(const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+{
+  int ret = OB_SUCCESS;
+
+  if ((NULL == log_data && data_len != 0)
+      || (NULL != log_data && data_len <= 0))
+  {
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else
+  {
+    header_.set_magic_num(MAGIC_NUMER);
+    header_.header_length_ = OB_RECORD_HEADER_LENGTH;
+    header_.version_ = LOG_VERSION;
+    header_.timestamp_ = tbsys::CTimeUtil::getTime();
+    header_.max_cmt_id_ = max_cmt_id;
+    header_.data_length_ = static_cast<int32_t>(sizeof(uint64_t) + sizeof(LogCommand) + data_len);
+    header_.data_zlength_ = header_.data_length_;
+    if (NULL != log_data)
+    {
+      header_.data_checksum_ = calc_data_checksum(log_data, data_len);
+    }
+    else
+    {
+      header_.data_checksum_ = 0;
+    }
+    header_.set_header_checksum();
+  }
+  return ret;
+}
+//add:e
 
 int64_t ObLogEntry::calc_data_checksum(const char* log_data, const int64_t data_len) const
 {

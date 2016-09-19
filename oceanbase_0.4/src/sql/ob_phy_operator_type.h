@@ -1,6 +1,26 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_phy_operator_type.h
+ * @brief all physical operator type
+ *
+ * modified by longfei：add some operators for secondary index
+ * modified by maoxiaoxiao:add physical operator "index trigger","bloomfilter join"
+ * modified by Qiushi FAN: insert a new operator type : OB_LEFT_SEMI_JOIN.
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_07_27
+ */
+
+/*
+ * (C) 2010-2012 Alibaba Group Holding Limited.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -86,8 +106,55 @@ namespace oceanbase
       PHY_OB_CHANGE_OBI,
       PHY_ADD_PROJECT,
       PHY_UPS_MODIFY_WITH_DML_TYPE,
+      //add fanqiushi [semi_join] [0.1] 20150829:b
+      PHY_SEMI_LEFT_JOIN,
+      //add:e
+      /*add maoxx [bloomfilter_join] 20160408*/
+      PHY_BLOOMFILTER_JOIN,
+      /*add e*/
 
-      PHY_END /* end of phy operator type */
+      PHY_INDEX_TRIGGER, //add maoxx
+      PHY_DROP_INDEX, //add longfei [secondary index drop index]
+      PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
+      PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
+
+      //zhounan unmark:b
+      PHY_CURSOR_DECLARE,
+      PHY_CURSOR_FETCH,
+      PHY_CURSOR_FETCH_INTO,
+      PHY_CURSOR_FETCH_PRIOR,
+      PHY_CURSOR_FETCH_PRIOR_INTO,
+      PHY_CURSOR_FETCH_FIRST,
+      PHY_CURSOR_FETCH_FIRST_INTO,
+      PHY_CURSOR_FETCH_LAST,
+      PHY_CURSOR_FETCH_LAST_INTO,
+      PHY_CURSOR_FETCH_RELATIVE,
+      PHY_CURSOR_FETCH_RELATIVE_INTO,
+      PHY_CURSOR_FETCH_ABSOLUTE,
+      PHY_CURSOR_FETCH_ABS_INTO,
+      PHY_CURSOR_FETCH_FROMTO,
+      PHY_CURSOR_OPEN,
+      PHY_CURSOR_CLOSE,
+      PHY_CURSOR,
+      //add:e
+      //add by zhujun:b
+      PHY_PROCEDURE,
+      PHY_PROCEDURE_CREATE,
+      PHY_PROCEDURE_DROP,
+      PHY_PROCEDURE_DECLARE,
+      PHY_PROCEDURE_ASSGIN,
+      PHY_PROCEDURE_EXEC,
+      PHY_PROCEDURE_IF,
+      PHY_PROCEDURE_CASE,
+      PHY_PROCEDURE_CASE_WHEN,
+      PHY_PROCEDURE_ELSEIF,
+      PHY_PROCEDURE_WHILE,
+      PHY_PROCEDURE_ELSE,
+      PHY_PROCEDURE_SELECT_INTO,
+      //add:e
+      PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616
+      PHY_END, /* end of phy operator type */
+
     };
 
     void ob_print_phy_operator_stat();

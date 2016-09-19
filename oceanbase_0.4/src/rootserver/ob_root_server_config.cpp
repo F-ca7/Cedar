@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_root_server_config.cpp
+ * @brief config for rootserver
+ *
+ * modified by Wenghaixing:add two config for rootserver
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or

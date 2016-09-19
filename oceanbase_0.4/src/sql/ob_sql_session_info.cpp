@@ -5,7 +5,7 @@
 #include "common/ob_trace_log.h"
 #include "common/ob_statistics.h"
 #include "common/ob_common_stat.h"
-#include "easy_connection.h"
+#include "onev_connection.h"
 #include "ob_sql_character_set.h"
 #include <utility>
 using namespace oceanbase::sql;

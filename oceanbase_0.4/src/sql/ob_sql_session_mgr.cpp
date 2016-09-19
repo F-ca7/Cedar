@@ -57,13 +57,13 @@ int ObSQLSessionMgr::kill_session(uint32_t session_id, bool is_query)
       info->update_last_active_time();
       if (!is_query)
       {
-        easy_connection_t *c = info->get_conn();
+        onev_connection_e *c = info->get_conn();
         if (NULL != c)
         {
-          TBSYS_LOG(INFO, "kill connection %s", easy_connection_str(c));
-          easy_connection_destroy_dispatch(c);
-          //c->event_status = EASY_EVENT_DESTROY;
-          //easy_connection_wakeup(c);
+          TBSYS_LOG(INFO, "kill connection %s", onev_connection_to_str(c));
+          onev_connection_destroy_dispatch(c);
+          //c->event_status = ONEV_EVENT_DESTROY;
+          //onev_connection_wakeup(c);
           info->set_conn(NULL); // the connection is invalid now
         }
         else
@@ -393,17 +393,17 @@ void ObSQLSessionMgr::check_session_timeout()
     if (session->is_timeout())
     {
       session->set_session_state(SESSION_KILLED);
-      easy_connection_t *c = session->get_conn();
+      onev_connection_e *c = session->get_conn();
       if (NULL == c)
       {
         TBSYS_LOG(ERROR, "connection of seesion %u must not null", entry.first);
       }
       else
       {
-        TBSYS_LOG(INFO, "session %u timeout kill connection %s", entry.first, easy_connection_str(c));
-        easy_connection_destroy_dispatch(c);
-        //c->event_status = EASY_EVENT_DESTROY;
-        //easy_connection_wakeup(c);
+        TBSYS_LOG(INFO, "session %u timeout kill connection %s", entry.first, onev_connection_to_str(c));
+        onev_connection_destroy_dispatch(c);
+        //c->event_status = ONEV_EVENT_DESTROY;
+        //onev_connection_wakeup(c);
         session->set_conn(NULL); // the connection is invalid now
       }
     }

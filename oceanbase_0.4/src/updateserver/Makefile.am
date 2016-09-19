@@ -1,5 +1,5 @@
 AM_CPPFLAGS := $(AM_CPPFLAGS) -I${TBLIB_ROOT}/include/tbsys  \
-              -I${EASY_ROOT}/include/easy    \
+              -I${ONEV_ROOT}/include/onev    \
               -I${top_srcdir}/include        \
               -I${top_srcdir}/src
 
@@ -15,7 +15,7 @@ LDADD = $(top_builddir)/src/sql/libsql.a              \
         ${top_builddir}/src/common/libcommon.a        \
         ${top_builddir}/src/common/btree/libbtree.a   \
 				$(top_builddir)/src/common/timezone/libtimezone.a    \
-        ${EASY_LIB_PATH}/libeasy.a                    \
+        ${ONEV_LIB_PATH}/libonev.a                    \
         ${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
 CXXFLAGS+=-D__VERSION_ID__="\"updateserver 1.0.0.0\""
@@ -107,7 +107,11 @@ libupdateserver_a_SOURCES =                                                 \
   ob_trigger_handler.h              ob_trigger_handler.cpp                  \
   ob_update_reload_config.h         ob_update_reload_config.cpp             \
   ob_util_interface.h                                                       \
-  ob_inc_seq.h                      ob_inc_seq.cpp
+  ob_inc_seq.h                      ob_inc_seq.cpp			    \
+  ob_commit_point_runnable.h	    ob_commit_point_runnable.cpp            \
+  ob_memtable_lock.h                ob_memtable_lock.cpp                    \
+  ob_table_lock_mgr.h               ob_table_lock_mgr.cpp                   \
+  ob_table_lock.h
 
 bin_PROGRAMS = updateserver ob_ping
 updateserver_SOURCES = main.cpp ${libupdateserver_a_SOURCES}

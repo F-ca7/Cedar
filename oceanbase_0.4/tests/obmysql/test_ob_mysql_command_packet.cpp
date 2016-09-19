@@ -16,7 +16,7 @@
  */
 
 #include "tblog.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_define.h"
 #include "common/ob_malloc.h"
 #include "obmysql/packet/ob_mysql_command_packet.h"
@@ -40,13 +40,13 @@ namespace oceanbase
       EXPECT_TRUE(NULL == packet.get_request());
 
       //test for set/get request
-      easy_request_t *req = NULL;
+      onev_request_e *req = NULL;
       EXPECT_EQ(OB_INVALID_ARGUMENT, packet.set_request(req));
 
-      req = reinterpret_cast<easy_request_t*>(ob_malloc(sizeof(easy_request_t), ObModIds::TEST));
+      req = reinterpret_cast<onev_request_e*>(ob_malloc(sizeof(onev_request_e), ObModIds::TEST));
       EXPECT_EQ(OB_SUCCESS, packet.set_request(req));
 
-      easy_request_t *greq = packet.get_request();
+      onev_request_e *greq = packet.get_request();
       EXPECT_EQ(req, greq);
 
       //test set/get command

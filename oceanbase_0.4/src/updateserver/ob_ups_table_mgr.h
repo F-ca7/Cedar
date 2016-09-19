@@ -37,7 +37,7 @@
 #include "ob_ups_log_utils.h"
 #include "ob_sessionctx_factory.h"
 #include "common/ob_new_scanner.h"
-
+#include "ob_table_lock.h" //add wangjiahao [tablelock] 20160328
 namespace oceanbase
 {
   namespace updateserver
@@ -64,6 +64,7 @@ namespace oceanbase
       public:
         virtual int apply(RWSessionCtx &session_ctx, common::ObIterator &iter, const common::ObDmlType dml_type) = 0;
         virtual UpsSchemaMgr &get_schema_mgr() = 0;
+        virtual TableLockMgr &get_table_lock_mgr() = 0;//add wangjiahao [tablelock] 20160328
     };
     class ObUpsTableMgr : public ObIUpsTableMgr
     {
@@ -208,6 +209,13 @@ namespace oceanbase
         {
           return schema_mgr_;
         };
+        //add wangjiahao [table lock] 20160616 :b
+        TableLockMgr &get_table_lock_mgr()
+        {
+          return table_lock_mgr_;
+        }
+        //add :e
+
         void dump_memtable(const common::ObString &dump_dir);
         void dump_schemas();
 
@@ -365,7 +373,8 @@ namespace oceanbase
         TableMgr table_mgr_;
         bool check_checksum_;
         bool has_started_;
-        uint64_t last_bypass_checksum_;
+        uint64_t last_bypass_checksum_; //add wangjiahao [dev_tablelock] 20160315
+        TableLockMgr table_lock_mgr_;
     };
   }
 }

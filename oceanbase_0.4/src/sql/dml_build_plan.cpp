@@ -1,4 +1,28 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file dml_build_plan.cpp
+ * @brief resolve some dml operation
+ *
+ * modified by longfei：
+ * 1.generate inner index table name
+ * 2.resolve user's hint for using secondary index in select
+ *
+ * modified by yushengjuan: reslove syntax tree to logical plan
+ * modified by maoxiaoxiao: reslove syntax tree to logical plan
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author yu shengjuan <51141500090@ecnu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
+
+/** 
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +54,13 @@
 #include "common/ob_string_buf.h"
 #include "common/utility.h"
 #include "common/ob_hint.h"
+//add wangjiahao [table lock] 20160616 :b
+#include "ob_lock_table_stmt.h"
+//add :e
 #include <stdint.h>
+
+//add longfei for hint
+#include "ob_stmt.h"
 
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
@@ -103,6 +133,19 @@ int resolve_hints(
     ResultPlan * result_plan,
     ObStmt* stmt,
     ParseNode* node);
+// add longfei
+/**
+ * @brief generate_index_hint: for resolve index hint
+ * @param result_plan
+ * @param stmt
+ * @param hint_node
+ * @return error code
+ */
+int generate_index_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node);
+// add:e
 int resolve_when_clause(
     ResultPlan * result_plan,
     ObStmt* stmt,
@@ -116,7 +159,26 @@ ObSqlRawExpr* create_middle_sql_raw_expr(
     ResultPlan& result_plan,
     ParseNode& node,
     uint64_t& expr_id);
-
+//add by yusj [SEMI_JOIN] 20150819
+int resolve_semi_join(
+		ResultPlan * result_plan,
+		ObStmt* stmt,
+		ParseNode* hint_node);
+//add end
+/*add maoxx [bloomfilter_join] 20160406*/
+/**
+ * @brief generate_join_hint
+ * generate join hint for bloomfilter join or merge join
+ * @param result_plan
+ * @param stmt
+ * @param hint_node
+ * @return OB_SUCCESS or other ERROR
+ */
+int generate_join_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node);
+/*add e*/
 static int add_all_rowkey_columns_to_stmt(ResultPlan* result_plan, uint64_t table_id, ObStmt *stmt)
 {
   int ret = OB_SUCCESS;
@@ -2957,7 +3019,9 @@ int resolve_hints(
     {
       ParseNode* hint_node = node->children_[i];
       if (!hint_node)
+      {
         continue;
+      }
       switch (hint_node->type_)
       {
         case T_READ_STATIC:
@@ -2989,6 +3053,26 @@ int resolve_hints(
             TBSYS_LOG(ERROR, "unknown hint value, ret=%d", ret);
           }
           break;
+        // add by longfei
+        case T_USE_INDEX:
+          ret = generate_index_hint(result_plan, stmt, hint_node);
+          break;
+        case T_UNKOWN_HINT:
+          break;
+        // add e
+	    
+        //add by yusj [SEMI_JOIN] 20150819
+	    case T_SEMI_JOIN:
+	      ret = resolve_semi_join(result_plan, stmt, hint_node);
+	      break;
+      //add end
+
+        /*add maoxx [bloomfilter_join] 20160406*/
+      case T_JOIN_OP_TYPE_LIST:
+        ret = generate_join_hint(result_plan, stmt, hint_node);
+        break;
+        /*add e*/
+
         default:
           ret = OB_ERR_HINT_UNKNOWN;
           snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -2999,6 +3083,104 @@ int resolve_hints(
   }
   return ret;
 }
+
+//add by yusj [SEMI_JOIN] 20150819
+int resolve_semi_join(
+		ResultPlan * result_plan,
+		ObStmt* stmt,
+		ParseNode* hint_node
+		)
+{
+	int ret = OB_SUCCESS;
+
+	ObSemiTableList tablelist;
+	ObQueryHint& query_hint = stmt->get_query_hint();
+
+	if(query_hint.use_join_array_.size() >= 1)
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG,"too much joined_table hint");
+		TBSYS_LOG(ERROR,"too much joined_table hint, ret=[%d]",ret);
+		return ret;
+	}
+
+	OB_ASSERT(6 == hint_node->num_child_);
+
+	ObSchemaChecker* schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+	if(schema_checker == NULL)
+	{
+		ret = OB_ERR_SCHEMA_UNSET;
+		snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "Schema(s) are not set");
+		return ret;
+	}
+	const ObTableSchema *left_table_schema = NULL;
+	const ObTableSchema *right_table_schema = NULL;
+        uint64_t store_left_tableid = OB_INVALID_ID;
+        uint64_t store_right_tableid = OB_INVALID_ID;
+	const ObColumnSchemaV2 *left_column_schema = NULL;
+	const ObColumnSchemaV2 *right_column_schema = NULL;
+
+	if(NULL != (left_table_schema = schema_checker->get_table_schema(hint_node->children_[0]->str_value_)))
+	{
+		tablelist.join_left_table_name_.write(hint_node->children_[0]->str_value_,
+				                              (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
+		tablelist.left_table_id_ = left_table_schema->get_table_id();
+		store_left_tableid = left_table_schema->get_table_id();
+	}
+	else
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[0]->str_value_);
+		TBSYS_LOG(ERROR, "unknown semi_join left table name '%s', ret=[%d]", hint_node->children_[0]->str_value_, ret);
+		return ret;
+	}
+
+	if(NULL != (right_table_schema = schema_checker->get_table_schema(hint_node->children_[1]->str_value_)))
+		{
+			tablelist.join_right_table_name_.write(hint_node->children_[1]->str_value_,
+					                              (ObString::obstr_size_t)strlen(hint_node->children_[1]->str_value_));
+			tablelist.right_table_id_ = right_table_schema->get_table_id();
+			store_right_tableid = right_table_schema->get_table_id();
+		}
+		else
+		{
+			ret = OB_ERR_UNEXPECTED;
+			snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[1]->str_value_);
+			TBSYS_LOG(ERROR, "unknown semi_join right table name '%s', ret=[%d]", hint_node->children_[1]->str_value_, ret);
+			return ret;
+		}
+
+	if(NULL != (left_column_schema = schema_checker->get_column_schema(tablelist.join_left_table_name_, ObString::make_string(hint_node->children_[3]->str_value_))))
+	{
+		tablelist.join_left_column_name.write(hint_node->children_[3]->str_value_,
+												(ObString::obstr_size_t)strlen(hint_node->children_[3]->str_value_));
+		tablelist.left_column_id_ = left_column_schema->get_id();
+
+	}else
+	{
+		ret = OB_ERR_UNEXPECTED;
+		snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[3]->str_value_);
+		TBSYS_LOG(ERROR, "unknown semi_join left column name '%s', ret=[%d]", hint_node->children_[3]->str_value_, ret);
+		return ret;
+	}
+
+	if(NULL != (right_column_schema = schema_checker->get_column_schema(tablelist.join_right_table_name_, ObString::make_string(hint_node->children_[5]->str_value_))))
+		{
+			tablelist.join_right_column_name.write(hint_node->children_[5]->str_value_,
+													(ObString::obstr_size_t)strlen(hint_node->children_[5]->str_value_));
+			tablelist.right_column_id_ = right_column_schema->get_id();
+
+		}else
+		{
+			ret = OB_ERR_UNEXPECTED;
+			snprintf(result_plan->err_stat_.err_msg_,MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[5]->str_value_);
+			TBSYS_LOG(ERROR, "unknown semi_join right column name '%s', ret=[%d]", hint_node->children_[5]->str_value_, ret);
+			return ret;
+		}
+	query_hint.use_join_array_.push_back(tablelist);
+	return ret;
+}
+//add end
 
 int resolve_delete_stmt(
     ResultPlan* result_plan,
@@ -3488,3 +3670,160 @@ int resolve_when_clause(
   }
   return ret;
 }
+
+// add longfei 20151105
+// too many generate_inner_index_table_name!
+int generate_inner_index_table_name(ObString& index_name, ObString& original_table_name, char *out_buff, int64_t& str_len)
+{
+  int ret = OB_SUCCESS;
+  char str[OB_MAX_TABLE_NAME_LENGTH];
+  char raw[OB_MAX_TABLE_NAME_LENGTH];
+  memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
+  memset(raw,0,OB_MAX_TABLE_NAME_LENGTH);
+  if(index_name.length() > OB_MAX_TABLE_NAME_LENGTH || original_table_name.length() > OB_MAX_TABLE_NAME_LENGTH)
+  {
+    TBSYS_LOG(WARN,"buff is not enough to generate index table name");
+    ret=OB_ERROR;
+  }
+  else
+  {
+    strncpy(str, index_name.ptr(), index_name.length());
+    strncpy(raw, original_table_name.ptr(), original_table_name.length());
+    int wlen = snprintf(out_buff, OB_MAX_TABLE_NAME_LENGTH, "___%s_%s",  raw, str);
+    if((size_t)wlen > (size_t)OB_MAX_TABLE_NAME_LENGTH)
+    {
+      ret = OB_ERROR;
+    }
+    str_len = wlen;
+  }
+  return ret;
+}
+//add e
+
+//add longfei
+int generate_index_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node)
+{
+  int ret = OB_SUCCESS;
+  /* 解析在hint中强制使用index的hint，根据表名来获取表的ID */
+  IndexTableNamePair pair;
+  ObQueryHint& query_hint = stmt->get_query_hint();
+
+  // 单表查询的情况下不应该有多个index的hint
+
+  /*if(query_hint.use_index_array_.size() >= 1)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "too much index hint");
+    TBSYS_LOG(ERROR, "too much index hint, ret=[%d]", ret);
+    return ret;
+  }
+ */
+  OB_ASSERT(2 == hint_node->num_child_);
+
+  ObSchemaChecker* schema_checker = static_cast<ObSchemaChecker*>(result_plan->schema_checker_);
+  if (schema_checker == NULL)
+  {
+    ret = OB_ERR_SCHEMA_UNSET;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "Schema(s) are not set");
+    return ret;
+  }
+
+  const ObTableSchema *src_table_schema = NULL;
+  const ObTableSchema *index_table_schema = NULL;
+
+  // 查找原表的table_id
+  if(NULL != (src_table_schema = schema_checker->get_table_schema(hint_node->children_[0]->str_value_)))
+  {
+    pair.src_table_name_.write(hint_node->children_[0]->str_value_,
+        (ObString::obstr_size_t)strlen(hint_node->children_[0]->str_value_));
+    pair.src_table_id_ = src_table_schema->get_table_id();
+  }
+  else
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "unknown table name '%s'", hint_node->children_[0]->str_value_);
+    TBSYS_LOG(ERROR, "unknown table name '%s', ret=[%d]", hint_node->children_[0]->str_value_, ret);
+    return ret;
+  }
+
+  // 查找索引表的table_id，判断其是否是索引表，如果是则判断此索引表的原表是否与上面的原表是一致的
+  char tablename[OB_MAX_TABLE_NAME_LENGTH];
+  int64_t len = 0;
+  ObString index_table_name;
+  ObString org_tab_name;
+  index_table_name.assign_ptr(
+        (char*)(hint_node->children_[1]->str_value_),
+      static_cast<int32_t>(strlen(hint_node->children_[1]->str_value_))
+      );
+  org_tab_name.assign_ptr(
+        (char*)(hint_node->children_[0]->str_value_),
+      static_cast<int32_t>(strlen(hint_node->children_[0]->str_value_))
+      );
+  generate_inner_index_table_name(index_table_name,
+                                  org_tab_name,
+                                  tablename, len);
+  if(NULL != (index_table_schema = schema_checker->get_table_schema(tablename)))
+  {
+    pair.index_table_name_.write(tablename, (ObString::obstr_size_t)strlen(tablename));
+    pair.index_table_id_ = index_table_schema->get_table_id();
+
+    uint64_t index_src_tid = index_table_schema->get_original_table_id();
+    if(OB_INVALID_ID == index_src_tid || pair.src_table_id_ != index_src_tid)
+    {
+      ret = OB_ERR_UNEXPECTED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+               "unknown index name '%s' of '%s'",
+               hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_);
+      TBSYS_LOG(ERROR, "unknown index name '%s' of '%s', index table name '%s', ret=[%d]",
+                hint_node->children_[1]->str_value_, hint_node->children_[0]->str_value_, tablename, ret);
+    }
+  }
+  else
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "unknown index name '%s'",
+             hint_node->children_[1]->str_value_);
+    TBSYS_LOG(ERROR, "unknown index name '%s', index table name '%s', ret=[%d]",
+              hint_node->children_[1]->str_value_, tablename, ret);
+
+  }
+  // 将index的hint加入到数组中
+  if (OB_SUCCESS == ret)
+  {
+    query_hint.use_index_array_.push_back(pair);
+  }
+  return ret;
+}
+// add:e
+//add e
+
+/*add maoxx [bloomfilter_join] 20160406*/
+int generate_join_hint(
+    ResultPlan * result_plan,
+    ObStmt* stmt,
+    ParseNode* hint_node)
+{
+  int ret = OB_SUCCESS;
+  ObJoinOPTypeArray join_node;
+  ObQueryHint& query_hint = stmt->get_query_hint();
+
+  if(query_hint.join_op_type_array_.size() > 0)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG, "too much join hint");
+    TBSYS_LOG(ERROR, "too much join hint, ret=[%d]", ret);
+  }
+
+  for(int32_t i = 0; OB_SUCCESS == ret && i < hint_node->num_child_; i++ )
+  {
+    join_node.join_op_type_ = hint_node->children_[i]->type_ ;
+    join_node.index_ = i;
+    query_hint.join_op_type_array_.push_back(join_node);
+  }
+
+  return ret;
+}
+/*add e*/

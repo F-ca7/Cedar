@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_image.h
+ * @brief reference count of tablet
+ *
+ * modified by longfei：
+ * 1.provide some other way to access tablet
+ * 2.delete the second sstable of tablet
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *  
@@ -116,7 +135,15 @@ namespace oceanbase
         int release_tablet(ObTablet* tablet, bool* is_remove_sstable = NULL) const;
         int acquire_tablet(const sstable::ObSSTableId& sstable_id, ObTablet* &tablet) const;
         int include_sstable(const sstable::ObSSTableId& sstable_id) const;
-
+        //add longfei [cons static index] 151121:b
+        /**
+         * @brief acquire_tablets_by_table_id: get all tablet of input table_id
+         * @param table_id
+         * @param [out] table_tablets
+         * @return error code
+         */
+        const int acquire_tablets_by_table_id(const uint64_t table_id, common::ObVector<ObTablet*>& table_tablets) const ;
+        //add e
         int remove_sstable(ObTablet* tablet) const;
 
         int remove_tablet(const common::ObNewRange& range, int32_t &disk_no);
@@ -146,6 +173,16 @@ namespace oceanbase
         inline int64_t incr_merged_tablet_count() { return __sync_add_and_fetch(&merged_tablet_count_, 1); }
         inline int64_t decr_merged_tablet_count() { return __sync_sub_and_fetch(&merged_tablet_count_, 1); }
         inline int64_t get_merged_tablet_count() const { return merged_tablet_count_; }
+
+
+      public:
+        //add longfei [cons static index] 151220:b
+        /**
+         * @brief delete_local_index_sstable: Traverse all tablet, remove local sstable
+         * @return ret code
+         */
+        const int delete_local_index_sstable() const;
+        //add e
 
       public:
         /**
@@ -197,8 +234,14 @@ namespace oceanbase
         sstable::ObSSTableReader* alloc_sstable_object();
         compactsstablev2::ObCompactSSTableReader* alloc_compact_sstable_object();
         int reset();
-        inline int64_t acquire() const { return __sync_add_and_fetch((volatile int64_t*)&ref_count_, 1); }
-        inline int64_t release() const { return __sync_sub_and_fetch((volatile int64_t*)&ref_count_, 1); }
+        inline int64_t acquire() const
+        {
+          return __sync_add_and_fetch((volatile int64_t*)&ref_count_, 1);
+        }
+        inline int64_t release() const
+        {
+          return __sync_sub_and_fetch((volatile int64_t*)&ref_count_, 1);
+        }
 
       private:
         static const int64_t DEFAULT_TABLET_NUM = 128 * 1024L;
@@ -344,6 +387,16 @@ namespace oceanbase
         int upgrade_tablet(ObTablet *old_tablet, 
             ObTablet *new_tablets[], const int32_t split_size, 
             const bool load_sstable = false);
+
+        //add longfei [cons static index] 151207:b
+        /**
+         * @brief upgrade_index_tablet: add tablet to tablet image
+         * @param obtablet
+         * @param load_sstable
+         * @return error code
+         */
+        int upgrade_index_tablet(ObTablet* obtablet,const bool load_sstable = false);
+        //add e
 
         int upgrade_service();
 

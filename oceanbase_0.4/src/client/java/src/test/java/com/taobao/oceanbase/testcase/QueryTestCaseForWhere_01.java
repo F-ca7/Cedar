@@ -548,7 +548,7 @@ public class QueryTestCaseForWhere_01 extends BaseCase {
 		// prepare query date
 		int count = 6;
 		int intArray[] = {1, 2, 3, 4, 5, 6};
-		String stringArray[] = {"¡¶", "ÖÐÎÄ×Ö·û", "¡£", "*", "&" , ")"};
+		String stringArray[] = {"ï¿½ï¿½", "ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½", "ï¿½ï¿½", "*", "&" , ")"};
 		String columns[] = {"user_nick", "owner_nick", "category", "collect_count"};  
 		prepare_date(count, intArray, stringArray, columns);
 		// verify insert data
@@ -560,7 +560,7 @@ public class QueryTestCaseForWhere_01 extends BaseCase {
 
 		// prepare where condition
 		Value value = new Value();
-		value.setString("ÖÐÎÄ×Ö·û");
+		value.setString("ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½");
 		ObSimpleCond obSimpleCond = new ObSimpleCond("owner_nick",
 				ObSimpleCond.ObLogicOperator.LIKE, value);
 		ObSimpleFilter filter = new ObSimpleFilter();
@@ -2180,7 +2180,7 @@ public class QueryTestCaseForWhere_01 extends BaseCase {
 
 		// prepare where condition
 		Value value = new Value();
-		value.setString("¶þ");
+		value.setString("ï¿½ï¿½");
 		ObSimpleCond obSimpleCond = new ObSimpleCond("category",
 				ObSimpleCond.ObLogicOperator.LIKE, value);
 		ObSimpleFilter filter = new ObSimpleFilter();

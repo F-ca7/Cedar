@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file  ob_root_table2.h
+ * @brief for root table
+ *
+ * modified by Wenghaixing:add some function for root table to handle tablet & tablet meta
+ *
+ * @version __DaSE_VERSION
+ * @author wenghaixing <wenghaixing@ecnu.cn>
+ * @date  2016_01_24
+ */
+
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -80,12 +97,22 @@ namespace oceanbase
         void server_off_line(const int32_t server_index, const int64_t time_stamp);
 
         void dump() const;
+        void dump(const int32_t index) const;//add wenghaixing [secondary index.static index]20151207
         void dump_cs_tablet_info(const int server_index, int64_t &tablet_num)const;
         void dump_unusual_tablets(int64_t current_version, int32_t replicas_num, int32_t &num) const;
 
         int check_tablet_version_merged(const int64_t tablet_version, const int64_t safe_count, bool &is_merged) const;
         const common::ObTabletInfo* get_tablet_info(const const_iterator& it) const;
         common::ObTabletInfo* get_tablet_info(const const_iterator& it);
+        //add wenghaixing [secondary index.static_index]20151207
+        const common::ObTabletInfo* get_tablet_info(const int32_t meta_index) const;
+        common::ObTabletInfo* get_tablet_info(const int32_t meta_index);
+        int get_root_meta_index(const common::ObTabletInfo &tablet, int32_t &meta_index);
+        int get_root_meta(const int32_t meta_index, const_iterator &root_meta);
+        const_iterator find_pos_by_range(const common::ObNewRange &range);
+        int check_tablet_version_merged_v2(const int64_t tablet_version, const int64_t safe_count, bool &is_merged, const common::ObSchemaManagerV2 &schema_mgr) const;
+        int check_tablet_version_merged_v3(const uint64_t table_id, const int64_t tablet_version, const int64_t safe_count, bool &is_merged);
+        //add e
         int get_table_row_checksum(const int64_t tablet_version, const uint64_t table_id, uint64_t &row_checksum);
 
         static int64_t get_max_tablet_version(const const_iterator& it);

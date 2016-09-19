@@ -1,10 +1,10 @@
 AM_CPPFLAGS= -I${TBLIB_ROOT}/include/tbsys \
-             -I${EASY_ROOT}/include/easy \
+             -I${ONEV_ROOT}/include/onev \
 	     -I${top_srcdir}/include \
 	     -I${top_srcdir}/src \
 	     -fPIC
 
-LDADD = ${EASY_LIB_PATH}/libeasy.a \
+LDADD = ${ONEV_LIB_PATH}/libonev.a \
 	${TBLIB_ROOT}/lib/libtbsys.a
 
 AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl #-pg

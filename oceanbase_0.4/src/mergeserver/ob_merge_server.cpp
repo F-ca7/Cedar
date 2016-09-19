@@ -136,7 +136,7 @@ namespace oceanbase
 
       if (ret == OB_SUCCESS)
       {
-        memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
         server_handler_.encode = ObTbnetCallback::encode;
         server_handler_.decode = ObTbnetCallback::decode;
         server_handler_.process = ObMergeCallback::process;
@@ -331,7 +331,7 @@ namespace oceanbase
       int32_t channel_id = ob_packet->get_channel_id();
       ObDataBuffer* in_buffer = ob_packet->get_buffer();
       ThreadSpecificBuffer::Buffer* thread_buffer = response_buffer_.get_buffer();
-      easy_request_t* request = ob_packet->get_request();
+      onev_request_e* request = ob_packet->get_request();
       if (NULL == request || NULL == request->ms || NULL == request->ms->c)
       {
         TBSYS_LOG(ERROR, "req or req->ms or req->ms->c is NUll should not reach this");

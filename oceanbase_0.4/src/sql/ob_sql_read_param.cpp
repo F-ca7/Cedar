@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_read_param.cpp
+ * @brief ObSqlReadParam
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     complete ObSqlReadParam functions
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
 #include "common/ob_object.h"
 #include "common/ob_action_flag.h"
 #include "common/ob_schema.h"
@@ -13,6 +31,9 @@ namespace oceanbase
     ObSqlReadParam::ObSqlReadParam() :
       is_read_master_(0), is_result_cached_(0), data_version_(OB_NEWEST_DATA_VERSION),
       table_id_(OB_INVALID_ID), renamed_table_id_(OB_INVALID_ID), only_static_data_(false),
+      // add by guojinwei [repeatable read] 20160310:b
+      trans_id_(),
+      // add:e
       project_(), scalar_agg_(NULL), group_(NULL), group_columns_sort_(), limit_(), filter_(),
       has_project_(false), has_scalar_agg_(false), has_group_(false), has_group_columns_sort_(false),
       has_limit_(false), has_filter_(false)
@@ -27,6 +48,9 @@ namespace oceanbase
       data_version_ = OB_NEWEST_DATA_VERSION;
       table_id_ = OB_INVALID_ID;
       renamed_table_id_ = OB_INVALID_ID;
+      // add by guojinwei [repeatable read] 20160310:b
+      trans_id_.reset();
+      // add:e
       if (has_scalar_agg_)
       {
         if (NULL != scalar_agg_)
@@ -126,14 +150,14 @@ namespace oceanbase
     int ObSqlReadParam::add_filter(ObSqlExpression *cond)
     {
       int ret = OB_SUCCESS;
-      if (OB_SUCCESS != (ret = filter_.add_filter(cond)))
-      {
-        TBSYS_LOG(WARN, "fail to add filter. ret=%d", ret);
-      }
-      else
-      {
-        has_filter_ = true;
-      }
+          if (OB_SUCCESS != (ret = filter_.add_filter(cond)))
+          {
+            TBSYS_LOG(WARN, "fail to add filter. ret=%d", ret);
+          }
+          else
+          {
+            has_filter_ = true;
+          }
       return ret;
     }
 
@@ -338,6 +362,16 @@ namespace oceanbase
           TBSYS_LOG(WARN, "fail to serialize bool:ret[%d]", ret);
         }
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      // trans id
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS != (ret = trans_id_.serialize(buf, buf_len, pos)))
+        {
+          TBSYS_LOG(WARN, "fail to serialize trans id:ret[%d]", ret);
+        }
+      }
+      // add:e
       return ret;
     }
 
@@ -467,6 +501,16 @@ namespace oceanbase
           TBSYS_LOG(WARN, "fail to get bool:ret[%d]", ret);
         }
       }
+      // add by guojinwei [repeatable read] 20160310:b
+      // trans id
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS != (ret = trans_id_.deserialize(buf, data_len, pos)))
+        {
+          TBSYS_LOG(WARN, "fail to deserialize trans id:ret[%d]", ret);
+        }
+      }
+      // add:e
       return ret;
     }
 
@@ -754,6 +798,9 @@ namespace oceanbase
       // only_static_data
       obj.set_bool(only_static_data_);
       total_size += obj.get_serialize_size();
+      // add by guojinwei [repeatable read] 20160310:b
+      total_size += trans_id_.get_serialize_size();
+      // add:e
       return total_size;
     }
 
@@ -817,6 +864,9 @@ namespace oceanbase
       is_result_cached_ = other. is_result_cached_;
       table_id_ = other.table_id_;
       renamed_table_id_ = other.renamed_table_id_;
+      // add by guojinwei [repeatable read] 20160310:b
+      trans_id_ = other.trans_id_;
+      // add:e
 
       has_project_ = other.has_project_;
       if (other.has_project_)
@@ -910,6 +960,9 @@ namespace oceanbase
       table_id_ = o_ptr->table_id_;
       renamed_table_id_ = o_ptr->renamed_table_id_;
       only_static_data_ = o_ptr->only_static_data_;
+      // add by guojinwei [repeatable read] 20160310:b
+      trans_id_ = o_ptr->trans_id_;
+      // add:e
       if (ret == OB_SUCCESS && o_ptr->has_project_)
       {
         has_project_ = o_ptr->has_project_;
@@ -993,6 +1046,13 @@ namespace oceanbase
         }
       }
       return ret;
+    }
+
+    int ObSqlReadParam::reset_project_and_filter()
+    {
+        project_.reset();
+        filter_.reset();
+        return OB_SUCCESS;
     }
 
   } /* sql */

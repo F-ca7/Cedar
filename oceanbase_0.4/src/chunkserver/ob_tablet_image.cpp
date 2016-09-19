@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_image.cpp
+ * @brief ObTabletImage
+ *
+ * modified by longfei：
+ * 1.provide some other way to access tablet
+ * 2.delete the second sstable of tablet
+ *
+ * modified by liubozhong: support multiple clusters for HA by adding or modifying
+ * some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author liubozhong <51141500077@ecnu.cn>
+ * @date 2016_01_19
+ */
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
@@ -884,6 +906,19 @@ namespace oceanbase
       range.set_rowkey_info(ri);
 
       it = tablet_list_.lower_bound(range, compare_tablet_range);
+      //delete by guojinwei 20160824:b
+      ////add longfei 2016-03-30 19:16:57
+      ////看看找到的tablet是什么样的
+      //TBSYS_LOG(DEBUG, "debug::longfei>>>scan_direction[%s]", scan_direction == 0 ? "forward" : "backward");
+      //TBSYS_LOG(INFO, "====dump tablet begin====");
+      //for (ObSortedVector<ObTablet*>::iterator j = tablet_list_.begin(); j != tablet_list_.end(); j++)
+      //{
+      //  ObTablet* tablet_dis = *j;
+      //  tablet_dis->dump(true);
+      //}
+      //TBSYS_LOG(INFO, "====dump tablet end====");
+      ////add e
+      // delete:e
       if (it == tablet_list_.end())
       {
         //                       start_key
@@ -928,6 +963,14 @@ namespace oceanbase
       {
         ret = OB_CS_TABLET_NOT_EXIST;
       }
+      // delete by guojinwei 20160824:b
+      ////add else longfei 2016-03-30 19:31:54
+      //else
+      //{
+      //  tablet->dump(true);
+      //}
+      ////add e
+      // delete:e
 
       return ret;
     }
@@ -955,6 +998,39 @@ namespace oceanbase
 
       return ret;
     }
+
+    // add longfei [cons static index] 151121:b
+    const int ObTabletImage::acquire_tablets_by_table_id(
+        const uint64_t table_id,
+        common::ObVector<ObTablet*> &table_tablets) const
+    {
+      int ret = OB_SUCCESS;
+      if (OB_INVALID_ID == table_id)
+      {
+        TBSYS_LOG(WARN, "tablet image acquire_tablets, invalid table_id=%lu", table_id);
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        ObSortedVector<ObTablet*>::iterator it = tablet_list_.begin();
+        for (; it != tablet_list_.end(); ++it)
+        {
+          if (0 == table_id || (*it)->get_range().table_id_ == table_id)
+          {
+            acquire();
+            (*it)->inc_ref();
+            if (OB_SUCCESS != (ret = table_tablets.push_back(*it)))
+            {
+              TBSYS_LOG(WARN, "failed to push back tablet into "
+                  "tablet vector, range=%s", to_cstring((*it)->get_range()));
+              break;
+            }
+          }
+        }
+      }
+      return ret;
+    }
+    //add e
 
     int ObTabletImage::remove_sstable(ObTablet* tablet) const
     {
@@ -1139,7 +1215,10 @@ namespace oceanbase
       record_header.set_magic_num(ObTabletMetaHeader::TABLET_META_MAGIC);
       record_header.header_length_ = OB_RECORD_HEADER_LENGTH;
       record_header.version_ = 0;
-      record_header.reserved_ = 0;
+      // modify by lbzhong [multi_cluster] 20151111:b
+      // record_header.reserved_ = 0;
+      record_header.timestamp_ = 0;
+      // modify:e
 
       int64_t payload_pos = pos + OB_RECORD_HEADER_LENGTH;
       int64_t tablet_pos = payload_pos + meta_header.get_serialize_size();
@@ -2509,6 +2588,52 @@ namespace oceanbase
 
       return ret;
     }
+
+    //add longfei [cons static index] 151207:b
+    int ObMultiVersionTabletImage::upgrade_index_tablet(ObTablet* tablet, const bool load_sstable)
+    {
+      int ret = OB_SUCCESS;
+      int64_t new_version = tablet->get_data_version();
+      char range_buf[OB_RANGE_STR_BUFSIZ];
+      tbsys::CWLockGuard guard(lock_);
+      if (OB_SUCCESS != (ret = get_image(new_version).add_tablet(tablet)))
+      {
+        TBSYS_LOG(ERROR, "add tablet error with new version = %ld.",
+            new_version);
+      }
+      else
+      {
+        tablet->get_range().to_string(range_buf, OB_RANGE_STR_BUFSIZ);
+        TBSYS_LOG(DEBUG, "upgrade with new index range:(%s), new version=%ld",
+            range_buf, new_version);
+      }
+      if (OB_SUCCESS == ret && load_sstable)
+      {
+        ret = tablet->load_sstable();
+      }
+      return ret;
+    }
+    //add e
+
+    //add longfei [cons static index] 151220:b
+    /*
+     *删除局部索引的sstable，遍历所有的tablet，逐个检查并删除
+     */
+    const int ObTabletImage::delete_local_index_sstable() const
+    {
+      int ret = OB_SUCCESS;
+      ObSortedVector <ObTablet*>::iterator it = tablet_list_.begin();
+      for (; it != tablet_list_.end(); ++it)
+      {
+        if (OB_SUCCESS != (ret = (*it)->delete_local_index_sstableid()))
+        {
+          TBSYS_LOG(WARN, "failed to delete local index sstable file_id:%ld",
+              (*it)->get_sstable_id_list().at(1).sstable_file_id_);
+        }
+      }
+      return ret;
+    }
+    //add e
 
     int ObMultiVersionTabletImage::upgrade_service()
     {

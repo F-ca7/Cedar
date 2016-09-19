@@ -1,4 +1,17 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file     ob_sort.h
+ * @brief    sort operator
+ * modified by Qiushi FAN: add some functions to get an array form child
+ * @version  __DaSE_VERSION
+ * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @date     2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -35,6 +48,15 @@ namespace oceanbase
         int64_t get_sort_column_size() const;
         void set_mem_size_limit(const int64_t limit);
         int set_run_filename(const common::ObString &filename);
+        //add fanqiushi [semi_join] [0.1] 20150826:b
+        /**
+        * @brief get an array of distinct values of left table.
+        * @param void.
+        * @param void.
+        * @return an array of distinct values of left table.
+        */
+        common::ObArray<common::ObObj>& get_filer_set();
+        //add:e
 
         virtual int open();
         virtual int close();

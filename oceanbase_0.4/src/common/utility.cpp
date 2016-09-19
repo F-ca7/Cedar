@@ -16,7 +16,7 @@
 
 #include "utility.h"
 #include "ob_define.h"
-#include "easy_inet.h"
+#include "onev_inet.h"
 #include "ob_rowkey.h"
 #include "ob_common_param.h"
 #include "ob_scanner.h"
@@ -338,14 +338,14 @@ namespace oceanbase
       return buffer;
     }
 
-    const char *inet_ntoa_r(easy_addr_t addr)
+    const char *inet_ntoa_r(onev_addr_e addr)
     {
       static const int64_t BUFFER_SIZE = 64;
       static __thread char buffers[2][BUFFER_SIZE];
       static __thread uint64_t i = 0;
       char *buffer = buffers[i++ % 2];
       buffer[0] = '\0';
-      return easy_inet_addr_to_str(&addr, buffer, BUFFER_SIZE);
+      return onev_inet_addr_to_str(&addr, buffer, BUFFER_SIZE);
     }
 
     void databuff_printf(char *buf, const int64_t buf_len, int64_t& pos, const char* fmt, ...)
@@ -552,9 +552,9 @@ namespace oceanbase
       return static_cast<uint16_t>(((a >> 8) & 0xFFU) | ((a << 8) & 0xFF00U));
     }
 
-    easy_addr_t convert_addr_from_server(const ObServer *server)
+    onev_addr_e convert_addr_from_server(const ObServer *server)
     {
-      easy_addr_t ret;
+      onev_addr_e ret;
       if (server != NULL)
       {
         if (server->get_version() == ObServer::IPV4)
@@ -581,11 +581,11 @@ namespace oceanbase
       return ret;
     }
 
-    int64_t convert_addr_to_server(easy_addr_t addr)
+    int64_t convert_addr_to_server(onev_addr_e addr)
     {
       int64_t server_id;
       char buffer[OB_SERVER_ADDR_STR_LEN];
-      easy_inet_addr_to_str(&addr, buffer, OB_SERVER_ADDR_STR_LEN);
+      onev_inet_addr_to_str(&addr, buffer, OB_SERVER_ADDR_STR_LEN);
       int port = 0;
       int x = 0;
       char *tmp = strchr(buffer, ':');

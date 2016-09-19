@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_rpc_stub.h
+ * @brief ObUpsSlaveMgr
+ *     modify by zhangcd: modify the class ObUpsSlaveMgr to add
+ *     the majority_count setting process
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_25
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -34,8 +50,16 @@ namespace oceanbase
         virtual ~ObUpsSlaveMgr();
 
         /// @brief 初始化
+        // modify by guojinwei [log synchronization][multi_cluster] 20151117:b
+        //int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
+        //    int64_t log_sync_timeout);
+        // modify by zhangcd [majority_count_init] 20151118:b
+        //int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
+        //    int64_t log_sync_timeout, int32_t slave_count);
         int init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr, ObCommonRpcStub *rpc_stub,
             int64_t log_sync_timeout);
+        // modify:e
+        // modify:e
 
         /// @brief 向各台Slave发送数据
         /// 目前依次向各台Slave发送数据, 并且等待Slave的成功返回
@@ -49,7 +73,16 @@ namespace oceanbase
         int set_log_sync_timeout_us(const int64_t timeout);
         int post_log_to_slave(const common::ObLogCursor& start_cursor, const common::ObLogCursor& end_cursor, const char* data, const int64_t length);
         int wait_post_log_to_slave(const char* data, const int64_t length, int64_t& delay);
-        int64_t get_acked_clog_id() const;
+        //mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+        //int64_t get_acked_clog_id() const;
+        int64_t get_acked_clog_id();
+        //mod:e
+        //add by chujiajia [log synchronization][multi_cluster] 20160627:b
+        inline int64_t get_acked_clog_id_without_update()
+        {
+          return acked_clog_id_;
+        }
+        //add:e
         int get_slaves(ObServer* slaves, int64_t limit, int64_t& slave_count);
 
         int grant_keep_alive();
@@ -59,10 +92,17 @@ namespace oceanbase
         int set_send_log_point(const ObServer &server, const uint64_t send_log_point);
         int get_num() const;
         void print(char *buf, const int64_t buf_len, int64_t& pos);
+        // add by zhangcd [majority_count_init] 20151118:b
+        void set_ack_queue_majority_count(int32_t majority_count);
+        int32_t get_ack_queue_majority_count();
+        // add:e
       private:
         int64_t n_slave_last_post_;
         ObUpsRoleMgr *role_mgr_;
         ObAckQueue ack_queue_;
+        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        int64_t acked_clog_id_;
+        //add:e
     };
   } // end namespace common
 } // end namespace oceanbase

@@ -213,14 +213,14 @@ namespace oceanbase
       return ret;
     }
 
-    const char *inet_ntoa_r(easy_addr_t addr)
+    const char *inet_ntoa_r(onev_addr_e addr)
     {
       static const int64_t BUFFER_SIZE = 64;
       static __thread char buffers[2][BUFFER_SIZE];
       static __thread uint64_t i = 0;
       char *buffer = buffers[i++ % 2];
       buffer[0] = '\0';
-      return easy_inet_addr_to_str(&addr, buffer, BUFFER_SIZE);
+      return onev_inet_addr_to_str(&addr, buffer, BUFFER_SIZE);
     }
 
     void SwitchSKeyDuty::runTimerTask()

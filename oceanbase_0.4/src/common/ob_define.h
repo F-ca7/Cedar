@@ -1,3 +1,26 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief define constant
+ *
+ * modified by longfei：add some macros used in secondary index
+ * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
+ * modified by guojinwei:support multiple clusters for HA by adding or modifying
+ * some functions, member variables
+ * modified by zhujun：add procedure related constant
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
 /*
  *   (C) 2007-2010 Taobao Inc.
  *
@@ -146,7 +169,7 @@ namespace oceanbase
 
     const int OB_RPC_SEND_ERROR = -121;
     const int OB_RPC_POST_ERROR = -122;
-    const int OB_LIBEASY_ERROR = -123;
+    const int OB_LIBONEV_ERROR = -123;
     const int OB_CONNECT_ERROR = -124;
     const int OB_NOT_FREE = -125;
     const int OB_INIT_SQL_CONTEXT_ERROR = -126;
@@ -177,7 +200,6 @@ namespace oceanbase
 
     const int OB_GET_NEXT_COLUMN = -1011;
     const int OB_GET_NEXT_ROW = -1012; // for internal use, scan next row.
-    //const int OB_DESERIALIZE_ERROR = -1013;//反序列化失败
     const int OB_INVALID_ROW_KEY = -1014;//不合法的rowKey
     const int OB_SEARCH_MODE_NOT_IMPLEMENT = -1015; // search mode not implement, internal error
     const int OB_INVALID_BLOCK_INDEX = -1016; // illegal block index data, internal error
@@ -203,6 +225,12 @@ namespace oceanbase
     const int OB_COLUMN_GROUP_NOT_FOUND = -1039;
     const int OB_NO_IMPORT_SSTABLE = -1040;
     const int OB_IMPORT_SSTABLE_NOT_EXIST = -1041;
+    //add longfei [cons static index] 151202:b
+    const int OB_CS_STATIC_INDEX_TIMEOUT = -1042;
+    const int OB_TABLET_HAS_NO_LOCAL_SSTABLE = -1043;
+    const int OB_TABLET_FOR_INDEX_ALL_FAILED = -1044;
+    const int OB_INDEX_BUILD_FAILED = -1045;
+    //add e
 
     //error code for update server -2001 ---- -3000
     const int OB_UPS_TRANS_RUNNING = -2001;     // 事务正在执行
@@ -216,7 +244,10 @@ namespace oceanbase
     const int OB_UPS_CHANGE_MASTER_TIMEOUT = -2009;
     const int OB_FORCE_TIME_OUT = -2010;
     const int OB_BEGIN_TRANS_LOCKED = -2011;
-
+    //add chujiajia [log synchronization][multi_cluster] 20160603:b
+	const int OB_NOT_EQUAL = -2012;
+    const int OB_NOTIFY_EQUAL = -2013;
+	//add:e
     //error code for root server -3001 ---- -4000
     const int OB_ERROR_TIME_STAMP = -3001;
     const int OB_ERROR_INTRESECT = -3002;
@@ -252,6 +283,9 @@ namespace oceanbase
     const int OB_MULTIPLE_MASTER_CLUSTERS_NOT_EXIST = -3033;
     const int OB_MASTER_CLUSTER_ALREADY_EXISTS = -3034;
     const int OB_CREATE_TABLE_TWICE = -3035;
+    //add by pangtianze [rs_election] 20151120:b
+    const int OB_RS_LEADER_SETTED_WHEN_STARTING = -3036;
+    //add:e
 
     const int OB_DATA_SOURCE_NOT_EXIST = -3100;
     const int OB_DATA_SOURCE_TABLE_NOT_EXIST = -3101;
@@ -355,8 +389,24 @@ namespace oceanbase
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 来自监控的连接会立马断开
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
 
+    //add longfei [drop table with index timeout] 151202:b
+    const int OB_INDEX_NOT_EXIST = -5075;
+    //add e
+
     const int OB_ERR_PS_TOO_MANY_PARAM = -5080;
     const int OB_ERR_READ_ONLY = -5081;
+    //add wenghaixing[secondary index.static_index]20151118
+    const int OB_ERR_NULL_POINTER = -5082;
+    //add e
+    //add wangjiahao [table lock] 20160616 :b
+    const int OB_ERR_TABLE_EXCLUSIVE_LOCK_CONFLICT = -5090;
+    const int OB_ERR_TABLE_INTENTION_LOCK_CONFLICT = -5091;
+    //add :e
+    //add longfei [cons static index] 151220:b
+    const int OB_GET_TABLETS = -5602;
+    const int OB_GET_RANGES = -5603;
+    const int OB_GET_NOTHING = -5604;
+    //add e
 
     const int OB_ERR_SQL_END = -5999;
 #define IS_SQL_ERR(e) ((OB_ERR_SQL_END <= e && OB_ERR_SQL_START >= e) \
@@ -436,6 +486,17 @@ namespace oceanbase
     const int64_t OB_LOG_DELAYED_SYNC = 2;
     const int64_t OB_LOG_NOT_PERSISTENT = 4;
 
+    // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
+    /// commit point synchronization type
+    const int64_t OB_COMMIT_POINT_ASYNC = 0;
+    const int64_t OB_COMMIT_POINT_SYNC = 1;
+    // add:e
+
+    // add by guojinwei [multi_cluster] 20160128:b
+    const int64_t OB_SINGLE_CLUSTER = 1;
+    const int64_t OB_THREE_CLUSTER = 3;
+    // add:e
+
     const int64_t OB_MAX_UPS_LEASE_DURATION_US = INT64_MAX;
 
     const int64_t OB_EXECABLE = 1;
@@ -451,7 +512,8 @@ namespace oceanbase
     const int64_t OB_DEFAULT_STMT_TIMEOUT = 3L * 1000L * 1000L; // 1s
     const int64_t OB_DEFAULT_INTERNAL_TABLE_QUERY_TIMEOUT = 10L * 1000L * 1000L; // 10s
     static const int64_t CORE_SCHEMA_VERSION = 1984;
-    static const int64_t CORE_TABLE_COUNT = 3;
+    //static const int64_t CORE_TABLE_COUNT = 3;
+    static const int64_t CORE_TABLE_COUNT = 4; ///< change core_table_count form 3 to 4 by longfei
 
     //Oceanbase network protocol
     /*  4bytes    4bytes        4bytes       4bytes
@@ -530,6 +592,8 @@ namespace oceanbase
     const char* const OB_ALL_SERVER = "__all_server";
     const char* const OB_ALL_CLIENT = "__all_client";
     const char* const OB_TABLES_SHOW_TABLE_NAME = "__tables_show";
+    const char* const OB_INDEX_SHOW_TABLE_NAME = "__index_show";
+
     const char* const OB_VARIABLES_SHOW_TABLE_NAME = "__variables_show";
     const char* const OB_CREATE_TABLE_SHOW_TABLE_NAME = "__create_table_show";
     const char* const OB_TABLE_STATUS_SHOW_TABLE_NAME = "__table_status_show";
@@ -538,6 +602,15 @@ namespace oceanbase
     const char* const OB_SERVER_STATUS_SHOW_TABLE_NAME = "__server_status_show";
     const char* const OB_PARAMETERS_SHOW_TABLE_NAME = "__parameters_show";
     const char* const OB_ALL_STATEMENT_TABLE_NAME = "__all_statement";
+    const char* const OB_ALL_SECONDAYR_INDEX_TABLE_NAME = "__all_secondary_index"; //longfei [create index]
+    //add maoxx
+    const char* const OB_INDEX_SERVICE_INFO_TABLE_NAME = "__index_service_info";
+    const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
+    //add e
+
+    //add zhujun [2015-6-1]
+    const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
+    //add:e
 
     // internal params
     const char* const OB_GROUP_AGG_PUSH_DOWN_PARAM = "ob_group_agg_push_down_param";
@@ -563,6 +636,7 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_TID = 11;
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
+    static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei [create index]
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //
     ///////////////////////////////////////////////////////////
@@ -579,7 +653,18 @@ namespace oceanbase
     static const uint64_t OB_ALL_SERVER_STAT_TID = 509;
     static const uint64_t OB_ALL_SERVER_SESSION_TID = 510;
     static const uint64_t OB_ALL_STATEMENT_TID = 511;
-#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
+    //add longfei [merge] 20160127
+    static const uint64_t OB_INDEX_SHOW_TID = 512;
+    //add e
+    //add maoxx
+    static const uint64_t OB_ALL_COLUMN_CHECKSUM_INFO_TID = 801;
+    static const uint64_t OB_INDEX_SERVICE_INFO_TID = 802;
+    //add e
+	static const uint64_t OB_ALL_PROCEDURE_TID = 513;//add by zhujun
+    //mod longfei [debug] 20160127:b
+//#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
+#define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
+    //mod e
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////
@@ -649,20 +734,39 @@ namespace oceanbase
       OB_DML_DELETE   = 4,
       OB_DML_NUM,
     };
+
+    // longfei [create index]
+    static const uint64_t OB_INDEX_VIRTUAL_COLUMN_ID = 511;
+    static const int64_t OB_MAX_INDEX_COLUMNS = 100;
+    static const int64_t OB_MAX_INDEX_NUMS = 5;
+    static const uint64_t ORIGINAL_TABLE_ID = 44;
+    static const uint64_t INDEX_STATUS_ID = 45;
+    const char* const OB_INDEX_VIRTUAL_COL_NAME = "ob_virtual_col";
+    enum IndexStatus
+    {
+      NOT_AVALIBALE=0,
+      AVALIBALE,//1
+      ERROR,//2
+      WRITE_ONLY,//3
+      INDEX_INIT,//4
+    };
+
+    // add longfei [cons static index] 151120:b
+    enum ConIdxStage
+    {
+      STAGE_INIT = -1,
+      LOCAL_INDEX_STAGE = 0, ///< 局部索引创建阶段
+      GLOBAL_INDEX_STAGE     ///< 全局索引创建阶段
+    };
+    // add e
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
     TypeName(const TypeName&);               \
   void operator=(const TypeName&)
 
-// 对于 serialize 函数 pos既是输入参数又是输出参数，
-// serialize把序列化的数据从(buf+pos)处开始写入，
-// 写入完成后更新pos。如果写入后的数据要超出(buf+buf_len)，
 // serialize返回失败。
 //
-// 对于 deserialize 函数 pos既是输入参数又是输出参数，
-// deserialize从(buf+pos)处开始地读出数据进行反序列化，
-// 完成后更新pos。如果反序列化所需数据要超出(buf+data_len)，
 // deserialize返回失败。
 
 #define NEED_SERIALIZE_AND_DESERIALIZE \

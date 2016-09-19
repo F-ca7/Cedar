@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_transaction.h
+ * @brief ObTransID
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     add isolation and transaction information to ObTransID
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -57,7 +75,10 @@ namespace oceanbase
     struct ObTransID
     {
       const static uint32_t INVALID_SESSION_ID = 0;
-      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0) {}
+      // modify by guojinwei [repeatable read] 20160310:b
+      //ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0) {}
+      ObTransID(): descriptor_(INVALID_SESSION_ID), ups_(), start_time_us_(0), trans_start_time_us_(0), isolation_level_(READ_COMMITED) {}
+      // modify:e
       ~ObTransID() {}
       void reset();
       bool is_valid()const;
@@ -66,6 +87,10 @@ namespace oceanbase
       uint32_t descriptor_;
       common::ObServer ups_;
       int64_t start_time_us_;
+      // add by guojinwei [repeatalbe read] 20160310:b
+      int64_t trans_start_time_us_;
+      int32_t isolation_level_;
+      // add:e
     };
 
     struct ObEndTransReq

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mod_define.h
+ * @brief define module
+ *
+ * modified by longfei： add a module for static index handler
+ * modified by maoxiaoxiao:add a module to report tablet histogram
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_01_21
+ */
+
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -110,7 +129,7 @@ namespace oceanbase
         OB_ASYNC_FILE_APPENDER,
         OB_MODULE_PAGE_ALLOCATOR,
         OB_PACKET_LIGHTY_QUEUE,
-        LIBEASY,
+        LIBONEV,
         OB_RESULT_SET,
         OB_FIRST_TABLET_META,
         OB_FILE_CLIENT,
@@ -153,6 +172,10 @@ namespace oceanbase
         OB_MS_UPDATE_BLOOM_FILTER,
         OB_MS_SQL_SCAN_REQ_POOL,
         OB_MS_SQL_GET_REQ_POOL,
+        //add maoxx
+        OB_STATIC_INDEX_HISTOGRAM,
+        OB_TABLET_HISTOGRAM_REPORT, ///<module for reporting table histogram information
+        //add e
 
         // updateserver modules
         OB_UPS_ENGINE,
@@ -180,6 +203,7 @@ namespace oceanbase
         OB_CS_COMMON,
         OB_CS_FILE_RECYCLE,
         OB_CS_BLOOM_FILTER,
+        OB_INDEX_HANDLER, //add longfei [cons static index] 151205:e
 
         // sstable modules
         OB_SSTABLE_AIO,
@@ -242,7 +266,7 @@ namespace oceanbase
         OB_SQL_PS_STORE_PHYSICALPLAN,
         OB_SQL_PS_STORE_OPERATORS,
         OB_SQL_PS_STORE_ITEM,
-
+        OB_STATIC_INDEX,//add wenghaixing [secondary index.static_index]20151118
         // liboblog
         OB_LOG_BINLOG_RECORD,
         OB_LOG_STMT,
@@ -298,7 +322,7 @@ namespace oceanbase
       ADD_MOD(OB_ASYNC_FILE_APPENDER);
       ADD_MOD(OB_MODULE_PAGE_ALLOCATOR);
       ADD_MOD(OB_PACKET_LIGHTY_QUEUE);
-      ADD_MOD(LIBEASY);
+      ADD_MOD(LIBONEV);
       ADD_MOD(OB_RESULT_SET);
       ADD_MOD(OB_FIRST_TABLET_META);
       ADD_MOD(OB_FILE_CLIENT);
@@ -340,6 +364,9 @@ namespace oceanbase
       ADD_MOD(OB_MS_UPDATE_BLOOM_FILTER);
       ADD_MOD(OB_MS_SQL_SCAN_REQ_POOL);
       ADD_MOD(OB_MS_SQL_GET_REQ_POOL);
+      //add maoxx
+      ADD_MOD(OB_TABLET_HISTOGRAM_REPORT); ///<add module for reporting table histogram information
+      //add e
 
       ADD_MOD(OB_UPS_ENGINE);
       ADD_MOD(OB_UPS_MEMTABLE);
@@ -423,7 +450,7 @@ namespace oceanbase
       ADD_MOD(OB_SQL_PS_STORE_PHYSICALPLAN);
       ADD_MOD(OB_SQL_PS_STORE_OPERATORS);
       ADD_MOD(OB_SQL_PS_STORE_ITEM);
-
+      ADD_MOD(OB_STATIC_INDEX);//add wenghaixing [secondary index.static_index]20151118
       ADD_MOD(OB_MOD_END);
     }
     class ObModSet : public oceanbase::common::ObMemPoolModSet

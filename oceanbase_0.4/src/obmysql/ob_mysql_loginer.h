@@ -17,7 +17,7 @@
 #ifndef OB_MYSQL_LOGINER_H_
 #define OB_MYSQL_LOGINER_H_
 
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_define.h"
 #include "common/thread_buffer.h"
 #include "common/ob_malloc.h"
@@ -87,7 +87,7 @@ namespace oceanbase
          * @param c   connection to authorize
          *
          */
-        int login(easy_connection_t* c, sql::ObSQLSessionInfo *& session);
+        int login(onev_connection_e* c, sql::ObSQLSessionInfo *& session);
 
         void set_privilege_manager(common::ObPrivilegeManager *privilege_mgr);
 
@@ -101,7 +101,7 @@ namespace oceanbase
          * @param
          *
          */
-        int handshake(easy_connection_t* c);
+        int handshake(onev_connection_e* c);
 
         /**
          * read client auth packet from c->fd
@@ -109,16 +109,16 @@ namespace oceanbase
          * @param c   connection to read data
          *
          */
-        int parse_packet(easy_connection_t* c);
+        int parse_packet(onev_connection_e* c);
 
         /**
          * send ok packet to client
          * @param c
          *
          */
-        int check_privilege(easy_connection_t* c, sql::ObSQLSessionInfo *& session);
+        int check_privilege(onev_connection_e* c, sql::ObSQLSessionInfo *& session);
 
-        int insert_new_session(easy_connection_t* c, sql::ObSQLSessionInfo *& session);
+        int insert_new_session(onev_connection_e* c, sql::ObSQLSessionInfo *& session);
 
         /**
          * write data through raw socket

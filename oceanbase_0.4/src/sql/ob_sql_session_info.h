@@ -27,7 +27,7 @@
 #include "common/ob_list.h"
 #include "common/page_arena.h"
 #include "common/ob_pool.h"
-#include "easy_io_struct.h"
+#include "onev_struct.h"
 #include "common/ob_pooled_allocator.h"
 #include "common/ob_cur_time.h"
 #include "ob_ps_store.h"
@@ -141,7 +141,7 @@ namespace oceanbase
         const char* get_peer_addr() const{return addr_;}
         uint64_t get_session_id() const{return session_id_;}
         void set_session_id(uint64_t id){session_id_ = id;}
-        void set_conn(easy_connection_t *conn){conn_ = conn;}
+        void set_conn(onev_connection_e *conn){conn_ = conn;}
         int set_ps_store(ObPsStore *store);
         void set_current_result_set(ObResultSet *cur_result_set){cur_result_set_ = cur_result_set;}
         void set_query_start_time(int64_t time) {cur_query_start_time_ = time;}
@@ -154,7 +154,7 @@ namespace oceanbase
         const common::ObString get_current_query_string() const;
         int64_t get_query_start_time() const {return cur_query_start_time_;}
         const ObSQLSessionState get_session_state() const{return state_;}
-        easy_connection_t *get_conn() const{return conn_;}
+        onev_connection_e *get_conn() const{return conn_;}
         const char* get_session_state_str()const;
         void set_session_state(ObSQLSessionState state) {state_ = state;}
         const common::ObString& get_user_name(){return user_name_;}
@@ -241,7 +241,7 @@ namespace oceanbase
         uint64_t next_stmt_id_;
         ObResultSet *cur_result_set_;
         ObSQLSessionState state_;
-        easy_connection_t *conn_;
+        onev_connection_e *conn_;
         char addr_[MAX_IPADDR_LENGTH];
         int64_t cur_query_start_time_;
         char cur_query_[MAX_CUR_QUERY_LEN];

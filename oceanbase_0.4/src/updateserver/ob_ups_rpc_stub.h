@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_rpc_stub.h
+ * @brief ObUpsRpcStub
+ *     modify by zhangcd: add the function
+ *     ObUpsRpcStub::get_all_clusters_info()
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_25
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -32,6 +48,9 @@
 #include "ob_slave_sync_type.h"
 #include "common/ob_log_cursor.h"
 #include "ob_remote_log_src.h"
+// add by zhangcd [rs_election][auto_elect_flag] 20151129:b
+#include "common/ob_cluster_mgr.h"
+// add:e
 
 using namespace oceanbase::common;
 namespace oceanbase
@@ -96,6 +115,12 @@ namespace oceanbase
         int get_master_obi_rs(const ObServer &rootserver,
                               ObServer &master_obi_rs,
                               const int64_t timeout);
+        // add by zhangcd [majority_count_init] 20151118:b
+        // modify by zhangcd [rs_election][auto_elect_flag] 20151129:b
+        //int get_all_clusters_info(const ObServer &rootserver, std::vector<ObServer> &clusters_array, const int64_t timeout);
+        int get_all_clusters_info(const ObServer &rootserver, oceanbase::common::ObClusterMgr &cluster_mgr, const int64_t timeout);
+        // modify:e
+        // add:e
 
       private:
         template<typename Input, typename Output>

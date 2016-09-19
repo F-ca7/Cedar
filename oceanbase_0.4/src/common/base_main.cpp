@@ -1,3 +1,24 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file base_main.cpp
+ * @brief base main for all servers
+ * 1. support multiple clusters for HA by adding or modifying
+ *    some functions, member variables
+ * 2. modify the command line parameters of rootserver,
+ *    add the -s/--all_root_servers to command line.
+ *
+ * @version __DaSE_VERSION
+ * @author liubozhong <51141500077@ecnu.cn>
+ *         chujiajia <52151500014@ecnu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -16,8 +37,8 @@
 #include "base_main.h"
 #include "ob_define.h"
 #include "ob_trace_log.h"
-#include "easy_log.h"
-#include "common/ob_easy_log.h"
+#include "onev_log.h"
+#include "common/ob_onev_log.h"
 #include "common/ob_profile_fill_log.h"
 #include "common/ob_profile_log.h"
 #include "common/ob_preload.h"
@@ -39,7 +60,10 @@ namespace oceanbase
 
     BaseMain::BaseMain(const bool daemon)
       : cmd_cluster_id_(0), cmd_rs_port_(0), cmd_master_rs_port_(0), cmd_port_(0),
-        cmd_inner_port_(0), cmd_obmysql_port_(0), pid_dir_(DEFAULT_PID_DIR),
+        cmd_inner_port_(0), cmd_obmysql_port_(0),
+        //modify chujiajia [rs_election][multi_cluster] 20150929:b
+        cmd_rs_election_random_wait_time_(0),pid_dir_(DEFAULT_PID_DIR),
+        //modify:e
         log_dir_(DEFAULT_LOG_DIR), server_name_(NULL), use_daemon_(daemon)
     {
       setlocale(LC_ALL, "");
@@ -113,13 +137,13 @@ namespace oceanbase
         case 48:
           if (47 == sig)
           {
-            easy_log_level = static_cast<easy_log_level_t>(static_cast<int>(easy_log_level) + 1);
+            onev_log_level = static_cast<onev_log_level_t>(static_cast<int>(onev_log_level) + 1);
           }
           else
           {
-            easy_log_level = static_cast<easy_log_level_t>(static_cast<int>(easy_log_level) - 1);
+            onev_log_level = static_cast<onev_log_level_t>(static_cast<int>(onev_log_level) - 1);
           }
-          TBSYS_LOG(INFO, "easy_log_level: %d", easy_log_level);
+          TBSYS_LOG(INFO, "onev_log_level: %d", onev_log_level);
           break;
         case 49:
           ob_print_mod_memory_usage();
@@ -152,7 +176,14 @@ namespace oceanbase
     void BaseMain::parse_cmd_line(const int argc,  char *const argv[])
     {
       int opt = 0;
-      const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
+      // modify by zcd [multi_cluster] 20150416:b
+      // add the option -s
+      // the string after -s represents the rs addresses of all clusters,
+      // which is comprised of all the ip addresses and ports, seperate by comma.
+      // Example:192.168.1.1：10000#192.168.1.2:10006#192.168.1.2:10012
+      //const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
+      const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:s:";
+      // modify:e
       struct option longopts[] =
         {
           {"rootserver", 1, NULL, 'r'},
@@ -172,6 +203,9 @@ namespace oceanbase
           {"extra_config", 0, NULL, 'o'},
           {"ms_type", 0, NULL, 't'},
           {"proxy_config_file", 0, NULL, 'f'},
+          // add by zcd [multi_cluster] 20150416:b
+          {"all_root_servers", 1, NULL, 's'},
+          // add:e
           {0, 0, 0, 0}
         };
 
@@ -216,6 +250,11 @@ namespace oceanbase
           case 'z':
             cmd_obmysql_port_ = static_cast<int32_t>(strtol(optarg, NULL, 0));
             break;
+          // add by zcd [multi_cluster] 20150416:b
+          case 's':
+            snprintf(cmd_rs_cluster_ips_, sizeof (cmd_rs_cluster_ips_), "%s", optarg);
+            break;
+          // add:e
           case 'V':
             print_version();
             exit(1);
@@ -352,7 +391,7 @@ namespace oceanbase
     int BaseMain::start(const int argc, char *argv[])
     {
       int ret = EXIT_SUCCESS;
-      easy_log_format = ob_easy_log_format;
+      onev_log_format = ob_onev_log_format;
       parse_cmd_line(argc, argv);
       server_name_ = basename(argv[0]);
       char pid_file[OB_MAX_FILE_NAME_LENGTH];
@@ -390,7 +429,7 @@ namespace oceanbase
           /* const char * sz_log_level = */
           /*   TBSYS_CONFIG.getString(section_name, LOG_LEVEL, "info"); */
           TBSYS_LOGGER.setLogLevel("info");
-          easy_log_level = EASY_LOG_INFO;
+          onev_log_level = ONEV_LOG_INFO;
           /* const char * trace_log_level = */
           /*   TBSYS_CONFIG.getString(section_name, TRACE_LOG_LEVEL, "debug"); */
           SET_TRACE_LOG_LEVEL("trace");
@@ -429,6 +468,12 @@ namespace oceanbase
         if (use_daemon_)
         {
           start_ok = (tbsys::CProcess::startDaemon(pid_file, log_file) == 0);
+          //add by lbzhong [Restart UPS] 20150827:b
+          if(start_ok)
+          {
+            tbsys::CProcess::writePidFile(pid_file);
+          }
+          //add:e
         }
         if(start_ok)
         {
@@ -470,7 +515,9 @@ namespace oceanbase
     bool BaseMain::restart_server(int argc, char* argv[])
     {
       pid_t pid;
-      bool ret;
+      //add lbzhong [Commit Point] 20150820:b
+      volatile bool ret = true;
+      //add:e
 
       for (int i = 0; ret && i < argc; i++)
       {

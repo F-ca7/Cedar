@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file nb_table_row.cpp
+ * @brief add an interface to dump all scanner info
+ *
+ * Created by Wenghaixing
+ *
+ * @version __DaSE_VERSION
+ * @author
+ *   Weng Haixing <wenghaixing@ecnu.cn>
+ * @date  20160124
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -50,6 +67,16 @@ void TableRow::dump() const
     TBSYS_LOG(DEBUG, "cell:%ld, %s", i, print_cellinfo(&cells_[i]));
   }
 }
+
+//add wenghaixing [secondary index.static_index]20160117
+void TableRow::dump_test() const
+{
+  for (int64_t i = 0 ; i < cell_count_; ++i)
+  {
+    TBSYS_LOG(INFO, "test::whx cell:%ld, %s", i, print_cellinfo(&cells_[i]));
+  }
+}
+//add e
 
 int TableRow::init(hash::ObHashMap<const char*, int64_t>* cell_map, ObCellInfo* cells, int64_t cell_count)
 {

@@ -21,7 +21,7 @@ namespace oceanbase
       return command_.length();
     }
 
-    int ObMySQLCommandPacket::set_request(easy_request_t* req)
+    int ObMySQLCommandPacket::set_request(onev_request_e* req)
     {
       int ret = OB_SUCCESS;
       if (NULL == req)

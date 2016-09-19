@@ -114,7 +114,17 @@ namespace oceanbase
       virtual int send_data(const char* data, const int64_t length);
         virtual int post_log_to_slave(const ObLogCursor& start_cursor, const ObLogCursor& end_cursor, const char* data, const int64_t length);
         virtual int wait_post_log_to_slave(const char* data, const int64_t length, int64_t& delay_us);
-        virtual int64_t get_acked_clog_id() const { return 0; }
+        //mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+        //virtual int64_t get_acked_clog_id() const{return 0;}
+        virtual int64_t get_acked_clog_id(){return 0;}
+        //mod:e
+        //add chujiajia [log synchronization][multi_cluster] 20160627:b
+        /**
+         * @brief get acked max commited log id without update
+         * @return acked max commited log id
+         */
+        virtual int64_t get_acked_clog_id_without_update(){return 0;}
+        //add:e
       /// @brief 获取Slave个数
       /// @retval slave_num_ Slave个数
       inline int get_num() const {return slave_num_;}

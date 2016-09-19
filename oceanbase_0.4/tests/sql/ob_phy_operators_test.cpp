@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_phy_operators_test.cpp
+ * @brief test physical operators
+ * modified by wangjiahao: add fill_values operator test.
+ * @version __DaSE_VERSION
+ * @author wangjiahao <51151500051@ecnu.edu.cn>
+ * @date 2015_12_30
+ */
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,6 +35,7 @@
 #include "sql/ob_merge_groupby.h"
 #include "sql/ob_merge_distinct.h"
 #include "sql/ob_table_mem_scan.h"
+#include "sql/ob_fill_values.h"
 
 #include <gtest/gtest.h>
 using namespace oceanbase::sql;
@@ -351,6 +366,78 @@ TEST_F(ObPhyOperatorsTest, basic_test)
   ASSERT_EQ(OB_ITER_END, root_op->get_next_row(row));
   ASSERT_EQ(OB_SUCCESS, root_op->close());
 }
+int set_row_desc(ObRowDesc& row_desc, int64_t table_id, int64_t n_col)
+{
+  for(int64_t col_id = 0; col_id < n_col; col_id++) {
+    row_desc.add_column_desc(table_id, col_id + 16);
+  }
+  row_desc.set_rowkey_cell_count(1);
+  return 0;
+}
+int set_row_desc_ext(ObRowDescExt& row_desc_ext, int64_t table_id, int64_t n_col)
+{
+  ObObj data_type;
+  data_type.set_type(ObIntType);
+  for(int64_t col_id = 0; col_id < n_col; col_id++) {
+    row_desc_ext.add_column_desc(table_id, col_id + 16, data_type);
+  }
+  return 0;
+}
+ObRow& build_row(ObRowDesc& row_desc, ObRow& row) {
+  int err = OB_SUCCESS;
+  row.set_row_desc(row_desc);
+  for (int64_t j = 0; OB_SUCCESS == err && j < row_desc.get_column_num(); j++)
+  {
+    uint64_t table_id = OB_INVALID_ID;
+    uint64_t column_id = OB_INVALID_ID;
+    row_desc.get_tid_cid(j, table_id, column_id);
+    ObObj obj;
+    obj.set_int(j);
+    if (OB_SUCCESS != (err = row.set_cell(table_id, column_id, obj)))
+    {
+      TBSYS_LOG(ERROR, "set_cell()=>%d", err);
+    }
+  }
+  return row;
+}
+int build_values(ObRowDesc& row_desc, ObValues& values, int64_t row_count) {
+  int err = OB_SUCCESS;
+  for(int64_t i = 0; OB_SUCCESS == err && i < row_count; i++){
+    ObRow row;
+    if (OB_SUCCESS != (err = values.add_values(build_row(row_desc, row))))
+    {
+      TBSYS_LOG(ERROR, "values.add_values()=>%d", err);
+    }
+  }
+  return err;
+}
+//add wangjiahao [dev_update_more] 20151209 :b
+TEST_F(ObPhyOperatorsTest, extra_fill_values_test)
+{
+  ObFillValues op_fillv;
+  ObExprValues op_exprv;
+  ObValues op_v;
+  ObRowDesc desc;
+  ObRowDescExt descExt;
+  ObRowkeyInfo rowkeyinfo;
+  const ObRow *row;
+  ASSERT_EQ(OB_SUCCESS, set_row_desc(desc, 3001, 10));
+  ASSERT_EQ(OB_SUCCESS, set_row_desc_ext(descExt, 3001, 10));
+  ASSERT_EQ(OB_SUCCESS, build_values(desc, op_v, 1000));
+  ASSERT_EQ(OB_SUCCESS, op_v.set_row_desc(desc));
+  ASSERT_EQ(OB_SUCCESS, op_fillv.set_op(&op_v, &op_exprv));
+  ASSERT_EQ(OB_SUCCESS, op_exprv.set_row_desc(desc, descExt));
+  ASSERT_EQ(OB_SUCCESS, op_v.open());
+  ASSERT_EQ(OB_SUCCESS, op_fillv.open());
+  TBSYS_LOG(INFO, "open done.");
+  ASSERT_EQ(OB_ITER_END, op_fillv.get_next_row(row));
+  TBSYS_LOG(INFO, "getnextrow done.");
+  ASSERT_EQ(OB_SUCCESS, op_fillv.close());
+  op_fillv.set_rowkey_info(rowkeyinfo);
+  char buf[2000];
+  op_fillv.to_string(buf, 2000);
+}
+//add :e
 
 int main(int argc, char **argv)
 {

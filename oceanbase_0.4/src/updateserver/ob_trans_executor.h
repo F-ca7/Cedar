@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_trans_executor.h
+ * @brief TransExecutor
+ *     modify by guojinwei: support multiple clusters for HA by
+ *     adding or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ * @date 2015_12_30
+ */
 ////===================================================================
  //
  // ob_trans_executor.h updateserver / Oceanbase
@@ -171,7 +187,7 @@ namespace oceanbase
       {
         common::ObPacket pkt;
         ObTransID sid;
-        easy_addr_t src_addr;
+        onev_addr_e src_addr;
         void reset()
         {
           sid.reset();
@@ -225,6 +241,13 @@ namespace oceanbase
         void log_trans_info() const;
         int &thread_errno();
         int64_t &batch_start_time();
+        //add chujiajia [log synchronization][multi_cluster] 20160606:b
+        /**
+         * @brief handle uncommited session list after master switch to slave
+         * @return OB_SUCCESS if success
+         */
+        int handle_uncommited_session_list_after_switch();
+        //add:e
       private:
         bool handle_in_situ_(const int pcode);
         int push_task_(Task &task);
@@ -315,6 +338,12 @@ namespace oceanbase
         Task nop_task_;
 
         common::ObFIFOStream fifo_stream_;
+        // add by guojinwei [log synchronize][multi_cluster] 20151028:b
+        int64_t message_residence_time_us_;         ///< used for log synchronization
+        int64_t message_residence_protection_us_;   ///< used for log synchronization
+        int64_t message_residence_max_us_;          ///< used for log synchronization
+        int64_t last_commit_log_time_us_;           ///< used for log synchronization
+        // add:e
     };
   }
 }

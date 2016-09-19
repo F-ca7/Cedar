@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_rpc_stub.cpp
+ * @brief ObUpsSlaveMgr
+ *     modify by zhangcd: modify the class ObUpsSlaveMgr to add
+ *     the majority_count setting process
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_25
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,6 +40,9 @@ ObUpsSlaveMgr::ObUpsSlaveMgr()
   is_initialized_ = false;
   n_slave_last_post_ = -1;
   slave_num_ = 0;
+  //add chujiajia [log synchronization][multi_cluster] 20160627:b
+  acked_clog_id_ = 0;
+  //add:e
   rpc_stub_ = NULL;
   role_mgr_ = NULL;
 }
@@ -41,8 +60,16 @@ ObUpsSlaveMgr::~ObUpsSlaveMgr()
   }
 }
 
+// modify by guojinwei [log synchronization][multi_cluster] 20151117:b
+//int ObUpsSlaveMgr::init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr,
+//    ObCommonRpcStub *rpc_stub, int64_t log_sync_timeout)
+// modify by zhangcd [majority_count_init] 20151118:b
+//int ObUpsSlaveMgr::init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr,
+//    ObCommonRpcStub *rpc_stub, int64_t log_sync_timeout, int32_t slave_count)
 int ObUpsSlaveMgr::init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr,
     ObCommonRpcStub *rpc_stub, int64_t log_sync_timeout)
+// modify:e
+// modify:e
 {
   int err = OB_SUCCESS;
   if (NULL == role_mgr || NULL == rpc_stub)
@@ -50,7 +77,13 @@ int ObUpsSlaveMgr::init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr
     err = OB_INVALID_ARGUMENT;
     TBSYS_LOG(WARN, "invalid argument, role_mgr_=%p, rpc_stub=%p, log_sync_timeout=%ld", role_mgr, rpc_stub, log_sync_timeout);
   }
+  // modify by guojinwei [log synchronization][multi_cluster] 20151117:b
+  //else if (OB_SUCCESS != (err = ack_queue_.init(callback, rpc_stub->get_client_mgr(), DEFAULT_ACK_QUEUE_LEN)))
+  // modify by zhangcd [majority_count_init] 20151118:b
+  //else if (OB_SUCCESS != (err = ack_queue_.init(callback, rpc_stub->get_client_mgr(), DEFAULT_ACK_QUEUE_LEN, slave_count)))
   else if (OB_SUCCESS != (err = ack_queue_.init(callback, rpc_stub->get_client_mgr(), DEFAULT_ACK_QUEUE_LEN)))
+  // modify:e
+  // modify:e
   {
     TBSYS_LOG(ERROR, "ack_queue.init(callback=%p, client_mgr=%p, queue_len=%ld)=>%d",
               callback, rpc_stub->get_client_mgr(), DEFAULT_ACK_QUEUE_LEN, err);
@@ -64,6 +97,18 @@ int ObUpsSlaveMgr::init(IObAsyncClientCallback* callback, ObUpsRoleMgr *role_mgr
   }
   return err;
 }
+
+// add by zhangcd [majority_count_init] 20151118:b
+void ObUpsSlaveMgr::set_ack_queue_majority_count(int32_t majority_count)
+{
+  ack_queue_.set_majority_count(majority_count);
+}
+
+int32_t ObUpsSlaveMgr::get_ack_queue_majority_count()
+{
+  return ack_queue_.get_majority_count();
+}
+// add:e
 
 int ObUpsSlaveMgr::set_log_sync_timeout_us(const int64_t timeout)
 {
@@ -152,9 +197,16 @@ int ObUpsSlaveMgr::wait_post_log_to_slave(const char* data, const int64_t length
   return ret;
 }
 
-int64_t ObUpsSlaveMgr::get_acked_clog_id() const
+//mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+//int64_t ObUpsSlaveMgr::get_acked_clog_id() const
+int64_t ObUpsSlaveMgr::get_acked_clog_id()
+//mod:e
 {
-  return const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  //mod by chujiajia [log synchronization][multi_cluster] 20160627:b
+  //return const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  acked_clog_id_ = const_cast<ObAckQueue*>(&ack_queue_)->get_next_acked_seq();
+  return acked_clog_id_;
+  //mod:e
 }
 
 int ObUpsSlaveMgr::grant_keep_alive()

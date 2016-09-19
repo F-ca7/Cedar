@@ -1,4 +1,19 @@
 /**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_define.h
+ * @brief modify the construction function of class ObBootstrap.
+ *
+ * @version __DaSE_VERSION
+ * @author zhangcd<zhangcd_ecnu@ecnu.cn>
+ * @date 2015_12_30
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -33,7 +48,10 @@ namespace oceanbase
     class ObBootstrap
     {
       public:
-        ObBootstrap(ObRootServer2 & root_server);
+        // modify by zcd [multi_cluster] 20150406:b
+        /// add the parameter root_worker
+        ObBootstrap(ObRootServer2 & root_server, ObRootWorker &root_worker);
+        // modify:e
         ~ObBootstrap();
         int init_schema_service(void);
         int bootstrap_core_tables(void);
@@ -62,6 +80,9 @@ namespace oceanbase
         int64_t sys_table_count_;
         int64_t ini_table_count_;
         common::ObSchemaServiceImpl schema_service_;
+        // add by zcd [multi_cluster] 20150406:b
+        ObRootWorker *root_worker_;
+        // add:e
     };
   } // end namespace rootserver
 } // end namespace oceanbase

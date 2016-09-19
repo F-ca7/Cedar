@@ -50,6 +50,8 @@ namespace oceanbase
           int64_t to_string(char *buffer, int64_t length) const;
           int deep_copy(Field &other, common::ObStringBuf *str_buf);
         };
+        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
+        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
       public:
         ObResultSet();
         ~ObResultSet();
@@ -381,7 +383,9 @@ namespace oceanbase
           ret = tmp_ret;
           TBSYS_LOG(WARN, "failed to close main_query, ret=%d", ret);
         }
+
       }
+
       set_errcode(ret);
       return ret;
     }

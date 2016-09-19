@@ -1,4 +1,28 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_tablet_scan.cpp
+ * @brief for scanning tablet
+ * modified by longfei：
+ * make function build_sstable_scan_param() public
+ *
+ * @brief ObTabletScan
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     set_trans_id for scan_param in need_incremental_data()
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ *         guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_01_22
+ *       2016_06_16
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -129,6 +153,9 @@ int ObTabletScan::need_incremental_data(
     else
     {
       op_ups_scan->set_is_read_consistency(sql_scan_param_->get_is_read_consistency());
+      // add by guojinwei [repeatable read] 20160312:b
+      op_ups_scan->set_trans_id(sql_scan_param_->get_trans_id());
+      // add:e
     }
   }
 
@@ -269,6 +296,7 @@ int ObTabletScan::build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
 {
   int ret = OB_SUCCESS;
   TBSYS_LOG(DEBUG, "sql_scan_param=%s", to_cstring(sql_scan_param));
+  TBSYS_LOG(DEBUG, "debug::longfei>>>is_result_cached?[%d]", sql_scan_param.get_is_result_cached());//add longfei 2016-03-30 19:05:02
   sstable_scan_param.set_range(*sql_scan_param.get_range());
   sstable_scan_param.set_is_result_cached(sql_scan_param.get_is_result_cached());
   sstable_scan_param.set_not_exit_col_ret_nop(false);
@@ -285,6 +313,21 @@ int ObTabletScan::build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
   return ret;
 }
 
+// add longfei [cons static index] 151130:b
+/**
+ * @brief ObTabletScan::build_sstable_scan_param_pub make build_sstable_scan_param() public
+ * @param basic_columns
+ * @param sql_scan_param
+ * @param sstable_scan_param [out]
+ * @return
+ */
+int ObTabletScan::build_sstable_scan_param_pub(ObArray<uint64_t> &basic_columns,
+    const ObSqlScanParam &sql_scan_param, sstable::ObSSTableScanParam &sstable_scan_param) const
+{
+  return build_sstable_scan_param(basic_columns, sql_scan_param, sstable_scan_param);
+}
+// add e
+
 int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
 {
   int ret = OB_SUCCESS;
@@ -293,6 +336,9 @@ int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
   ObArray<uint64_t> basic_columns;
   uint64_t table_id = sql_scan_param_->get_table_id();
   uint64_t renamed_table_id = sql_scan_param_->get_renamed_table_id();
+  //add longfei 2016-03-30 15:59:22
+  TBSYS_LOG(DEBUG, "debug::longfei>>>table_id[%ld], renamed_tid[%ld]", table_id, renamed_table_id);
+  //add e
   ObProject *op_project = NULL;
   ObLimit *op_limit = NULL;
   ObFilter *op_filter = NULL;
@@ -313,7 +359,10 @@ int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
 
   if (OB_SUCCESS == ret)
   {
-
+    //add longfei 2016-03-30 16:08:08
+    //看看构造好的table_join_info
+    TBSYS_LOG(DEBUG, "debug::longfei>>>table_join_info:%s", to_cstring(table_join_info));
+    //add e
     if (OB_SUCCESS != (ret = build_sstable_scan_param(basic_columns, *sql_scan_param_, sstable_scan_param)))
     {
       TBSYS_LOG(WARN, "build_sstable_scan_param ret=%d", ret);

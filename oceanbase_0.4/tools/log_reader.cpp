@@ -231,16 +231,16 @@ const char* get_column_name(uint64_t tab_id, uint64_t col_id)
   return column_name.c_str();
 }
 
-void print_ups_mutator_head(int64_t seq, int64_t len, const ObUpsMutator &mut, const char* op)
+void print_ups_mutator_head(int64_t seq, int64_t len, const ObUpsMutator &mut, const char* op, int64_t timestamp)
 {
   time_t tm = mut.get_mutate_timestamp() / 1000000;
   char time_buf[64];
   ctime_r(&tm, time_buf);
   time_buf[strlen(time_buf) - 1] = '\0';
 
-  fprintf(Param::get_instance().get_out_stream(), "SEQ: %lu\tPayload Length: %ld\tTYPE: %s\tMutatorTime: %s\t%s %ld "
+  fprintf(Param::get_instance().get_out_stream(), "SEQ: %lu\tLOG_TIMESTAMP:%ld\tPayload Length: %ld\tTYPE: %s\tMutatorTime: %s\t%s %ld "
           "ChecksumBefore=%lu ChecksumAfter=%lu\n",
-          seq, len, IDS::str_log_cmd(OB_LOG_UPS_MUTATOR), time_buf, op, mut.get_mutate_timestamp(),
+          seq, timestamp, len, IDS::str_log_cmd(OB_LOG_UPS_MUTATOR), time_buf, op, mut.get_mutate_timestamp(),
           mut.get_memtable_checksum_before_mutate(), mut.get_memtable_checksum_after_mutate());
 }
 
@@ -306,7 +306,7 @@ void print_ups_mutator_body(int cell_idx, ObMutatorCellInfo* cell, const char* r
   }
 }
 
-int print_ups_mutator(int64_t seq, const char* buf, int64_t len)
+int print_ups_mutator(int64_t seq, const char* buf, int64_t len, int64_t timestamp)
 {
   int ret = 0;
 
@@ -346,7 +346,7 @@ int print_ups_mutator(int64_t seq, const char* buf, int64_t len)
           {
             if (!Param::get_instance().has_sub_row_key())
             {
-              print_ups_mutator_head(seq, len, mut, "Freeze Operation");
+              print_ups_mutator_head(seq, len, mut, "Freeze Operation", timestamp);
             }
             continue;
           }
@@ -354,7 +354,7 @@ int print_ups_mutator(int64_t seq, const char* buf, int64_t len)
           {
             if (!Param::get_instance().has_sub_row_key())
             {
-              print_ups_mutator_head(seq, len, mut, "Drop Operation");
+              print_ups_mutator_head(seq, len, mut, "Drop Operation", timestamp);
             }
             continue;
           }
@@ -377,7 +377,7 @@ int print_ups_mutator(int64_t seq, const char* buf, int64_t len)
         {
           if (!print_flag)
           {
-            print_ups_mutator_head(seq, len, mut, mutator_op);
+            print_ups_mutator_head(seq, len, mut, mutator_op, timestamp);
             print_flag = true;
           }
           print_ups_mutator_body(cell_idx, cell, to_cstring(cell->cell_info.row_key_));
@@ -479,22 +479,25 @@ int main(int argc, char* argv[])
       char* log_data;
       int64_t data_len;
 
+      int64_t timestamp;
       ret = reader.read_log(cmd, log_seq, log_data, data_len);
+      reader.read_log(cmd, log_seq, timestamp);
       while (OB_SUCCESS == ret)
       {
         if (OB_LOG_UPS_MUTATOR == cmd)
         {
-          ret = print_ups_mutator(log_seq, log_data, data_len);
+          ret = print_ups_mutator(log_seq, log_data, data_len, timestamp);
         }
         else
         {
           if (!Param::get_instance().has_sub_row_key())
           {
-            fprintf(stdout, "SEQ: %lu\tPayload Length: %ld\tTYPE: %s\n", log_seq, data_len, IDS::str_log_cmd(cmd));
+            fprintf(stdout, "SEQ: %lu\tLOG_TIMESTAMP:%ld\tPayload Length: %ld\tTYPE: %s\n", log_seq, timestamp, data_len, IDS::str_log_cmd(cmd));
           }
         }
 
         ret = reader.read_log(cmd, log_seq, log_data, data_len);
+        reader.read_log(cmd, log_seq, timestamp);
       }
 
       if (OB_READ_NOTHING == ret)

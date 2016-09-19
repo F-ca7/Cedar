@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DASE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_root_main.cpp
+ * @brief rootserver main, deal with the new system param for election
+ *        store the cmd_rs_cluster_ips_ to the rs_config values.
+ *
+ * @version __DaSE_VERSION
+ * @author Chu Jiajia  <52151500014@ecnu.edu.cn>
+ *         zhangcd <zhangcd_ecnu@ecnu.cn>
+ * @date 2015_08_23
+ */
 /*===============================================================
 *   (C) 2007-2010 Taobao Inc.
 *
@@ -113,6 +129,20 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "Parse extra config error! string: [%s], ret: [%d]",
                   cmd_extra_config_, ret);
       }
+      // add by zcd [multi_cluster] 20150416:b
+      // 判断命令行的-s参数输入是否有效
+      if(strlen(cmd_rs_cluster_ips_) > 0)
+      {
+        rs_config_.all_cluster_rs_ip.set_value(cmd_rs_cluster_ips_);
+      }
+      // add:e
+
+      //add chujiajia [rs_election][multi_cluster] 20150929:b
+      if (cmd_rs_election_random_wait_time_ > 0)
+      {
+        rs_config_.rs_election_random_wait_time = cmd_rs_election_random_wait_time_; /* listen port */
+      }
+      // add:e
       rs_config_.print();
 
       if (OB_SUCCESS != ret)

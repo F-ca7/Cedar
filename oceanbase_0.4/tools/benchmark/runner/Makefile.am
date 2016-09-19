@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys \
 							-I${TBLIB_ROOT}/include/tbnet \
-							-I${EASY_ROOT}/include/easy \
+							-I${ONEV_ROOT}/include/onev \
 							-I$(top_builddir)/src/common/ \
 							-I${top_srcdir}/src\
 							-I$(top_builddir)/tools/benchmark/runner/mysql_5.5/include
@@ -9,7 +9,7 @@ LDADD = $(top_builddir)/src/common/libcommon.a \
 				$(top_builddir)/src/sql/libsql.a \
 				$(top_builddir)/src/common/libcommon.a \
 				$(top_builddir)/src/common/btree/libbtree.a \
-				${EASY_LIB_PATH}/libeasy.a \
+				${ONEV_LIB_PATH}/libonev.a \
 				${TBLIB_ROOT}/lib/libtbnet.a \
 				${TBLIB_ROOT}/lib/libtbsys.a
 

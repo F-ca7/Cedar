@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_chunk_service.cpp
+ * @brief for chunkserver provides services
+ *
+ * modified by longfei：
+ *   1.add se_index_task
+ *   2.init index_handle_pool
+ *   3.deal with index heart beat
+ * future work:
+ *   deal with failed index task
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @date 2016_01_19
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
@@ -57,6 +79,9 @@ namespace oceanbase
       service_started_(false), in_register_process_(false),
       service_expired_time_(0),
       migrate_task_count_(0), lease_checker_(this), merge_task_(this),
+      //add longfei [cons static index] 151120:b
+      se_index_task_(this),
+      //add e
       fetch_ups_task_(this), report_tablet_task_(this)
 
     {
@@ -228,7 +253,15 @@ namespace oceanbase
           }
         }
       }
-
+      //add longfei [cons static index] 151117:b
+      if(OB_SUCCESS == rc)
+      {
+        if (OB_SUCCESS != (rc = chunk_server_->get_tablet_manager().init_index_handle_pool()))
+        {
+          TBSYS_LOG(ERROR,"start index handler thread failed,ret=%d",rc);
+        }
+      }
+      //add e
       return rc;
     }
 
@@ -312,10 +345,15 @@ namespace oceanbase
       status = 0;
       char server_version[OB_SERVER_VERSION_LENGTH] = "";
       get_package_and_svn(server_version, sizeof(server_version));
-
+      //add wenghaixing [secondary index.static_index]20160117
+      int64_t cluster_id = 0;
+      //add e
       while (inited_)
       {
-        rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status, server_version);
+        //modify wenghaixing [secondary index.static_index]20160117
+        //rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status,  server_version);
+          rc = CS_RPC_CALL_RS(register_server, chunk_server_->get_self(), false, status, cluster_id,  server_version);
+        //modify e
         if (OB_SUCCESS == rc) break;
         if (OB_RESPONSE_TIME_OUT != rc && OB_NOT_INIT != rc)
         {
@@ -324,6 +362,12 @@ namespace oceanbase
         }
         usleep(static_cast<useconds_t>(chunk_server_->get_config().network_timeout));
       }
+      //add wenghaixing [secondary index.static_index]20160117
+      if (OB_SUCCESS == rc)
+      {
+        chunk_server_->get_config().cluster_id = cluster_id;
+      }
+      //add e
       return rc;
     }
 
@@ -437,7 +481,7 @@ namespace oceanbase
         const int32_t packet_code,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -598,6 +642,12 @@ namespace oceanbase
           case OB_CS_SHOW_DISK:
             rc = cs_show_disk(version, channel_id, req, in_buffer, out_buffer);
             break;
+          //add longfei [cons static index] 151218:b
+          case OB_RE_IDX_CONS_F:
+            rc = cs_recieve_work(version, channel_id, req, in_buffer, out_buffer);
+            TBSYS_LOG(INFO,"This CS has recieved a work!");
+            break;
+          //add e
           default:
             rc = OB_ERROR;
             TBSYS_LOG(WARN, "not support packet code[%d]", packet_code);
@@ -607,10 +657,51 @@ namespace oceanbase
       return rc;
     }
 
+    //add longfei [cons static index] 151218:b
+    int ObChunkService::cs_recieve_work(
+        const int32_t version,
+        const int32_t channel_id,
+        onev_request_e
+ *req,
+        ObDataBuffer &in_buffer,
+        ObDataBuffer &out_buffer)
+    {
+      common::ObResultCode rc;
+      rc.result_code_ = OB_SUCCESS;
+      BlackList list;
+      UNUSED(channel_id);
+      UNUSED(version);
+      int MY_VERSION = 1;
+      if(NULL == chunk_server_)
+      {
+        rc.result_code_ = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(ERROR, "chunk server pointer can not be null");
+      }
+      if(OB_SUCCESS == rc.result_code_)
+      {
+        if(OB_SUCCESS != (rc.result_code_ = list.deserialize(in_buffer.get_data(),in_buffer.get_capacity(),in_buffer.get_position())))
+        {
+          TBSYS_LOG(WARN, "desirialize black list failed, ret = %d", rc.result_code_);
+        }
+        else
+        {
+          ObTabletManager& tablet_manager = chunk_server_->get_tablet_manager();
+          rc.result_code_ = tablet_manager.get_index_handle_pool().push_work(list);
+        }
+      }
+      if(OB_SUCCESS == rc.serialize(out_buffer.get_data(),out_buffer.get_capacity(), out_buffer.get_position()))
+      {
+        chunk_server_->send_response(OB_RE_IDX_CONS_F_RESPONSE, MY_VERSION, out_buffer, req, channel_id);
+      }
+
+      return rc.result_code_;
+    }
+    //add e
+
     int ObChunkService::cs_send_file(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -621,7 +712,7 @@ namespace oceanbase
     int ObChunkService::cs_batch_get(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -662,7 +753,7 @@ namespace oceanbase
         const int64_t start_time,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -683,7 +774,7 @@ namespace oceanbase
       ObPacket* next_request = NULL;
       ObPacketQueueThread& queue_thread =
         chunk_server_->get_default_task_queue_thread();
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       FILL_TRACE_LOG("start cs_get");
 
       if (version != CS_GET_VERSION)
@@ -897,7 +988,7 @@ namespace oceanbase
     int ObChunkService::cs_show_disk(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -965,7 +1056,7 @@ namespace oceanbase
     int ObChunkService::cs_disk_maintain(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1043,20 +1134,30 @@ namespace oceanbase
     int ObChunkService::cs_sql_scan(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
     {
+      //add longfei 2016-03-30 14:34:03 统计scan时间
+      int64_t now = tbsys::CTimeUtil::getTime(); //add
+      int ret = OB_SUCCESS;//add
       sql::ObSqlScanParam *sql_scan_param_ptr = GET_TSI_MULT(sql::ObSqlScanParam, TSI_CS_SQL_SCAN_PARAM_1);
       FILL_TRACE_LOG("start_cs_sql_scan");
-      return cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr);
+//      return cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr); del
+      ret = cs_sql_read(version, channel_id, req, in_buffer, out_buffer, timeout_time, sql_scan_param_ptr); //add
+      //日志打出的exec time为1157
+      //第二次日志打出的exec time为85591,第一次是因为数据都在ups上 2016-04-04 14:52:56
+      TBSYS_LOG(DEBUG, "debug::longfei>>>exec time [%ld], table_id [%ld]",
+                tbsys::CTimeUtil::getTime() - now,
+                sql_scan_param_ptr->get_table_id()); //add
+      return ret; //add
     }
 
     int ObChunkService::cs_sql_get(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -1069,7 +1170,7 @@ namespace oceanbase
     int ObChunkService::cs_sql_read(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time,
@@ -1114,6 +1215,7 @@ namespace oceanbase
 
       if (OB_SUCCESS == rc.result_code_)
       {
+        //解析出来ms发送过来scan的参数
         rc.result_code_ = sql_read_param_ptr->deserialize(
             in_buffer.get_data(), in_buffer.get_capacity(),
             in_buffer.get_position());
@@ -1121,6 +1223,13 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "parse cs_sql_scan input scan param error. ret=%d", rc.result_code_);
         }
+        //add longfei 2016-04-04 16:06:06
+        //看看ms发送过来的read param到底是什么
+        else
+        {
+          TBSYS_LOG(DEBUG, "debug::longfei>>>sql_read_param recieve from ms is [%s]", to_cstring(*sql_read_param_ptr));
+        }
+        //add e
       }
 
       if (OB_SUCCESS == rc.result_code_)
@@ -1272,7 +1381,7 @@ namespace oceanbase
             if (NULL != next_request)
             {
               req = next_request->get_request();
-              easy_request_wakeup(req);
+              onev_request_wakeup(req);
             }
             break;
           }
@@ -1364,7 +1473,7 @@ namespace oceanbase
         const int64_t start_time,
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -1386,7 +1495,7 @@ namespace oceanbase
       ObPacket* next_request = NULL;
       ObPacketQueueThread& queue_thread =
         chunk_server_->get_default_task_queue_thread();
-      easy_addr_t addr = get_easy_addr(req);
+      onev_addr_e addr = get_onev_addr(req);
       char sql[1024] = "";
       int64_t pos = 0;
 
@@ -1491,7 +1600,10 @@ namespace oceanbase
           packet_cnt++;
         }
 
-        if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet)
+        //modify wenghaixing [secondary index static_index_build ]20151230
+        //if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet)old code
+        if (OB_SUCCESS == rc.result_code_ && !is_fullfilled && !is_last_packet && !scan_param_ptr->if_need_fake())
+        //modify e
         {
           scanner->reset();
           rc.result_code_ = queue_thread.wait_for_next_request(
@@ -1501,7 +1613,7 @@ namespace oceanbase
             //merge server end this session
             req = next_request->get_request();
             rc.result_code_ = OB_SUCCESS;
-            easy_request_wakeup(req);
+            onev_request_wakeup(req);
             break;
           }
           else if (OB_SUCCESS != rc.result_code_)
@@ -1592,7 +1704,7 @@ namespace oceanbase
     int ObChunkService::cs_drop_old_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1650,7 +1762,7 @@ namespace oceanbase
     int ObChunkService::cs_heart_beat(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1824,13 +1936,32 @@ namespace oceanbase
             out_buffer, connection, channel_id);
       }
       */
+      //add longfei [cons static index] 151120:b
+      IndexBeat beat;
+      if(OB_SUCCESS == rc.result_code_)
+      {
+        rc.result_code_ = beat.deserialize(in_buffer.get_data(),
+                                           in_buffer.get_capacity(),
+                                           in_buffer.get_position()
+                                           );
+        if (OB_SUCCESS != (rc.result_code_))
+        {
+          TBSYS_LOG(ERROR, "parse heartbeat index beat failed: ret[%d]",
+                    rc.result_code_);
+        }
+        else
+        {
+          rc.result_code_ = handle_index_beat(beat);
+        }
+      }
+      //add e
       return rc.result_code_;
     }
 
     int ObChunkService::cs_accept_schema(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -1879,6 +2010,19 @@ namespace oceanbase
         {
           schema_version = schema->get_version();
         }
+
+        // test longfei
+        //IndexList temp_list;
+        //int64_t temp_counter = 0;
+        //ret = schema->get_index_list(3001,temp_list);
+
+        //TBSYS_LOG(INFO,"LONGFEI:CS SWITCH SCHEMA!temp_list.get_count() = %d",static_cast<int>(temp_list.get_count()));
+
+        //for (;temp_counter < temp_list.get_count(); temp_counter++)
+        //{
+        //  TBSYS_LOG(INFO,"LONGFEI:student de secondary index table id = %d",static_cast<int>(temp_list.index_tid[temp_counter]));
+        //}
+
       }
 
       if (OB_SUCCESS == err)
@@ -1917,7 +2061,7 @@ namespace oceanbase
     int ObChunkService::cs_create_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2006,7 +2150,7 @@ namespace oceanbase
     int ObChunkService::cs_load_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2200,7 +2344,7 @@ namespace oceanbase
     int ObChunkService::cs_delete_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2339,7 +2483,7 @@ namespace oceanbase
     int ObChunkService::cs_merge_tablets(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2425,7 +2569,7 @@ namespace oceanbase
     int ObChunkService::cs_get_migrate_dest_loc(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2522,7 +2666,7 @@ namespace oceanbase
     int ObChunkService::cs_dump_tablet_image(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2618,7 +2762,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_stats(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2660,7 +2804,7 @@ namespace oceanbase
     int ObChunkService::cs_start_gc(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2702,7 +2846,7 @@ namespace oceanbase
     int ObChunkService::cs_check_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2759,7 +2903,7 @@ namespace oceanbase
     int ObChunkService::cs_reload_conf(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2800,7 +2944,7 @@ namespace oceanbase
     int ObChunkService::cs_show_param(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2837,7 +2981,7 @@ namespace oceanbase
     int ObChunkService::cs_stop_server(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -2901,7 +3045,7 @@ namespace oceanbase
     int ObChunkService::cs_force_to_report_tablet(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -2940,14 +3084,14 @@ namespace oceanbase
           atomic_exchange(&scan_tablet_image_count_, 0);
         }
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return ret;
     }
 
     int ObChunkService::cs_change_log_level(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -2994,7 +3138,7 @@ namespace oceanbase
     int ObChunkService::cs_sync_all_images(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3044,7 +3188,7 @@ namespace oceanbase
     int ObChunkService::cs_tablet_read(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer,
         const int64_t timeout_time)
@@ -3199,7 +3343,7 @@ namespace oceanbase
             if (NULL != next_request)
             {
               req = next_request->get_request();
-              easy_request_wakeup(req);
+              onev_request_wakeup(req);
             }
             break;
           }
@@ -3272,7 +3416,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_data(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3562,7 +3706,7 @@ namespace oceanbase
     int ObChunkService::cs_load_bypass_sstables(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3663,7 +3807,7 @@ namespace oceanbase
     int ObChunkService::cs_delete_table(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -3744,7 +3888,7 @@ namespace oceanbase
     int ObChunkService::cs_fetch_sstable_dist(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -4007,7 +4151,7 @@ namespace oceanbase
     int ObChunkService::cs_set_config(
         const int32_t version,
         const int32_t channel_id,
-        easy_request_t* req,
+        onev_request_e* req,
         common::ObDataBuffer& in_buffer,
         common::ObDataBuffer& out_buffer)
     {
@@ -4055,7 +4199,7 @@ namespace oceanbase
     int ObChunkService::cs_get_config(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -4097,7 +4241,7 @@ namespace oceanbase
     int ObChunkService::cs_get_bloom_filter(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_time)
@@ -4305,7 +4449,7 @@ namespace oceanbase
           if (OB_NET_SESSION_END == ret)
           {
             ret = OB_SUCCESS;
-            easy_request_wakeup(req);
+            onev_request_wakeup(req);
             break;
           }
           else if (OB_SUCCESS == ret)
@@ -4636,6 +4780,172 @@ namespace oceanbase
       return timer_.schedule(report_tablet_task_,
           report_tablet_task_.get_next_wait_useconds(), false);
     }
+
+    // add longfei [cons static index] 151120:b
+    int ObChunkService::handle_index_beat(IndexBeat beat)
+    {
+      int ret = OB_SUCCESS;
+      int64_t wait_time = 5000000;
+      bool is_processing = false;//判断beat.idx_tid_是不是正在处理
+      if (OB_INVALID_ID == beat.idx_tid_ && ERROR == beat.status_ && 0 == beat.hist_width_ && STAGE_INIT == beat.stage_)
+      {
+        //NORMAL STATUS, DO NOTHING AT THIS TIME
+      }
+      else if (OB_INVALID_ID != beat.idx_tid_ && INDEX_INIT == beat.status_ && LOCAL_INDEX_STAGE == beat.stage_)
+      {
+        //con local static index
+        TBSYS_LOG(DEBUG,
+            "index se_index_task_ schedule tid[%ld],is_schedules = [%d],get_round_end = [%d]",
+            se_index_task_.get_schedule_idx_tid(),
+            se_index_task_.is_scheduled(),
+            se_index_task_.get_round_end());
+
+        //check if this idx_tid_ is processing?
+        is_processing = se_index_task_.check_if_in_processing(beat.idx_tid_);
+        if (!se_index_task_.is_scheduled() && se_index_task_.get_round_end())
+        {
+          if (OB_SUCCESS == se_index_task_.set_schedule_idx_tid(beat.idx_tid_))
+          {
+            se_index_task_.set_hist_width(beat.hist_width_);
+            se_index_task_.set_which_stage(LOCAL_INDEX_STAGE);
+            TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]",
+                beat.idx_tid_, beat.hist_width_);
+            if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
+            {
+              TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
+            }
+            else
+            {
+              TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
+              se_index_task_.set_scheduled();
+            }
+          }
+          else
+          {
+            TBSYS_LOG(WARN,"scheduling secondary index task failed");
+            ret = OB_ERROR;
+          }
+        }
+        else if (!se_index_task_.get_round_end() && !is_processing )
+        {
+          TBSYS_LOG(INFO, "try stop mission");
+          se_index_task_.try_stop_mission(beat.idx_tid_);
+        }
+      }
+      else if(OB_INVALID_ID != beat.idx_tid_ && GLOBAL_INDEX_STAGE == beat.stage_)
+      {
+        //con global static index
+        bool new_flag = se_index_task_.check_new_global();
+        if(new_flag)
+        {
+          if (!se_index_task_.is_scheduled())
+          {
+            se_index_task_.set_which_stage(GLOBAL_INDEX_STAGE);
+            TBSYS_LOG(INFO, "se_index_task: set_schedule_tid[%ld],hist_width[%ld]", beat.idx_tid_, beat.hist_width_);
+            if (OB_SUCCESS != (ret = (timer_.schedule(se_index_task_, wait_time, false)))) //async
+            {
+              TBSYS_LOG(WARN, "cannot schedule se_index_task_ after wait %ld us", wait_time);
+            }
+            else
+            {
+              TBSYS_LOG(INFO, "launch a new index process after wait %ld us", wait_time);
+              se_index_task_.set_scheduled();
+            }
+          }
+        }
+      }
+      else
+      {
+        //其他所有不予处理的情况
+        TBSYS_LOG(INFO,"ignore this index beat which tid is [%ld]",beat.idx_tid_);
+      }
+      if (OB_UNLIKELY(NULL == chunk_server_))
+      {
+        TBSYS_LOG(ERROR, "shuold not be here, null chunk ");
+      }
+      else
+      {
+        chunk_server_->get_tablet_manager().set_beat_tid(beat.idx_tid_);
+      }
+      return ret;
+    }
+
+     //add longfei [cons static index] 151120:b
+    void ObChunkService::SeIndexTask::runTimerTask()
+    {
+      int err = OB_SUCCESS;
+      ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+      unset_scheduled();
+      TBSYS_LOG(INFO,"I want to start round to build index!");
+      if(tablet_manager.get_index_handle_pool().can_launch_next_round())
+      {
+        TBSYS_LOG(INFO,"I can launch next round!");
+        // mod longfei [cons static index] 151121:b
+        //err = tablet_manager.get_ready_for_con_index();
+        err = tablet_manager.get_ready_for_con_index(which_stage_);
+        // mod e
+        if(OB_SUCCESS != err)
+        {
+          TBSYS_LOG(INFO,"wait for next round!");
+        }
+      }
+    }
+
+     int ObChunkService::SeIndexTask::set_schedule_idx_tid(uint64_t table_id)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().set_schedule_idx_tid(table_id);
+     }
+
+     void ObChunkService::SeIndexTask::set_hist_width(int64_t hist_width)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       tablet_manager.get_index_handle_pool().set_hist_width(hist_width);
+     }
+
+     bool ObChunkService::SeIndexTask::get_round_end()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().get_round_end();
+     }
+
+     uint64_t ObChunkService::SeIndexTask::get_schedule_idx_tid()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().get_schedule_idx_tid();
+     }
+
+     int ObChunkService::SeIndexTask::try_stop_mission(uint64_t index_tid)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().try_stop_mission(index_tid);
+     }
+
+     void ObChunkService::SeIndexTask::set_which_stage(common::ConIdxStage stage)
+     {
+       which_stage_ = stage;
+       TBSYS_LOG(INFO,"set secondary index task stage[%d] succ.",which_stage_);
+     }
+
+     bool ObChunkService::SeIndexTask::check_if_in_processing(uint64_t index_tid)
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().check_if_in_processing(index_tid);
+     }
+
+     bool ObChunkService::SeIndexTask::check_new_global()
+     {
+       ObTabletManager& tablet_manager = service_->chunk_server_->get_tablet_manager();
+       return tablet_manager.get_index_handle_pool().check_new_global();
+     }
+
+     void ObChunkService::SeIndexTask::reset()
+     {
+       which_stage_ = STAGE_INIT;
+       unset_scheduled();
+     }
+
+     //add e
 
   } // end namespace chunkserver
 } // end namespace oceanbase

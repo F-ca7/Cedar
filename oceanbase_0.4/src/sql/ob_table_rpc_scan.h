@@ -1,5 +1,24 @@
 /**
- * (C) 2010-2012 Alibaba Group Holding Limited.
+ * Copyright (C) 2013-2015 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_table_rpc_scan.h
+ * @brief table rpc scan operator
+ *
+ * modified by longfei：
+ * add member variables and member function for using index in select
+ * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
+ *
+ * @version __DaSE_VERSION
+ * @author longfei <longfei@stu.ecnu.edu.cn>
+ * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_01_22
+ */
+
+/** * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,6 +68,71 @@ namespace oceanbase
 
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
 
+        //add longfei [secondary index select] 20151116 :b
+        /**
+         * @brief set_main_tid 存原表的tid
+         * @param tid
+         */
+        void set_main_tid(uint64_t tid);
+        /**
+         * @brief set_is_index_for_storing 设置这次查询是否用到不回表的索引
+         * @param is_use
+         * @param tid
+         */
+        void set_is_index_for_storing(bool is_use,uint64_t tid);
+        /**
+         * @brief set_is_index_without_storing 设置这次查询是否用到回表的索引
+         * @param is_use
+         * @param tid
+         */
+        void set_is_index_without_storing(bool is_use,uint64_t tid);
+        /**
+         * @brief set_is_use_index_without_storing 置位
+         */
+        void set_is_use_index_without_storing();
+        /**
+         * @brief set_is_use_index_for_storing 置位 && 设置行描述
+         * @param tid
+         * @param row_desc
+         */
+        void set_is_use_index_for_storing(uint64_t tid ,ObRowDesc &row_desc);
+        /**
+         * @brief add_main_output_column 输出列
+         * @param expr
+         * @return err code
+         */
+        int add_main_output_column(const ObSqlExpression& expr);
+        /**
+         * @brief add_main_filter select语句中的过滤列
+         * @param expr
+         * @return err code
+         */
+        int add_main_filter(ObSqlExpression* expr);
+        /**
+         * @brief add_index_filter 使用索引时的过滤列
+         * @param expr
+         * @return err code
+         */
+        int add_index_filter(ObSqlExpression* expr);
+        /**
+         * @brief set_main_rowkey_info
+         * @param rowkey_info
+         */
+        void set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        /**
+         * @brief cons_second_row_desc
+         * @param row_desc
+         * @return err code
+         */
+        int cons_second_row_desc(ObRowDesc &row_desc);
+        /**
+         * @brief set_second_row_desc
+         * @param row_desc
+         * @return err code
+         */
+        int set_second_row_desc(ObRowDesc *row_desc);
+        //add:e
+
         /**
          * 添加一个需输出的column
          *
@@ -76,6 +160,15 @@ namespace oceanbase
          * @return OB_SUCCESS或错误码
          */
         int add_filter(ObSqlExpression *expr);
+        //add fanqiushi [semi_join] [0.1] 20150910:b
+        /**
+        * @brief insert a expression to a scan operator.
+        * @param an expression.
+        * @param void.
+        * @return Error code.
+        */
+        int add_filter_set_for_semijoin(ObSqlExpression *expr);
+        //add:e
         int add_group_column(const uint64_t tid, const uint64_t cid);
         int add_aggr_column(const ObSqlExpression& expr);
 
@@ -128,6 +221,18 @@ namespace oceanbase
         bool has_limit_;
         bool is_skip_empty_row_;
         int32_t read_method_;
+        //add longfei
+        bool is_use_index_rpc_scan_;  ///< 判断是否使用了回表的索引
+        bool is_use_index_for_storing_; ///< 判断是否使用了不回表的索引
+        //ObRpcScan index_rpc_scan_;
+        ObProject main_project_;   ///< 存第二次get原表时的输出列
+        ObFilter main_filter_;     ///< 存第二次get原表时filter
+        uint64_t main_tid_;         ///< 原表的tid
+        bool is_use_index_for_storing_for_tostring_; ///< 不回表物理计划标志位
+        uint64_t index_tid_for_storing_for_tostring_; ///< 不回表使用索引tid
+        bool is_use_index_without_storing_for_tostring_; ///< 回表物理计划标志位
+        uint64_t index_tid_without_storing_for_tostring_; ///< 回表使用索引tid
+        //add:e
     };
     inline void ObTableRpcScan::set_phy_plan(ObPhysicalPlan *the_plan)
     {

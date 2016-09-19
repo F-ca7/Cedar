@@ -339,7 +339,7 @@ namespace oceanbase
       //set call back func
       if (OB_SUCCESS == ret)
       {
-        memset(&server_handler_, 0, sizeof(easy_io_handler_pt));
+        memset(&server_handler_, 0, sizeof(onev_io_handler_pe));
         server_handler_.encode = ObTbnetCallback::encode;
         server_handler_.decode = ObTbnetCallback::decode;
         server_handler_.process = ObChunkCallback::process;
@@ -476,7 +476,7 @@ namespace oceanbase
       int64_t receive_time = ob_packet->get_receive_ts();
       int64_t network_timeout = ob_packet->get_source_timeout();
       int64_t wait_time = 0;
-      easy_request_t* req = ob_packet->get_request();
+      onev_request_e* req = ob_packet->get_request();
       ObDataBuffer* in_buffer = ob_packet->get_buffer();
       ThreadSpecificBuffer::Buffer* thread_buffer = response_buffer_.get_buffer();
       if (NULL == req || NULL == req->ms || NULL == req->ms->c)
@@ -496,6 +496,9 @@ namespace oceanbase
           wait_time = tbsys::CTimeUtil::getTime() - receive_time;
           FILL_TRACE_LOG("process request, packet_code=%d, wait_time=%ld",
               packet_code, wait_time);
+          //add longfei 2016-03-30 14:09:24
+          TBSYS_LOG(DEBUG, "debug::longfei>>>process request, packet_code=%d, wait_time=%ld", packet_code, wait_time);
+          //add e
           PROFILE_LOG(DEBUG, "request from peer=%s, wait_time_in_queue=%ld, packet_code=%d",
                          get_peer_ip(ob_packet->get_request()), wait_time, packet_code);
           PFILL_SET_TRACE_ID(ob_packet->get_trace_id());

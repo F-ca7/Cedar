@@ -35,7 +35,7 @@ ObMMSCheckleaseTask::~ObMMSCheckleaseTask()
 {
 } 
 
-//定时检查lease时间
+//锟斤拷时锟斤拷锟絣ease时锟斤拷
 void ObMMSCheckleaseTask::runTimerTask(void)
 {
   if(node_ == NULL)

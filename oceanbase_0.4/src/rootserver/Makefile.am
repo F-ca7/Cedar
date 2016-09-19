@@ -1,5 +1,5 @@
 AM_CPPFLAGS := $(AM_CPPFLAGS) -I${TBLIB_ROOT}/include/tbsys \
-              -I${EASY_ROOT}/include/easy   \
+              -I${ONEV_ROOT}/include/onev   \
               -I${top_srcdir}/include       \
               -I${top_srcdir}/src           \
               -fPIC
@@ -11,7 +11,7 @@ LDADD = $(top_builddir)/src/common/roottable/libroottable.a \
         $(top_builddir)/src/sql/libsql.a                    \
         $(top_builddir)/src/common/libcommon.a              \
 				$(top_builddir)/src/common/timezone/libtimezone.a          \
-        ${EASY_LIB_PATH}/libeasy.a                          \
+        ${ONEV_LIB_PATH}/libonev.a                          \
         ${TBLIB_ROOT}/lib/libtbsys.a
 
 AM_LDFLAGS = -lpthread -lc -lm -lrt -lssl -laio
@@ -19,7 +19,7 @@ if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov
 endif
-
+  
 pub_source =                                                                \
   rootserver.conf.template                                                  \
   ob_root_main.h                                                            \
@@ -27,7 +27,7 @@ pub_source =                                                                \
   ob_root_admin2.h                                                          \
   ob_root_stat.h                                                            \
   ob_root_server_state.h               ob_root_server_state.cpp             \
-	ob_daily_merge_checker.h             ob_daily_merge_checker.cpp           \
+  ob_daily_merge_checker.h             ob_daily_merge_checker.cpp           \
   ob_heartbeat_checker.h               ob_heartbeat_checker.cpp             \
   ob_rs_trigger_event_util.h           ob_rs_trigger_event_util.cpp         \
   ob_root_inner_table_task.h           ob_root_inner_table_task.cpp         \
@@ -53,6 +53,8 @@ pub_source =                                                                \
   ob_root_table2.h                     ob_root_table2.cpp                   \
   ob_root_ups_provider.h               ob_root_ups_provider.cpp             \
   ob_root_util.h                       ob_root_util.cpp                     \
+  ob_election_node.h                   ob_election_node.cpp                 \
+  ob_check_rselection.h                ob_check_rselection.cpp              \
   ob_root_worker.h                     ob_root_worker.cpp                   \
   ob_schema_service_ms_provider.h      ob_schema_service_ms_provider.cpp    \
   ob_schema_service_ups_provider.h     ob_schema_service_ups_provider.cpp   \
@@ -70,7 +72,11 @@ pub_source =                                                                \
 	ob_root_table_operation.h            ob_root_table_operation.cpp          \
 	ob_root_timer_task.h                 ob_root_timer_task.cpp               \
 	ob_root_reload_config.h              ob_root_reload_config.cpp            \
-  ob_data_source_mgr.h                 ob_data_source_mgr.cpp
+  ob_data_source_mgr.h                 ob_data_source_mgr.cpp               \
+  ob_index_control_unit.h              ob_index_control_unit.cpp	          \
+  ob_index_cs_handler.h	               ob_index_cs_handler.cpp	            \
+  ob_index_designer.h	                 ob_index_designer.cpp	              \
+  ob_index_service.h	ob_index_service.cpp
 
 
 noinst_LIBRARIES = librootserver.a

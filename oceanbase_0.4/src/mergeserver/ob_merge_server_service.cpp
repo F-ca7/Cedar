@@ -635,7 +635,7 @@ namespace oceanbase
       const int32_t packet_code,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -712,7 +712,7 @@ namespace oceanbase
     int ObMergeServerService::ms_list_sessions(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -757,14 +757,14 @@ namespace oceanbase
         TBSYS_LOG(WARN,"fail to send list sessions response [send_err:%d]", send_err);
       }
       ob_free(buf);
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return send_err;
     }
 
     int ObMergeServerService::ms_kill_session(
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer)
     {
@@ -801,7 +801,7 @@ namespace oceanbase
         send_err = merge_server_->send_response(OB_KILL_SESSION_RESPONSE, MS_KILL_SESSION_VERSION,
           out_buffer, req, channel_id);
       }
-      easy_request_wakeup(req);
+      onev_request_wakeup(req);
       return send_err;
     }
 
@@ -809,7 +809,7 @@ namespace oceanbase
       const int64_t receive_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us
@@ -862,7 +862,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1036,7 +1036,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1077,7 +1077,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1120,7 +1120,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1150,7 +1150,7 @@ namespace oceanbase
       ObMergerGetRequest * get_event = GET_TSI_ARGS(ObMergerGetRequest, TSI_MS_GET_EVENT_1,
           cache_proxy_, async_rpc_);
       int64_t timeout_time = start_time + req_timeout_us;
-      easy_connection_t* conn = req->ms->c;
+      onev_connection_e* conn = req->ms->c;
       if (OB_SUCCESS == err && MS_GET_VERSION != version)
       {
         err = OB_ERROR_FUNC_VERSION;
@@ -1486,7 +1486,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1624,7 +1624,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1713,7 +1713,7 @@ namespace oceanbase
     }
 
     int ObMergeServerService::send_sql_response(
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& out_buffer,
       ObSQLResultSet &result,
       int32_t channel_id,
@@ -1777,7 +1777,7 @@ namespace oceanbase
              */
             req = next_request->get_request();
             ret = OB_SUCCESS;
-            easy_request_wakeup(req);
+            onev_request_wakeup(req);
             break;
           }
           else if (OB_SUCCESS != ret)
@@ -1810,7 +1810,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1900,7 +1900,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -1930,7 +1930,7 @@ namespace oceanbase
       const ObSchemaManagerV2 *schema_mgr = NULL;
       const ObSchemaManagerV2 *user_schema_mgr = NULL;
       int64_t timeout_time = start_time + req_timeout_us;
-      easy_connection_t* conn = req->ms->c;
+      onev_connection_e* conn = req->ms->c;
       if (OB_SUCCESS == err && MS_SCAN_VERSION != version)
       {
         err = OB_ERROR_FUNC_VERSION;
@@ -2269,7 +2269,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -2387,7 +2387,7 @@ namespace oceanbase
       const int64_t start_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -2431,7 +2431,7 @@ namespace oceanbase
       const int64_t receive_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -2478,7 +2478,7 @@ namespace oceanbase
       const int64_t receive_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)
@@ -2530,7 +2530,7 @@ namespace oceanbase
       const int64_t receive_time,
       const int32_t version,
       const int32_t channel_id,
-      easy_request_t* req,
+      onev_request_e* req,
       common::ObDataBuffer& in_buffer,
       common::ObDataBuffer& out_buffer,
       const int64_t timeout_us)

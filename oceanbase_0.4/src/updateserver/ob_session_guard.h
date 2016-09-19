@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_session_guard.h
+ * @brief SessionGuard
+ *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
+ *     complete start_session() with transaction information
+ *
+ * @version __DaSE_VERSION
+ * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
+ *         bingo <bingxiao@stu.ecnu.edu.cn>
+ * @date 2016_06_16
+ */
+
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -125,9 +143,21 @@ namespace oceanbase
           }
           else
           {
+            //add wangjiahao [tablelock] 20160616 :b
+            int tmp_err = OB_SUCCESS;
+            tmp_err = session_ctx_->init_table_lock_info();
+            session_ctx_->add_free_callback(session_ctx_->get_tblock_info(), (void*)&(UPS.get_table_mgr().get_table_lock_mgr()));
+
+            if (OB_SUCCESS != tmp_err)
+              TBSYS_LOG(ERROR, "##TEST_PRINT## init_table_lock_info()=>%d", tmp_err);
+            //add :e
             sid.descriptor_ = session_descriptor_;
             sid.start_time_us_ = session_ctx_->get_session_start_time();
             sid.ups_ = UPS.get_self();
+            // add by guojinwei [repeatable read] 20160418:b
+            sid.trans_start_time_us_ = session_ctx_->get_trans_start_time();
+            sid.isolation_level_ = req.isolation_;
+            // add:e
             session_ctx_->lock_session();
           }
           return ret;

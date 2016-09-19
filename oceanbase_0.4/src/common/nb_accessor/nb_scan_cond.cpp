@@ -28,7 +28,7 @@ ScanConds::ScanConds(const char* column_name, const ObLogicOperator& cond_op, in
   ObObj obj;
   obj.set_int(value);
 
-  EasyArray<ObSimpleCond>(ObSimpleCond(name, cond_op, obj));
+  OnevArray<ObSimpleCond>(ObSimpleCond(name, cond_op, obj));
 }
 
 ScanConds::ScanConds()
@@ -43,7 +43,7 @@ ScanConds::ScanConds(const char* column_name, const ObLogicOperator& cond_op, Ob
   ObObj obj;
   obj.set_varchar(value);
 
-  EasyArray<ObSimpleCond>(ObSimpleCond(name, cond_op, obj));
+  OnevArray<ObSimpleCond>(ObSimpleCond(name, cond_op, obj));
 }
 
 ScanConds& ScanConds::operator()(const char* column_name, const ObLogicOperator& cond_op, int64_t value)
@@ -54,7 +54,7 @@ ScanConds& ScanConds::operator()(const char* column_name, const ObLogicOperator&
   ObObj obj;
   obj.set_int(value);
 
-  EasyArray<ObSimpleCond>::operator()(ObSimpleCond(name, cond_op, obj));
+  OnevArray<ObSimpleCond>::operator()(ObSimpleCond(name, cond_op, obj));
   return *this;
 }
 
@@ -66,7 +66,7 @@ ScanConds& ScanConds::operator()(const char* column_name, const ObLogicOperator&
   ObObj obj;
   obj.set_varchar(value);
 
-  EasyArray<ObSimpleCond>::operator()(ObSimpleCond(name, cond_op, obj));
+  OnevArray<ObSimpleCond>::operator()(ObSimpleCond(name, cond_op, obj));
   return *this;
 }
 

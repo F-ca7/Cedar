@@ -162,6 +162,31 @@ sqnewline     {quote}{whitespace}{quote}
 
 
 %%
+PROCEDURE			{ return PROCEDURE; }
+DECLARE				{ return DECLARE; }
+ELSEIF				{ return ELSEIF; }
+OUT					{ return OUT; }
+INOUT				{ return INOUT; }
+WHILE				{ return WHILE; }
+LOOP				{ return LOOP; }
+EXIT 				{ return EXIT; }
+CONTINUE			{ return CONTINUE; }
+DO					{ return DO; }
+CALL				{ return CALL; }
+
+
+CURSOR            { return CURSOR; }
+OPEN              { return OPEN; }
+FETCH             { return FETCH; }
+CLOSE             { return CLOSE; }
+NEXT               { return NEXT; }
+PRIOR              { return PRIOR; }
+FIRST              {return FIRST;}
+LAST               {return LAST; }
+ABSOLUTE           {return ABSOLUTE; }
+RELATIVE          {return RELATIVE; }
+
+
 ADD               { return ADD; }
 ALTER             { return ALTER; }
 AND               { return AND; }
@@ -233,6 +258,7 @@ LEFT              { return LEFT; }
 LIMIT             { return LIMIT; }
 LIKE              { return LIKE; }
 LOCAL             { return LOCAL; }
+LOCK              { return LOCKWJH; }
 LOCKED            { return LOCKED; }
 MEDIUMINT         { return MEDIUMINT; }
 MEMORY            { return MEMORY; }
@@ -308,6 +334,14 @@ SET_SLAVE_CLUSTER         { return SET_SLAVE_CLUSTER;  }
 MASTER            { return MASTER; }
 SLAVE             { return SLAVE;  }
 FORCE             { return FORCE;  }
+
+INDEX		  { return INDEX;  }
+STORING		  { return STORING;  }
+
+ /* add maoxx [bloomfilter_join] 20160406 */
+BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
+MERGE_JOIN  { return  MERGE_JOIN; }
+ /* add e */
 
 NULL   {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0); */
@@ -672,8 +706,33 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>READ_CONSISTENCY  {
   return READ_CONSISTENCY;
 }
+<hint>INDEX {
+  /* add by longfei 20151105 :b */
+  return INDEX;
+  /* add :e */
+}
+<hint>JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return JOIN;
+    /* add e */
+}
+<hint>SEMI_JOIN  {
+    //  add by yusj 20150819  :b
+    return SEMI_JOIN;
+    //  add  :e
+}
+<hint>BLOOMFILTER_JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return BLOOMFILTER_JOIN;
+    /* add e */
+}
+<hint>MERGE_JOIN  {
+    /* add maoxx [bloomfilter_join] 20160406 */
+    return MERGE_JOIN;
+    /* add e */
+}
 <hint>WEAK  {
-  return WEAK;
+    return WEAK;
 }
 <hint>STRONG  {
   return STRONG;
@@ -684,13 +743,40 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>FROZEN  {
   return FROZEN;
 }
-<hint>[(),]  {
+<hint>[(),.]  {
   return yytext[0];
 }
 <hint>HOTSPOT  {
   return HOTSPOT;
 }
-<hint>{identifer} {}
+<hint>{identifer} {
+  // add by longfei
+  int ret = NAME;
+  const NonReservedKeyword *word = NULL;
+  if ((word = non_reserved_keyword_lookup(yytext)) == NULL)
+  {
+    ParseNode* node = NULL;
+    malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_IDENT, 0);
+    yylval->node = node;
+    char *dup_value = parse_strdup(yytext, ((ParseResult*)yyextra)->malloc_pool_);
+    check_value(dup_value);
+    node->str_value_ = str_tolower(dup_value);
+    node->value_ = strlen(node->str_value_);
+    ret = NAME;
+  }
+  else
+  {
+    yylval->non_reserved_keyword = word;
+    ret = word->keyword_type;
+  }
+  return ret;
+  // add :e
+}
+<hint>[0-9]+"."[0-9]*  {
+//add wenghaixing [bugfix.index_datasource] 20160122
+  return NAME;
+  //add e
+}
 <hint>. {}
 
 {comment} { /* ignore */ }
