@@ -1,4 +1,4 @@
-﻿Cedar是华东师范大学数据科学与工程研究院基于 OceanBase 0.4.2 研发的可扩展的关系数据库。2016年2月1日，Cedar 0.1 版本发布，2016年9月26日，Cedar 0.2 版本发布。相较于OceanBase 0.4.2 版本的数据库系统，Cedar系统更加稳定，功能更加丰富。
+﻿>Cedar是华东师范大学数据科学与工程研究院基于 OceanBase 0.4.2 研发的可扩展的关系数据库。2016年2月1日，Cedar 0.1 版本发布，2016年9月26日，Cedar 0.2 版本发布。相较于OceanBase 0.4.2 版本的数据库系统，Cedar系统更加稳定，功能更加丰富。
 
 <h2> 版本特性</h2>
 Cedar 0.1 版本新增的功能有：
@@ -25,12 +25,10 @@ Cedar 0.2 版本新增的功能有：
   <p>Cedar 源码：<a href="https://github.com/daseECNU/Cedar" target="_blank">https://github.com/daseECNU/Cedar</a></p>
 </li>
 <li>
-  <p>Cedar libonev RPM包：<a href="https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/rpm“
-  target="_blank">libonev-0.1-1.x86_64.rpm</p>
+  <p>Cedar libonev RPM包：<a href="https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/rpm" target="_blank">libonev-0.1-1.x86_64.rpm</p>
 </li>
 <li>
-  <p>Cedar 文档：<a href="https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/doc“
-  target="_blank">https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/doc</p>
+  <p>Cedar 文档：<a href="https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/doc/Cedar_doc" target="_blank">https://github.com/daseECNU/Cedar/tree/master/Cedar_0.2/doc/Cedar_doc</p></p>
 </li>
 </ul>
 
