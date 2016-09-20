@@ -176,7 +176,7 @@ int ObSQLSessionMgr::erase(ObSQLSessionKey key)
     }
     else
     {
-      TBSYS_LOG(WARN, "can not get write lock of session key is %d", key);
+      TBSYS_LOG(WARN, "can not get write lock of session key is %d, ret=%d", key, ret);
       ret = OB_NEED_RETRY;
     }
   }
