@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,8 +8,8 @@
  * @brief rootserver main, deal with the new system param for election
  *        store the cmd_rs_cluster_ips_ to the rs_config values.
  *
- * @version __DaSE_VERSION
- * @author Chu Jiajia  <52151500014@ecnu.edu.cn>
+ * @version CEDAR 0.2
+ * @author Chu Jiajia  <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_08_23
  */

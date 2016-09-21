@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -10,9 +9,9 @@
  *        Add a auto_elect_flag into election process.
  *        Add a set and get function of the member auto_elect_flag
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author
- *   Chu Jiajia  <52151500014@ecnu.edu.cn>
+ *   Chu Jiajia  <52151500014@ecnu.cn>
  *   Pang Tianze <pangtianze@ecnu.com>
  *   zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_08_23

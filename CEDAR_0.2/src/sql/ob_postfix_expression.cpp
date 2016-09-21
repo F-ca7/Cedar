@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -12,7 +11,7 @@
  * modified by Qiushi FAN: add some functions to craete a new expression
  * modified by maoxiaoxiao: modify the if condition because of the added enum type "QUERY_ID"
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>

@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -12,7 +11,7 @@
  * 1.provide some other way to access tablet
  * 2.delete the second sstable of tablet
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_19
  */

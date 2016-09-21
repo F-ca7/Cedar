@@ -1,7 +1,6 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
+* Copyright (C) 2013-2016 DaSE
+ *This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
 * version 2 as published by the Free Software Foundation.
 *
@@ -11,7 +10,7 @@
 * modified by maoxiaoxiao:add physical operator "index trigger"
 * modified by Qiushi FAN: insert a new operator ObSemiLeftJoin.
 *
-* @version __DaSE_VERSION
+* @version CEDAR 0.2
 * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
 * @author   Qiushi FAN <qsfan@ecnu.cn>
 * @date 2016_01_21

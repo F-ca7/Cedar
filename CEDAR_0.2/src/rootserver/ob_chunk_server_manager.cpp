@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- * @file     ob_chunk_server_manager.cpp
+ * Copyright (C) 2013-2016 DaSE
+ *file     ob_chunk_server_manager.cpp
  * @brief    class used for manager the information of all chunkservers and mergeservers
  *           modify the int ObChunkServerManager::serialize_ms_list()
  *           function, if there is no other ms available then take
  *           the lms into account.
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author   zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date     2015-12-25
  */

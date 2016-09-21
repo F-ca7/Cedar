@@ -1,14 +1,13 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
+* Copyright (C) 2013-2016 DaSE
+ *This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
 * version 2 as published by the Free Software Foundation.
 *
 * @file ob_procedure_execute.h
 * @brief this class present a procedure "execute" physical plan in oceanbase
 *
-* @version __DaSE_VERSION
+* @version CEDAR 0.2
 * @author zhujun <51141500091@ecnu.edu.cn>
 * @date 2014_11_23
 */

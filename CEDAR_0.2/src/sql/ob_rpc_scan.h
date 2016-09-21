@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -13,7 +12,7 @@
  * modify by guojinwei, bingo: support REPEATABLE-READ isolation
  * add header files
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author longfei <longfei@stu.ecnu.edu.cn>
  *         guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         bingo <bingxiao@stu.ecnu.edu.cn>

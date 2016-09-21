@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -11,7 +10,7 @@
  * modified by longfei：add three basic statement: T_CREATE_INDEX, T_DROP_INDEX, T_SHOW_INDEX
  * modified by zhujun：add procedure related StmtType
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2016_01_21

@@ -1,13 +1,13 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
- * This program is free software; you can redistribute it and/or
+ * Copyright (C) 2013-2016 DaSE
+ *his program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_sort.h
  * @brief    sort operator
  * modified by Qiushi FAN: add some functions to get an array form child
- * @version  __DaSE_VERSION
+ * @version  CEDAR 0.2
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30
  */

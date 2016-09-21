@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE
+ *
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,7 +11,7 @@
  * modified by wangjiahao: No data to update, About it, for update_more
  * modified by zhujun£ºadd a variable into session
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
  * @date 2015_12_30

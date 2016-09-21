@@ -1,13 +1,12 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
- *
+ * Copyright (C) 2013-2016 DaSE
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_root_sql_proxy.h
  * @brief modify the contruct function of ObRootSQLProxy
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_30
  */
