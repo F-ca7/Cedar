@@ -14,7 +14,7 @@
  *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
  *     set_trans_id for scan_param in need_incremental_data()
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  *         guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         bingo <bingxiao@stu.ecnu.edu.cn>

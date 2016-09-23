@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,7 +11,7 @@
  *        add OB_RS_ADMIN_SET_OBI_MASTER_RS and OB_RS_ADMIN_SET_OBI_MASTER_FIRST
  *        to rs_admin processing.
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_30

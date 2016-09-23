@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DASE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,7 +11,7 @@
  * Created by longfei：implementation of secondary index service
  * maybe more function?
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2015_10_29
  */

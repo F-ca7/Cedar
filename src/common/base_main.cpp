@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,7 +12,7 @@
  * 2. modify the command line parameters of rootserver,
  *    add the -s/--all_root_servers to command line.
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author liubozhong <51141500077@ecnu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>

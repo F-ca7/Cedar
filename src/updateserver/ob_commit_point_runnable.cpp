@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,7 +10,7 @@
  * (1) create by liubozhong: flush commit point to disk asynchronously
  * (2) modify by guojinwei: modify the judgment in function run()
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author liubozhong <51141500077@edu.cn>
  *         guojinwei <guojinwei@stu.ecnu.edu.cn>
  * @date 2015_12_30

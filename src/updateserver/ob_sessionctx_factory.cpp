@@ -21,6 +21,7 @@
 #include "ob_sessionctx_factory.h"
 #include "ob_update_server_main.h"
 
+#define UPS ObUpdateServerMain::get_instance()->get_update_server()
 namespace oceanbase
 {
   namespace updateserver
@@ -205,7 +206,10 @@ namespace oceanbase
 
     void RWSessionCtx::kill()
     {
-      if (ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      //mod chujiajia [log synchronization][multi_cluster] 20160923:b
+      //if (ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      if (ObiRole::MASTER == UPS.get_obi_role().get_role() && ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      //mod:e
       {
         TBSYS_LOG(WARN, "session will not be killed sd=%u stat=%d session_start_time=%ld stmt_start_time=%ld session_timeout=%ld stmt_timeout=%ld",
                   get_session_descriptor(), stat_, get_session_start_time(), get_stmt_start_time(), get_session_timeout(), get_stmt_timeout());

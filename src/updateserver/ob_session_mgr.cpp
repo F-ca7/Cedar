@@ -10,7 +10,7 @@
  *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
  *     complete begin_session()
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         bingo <bingxiao@stu.ecnu.edu.cn>
  * @date 2016_06_16
@@ -639,8 +639,13 @@ namespace oceanbase
     int SessionMgr::wait_write_session_end_and_lock(const int64_t timeout_us)
     {
       int ret = OB_SUCCESS;
+      //add chujiajia [log synchronization][multi_cluster] 20160603:b
+      UNUSED(timeout_us);
+      //add:e
       int64_t now_time = tbsys::CTimeUtil::getTime();
-      int64_t abs_timeout_us = now_time + timeout_us;
+      //del chujiajia [log synchronization][multi_cluster] 20160603:b
+      //int64_t abs_timeout_us = now_time + timeout_us;
+      //del:e
       int64_t start_time = now_time;
       session_lock_.wrlock();
       while (true)
@@ -650,17 +655,22 @@ namespace oceanbase
           break;
         }
         now_time = tbsys::CTimeUtil::getTime();
-        if (now_time > abs_timeout_us)
-        {
-          ret = OB_PROCESS_TIMEOUT;
-          break;
-        }
+        //del chujiajia [log synchronization][multi_cluster] 20160603:b
+        //if (now_time > abs_timeout_us)
+        //{
+        //  ret = OB_PROCESS_TIMEOUT;
+        //  break;
+        //}
+        //del:e
         if (now_time >= (start_time + FORCE_KILL_WAITTIME))
         {
           start_time = now_time;
           TBSYS_LOG(INFO, "wait time over %ld, will force kill session", FORCE_KILL_WAITTIME);
           const bool force = true;
           kill_zombie_session(force);
+          //add chujiajia [log synchronization][multi_cluster] 20160603:b
+          break;
+          //add:e
         }
         asm("pause");
       }
@@ -678,7 +688,6 @@ namespace oceanbase
 
     void SessionMgr::kill_zombie_session(const bool force)
     {
-      //TBSYS_LOG(INFO, "start kill_zombie_session force=%s", STR_BOOL(force));
       ZombieKiller cb(*this, force);
       ctx_map_.traverse(cb);
     }

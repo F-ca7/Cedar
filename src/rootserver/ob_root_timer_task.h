@@ -1,9 +1,9 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  * @file     ob_root_timer_task.h
  * @brief    add a timer task class to run
  *           the set_the set_auto_elect_flag task.
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author   zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date     2015-12-25
  */

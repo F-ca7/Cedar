@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,7 +10,7 @@
  *
  * modified by Wenghaixing:add some fuction for secondary index construction
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author Wenghaixing <wenghaixing@ecnu.cn>
  * @date  2016_01_24
  */

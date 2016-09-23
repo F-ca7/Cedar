@@ -59,7 +59,7 @@ namespace oceanbase
       {
         ret = OB_INVALID_ARGUMENT;
       }
-      else if (N_LOCK == old_stat && IX_LOCK == new_stat && OB_SUCCESS != (ret = tblk->try_intention_lock(uid/*, end_time, wait_flag*/)))
+      else if (N_LOCK == old_stat && IX_LOCK == new_stat && OB_SUCCESS != (ret = tblk->intention_lock(uid, end_time, wait_flag)))
       {
         if (OB_EAGAIN == ret)
         {

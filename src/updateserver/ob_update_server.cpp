@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,7 +13,7 @@
  *     clusters for HA by adding or modifying some functions,
  *     member variables
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
@@ -991,15 +991,10 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "update_tmp_log_cursor err->%d", err);
       }
 	  //add:e
-      //delete chujiajia [log synchronization][multi_cluster] 20160703:b
-      //while(!stoped_ && OB_SUCCESS != (err = trans_executor_.get_session_mgr().wait_write_session_end_and_lock(wait_write_session_end_timeout_us)))
-      //{
-      //  TBSYS_LOG(INFO, "master_switch_to_slave wait session end.");
-      //}
-      //delete:e
-      //add chujiajia [log synchronization][multi_cluster] 20160703:b
-      trans_executor_.get_session_mgr().reset(100000, 10000, 40000);
-      //add:e
+      while(!stoped_ && OB_SUCCESS != (err = trans_executor_.get_session_mgr().wait_write_session_end_and_lock(wait_write_session_end_timeout_us)))
+      {
+        TBSYS_LOG(INFO, "master_switch_to_slave wait session end.");
+      }
       if (OB_SUCCESS != err)
       {
         TBSYS_LOG(ERROR, "wait_write_session_end_and_lock(timeout=%ld)=>%d, log_mgr=%s, switch_to_slave fail, will kill self",

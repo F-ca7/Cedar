@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,7 +11,7 @@
  * modified by Wenghaixing：modify read param to fit secondary index construcion's stage
  *        add a fake range handle
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author Weng Haixing <wenghaixing@ecnu.cn>
  * @date  2016_01_24
  */

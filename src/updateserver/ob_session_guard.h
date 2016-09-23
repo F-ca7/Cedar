@@ -10,7 +10,7 @@
  *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
  *     complete start_session() with transaction information
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         bingo <bingxiao@stu.ecnu.edu.cn>
  * @date 2016_06_16

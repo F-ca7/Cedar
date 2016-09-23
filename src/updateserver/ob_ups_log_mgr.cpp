@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,7 +10,7 @@
  *     modify by guojinwei, liubozhong: support multiple clusters
  *     for HA by adding or modifying some functions, member variables
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  * @date 2015_12_30
@@ -594,6 +594,7 @@ int ObUpsLogMgr::update_tmp_log_cursor()
   int err = OB_SUCCESS;
   ObLogCursor end_cursor;
   int64_t commit_seq = 0;
+  int64_t commit_seq2 = 0;
   commit_seq = slave_mgr_->get_acked_clog_id_without_update();
   replay_worker_->get_replay_cursor(start_cursor_);
   TBSYS_LOG(INFO, "update_tmp_log_cursor:start_cursor_.log_id_:%ld, start_cursor_.file_id_:%ld.", start_cursor_.log_id_, start_cursor_.file_id_);
@@ -606,11 +607,16 @@ int ObUpsLogMgr::update_tmp_log_cursor()
     TBSYS_LOG(ERROR, "get_tmp_log error! seq=%ld, err=%d", commit_seq, err);
   }
   local_commited_max_cursor_ = end_cursor;
+  if (OB_SUCCESS != (err = get_max_cmt_id_in_file(commit_seq2, local_max_log_cursor_)))
+  {
+    TBSYS_LOG(ERROR, "get_max_cmt_id_in_file(commit_seq=%ld)=>%d", commit_seq2, err);
+  }
   if(OB_SUCCESS != (err = get_cursor_by_log_id(log_dir_, local_max_log_cursor_.log_id_ - 1, start_cursor_, end_cursor)))
   {
     TBSYS_LOG(ERROR, "get_tmp_log error! seq=%ld, err=%d", local_max_log_cursor_.log_id_ - 1, err);
   }
   local_max_log_cursor_ = end_cursor;
+
   if(local_commited_max_cursor_.is_valid())
   {
     log_writer_.set_end_cursor(local_commited_max_cursor_);

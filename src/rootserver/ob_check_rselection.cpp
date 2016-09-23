@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,9 +12,9 @@
  *           When the flag is true, if the leader disappeared,
  *           the followers would timeout and not tranform to candidate.
  *           the candiate would tranform to follower.
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author
- *   Chu Jiajia  <52151500014@ecnu.edu.cn>
+ *   Chu Jiajia  <52151500014@ecnu.cn>
  *   Pang Tianze <pangtianze@ecnu.com>
      zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2015_08_23

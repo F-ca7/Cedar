@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,7 +12,7 @@
  * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
  * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
  *
- * @version __DaSE_VERSION
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author WengHaixing <wenghaixing@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
