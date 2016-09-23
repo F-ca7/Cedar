@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,16 +8,20 @@
  * @file ob_sql_expression.h
  * @brief sql expression class
  *
- * modified by longfei：
+ * modified by longfei�
  * 1.add function: set_table_id()
  * modified by Qiushi FAN: add some functions to create a new expression
  * modified by maoxiaoxiao: add interface: get_decoded_expression_v3()
+ * modified by zhutao:add a is_var_expr function
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_07_27
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_30
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -71,8 +75,8 @@ namespace oceanbase
         void set_aggr_func(ObItemType aggr_fun, bool is_distinct);
         int get_aggr_column(ObItemType &aggr_fun, bool &is_distinct) const;
         /**
-         * 设置表达式
-         * @param expr [in] 表达式，表达方式与实现相关，目前定义为后缀表达式
+         * 设置表达�
+         * @param expr [in] 表达式，表达方式与实现相关，目前定义为后缀表达�
          *
          * @return error code
          */
@@ -82,7 +86,7 @@ namespace oceanbase
         void reset();
 
         /**
-         * 获取解码后的表达式
+         * 获取解码后的表达�
          */
         inline const ObPostfixExpression &get_decoded_expression() const;
         //add wenghaixing for fix insert bug decimal key 2014/10/11
@@ -97,9 +101,9 @@ namespace oceanbase
         /*add e*/
         inline bool is_equijoin_cond(ExprItem::SqlCellInfo &c1, ExprItem::SqlCellInfo &c2) const;
         /**
-         * 根据表达式语义对row的值进行计算
+         * 根据表达式语义对row的值进行计�
          *
-         * @param row [in] 输入行
+         * @param row [in] 输入�
          * @param result [out] 计算结果
          *
          * @return error code
@@ -108,7 +112,7 @@ namespace oceanbase
         //int calc(const common::ObRow &row, const common::ObObj *&result);
         int calc(const common::ObRow &row, const common::ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map = NULL, bool second_check = false);
         //mod e
-        /// 打印表达式
+        /// 打印表达�
         int64_t to_string(char* buf, const int64_t buf_len) const;
 
         // check expression type
@@ -122,6 +126,15 @@ namespace oceanbase
         */
         inline void set_post_expr(common::ObArray<common::ObObj> *tmp_set,uint64_t tid,uint64_t cid);
         //add:e
+        /**
+         * @brief is_var_expr
+         * judge whether is variable expression
+         * @param is_var_type returned flag
+         * @param var_name variable name
+         * @return error code
+         */
+        inline int is_var_expr(bool &is_var_type, ObObj &var_name) const; //add by zt 20160617
+
         inline int is_column_index_expr(bool &is_idx_type) const;
         inline int is_simple_condition(bool &is_simple_cond_type) const;
         inline int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const;
@@ -277,6 +290,13 @@ namespace oceanbase
     }
 
     //add:e
+
+    //add by zt 20160117:b
+    inline int ObSqlExpression::is_var_expr(bool &is_var_type, ObObj &var_name) const
+    {
+      return post_expr_.is_var_expr(is_var_type, var_name);
+    }
+    //add by zt 20160117:e
 
     inline int ObSqlExpression::get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_idx_type) const
     {

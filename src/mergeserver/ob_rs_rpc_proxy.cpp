@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,10 +11,13 @@
  * modified by longfei：
  * 1.set timeout of drop table with index
  * 2.add rpc function: drop_index()
+ * modified by wangdonghui: add create and drop procedure functions in root server rpc proxy
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
  */
 #include "common/ob_schema.h"
 #include "common/ob_scanner.h"
@@ -420,6 +423,57 @@ int ObMergerRootRpcProxy::alter_table(const common::AlterTableSchema& alter_sche
   }
   return ret;
 }
+
+//add by wangdonghui 20160121 :b
+int ObMergerRootRpcProxy::create_procedure(bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code)
+{
+  int ret = OB_SUCCESS;
+  if (!check_inner_stat())
+  {
+    TBSYS_LOG(ERROR, "check inner stat failed");
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    //timeout can be modified
+    ret = rpc_stub_->create_procedure(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_not_exists, proc_name, proc_source_code);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "failed to create procedure, err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(DEBUG, "create procedure succ, %s", proc_name.ptr());
+    }
+  }
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160225 [drop procedure] :b
+int ObMergerRootRpcProxy::drop_procedure(bool if_exists, const common::ObString & proc_name)
+{
+  int ret = OB_SUCCESS;
+  if (!check_inner_stat())
+  {
+    TBSYS_LOG(ERROR, "check inner stat failed");
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    ret = rpc_stub_->drop_procedure(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, proc_name);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "failed to drop procedure, err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(DEBUG, "drop procedure succ, procedure=%s", to_cstring(proc_name));
+    }
+  }
+  return ret;
+}
+//add :e
 int ObMergerRootRpcProxy::set_obi_role(const ObServer &rs, const int64_t timeout, const ObiRole &obi_role)
 {
   int ret = OB_SUCCESS;

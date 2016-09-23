@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,18 +8,22 @@
  * @file dml_build_plan.cpp
  * @brief resolve some dml operation
  *
- * modified by longfeiï¼š
+ * modified by longfeiï¼
  * 1.generate inner index table name
  * 2.resolve user's hint for using secondary index in select
  *
  * modified by yushengjuan: reslove syntax tree to logical plan
  * modified by maoxiaoxiao: reslove syntax tree to logical plan
+ * modified by zhutao: add a resolve_array_expr function
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_07_27
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_24
  */
 
 /** 
@@ -302,6 +306,16 @@ int resolve_independ_expr(
   return ret;
 }
 
+/**
+ * @brief resolve_and_exprs
+ * parse and_exprs statement syntax tree
+ * @param result_plan pointer generated logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of and_exprs statement syntax tree
+ * @param and_exprs store generate expr_id
+ * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
+ * @return error code
+ */
 int resolve_and_exprs(
   ResultPlan * result_plan,
   ObStmt* stmt,
@@ -357,6 +371,17 @@ int resolve_and_exprs(
   expr; \
 })
 
+/**
+ * @brief resolve_expr
+ * parse expr statement syntax tree
+ * @param result_plan pointer generated logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of expr statement syntax tree
+ * @param and_exprs store generate expr_id
+ * @param expr_scope_type that expressions from different scope have different limit, such as when,insert,etc
+ * @param sub_query_results_scalar is flag that the extence of sub query results
+ * @return error code
+ */
 int resolve_expr(
   ResultPlan * result_plan,
   ObStmt* stmt,
@@ -412,16 +437,38 @@ int resolve_expr(
       ObConstRawExpr *c_expr = NULL;
       if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL)
         break;
-      c_expr->set_expr_type(node->type_);
+      c_expr->set_expr_type(node->type_); //here determines the types of the expr
       c_expr->set_result_type(ObVarcharType);
       c_expr->set_value(val);
       expr = c_expr;
-      if (node->type_ == T_TEMP_VARIABLE)
-      {
-        TBSYS_LOG(INFO, "resolve tmp variable, name=%.*s", str.length(), str.ptr());
-      }
+//      if (node->type_ == T_TEMP_VARIABLE)
+//      {
+//        TBSYS_LOG(INFO, "resolve tmp variable, name=%.*s", str.length(), str.ptr());
+//      }
       break;
     }
+    //add zt 20151125:b
+    case T_ARRAY:
+    {
+      ObArrayRawExpr *array_expr = NULL;
+      if (CREATE_RAW_EXPR(array_expr, ObArrayRawExpr, result_plan) == NULL)
+        break;
+      array_expr->set_result_type(ObVarcharType);
+      ObString array_name;
+      ObObj index_value;
+      if ( OB_SUCCESS != (ret = resolve_array_expr(result_plan, node, array_name, index_value)))
+      {
+        TBSYS_LOG(WARN, "resolve array expr failed");
+      }
+      else
+      {
+        array_expr->set_array_name(array_name);
+        array_expr->set_idx_value(index_value);
+      }
+      expr = array_expr;
+      break;
+    }
+    //add zt 20151125:e
     case T_FLOAT:
     {
       ObObj val;
@@ -1752,6 +1799,16 @@ int resolve_when_func(
   return ret;
 }
 
+
+/**
+ * @brief resolve_agg_func
+ * parse aggregation function expr syntax tree
+ * @param result_plan pointer generated logical plan
+ * @param select_stmt pointer select_stmt that store aggregation function expr_id
+ * @param node is root node of aggregation function expr statement syntax tree
+ * @param ret_sql_expr is a pointer that return sql expr
+ * @return error code
+ */
 int resolve_agg_func(
     ResultPlan * result_plan,
     ObSelectStmt* select_stmt,
@@ -2752,7 +2809,14 @@ int resolve_for_update_clause(
   }
   return ret;
 }
-
+/**
+ * @brief resolve_select_stmt
+ * parse select statement syntax tree and create ObSelectStmt object
+ * @param result_plan pointer generated create procedure logical plan
+ * @param node is root node of select statement syntax tree
+ * @param query_id is select_stmt's id
+ * @return errorcode.
+ */
 int resolve_select_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3182,6 +3246,14 @@ int resolve_semi_join(
 }
 //add end
 
+/**
+ * @brief resolve_delete_stmt
+ * parse delete statement syntax tree and create ObDeleteStmt object
+ * @param result_plan pointer generated create procedure logical plan
+ * @param node is root node of delete statement syntax tree
+ * @param query_id is delete_stmt's id
+ * @return errorcode.
+ */
 int resolve_delete_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3398,6 +3470,14 @@ int resolve_insert_values(
   return ret;
 }
 
+/**
+ * @brief resolve_insert_stmt
+ * parse insert statement syntax tree and create ObInsertStmt object
+ * @param result_plan pointer generated create procedure logical plan
+ * @param node is root node of insert statement syntax tree
+ * @param query_id is insert_stmt's id
+ * @return errorcode.
+ */
 int resolve_insert_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3520,6 +3600,14 @@ int resolve_insert_stmt(
   return ret;
 }
 
+/**
+* @brief resolve_update_stmt
+* parse update statement syntax tree and create ObUpdateStmt object
+* @param result_plan pointer generated create procedure logical plan
+* @param node is root node of update statement syntax tree
+* @param query_id is update_stmt's id
+* @return errorcode.
+*/
 int resolve_update_stmt(
     ResultPlan* result_plan,
     ParseNode* node,
@@ -3648,6 +3736,14 @@ int resolve_update_stmt(
   return ret;
 }
 
+/**
+ * @brief resolve_when_clause
+ * parse when_clause statement syntax tree
+ * @param result_plan pointer generated create procedure logical plan
+ * @param stmt pointer upper leve stmt,such as select stmt,delete_stmt,insert_stmt,update_stmt
+ * @param node is root node of when_clause statement syntax tree
+ * @return error code
+ */
 int resolve_when_clause(
     ResultPlan * result_plan,
     ObStmt* stmt,
@@ -3670,6 +3766,59 @@ int resolve_when_clause(
   }
   return ret;
 }
+
+//add zt 20151207:b
+/**
+ * @brief resolve_array_expr
+ * resolve arry expression
+ * @param result_plan reslut plan
+ * @param node root node of syntax tree
+ * @param array_name returned array name
+ * @param idx_value returned array index
+ * @return error code
+ */
+int resolve_array_expr(ResultPlan *result_plan, ParseNode *node, ObString &array_name, ObObj &idx_value)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  if( node )
+  {
+    ObStringBuf *name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+    if( OB_SUCCESS != (ret = ob_write_string(*name_pool,
+                                             ObString::make_string(node->children_[0]->str_value_),
+                                             array_name)))
+    {
+      TBSYS_LOG(WARN, "can not malloc space for array name");
+    }
+    else
+    {
+      if(T_INT == node->children_[1]->type_)
+      {
+        idx_value.set_int(node->children_[1]->value_);
+      }
+      else if(T_TEMP_VARIABLE == node->children_[1]->type_)
+      {
+        ObString idx_var;
+        if( OB_SUCCESS != (ret =
+                           ob_write_string(*name_pool,
+                                           ObString::make_string(node->children_[1]->str_value_),
+                                           idx_var)))
+        {
+          TBSYS_LOG(WARN, "can not malloc space for index variable");
+        }
+        else
+        {
+          idx_value.set_varchar(idx_var);
+        }
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "does not index type");
+      }
+    }
+  }
+  return ret;
+}
+//add zt 20151207:e
 
 // add longfei 20151105
 // too many generate_inner_index_table_name!
@@ -3797,7 +3946,6 @@ int generate_index_hint(
   }
   return ret;
 }
-// add:e
 //add e
 
 /*add maoxx [bloomfilter_join] 20160406*/

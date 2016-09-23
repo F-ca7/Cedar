@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_common_stat.h
+ * @brief ob common state definition file
+ *
+ * modified by zhutao:add some definition
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
 /*
  * (C) 2007-2012 Taobao Inc.
  *
@@ -60,6 +77,10 @@ namespace oceanbase
       UPS_STAT_SCAN_TIMEU,
       UPS_STAT_TRANS_TIMEU,
       UPS_STAT_TRANS_WTIME, // packet wait
+      //add by zt 20151211
+//      UPS_STAT_TRANS_W_TIME_1,
+//      UPS_STAT_TRANS_W_TIME_2,
+      //add by zt 20151211
       UPS_STAT_TRANS_HTIME, // trans handle
       UPS_STAT_TRANS_CTIME, // wait commit thread
       UPS_STAT_TRANS_FTIME, // wait flush
@@ -135,11 +156,30 @@ namespace oceanbase
       UPS_STAT_HL_TRANS_TIMEU,
 
       UPS_STAT_LOCK_WAIT_TIME,
+      UPS_STAT_LOCK_SUCC_COUNT,
+      UPS_STAT_LOCK_FAIL_COUNT,
 
       UPS_STAT_DML_REPLACE_COUNT,
       UPS_STAT_DML_INSERT_COUNT,
       UPS_STAT_DML_UPDATE_COUNT,
       UPS_STAT_DML_DELETE_COUNT,
+
+      //add by zt 20151214:b
+      UPS_PROC_EXEC_COUNT,
+      UPS_PROC_EXEC_TIME,
+      UPS_PROC_E,
+      UPS_PROC_D,
+      UPS_PROC_DW,
+      UPS_PROC_IF,
+      UPS_PROC_LOOP,
+      UPS_PLAN_TIME,
+
+      UPS_GEN_INC_SCAN,
+      UPS_GEN_MEM_SSTABLE,
+      UPS_EXEC_INC_SCAN,
+      UPS_EXEC_MEM_SSTABLE,
+      UPS_EXE_MERGE,
+      //add by zt 20151214:e
 
       UPDATESERVER_STAT_MAX,
     };
@@ -223,6 +263,10 @@ namespace oceanbase
       // ms_sql_scan
       SQL_SCAN_EVENT_COUNT,
       SQL_SCAN_EVENT_TIME,
+
+      //procedure ups execute
+      SQL_PROC_UPS_EXECUTE_COUNT,
+      SQL_PROC_UPS_EXECUTE_TIME,
 
      /* memory usage statistics*/
       MS_MEMORY_LIMIT,
@@ -312,12 +356,19 @@ namespace oceanbase
       SQL_DELETE_COUNT,
       SQL_DELETE_TIME,
 
+      SQL_PROC_COUNT,
+      SQL_PROC_TIME,
+
       SQL_QUERY_BYTES,
 
       SQL_COMMIT_COUNT,
       SQL_ROLLBACK_COUNT,
       SQL_AUTOCOMMIT_ON_COUNT,
       SQL_AUTOCOMMIT_OFF_COUNT,
+
+      SQL_CMD_RECEIVE_COUNT,
+      SQL_CMD_PROCESS_COUNT,
+      SQL_CMD_WAIT_TIME_MS,
 
       OBMYSQL_STAT_MAX
     };

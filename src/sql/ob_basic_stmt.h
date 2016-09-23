@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,7 +14,8 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
  */
 
 /**
@@ -42,6 +43,10 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObBasicStmt class
+     * basic statement class of logical plan has commen data menber and function menber of sub-class
+     */
     class ObBasicStmt
     {
     public:
@@ -131,13 +136,15 @@ namespace oceanbase
         T_PROCEDURE_ASSGIN,
         T_PROCEDURE_WHILE,
         T_PROCEDURE_LOOP,
+        T_PROCEDURE_EXIT,//add by wangdonghui
         T_PROCEDURE_CASE,
         T_PROCEDURE_CASEWHEN,
         T_PROCEDURE_IF,
         T_PROCEDURE_ELSEIF,
         T_PROCEDURE_ELSE,
         T_PROCEDURE_EXEC,
-        T_PROCEDURE_SELECT_INTO
+        T_PROCEDURE_SELECT_INTO,
+        T_VARIABLE_SET_ARRAY_VALUE
         //code_coverage_zhujun
         //add:e
       };
@@ -167,8 +174,8 @@ namespace oceanbase
       void print_indentation(FILE* fp, int32_t level) const;
 
     private:
-      StmtType  stmt_type_;
-      uint64_t  query_id_;
+      StmtType  stmt_type_;  ///<  statement type
+      uint64_t  query_id_;  ///<  query id
     };
 
     inline void ObBasicStmt::set_stmt_type(StmtType stmt_type)

@@ -18,10 +18,12 @@
  * modified by maoxiaoxiao:
  * 1.add functions to check column checksum, clean column checksum and get column checksum
  *
+ * modified by wangdonghui: add functions  for procedure of create and drop
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_01_21
+ * @date 2016_07_29
  */
 
 /**
@@ -49,6 +51,10 @@
 #include "ob_string.h"
 #include "ob_array.h"
 #include "ob_hint.h"
+
+//add by wangdonghui 20160308 :b
+#include "common/nb_accessor/nb_query_res.h"
+//add :e
 
 namespace oceanbase
 {
@@ -416,7 +422,34 @@ namespace oceanbase
         virtual int init(ObScanHelper* client_proxy, bool only_core_tables) = 0;
         virtual int get_table_schema(const ObString& table_name, TableSchema& table_schema) = 0;
         virtual int create_table(const TableSchema& table_schema) = 0;
+        //add by wangdonghui 20160125 :b
+        /**
+         * @brief create_procedure
+         * pure virtual function,create procedure
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
+        virtual int create_procedure(const common::ObString& proc_name, const common::ObString & proc_source_code) = 0;
+        /**
+         * @brief get_procedure_info
+         * get procedure information
+         * @param res_ query result set
+         * @return  error code
+         */
+        virtual int get_procedure_info(common::nb_accessor::QueryRes *&res_) = 0;
+        //add :e
         virtual int drop_table(const ObString& table_name) = 0;
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief drop_procedure
+         * drop procedure
+         * @param proc_name procecure name
+         * @return error code
+         */
+        virtual int drop_procedure(const ObString& proc_name) = 0;
+        //add :e
         virtual int alter_table(const AlterTableSchema& table_schema, const int64_t old_schema_version) = 0;
         virtual int get_table_id(const ObString& table_name, uint64_t& table_id) = 0;
         virtual int get_table_name(uint64_t table_id, ObString& table_name) = 0;

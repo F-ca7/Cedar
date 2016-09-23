@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_service.cpp
+ * @brief merge server support service,deal request from other server
+ *
+ * modified by wangdonghui:add 3 functions for procedure cache management in ms
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_26
+ */
+
 #include <sys/syscall.h>
 #include <unistd.h>
 #include "ob_merge_server_service.h"
@@ -71,6 +90,10 @@ namespace oceanbase
 
       lease_expired_time_ = tbsys::CTimeUtil::getTime() + DEFAULT_LEASE_TIME;
       sql_id_mgr_ = NULL;
+
+      //add by qx 20160830 :b
+      ups_state_ = true;
+      //add :e
     }
 
     ObMergeServerService::~ObMergeServerService()
@@ -509,6 +532,13 @@ namespace oceanbase
         merge_server_->get_bloom_filter_task_queue_thread().start();
       }
 
+      //add by wangdonghui run physical plan manager thread 20160317 :b
+      if (OB_SUCCESS == err)
+      {
+        merge_server_->get_procedure_manager().start();
+      }
+      //add :e
+
       if (OB_SUCCESS != err)
       {
         if (rpc_proxy_)
@@ -667,6 +697,19 @@ namespace oceanbase
         case OB_SWITCH_SCHEMA:
           rc = ms_accept_schema(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
           break;
+        //add by wangdonghui 20160122 :b
+        case OB_UPDATE_CACHE:
+          rc = ms_accept_cache(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
+            break;
+        case OB_DELETE_CACHE:
+          rc = ms_delete_cache(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
+            break;
+        //add :e
+        //add by wdh 20160730 :b
+        case OB_UPDATE_ALL_PROCEDURE:
+          rc = ms_update_all_procedure(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
+            break;
+        //add :e
         case OB_SCAN_REQUEST:
           rc = ms_scan(receive_time, version, channel_id, req, in_buffer, out_buffer, timeout_us);
           break;
@@ -870,6 +913,12 @@ namespace oceanbase
       static const int32_t MS_HEARTBEAT_LEASE_SCHEMA_VERSION = 3;
       static const int32_t MS_HEARTBEAT_PRIVILEGE_VERSION = 4;
       static const int32_t MS_HEARTBEAT_CONFIG_VERSION = 4;
+      //add wangdonghui [dev_compile] 20160730 :b
+      static const int32_t MS_HEARTBEAT_PROCEDURE_VERSION = 3;
+      //add :e
+      //add qx 20160830 :b
+      static const int32_t MS_HEARTBEAT_UPS_VERSION = 3;
+      //add :e
 
       FILL_TRACE_LOG("step 1. start process heartbeat");
       ObResultCode rc;
@@ -1026,6 +1075,76 @@ namespace oceanbase
           }
         }
       }
+
+      //add wangdonghui [dev_compile] 20160730 :b
+      if (version > MS_HEARTBEAT_PROCEDURE_VERSION)
+      {
+        int64_t local_version = 0;
+        int64_t procedure_version = 0;
+        if (OB_SUCCESS == rc.result_code_)
+        {
+          rc.result_code_ = serialization::decode_vi64(in_buffer.get_data(),
+                                                       in_buffer.get_capacity(),
+                                                       in_buffer.get_position(),
+                                                       &procedure_version);
+          if (OB_SUCCESS != rc.result_code_)
+          {
+            TBSYS_LOG(ERROR, "parse heartbeat schema version failed:ret[%d]",
+                      rc.result_code_);
+          }
+        }
+
+        // fetch new procedure in a temp timer task
+        if (OB_SUCCESS == rc.result_code_)
+        {
+          local_version = merge_server_->get_procedure_manager().get_version();
+          if ((local_version > procedure_version) && (procedure_version != 0))
+          {
+            rc.result_code_ = OB_ERROR;
+            TBSYS_LOG(ERROR, "check schema local version gt than new version:"
+                "local[%ld], new[%ld]", local_version, procedure_version);
+          }
+          else if (!fetch_procedure_task_.is_scheduled()
+                   && local_version < procedure_version)
+          {
+            TBSYS_LOG(DEBUG, "check procedure local version , new version:"
+                "local[%ld], new[%ld]", local_version, procedure_version);
+            fetch_procedure_task_.init(&(merge_server_->get_procedure_manager()));
+            fetch_procedure_task_.set_version(local_version, procedure_version);
+            srand(static_cast<int32_t>(tbsys::CTimeUtil::getTime()));
+            merge_server_->get_timer().schedule(fetch_procedure_task_,
+                            random() % FETCH_SCHEMA_INTERVAL, false);
+            fetch_procedure_task_.set_scheduled();
+          }
+        }
+      }
+      //add :e
+
+     //add by qx 20160830 :b
+     if (version > MS_HEARTBEAT_UPS_VERSION)
+     {
+       bool ups_state=true;
+
+       if (OB_SUCCESS == rc.result_code_)
+       {
+         rc.result_code_ = serialization::decode_bool(in_buffer.get_data(),
+                                                      in_buffer.get_capacity(),
+                                                      in_buffer.get_position(),
+                                                      &ups_state);
+
+         if (OB_SUCCESS != rc.result_code_)
+         {
+           TBSYS_LOG(ERROR, "parse heartbeat ups state failed:ret[%d]",
+                     rc.result_code_);
+         }else if (ups_state != get_ups_state())
+         {
+           // set ups state
+           set_ups_state(ups_state);
+           TBSYS_LOG(INFO, "change ups state flag,now ups_state_=%d",ups_state);
+         }
+       }
+     }
+     //add :e
 
       FILL_TRACE_LOG("step 3. process heartbeat finish:ret[%d]", err);
       CLEAR_TRACE_LOG();
@@ -1711,7 +1830,219 @@ namespace oceanbase
 
       return ret;
     }
+    //add by wangdonghui 20160122 :b
+    int ObMergeServerService::ms_accept_cache(
+      const int64_t start_time,
+      const int32_t version,
+      const int32_t channel_id,
+      onev_request_e* req,
+      common::ObDataBuffer& in_buffer,
+      common::ObDataBuffer& out_buffer,
+      const int64_t timeout_us)
+    {
+      TBSYS_LOG(DEBUG, "QAQ ACCEPT");
+      UNUSED(start_time);
+      UNUSED(timeout_us);
+      UNUSED(version);
+      ObString proc_name;
+      ObString proc_source_code;
+      common::ObResultCode rc;
+      rc.result_code_ = OB_SUCCESS;
+      int &err = rc.result_code_;
+      int ret = OB_SUCCESS;
+      int32_t OB_MS_ACCEPT_CACHE_VERSION = 1;
+      int64_t accept_version;
 
+      if (OB_SUCCESS != (err = proc_name.deserialize(
+                             in_buffer.get_data(), in_buffer.get_capacity(),
+                             in_buffer.get_position())))
+      {
+          TBSYS_LOG(WARN, "fail to deserialize proc name:err[%d]", err);
+      }
+      else if(OB_SUCCESS != (err = proc_source_code.deserialize(
+                                 in_buffer.get_data(), in_buffer.get_capacity(),
+                                 in_buffer.get_position())))
+      {
+          TBSYS_LOG(WARN, "fail to deserialize proc source code:err[%d]", err);
+      }
+      else if(OB_SUCCESS != (err = serialization::decode_vi64(
+                                 in_buffer.get_data(), in_buffer.get_capacity(),
+                                 in_buffer.get_position(), &accept_version)))
+      {
+          TBSYS_LOG(WARN, "fail to deserialize version: err[%d]", err);
+      }
+      else if(accept_version == merge_server_->get_procedure_manager().get_version() + (int64_t)1)
+      {
+        TBSYS_LOG(INFO, "mergeserver accept proc succ! proc name %s, proc source code %s", proc_name.ptr(), proc_source_code.ptr());
+        if(OB_SUCCESS != (ret = merge_server_->get_procedure_manager().create_procedure(proc_name, proc_source_code)))
+        {
+          TBSYS_LOG(ERROR, "fail to generate physical plan cache [%.*s] ret=[%d]",
+                    proc_name.length(), proc_name.ptr(), ret);
+        }
+        else if (OB_SUCCESS != (ret = rc.serialize(out_buffer.get_data(),
+                              out_buffer.get_capacity(), out_buffer.get_position())))
+        {
+          TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
+        }
+        else if(OB_SUCCESS != (ret = merge_server_->send_response(
+                                   OB_UPDATE_CACHE_RESPONSE,
+                                   OB_MS_ACCEPT_CACHE_VERSION,
+                                   out_buffer, req, channel_id)))
+        {
+          TBSYS_LOG(ERROR, "fail to send OB_UPDATE_CACHE_RESPONSE: ret[%d]", ret);
+        }
+      }
+      else
+      {
+          //if ms find local version != accept version - 1 ,just ignore it, because rs hb to ms will resolve this problem
+          TBSYS_LOG(WARN, "ignore it. local version: %ld, remote version: %ld", merge_server_->get_procedure_manager().get_version(), accept_version);
+      }
+      return ret;
+    }
+    //add :e
+
+
+    //add by wangdonghui 20160122 :b
+    int ObMergeServerService::ms_delete_cache(
+      const int64_t start_time,
+      const int32_t version,
+      const int32_t channel_id,
+      onev_request_e* req,
+      common::ObDataBuffer& in_buffer,
+      common::ObDataBuffer& out_buffer,
+      const int64_t timeout_us)
+    {
+      TBSYS_LOG(DEBUG, "QAQ ACCEPT DELETE!");
+      UNUSED(start_time);
+      UNUSED(timeout_us);
+      UNUSED(version);
+      const int32_t OB_MS_ACCEPT_CACHE_VERSION = 1;
+      ObString proc_name;
+      common::ObResultCode rc;
+      rc.result_code_ = OB_SUCCESS;
+      int &err = rc.result_code_;
+      int ret = OB_SUCCESS;
+      int64_t accept_version;
+      if (OB_SUCCESS == err)
+      {
+        if (OB_SUCCESS != (err = proc_name.deserialize(
+                               in_buffer.get_data(), in_buffer.get_capacity(),
+                               in_buffer.get_position())))
+        {
+          TBSYS_LOG(WARN, "fail to deserialize proc name:err[%d]", err);
+        }
+        else if(OB_SUCCESS != (err = serialization::decode_vi64(
+                                   in_buffer.get_data(), in_buffer.get_capacity(),
+                                   in_buffer.get_position(), &accept_version)))
+        {
+            TBSYS_LOG(WARN, "fail to deserialize version: err[%d]", err);
+        }
+        else if(accept_version == merge_server_->get_procedure_manager().get_version() + (int64_t)1)
+        {
+            if (hash::HASH_NOT_EXIST == (ret = merge_server_->get_procedure_manager().delete_procedure(proc_name)))
+            {
+              TBSYS_LOG(WARN, "procedure [%s] not exist, destroy do nothing.", proc_name.ptr());
+              ret = OB_ERROR;
+            }
+            else
+            {
+                if ((ret = rc.serialize(out_buffer.get_data(),out_buffer.get_capacity(), out_buffer.get_position())) != OB_SUCCESS)
+                {
+                  TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
+                }
+                else
+                {
+                  ret = merge_server_->send_response(
+                      OB_DELETE_CACHE_RESPONSE,
+                      OB_MS_ACCEPT_CACHE_VERSION,
+                      out_buffer, req, channel_id);
+                }
+
+            }
+        }
+        else
+        {
+            //if ms find local version != accept version - 1 ,just ignore it, because rs hb to ms will resolve this problem
+            TBSYS_LOG(WARN, "ignore it. local version: %ld, remote version: %ld", merge_server_->get_procedure_manager().get_version(), accept_version);
+        }
+      }
+      return ret;
+    }
+    //add :e
+    //add by wangdonghui 20160323 :b
+    int ObMergeServerService::fetch_source(common::ObNameCodeMap * name_code_map)
+    {
+        int ret = OB_SUCCESS;
+        merge_server_->get_procedure_manager().lock_.lock();
+        if(OB_SUCCESS != (ret = rpc_stub_->fetch_procedure(merge_server_->get_config().network_timeout, merge_server_->get_root_server(), *name_code_map)))
+        {
+            TBSYS_LOG(WARN, "fetch source hashmap fail, ret=[%d]",ret);
+        }
+        else
+        {
+            TBSYS_LOG(INFO, "fetch source hashmap succ! version: %ld, size: %ld", name_code_map->get_local_version(), name_code_map->size());
+//            common::hash::ObHashMap<common::ObString, common::ObString >::const_iterator iter = name_code_map->get_name_code_map()->begin();
+//            for(;iter != name_code_map->get_name_code_map()->end(); iter++)
+//            {
+//              ObString proc_name = iter->first;
+//              TBSYS_LOG(INFO, "QAQ: proc name %s", proc_name.ptr());
+
+//            }
+        }
+        merge_server_->get_procedure_manager().lock_.unlock();
+        return ret;
+    }
+    //add :e
+
+    //add by wdh 20160730 :b
+    int ObMergeServerService::ms_update_all_procedure(
+            int64_t start_time,
+            const int32_t version,
+            const int32_t channel_id,
+            onev_request_e* req,
+            common::ObDataBuffer& in_buffer,
+            common::ObDataBuffer& out_buffer,
+            const int64_t timeout_us)
+    {
+        TBSYS_LOG(DEBUG, "QAQ ACCEPT");
+        UNUSED(start_time);
+        UNUSED(timeout_us);
+        UNUSED(version);
+        common::ObResultCode rc;
+        rc.result_code_ = OB_SUCCESS;
+        int &err = rc.result_code_;
+        int ret = OB_SUCCESS;
+        const int32_t OB_MS_ACCEPT_CACHE_VERSION = 1;
+
+        if (OB_SUCCESS != (err = merge_server_->get_procedure_manager().get_name_code_map()->deserialize(
+                               in_buffer.get_data(), in_buffer.get_capacity(),
+                               in_buffer.get_position())))
+        {
+            TBSYS_LOG(WARN, "fail to deserialize proc name:err[%d]", err);
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = rc.serialize(out_buffer.get_data(),
+                                out_buffer.get_capacity(), out_buffer.get_position())))
+          {
+            TBSYS_LOG(ERROR, "fail to serialize: ret[%d]", ret);
+          }
+          else if(OB_SUCCESS != (ret = merge_server_->send_response(
+                                     OB_UPDATE_ALL_PROCEDURE_RESPONSE,
+                                     OB_MS_ACCEPT_CACHE_VERSION,
+                                     out_buffer, req, channel_id)))
+          {
+            TBSYS_LOG(ERROR, "fail to send OB_UPDATE_CACHE_RESPONSE: ret[%d]", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "MS update all proc succ");
+          }
+        }
+        return ret;
+    }
+
+    //add :e
     int ObMergeServerService::send_sql_response(
       onev_request_e* req,
       common::ObDataBuffer& out_buffer,

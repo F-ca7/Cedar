@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,12 +11,13 @@
  * modified by longfei：add struct ObQueryHint for user use hint in select
  * modified by yu shengjuan : storing such as table_id column_id table_name and other information from sql
  * modified by maoxiaoxiao: add struct ObQueryHint for user to use hint for bloomfilter join or merge join
+ * modified by wangdonghui: add hint of no group execution
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_07_27
+ * @date 2016_07_30
  */
 #ifndef OCEANBASE_SQL_STMT_H_
 #define OCEANBASE_SQL_STMT_H_
@@ -143,6 +144,8 @@ namespace oceanbase
       {
         hotspot_ = false;
         read_consistency_ = common::NO_CONSISTENCY;
+        //add by wdh 20160716
+        no_group_ = false;  ///<  Default open optimization
       }
       bool has_index_hint() const
       {
@@ -156,6 +159,8 @@ namespace oceanbase
       common::ObConsistencyLevel read_consistency_;
       common::ObVector<IndexTableNamePair> use_index_array_; // add by longfei [Index Hint]
       common::ObVector<ObSemiTableList> use_join_array_; // add by yusj [SEMI_JOIN] 20150819
+      //add by wdh 20160716
+      bool  no_group_;  ///<  no group execution flag
       /*add maoxx [bloomfilter_join] 20160406*/
       common::ObVector<ObJoinOPTypeArray> join_op_type_array_;
       /*add e*/

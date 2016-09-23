@@ -30,6 +30,10 @@ namespace oceanbase
     const static int64_t REFRESH_NEW_CONFIG_TRIGGER = 4;
     const static int64_t CREATE_TABLE_TRIGGER = 5;
     const static int64_t DROP_TABLE_TRIGGER = 6;
+    //add by wdh 20160730 :b
+    const static int64_t CREATE_PROCEDURE_TRIGGER = 7;
+    const static int64_t DROP_PROCEDURE_TRIGGER = 8;
+    //add :e
 
     class ObTriggerMsg{
      public:

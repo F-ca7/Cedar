@@ -6,7 +6,7 @@
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_postfix_expression.h
- * @brief postfix expression
+ * @brief postfix expression class definition
  *
  * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
@@ -15,6 +15,7 @@
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
+ * @date 2016_07_28
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_07_27
  */
@@ -328,6 +329,7 @@ namespace oceanbase
           PARAM_IDX,
           SYSTEM_VAR,
           TEMP_VAR,
+          ARRAY_VAR,   //add zt 20151126
           OP,
           CUR_TIME_OP,
           UPS_TIME_OP,
@@ -365,10 +367,11 @@ namespace oceanbase
 
         /*
          * 判断表达式类型：是否是const, column_index, etc
-         * 如果表达式类型为column_index,则返回index值
+         * 如果表达式类型为column_index,则返回index�
          */
         int is_const_expr(bool &is_type) const;
         int is_column_index_expr(bool &is_type) const;
+        int is_var_expr(bool &is_type, ObObj &var_name) const;  //add by zt 20160617
         int get_column_index_expr(uint64_t &tid, uint64_t &cid, bool &is_type) const;
         int merge_expr(const ObPostfixExpression &expr1, const ObPostfixExpression &expr2, const ExprItem &op);
         bool is_empty() const;
@@ -409,6 +412,11 @@ namespace oceanbase
         // add e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add zt 20151109 :b
+        int serialize_variables(char *buf, const int64_t buf_len, int64_t &pos, int64_t type, const ObObj &expr_node) const;
+//        int deserialize_variables(int64_t type, const ObObj &expr_node);
+        //add zt 20151109 :e
       private:
         class ExprUtil
         {
@@ -496,6 +504,7 @@ namespace oceanbase
         int check_expr_type(const int64_t type_val, bool &is_type, const int64_t stack_len) const;
         int get_sys_func(const common::ObString &sys_func, ObSqlSysFunc &func_type) const;
         int get_var_obj(ObPostExprNodeType type, const ObObj& expr_node, const ObObj*& val) const;
+        int get_array_var(const ObObj& expr_node, int64_t idx_type, const ObObj &idx_val, const ObObj*& val) const; //add zt 20151126
       private:
         static const int64_t DEF_STRING_BUF_SIZE = 64 * 1024L;
         static const int64_t BASIC_SYMBOL_COUNT = 64;

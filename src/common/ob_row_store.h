@@ -159,7 +159,7 @@ namespace oceanbase
         int32_t mod_id_;
         int64_t block_size_;
         bool is_read_only_;
-        iterator inner_;
+        iterator inner_;  //when we call ObRowStore copy-constructor, the inner_ would point to the old ObRowStore, causes error.
     };
 
     namespace KVStoreCacheComponent

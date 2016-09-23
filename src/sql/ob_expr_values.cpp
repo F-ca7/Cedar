@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_expr_values.cpp
+ * @brief for operations of expression value
+ *
+ * modified by zhutao:add define different serialize methods for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -18,13 +36,16 @@
 #include "common/utility.h"
 #include "common/ob_obj_cast.h"
 #include "common/hash/ob_hashmap.h"
+#include "ob_physical_plan.h" //add zt 20151109
+#include "ob_sp_procedure.h" //add by zt 20160704
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 ObExprValues::ObExprValues()
   :values_(OB_TC_MALLOC_BLOCK_SIZE, ModulePageAllocator(ObModIds::OB_SQL_ARRAY)),
    from_deserialize_(false),
    check_rowkey_duplicat_(false),
-   do_eval_when_serialize_(false)
+   do_eval_when_serialize_(false),
+   group_exec_(false)
 {
 }
 
@@ -76,6 +97,18 @@ int ObExprValues::add_value(const ObSqlExpression &v)
 int ObExprValues::open()
 {
   int ret = OB_SUCCESS;
+
+  //add by zt 20160119:b
+  if( group_exec_ )
+  {
+    if( OB_SUCCESS != (ret = prepare_data()))
+    {
+      TBSYS_LOG(WARN, "prepare_data()=>%d", ret);
+    }
+  }
+  if( OB_SUCCESS != ret ) {}
+  else
+  //add by zt 20160119:e
   if (from_deserialize_)
   {
     row_store_.reset_iterator();
@@ -121,6 +154,11 @@ int ObExprValues::close()
 int ObExprValues::get_next_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
+  if( group_exec_ )
+  {
+    ret = get_next_row_template(row);
+  }
+  else
   if (OB_SUCCESS != (ret = row_store_.get_next_row(row_)))
   {
     if (OB_ITER_END != ret)
@@ -313,36 +351,64 @@ PHY_OPERATOR_ASSIGN(ObExprValues)
   return ret;
 }
 
+/*******************************************************************
+  *We need to define different serialize methods for procedure
+  *execution or physical plan execution.
+  * > For procedure execution, exprValues cannot be calculted until
+  * 	until precede plans done
+  * > For phy_plan execution, exprValues can be calcuted, since there's
+  *   no precede plans
+  *****************************************************************/
 DEFINE_SERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
-  if (do_eval_when_serialize_)
+  //add by zt 20160118:b
+  if( OB_SUCCESS !=  (ret = serialization::encode_bool(buf, buf_len, tmp_pos, my_phy_plan_->is_group_exec())) )
   {
-    if (OB_SUCCESS != (ret = (const_cast<ObExprValues*>(this))->open()))
-    {
-      TBSYS_LOG(WARN, "failed to open expr_values, err=%d", ret);
-    }
+    TBSYS_LOG(WARN, "failed to serialize proc_exec flag");
   }
-
-  if (OB_LIKELY(OB_SUCCESS == ret))
+  else if( my_phy_plan_->is_group_exec() )
   {
-    if (OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+    if( OB_SUCCESS != (ret = serialize_template(buf, buf_len, tmp_pos)) )
     {
-      TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
-    }
-    else if (OB_SUCCESS != (ret = row_store_.serialize(buf, buf_len, tmp_pos)))
-    {
-      TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
+      TBSYS_LOG(WARN, "failed to serialize template version");
     }
     else
     {
       pos = tmp_pos;
     }
   }
-  if (do_eval_when_serialize_)
+  else
   {
-    (const_cast<ObExprValues*>(this))->close();
+  //add zt 20160118 :e
+    if (do_eval_when_serialize_)
+    {
+      if (OB_SUCCESS != (ret = (const_cast<ObExprValues*>(this))->open()))
+      {
+        TBSYS_LOG(WARN, "failed to open expr_values, err=%d", ret);
+      }
+    }
+
+    if (OB_LIKELY(OB_SUCCESS == ret))
+    {
+      if (OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+      {
+        TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
+      }
+      else if (OB_SUCCESS != (ret = row_store_.serialize(buf, buf_len, tmp_pos)))
+      {
+        TBSYS_LOG(WARN, "serialize row_store fail ret=%d buf=%p buf_len=%ld pos=%ld", ret, buf, buf_len, tmp_pos);
+      }
+      else
+      {
+        pos = tmp_pos;
+      }
+    }
+    if (do_eval_when_serialize_)
+    {
+      (const_cast<ObExprValues*>(this))->close();
+    }
   }
   return ret;
 }
@@ -351,6 +417,25 @@ DEFINE_DESERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
+  //add zt 20151109:b
+  if( OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, tmp_pos, &group_exec_)) )
+  {
+    TBSYS_LOG(WARN, "fail to deseriazlie proc_exec flag");
+  }
+  else if ( group_exec_ )
+  {
+    if ( OB_SUCCESS != (ret = deserialize_template(buf, data_len, tmp_pos)))
+    {
+      TBSYS_LOG(WARN, "fail to deserialize template version");
+    }
+    else
+    {
+      from_deserialize_ = true;
+      pos = tmp_pos;
+    }
+  }
+  else
+  //add zt 20151109:e
   if (OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, tmp_pos)))
   {
     TBSYS_LOG(WARN, "serialize row_desc fail ret=%d buf=%p data_len=%ld pos=%ld", ret, buf, data_len, tmp_pos);
@@ -369,5 +454,165 @@ DEFINE_DESERIALIZE(ObExprValues)
 
 DEFINE_GET_SERIALIZE_SIZE(ObExprValues)
 {
-  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
+  //delete by zt 20151109 :b
+  //  return (row_desc_.get_serialize_size() + row_store_.get_serialize_size());
+  //delete by zt 20151109 :e
+  bool group_exec = false;
+  if( NULL != my_phy_plan_ && my_phy_plan_->is_group_exec() ) group_exec = true;
+  if( !group_exec )
+  {
+    return (row_desc_.get_serialize_size() + row_store_.get_serialize_size() + sizeof(bool));
+  }
+  else
+  {
+    int64_t size = sizeof(bool) + sizeof(int64_t) + row_desc_ext_.get_serialize_size();
+    for(int64_t i = 0; i < values_.count(); ++i)
+    {
+      size += values_.at(i).get_serialize_size();
+    }
+    return size;
+  }
 }
+
+//add by zt 20160119:b
+int ObExprValues::serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const
+{
+  int ret = OB_SUCCESS;
+  int64_t tmp_pos = pos;
+  if ( OB_SUCCESS != (ret = row_desc_.serialize(buf, buf_len, tmp_pos)))
+  {
+    TBSYS_LOG(WARN, "serialize row_desc fail");
+  }
+  else if ( OB_SUCCESS != (ret = row_desc_ext_.serialize(buf, buf_len, tmp_pos)))
+  {
+    TBSYS_LOG(WARN, "serialzie row_desc ext fail");
+  }
+  else
+  {
+    serialization::encode_i64(buf, buf_len, tmp_pos, values_.count());
+    for (int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); ++i)
+    {
+      if ( OB_SUCCESS != (ret = values_.at(i).serialize(buf, buf_len, tmp_pos)))
+      {
+        TBSYS_LOG(WARN, "Fail to serialize expr[%ld], ret=%d", i, ret);
+        break;
+      }
+    }
+  }
+  if( OB_SUCCESS == ret )
+  {
+    pos = tmp_pos;
+  }
+  return ret;
+}
+
+int ObExprValues::deserialize_template(const char *buf, const int64_t data_len, int64_t &pos)
+{
+  int ret = OB_SUCCESS;
+  int64_t tmp_pos = pos;
+  int64_t expr_value_count;
+  if( OB_SUCCESS != (ret = row_desc_.deserialize(buf, data_len, tmp_pos)))
+  {
+    TBSYS_LOG(WARN, "deserialize the row_desc fail");
+  }
+  else if( OB_SUCCESS != (ret = row_desc_ext_.deserialize(buf, data_len, tmp_pos)) )
+  {
+    TBSYS_LOG(WARN, "deserialize the row_desc_ext fail");
+  }
+  else if( OB_SUCCESS != (ret = serialization::decode_i64(buf, data_len, tmp_pos, &expr_value_count)) )
+  {
+    TBSYS_LOG(WARN, "deserialize the expr values count fail, ret=%d", ret);
+  }
+  else
+  {
+    values_.reserve(expr_value_count);
+    ObSqlExpression expr;
+    for(int64_t i = 0; OB_SUCCESS == ret && i < expr_value_count; ++i)
+    {
+      values_.push_back(expr);
+      if( OB_SUCCESS != (ret = values_.at(i).deserialize(buf, data_len, tmp_pos)) )
+      {
+        TBSYS_LOG(WARN, "Fail to deserialize expr[%ld], ret=%d", i, ret);
+      }
+      else
+      {
+        values_.at(i).set_owner_op(this);
+      }
+    }
+  }
+  if( OB_SUCCESS == ret )
+  {
+    pos = tmp_pos;
+  }
+  return ret;
+}
+
+int ObExprValues::prepare_data()
+{
+  int ret = OB_SUCCESS;
+//  row_store_.reuse();
+//  ret = eval();
+  expr_idx_ = 0;
+  return ret;
+}
+
+int ObExprValues::get_next_row_template(const common::ObRow *&row)
+{
+  int ret = expr_idx_ < values_.count() ? OB_SUCCESS : OB_ITER_END;
+  int64_t col_num = row_desc_.get_column_num();
+  char *varchar_buff = NULL;
+  ObStringBuf *buf = NULL;
+  //try to get casted buf
+  if( my_phy_plan_->get_main_query()->get_type() == PHY_PROCEDURE )
+  {
+    SpProcedure *proc = static_cast<SpProcedure*>(my_phy_plan_->get_main_query());
+    proc->get_casted_buf(varchar_buff, buf);
+  }
+  else
+  {
+    ret = OB_NOT_SUPPORTED;
+  }
+
+  ObObj casted_cell;
+  ObString varchar;
+  for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
+  {
+    varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+    casted_cell.set_varchar(varchar);
+    const ObObj *single_value = NULL;
+    uint64_t table_id = OB_INVALID_ID;
+    uint64_t column_id = OB_INVALID_ID;
+    ObObj tmp_value;
+    ObObj data_type;
+    ObSqlExpression &val_expr = values_.at(expr_idx_+j);
+    if ((ret = val_expr.calc(row_, single_value)) != OB_SUCCESS) // the expr should be a const expr here
+    {
+      TBSYS_LOG(WARN, "Calculate value result failed, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = row_desc_ext_.get_by_idx(j, table_id, column_id, data_type)))
+    {
+      ret = OB_ERR_UNEXPECTED;
+      TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+    {
+      TBSYS_LOG(WARN, "incorrect data type, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = buf->write_obj(*single_value, &tmp_value)))
+    {
+      TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
+    }
+    else if ((ret = row_.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "Add value to ObRow failed");
+    }
+  }
+  if( OB_SUCCESS == ret )
+  {
+    row = &row_;
+    expr_idx_ += row_desc_.get_column_num();
+  }
+  return ret;
+}
+
+//add by zt 20160119:e

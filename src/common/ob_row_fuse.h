@@ -21,19 +21,12 @@
 #include "ob_ups_row.h"
 #include "utility.h"
 
-namespace test
-{
-  class ObRowFuseTest_apply_row_test_Test;
-}
-
 namespace oceanbase
 {
   namespace common
   {
     class ObRowFuse
     {
-      friend class test::ObRowFuseTest_apply_row_test_Test;
-
       public:
         /*
          * function assign and fuse_row

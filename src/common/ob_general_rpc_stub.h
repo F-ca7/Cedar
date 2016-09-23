@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,12 +11,15 @@
  * modified by longfei：add rpc call for drop index and retry_failed_work
  * modified by Weng Haixing: modify a register fuction all to fit secondary index global stage
  * modified by maoxiaoxiao:add functions to get column checksum and report tablets histogram
+ * modified by wangdonghui:add some function for procedure
  *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author WengHaixing <wenghaixing@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
  */
 
 /**
@@ -48,7 +51,9 @@
 #include "ob_tablet_histogram_report_info.h"
 //add e
 #include "ob_index_black_list.h" //add longfei
-
+//add by wangdonghui 20160308 :b
+#include "common/ob_name_code_map.h"
+//add :e
 namespace oceanbase
 {
   namespace sql
@@ -159,7 +164,18 @@ namespace oceanbase
         //        @schema fetch cmd output schema data
         int fetch_schema(const int64_t timeout, const common::ObServer & root_server,
             const int64_t timestamp, const bool only_core_tables, common::ObSchemaManagerV2 & schema) const;
-
+        //add by wangdonghui 20160304 :b
+        /**
+         * @brief fetch_procedure
+         * get procedure info through root server rpc call
+         * @param timeout  action timeout
+         * @param root_server root server addr
+         * @param namecodemap returned name code map
+         * @return
+         */
+        int fetch_procedure(const int64_t timeout, const ObServer & root_server,
+            common::ObNameCodeMap & namecodemap) const;
+        //add :e
         // get tables schema newest version through root server rpc call
         // param  @timeout  action timeout
         //        @root_server root server addr
@@ -205,6 +221,34 @@ namespace oceanbase
         int alter_table(const int64_t timeout, const common::ObServer & root_server,
             const common::AlterTableSchema & alter_schema) const;
 
+        //add by wangdonghui 20160121 :b
+        /**
+         * @brief create_procedure
+         * create a procedure
+         * @param timeout action timeout
+         * @param root_server root server addr
+         * @param if_not_exists if exists flag
+         * @param proc_name procedure name
+         * @param proc_source_code procedure source code
+         * @return error code
+         */
+        int create_procedure(const int64_t timeout, const common::ObServer & root_server,
+                             bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const;
+        //add :e
+
+        //add by wangdonghui 20160225 [drop procedure] :b
+        /**
+         * @brief drop_procedure
+         * delete a procedure
+         * @param timeout action timeout
+         * @param root_server root server addr
+         * @param if_exists if exists flag
+         * @param proc_name procedure name
+         * @return error code
+         */
+        int drop_procedure(const int64_t timeout, const common::ObServer & root_server,
+                           bool if_exists, const common::ObString &proc_name) const;
+        //add :e
         /*
          * Report tablets to RootServer, report finishes at has_more flag is off
          * @param tablets TabletReportInfoList to be reported

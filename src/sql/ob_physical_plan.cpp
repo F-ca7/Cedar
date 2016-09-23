@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_physical_plan.h
+ * @brief physical plan class definition
+ *
+ * modified by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_27
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -19,7 +38,7 @@
 #include "ob_mem_sstable_scan.h"
 #include "common/serialization.h"
 #include "ob_phy_operator_factory.h"
-
+#include "ob_postfix_expression.h"  //add zt 20151109
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 using namespace oceanbase::common::serialization;
@@ -45,7 +64,10 @@ ObPhysicalPlan::ObPhysicalPlan()
    start_trans_(false),
    in_ups_executor_(false),
    cons_from_assign_(false),
-   next_phy_operator_id_(0)
+   next_phy_operator_id_(0),
+   //add zt 20151109 :b
+   group_exec_mode_(false)
+   //add zt 20151109 :e
 {
 }
 
@@ -299,6 +321,12 @@ int ObPhysicalPlan::deserialize_tree(const char *buf, int64_t data_len, int64_t 
       ret = OB_ALLOCATE_MEMORY_FAILED;
       TBSYS_LOG(WARN, "get operator fail:type[%d]", phy_operator_type);
     }
+    //add zt 20151111:b
+    else
+    {
+      root->set_phy_plan(this);
+    }
+    //add zt 20151111:e
   }
   if (OB_SUCCESS == ret)
   {
@@ -498,6 +526,7 @@ DEFINE_SERIALIZE(ObPhysicalPlan)
   OB_ASSERT(my_result_set_);
   common::ObTransID trans_id = my_result_set_->get_session()->get_trans_id();
   FILL_TRACE_LOG("trans_id=%s", to_cstring(trans_id));
+//  TBSYS_LOG(INFO, "trans_id=%s", to_cstring(trans_id)); //add by zt for test purpose
   if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, start_trans_)))
   {
     TBSYS_LOG(WARN, "failed to serialize trans_id_, err=%d buf_len=%ld pos=%ld",
@@ -588,3 +617,77 @@ DEFINE_GET_SERIALIZE_SIZE(ObPhysicalPlan)
   int64_t size = 0;
   return size;
 }
+//add zt 20151109:b
+//namespace oceanbase
+//{
+//  namespace sql
+//  {
+//    //add zt 20151109 :b
+//    int ObPhysicalPlan::get_variable(ObPostfixExpression::ObPostExprNodeType type, const ObObj &expr_node, const ObObj *&val) const
+//    {
+//      int ret = OB_SUCCESS;
+//      if( NULL != my_result_set_ ) //read from result_set
+//      {
+//        if (type == ObPostfixExpression::PARAM_IDX)
+//        {
+//          int64_t param_idx = OB_INVALID_INDEX;
+//          if ((ret = expr_node.get_int(param_idx)) != OB_SUCCESS)
+//          {
+//            TBSYS_LOG(ERROR, "Can not get param index, ret=%d", ret);
+//          }
+//          else if (param_idx < 0 || param_idx >= my_result_set_->get_params().count())
+//          {
+//            ret = OB_ERR_ILLEGAL_INDEX;
+//            TBSYS_LOG(ERROR, "Wrong index of question mark position, pos = %ld\n", param_idx);
+//          }
+//          else
+//          {
+//            val = my_result_set_->get_params().at(param_idx);
+//          }
+//        }
+//        else if (type == ObPostfixExpression::SYSTEM_VAR || type == ObPostfixExpression::TEMP_VAR)
+//        {
+//          ObString var_name;
+//          ObSQLSessionInfo *session_info = my_result_set_->get_session();
+//          if (!session_info)
+//          {
+//            ret = OB_ERR_UNEXPECTED;
+//            TBSYS_LOG(WARN, "Can not get session info.err=%d", ret);
+//          }
+//          else if ((ret = expr_node.get_varchar(var_name)) != OB_SUCCESS)
+//          {
+//            TBSYS_LOG(ERROR, "Can not get variable name");
+//          }
+//          else if (type == ObPostfixExpression::SYSTEM_VAR
+//                   && (val = session_info->get_sys_variable_value(var_name)) == NULL)
+//          {
+//            ret = OB_ERR_VARIABLE_UNKNOWN;
+//            TBSYS_LOG(USER_ERROR, "System variable %.*s does not exists", var_name.length(), var_name.ptr());
+//          }
+//          else if (type == ObPostfixExpression::TEMP_VAR
+//                   && (val = session_info->get_variable_value(var_name)) == NULL)
+//          {
+//            ret = OB_ERR_VARIABLE_UNKNOWN;
+//            TBSYS_LOG(USER_ERROR, "Variable %.*s does not exists", var_name.length(), var_name.ptr());
+//          }
+//        }
+//        else if (type == ObPostfixExpression::CUR_TIME_OP)
+//        {
+//          if ((val = my_result_set_->get_cur_time_place()) == NULL)
+//          {
+//            ret = OB_ERR_UNEXPECTED;
+//            TBSYS_LOG(WARN, "Can not get current time. err=%d", ret);
+//          }
+//        }
+//      }
+//      else if( main_query_->get_type() == PHY_PROCEDURE)//read from procedure
+//      {
+
+//      }
+//      return ret;
+//    }
+//    //add zt 20151109 :e
+
+//  }
+//}
+//add zt 20151109:e

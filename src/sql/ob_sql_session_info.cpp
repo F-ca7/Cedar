@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sql_session_info.cpp
+ * @brief sql session information
+ *
+ * mofied by zhutao:add functions for procedure array variable operation
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
+ */
+
 #include "ob_sql_session_info.h"
 #include "common/ob_define.h"
 #include "common/ob_mod_define.h"
@@ -565,6 +584,137 @@ int ObSQLSessionInfo::remove_variable(const ObString& var)
   }
   return ret;
 }
+
+//add zt 20151202:b
+int ObSQLSessionInfo::replace_vararray(const common::ObString &var, const common::ObArray<ObObj> &val)
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+  ObVarArray *var_array;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if( var.compare(var_arrays_.at(i).var_array_name_) == 0 )
+    {
+      TBSYS_LOG(TRACE, "find vararray at %ld", i);
+      var_array = &var_arrays_.at(i);
+      find = true;
+      break;
+    }
+  }
+  if( !find )
+  {
+    ObVarArray new_vararray;
+    var_arrays_.push_back(new_vararray);
+    var_array = &var_arrays_.at(var_arrays_.count() - 1);
+  }
+  if( OB_SUCCESS == ret )
+  {
+    ObArray<ObObj> & tmp = var_array->value_;
+    ObObj tmp_obj;
+    tmp.clear();
+    if( OB_SUCCESS != (ret = name_pool_.write_string(var, &(var_array->var_array_name_))) )
+    {}
+
+    for(int64_t i = 0; OB_SUCCESS == ret && i < val.count(); ++i)
+    {
+      if( OB_SUCCESS == (ret = ob_write_obj(name_pool_, val.at(i), tmp_obj)) )
+      {
+        tmp.push_back(tmp_obj);
+      }
+    }
+  }
+  return ret;
+}
+
+int ObSQLSessionInfo::replace_vararray(const common::ObString &var, int64_t idx_value, const ObObj &val)
+{
+  int ret = OB_SUCCESS;
+  bool find = false;
+  ObVarArray *var_array;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if( var.compare(var_arrays_.at(i).var_array_name_) == 0 )
+    {
+      TBSYS_LOG(TRACE, "find vararray at %ld", i);
+      var_array = &var_arrays_.at(i);
+      find = true;
+      break;
+    }
+  }
+  if( find )
+  {
+    ObArray<ObObj> & tmp = var_array->value_;
+    ObObj tmp_obj;
+    if( idx_value < 0 )
+    {
+      ret = OB_ERR_ILLEGAL_INDEX;
+    }
+    else if( idx_value >= tmp.count() )
+    {
+      tmp_obj.set_null();
+      while( OB_SUCCESS == ret && idx_value >= tmp.count() )
+      {
+        ret = tmp.push_back(tmp_obj);
+      }
+    }
+    if( OB_SUCCESS == ret && OB_SUCCESS == (ret = ob_write_obj(name_pool_, val, tmp_obj)) )
+    {
+      tmp.at(idx_value) = tmp_obj;
+    }
+  }
+  else
+  {
+    ret = OB_ERR_VARIABLE_UNKNOWN;
+  }
+  return ret;
+}
+
+int ObSQLSessionInfo::get_variable_array_size(const common::ObString &array_name, int64_t &array_size) const
+{
+  int ret = OB_ERR_VARIABLE_UNKNOWN;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if(0 == array_name.compare(var_arrays_.at(i).var_array_name_))
+    {
+      array_size = var_arrays_.at(i).value_.count();
+      ret = OB_SUCCESS;
+    }
+  }
+  return ret;
+}
+
+int ObSQLSessionInfo::remove_vararray(const common::ObString &var)
+{
+  int ret = OB_SUCCESS;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if( var.compare(var_arrays_.at(i).var_array_name_) == 0 )
+    {
+      TBSYS_LOG(TRACE, "find vararray at %ld, remove", i);
+      var_arrays_.at(i).value_.clear();
+      var_arrays_.remove(i);
+      break;
+    }
+  }
+  return ret;
+}
+
+int ObSQLSessionInfo::get_variable_value(const common::ObString &var, int64_t idx, const common::ObObj* &val) const
+{
+  int ret = OB_ERR_VARIABLE_UNKNOWN;
+  for(int64_t i = 0; i < var_arrays_.count(); ++i)
+  {
+    if( var.compare(var_arrays_.at(i).var_array_name_) == 0
+        && 0 <= idx && idx < var_arrays_.at(i).value_.count() )
+    {
+      val = &(var_arrays_.at(i).value_.at(idx));
+      ret = OB_SUCCESS;
+      break;
+    }
+  }
+  return ret;
+}
+//add zt 20511202:e
 
 int ObSQLSessionInfo::update_system_variable(const ObString& var, const ObObj& val)
 {

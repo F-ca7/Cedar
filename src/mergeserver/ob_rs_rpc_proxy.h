@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,9 +12,13 @@
  * 1.set timeout of drop table with index
  * 2.add rpc function: drop_index()
  *
+ * modified by wangdonghui: add create and drop procedure functions in root server rpc proxy
+ *
  * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_30
  */
 #ifndef _OB_MERGER_RS_RPC_PROXY_H_
 #define _OB_MERGER_RS_RPC_PROXY_H_
@@ -84,6 +88,29 @@ namespace oceanbase
       // drop tables
       int drop_table(bool if_exists, const common::ObStrings & tables);
       // alter table
+
+      //add by wangdonghui 20160121 :b
+      /**
+       * @brief create_procedure
+       * create procedure
+       * @param if_not_exists if no exists flag
+       * @param proc_name procedure name
+       * @param proc_source_code procedure source code
+       * @return error code
+       */
+      int create_procedure(bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code);
+      //add :e
+
+      //add by wangdonghui 20160225 [drop procedure] :b
+      /**
+       * @brief drop_procedure
+       * drop procedure
+       * @param if_exists if exists flag
+       * @param proc_name procedure name
+       * @return error code
+       */
+      int drop_procedure(bool if_exists, const common::ObString & proc_name);
+      //add :e
       int alter_table(const common::AlterTableSchema & alter_schema);
       int fetch_master_ups(const ObServer &rootserver, ObServer & master_ups);
     public:

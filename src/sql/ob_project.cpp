@@ -1,19 +1,22 @@
 /**
-* Copyright (C) 2013-2015 ECNU_DaSE.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_project.cpp
-* @brief for operations of project
-*
-* modified by maoxiaoxiao:add functions to get next row if table has index and reset iterator
-*
-* @version __DaSE_VERSION
-* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_project.cpp
+ * @brief for operations of project
+ *
+ * modified by maoxiaoxiao:add functions to get next row if table has index and reset iterator
+ * modified by zhutao:add DEFINE_DESERIALIZE process
+ *
+ * @version __DaSE_VERSION
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_01_21
+ */
 
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -357,11 +360,19 @@ DEFINE_DESERIALIZE(ObProject)
         TBSYS_LOG(DEBUG, "fail to add expr to project ret=%d. buf=%p, data_len=%ld, pos=%ld", ret, buf, data_len, pos);
         break;
       }
-      if (OB_SUCCESS != (ret = columns_.at(columns_.count() - 1).deserialize(buf, data_len, pos)))
+      else if (OB_SUCCESS != (ret = columns_.at(columns_.count() - 1).deserialize(buf, data_len, pos)))
       {
         TBSYS_LOG(WARN, "fail to deserialize expression. ret=%d", ret);
         break;
       }
+      //add zt 20151113:b
+      else
+      {
+        //even though add_output_column will set the owner op of expr,
+        //but when deserialize, the postexpr would call reset function, which make the own_op_ = nil
+        columns_.at(columns_.count() - 1).set_owner_op(this);
+      }
+      //add zt 20151113:e
     }
   }
   return ret;
