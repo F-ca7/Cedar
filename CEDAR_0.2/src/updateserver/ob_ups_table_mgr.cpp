@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_ups_table_mgr.cpp
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_03_14
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -44,7 +59,8 @@ namespace oceanbase
       return ret;
     }
 
-    ObUpsTableMgr :: ObUpsTableMgr(ObILogWriter &log_writer) : log_buffer_(NULL),
+    //modify by zhouhuan [scalablecommit] 20160510
+    ObUpsTableMgr :: ObUpsTableMgr(/*ObILogWriter*/ObLogWriterV3 &log_writer) : log_buffer_(NULL),
                                                                table_mgr_(log_writer),
                                                                check_checksum_(true),
                                                                has_started_(false),
@@ -179,7 +195,8 @@ namespace oceanbase
         }
         if (OB_SUCCESS == ret)
         {
-          ret = flush_commit_log_(TraceLog::get_logbuffer());
+          //delete by zhouhuan [scalablecommit] 20160511
+          //ret = flush_commit_log_(TraceLog::get_logbuffer());
           FILL_TRACE_LOG("flush log ret=%d", ret);
         }
         if (OB_SUCCESS == ret)
@@ -735,7 +752,15 @@ namespace oceanbase
       else
       {
         ObUpsLogMgr& log_mgr = ups_main->get_update_server().get_log_mgr();
-        int64_t serialize_size = 0;
+		int64_t serialize_size = 0;
+		//add by zhouhuan [scalablecommit] 20160427
+        TransExecutor& trans_executor = ups_main->get_update_server().get_trans_executor();
+        int64_t ref_cnt = 0;
+        FLogPos cur_pos = log_mgr.get_next_pos();
+        FLogPos next_pos;
+        LogGroup *cur_group = NULL;
+        int64_t switch_flag = 0;
+		//add:e
         if (NULL == log_buffer_)
         {
           TBSYS_LOG(WARN, "log buffer malloc fail");
@@ -748,13 +773,15 @@ namespace oceanbase
         }
         else
         {
-          //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+          //modify by zhouhuan [scalablecommit] 20160627:b
+          /*if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size)))
+		//modify chujiajia [log synchronization][multi_cluster] 20160328:b
           //if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size)))
           if (OB_SUCCESS != (ret = log_mgr.write_log(log_command, log_buffer_, serialize_size, log_mgr.get_flushed_clog_id_without_update())))
           //modify:e
           {
-            TBSYS_LOG(WARN, "write log fail log_command=%d log_buffer_=%p serialize_size=%ld ret=%d",
-                      log_command, log_buffer_, serialize_size, ret);
+            TBSYS_LOG(WARN, "write log fail log_command=%d log_buffer_=%p serialize_size=%ld cur_pos=%s ret=%d",
+                      log_command, log_buffer_, serialize_size, to_cstring(cur_pos), ret);
           }
           else if (OB_SUCCESS != (ret = log_mgr.flush_log(TraceLog::get_logbuffer())))
           {
@@ -763,7 +790,23 @@ namespace oceanbase
           else
           {
             // do nothing
+          }*/
+          //TBSYS_LOG(ERROR, "test::zhouhuan flush_obj_to_log start!");
+          cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+          if (OB_SUCCESS != (ret = log_mgr.write_and_end_log(log_command,log_buffer_, serialize_size, cur_pos,
+                                                             ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+          {
+            TBSYS_LOG(WARN, "write and end log fail log_buffer_=%p serialize_size=%ld ret=%d", log_buffer_, serialize_size, ret);
           }
+          else if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+          {
+            TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = log_mgr.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+          }
+          //modify:e
           if (OB_SUCCESS != ret)
           {
             TBSYS_LOG(WARN, "write log fail ret=%d, enter FATAL stat", ret);
@@ -875,7 +918,8 @@ namespace oceanbase
             log_scanner(scanner);
             FILL_TRACE_LOG("scanner info %s", print_scanner_info(scanner));
             // 注意可能返回OB_EAGAIN
-            ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer());
+            //delete by zhouhuan [scalablecommit] 20160511
+            //ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer());
           }
           if (OB_SUCCESS == ret)
           {
@@ -999,6 +1043,11 @@ namespace oceanbase
                                         const uint64_t checksum_before_mutate,
                                         const uint64_t checksum_after_mutate)
     {
+      //add by pangtianze [20160503]:b
+      UNUSED(checksum2check);
+      UNUSED(checksum_before_mutate);
+      UNUSED(checksum_after_mutate);
+      //add:e
       int err = OB_SUCCESS;
       TableItem *table_item = NULL;
       if (!check_checksum_)
@@ -1010,7 +1059,9 @@ namespace oceanbase
       }
       else
       {
-        err = table_item->get_memtable().check_checksum(checksum2check, checksum_before_mutate, checksum_after_mutate);
+        //del by pangtianze [20160503]:b
+       // err = table_item->get_memtable().check_checksum(checksum2check, checksum_before_mutate, checksum_after_mutate);
+        //del:e
         table_mgr_.revert_active_memtable(table_item);
       }
       return err;
@@ -1143,12 +1194,60 @@ namespace oceanbase
         else
         {
           ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
+          TransExecutor& trans_executor = main->get_update_server().get_trans_executor();
           TBSYS_LOG(INFO, "ups table mgr switch schemas.");
-          ret = log_mgr.write_and_flush_log(OB_UPS_SWITCH_SCHEMA, log_buffer_, serialize_size);
-          if (OB_SUCCESS != ret)
+          //modify by zhouhuan [scalablecommit] 20160428:b
+          //ret = log_mgr.write_and_flush_log(OB_UPS_SWITCH_SCHEMA, log_buffer_, serialize_size);
+          //if (OB_SUCCESS != ret)
+          //{
+          //  TBSYS_LOG(WARN, "write log fail log_buffer_=%p serialize_size=%ld ret=%d", log_buffer_, serialize_size, ret);
+          //}
+          FLogPos cur_pos = log_mgr.get_next_pos();
+          FLogPos next_pos;
+          int64_t switch_flag = 0;
+          int64_t ref_cnt = 0;
+          //TBSYS_LOG(ERROR, "test::zhouhuan:switch_schema start!");
+          if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
           {
-            TBSYS_LOG(WARN, "write log fail log_buffer_=%p serialize_size=%ld ret=%d", log_buffer_, serialize_size, ret);
+            LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+            if ( OB_SUCCESS != (ret = log_mgr.switch_log_group(cur_pos, next_pos, ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+            {
+              TBSYS_LOG(WARN, "switch log group fail");
+            }
+            else
+            {
+              //TBSYS_LOG(ERROR, "test::zhouhuan:ref_cnt = [%ld], count=[%ld]",ref_cnt, cur_group->count_);
+              if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+              {
+                cur_group->need_ack_ = true;
+                if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+                {
+                  TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+                }
+              }
+              cur_pos = next_pos;
+            }
           }
+
+          if(OB_SUCCESS == ret)
+          {
+            LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+            if (OB_SUCCESS != (ret = log_mgr.write_and_end_log(OB_UPS_SWITCH_SCHEMA,log_buffer_, serialize_size,
+                                                               cur_pos, ref_cnt,log_mgr.get_flushed_clog_id_without_update())))
+            {
+              TBSYS_LOG(WARN, "write and end log fail log_buffer_=%p serialize_size=%ld ret=%d", log_buffer_, serialize_size, ret);
+            }
+            else if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+            {
+              TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+            }
+            else if (OB_SUCCESS != (ret = log_mgr.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+            {
+              TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+            }
+          }
+
+          //modify:e
         }
       }
 
@@ -1858,17 +1957,14 @@ namespace oceanbase
       return ret;
     };
 
-    int ObUpsTableMgr::fill_commit_log(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer)
+    //modify by zhouhuan [scalablecommit] 20160421:b
+    int ObUpsTableMgr::fill_commit_log1(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer, FLogPos& cur_pos, int64_t& ref_cnt)
     {
-      return fill_commit_log_(ups_mutator, tlog_buffer);
+      return fill_commit_log1_(ups_mutator, tlog_buffer, cur_pos, ref_cnt);
     }
 
-    int ObUpsTableMgr::flush_commit_log(TraceLog::LogBuffer &tlog_buffer)
-    {
-      return flush_commit_log_(tlog_buffer);
-    }
 #if 1
-    int ObUpsTableMgr::fill_commit_log_(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer)
+    int ObUpsTableMgr::fill_commit_log1_(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer, FLogPos& cur_pos, int64_t& ref_cnt)
     {
       int ret = OB_SUCCESS;
       int64_t serialize_size = 0;
@@ -1882,10 +1978,104 @@ namespace oceanbase
       {
         FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
         ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
-        //modify chujiajia [log synchronization][multi_cluster] 20160525:b
+        if (OB_SUCCESS != (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, cur_pos,
+                                                   ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+        {
+          TBSYS_LOG(WARN, "write log fail ret=%d, enter FATAL state", ret);
+          set_state_as_fatal();
+          ret = OB_RESPONSE_TIME_OUT;
+        }
+      }
+      FILL_TRACE_BUF(tlog_buffer, "write log size=%ld ret=%d", serialize_size, ret);
+      return ret;
+    };
+#else
+    int ObUpsTableMgr::fill_commit_log1_(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer, FLogPos& cur_pos, int64_t& ref_cnt)
+    {
+      int ret = OB_SUCCESS;
+      int64_t serialize_size = 0;
+      ObUpdateServerMain *main = ObUpdateServerMain::get_instance();
+      if (NULL == main)
+      {
+        TBSYS_LOG(ERROR, "get updateserver main null pointer");
+        ret = OB_ERROR;
+      }
+      else if (NULL == log_buffer_)
+      {
+        TBSYS_LOG(WARN, "log buffer malloc fail");
+        ret = OB_ERROR;
+      }
+      else if (OB_SUCCESS != (ret = ups_mutator.serialize(log_buffer_, LOG_BUFFER_SIZE, serialize_size)))
+      {
+        TBSYS_LOG(WARN, "ups_mutator serialilze fail log_buffer=%p log_buffer_size=%ld serialize_size=%ld ret=%d",
+                  log_buffer_, LOG_BUFFER_SIZE, serialize_size, ret);
+      }
+      else
+      {
+        FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
+        ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
+//        //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+//        //if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, log_buffer_, serialize_size)))
+//        if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, log_mgr.get_flushed_clog_id_without_update())))
+//        //modify:e
+
+//        {
+//          TBSYS_LOG(INFO, "log buffer full");
+//          ret = OB_EAGAIN;
+//        }
+        if (OB_SUCCESS != (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, cur_pos,
+                                                   ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+        {
+          TBSYS_LOG(WARN, "write log fail ret=%d, enter FATAL state", ret);
+          set_state_as_fatal();
+          ret = OB_RESPONSE_TIME_OUT;
+        }
+//        else if (OB_SUCCESS != ret)
+//        {
+//          TBSYS_LOG(WARN, "write log fail ret=%d, enter FATAL state", ret);
+//          set_state_as_fatal();
+//          ret = OB_RESPONSE_TIME_OUT;
+//        }
+      }
+      FILL_TRACE_BUF(tlog_buffer, "write log size=%ld ret=%d", serialize_size, ret);
+      return ret;
+    };
+#endif
+
+
+    //delete by zhouhuan [scalablecommit] 20160510:b
+/*
+    int ObUpsTableMgr::fill_commit_log(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer)
+    {
+      return fill_commit_log_(ups_mutator, tlog_buffer);
+    }
+
+    int ObUpsTableMgr::flush_commit_log(TraceLog::LogBuffer &tlog_buffer)
+    {
+      return flush_commit_log_(tlog_buffer);
+    }
+
+
+#if 1
+   int ObUpsTableMgr::fill_commit_log_(ObUpsMutator &ups_mutator, TraceLog::LogBuffer &tlog_buffer)
+    {
+      int ret = OB_SUCCESS;
+      int64_t serialize_size = 0;
+      ObUpdateServerMain *main = ObUpdateServerMain::get_instance();
+      if (NULL == main)
+      {
+        TBSYS_LOG(ERROR, "get updateserver main null pointer");
+        ret = OB_ERROR;
+      }
+      else
+      {
+        FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
+        ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
+		//modify chujiajia [log synchronization][multi_cluster] 20160525:b
         //if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator)))
         if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, log_mgr.get_flushed_clog_id_without_update())))
         //modify:e
+        
         {
           TBSYS_LOG(INFO, "log buffer full");
           ret = OB_EAGAIN;
@@ -1925,10 +2115,11 @@ namespace oceanbase
       {
         FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
         ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
-        //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+		//modify chujiajia [log synchronization][multi_cluster] 20160328:b
         //if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, log_buffer_, serialize_size)))
         if (OB_BUF_NOT_ENOUGH == (ret = log_mgr.write_log(OB_LOG_UPS_MUTATOR, ups_mutator, log_mgr.get_flushed_clog_id_without_update())))
         //modify:e
+        
         {
           TBSYS_LOG(INFO, "log buffer full");
           ret = OB_EAGAIN;
@@ -1944,6 +2135,7 @@ namespace oceanbase
       return ret;
     };
 #endif
+
     int ObUpsTableMgr::flush_commit_log_(TraceLog::LogBuffer &tlog_buffer)
     {
       int ret = OB_SUCCESS;
@@ -1965,7 +2157,8 @@ namespace oceanbase
       //  kill(getpid(), SIGTERM);
       //}
       return ret;
-    };
+    };*/
+    //delete:e
 
     int ObUpsTableMgr::load_sstable_bypass(SSTableMgr &sstable_mgr, int64_t &loaded_num)
     {
@@ -2000,7 +2193,8 @@ namespace oceanbase
       ups_mutator.set_cur_major_version(table_mgr_.get_cur_major_version());
       ups_mutator.set_cur_minor_version(table_mgr_.get_cur_minor_version());
       ups_mutator.set_last_bypass_checksum(last_bypass_checksum_);
-      if (OB_SUCCESS != (ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer())))
+      //modify by zhouhuan [scalablecommit] 20160504:b
+      /*if (OB_SUCCESS != (ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer())))
       {
         TBSYS_LOG(WARN, "fill commit log fail ret=%d", ret);
       }
@@ -2012,7 +2206,72 @@ namespace oceanbase
       {
         TBSYS_LOG(INFO, "write check cur version log succ, cur_major_version=%lu cur_minor_version=%lu",
                   ups_mutator.get_cur_major_version(), ups_mutator.get_cur_minor_version());
+      }*/
+      ObUpdateServerMain *main = ObUpdateServerMain::get_instance();
+      TraceLog::LogBuffer tlog_buffer = TraceLog::get_logbuffer();
+      int64_t serialize_size = 0;
+
+      if (NULL == main)
+      {
+        TBSYS_LOG(ERROR, "get updateserver main null pointer");
+        ret = OB_ERROR;
       }
+      else
+      {
+        FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
+        ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
+        TransExecutor& trans_executor = main->get_update_server().get_trans_executor();
+        int64_t ref_cnt = 0;
+        int64_t switch_flag = 0;
+        FLogPos cur_pos = log_mgr.get_next_pos();
+        FLogPos next_pos;
+        //TBSYS_LOG(ERROR, "test::zhouhuan:check_cur_version start!");
+        if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
+        {
+          LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+          if ( OB_SUCCESS != (ret = log_mgr.switch_log_group(cur_pos, next_pos, ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+          {
+            TBSYS_LOG(WARN, "handle switch group fail");
+          }
+          else
+          {
+            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+            {
+              cur_group->need_ack_ = true;
+              if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+              }
+            }
+            cur_pos = next_pos;
+          }
+        }
+
+        if (OB_SUCCESS == ret)
+        {
+          LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+          if (OB_SUCCESS != log_mgr.write_and_end_log(OB_LOG_UPS_MUTATOR, ups_mutator, cur_pos,
+                                                      ref_cnt, log_mgr.get_flushed_clog_id_without_update()))
+          {
+            TBSYS_LOG(WARN, "write and end log fail ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+          {
+            TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = log_mgr.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "write check cur version log succ, cur_major_version=%lu cur_minor_version=%lu",
+                      ups_mutator.get_cur_major_version(), ups_mutator.get_cur_minor_version());
+          }
+        }
+      }
+      FILL_TRACE_BUF(tlog_buffer, "write log size=%ld ret=%d", serialize_size, ret);
+      //modify:e
       return ret;
     }
 
@@ -2025,7 +2284,8 @@ namespace oceanbase
       ups_mutator.set_cur_major_version(sst_id.major_version);
       ups_mutator.set_cur_minor_version(sst_id.minor_version_start);
       ups_mutator.set_sstable_checksum(checksum);
-      if (OB_SUCCESS != (ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer())))
+      //modify by zhouhuan [scalablecommit] 20160504:b
+      /*if (OB_SUCCESS != (ret = fill_commit_log_(ups_mutator, TraceLog::get_logbuffer())))
       {
         TBSYS_LOG(WARN, "fill commit log fail ret=%d", ret);
       }
@@ -2037,7 +2297,72 @@ namespace oceanbase
       {
         TBSYS_LOG(INFO, "write check sstable checksum log succ, cur_major_version=%lu cur_minor_version=%lu checksum=%lu",
                   ups_mutator.get_cur_major_version(), ups_mutator.get_cur_minor_version(), checksum);
+      }*/
+      ObUpdateServerMain *main = ObUpdateServerMain::get_instance();
+      TraceLog::LogBuffer tlog_buffer = TraceLog::get_logbuffer();
+      int64_t serialize_size = 0;
+
+      if (NULL == main)
+      {
+        TBSYS_LOG(ERROR, "get updateserver main null pointer");
+        ret = OB_ERROR;
       }
+      else
+      {
+        FILL_TRACE_BUF(tlog_buffer, "ups_mutator serialize");
+        ObUpsLogMgr& log_mgr = main->get_update_server().get_log_mgr();
+        TransExecutor& trans_executor = main->get_update_server().get_trans_executor();
+        int64_t ref_cnt = 0;
+        FLogPos cur_pos = log_mgr.get_next_pos();
+        FLogPos next_pos;
+        int64_t switch_flag = 0;
+        //TBSYS_LOG(ERROR, "test::zhouhuan:commit_check_sstable_checksum start!");
+        if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
+        {
+          LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+          if ( OB_SUCCESS != (ret = log_mgr.switch_log_group(cur_pos, next_pos, ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+          {
+            TBSYS_LOG(WARN, "handle switch group fail");
+          }
+          else
+          {
+            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+            {
+              cur_group->need_ack_ = true;
+              if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+              }
+            }
+            cur_pos = next_pos;
+          }
+        }
+
+        if (OB_SUCCESS == ret)
+        {
+          LogGroup* cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+          if (OB_SUCCESS != log_mgr.write_and_end_log(OB_LOG_UPS_MUTATOR, ups_mutator, cur_pos,
+                                                      ref_cnt, log_mgr.get_flushed_clog_id_without_update()))
+          {
+            TBSYS_LOG(WARN, "write and end log fail ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+          {
+            TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = log_mgr.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "write check sstable checksum log succ, cur_major_version=%lu cur_minor_version=%lu checksum=%lu",
+                      ups_mutator.get_cur_major_version(), ups_mutator.get_cur_minor_version(), checksum);
+          }
+        }
+      }
+      FILL_TRACE_BUF(tlog_buffer, "write log size=%ld ret=%d", serialize_size, ret);
+      //modify:e
       return ret;
     }
 

@@ -31,6 +31,8 @@ ObSQLSessionInfo::ObSQLSessionInfo()
    is_autocommit_(true),
    is_interactive_(false),
    last_active_time_(0),
+   curr_trans_start_time_(0),
+   curr_trans_last_stmt_time_(0),
    version_provider_(NULL),
    config_provider_(NULL),
    block_allocator_(SMALL_BLOCK_SIZE, common::OB_MALLOC_BLOCK_SIZE, ObMalloc(ObModIds::OB_SQL_SESSION_SBLOCK)),

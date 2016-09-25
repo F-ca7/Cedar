@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -7,7 +8,7 @@
  * @file     ob_stmt.h
  * @brief    sort 
  * modified by yu shengjuan: sort row from child_op get_next_row(),use std::sort . it will use at logical plan transform to physical plan
- * @version  CEDAR 0.2
+ * @version  CEDAR 0.2 
  * @author   yu shengjuan <51141500090@ecnu.cn>
  * @date     2015_08_19
  */

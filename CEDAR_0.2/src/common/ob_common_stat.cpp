@@ -46,14 +46,35 @@ const char *ObStatSingleton::ups_map[] = {
   "scan_qtime",
   "apply_qtime",
 
+  "idle_count",
   "get_time",
   "scan_time",
   "trans_time",
   "trans_wtime",
   "trans_htime",
-  "trans_ctime",
+  "trans_stime",
+  "trans_gtime",
+  "trans_ltime",
   "trans_ftime",
+  "trans_putime",
+  "trans_wptime",
   "trans_rtime",
+
+  "groups_count",
+  "groups_utime",
+  "groups_ftime",
+  "groups_ctime",
+  "groups_wtime",
+  "groups_wptime",
+  "groups_cbtime",
+
+  "commit_ngcount",
+  "commit_cgcount",
+  "commit_ngtime",
+  "commit_cgtime",
+  "commit_fltime",
+  "commit_putime",
+
   "apply_time",
   "batch_time",
   "merge_time",
@@ -161,6 +182,11 @@ const char *ObStatSingleton::cs_map[] = {
 
   // cs version error
   "fail_cs_version_count",
+
+  "inc_query_get_count",
+  "inc_query_get_time",
+  "inc_query_scan_count",
+  "inc_query_scan_time",
 };
 
 const char *ObStatSingleton::sstable_map[] = {
@@ -192,6 +218,8 @@ const char *ObStatSingleton::ms_map[] = {
   // sql scan
   "scan_event_count",
   "scan_event_time",
+  "ups_execute_count",
+  "ups_execute_time",
   // memory
   "ms_memory_limit",
   "ms_memory_total",
@@ -272,6 +300,14 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_rollback_count",
   "sql_autocommit_on_count",
   "sql_autocommit_off_count",
+  "sql_cmd_received_count",
+  "sql_cmd_process_count",
+  "sql_cmd_wait_time_ms",
+
+  "multi_stmt_trans_count",
+//  "multi_stmt_trans_time",
+//  "multi_stmt_trans_stmt_interval",
+  "multi_stmt_trans_stmt_count",
 };
 
 

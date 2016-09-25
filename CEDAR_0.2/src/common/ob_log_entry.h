@@ -132,6 +132,13 @@ namespace oceanbase
       int fill_header(const char* log_data, const int64_t data_len, const int64_t max_cmt_id);
       //add:e
 
+      //add by zhouhuan [scalable commit] 20160401:b
+      /**
+       * @brief 设置entry
+       */
+      int set_entry(const char* log_data, const int64_t data_len, const int32_t cmd, const int64_t log_id, const int64_t max_cmt_id);
+      //add e
+
       /**
        * @brief 计算日志序号+LogCommand+日志内容的校验和
        * @param [in] buf 日志内容缓冲区地址

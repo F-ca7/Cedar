@@ -98,6 +98,7 @@ namespace oceanbase
       {
         scanner_sel_buffer_ = buffer;
         scanner_sel_length_ = pos;
+        //TBSYS_LOG(ERROR,"test::zhouhuan ObUpsResult set_scanner pos = %ld",pos);
       }
       return ret;
     }
@@ -238,6 +239,7 @@ namespace oceanbase
         ret = OB_INVALID_ARGUMENT;
       }
       int64_t tmp_pos = pos;
+      //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize000000 tmp_pos = %ld",tmp_pos);
       while (OB_SUCCESS == ret)
       {
         // serialize head flag
@@ -247,6 +249,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize111111 tmp_pos = %ld",tmp_pos);
 
         // serialize error code flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_ERROR_CODE)))
@@ -255,6 +258,8 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize222222 tmp_pos = %ld",tmp_pos);
+
         // serialize error code value
         if (OB_SUCCESS != (ret = encode_i32(buf, buf_len, tmp_pos, error_code_)))
         {
@@ -262,6 +267,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize333333 tmp_pos = %ld",tmp_pos);
 
         // serialize affected rows flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_AFFECTED_ROWS)))
@@ -270,6 +276,8 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize444444 tmp_pos = %ld",tmp_pos);
+
         // serialize affected rows value
         if (OB_SUCCESS != (ret = encode_i64(buf, buf_len, tmp_pos, affected_rows_)))
         {
@@ -277,6 +285,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize555555 tmp_pos = %ld",tmp_pos);
 
         // serialize warning list flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_WARNING_LIST)))
@@ -285,6 +294,8 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize666666 tmp_pos = %ld",tmp_pos);
+
         // serialize warning list value
         if (OB_SUCCESS != (ret = serialize_warning_list_(buf, buf_len, tmp_pos)))
         {
@@ -292,6 +303,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize7777777 tmp_pos = %ld",tmp_pos);
 
         // serialize new scanner flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_NEW_SCANNER)))
@@ -300,6 +312,8 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize88888888 tmp_pos = %ld",tmp_pos);
+
         // serialize new scanner value
         if (NULL != scanner_sel_buffer_)
         {
@@ -315,6 +329,7 @@ namespace oceanbase
             memcpy(buf + tmp_pos, scanner_sel_buffer_, scanner_sel_length_);
             tmp_pos += scanner_sel_length_;
           }
+          //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize999999-1 tmp_pos = %ld",tmp_pos);
         }
         else
         {
@@ -324,6 +339,7 @@ namespace oceanbase
                       ret, buf, buf_len, tmp_pos);
             break;
           }
+          //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize999999-2 tmp_pos = %ld",tmp_pos);
         }
 
         // serialize transaction id flag
@@ -333,6 +349,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serializeAAAAAAA tmp_pos = %ld",tmp_pos);
 
         // serialize transaction id
         if (OB_SUCCESS != (ret = trans_id_.serialize(buf, buf_len, tmp_pos)))
@@ -341,6 +358,7 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serializeBBBBBBB tmp_pos = %ld",tmp_pos);
 
         // serialize end flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_UPS_RESULT_END)))
@@ -349,10 +367,11 @@ namespace oceanbase
                     ret, buf, buf_len, tmp_pos);
           break;
         }
-
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serializeCCCCCC tmp_pos = %ld",tmp_pos);
         pos = tmp_pos;
         break;
       }
+      //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize pos = %ld",pos);
       return ret;
     }
 

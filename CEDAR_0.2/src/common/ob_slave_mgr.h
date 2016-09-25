@@ -23,6 +23,7 @@
 #include "ob_common_rpc_stub.h"
 #include "ob_lease_common.h"
 #include "ob_log_cursor.h"
+#include "ob_log_generator2.h"
 
 namespace oceanbase
 {

@@ -44,6 +44,9 @@ namespace oceanbase
       public:
         int push(T *ptr);
         int pop(T *&ptr);
+        //add hushuang [scalable commit]20160424
+        int next(T *&ptr);///< used for getting next private queue's task of scalable commit
+        //add e
         inline int64_t get_total() const;
         inline int64_t get_free() const;
         bool inited() const {return inited_;};
@@ -227,6 +230,48 @@ namespace oceanbase
       }
       return ret;
     }
+    //add hushuang [scalable commit]20160424
+    template <typename T>
+    int ObFixedQueue<T>::next(T *&ptr)
+    {
+      int ret = OB_SUCCESS;
+      if (!inited_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else
+      {
+        T *tmp_ptr = NULL;
+        register uint64_t old_pos = 0;
+        register uint64_t new_pos = 0;
+        while (true)
+        {
+          old_pos = consumer_;
+          new_pos = old_pos;
+
+          if (0 >= get_total_(old_pos, producer_))
+          {
+            ret = OB_ENTRY_NOT_EXIST;
+            break;
+          }
+
+          register uint64_t index = old_pos % max_num_;
+          if (old_pos != array_[index].cur_pos)
+          {
+            continue;
+          }
+          tmp_ptr = array_[index].data;
+          break;
+        }
+        if (OB_SUCCESS == ret)
+        {
+          ptr = tmp_ptr;
+
+        }
+      }
+      return ret;
+    }
+    //add e
   }
 }
 

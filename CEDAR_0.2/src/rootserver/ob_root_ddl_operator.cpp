@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -10,7 +11,7 @@
  * modified by Wenghaixing:modify main procedure of create table, only when table is not index or index switch is on ,
  *                         root server will create tablet for table
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @date  2016_01_24
  */
@@ -96,6 +97,32 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
           table_schema.table_name_, table_schema.table_id_);
     }
   }
+  //add hushuang[scalable commit]20160710
+  if(OB_SUCCESS == ret)
+  {
+    ObString table_name;
+    table_name.assign_ptr(const_cast<char*>(table_schema.table_name_), static_cast<int32_t>(strlen(table_schema.table_name_)));
+    uint64_t table_id = OB_INVALID_ID;
+    int retry_time = 0;
+    while(retry_time < 50)
+    {
+      if(OB_SUCCESS == (ret = schema_client_->get_table_id(table_name, table_id)))
+      {
+        break;
+      }
+      else
+      {
+        retry_time ++;
+        ret = OB_ERROR;
+      }
+    }
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(ERROR, "create table failed!");
+    }
+  }
+  //add e
+
   return ret;
 }
 

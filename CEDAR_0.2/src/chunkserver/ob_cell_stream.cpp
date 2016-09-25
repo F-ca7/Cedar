@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE
- *
+ * Copyright (C) 2013-2016 DaSE .
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,7 +10,7 @@
  *
  * modified by longfei： overloading rpc_scan_row_data() function
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_19
  */

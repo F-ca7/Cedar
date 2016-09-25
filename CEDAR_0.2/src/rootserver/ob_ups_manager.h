@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -10,9 +11,9 @@
  *     clusters for HA by adding or modifying some functions,
  *     member variables
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
- *         chujiajia  <52151500014@ecnu.edu.cn>
+ *         chujiajia  <52151500014@ecnu.cn>
  *         pangtianze <pangtianze@ecnu.com>
  * @date 2015_12_30
  */

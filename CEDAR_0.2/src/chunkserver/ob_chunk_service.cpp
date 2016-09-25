@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -14,7 +15,7 @@
  * future work:
  *   deal with failed index task
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2016_01_19
  */
@@ -1236,6 +1237,12 @@ namespace oceanbase
         const ObSqlScanParam *sql_scan_param_ptr = dynamic_cast<const ObSqlScanParam *>(sql_read_param_ptr);
         is_scan = (NULL != sql_scan_param_ptr);
         table_id = sql_read_param_ptr->get_table_id();
+        //add whx test
+        if(table_id == 6)
+        {
+          TBSYS_LOG(ERROR, "test::whx scal all user table");
+        }
+        //add e
         FILL_TRACE_LOG("deserialize_param_done, is_scan=%d,table_id=%ld", is_scan, table_id);
         if (table_id == OB_ALL_SERVER_STAT_TID)
         {

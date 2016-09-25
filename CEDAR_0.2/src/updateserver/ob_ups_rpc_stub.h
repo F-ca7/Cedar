@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,7 +10,7 @@
  *     modify by zhangcd: add the function
  *     ObUpsRpcStub::get_all_clusters_info()
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_25
  */

@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -15,7 +16,7 @@
  * Now index building will only handle 3 replication of data;
  * that is failed in 3 replicate, this index build failed;
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @date 2015_12_10
  */

@@ -1634,7 +1634,7 @@ namespace oceanbase
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    TableMgr::TableMgr(ObILogWriter &log_writer) : log_writer_(log_writer),
+    TableMgr::TableMgr(/*ObILogWriter*/ObLogWriterV3 &log_writer) : log_writer_(log_writer),
                                                    inited_(false),
                                                    sstable_scan_finished_(false),
                                                    table_map_(sizeof(TableItemKey)),
@@ -2727,75 +2727,133 @@ namespace oceanbase
         TBSYS_LOG(WARN, "someone has locked freeze action, loading bypass now, wait a moment");
         ret = OB_EAGAIN;
       }
-      else if (OB_SUCCESS != (ret = log_writer_.switch_log_file(clog_id)))
-      {
-        TBSYS_LOG(WARN, "switch commit log fail ret=%d", ret);
-        freeze_lock_.unlock();
-      }
+      //modify by zhouhuan [scalablecommit] 20160429:b
+      //else if (OB_SUCCESS != (ret = log_writer_.switch_log_file(clog_id)))
+      //{
+      //  TBSYS_LOG(WARN, "switch commit log fail ret=%d", ret);
+      //  freeze_lock_.unlock();
+      //}
       else
       {
-        map_lock_.wrlock();
-        uint64_t tmp_major_version = cur_major_version_;
-        uint64_t tmp_minor_version = cur_minor_version_;
-        TableItem *table_item2freeze = NULL;
-        if ((uint64_t)num_limit < (tmp_minor_version + 1)
-            || SSTableID::MAX_MINOR_VERSION < (tmp_minor_version + 1))
+
+        TransExecutor& trans_executor = UPS.get_trans_executor();
+        FLogPos cur_pos = log_writer_.get_next_pos();
+        FLogPos next_pos;
+        int64_t switch_flag;
+        int64_t ref_cnt = 0;
+        //TBSYS_LOG(ERROR, "test::zhouhuan:try_freeze_memtable start!");
+        if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
         {
-          tmp_major_version += 1;
-          tmp_minor_version = SSTableID::START_MINOR_VERSION;
-          major_version_changed = true;
-        }
-        else
-        {
-          tmp_minor_version += 1;
-          major_version_changed = false;
-        }
-        if (OB_SUCCESS == ret)
-        {
-          frozen_version = SSTableID::get_id(cur_major_version_, cur_minor_version_, cur_minor_version_);
-          new_version = SSTableID::get_id(tmp_major_version, tmp_minor_version, tmp_minor_version);
-          table_item2freeze = freeze_active_(new_version);
-        }
-        if (NULL == table_item2freeze)
-        {
-          TBSYS_LOG(WARN, "freeze memtable fail");
-          ret = OB_ERROR;
-        }
-        else
-        {
-          table_item2freeze->inc_ref_cnt();
-          last_clog_id_ = clog_id;
-        }
-        map_lock_.unlock();
-        if (NULL != table_item2freeze)
-        {
-          SSTableID sst_id = table_item2freeze->get_sstable_id();
-          time_stamp = tbsys::CTimeUtil::getTime();
-          if (OB_SUCCESS != (ret = table_item2freeze->do_freeze(clog_id, time_stamp)))
+          LogGroup* cur_group = log_writer_.get_log_group(cur_pos.group_id_);
+          if ( OB_SUCCESS != (ret = log_writer_.switch_log_group(cur_pos, next_pos, ref_cnt, log_writer_.get_flushed_clog_id_without_update())))
           {
-            TBSYS_LOG(ERROR, "do freeze fail ret=%d clog_id=%lu", ret, clog_id);
+            TBSYS_LOG(WARN, "handle switch group fail");
           }
           else
           {
-            if (major_version_changed)
+            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
             {
-              last_major_freeze_time_ = tbsys::CTimeUtil::getTime();
+              cur_group->need_ack_ = true;
+              if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+              }
             }
-            frozen_memused_ += table_item2freeze->get_memtable().used();
-            frozen_memtotal_ += table_item2freeze->get_memtable().total();
-            frozen_rowcount_ += table_item2freeze->get_memtable().size();
-            TBSYS_LOG(INFO, "freeze succ last_major_freeze_time_=%ld frozen_memused=%ld frozen_memtotal=%ld frozen_rowcount=%ld %s",
-                      last_major_freeze_time_, frozen_memused_, frozen_memtotal_, frozen_rowcount_, sst_id.log_str());
+            cur_pos = next_pos;
           }
-          map_lock_.rdlock();
-          if (0 == table_item2freeze->dec_ref_cnt())
+        }
+
+        if(OB_SUCCESS == ret)
+        {
+          LogGroup* cur_group = log_writer_.get_log_group(cur_pos.group_id_);
+          if (OB_SUCCESS != (ret = log_writer_.switch_log_file(clog_id, cur_pos, log_writer_.get_flushed_clog_id_without_update())))
           {
-            table_allocator_.free(table_item2freeze);
-            TBSYS_LOG(INFO, "erase sstable, delete table_item=%p %s", table_item2freeze, sst_id.log_str());
+            TBSYS_LOG(WARN, "switch log fail ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = trans_executor.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+          {
+            TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = log_writer_.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "switch commit log file id ret=%d new_log_file_id=%lu", ret, clog_id);
+          }
+        }
+
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "switch commit log fail ret=%d", ret);
+          freeze_lock_.unlock();
+        }
+        else
+        {
+          map_lock_.wrlock();
+          uint64_t tmp_major_version = cur_major_version_;
+          uint64_t tmp_minor_version = cur_minor_version_;
+          TableItem *table_item2freeze = NULL;
+          if ((uint64_t)num_limit < (tmp_minor_version + 1)
+              || SSTableID::MAX_MINOR_VERSION < (tmp_minor_version + 1))
+          {
+            tmp_major_version += 1;
+            tmp_minor_version = SSTableID::START_MINOR_VERSION;
+            major_version_changed = true;
+          }
+          else
+          {
+            tmp_minor_version += 1;
+            major_version_changed = false;
+          }
+          if (OB_SUCCESS == ret)
+          {
+            frozen_version = SSTableID::get_id(cur_major_version_, cur_minor_version_, cur_minor_version_);
+            new_version = SSTableID::get_id(tmp_major_version, tmp_minor_version, tmp_minor_version);
+            table_item2freeze = freeze_active_(new_version);
+          }
+          if (NULL == table_item2freeze)
+          {
+            TBSYS_LOG(WARN, "freeze memtable fail");
+            ret = OB_ERROR;
+          }
+          else
+          {
+            table_item2freeze->inc_ref_cnt();
+            last_clog_id_ = clog_id;
           }
           map_lock_.unlock();
+          if (NULL != table_item2freeze)
+          {
+            SSTableID sst_id = table_item2freeze->get_sstable_id();
+            time_stamp = tbsys::CTimeUtil::getTime();
+            if (OB_SUCCESS != (ret = table_item2freeze->do_freeze(clog_id, time_stamp)))
+            {
+              TBSYS_LOG(ERROR, "do freeze fail ret=%d clog_id=%lu", ret, clog_id);
+            }
+            else
+            {
+              if (major_version_changed)
+              {
+                last_major_freeze_time_ = tbsys::CTimeUtil::getTime();
+              }
+              frozen_memused_ += table_item2freeze->get_memtable().used();
+              frozen_memtotal_ += table_item2freeze->get_memtable().total();
+              frozen_rowcount_ += table_item2freeze->get_memtable().size();
+              TBSYS_LOG(INFO, "freeze succ last_major_freeze_time_=%ld frozen_memused=%ld frozen_memtotal=%ld frozen_rowcount=%ld %s",
+                        last_major_freeze_time_, frozen_memused_, frozen_memtotal_, frozen_rowcount_, sst_id.log_str());
+            }
+            map_lock_.rdlock();
+            if (0 == table_item2freeze->dec_ref_cnt())
+            {
+              table_allocator_.free(table_item2freeze);
+              TBSYS_LOG(INFO, "erase sstable, delete table_item=%p %s", table_item2freeze, sst_id.log_str());
+            }
+            map_lock_.unlock();
+          }
+          freeze_lock_.unlock();
         }
-        freeze_lock_.unlock();
       }
       return ret;
     }
@@ -3319,6 +3377,7 @@ namespace oceanbase
         ret = sst_id.major_version;
         revert_active_memtable(table_item);
       }
+
       return ret;
     }
 

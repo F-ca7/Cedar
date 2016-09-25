@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -15,7 +16,7 @@
  * 1. add the packet_code OB_RS_GET_ALL_CLUSTERS_INFO, used in set majority_count
  * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>

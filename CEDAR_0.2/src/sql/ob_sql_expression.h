@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -12,7 +13,7 @@
  * modified by Qiushi FAN: add some functions to create a new expression
  * modified by maoxiaoxiao: add interface: get_decoded_expression_v3()
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>

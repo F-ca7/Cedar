@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -11,13 +12,15 @@
  * modify by guojinwei, liubozhong, zhangcd: support multiple
  *     clusters for HA by adding or modifying some functions,
  *     member variables
+ *modified by zhouhuan add some functions and variables for scalable commit
  *
  * @version CEDAR 0.2
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date  2016_01_24
+ *         zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date  2016_07_24
  *//*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -82,6 +85,9 @@
 // add by guojinwei [lease between rs and ups][multi_cluster] 20150909:b
 #include "common/ob_election_role_mgr.h"
 // add:e
+//add by zhouhuan [scalable commit] 20160712
+#include "ob_switch_group_runnable.h"
+//add:e
 
 namespace oceanbase
 {
@@ -183,7 +189,8 @@ namespace oceanbase
 
     class TransExecutor;
     class ObUpdateServer
-      : public common::ObBaseServer, public ObPacketQueueHandler, public common::IBatchPacketQueueHandler, public ObUtilInterface
+      : public common::ObBaseServer, public ObPacketQueueHandler, public common::IBatchPacketQueueHandler, public ObUtilInterface,
+        public ISwitchGroupHandler //add by zhouhuan for [scalable commit] 20160712
     {
       public:
         const static int64_t RESPONSE_RESERVED_US = 60 * 1000 * 1000;
@@ -201,7 +208,11 @@ namespace oceanbase
         int handlePacket(ObPacket *packet);
         bool handlePacketQueue(ObPacket *packet, void *args);
         bool handleBatchPacketQueue(const int64_t batch_num, ObPacket** packets, void* args);
-
+       //add by zhouhuan for [scalable commit] 20160723:b
+        int handleSwitchGroup();
+        int switch_group();
+        volatile void set_force_switch_flag(bool flag) {force_switch_flag_ = flag;};
+       //add :b
         /** called before start server */
         virtual int initialize();
         virtual void wait_for_queue();
@@ -255,6 +266,7 @@ namespace oceanbase
         {
           return log_mgr_;
         }
+
 
         const common::ObServer& get_self()
         {
@@ -621,6 +633,7 @@ namespace oceanbase
         int ups_handle_fake_write_for_keep_alive();
 
 
+
         int response_result_(int32_t ret_code, int32_t cmd_type, int32_t func_version,
                              onev_request_e* req, const uint32_t channel_id, int64_t receive_ts = 0, const char *ret_string = NULL);
         int response_scanner_(int32_t ret_code, const common::ObScanner &scanner,
@@ -712,6 +725,12 @@ namespace oceanbase
         common::BatchPacketQueueThread write_thread_queue_; // for write task
         common::ObPacketQueueThread lease_thread_queue_; // for lease
         common::ObPacketQueueThread store_thread_; // store sstable
+        //add by zhouhuan [scalable commit] 20160710
+        common::BatchPacketQueueThread alive_thread_queue_; // for fake_alive task
+        SwitchGroupThread switch_group_thread_; //for switch group
+        volatile bool obi_switch_flag_;
+        volatile bool force_switch_flag_;
+        //add :e
         ObUpsFetchRunnable fetch_thread_;
         ObUpsReplayRunnable log_replay_thread_;
         //common::ObCheckRunnable check_thread_;

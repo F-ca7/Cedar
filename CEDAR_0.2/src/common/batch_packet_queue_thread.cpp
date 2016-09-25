@@ -22,6 +22,7 @@
 #include "ob_tsi_factory.h"
 #include "ob_profile_log.h"
 #include "ob_profile_type.h"
+#include <sys/syscall.h>
 
 namespace oceanbase {
 namespace common {
@@ -148,6 +149,7 @@ void BatchPacketQueueThread::run(tbsys::CThread *, void *) {
     int err = OB_SUCCESS;
     int64_t wait_us = 10000;
     ObPacket* tmp_packet = NULL;
+    TBSYS_LOG(INFO,"test::zhouhuan1 write or alive thread tid = [%ld]",syscall(SYS_gettid));
     while (!_stop) {
         _cond.lock();
         while (!_stop)

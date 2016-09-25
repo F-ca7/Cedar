@@ -1,15 +1,18 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
  * @file ob_log_entry.cpp
  * @brief support multiple clusters for HA by adding or modifying
- *        some functions, member variables
+ *        some functions, member variables;
+ *        add set entry for scalable commit
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author liubozhong <51141500077@ecnu.cn>
+ *         zhouhuan <zhouhuan@stu.ecnu.edu.cn>
  * @date 2015_12_30
  */
 /*
@@ -47,6 +50,7 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len)
     //add by lbzhong [Max Log Timestamp] 20150824:b
     header_.timestamp_ = tbsys::CTimeUtil::getTime();
     //add:e
+    header_.max_cmt_id_ = 0;
     header_.data_length_ = static_cast<int32_t>(sizeof(uint64_t) + sizeof(LogCommand) + data_len);
     header_.data_zlength_ = header_.data_length_;
     if (NULL != log_data)
@@ -63,9 +67,9 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len)
   return ret;
 }
 
-//add chujiajia [log synchronization][multi_cluster] 20160328:b
+//add chujiajia [log synchronization] [multi_cluster] 20160328:b
 //fill ups_commit_log header
-int ObLogEntry::fill_header(const char* log_data, const int64_t data_len, const int64_t max_cmt_id)
+int ObLogEntry::fill_header(const char* log_data, const int64_t data_len,const int64_t max_cmt_id)
 {
   int ret = OB_SUCCESS;
 
@@ -79,7 +83,9 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len, const 
     header_.set_magic_num(MAGIC_NUMER);
     header_.header_length_ = OB_RECORD_HEADER_LENGTH;
     header_.version_ = LOG_VERSION;
+    //add by lbzhong [Max Log Timestamp] 20150824:b
     header_.timestamp_ = tbsys::CTimeUtil::getTime();
+    //add:e
     header_.max_cmt_id_ = max_cmt_id;
     header_.data_length_ = static_cast<int32_t>(sizeof(uint64_t) + sizeof(LogCommand) + data_len);
     header_.data_zlength_ = header_.data_length_;
@@ -93,10 +99,20 @@ int ObLogEntry::fill_header(const char* log_data, const int64_t data_len, const 
     }
     header_.set_header_checksum();
   }
+
   return ret;
 }
 //add:e
-
+//add by zhouhuan [scalable commit] 20160401:b
+int ObLogEntry::set_entry(const char* log_data, const int64_t data_len, const int32_t cmd, const int64_t log_id, const int64_t max_cmt_id)
+{
+  int err = OB_SUCCESS;
+  set_log_seq((uint64_t)log_id);
+  set_log_command(cmd);
+  err = fill_header(log_data, data_len, max_cmt_id);
+  return err;
+}
+//add e
 int64_t ObLogEntry::calc_data_checksum(const char* log_data, const int64_t data_len) const
 {
   uint64_t data_checksum = 0;

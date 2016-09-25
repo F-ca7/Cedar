@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -265,12 +266,12 @@ bool ObUpsLogMgr::is_inited() const
 int ObUpsLogMgr::init(const char* log_dir, const int64_t log_file_max_size,
                       ObLogReplayWorker* replay_worker, ObReplayLogSrc* replay_log_src, ObUpsTableMgr* table_mgr,
                       ObUpsSlaveMgr *slave_mgr, ObiRole* obi_role, ObUpsRoleMgr *role_mgr, int64_t log_sync_type
-                      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+						//delete chujiajia [log synchronization][multi_cluster] 20160625:b
                       //add by lbzhong [Commit Point] 20150824:b
                       //, ObCommitPointRunnable* commit_point_thread
-                      //add:e
-                      //delete:e
-                      )
+						//add:e
+                      , int64_t group_size)
+					//delete:e
 {
   int ret = OB_SUCCESS;
   int64_t len = 0;
@@ -314,7 +315,7 @@ int ObUpsLogMgr::init(const char* log_dir, const int64_t log_file_max_size,
   {
     TBSYS_LOG(ERROR, "replay_point_file.init(log_dir=%s)=>%d", log_dir_, ret);
   }
-  //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+	//delete chujiajia [log synchronization][multi_cluster] 20160625:b
   //add lbzhong [Commit Point] 20150522:b
   //else if (OB_SUCCESS != (ret = commit_point_.init("data/ups_commitpoint", "commit_point")))
   //{
@@ -324,16 +325,18 @@ int ObUpsLogMgr::init(const char* log_dir, const int64_t log_file_max_size,
   //{
   //  TBSYS_LOG(ERROR, "was_master_file.init(was_master_dir=%s, was_master_file=%s)=>%d", "data/ups_wasmaster", "was_master", ret);
   //}
-  //delete:e
+ //delete:e
   //add:e
 
   if (OB_SUCCESS == ret)
   {
     ObSlaveMgr *slave = reinterpret_cast<ObSlaveMgr*>(slave_mgr);
-    ret = ObLogWriter::init(log_dir_, log_file_max_size, slave, log_sync_type, &last_fid_before_frozen_, &UPS.get_self());
+    //modify by zhouhuan [scalablecommit] 20160427
+    ret = /*ObLogWriter*/ObLogWriterV3::init(log_dir_, log_file_max_size, slave, log_sync_type, &last_fid_before_frozen_, &UPS.get_self(), group_size);
     if (OB_SUCCESS != ret)
     {
-      TBSYS_LOG(ERROR, "ObLogWriter init failed[ret=%d]", ret);
+      //TBSYS_LOG(ERROR, "ObLogWriter init failed[ret=%d]", ret);
+      TBSYS_LOG(ERROR, "ObLogWriterV3 init failed[ret=%d]", ret);
     }
     else
     {
@@ -343,8 +346,9 @@ int ObUpsLogMgr::init(const char* log_dir, const int64_t log_file_max_size,
       obi_role_ = obi_role;
       role_mgr_ = role_mgr;
       is_initialized_ = true;
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+		//delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150522:b
+     //add lbzhong [Commit Point] 20150522:b
       //is_master_ = -1;
       //commit_point_thread_ = commit_point_thread;
       //commit_point_thread_->start();
@@ -468,7 +472,7 @@ int ObUpsLogMgr::replay_local_log()
     TBSYS_LOG(ERROR, "get_replay_point_func(log_dir=%s)=>%d", log_dir_, err);
   }
   TBSYS_LOG(INFO, "get_replay_point(file_id=%ld)", start_cursor_.file_id_);
-  //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+   //delete chujiajia [log synchronization][multi_cluster] 20160625:b
   //add lbzhong [Commit Point] 20150820:b
   //if (OB_SUCCESS != (err = get_commit_point_from_file(commit_seq)))
   //{
@@ -483,6 +487,7 @@ int ObUpsLogMgr::replay_local_log()
   }
   TBSYS_LOG(INFO, "commit point = %ld", commit_seq);
   // add:e
+
   // 可能会有单个空文件存在
   if (OB_SUCCESS != err || start_cursor_.file_id_ <= 0)
   {}
@@ -523,7 +528,7 @@ int ObUpsLogMgr::replay_local_log()
   }
   else
   {
-    //add chujiajia [log synchronization][multi_cluster] 20160524:b
+	//add chujiajia [log synchronization][multi_cluster] 20160524:b
     local_max_log_cursor_ = end_cursor;
     //add:e
     TBSYS_LOG(INFO, "start_log_after_replay_local_log(replay_cursor=%s): OK.", end_cursor.to_str());
@@ -586,13 +591,14 @@ int ObUpsLogMgr::replay_local_log()
   TBSYS_LOG(INFO, "replay_local_log:commit_point_id=%ld, max_log_id:%ld.", local_commited_max_cursor_.log_id_, local_max_log_cursor_.log_id_);
   return err;
 }
-
 //add chujiajia [log synchronization][multi_cluster] 20160603:b
 int ObUpsLogMgr::update_tmp_log_cursor()
 {
   int err = OB_SUCCESS;
   ObLogCursor end_cursor;
   int64_t commit_seq = 0;
+  int64_t commit_seq2 = 0;
+  LogGroup* cur_group = log_generator_.get_log_group(0);
   commit_seq = slave_mgr_->get_acked_clog_id_without_update();
   replay_worker_->get_replay_cursor(start_cursor_);
   TBSYS_LOG(INFO, "update_tmp_log_cursor:start_cursor_.log_id_:%ld, start_cursor_.file_id_:%ld.", start_cursor_.log_id_, start_cursor_.file_id_);
@@ -605,16 +611,21 @@ int ObUpsLogMgr::update_tmp_log_cursor()
     TBSYS_LOG(ERROR, "get_tmp_log error! seq=%ld, err=%d", commit_seq, err);
   }
   local_commited_max_cursor_ = end_cursor;
+  if (OB_SUCCESS != (err = get_max_cmt_id_in_file(commit_seq2, local_max_log_cursor_)))
+  {
+    TBSYS_LOG(ERROR, "get_max_cmt_id_in_file(commit_seq=%ld)=>%d", commit_seq2, err);
+  }
   if(OB_SUCCESS != (err = get_cursor_by_log_id(log_dir_, local_max_log_cursor_.log_id_ - 1, start_cursor_, end_cursor)))
   {
     TBSYS_LOG(ERROR, "get_tmp_log error! seq=%ld, err=%d", local_max_log_cursor_.log_id_ - 1, err);
   }
   local_max_log_cursor_ = end_cursor;
+
   if(local_commited_max_cursor_.is_valid())
   {
     log_writer_.set_end_cursor(local_commited_max_cursor_);
-    log_generator_.set_start_cursor(local_commited_max_cursor_);
-    log_generator_.set_end_cursor(local_commited_max_cursor_);
+    cur_group->set_start_cursor(local_commited_max_cursor_);
+    cur_group->set_end_cursor(local_commited_max_cursor_);
     replay_worker_->update_replay_cursor_after_switch(local_commited_max_cursor_);
   }
   TBSYS_LOG(INFO, "update tmp log cursor when switches to slave suc! commit_point_id=%ld, max_log_id:%ld.", local_commited_max_cursor_.log_id_, local_max_log_cursor_.log_id_);
@@ -821,13 +832,11 @@ int ObUpsLogMgr::slave_receive_log(const char* buf, int64_t len, const int64_t w
   }
   else
   {
-    //del chujiajia [log synchronization][multi_cluster] 20160530:b
+   // TBSYS_LOG(INFO,"TEST::ZHOUHUAN slave receive_log log_id=[%ld, %ld]",start_id, end_id);
     int64_t next_flush_log_id = 0;
     int64_t next_commit_log_id = 0;
-    //del:e
     set_master_log_id(end_id);
     last_receive_log_time_ = tbsys::CTimeUtil::getTime();
-    //del chujiajia [log synchronization][multi_cluster] 20160530:b
     if (wait_sync_time_us <= 0 || WAIT_NONE == wait_event_type)
     {}
     else if (ObUpsRoleMgr::ACTIVE != role_mgr_->get_state())
@@ -854,7 +863,6 @@ int ObUpsLogMgr::slave_receive_log(const char* buf, int64_t len, const int64_t w
     {
       TBSYS_LOG(WARN, "unknown wait_event_type=%d", wait_event_type);
     }
-    //del:e
   }
   return err;
 }
@@ -926,7 +934,7 @@ int ObUpsLogMgr::fill_log_cursor(ObLogCursor& log_cursor)
 int ObUpsLogMgr::start_log(const ObLogCursor& start_cursor)
 {
   int err = OB_SUCCESS;
-  if (OB_SUCCESS != (err = ObLogWriter::start_log(start_cursor)))
+  if (OB_SUCCESS != (err = /*ObLogWriter*/ObLogWriterV3::start_log(start_cursor)))//modify by zhouhuan [scalablecommit]
   {
     TBSYS_LOG(ERROR, "start_log(start_cursor=%s)=>%d", start_cursor.to_str(), err);
   }
@@ -1175,6 +1183,7 @@ int ObUpsLogMgr::write_log_hook(const bool is_master,
   int64_t end_id = end_cursor.log_id_;
   int64_t log_size = (end_cursor.file_id_ - 1) * get_file_size() + end_cursor.offset_;
   clog_stat_.add_disk_us(start_id, end_id, get_last_disk_elapse());
+  //TBSYS_LOG(INFO,"test::zhouhuan flush_log start_id=%ld, end_id=%ld",start_id, end_id);
   OB_STAT_SET(UPDATESERVER, UPS_STAT_COMMIT_LOG_SIZE, log_size);
   OB_STAT_SET(UPDATESERVER, UPS_STAT_COMMIT_LOG_ID, end_cursor.log_id_);
   if (is_master)
@@ -1253,6 +1262,7 @@ int ObUpsLogMgr::store_log(int64_t start_id, const char* buf, const int64_t buf_
 //modify:e
 {
   int ret = OB_SUCCESS;
+  LogGroup* cur_group = log_generator_.get_log_group(0);
   //add chujiajia [log synchronization][multi_cluster] 20160524:b
   int64_t pos = 0;
   //add:e
@@ -1267,24 +1277,24 @@ int ObUpsLogMgr::store_log(int64_t start_id, const char* buf, const int64_t buf_
   {
     TBSYS_LOG(ERROR, "compare_tmp_log error!=>%d", ret);
     log_writer_.set_end_cursor(local_commited_max_cursor_);
-    log_generator_.set_start_cursor(local_commited_max_cursor_);
-    log_generator_.set_end_cursor(local_commited_max_cursor_);
+    cur_group->set_start_cursor(local_commited_max_cursor_);
+    cur_group->set_end_cursor(local_commited_max_cursor_);
     replay_worker_->update_replay_cursor_after_switch(local_commited_max_cursor_);
   }
   else if(pos >= buf_len)
   {
     TBSYS_LOG(INFO, "received log is equal to the tmp log!");
     log_writer_.set_end_cursor(local_commited_max_cursor_);
-    log_generator_.set_start_cursor(local_commited_max_cursor_);
-    log_generator_.set_end_cursor(local_commited_max_cursor_);
+    cur_group->set_start_cursor(local_commited_max_cursor_);
+    cur_group->set_end_cursor(local_commited_max_cursor_);
     replay_worker_->update_replay_cursor_after_switch(local_commited_max_cursor_);
   }
   else if(local_commited_max_cursor_.log_id_ < local_max_log_cursor_.log_id_)
   {
     TBSYS_LOG(INFO, "during uncertatin log comparation!local_commited_max_cursor_.log_id_[%ld] != local_max_log_cursor_.log_id_[%ld]", local_commited_max_cursor_.log_id_, local_max_log_cursor_.log_id_);
     log_writer_.set_end_cursor(local_commited_max_cursor_);
-    log_generator_.set_start_cursor(local_commited_max_cursor_);
-    log_generator_.set_end_cursor(local_commited_max_cursor_);
+    cur_group->set_start_cursor(local_commited_max_cursor_);
+    cur_group->set_end_cursor(local_commited_max_cursor_);
     replay_worker_->update_replay_cursor_after_switch(local_commited_max_cursor_);
   }
   else if(start_id < local_commited_max_cursor_.log_id_)
@@ -1296,15 +1306,16 @@ int ObUpsLogMgr::store_log(int64_t start_id, const char* buf, const int64_t buf_
   {
     TBSYS_LOG(ERROR, "log_generator.fill_batch(%p[%ld])=>%d", buf, buf_len, ret);
   }
-  else if (OB_SUCCESS != (ret = flush_log(TraceLog::get_logbuffer(), sync_to_slave, false)))
+  else if (OB_SUCCESS != (ret = flush_log(cur_group, TraceLog::get_logbuffer(), sync_to_slave, false)))
   {
     TBSYS_LOG(ERROR, "flush_log(buf=%p[%ld],sync_slave=%s)=>%d", buf, buf_len, STR_BOOL(sync_to_slave), ret);
   }
   return ret;
 }
 
-
-int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer)
+//modify by zhouhuan [scalablecommit] 20160505
+//int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer)
+int ObUpsLogMgr::async_flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_buffer)
 {
   int ret = check_inner_stat();
   int send_err = OB_SUCCESS;
@@ -1316,9 +1327,12 @@ int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
   {
     TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
   }
+  //modify by zhouhuan
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, cur_group)))
   //modify chujiajia [log synchronization][multi_cluster] 20160328:b
   //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
-  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
   //modify:e
   {
     TBSYS_LOG(ERROR, "log_generator.get_log()=>%d", ret);
@@ -1333,6 +1347,7 @@ int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
   }
   else
   {
+    //TBSYS_LOG(INFO, "test::zhouhuan group[%ld].log_id[%ld,%ld]", cur_group->group_id_, start_cursor.log_id_, end_cursor.log_id_);
     int64_t store_start_time_us = tbsys::CTimeUtil::getTime();
     if (OB_SUCCESS != (send_err = slave_mgr_->post_log_to_slave(start_cursor, end_cursor, buf, len)))
     {
@@ -1352,6 +1367,8 @@ int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
     //    }
     //}
     //delete:e
+
+
     if (OB_SUCCESS != (ret = get_max_timestamp_from_log_buffer(buf, len, start_cursor, local_max_log_timestamp_)))
     {
       TBSYS_LOG(ERROR, "get_max_timestamp_from_log_buffer(start_log_id=%ld)=>%d", end_cursor.log_id_, ret);
@@ -1377,9 +1394,16 @@ int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
   FILL_TRACE_BUF(tlog_buffer, "write_log disk=%ld net=%ld len=%ld log=%ld:%ld",
                  last_disk_elapse_, last_net_elapse_, len,
                  start_cursor.log_id_, end_cursor.log_id_);
+  //add by zhouhuan for scalable commit
+  int64_t cur_time = tbsys::CTimeUtil::getTime();
+  OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_WTIME, cur_time - cur_group->get_last_proc_time());
+  cur_group->set_last_proc_time(cur_time);
+  //add:e
   if (OB_SUCCESS != ret)
   {}
-  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  //modify by zhouhuan
+  //else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  else if (OB_SUCCESS != (ret = log_generator_.commit(cur_group, end_cursor, true)))
   {
     TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
   }
@@ -1391,11 +1415,13 @@ int ObUpsLogMgr::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
   {
     last_flush_log_time_ = tbsys::CTimeUtil::getTime();
   }
-  end_log_id = end_cursor.log_id_;
+  //end_log_id = end_cursor.log_id_; delete by zhouhuan
   return ret;
 }
 
-int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_slave, const bool is_master)
+//modify by zhouhuan [scalablecommit] 201600505:b
+//int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_slave, const bool is_master)
+int ObUpsLogMgr::flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_buffer, const bool sync_to_slave, const bool is_master)
 {
   int ret = check_inner_stat();
   int send_err = OB_SUCCESS;
@@ -1407,9 +1433,12 @@ int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
   {
     TBSYS_LOG(ERROR, "check_inner_stat()=>%d", ret);
   }
+  //modify by zhouhuan
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
+  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, cur_group)))
   //modify chujiajia [log synchronization][multi_cluster] 20160328:b
   //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len)))
-  else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
+  //else if (OB_SUCCESS != (ret = log_generator_.get_log(start_cursor, end_cursor, buf, len, get_flushed_clog_id_without_update())))
   //modify:e
   {
     TBSYS_LOG(ERROR, "log_generator.get_log()=>%d", ret);
@@ -1421,6 +1450,7 @@ int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
     int64_t store_start_time_us = tbsys::CTimeUtil::getTime();
     if (sync_to_slave)
     {
+      //TBSYS_LOG(ERROR, "test::zhouhuan group[%ld].log_id[%ld,%ld]", cur_group->group_id_, start_cursor.log_id_, end_cursor.log_id_);
       if (OB_SUCCESS != (send_err = slave_mgr_->post_log_to_slave(start_cursor, end_cursor, buf, len)))
       {
         TBSYS_LOG(WARN, "slave_mgr.send_data(buf=%p[%ld], %s)=>%d", buf, len, to_cstring(*this), send_err);
@@ -1440,6 +1470,8 @@ int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
     //  }
     //}
     //delete:e
+
+
     if (OB_SUCCESS != (ret = get_max_timestamp_from_log_buffer(buf, len, start_cursor, local_max_log_timestamp_)))
     {
       TBSYS_LOG(ERROR, "get_max_timestamp_from_log_buffer(start_log_id=%ld)=>%d", end_cursor.log_id_, ret);
@@ -1481,9 +1513,17 @@ int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
   FILL_TRACE_BUF(tlog_buffer, "write_log disk=%ld net=%ld len=%ld log=%ld:%ld",
                  last_disk_elapse_, last_net_elapse_, len,
                  start_cursor.log_id_, end_cursor.log_id_);
+
+  //add by zhouhuan for scalable commit
+  int64_t cur_time = tbsys::CTimeUtil::getTime();
+  OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_WTIME, cur_time - cur_group->get_last_proc_time());
+  cur_group->set_last_proc_time(cur_time);
+  //add:e
   if (OB_SUCCESS != ret)
   {}
-  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  //modify by zhouhuan
+  //else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  else if (OB_SUCCESS != (ret = log_generator_.commit(cur_group, end_cursor, is_master)))
   {
     TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
   }
@@ -1495,6 +1535,7 @@ int ObUpsLogMgr::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
   {
     last_flush_log_time_ = tbsys::CTimeUtil::getTime();
   }
+  //TBSYS_LOG(ERROR, "test::zhouhuan: commit and write_log_hook finished!");
   return ret;
 }
 
@@ -1608,9 +1649,7 @@ int ObUpsLogMgr::get_last_commit_point(int64_t& last_commit_point) const
   }
   return err;
 }
-
 // add:e
-
 //add chujiajia [log synchronization][multi_cluster] 20150419:b
 int ObUpsLogMgr::get_max_cmt_id_in_file(int64_t& cmt_id, ObLogCursor &tmp_end_cursor) const
 {

@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -13,7 +14,7 @@
  * some functions, member variables
  * modified by zhujun：add procedure related constant
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
@@ -173,6 +174,11 @@ namespace oceanbase
     const int OB_NOT_FREE = -125;
     const int OB_INIT_SQL_CONTEXT_ERROR = -126;
     const int OB_SKIP_INVALID_ROW = -127;
+    //add by zhouhuan [Session frozen] 20160419:b
+    const int OB_SESSION_FROZEN = -128;
+    const int OB_GROUP_SWITCHED = -129;
+    const int GROUP_ARRAY_SIZE = 30;
+    //add:e
 
     const int OB_SYS_CONFIG_TABLE_ERROR = -131;
     const int OB_READ_CONFIG_ERROR = -132;

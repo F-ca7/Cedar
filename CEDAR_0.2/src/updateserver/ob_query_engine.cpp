@@ -10,7 +10,7 @@
  *     modify by guojinwei, bingo: support REPEATABLE-READ isolation
  *     modify next() for 'null' control
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         bingo <bingxiao@stu.ecnu.edu.cn>
  * @date 2016_06_16

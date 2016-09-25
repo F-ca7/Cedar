@@ -35,6 +35,7 @@ namespace oceanbase
             {}
             virtual ~ApplyWorker()
             {}
+            //modify hushuang [scalable commit]20150506
             virtual void handle(void *task, void *pdata)
             {
               int err = OB_SUCCESS;
@@ -44,6 +45,17 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "replay_worker_->handle_apply()=>%d", err);
               }
             }
+//            virtual void handle(void *task, void *pdata, uint64_t idx)
+//            {
+//              int err = OB_SUCCESS;
+//              UNUSED(pdata);
+//              UNUSED(idx);
+//              if (OB_SUCCESS != (err = replay_worker_.handle_apply(static_cast<ObLogTask*>(task))))
+//              {
+//                TBSYS_LOG(WARN, "replay_worker_->handle_apply()=>%d", err);
+//              }
+//            }
+            //modify e
           private:
             ObLogReplayWorker& replay_worker_;
         };

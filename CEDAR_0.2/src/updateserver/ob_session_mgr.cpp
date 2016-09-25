@@ -39,6 +39,8 @@
 #include "ob_session_mgr.h"
 #include "ob_update_server_main.h"
 
+#define UPS ObUpdateServerMain::get_instance()->get_update_server()//add by zhouhuan 20160723
+
 namespace oceanbase
 {
   using namespace common;
@@ -441,6 +443,7 @@ namespace oceanbase
         {
           uint32_t sd = 0;
           const int64_t begin_trans_id = published_trans_id_;
+          //TBSYS_LOG(WARN,"test::zhouhuan start_session begin trans id = %ld", published_trans_id_);
           ctx->set_trans_id(begin_trans_id);
           ctx->set_session_start_time(start_time);
           ctx->set_session_timeout(timeout);
@@ -496,7 +499,58 @@ namespace oceanbase
       return ret;
     }
 
-    int SessionMgr::end_session(const uint32_t session_descriptor, const bool rollback, const bool force, const uint64_t es_flag)
+    //add hushuang[scalablecommit]20160415
+
+    int SessionMgr::update_commited_trans_id(int64_t trans_id)
+    {
+      int ret = OB_SUCCESS;
+      int64_t commited_trans_id = commited_trans_id_;
+      if(trans_id <= commited_trans_id)
+      {
+        //ret = OB_ERROR;
+        //TBSYS_LOG(WARN, "commited trans_id is invalid, val = %ld, param = %ld", commited_trans_id_, trans_id);
+      }
+      else
+      {
+        while(!SetTxCAS(&commited_trans_id_, commited_trans_id, trans_id))
+        {
+          commited_trans_id = commited_trans_id_;
+          if(trans_id <= commited_trans_id)break;
+        }
+      }
+      return ret;
+    }
+
+    int SessionMgr::update_published_trans_id(int64_t trans_id)
+    {
+      int ret = OB_SUCCESS;
+      if (!inited_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (published_trans_id_ < trans_id)
+      {
+        published_trans_id_ = trans_id;
+      }
+      else
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "trans id error, published trans id =>%ld, trans id=>%ld",
+                  published_trans_id_, trans_id);
+      }
+      return ret;
+    }
+
+    /*int SessionMgr::get_group_id(uint32_t session_descriptor, int64_t &group_id)
+    {
+      int ret = OB_SUCCESS;
+      RWSessionCtx *ctx = NULL;
+      FetchMod fetch_mod =
+      return ret;
+    }*/
+
+    //add e
+    int SessionMgr::end_session(const uint32_t session_descriptor, const bool rollback, const bool force, const uint64_t es_flag, const bool is_slave)
     {
       int ret = OB_SUCCESS;
       BaseSessionCtx *ctx = NULL;
@@ -539,18 +593,22 @@ namespace oceanbase
           }
           if (ctx->need_to_do((BaseSessionCtx::ES_STAT)(es_flag & BaseSessionCtx::ES_PUBLISH)))
           {
-            if (ctx->get_trans_id() > 0) // ctx->get_trans_id() == 0 说明是INTERNAL_WRITE, 在把sstable load到inmemtable时用到
+            //delete by hushuang[scalable commit]20160506
+            if (is_slave && ctx->get_trans_id() > 0) // ctx->get_trans_id() == 0 说明是INTERNAL_WRITE, 在把sstable load到inmemtable时用到
             {
               published_trans_id_ = ctx->get_trans_id();
+
             }
+            //TBSYS_LOG(WARN,"test::zhouhuan end_session published_trans_id=%ld trans_id=%ld",published_trans_id_, ctx->get_trans_id());
             ctx->publish();
             ctx->mark_done(BaseSessionCtx::ES_PUBLISH);
-            if (0 != ctx->get_last_proc_time())
+            //del by zhouhuan [scalable commit]
+            /*if (0 != ctx->get_last_proc_time())
             {
               int64_t cur_time = tbsys::CTimeUtil::getTime();
               OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_FTIME, cur_time - ctx->get_last_proc_time());
               ctx->set_last_proc_time(cur_time);
-            }
+            }*/
           }
         }
         if (es_flag & BaseSessionCtx::ES_FREE)
@@ -639,28 +697,44 @@ namespace oceanbase
     int SessionMgr::wait_write_session_end_and_lock(const int64_t timeout_us)
     {
       int ret = OB_SUCCESS;
+      //add chujiajia [log synchronization][multi_cluster] 20160603:b
+      UNUSED(timeout_us);
+      //add:e
       int64_t now_time = tbsys::CTimeUtil::getTime();
-      int64_t abs_timeout_us = now_time + timeout_us;
+      //del chujiajia [log synchronization][multi_cluster] 20160603:b
+      //int64_t abs_timeout_us = now_time + timeout_us;
+      //del:e
       int64_t start_time = now_time;
       session_lock_.wrlock();
+      //add by zhouhuan for [scalablecommit] 20160802:b
+      UPS.set_force_switch_flag(true);
+      __sync_synchronize();
+      //add:e
       while (true)
       {
         if (0 == ctx_list_[ST_READ_WRITE].get_free())
         {
           break;
         }
+        //UPS.switch_group();//add by zhouhuan 20160723
         now_time = tbsys::CTimeUtil::getTime();
-        if (now_time > abs_timeout_us)
-        {
-          ret = OB_PROCESS_TIMEOUT;
-          break;
-        }
+        //TBSYS_LOG(INFO,"test::zhouhuan now_time= %ld,ab_timeout_us=%ld,wait_time=%ld", now_time, abs_timeout_us, start_time + FORCE_KILL_WAITTIME);
+	    //del chujiajia [log synchronization][multi_cluster] 20160603:b
+        //if (now_time > abs_timeout_us)
+        //{
+        //  ret = OB_PROCESS_TIMEOUT;
+        //  break;
+        //}
+        //del:e
         if (now_time >= (start_time + FORCE_KILL_WAITTIME))
         {
           start_time = now_time;
           TBSYS_LOG(INFO, "wait time over %ld, will force kill session", FORCE_KILL_WAITTIME);
           const bool force = true;
           kill_zombie_session(force);
+          //add chujiajia [log synchronization][multi_cluster] 20160603:b
+          break;
+          //add:e
         }
         asm("pause");
       }
@@ -668,6 +742,10 @@ namespace oceanbase
       {
         session_lock_.unlock();
       }
+      //add by zhouhuan for [scalablecommit] 20160802:b
+      __sync_synchronize();
+      UPS.set_force_switch_flag(false);
+      //add:e
       return ret;
     }
 

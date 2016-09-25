@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -10,7 +11,7 @@
  *        add a command parameters to set the
  *        auto_elect_flag of master rootserver
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_30

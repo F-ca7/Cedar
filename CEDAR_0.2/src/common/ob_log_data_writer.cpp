@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -8,7 +9,7 @@
  * @brief support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author liubozhong <51141500077@ecnu.cn>
  * @date 2015_12_30
  */
@@ -158,7 +159,7 @@ namespace oceanbase
       return pos;
     }
 
-    int ObLogDataWriter::init(const char* log_dir, const int64_t file_size, int64_t du_percent,
+    int ObLogDataWriter::init(const char* log_dir, const int64_t file_size, const int64_t du_percent,
                               const int64_t log_sync_type,
                               MinAvailFileIdGetter* min_avail_file_id_getter)
     {
@@ -337,6 +338,8 @@ namespace oceanbase
                                const char* data, const int64_t len)
     {
       int err = OB_SUCCESS;
+      //TBSYS_LOG(ERROR,"test::zhouhuan: DataWriter:end_cusor_[%s], start_cursor=[%s], end_cursor=[%s]",
+     //           to_cstring(end_cursor_), to_cstring(start_cursor), to_cstring(end_cursor));
       if (NULL == log_dir_)
       {
         err = OB_NOT_INIT;

@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -15,7 +16,7 @@
  *        some functions, member variables
  *        parse the cmd_rs_cluster_ips_ into clusters info array.
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
@@ -1007,7 +1008,10 @@ int ObRootServer2::do_bootstrap(ObBootstrap & bootstrap)
   if (OB_SUCCESS == ret)
   {
     ret = OB_NOT_INIT;
-    for (int i = 0; i < 100; i++) /* 10s */
+    //modify by zhouhuan
+    //for (int i = 0; i < 100; i++) /* 10s */
+     for (int i = 0; i < 200; i++) /* 20s */
+    //mod:e
     {
       if (async_task_queue_empty())
       {

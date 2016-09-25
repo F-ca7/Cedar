@@ -1,13 +1,13 @@
 /**
- * Copyright (C) 2013-2016 DaSE
- *his program is free software; you can redistribute it and/or
+ * Copyright (C) 2013-2016 DaSE .
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
  *
  * @file     ob_merge_join.cpp
  * @brief    merge_join operator
  * modified by Qiushi FAN: insert some function and member variable of class ObMergeJoin, in order to complete the semijoin feature.
- * @version  CEDAR 0.2
+ * @version  CEDAR 0.2 
  * @author   Qiushi FAN <qsfan@ecnu.cn>
  * @date     2015_12_30
  */

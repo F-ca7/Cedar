@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,7 +10,7 @@
  *        some functions, member variables
           set majority_count in class ObAckQueue.
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_30
@@ -32,6 +33,7 @@
 #include "tbsys.h"
 #include "ob_wait_queue.h"
 #include "ob_log_post.h"
+#include "ob_log_generator2.h"
 
 namespace oceanbase
 {
@@ -113,7 +115,7 @@ namespace oceanbase
         int init(IObAsyncClientCallback* callback, const ObClientManager* client_mgr, int64_t queue_len);
         // modify:e
         // modify:e
-        int64_t get_next_acked_seq();
+         int64_t get_next_acked_seq();
         int many_post(const ObServer* servers, int64_t n_server, int64_t start_seq, int64_t end_seq,
                             const int32_t pcode, const int64_t timeout_us, const ObDataBuffer& pkt_buffer, int64_t idx=0);
         int post(const ObServer servers, int64_t start_seq, int64_t end_seq, int64_t send_time_us,

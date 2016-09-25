@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,7 +10,7 @@
  *     modify by guojinwei, liubozhong: support multiple clusters
  *     for HA by adding or modifying some functions, member variables
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@encu.cn>
  * @date 2015_12_30
@@ -33,6 +34,7 @@
 
 #include "common/ob_define.h"
 #include "common/ob_log_writer.h"
+#include "common/ob_log_writer3.h"
 #include "common/ob_mutex_task.h"
 #include "common/ob_server_getter.h"
 #include "ob_ups_role_mgr.h"
@@ -64,7 +66,7 @@ namespace oceanbase
   }
   namespace updateserver
   {
-    class ObUpsLogMgr : public common::ObLogWriter
+    class ObUpsLogMgr : public common::ObLogWriterV3/*ObLogWriter*///modify by zhouhuan
     {
       public:
       enum WAIT_SYNC_TYPE
@@ -137,11 +139,14 @@ namespace oceanbase
       int init(const char* log_dir, const int64_t log_file_max_size,
                ObLogReplayWorker* replay_worker_, ObReplayLogSrc* replay_log_src, ObUpsTableMgr* table_mgr,
                ObUpsSlaveMgr *slave_mgr, ObiRole* obi_role, ObUpsRoleMgr *role_mgr, int64_t log_sync_type
-               //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+				//delete chujiajia [log synchronization][multi_cluster] 20160625:b
                //add by lbzhong [Commit Point] 20150824:b
                //, ObCommitPointRunnable* commit_point_thread
                //add:e
-               //delete:e
+              
+               //add hushuang [scalable commit]20160630
+               ,int64_t group_size = GROUP_ARRAY_SIZE
+               //add e
                );
 
       /// @brief set new replay point
@@ -160,6 +165,13 @@ namespace oceanbase
        * @return true if the ups was master before restart
        */
       bool get_was_master(bool& was_master);
+      //add:e
+      //add:b
+      int64_t get_max_flushed_log_id()
+      {
+        return replay_worker_->get_next_flush_log_id();
+      }
+
       //add:e
       // add by guojinwei [commit point for log replay][multi_cluster] 20151119:b
       /**
@@ -203,7 +215,7 @@ namespace oceanbase
       public: // 主要接口
         // UPS刚启动，重放本地日志任务的函数
       int replay_local_log();
-      //add chujiajia [log synchronization][multi_cluster] 20160603:b
+	  //add chujiajia [log synchronization][multi_cluster] 20160603:b
       /**
        * @brief update replay cursor after master switch to slave
        * @return OB_SUCCESS if success
@@ -240,6 +252,18 @@ namespace oceanbase
       //int write_log_as_slave(const char* buf, const int64_t len);
       int write_log_as_slave(int64_t start_id, const char* buf, const int64_t len);
       //modify:e
+      //add by zhouhuan [scalablecommit] 20160621:b
+      /**
+      * @brief slave set its group according to timestamp
+      * @param[in] log_id log id
+      * @param[in] timestamp timestamp
+      */
+      void set_group_as_slave(const int64_t log_id, const int64_t timestamp)
+      {
+        log_generator_.set_group_as_slave(log_id, timestamp);
+      }
+      void reset_next_pos(){ log_generator_.reset_next_pos();}
+      //add e
       int64_t to_string(char* buf, const int64_t len) const;
       //add lbzhong [Commit Point] 20150820:b
       /**
@@ -252,24 +276,31 @@ namespace oceanbase
        * @brief [overwrite]
        * @return OB_SUCCESS if success
        */
-      //modify chujiajia [log synchronization][multi_cluster] 20160625:b
+	   //modify chujiajia [log synchronization][multi_cluster] 20160625:b
       //int store_log(const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
       int store_log(int64_t start_id, const char* buf, const int64_t buf_len, const bool sync_to_slave=false);
       //modify:e
+     
+
       /**
        * @brief [overwrite]
        * If the ups is master master, it will update was_master to true in this function.
        * And it will update max log timestamp of log buffer in this function.
        * @return OB_SUCCESS if success
        */
-      int async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
+      //modify by zhouhuan [scalablecommit] 20160505
+     // int async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
+      int async_flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer());
 
       /**
        * @brief [overwrite]
        * If the ups is not master master, it will update was_master to false in this function.
        * @return OB_SUCCESS if success
        */
-      int flush_log(TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer(),
+      //modify by zhouhuan [scalablecommit] 20160505
+     // int flush_log(TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer(),
+                          //const bool sync_to_slave = true, const bool is_master = true);
+      int flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_buffer = oceanbase::common::TraceLog::get_logbuffer(),
                           const bool sync_to_slave = true, const bool is_master = true);
       //add:e
       protected:
@@ -296,7 +327,7 @@ namespace oceanbase
        * @return OB_SUCCESS if success
        */
       int get_max_log_timestamp_in_buffer(int64_t& max_timestamp) const;
-      //add:e
+	   //add:e
       //add chujiajia [log synchronization][multi_cluster] 20160419:b
       /**
        * @brief get max commited log id from log file
@@ -371,30 +402,30 @@ namespace oceanbase
       }
 
       private:
-        FileIdBeforeLastMajorFrozen last_fid_before_frozen_;
-        ObUpsTableMgr *table_mgr_;
-        ObiRole *obi_role_;
-        ObUpsRoleMgr *role_mgr_;
-        ObLogBuffer recent_log_cache_; // 主机写日志或备机收日志时保存日志用的缓冲区
-        ObPosLogReader pos_log_reader_; //从磁盘上根据日志ID读日志， 用来初始化cached_pos_log_reader_
-        ObCachedPosLogReader cached_pos_log_reader_; // 根据日志ID读日志，先查看缓冲区，在查看日志文件
-        ObReplayLogSrc* replay_log_src_; // 备机replay_log()时从replay_log_src_中取日志
+      FileIdBeforeLastMajorFrozen last_fid_before_frozen_;
+      ObUpsTableMgr *table_mgr_;
+      ObiRole *obi_role_;
+      ObUpsRoleMgr *role_mgr_;
+      ObLogBuffer recent_log_cache_; // 主机写日志或备机收日志时保存日志用的缓冲区
+      ObPosLogReader pos_log_reader_; //从磁盘上根据日志ID读日志， 用来初始化cached_pos_log_reader_
+      ObCachedPosLogReader cached_pos_log_reader_; // 根据日志ID读日志，先查看缓冲区，在查看日志文件
+      ObReplayLogSrc* replay_log_src_; // 备机replay_log()时从replay_log_src_中取日志
 
-        IObServerGetter* master_getter_; // 用来指示远程日志源的地址和类型(是lsync还是ups)
-        ReplayLocalLogTask replay_local_log_task_;
-        //common::ObLogCursor replayed_cursor_; // 已经回放到的点，不管发生什么情况都有保持连续递增
-        common::ObLogCursor start_cursor_; // start_log()用到的参数，start_log()之后就没用了。
-        int64_t local_max_log_id_when_start_;
-        ObLogSyncDelayStat delay_stat_;
-        ObClogStat clog_stat_;
-        volatile bool stop_; // 主要用来通知回放本地日志的任务结束
-        ThreadSpecificBuffer log_buffer_for_fetch_;
-        ThreadSpecificBuffer log_buffer_for_replay_;
-        ObLogReplayWorker* replay_worker_;
-        volatile int64_t master_log_id_; // 备机知道的主机最大日志号
-        tbsys::CThreadCond master_log_id_cond_;
-        int64_t last_receive_log_time_;
-        ObLogReplayPoint replay_point_;
+      IObServerGetter* master_getter_; // 用来指示远程日志源的地址和类型(是lsync还是ups)
+      ReplayLocalLogTask replay_local_log_task_;
+      //common::ObLogCursor replayed_cursor_; // 已经回放到的点，不管发生什么情况都有保持连续递增
+      common::ObLogCursor start_cursor_; // start_log()用到的参数，start_log()之后就没用了。
+      int64_t local_max_log_id_when_start_;
+      ObLogSyncDelayStat delay_stat_;
+      ObClogStat clog_stat_;
+      volatile bool stop_; // 主要用来通知回放本地日志的任务结束
+      ThreadSpecificBuffer log_buffer_for_fetch_;
+      ThreadSpecificBuffer log_buffer_for_replay_;
+      ObLogReplayWorker* replay_worker_;
+      volatile int64_t master_log_id_; // 备机知道的主机最大日志号
+      tbsys::CThreadCond master_log_id_cond_;
+      int64_t last_receive_log_time_;
+      ObLogReplayPoint replay_point_;
       uint64_t max_log_id_;
       bool is_initialized_;
       char log_dir_[common::OB_MAX_FILE_NAME_LENGTH];
@@ -410,7 +441,7 @@ namespace oceanbase
       int64_t local_max_log_timestamp_when_start_;
       int64_t local_max_log_timestamp_;
       //add:e
-      //add chujiajia [log synchronization][multi_cluster] 20160419:b
+	  //add chujiajia [log synchronization][multi_cluster] 20160419:b
       int64_t local_max_cmt_id_when_start_;  ///< max commited log id from log file when server started
       common::ObLogCursor local_max_log_cursor_;  ///< cursor relevant to the max local log
       common::ObLogCursor local_commited_max_cursor_;  ///< cursor relevant to the max commited log

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sessionctx_factory.cpp
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_03_14
+ */
 ////===================================================================
  //
  // ob_sessionctx_factory.cpp updateserver / Oceanbase
@@ -21,6 +36,7 @@
 #include "ob_sessionctx_factory.h"
 #include "ob_update_server_main.h"
 
+#define UPS ObUpdateServerMain::get_instance()->get_update_server()
 namespace oceanbase
 {
   namespace updateserver
@@ -45,7 +61,8 @@ namespace oceanbase
                                                                uc_info_(),
                                                                lock_info_(NULL),
                                                                publish_callback_list_(),
-                                                               free_callback_list_()
+                                                               free_callback_list_(),
+                                                               group_id_(-1) //add by zhouhuan [scalablecommit] 20160426
     {
     }
 
@@ -53,6 +70,16 @@ namespace oceanbase
     {
     }
 
+    int RWSessionCtx::precommit()
+    {
+      int ret = OB_SUCCESS;
+      int64_t begin_time = tbsys::CTimeUtil::getTime();
+      end(false);
+      mark_done(BaseSessionCtx::ES_CALLBACK);
+      set_frozen();
+      OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_LTIME, tbsys::CTimeUtil::getTime() - begin_time);
+      return ret;
+    }
     void RWSessionCtx::end(const bool need_rollback)
     {
       if (!commit_done_)
@@ -119,6 +146,7 @@ namespace oceanbase
       checksum_callback_.reset();
       checksum_callback_list_.reset();
       dml_count_ = v4si_zero;
+      group_id_ = -1; //add by zhouhuan
     }
 
     ObUpsMutator &RWSessionCtx::get_ups_mutator()
@@ -205,7 +233,10 @@ namespace oceanbase
 
     void RWSessionCtx::kill()
     {
-      if (ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      //mod chujiajia [log synchronization][multi_cluster] 20160923:b
+      //if (ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      if (ObiRole::MASTER == UPS.get_obi_role().get_role() && ST_ALIVE != ATOMIC_CAS(&stat_, ST_ALIVE, ST_KILLING))
+      //mod:e
       {
         TBSYS_LOG(WARN, "session will not be killed sd=%u stat=%d session_start_time=%ld stmt_start_time=%ld session_timeout=%ld stmt_timeout=%ld",
                   get_session_descriptor(), stat_, get_session_start_time(), get_stmt_start_time(), get_session_timeout(), get_stmt_timeout());

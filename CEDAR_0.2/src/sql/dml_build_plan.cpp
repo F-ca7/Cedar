@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -14,7 +15,7 @@
  * modified by yushengjuan: reslove syntax tree to logical plan
  * modified by maoxiaoxiao: reslove syntax tree to logical plan
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>

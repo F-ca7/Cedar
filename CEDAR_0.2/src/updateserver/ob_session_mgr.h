@@ -51,8 +51,18 @@
 #include "common/priority_packet_queue_thread.h"
 #include "ob_ups_mutator.h"
 #include "ob_inc_seq.h"
+//add hushuang[scalablecommit]20160415
+#include "common/ob_commit_queue.h"
+//#include "ob_session_mgr.h"
+//add e
+
 
 #define INVALID_SESSION_DESCRIPTOR IDMAP_INVALID_ID
+
+//add hushuang[scalablecommit]20160415
+#define SetTxCAS(x, old_val, new_val) __sync_bool_compare_and_swap(x, old_val, new_val)
+//add e
+
 namespace oceanbase
 {
   namespace updateserver
@@ -532,7 +542,10 @@ namespace oceanbase
         bool lock_succ_;
     };
 
-    class SessionMgr : public tbsys::CDefaultRunnable
+    //mod by hushuang[scalablecommit] 20160415
+    //class SessionMgr : public tbsys::CDefaultRunnable
+    class SessionMgr : public common::ISessionMgr, public tbsys::CDefaultRunnable
+    //mod e
     {
       typedef common::ObFixedQueue<BaseSessionCtx> SessionCtxList;
       typedef common::ObIDMap<BaseSessionCtx, uint32_t> SessionCtxMap;
@@ -557,8 +570,11 @@ namespace oceanbase
       public:
         int begin_session(const SessionType type, const int64_t start_time, const int64_t timeout, const int64_t idle_time, uint32_t &session_descriptor);
         int precommit(const uint32_t session_descriptor);
-        int end_session(const uint32_t session_descriptor, const bool rollback = true, const bool force = true,
-                        const uint64_t es_flag = (uint64_t)BaseSessionCtx::ES_ALL);
+		//modify by zhouhuan [scalablecommit]
+        //int end_session(const uint32_t session_descriptor, const bool rollback = true, const bool force = true,
+        //                const uint64_t es_flag = (uint64_t)BaseSessionCtx::ES_ALL);
+		int end_session(const uint32_t session_descriptor, const bool rollback = true, const bool force = true,
+        const uint64_t es_flag = (uint64_t)BaseSessionCtx::ES_ALL, const bool is_slave = false);
         int update_commited_trans_id(BaseSessionCtx* ctx);
 
         template <class CTX>
@@ -582,7 +598,12 @@ namespace oceanbase
         IncSeq& get_trans_seq() { return trans_seq_; }
         void enable_start_write_session(){ allow_start_write_session_ = true; }
         void disable_start_write_session(){ allow_start_write_session_ = false; }
-        //add chujiajia [log synchronization][multi_cluster] 20160606:b
+        //add hushuang[scalablecommit]20160415
+        virtual int update_published_trans_id(int64_t trans_id);///< used for update_published_trans_id of scalable commit
+        virtual int update_commited_trans_id(int64_t trans_id);///< used for update_commited_trans_id of scalable commit
+        //virtual int get_group_id(uint32_t session_descriptor, int64_t& group_id);
+        //add e
+       //add chujiajia [log synchronization][multi_cluster] 20160606:b
         inline int reset(int32_t max_ro_num, int32_t max_rp_num, int32_t max_rw_num)
         {
           int ret = common::OB_SUCCESS;

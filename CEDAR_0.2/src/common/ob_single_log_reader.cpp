@@ -14,7 +14,7 @@
 
 #include "ob_single_log_reader.h"
 #include "ob_log_dir_scanner.h"
-#include "ob_log_generator.h"
+#include "ob_log_generator2.h"
 using namespace oceanbase::common;
 
 const int64_t ObSingleLogReader::LOG_BUFFER_MAX_LENGTH = 1 << 21;
@@ -255,7 +255,7 @@ int ObSingleLogReader::read_header(ObLogEntry& entry)
       err = OB_LAST_LOG_RUINNED;
     }
   }
-  else if (ObLogGenerator::is_eof(log_buffer_.get_data() + log_buffer_.get_position(),
+  else if (ObLogGeneratorV2::is_eof(log_buffer_.get_data() + log_buffer_.get_position(),
                                   log_buffer_.get_limit() - log_buffer_.get_position()))
   {
     err = OB_READ_NOTHING;

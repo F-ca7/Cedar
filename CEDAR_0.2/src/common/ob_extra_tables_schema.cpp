@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -11,7 +12,7 @@
  * modified by maoxiaoxiao:add system table "__all_column_checksum_info" and "__index_service_info"
  * modified by zhujun：add procedure related system table '__all_procedure' schema
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>

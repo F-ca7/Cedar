@@ -3,7 +3,7 @@
 >CEDAR is a scalable relational database based on OceanBase 0.4.2 developed by School of Data Science and Engineering, East China Normal University. On February 1, 2016, CEDAR project team had completed the development and test of CEDAR 0.1.  On September 26, 2016, CEDAR 0.2 released. 
 
 <h2> Version Characteristics</h2>
-On CEDAR, we have developed 11 new function modules listed as follows:
+On CEDAR, we have developed 12 new function modules listed as follows:
 <h4>The new features of Cedar 0.1:</h4>
 * High Availability of three Cluster Architecture (such as RootServer Election, Automatic Switching of Roles, Log Synchronization and Recovery, etc.)
 * Libonev:Multi-thread Network I/O Processing Framework 
@@ -17,6 +17,7 @@ On CEDAR, we have developed 11 new function modules listed as follows:
 * Snapshot Isolation
 * Table Lock
 * Bloom-filter Join
+* Scalable Commit
 * Optimization of Log Synchronization
 
 

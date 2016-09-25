@@ -15,6 +15,7 @@
  */
 #include "ob_start_trans.h"
 #include "common/utility.h"
+#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -78,6 +79,8 @@ int ObStartTrans::open()
     else
     {
       session->set_trans_id(trans_id);
+      OB_STAT_INC(OBMYSQL, SQL_MULTI_STMT_TRANS_COUNT);
+      OB_STAT_INC(OBMYSQL, SQL_MULTI_STMT_TRANS_STMT_COUNT);
     }
     TBSYS_LOG(DEBUG, "start transaction, ret=%d req=%s trans_id=%s ret=%d",
         ret, to_cstring(req_), to_cstring(trans_id), ret);

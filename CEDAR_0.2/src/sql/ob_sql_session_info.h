@@ -224,6 +224,10 @@ namespace oceanbase
         void update_last_active_time() { last_active_time_ = tbsys::CTimeUtil::getTime(); }
         bool is_timeout();
         uint16_t get_charset();
+        void set_curr_trans_start_time(int64_t t) {curr_trans_start_time_ = t;};
+        int64_t get_curr_trans_start_time() const {return curr_trans_start_time_;};
+        void set_curr_trans_last_stmt_time(int64_t t) {curr_trans_last_stmt_time_ = t;};
+        int64_t get_curr_trans_last_stmt_time() const {return curr_trans_last_stmt_time_;};
       private:
         int insert_ps_session_info(uint64_t sql_id, int64_t pcount, uint64_t &new_sql_id, bool has_cur_time=false);
       private:
@@ -250,6 +254,8 @@ namespace oceanbase
         bool is_autocommit_;
         bool is_interactive_;
         int64_t last_active_time_;
+        int64_t curr_trans_start_time_;
+        int64_t curr_trans_last_stmt_time_;
         const common::ObVersionProvider *version_provider_;
         const ObSQLConfigProvider *config_provider_;
 

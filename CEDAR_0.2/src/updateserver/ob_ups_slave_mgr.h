@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,7 +10,7 @@
  *     modify by zhangcd: modify the class ObUpsSlaveMgr to add
  *     the majority_count setting process
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_25
  */
@@ -32,6 +33,7 @@
 
 #include "common/ob_slave_mgr.h"
 #include "common/ob_ack_queue.h"
+#include "common/ob_log_generator2.h"
 #include "ob_ups_role_mgr.h"
 
 using namespace oceanbase::common;

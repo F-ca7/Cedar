@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -11,7 +12,7 @@
  *   modify the command line parameters of rootserver,
  *   add the -s/--all_root_servers to command line.
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_30
@@ -88,6 +89,9 @@ namespace oceanbase
         //add chujiajia [rs_election][multi_cluster] 20150929:b
         int64_t cmd_rs_election_random_wait_time_;
         // add:e
+        //add hushuang [scalable commit]20160630
+        int64_t cmd_commit_group_size_;
+        //add e
         char cmd_ms_type_[OB_MAX_MS_TYPE_LENGTH];
         const char *pid_dir_;
         const char *log_dir_;

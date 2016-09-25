@@ -1,6 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE
- *
+ * Copyright (C) 2013-2015 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,7 +14,7 @@
  *        set_auto_elect_flag_delay, which represent the delay
  *        time of set auto_elect_falg after rootserver start.
  *
- * @version CEDAR 0.2
+ * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author chujiajia <52151500014@ecnu.edu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>

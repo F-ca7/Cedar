@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -9,7 +10,7 @@
  *     modify by zhangcd: modify the class ObUpsSlaveMgr to add
  *     the majority_count setting process
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author zhangcd<zhangcd_ecnu@ecnu.cn>
  * @date 2015_12_25
  */
@@ -158,6 +159,7 @@ int ObUpsSlaveMgr::post_log_to_slave(const ObLogCursor& start_cursor, const ObLo
   int64_t slave_num = 0;
   ObDataBuffer send_buf;
 
+  //TBSYS_LOG(ERROR,"test::zhouhuan post to slave logid[%ld,%ld]", start_cursor.log_id_, end_cursor.log_id_);
   if (NULL == rpc_stub_)
   {
     ret = OB_NOT_INIT;

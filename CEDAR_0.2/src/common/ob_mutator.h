@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mutator.h
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_07_24
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -209,8 +224,11 @@ namespace oceanbase
         };
 
       private:
+        //modify by zhouhuan [scalablecommit] 20150520
+        //int copy_cell_(const ObMutatorCellInfo& src_cell, ObMutatorCellInfo& dst_cell,
+        //              RowChangedStat row_changed_stat, int64_t& store_size);
         int copy_cell_(const ObMutatorCellInfo& src_cell, ObMutatorCellInfo& dst_cell,
-                      RowChangedStat row_changed_stat, int64_t& store_size);
+                      RowChangedStat row_changed_stat, int64_t& store_size, const BarrierFlag barrier_flag );
         int add_node_(CellInfoNode* cur_node);
 
       private:

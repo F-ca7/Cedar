@@ -315,7 +315,11 @@ common_sources=				                                                  \
   ob_column_checksum.h               ob_column_checksum.cpp\
 	ob_index_black_list.h              ob_index_black_list.cpp\
   ob_tablet_histogram_report_info.h  ob_tablet_histogram_report_info.cpp\
-  ob_tablet_histogram.h              ob_tablet_histogram.cpp
+  ob_tablet_histogram.h              ob_tablet_histogram.cpp\
+  ob_log_generator2.h	ob_log_generator2.cpp\
+  ob_log_writer3.h	ob_log_writer3.cpp\
+  ob_commit_queue.h	ob_commit_queue.cpp\
+  group_queue_thread.h	group_queue_thread.cpp
 
 
 location_sources=                                                                             \

@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -8,7 +9,7 @@
  * @brief message among rootservers for exchanging info about election.
  *        add the auto_elect_flag into the serialization process
  *        in case of the communication between all the rootserver.
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author
  *   Chu Jiajia  <52151500014@ecnu.cn>
  *   zhangcd<zhangcd_ecnu@ecnu.cn>

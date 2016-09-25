@@ -205,6 +205,7 @@ namespace oceanbase
         len = my_buffer->remain();
         end_cursor = start_cursor;
       }
+      //TBSYS_LOG(WARN,"test::zhouhuan prefetch_log start_cursor=[%s]",to_cstring(start_cursor));
       if (OB_SUCCESS != err)
       {}
       else if (start_cursor.log_id_ <= 0)
@@ -251,6 +252,7 @@ namespace oceanbase
           {
             ((ObLogCursor&)prefetch_log_cursor_) = end_cursor;
           }
+        //TBSYS_LOG(WARN,"test::zhouhuan prefetch_log_cursor=[%s]",to_cstring(end_cursor));
       }
       TBSYS_LOG(DEBUG, "prefetch_log(start_cursor=%s)=>%d", start_cursor.to_str(), err);
       return err;

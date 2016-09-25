@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2013-2016 DaSE
+ * Copyright (C) 2013-2016 DaSE .
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -14,7 +15,7 @@
  *        modify the construction function of class ObBootstrap.
  * modified by zhujun：add create __all_procedure table schema 
  *
- * @version CEDAR 0.2
+ * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
