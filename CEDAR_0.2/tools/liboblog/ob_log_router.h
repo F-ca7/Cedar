@@ -4,15 +4,15 @@
  //
  // Copyright (C) 2013 Alipay.com, Inc.
  //
- // Created on 2013-05-23 by Yubai (yubai.lk@alipay.com) 
+ // Created on 2013-05-23 by Yubai (yubai.lk@alipay.com)
  //
  // -------------------------------------------------------------------
  //
  // Description
- // 
+ //
  //
  // -------------------------------------------------------------------
- // 
+ //
  // Change Log
  //
 ////====================================================================
@@ -86,7 +86,10 @@ namespace oceanbase
         int launch();
       public:
         virtual void run(tbsys::CThread* thread, void* arg);
+        //modify hushuang [scalable commit]20160513
         virtual void handle(void *task, void *pdata) {UNUSED(task); UNUSED(pdata);};
+//        virtual void handle(void *task, void *data, uint64_t idx){UNUSED(task); UNUSED(data);UNUSED(idx);};
+        //modifye e
         virtual void handle_with_stopflag(void *task, void *pdata, volatile bool &stop_flag);
         virtual void on_end(void *ptr) {UNUSED(ptr); mysql_thread_end(); TBSYS_LOG(INFO, "mysql_thread_end has been called");};
       private:
