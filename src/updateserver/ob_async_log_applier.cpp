@@ -156,6 +156,7 @@ namespace oceanbase
         task.mutation_ts_ = mutator.get_mutate_timestamp();
         task.checksum_before_mutate_ = mutator.get_memtable_checksum_before_mutate();
         task.checksum_after_mutate_ = mutator.get_memtable_checksum_after_mutate();
+        //TBSYS_LOG(WARN,"test::zhouhuan handle mutator trans_id=%ld mutate_timestamp=%ld",session_ctx->get_trans_id(), mutator.get_mutate_timestamp());
         session_ctx->set_trans_id(mutator.get_mutate_timestamp());
         tc_is_replaying_log() = true;
         if (OB_SUCCESS != (err = table_mgr_->apply(using_id, *session_ctx,
@@ -362,7 +363,7 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "table_mgr->check_checksum(%s)=>%d", to_cstring(task), err);
       }
-      else if (OB_SUCCESS != (err = session_mgr_->end_session(task.trans_id_.descriptor_, rollback)))
+      else if (OB_SUCCESS != (err = session_mgr_->end_session(task.trans_id_.descriptor_, rollback, true, (uint64_t)BaseSessionCtx::ES_ALL, true)))
       {
         TBSYS_LOG(ERROR, "end_session(%s)=>%d", to_cstring(task.trans_id_), err);
       }

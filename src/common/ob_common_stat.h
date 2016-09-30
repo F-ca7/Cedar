@@ -56,14 +56,37 @@ namespace oceanbase
       UPS_STAT_SCAN_QTIME,
       UPS_STAT_APPLY_QTIME,
 
+      UPS_STAT_IDLE_COUNT,
+
       UPS_STAT_GET_TIMEU,
       UPS_STAT_SCAN_TIMEU,
       UPS_STAT_TRANS_TIMEU,
       UPS_STAT_TRANS_WTIME, // packet wait
       UPS_STAT_TRANS_HTIME, // trans handle
-      UPS_STAT_TRANS_CTIME, // wait commit thread
-      UPS_STAT_TRANS_FTIME, // wait flush
-      UPS_STAT_TRANS_RTIME, // wait response
+      //UPS_STAT_TRANS_CTIME, // wait commit thread
+      UPS_STAT_TRANS_STIME, // trans set_position
+      UPS_STAT_TRANS_GTIME, // trans get_trans_id wait the group can fill
+      UPS_STAT_TRANS_LTIME, // trans early lock release
+      UPS_STAT_TRANS_FTIME, // trans fill_log
+      UPS_STAT_TRANS_PUTIME, // trans push private callback push_commit_group
+      UPS_STAT_TRANS_WPTIME, // wait publish
+      UPS_STAT_TRANS_RTIME, //  before response
+
+      UPS_STAT_GROUPS_COUNT, //group count
+      UPS_STAT_GROUPS_UTIME, //group reuse
+      UPS_STAT_GROUPS_FTIME, // group fill
+      UPS_STAT_GROUPS_CTIME, // group wait flush
+      UPS_STAT_GROUPS_WTIME, // group flush
+      UPS_STAT_GROUPS_WPTIME, //group wait to publish
+      UPS_STAT_GROUPS_CBTIME, // group callback
+
+      UPS_STAT_COMMIT_NGCOUNT,
+      UPS_STAT_COMMIT_CGCOUNT,
+      UPS_STAT_COMMIT_NGTIME,
+      UPS_STAT_COMMIT_CGTIME,
+      UPS_STAT_COMMIT_FLTIME,
+      UPS_STAT_COMMIT_PUTIME,
+
       UPS_STAT_APPLY_TIMEU,
       UPS_STAT_BATCH_TIMEU,
       UPS_STAT_MERGE_TIMEU,
@@ -224,6 +247,10 @@ namespace oceanbase
       SQL_SCAN_EVENT_COUNT,
       SQL_SCAN_EVENT_TIME,
 
+ 	  //ups_execute
+      SQL_UPS_EXECUTE_COUNT,
+      SQL_UPS_EXECUTE_TIME,
+
      /* memory usage statistics*/
       MS_MEMORY_LIMIT,
       MS_MEMORY_TOTAL,
@@ -296,7 +323,7 @@ namespace oceanbase
 
       SQL_COMPOUND_COUNT,
       SQL_COMPOUND_TIME,
-      
+
       SQL_SELECT_COUNT,
       SQL_SELECT_TIME,
 
@@ -318,6 +345,15 @@ namespace oceanbase
       SQL_ROLLBACK_COUNT,
       SQL_AUTOCOMMIT_ON_COUNT,
       SQL_AUTOCOMMIT_OFF_COUNT,
+
+      SQL_CMD_RECEIVED_COUNT,
+      SQL_CMD_PROCESS_COUNT,
+      SQL_CMD_WAIT_TIME_MS,
+
+      SQL_MULTI_STMT_TRANS_COUNT,
+//      SQL_MULTI_STMT_TRANS_TIME,
+//      SQL_MULTI_STMT_TRANS_STMT_INTERVAL,
+      SQL_MULTI_STMT_TRANS_STMT_COUNT,
 
       OBMYSQL_STAT_MAX
     };

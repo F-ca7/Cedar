@@ -16,6 +16,7 @@
 #include "string.h"
 #include "common/ob_define.h"
 #include "common/ob_spin_rwlock.h"
+#include "common/ob_log_generator2.h"
 #include "pthread.h"
 #include "algorithm"
 #include "tbsys.h"
@@ -208,7 +209,8 @@ namespace oceanbase
           return seq_.unlock(seq);
         }
     } CACHE_ALIGNED;
-    namespace types
+    //move to common/ob_log_generator2.h
+    /*namespace types
     {
       struct uint128_t
       {
@@ -245,7 +247,7 @@ namespace oceanbase
     }
 
 #define CAS128(src, cmp, with) cas128((types::uint128_t*)(src), *((types::uint128_t*)&(cmp)), *((types::uint128_t*)&(with)))
-#define LOAD128(dest, src) load128((__uint128_t&)(dest), (types::uint128_t*)(src))
+#define LOAD128(dest, src) load128((__uint128_t&)(dest), (types::uint128_t*)(src))*/
     struct CasIncSeq
     {
       int64_t seq_;

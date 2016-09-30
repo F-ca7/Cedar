@@ -181,6 +181,8 @@ namespace oceanbase
             next_acked_seq_ = acked_num;
             //TBSYS_LOG(INFO, "next_acked_seq_ is %ld.", next_acked_seq_);
           }
+          //TBSYS_LOG(ERROR,"test::zhouhuan get_next_ack, old_ack_seq=%ld, acked_num=%ld, next_acked_seq_=%ld",
+                   // old_ack_seq, acked_num, next_flush_seq_);
         }
         // delete by guojinwei [log synchronization][multi_cluster] 20151211:b
         //else if (OB_SUCCESS == err && SLAVE_STAT_OFFLINE == node.slave_status_)
@@ -190,6 +192,8 @@ namespace oceanbase
         // delete:e
         // modify:e
       }
+
+      //TBSYS_LOG(ERROR,"test::zhouhuan get_next_ack, old_ack_seq=%ld, next_acked_seq_=%ld", old_ack_seq, next_acked_seq_);
       if (old_ack_seq != next_acked_seq_)
       {
         callback_->on_ack(node);
@@ -203,6 +207,7 @@ namespace oceanbase
       int err = OB_SUCCESS;
       // add by guojinwei [log synchronization][multi_cluster] 20150819:b
       next_flush_seq_ = end_seq;
+      //TBSYS_LOG(ERROR,"test::zhouhuan: next_flush_seq_=%ld, end_seq=%ld", next_flush_seq_, end_seq);
       // add:e
       int64_t send_time_us = tbsys::CTimeUtil::getTime();
       ObServer null_server;
@@ -230,7 +235,7 @@ namespace oceanbase
       //  get_next_acked_seq();
       //}
       // delete:e
-      // add by guojinwei [log synchronization][multi_cluster] 20151211:b 
+      // add by guojinwei [log synchronization][multi_cluster] 20151211:b
       if ((OB_SUCCESS == err)
           && is_single())
       {
@@ -382,6 +387,7 @@ namespace oceanbase
           || (FIRST_TOLERATE_LOG_NUM >= next_flush_seq_))
       {
         acked_num = next_flush_seq_;
+        //TBSYS_LOG(ERROR,"test::zhouhuan acked_num=%ld next_flush_seq=%ld",acked_num, next_flush_seq_);
       }
       // add by guojinwei [log synchronization][multi_custer] 20151211:b
       // if system is 3 cluster

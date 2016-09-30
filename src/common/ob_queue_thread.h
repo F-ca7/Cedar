@@ -4,7 +4,7 @@
  //
  // Copyright (C) 2010 Taobao.com, Inc.
  //
- // Created on 2012-09-01 by Yubai (yubai.lk@taobao.com) 
+ // Created on 2012-09-01 by Yubai (yubai.lk@taobao.com)
  //
  // -------------------------------------------------------------------
  //
@@ -12,7 +12,7 @@
  //
  //
  // -------------------------------------------------------------------
- // 
+ //
  // Change Log
  //
 ////====================================================================
@@ -29,13 +29,19 @@
 #include "priority_packet_queue_thread.h"
 #include "ob_priority_scheduler.h"
 
+//add by hushuang[scalablecommit]20160415
+#include "common/ob_commit_queue.h" //delete by zhutao
+//add e
+
 #define CPU_CACHE_LINE 64
 
 namespace oceanbase
 {
-  namespace common 
+  namespace common
   {
-    class ObCond
+    //mod by hushuang [scalable commit]20160506
+    //move this class into common/ob_commit_queue.h
+    /*class ObCond
     {
       static const int64_t SPIN_WAIT_NUM = 0;
       static const int64_t BUSY_INTERVAL = 1000;
@@ -51,7 +57,7 @@ namespace oceanbase
         int64_t last_waked_time_;
         pthread_cond_t cond_;
         pthread_mutex_t mutex_;
-    } __attribute__ ((aligned (64)));
+    } __attribute__ ((aligned (64)));*/
 
     typedef ObCond S2MCond;
     class S2MQueueThread
@@ -69,6 +75,10 @@ namespace oceanbase
         ObFixedQueue<void> spec_task_queue;
         ObFixedQueue<void> comm_task_queue;
         ObFixedQueue<void> low_prio_task_queue;
+        //add by hushuang[scalablecommit]20160415
+//        void      *tbd_queue;    //ony avalaible when "commit" is true //delete by zhutao
+        volatile bool response_flag;
+        //add e
         ObPriorityScheduler scheduler_;
         S2MQueueThread *host;
         ThreadConf() : pd(0),
@@ -80,6 +90,7 @@ namespace oceanbase
                        last_active_time(0),
                        spec_task_queue(),
                        comm_task_queue(),
+                       response_flag(false),
                        host(NULL)
         {
         };
@@ -92,7 +103,10 @@ namespace oceanbase
         S2MQueueThread();
         virtual ~S2MQueueThread();
       public:
-        int init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance);
+        //modify hushuang[scalable commit]20160507
+        //int init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance); //add by zhutao
+        int init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance, void *tbd_ptr = NULL); //delete by zhutao
+        //modify e
         int set_prio_quota(v4si& quota);
         void destroy();
         int64_t get_queued_num() const;
@@ -105,14 +119,27 @@ namespace oceanbase
         int push_low_prio(void *task);
         int64_t &thread_index();
         int64_t get_thread_index() const;
+        //modify hushuang [scalable commit]20160506
         virtual void handle(void *task, void *pdata) = 0;
         virtual void handle_with_stopflag(void *task, void *pdata, volatile bool &stop_flag)
         {handle(task, pdata); if (stop_flag) {}};
+        /* delete by zhutao
+        virtual void handle(void *task, void *data, uint64_t idx) = 0;
+        virtual void handle_with_stopflag(void *task, void *pdata, volatile bool &stop_flag, uint64_t idx)
+        {handle(task, pdata, idx); if (stop_flag) {}};
+        */
+//        int push_private_task(uint64_t thread_no, ICommitTask* task); //delete by zhutao
+        virtual void handle_local_task(void *pdata) { UNUSED(pdata);}; //add by zhutao
+        void wake_up(int64_t idx); //add by zhutao
+        //modify e
         virtual void *on_begin() {return NULL;};
         virtual void on_end(void *ptr) {UNUSED(ptr);};
       private:
         void *rebalance_(const ThreadConf &cur_thread);
-        int launch_thread_(const int64_t thread_num, const int64_t task_num_limit);
+        //modify wenghaixing [scalable commit]20160507
+        //int launch_thread_(const int64_t thread_num, const int64_t task_num_limit); //restore by zhutao
+        int launch_thread_(const int64_t thread_num, const int64_t task_num_limit, void *tbd_ptr = NULL); //delete by zhutao
+        //add e
         static void *thread_func_(void *data);
       private:
         int64_t thread_num_;

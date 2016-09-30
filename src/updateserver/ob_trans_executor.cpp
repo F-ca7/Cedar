@@ -93,6 +93,7 @@ namespace oceanbase
         uint32_t session_descriptor_;
         bool fake_write_granted_;
     };
+
     TransExecutor::TransExecutor(ObUtilInterface &ui) : TransHandlePool(),
                                                         TransCommitThread(),
                                                         ui_(ui),
@@ -150,7 +151,8 @@ namespace oceanbase
       commit_handler_[OB_SWITCH_SCHEMA] = chandle_switch_schema;
       commit_handler_[OB_UPS_FORCE_FETCH_SCHEMA] = chandle_force_fetch_schema;
       commit_handler_[OB_UPS_SWITCH_COMMIT_LOG] = chandle_switch_commit_log;
-      commit_handler_[OB_NOP_PKT] = chandle_nop;
+      //commit_handler_[OB_NOP_PKT] = chandle_nop;
+      //delete by zhouhuan [scalablecommit]
     }
 
     TransExecutor::~TransExecutor()
@@ -163,8 +165,8 @@ namespace oceanbase
     int TransExecutor::init(const int64_t trans_thread_num,
                             const int64_t trans_thread_start_cpu,
                             const int64_t trans_thread_end_cpu,
-                            const int64_t commit_thread_cpu,
-                            const int64_t commit_end_thread_num)
+                            const int64_t commit_thread_cpu)
+                           // const int64_t commit_end_thread_num)
     {
       int ret = OB_SUCCESS;
       bool queue_rebalance = true;
@@ -174,6 +176,7 @@ namespace oceanbase
       message_residence_protection_us_ = UPS.get_param().message_residence_protection_time;
       message_residence_max_us_ = UPS.get_param().message_residence_max_time;
       last_commit_log_time_us_ = 0;
+      commit_task_num_ = 0;
       // add:e
       TransHandlePool::set_cpu_affinity(trans_thread_start_cpu, trans_thread_end_cpu);
       TransCommitThread::set_cpu_affinity(commit_thread_cpu);
@@ -193,18 +196,42 @@ namespace oceanbase
       {
         TBSYS_LOG(WARN, "init TransCommitThread fail ret=%d", ret);
       }
-      else if (OB_SUCCESS != (ret = TransHandlePool::init(trans_thread_num, TASK_QUEUE_LIMIT, queue_rebalance, dynamic_rebalance)))
-      {
-        TBSYS_LOG(WARN, "init TransHandlePool fail ret=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = CommitEndHandlePool::init(commit_end_thread_num, TASK_QUEUE_LIMIT, queue_rebalance, false)))
-      {
-        TBSYS_LOG(WARN, "init CommitEndHandlePool fail ret=%d", ret);
-      }
+      //modify by hushuang [scalable commit]20160507
+//      else if (OB_SUCCESS != (ret = TransHandlePool::init(trans_thread_num, TASK_QUEUE_LIMIT, queue_rebalance, dynamic_rebalance)))
+//      {
+//        TBSYS_LOG(WARN, "init TransHandlePool fail ret=%d", ret);
+//      }
       else
       {
+        for(int i = 0; i < trans_thread_num; i++)
+        {
+          if(OB_SUCCESS != (commit_queue_[i].init(TASK_QUEUE_LIMIT)))
+          {
+            TBSYS_LOG(WARN, "init commit_queue_ failed ret = %d", ret);
+            break;
+          }
+          //TBSYS_LOG(ERROR, "test::whx ack %p", ack_[i]);
+        }
+        if (OB_SUCCESS != (ret = TransHandlePool::init(trans_thread_num, TASK_QUEUE_LIMIT, queue_rebalance, dynamic_rebalance, commit_queue_)))
+        {
+          TBSYS_LOG(WARN, "init TransHandlePool fail ret=%d", ret);
+        }
+      }
+
+      //delete by zhouhuan [scalablecommit] 20160427
+//      else if (OB_SUCCESS != (ret = CommitEndHandlePool::init(commit_end_thread_num, TASK_QUEUE_LIMIT, queue_rebalance, false)))
+//      {
+//        TBSYS_LOG(WARN, "init CommitEndHandlePool fail ret=%d", ret);
+//      }
+      //else
+      if(OB_SUCCESS == ret)
+      //modify  e
+      {
         fifo_stream_.init("run/updateserver.fifo", 100L * 1024L * 1024L);
-        nop_task_.pkt.set_packet_code(OB_NOP_PKT);
+        //nop_task_.pkt.set_packet_code(OB_NOP_PKT);
+        //add by zhouhuan [scalablecommit] 20160509:b
+        nop_pos_.group_id_ = -1;
+        //add:e
         TBSYS_LOG(INFO, "TransExecutor init succ");
       }
       return ret;
@@ -258,7 +285,17 @@ namespace oceanbase
           TBSYS_LOG(DEBUG, "task_size=%ld data_size=%ld pos=%ld",
                     task_size, pkt.get_buffer()->get_capacity(), pkt.get_buffer()->get_position());
           (task->pkt).set_receive_ts(tbsys::CTimeUtil::getTime());
-          ret = push_task_(*task);
+          //modify by zhouhuan [scalablecommit] 20160417
+          //ret = push_task_(*task);
+          if (!handle_in_wthread_(pcode))
+          {
+            ret = TransHandlePool::push(task);
+          }
+          else
+          {
+            handle_special_task(task, special_pdata);
+          }
+          //modify :e
         }
       }
       else
@@ -272,7 +309,9 @@ namespace oceanbase
         ret = session_mgr_.wait_write_session_end_and_lock(packet_timewait);
         if (OB_SUCCESS == ret)
         {
-          ObSpinLockGuard guard(write_clog_mutex_);
+          //modify by zhouhuan [scalablecommit] 20160428
+          //ObSpinLockGuard guard(write_clog_mutex1_);
+          write_clog_mutex_.wrlock();
           ThreadSpecificBuffer::Buffer* my_buffer = my_thread_buffer_.get_buffer();
           if (NULL == my_buffer)
           {
@@ -286,6 +325,7 @@ namespace oceanbase
             packet_handler_[pcode](pkt, thread_buff);
           }
           session_mgr_.unlock_write_session();
+          write_clog_mutex_.unlock();
         }
         else
         {
@@ -317,7 +357,347 @@ namespace oceanbase
       return bret;
     }
 
-    int TransExecutor::push_task_(Task &task)
+    //add by zhouhuan [scalablecommit] 20160417:b
+    bool TransExecutor::handle_in_wthread_(const int pcode)
+    {
+      bool bret = false;
+      if (OB_SEND_LOG == pcode
+          || OB_SLAVE_REG == pcode
+          || OB_SWITCH_SCHEMA == pcode
+          || OB_UPS_FORCE_FETCH_SCHEMA == pcode
+          || OB_UPS_SWITCH_COMMIT_LOG == pcode
+          || OB_FAKE_WRITE_FOR_KEEP_ALIVE == pcode)
+      {
+        bret = true;
+      }
+      return bret;
+    }
+
+    void TransExecutor::handle_special_task(Task *task, CommitParamData& special_pdata)
+    {
+      int ret = OB_SUCCESS;
+      bool release_task = true;
+      if (is_only_master_can_handle(task->pkt.get_packet_code()))
+      {
+        FakeWriteGuard guard(session_mgr_);
+        if (!guard.is_granted())
+        {
+          ret = OB_NOT_MASTER;
+          TBSYS_LOG(WARN, "only master can handle pkt_code=%d", task->pkt.get_packet_code());
+        }
+        else if (OB_FAKE_WRITE_FOR_KEEP_ALIVE == task->pkt.get_packet_code())
+        {        
+          release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, special_pdata);  
+        }
+        else
+        {
+          write_clog_mutex_.wrlock();
+          //ObSpinLockGuard guard(write_clog_mutex1_);
+          release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, special_pdata);
+          write_clog_mutex_.unlock();
+        }
+      }
+      else
+      {
+        release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, special_pdata);
+      }
+
+      if (OB_SUCCESS != ret || OB_SUCCESS != thread_errno())
+      {
+        TBSYS_LOG(WARN, "process fail ret=%d pcode=%d src=%s",
+                  (OB_SUCCESS != ret) ? ret : thread_errno(), task->pkt.get_packet_code(), inet_ntoa_r(task->src_addr));
+      }
+      if (OB_SUCCESS != ret)
+      {
+        UPS.response_result(ret, task->pkt);
+      }
+      if (release_task)
+      {
+        allocator_.free(task);
+        task = NULL;
+      }
+    }
+
+    int TransExecutor::handle_precommit(Task &task)
+    {
+      int err = OB_SUCCESS;
+      int64_t switch_flag = 0;
+      ObLogEntry entry;
+      int64_t len = 0;
+      FLogPos cur_pos, next_pos;
+      LogGroup* cur_group = NULL;
+      ObUpsLogMgr& log_mgr = UPS.get_log_mgr();
+      int64_t trans_id = -1;
+      int64_t ref_cnt = 0;
+      if (is_write_packet(task.pkt))
+      {
+        SessionGuard session_guard(session_mgr_, lock_mgr_, err);
+        RWSessionCtx* session_ctx = NULL;
+        if (OB_SUCCESS != (err = session_guard.fetch_session(task.sid, session_ctx)))
+        {
+          TBSYS_LOG(ERROR, "fetch_session(sid=%s)=>%d", to_cstring(task.sid), err);
+        }
+        else
+        {
+          len = session_ctx->get_ups_mutator().get_serialize_size() + entry.get_serialize_size();
+        }
+
+        if (!log_mgr.check_log_size(len))
+        {
+          err = OB_LOG_TOO_LARGE;
+          TBSYS_LOG(ERROR, "mutator.size[%ld] too large",
+                    session_ctx->get_ups_mutator().get_serialize_size());
+        }
+        else if (session_ctx->is_frozen())
+        {
+          err = OB_SESSION_FROZEN;
+          task.sid.reset();
+          TBSYS_LOG(ERROR, "session stat is frozen, maybe request duplicate, sd=%u",
+                    session_ctx->get_session_descriptor());
+        }
+        else if (0 != session_ctx->get_ups_mutator().get_mutator().size()
+                 || (OB_PHY_PLAN_EXECUTE != task.pkt.get_packet_code()
+                     && OB_END_TRANSACTION != task.pkt.get_packet_code()))
+        {
+          write_clog_mutex_.rdlock();
+          {
+            //ObSpinLockGuard guard(write_clog_mutex1_);
+            if (OB_SUCCESS != ( err = log_mgr.set_log_position(cur_pos, len, switch_flag, next_pos)))
+            {
+              TBSYS_LOG(ERROR, "set_log_position()=>%d", err);
+            }
+          }
+          write_clog_mutex_.unlock();
+
+          if (OB_SUCCESS == err)
+          {
+            //add by zhouhuan for __all_server_stat 20160530
+            int64_t cur_time = tbsys::CTimeUtil::getTime();
+            OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_STIME, cur_time - session_ctx->get_last_proc_time());
+            session_ctx->set_last_proc_time(cur_time);
+            //add :e
+            //TBSYS_LOG(ERROR, "test::zhouhuan common write task to set_log_position finished!!!! pcode=%d,data_len=%ld,switch_flag=%ld,cur_pos=[%s], next_pos=[%s]",
+                      //task.pkt.get_packet_code(), len, switch_flag, to_cstring(cur_pos), to_cstring(next_pos));
+            if (OB_GROUP_SWITCHED == switch_flag)//group switch
+            {
+              //TBSYS_LOG(INFO, "test::zhouhuan common write task to switch group!!!! group_id = %ld len = %d", cur_pos.group_id_, cur_pos.rel_offset_);
+              if(OB_SUCCESS != (err = log_mgr.write_end_log(cur_pos, ref_cnt, log_mgr.get_flushed_clog_id_without_update())))
+              {
+                TBSYS_LOG(ERROR, "write_end_log()=>%d", err);
+              }
+              else if (OB_SUCCESS != (err = push_commit_group(cur_pos, ref_cnt)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+              }
+              else
+              {
+                //TBSYS_LOG(ERROR, "test::zhouhuan handle_precommit GROUP_SWITCH cur_pos=[%s], next_pos=[%s]",to_cstring(cur_pos), to_cstring(next_pos));
+                cur_pos = next_pos;
+              }
+
+              if (OB_SUCCESS != err)
+              {
+                TBSYS_LOG(ERROR, "Fill log error when group switch kill self, err=%d", err);
+                kill(getpid(), SIGTERM);
+              }
+            }
+
+            if (OB_SUCCESS == err)
+            {
+              if ( cur_pos.rel_id_ == 1)
+              {
+                //TBSYS_LOG(ERROR, "test::zhouhuan set_group_start_timestamp");
+                if (OB_SUCCESS != (err = log_mgr.set_group_start_timestamp(cur_pos)))
+                {
+                  TBSYS_LOG(WARN, "set_group_start_timestamp()=>%d", err);
+                }
+              }
+
+              //TBSYS_LOG(ERROR, "test::zhouhuan get_trans_id");
+              trans_id = log_mgr.get_trans_id(cur_pos); //TODO: some bugs here
+              //add by zhouhuan for __all_server_stat 20160530
+              int64_t cur_time = tbsys::CTimeUtil::getTime();
+              OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_GTIME, cur_time - session_ctx->get_last_proc_time());
+              session_ctx->set_last_proc_time(cur_time);
+              //add e
+              session_ctx->set_trans_id(trans_id);
+              session_ctx->get_checksum();
+              session_ctx->get_ups_mutator().set_mutate_timestamp(trans_id);
+              //TBSYS_LOG(ERROR, "test::zhouhuan session_mgr_.precommit");
+              if (task.sid.is_valid() && OB_SUCCESS != (err = session_ctx->precommit()))
+              {
+                TBSYS_LOG(ERROR, "precommit(%s)=>%d",to_cstring(task.sid), err);
+              }
+              else
+              {
+                cur_group = log_mgr.get_log_group(cur_pos.group_id_);
+                task.log_id_ = cur_group->start_log_id_ + cur_pos.rel_id_;
+                err = UPS.get_table_mgr().fill_commit_log1(session_ctx->get_ups_mutator(), session_ctx->get_tlog_buffer(), cur_pos, ref_cnt);
+                //add by zhouhuan for __all_server_stat 20160530
+                int64_t cur_time = tbsys::CTimeUtil::getTime();
+                OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_FTIME, cur_time - session_ctx->get_last_proc_time());
+                session_ctx->set_last_proc_time(cur_time);
+                //add e
+                //TBSYS_LOG(ERROR, "test::zhouhuan common write task to fill log!!!! group[%ld].start_log_id=[%ld] ts_seq=[%ld], rel_id[%d], ref_cnt[%ld]",
+                  //      cur_pos.group_id_, cur_group->start_log_id_, cur_group->ts_seq_, cur_pos.rel_id_, ref_cnt);
+                if (OB_SUCCESS == err)
+                {
+                  //if(task.pkt.get_packet_code() == OB_WRITE)TBSYS_LOG(ERROR, "test::zhouhuan push private task 301,log_id = %ld", task.log_id_);
+//                  if (OB_SUCCESS != (err = push_private_task(task.thread_no, &task))) //submit to private Commitqueue //delete by zhutao
+                  if( OB_SUCCESS != (err = push_private_task(task))) //add by zhutao
+                  {
+                    TBSYS_LOG(ERROR, "Handle_thread commit queue is full, err=%d", err);
+                  }
+                  //add hushuang [scalable commit] 20160507
+//                  else if (OB_SUCCESS != (err = UPS.get_log_mgr().submmit_callback_info(task.thread_no, cur_pos.group_id_, ack_[task.thread_no]))) //delete by zhutao
+//                  else if (OB_SUCCESS != (err = UPS.get_log_mgr().submmit_callback_info(TransHandlePool::get_thread_index(), cur_pos.group_id_, ack_[TransHandlePool::get_thread_index()]))) //add by zhutao
+//                  {
+//                    TBSYS_LOG(ERROR, "submit call back function failed,ret = %d", err);
+//                  }
+                  //add e
+                  //task.pkt.set_packet_code(OB_COMMIT_END);
+                  if (OB_SUCCESS != (err = push_commit_group(cur_pos, ref_cnt)))
+                  {
+                    TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+                  }
+//                  else if (OB_SUCCESS != (err = CommitEndHandlePool::push(&task)))
+//                  {
+//                    TBSYS_LOG(ERROR, "push(task=%p)=>%d, will kill self", &task, err);
+//                    kill(getpid(), SIGTERM);
+//                  }
+                  else
+                  {
+                    session_ctx->mark_done(BaseSessionCtx::ES_UPDATE_COMMITED_TRANS_ID);
+                    //add by zhouhuan for __all_server_stat 20160530
+                    int64_t cur_time = tbsys::CTimeUtil::getTime();
+                    OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_PUTIME, cur_time - session_ctx->get_last_proc_time());
+                    session_ctx->set_last_proc_time(cur_time);
+                    //add e
+                  }
+                }
+              }
+
+              if (OB_SUCCESS != err || trans_id == -1)
+              {
+                TBSYS_LOG(ERROR, "Fill log error ,kill self, err=%d", err);
+                kill(getpid(), SIGTERM);
+              }
+            }
+
+            //check the system is idle
+//            if (OB_SUCCESS == err && true == is_system_idle(cur_pos))
+//            {
+//              OB_STAT_INC(UPDATESERVER, UPS_STAT_IDLE_COUNT,1);
+//              if (OB_SUCCESS != (err = UPS.get_log_mgr().write_end_log(cur_pos, ref_cnt)))
+//              {
+//                TBSYS_LOG(ERROR, "switch_log_group, err=%d", err);
+//              }
+//              else if (OB_SUCCESS != (err = push_commit_group(cur_pos, ref_cnt)))
+//              {
+//                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+//              }
+
+//              if(OB_SUCCESS != err)
+//              {
+//                TBSYS_LOG(ERROR, "handle frozen group error ,kill self, err=%d", err);
+//                kill(getpid(), SIGTERM);
+//              }
+//            }
+          }
+
+        }
+        else
+        {//对于那种只读的长事务或者select for update事务来说。原OB是压入flush_queue中的
+          FLogPos pos = log_mgr.get_next_pos();
+          cur_group= log_mgr.get_log_group(pos.group_id_);
+          task.log_id_ = cur_group->start_log_id_ + cur_pos.rel_id_;
+          //task.pkt.set_packet_code(OB_COMMIT_END);
+          if (task.sid.is_valid() && OB_SUCCESS != (err = session_ctx->precommit()))
+          {
+            TBSYS_LOG(ERROR, "precommit(%s)=>%d",to_cstring(task.sid), err);
+          }
+//          else if (OB_SUCCESS != (err = TransHandlePool::push_private_task(task.thread_no, &task))) //delete by zhutao
+          else if( OB_SUCCESS != (err = push_private_task(task)) ) //add by zhutao
+          {
+            TBSYS_LOG(ERROR, "Handle_thread commit queue is full, err=%d", err);
+          }
+//          else if (OB_SUCCESS != (err = CommitEndHandlePool::push(&task)))
+//          {
+//            TBSYS_LOG(ERROR, "push(task=%p)=>%d, will kill self", &task, err);
+//            kill(getpid(), SIGTERM);
+//          }
+          //压入私有队列中或者直接响应客户端，两种选择是由 这种事务是否加入了回调函数中来决定。
+        }
+      }
+
+      if (OB_SUCCESS != err)
+      {
+        task.sid.reset();
+      }
+      //UPS.get_log_mgr().printBuf();
+      return err;
+    }
+
+    int TransExecutor::push_commit_group(FLogPos& cur_pos, int64_t ref_cnt)
+    {
+      int ret = OB_SUCCESS;
+      LogGroup* cur_group = UPS.get_log_mgr().get_log_group(cur_pos.group_id_);
+//      TBSYS_LOG(ERROR,"test::zhouhuan pre push commit group cur_pos.group_id=%ld, cur_group->group_id=%ld, ref_cnt=%ld  count=%ld, startlogid %ld"
+//                , cur_pos.group_id_, cur_group->group_id_, ref_cnt, cur_group->count_, cur_group->start_log_id_);
+      if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+      {
+        int64_t trans_id = cur_group->start_timestamp_ + cur_group->count_ - 1;
+        cur_group->need_ack_ = true;
+        //add by zhouhuan for __all_server_stat 20160530
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        //OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_FTIME, cur_time - cur_group->get_last_proc_time());
+        //cur_group->set_last_proc_time(cur_time);
+        cur_group->set_last_fill_time(cur_time);
+        //add:e
+//       TBSYS_LOG(ERROR,"test::zhouhuan push commit group group_id=%ld, ref_cnt=%ld  count=%ld, rel_id=%d log_id[%ld,%ld]"
+//                 , cur_pos.group_id_, ref_cnt, cur_group->count_, cur_pos.rel_id_, cur_group->start_cursor_.log_id_, cur_group->end_cursor_.log_id_);
+        if (OB_SUCCESS != (ret = TransCommitThread::push(cur_pos.group_id_, cur_group)))//push to commit thread
+        {
+          TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = session_mgr_.update_commited_trans_id(trans_id)))
+        {
+          TBSYS_LOG(ERROR, "update_commited_trans_id(trans_id=%ld), err=%d", trans_id, ret);
+        }
+      }
+      return ret;
+    }
+
+//    bool TransExecutor::is_system_idle(FLogPos& cur_pos)
+//    {
+//      int ret = false;
+//      int64_t cur_time_us = tbsys::CTimeUtil::getTime();
+////      TBSYS_LOG(INFO,"test::zhouhuan commit_task=[%ld], commit_queue=[%ld], slave_ptime=[%ld], peroid_switch=[%ld]",
+////                get_commit_task_num(), TransHandlePool::get_queued_num(),message_residence_time_us_, cur_time_us - last_commit_log_time_us_);
+//      //if (0 == TransCommitThread::get_queued_num() || 0 != TransHandlePool::get_queued_num())
+//      if (0 >=get_commit_task_num() && 0 >= TransHandlePool::get_queued_num()
+//          && ((message_residence_time_us_<message_residence_max_us_?
+//               (message_residence_time_us_+message_residence_protection_us_):message_residence_max_us_)
+//             <= (cur_time_us - last_commit_log_time_us_)))
+//      {
+//        //ObSpinLockGuard guard(write_clog_mutex1_);
+//        TBSYS_LOG(INFO,"test::zhouhuan commit_task=[%ld], commit_queue=[%ld], slave_ptime=[%ld], peroid_switch=[%ld], group[%ld].rel_id=%d",
+//                  get_commit_task_num(), TransHandlePool::get_queued_num(),
+//                  message_residence_time_us_, cur_time_us - last_commit_log_time_us_, cur_pos.group_id_, cur_pos.rel_id_);
+//        last_commit_log_time_us_ = tbsys::CTimeUtil::getTime();
+//        FLogPos next_pos = UPS.get_log_mgr().get_next_pos();
+//        if ( cur_pos.equal(next_pos) && (next_pos.rel_id_ != 0 || next_pos.rel_offset_ != 0)
+//            && UPS.get_log_mgr().switch_group(cur_pos))
+//        {
+//          ret = true;
+//        }
+//      }
+//      return ret;
+//    }
+    //add by :e
+
+    //delete by zhouhuan [scalable commit] 20160510:b
+   /* int TransExecutor::push_task_(Task &task)
     {
       int ret = OB_SUCCESS;
       switch (task.pkt.get_packet_code())
@@ -351,7 +731,8 @@ namespace oceanbase
           break;
       }
       return ret;
-    }
+    }*/
+    //delete:e
 
     bool TransExecutor::wait_for_commit_(const int pcode)
     {
@@ -572,6 +953,11 @@ namespace oceanbase
       }
       else
       {
+        //add by zhouhuan for __all_server_stat:20160531
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_WTIME, cur_time - task.pkt.get_receive_ts());
+        session_ctx->set_last_proc_time(cur_time);
+        //add:e
         LOG_SESSION("mutator start", session_ctx, task);
         session_ctx->set_start_handle_time(tbsys::CTimeUtil::getTime());
         session_ctx->set_stmt_start_time(task.pkt.get_receive_ts());
@@ -629,8 +1015,17 @@ namespace oceanbase
             OB_STAT_INC(UPDATESERVER, get_stat_num(session_ctx->get_priority(), APPLY, COUNT), 1);
             OB_STAT_INC(UPDATESERVER, get_stat_num(session_ctx->get_priority(), APPLY, QTIME), session_ctx->get_start_handle_time() - session_ctx->get_stmt_start_time());
             OB_STAT_INC(UPDATESERVER, get_stat_num(session_ctx->get_priority(), APPLY, TIMEU), tbsys::CTimeUtil::getTime() - session_ctx->get_start_handle_time());
+            //add by zhouhuan for __all_server_stat 20150531
+            cur_time = tbsys::CTimeUtil::getTime();
+            OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_HTIME, cur_time - session_ctx->get_last_proc_time());
+            session_ctx->set_last_proc_time(cur_time);
+            //add e
+
             session_guard.revert();
-            ret = TransCommitThread::push(&task);
+            //modify by zhouhuan [scalablecommit] 20160418:b
+            //ret = TransCommitThread::push(&task);
+            ret = handle_precommit(task);
+            //modify:e
             if (OB_SUCCESS != ret && task.sid.is_valid())
             {
               session_mgr_.end_session(task.sid.descriptor_, true);
@@ -745,9 +1140,13 @@ namespace oceanbase
         if (ST_READ_WRITE == type && !req.rollback_)
         {
           task.sid = req.trans_id_;
-          if (OB_SUCCESS != (ret = TransCommitThread::push(&task)))
+          //modify by zhouhuan [scalablecommit] 20160426:b
+          //if (OB_SUCCESS != (ret = TransCommitThread::push(&task)))
+          if (OB_SUCCESS != (ret = handle_precommit(task)))
           {
-            TBSYS_LOG(ERROR, "push task=%p to TransCommitThread fail, ret=%d %s", &task, ret, to_cstring(req.trans_id_));
+            //TBSYS_LOG(ERROR, "push task=%p to TransCommitThread fail, ret=%d %s", &task, ret, to_cstring(req.trans_id_));
+            TBSYS_LOG(ERROR, "handle_precommit fail task=%p, ret=%d %s", &task, ret, to_cstring(req.trans_id_));
+            //modify:e
             session_mgr_.end_session(req.trans_id_.descriptor_, true);
             UPS.response_result(OB_TRANS_ROLLBACKED, task.pkt);
           }
@@ -1001,10 +1400,16 @@ namespace oceanbase
 
             session_ctx = NULL;
             session_guard.revert();
-            if (OB_SUCCESS != (ret = TransCommitThread::push(&task)))
+            //modify by zhouhuan [scalablecommit] 20160426:b
+            //if (OB_SUCCESS != (ret = TransCommitThread::push(&task)))
+            //{
+            //  TBSYS_LOG(WARN, "commit thread queue is full, ret=%d", ret);
+            //}
+            if (OB_SUCCESS != (ret = handle_precommit(task)))
             {
-              TBSYS_LOG(WARN, "commit thread queue is full, ret=%d", ret);
+              TBSYS_LOG(WARN, "handle_precommit, ret=%d", ret);
             }
+            //modify:e
             else
             {
               need_free_task = false;
@@ -1358,7 +1763,7 @@ namespace oceanbase
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    bool is_write_packet(ObPacket& pkt)
+    bool TransExecutor::is_write_packet(ObPacket& pkt)
     {
       bool ret = false;
       switch(pkt.get_packet_code())
@@ -1377,7 +1782,10 @@ namespace oceanbase
 
     int64_t TransExecutor::get_commit_queue_len()
     {
-      return session_mgr_.get_trans_seq().get_seq() - TransCommitThread::task_queue_.get_seq();
+      //modify by zhouhuan [scalablecommit] 20160511:b
+      //return session_mgr_.get_trans_seq().get_seq() - TransCommitThread::task_queue_.get_seq();
+      return TransCommitThread::seq_queue_.get_seq();
+      //modify:e
     }
 
     int64_t TransExecutor::get_seq(void* ptr)
@@ -1419,6 +1827,14 @@ namespace oceanbase
             session_ctx->get_checksum();
           }
         }
+
+        //add by zhouhuan [scalablecommit] 20160413:b
+        if (OB_SUCCESS == ret && task.sid.is_valid()
+            && OB_SUCCESS != (ret = session_mgr_.precommit(task.sid.descriptor_)))
+        {
+          TBSYS_LOG(ERROR, "precommit(%s)=>%d",to_cstring(task.sid), ret);
+        }
+        //add 20160413:e
         if (OB_SUCCESS != ret)
         {
           task.sid.reset();
@@ -1466,7 +1882,7 @@ namespace oceanbase
         if (wait_for_commit_(task->pkt.get_packet_code()))
         {
           {
-            ObSpinLockGuard guard(write_clog_mutex_);
+            ObSpinLockGuard guard(write_clog_mutex1_);
             commit_log_(); // 把日志缓存区刷盘，并且提交end_session和响应客户端的任务
           }
           if (is_only_master_can_handle(task->pkt.get_packet_code()))
@@ -1479,20 +1895,20 @@ namespace oceanbase
             }
             else
             {
-              ObSpinLockGuard guard(write_clog_mutex_);
+              ObSpinLockGuard guard(write_clog_mutex1_);
               // 这个分支不能加FakeWriteGuard, 否则备机收日志就没不能处理了
               release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, *param);
             }
           }
           else
           {
-            ObSpinLockGuard guard(write_clog_mutex_);
+            ObSpinLockGuard guard(write_clog_mutex1_);
             release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, *param);
           }
         }
         else
         {
-          ObSpinLockGuard guard(write_clog_mutex_);
+          ObSpinLockGuard guard(write_clog_mutex1_);
           release_task = commit_handler_[task->pkt.get_packet_code()](*this, *task, *param);
         }
       }
@@ -1516,6 +1932,244 @@ namespace oceanbase
       }
     }
 
+    //add hushuang [scalable commit] 20160410:b
+    void TransExecutor::handle_private_task()
+    {
+      thread_errno() = OB_SUCCESS;
+
+      // add:e
+    }
+
+    int TransExecutor::handle_flush_queue_task()
+    {
+      int ret = OB_SUCCESS;
+      bool update_global_id = false;
+      //FLogPos *pos = NULL;
+      //LogGroup *task = NULL;
+      Gtask *gtask = NULL;
+      int64_t flush_seq = 0;
+      int64_t flushed_clog_id = UPS.get_log_mgr().get_flushed_clog_id();
+      while(true)
+      {
+        //TBSYS_LOG(ERROR, "test::whx in handle flush loop => %ld", flush_queue_.size());
+        if(OB_SUCCESS != (ret = flush_queue_.tail(flush_seq, (void*&)gtask))
+          && OB_ENTRY_NOT_EXIST != ret)
+        {
+          TBSYS_LOG(ERROR, "flush queue.tail()=>%d, will kill self", ret);
+          kill(getpid(), SIGTERM);
+        }
+        else if(OB_ENTRY_NOT_EXIST == ret)
+        {
+          ret = OB_SUCCESS;
+          break;
+        }
+        else
+        {
+          //TBSYS_LOG(ERROR, "test::zhouhuan handle flush queue flush_seq=%ld flushed_clog_id=%ld GLOBAL_LOG_ID=%ld",
+            //        flush_seq, flushed_clog_id, OB_GLOBAL_SYNC_LOG_ID);
+          if(NULL == gtask)
+          {
+            ret = OB_ERROR;
+            break;
+          }
+          else if(flush_seq > flushed_clog_id)
+          {
+            break;
+          }
+
+          //add by zhouhuan for __all_server_stat 20160530
+          int64_t cur_time = tbsys::CTimeUtil::getTime();
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_WPTIME, cur_time - gtask->get_last_proc_time());
+         // OB_STAT_INC(UPDATESERVER, UPS_STAT_FTRANS_TIME, cur_time - gtask->get_first_fill_time());
+          //OB_STAT_INC(UPDATESERVER, UPS_STAT_LTRANS_TIME, cur_time - gtask->get_last_fill_time());
+//          TBSYS_LOG(INFO,"test::zhouhuan group_id = %ld, group_size = %ld ,len = %ld, rate = %lf, f_time = %ld, l_time = %ld", gtask->group_id, gtask->count,
+//                     gtask->len, static_cast<double>(gtask->len)/static_cast<double>(1024*1024),
+//                    cur_time - gtask->get_first_fill_time(), cur_time - gtask->get_last_fill_time());
+          gtask->set_last_proc_time(cur_time);
+          //add:e
+          OB_GLOBAL_SYNC_LOG_ID = flush_seq;
+          //TBSYS_LOG(ERROR,"test::zhouhuan update global log_id = %ld",OB_GLOBAL_SYNC_LOG_ID);
+          __sync_synchronize();
+          update_global_id = true;
+          session_mgr_.update_published_trans_id(gtask->publish_trans_id);
+          //TBSYS_LOG(ERROR, "test::zhouhuan:Group reuse!! group[%ld]", task->group_id_ );
+
+          //add by zhouhuan for __all_server_stat 20160530
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_COUNT, 1);
+          //add:e
+          //add:e
+          allocator_.free(gtask);
+          gtask = NULL;
+          //TBSYS_LOG(ERROR, "test::zhouhuan:Group reuse!! group[%ld]->ts_seq=[%ld]", task->group_id_, task->ts_seq_ );
+          if(OB_SUCCESS != (ret = flush_queue_.pop()))
+          {
+            TBSYS_LOG(ERROR, "flush_queue.consume_tail()=>%d", ret);
+          }
+          //TBSYS_LOG(ERROR, "test::whx in flush_queue.pop log_id => %ld size=%ld group_id=%ld",
+                   // task->start_log_id_ + task->count_, flush_queue_.size(), task->group_id_);
+        }
+      }
+      if( update_global_id )
+      {
+        int64_t cb_time = tbsys::CTimeUtil::getTime();
+        for(int64_t i = 0; i < TransHandlePool::get_thread_num(); ++i)
+        {
+          if( commit_queue_[i].get_total() != 0 )
+          {
+            TransHandlePool::wake_up(i);
+          }
+        }
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_CBTIME, cur_time - cb_time);
+
+      }
+      //TBSYS_LOG(ERROR, "test::whx in handle flush queue task flush_queue.size => %ld", flush_queue_.size());
+      return ret;
+    }
+
+    //add by hushuang [scalablecommit] 20160601
+    int TransExecutor::push_flush_queue(LogGroup *group)
+    {
+
+       int ret = OB_SUCCESS;
+       int64_t push_time = tbsys::CTimeUtil::getTime();
+       int64_t gtask_size = sizeof(Gtask);
+       Gtask *gtask = (Gtask *)allocator_.alloc(gtask_size);
+       if(group == NULL)
+       {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "null pointer");
+       }
+       else
+       {
+          if(group->need_ack_)
+          {
+            //TBSYS_LOG(ERROR, "test::zhouhuan in push_flush_queue group_id=[%ld]",group->group_id_);
+            int64_t cur_time = tbsys::CTimeUtil::getTime();
+            OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_PUTIME, cur_time - push_time);
+            gtask->set_last_proc_time(cur_time);
+            gtask->set_first_fill_time(group->get_first_fill_time());
+            gtask->set_last_fill_time(group->get_last_fill_time());
+            gtask->publish_trans_id = group->start_timestamp_ + group->count_ - 1;
+            gtask->group_id = group->group_id_;
+            gtask->count = group->count_;
+            gtask->len = group->len_;
+            __sync_synchronize();
+            if(OB_SUCCESS != (ret = flush_queue_.push(group->start_log_id_+group->count_, gtask)))
+            {
+              TBSYS_LOG(WARN, "push grtask in flush queue failed => %d", ret);
+            }
+
+//            TBSYS_LOG(ERROR, "test::zhouhuan push need ack, group.size=[%ld] push_log_id=[%ld] group_id=%ld",
+//                      group->count_, group->start_log_id_+group->count_, group->group_id_);
+          }
+       }
+       return ret;
+    }
+
+    int TransExecutor::commit_group_log(LogGroup *group)
+    {
+      int ret = OB_SUCCESS;
+      CLEAR_TRACE_BUF(TraceLog::get_logbuffer());
+      int64_t flush_time = tbsys::CTimeUtil::getTime();
+      //TBSYS_LOG(INFO, "test::zhouhuan commit group log group_id=%ld  sync_to_slave=%d", group->group_id_, group->sync_to_slave_);
+      if(NULL == group)
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "null pointer");
+      }
+      else
+      {
+        while(true)
+        {
+          if (group->log_cursor_seq_ != group->group_id_ + group->READY)
+          {
+            usleep(1);
+          }
+          else
+          {
+            if(group->sync_to_slave_)
+            {
+              ret = UPS.get_log_mgr().flush_log(group);
+              if(OB_SUCCESS == ret)
+              {
+                --commit_task_num_;
+              }
+              //TBSYS_LOG(ERROR,"test::zhouhuan:flush_log start=>%ld",group->ts_seq_);
+            }
+            else
+            {
+              //TBSYS_LOG(ERROR,"test::zhouhuan:async_flush_log start!");
+              //ret = UPS.get_log_mgr().async_flush_log(group);
+              ret = commit_log_(group);
+            }
+          }
+          break;
+        }
+      }
+
+      int64_t cur_time = tbsys::CTimeUtil::getTime();
+      OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_FLTIME, cur_time - flush_time);
+
+      return ret;
+    }
+
+    void TransExecutor::handle_group(void *ptask, void *pdata)
+    {
+      int ret = OB_SUCCESS;
+      UNUSED(pdata);
+      thread_errno() = OB_SUCCESS;
+
+      LogGroup *group = (LogGroup*)ptask;
+      //LogGroup *group = UPS.get_log_mgr().get_log_group(pos->group_id_);
+      //TBSYS_LOG(ERROR, "test::zhouhuan handle group: handle_group:  group_id=%ld, boolean = %d, log_id = %ld"
+        //       , group->group_id_, group->need_ack_, group->start_log_id_ + group->count_);
+      //TBSYS_LOG(INFO, "test::zhouhuan handle group: handle_group:  group_id=%ld", group->group_id_);
+      if((int64_t)OB_INVALID_INDEX == group->group_id_)
+      {
+        int64_t ng_time = tbsys::CTimeUtil::getTime();
+        if(OB_SUCCESS != (ret = handle_flush_queue_task()))
+        {
+          TBSYS_LOG(ERROR, "handle_flush_queue_task=>%d", ret);
+        }
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_NGTIME, cur_time - ng_time);
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_NGCOUNT, 1);
+      }
+      else if (NULL != group)
+      {
+        //add by zhouhuan for __all_server_stat 20160530
+//        TBSYS_LOG(INFO, "test::zhouhuan check group usage :group_id = %ld, len = %ld rate = %lf", group->group_id_, group->len_,
+//                  static_cast<double>(group->len_)/static_cast<double>(1024*1024));
+        int64_t cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_GROUPS_CTIME, cur_time - group->get_last_proc_time());
+        group->set_last_proc_time(cur_time);
+        //add:e
+        int64_t cg_time = tbsys::CTimeUtil::getTime();
+        ++commit_task_num_;
+        if(OB_SUCCESS != (ret = handle_flush_queue_task()))
+        {
+          TBSYS_LOG(ERROR, "handle_flush_queue_task=>%d", ret);
+        }
+        else if(OB_SUCCESS != (ret = push_flush_queue(group)))
+        {
+          TBSYS_LOG(WARN, "push group in flush queue failed => %d", ret);
+        }
+        else if(OB_SUCCESS != (ret = commit_group_log(group)))
+        {
+          TBSYS_LOG(WARN, "commit group log failed, ret=>%d, sys_slave =>%d", ret, group->sync_to_slave_);
+        }
+        cur_time = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_CGTIME, cur_time - cg_time);
+        OB_STAT_INC(UPDATESERVER, UPS_STAT_COMMIT_CGCOUNT, 1);
+
+        //TBSYS_LOG(ERROR, "test::whx after group_id = %ld, boolean = %d, log_id = %ld", group->group_id_, group->need_ack_,
+          //        group->start_log_id_ + group->count_);
+      }
+    }
+
+
+    //add e
     int TransExecutor::handle_write_commit_(Task &task)
     {
       int &ret = thread_errno();
@@ -1539,12 +2193,13 @@ namespace oceanbase
         }
         else
         {
-          if (0 != session_ctx->get_last_proc_time())
-          {
-            int64_t cur_time = tbsys::CTimeUtil::getTime();
-            OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_CTIME, cur_time - session_ctx->get_last_proc_time());
-            session_ctx->set_last_proc_time(cur_time);
-          }
+		//delete by zhouhuan [scalablecommit]
+//          if (0 != session_ctx->get_last_proc_time())
+//          {
+//            int64_t cur_time = tbsys::CTimeUtil::getTime();
+//            OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_CTIME, cur_time - session_ctx->get_last_proc_time());
+//            session_ctx->set_last_proc_time(cur_time);
+//          }
 
           batch_start_time() = (0 == batch_start_time()) ? tbsys::CTimeUtil::getTime() : batch_start_time();
           int64_t cur_timestamp = session_ctx->get_trans_id();
@@ -1611,11 +2266,16 @@ namespace oceanbase
       return ret;
     }
 
+    //mod by zhouhuan for [scalablecommit] 20160822:b
     void TransExecutor::on_commit_idle()
     {
-      commit_log_();
-      handle_flushed_log_();
-      try_submit_auto_freeze_();
+      //commit_log_();
+      //handle_flushed_log_();
+      //try_submit_auto_freeze_();
+      if (0 < flush_queue_.size())
+      {
+        handle_flush_queue_task();
+      }
     }
 
     int TransExecutor::handle_response(ObAckQueue::WaitNode& node)
@@ -1632,19 +2292,26 @@ namespace oceanbase
         UPS.get_log_mgr().get_clog_stat().add_net_us(node.start_seq_, node.end_seq_, node.get_delay());
         // add by guojinwei [log synchronization][multi_cluster] 20151028:b
         message_residence_time_us_ = (message_residence_time_us_ >> 1) + (node.message_residence_time_us_ >> 1);
+//        TBSYS_LOG(INFO,"test::zhouhuan handle_response message_residence_time=[%ld], node.message_redidence_time_us=[%ld]",
+//                  message_residence_time_us_, node.message_residence_time_us_);
         // add:e
       }
       return ret;
     }
 
+    //modify by zhouhuan [scalablecommit] 20160520:b
     int TransExecutor::on_ack(ObAckQueue::WaitNode& node)
     {
       int ret = OB_SUCCESS;
       TBSYS_LOG(TRACE, "on_ack: %s", to_cstring(node));
-      if (OB_SUCCESS != (ret = TransCommitThread::push(&nop_task_)))
+      //modify by zhouhuan [scalablecommit] 20160503:b
+      //if (OB_SUCCESS != (ret = TransCommitThread::push(&nop_task_)))
+      if (OB_SUCCESS != (ret = TransCommitThread::push(nop_pos_.group_id_, &nop_pos_)))
       {
-        TBSYS_LOG(ERROR, "push nop_task to wakeup commit thread fail, %s, ret=%d", to_cstring(node), ret);
+        //TBSYS_LOG(ERROR, "push nop_task to wakeup commit thread fail, %s, ret=%d", to_cstring(node), ret);
+        TBSYS_LOG(ERROR, "push nop_task to wakeup handle thread fail, %s, ret=%d", to_cstring(node), ret);
       }
+      //modify:e
       return ret;
     }
 
@@ -1654,21 +2321,21 @@ namespace oceanbase
       int64_t flushed_clog_id = UPS.get_log_mgr().get_flushed_clog_id();
       int64_t flush_seq = 0;
       Task *task = NULL;
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+       //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       // add by guojinwei [commit point for log replay][multi_cluster] 20151127:b
       //int64_t last_commit_point = 0;
       //if (OB_SUCCESS != (err = UPS.get_log_mgr().get_last_commit_point(last_commit_point)))
       //{
-      //  TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
-      //}
-      //else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type)
+     // TBSYS_LOG(WARN, "fail to get last commit point, err=%d", err);
+     // }
+      //else if ((common::OB_COMMIT_POINT_ASYNC != UPS.get_param().commit_point_sync_type) 
       //         && (flushed_clog_id > last_commit_point))
-      //{
-      //  TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
-      //  UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
-      //}
+     // {
+     //   TBSYS_LOG(DEBUG, "sync flush commit point, flushed_clog_id=%ld", flushed_clog_id);  // test
+     //   UPS.get_log_mgr().flush_commit_point(flushed_clog_id);
+     // }
       // add:e
-      //delete:e
+	  //delete:e
       while(true)
       {
         if (OB_SUCCESS != (err = flush_queue_.tail(flush_seq, (void*&)task))
@@ -1776,40 +2443,66 @@ namespace oceanbase
       return ret;
     }
 
+	//modify by zhouhuan [scalablecommit]
     int TransExecutor::handle_commit_end_(Task &task, ObDataBuffer &buffer)
     {
       int ret = OB_SUCCESS;
+      while (true)
       {
-        int ret_ok = OB_SUCCESS;
-        SessionGuard session_guard(session_mgr_, lock_mgr_, ret_ok);
-        RWSessionCtx *session_ctx = NULL;
-        if (OB_SUCCESS != (ret = session_guard.fetch_session(task.sid, session_ctx)))
+        if (OB_GLOBAL_SYNC_LOG_ID >= task.get_seq())
         {
-          TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", ret, to_cstring(task.sid));
-          kill(getpid(), SIGTERM);
+          {
+            int ret_ok = OB_SUCCESS;
+            SessionGuard session_guard(session_mgr_, lock_mgr_, ret_ok);
+            RWSessionCtx *session_ctx = NULL;
+            if (OB_SUCCESS != (ret = session_guard.fetch_session(task.sid, session_ctx)))
+            {
+              TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", ret, to_cstring(task.sid));
+              kill(getpid(), SIGTERM);
+            }
+            else
+            {
+              //add by zhouhuan for __all_server_stat 20160530
+              if (0 != session_ctx->get_last_proc_time())
+              {
+                int64_t cur_time = tbsys::CTimeUtil::getTime();
+                OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_WPTIME, cur_time - session_ctx->get_last_proc_time());
+                //TBSYS_LOG(INFO,"test::zhouhuan log_id = %ld, wp_time = %ld",task.log_id_, cur_time - session_ctx->get_last_proc_time());
+                session_ctx->set_last_proc_time(cur_time);
+              }
+              //add:e
+              session_ctx->get_ups_result().serialize(buffer.get_data(),
+                                                      buffer.get_capacity(),
+                                                      buffer.get_position());
+            }
+          }
+          bool rollback = false;
+          if (OB_SUCCESS != ret)
+          {}
+          else if (OB_SUCCESS != (ret = session_mgr_.end_session(task.sid.descriptor_, rollback, true, BaseSessionCtx::ES_PUBLISH)))
+          {
+            TBSYS_LOG(ERROR, "unexpected end_session fail ret=%d %s, will kill self", ret, to_cstring(task.sid));
+            kill(getpid(), SIGTERM);
+          }
+          else if (OB_SUCCESS != (ret = session_mgr_.end_session(task.sid.descriptor_, rollback, true, BaseSessionCtx::ES_FREE)))
+          {
+            TBSYS_LOG(ERROR, "unexpected end_session fail ret=%d %s, will kill self", ret, to_cstring(task.sid));
+            kill(getpid(), SIGTERM);
+          }
+          if (OB_SUCCESS == ret)
+          {
+            UPS.response_buffer(ret, task.pkt, buffer); // phyplan的话不能多线程执行
+          }
+          else
+          {
+            UPS.response_result(ret, task.pkt);
+          }
+          break;
         }
         else
         {
-          session_ctx->get_ups_result().serialize(buffer.get_data(),
-                                                  buffer.get_capacity(),
-                                                  buffer.get_position());
+          usleep(1);
         }
-      }
-      bool rollback = false;
-      if (OB_SUCCESS != ret)
-      {}
-      else if (OB_SUCCESS != (ret = session_mgr_.end_session(task.sid.descriptor_, rollback)))
-      {
-        TBSYS_LOG(ERROR, "unexpected end_session fail ret=%d %s, will kill self", ret, to_cstring(task.sid));
-        kill(getpid(), SIGTERM);
-      }
-      if (OB_SUCCESS == ret)
-      {
-        UPS.response_buffer(ret, task.pkt, buffer); // phyplan的话不能多线程执行
-      }
-      else
-      {
-        UPS.response_result(ret, task.pkt);
       }
       return ret;
     }
@@ -1817,11 +2510,11 @@ namespace oceanbase
     int TransExecutor::commit_log_()
     {
       int ret = OB_SUCCESS;
-      int64_t end_log_id = 0;
+      //int64_t end_log_id = 0;
       if (0 < flush_queue_.size())
       {
         CLEAR_TRACE_BUF(TraceLog::get_logbuffer());
-        ret = UPS.get_log_mgr().async_flush_log(end_log_id, TraceLog::get_logbuffer());
+        //ret = UPS.get_log_mgr().async_flush_log(end_log_id, TraceLog::get_logbuffer());
         /*
         if (OB_SUCCESS != ret)
         {
@@ -1887,6 +2580,33 @@ namespace oceanbase
           }
         }
         uncommited_session_list_.clear(); */
+        // debug by guojinwei [inner table error][multi_cluster] 20150919:b
+        if (0 != batch_start_time())
+        {
+        // debug:e
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
+          OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, tbsys::CTimeUtil::getTime() - batch_start_time());
+          batch_start_time() = 0;
+        // debug by guojinwei [inner table error][multi_custer] 20150919:b
+        }
+        // debug:e
+      }
+      try_submit_auto_freeze_();
+      return ret;
+    }
+
+    //add by zhouhuan for [scalablecommit] 20160822:b
+    int TransExecutor::commit_log_(LogGroup* cur_group)
+    {
+      int ret = OB_SUCCESS;
+      if (0 < flush_queue_.size())
+      {
+        CLEAR_TRACE_BUF(TraceLog::get_logbuffer());
+        ret = UPS.get_log_mgr().async_flush_log(cur_group, TraceLog::get_logbuffer());
+        if(OB_SUCCESS == ret)
+        {
+          --commit_task_num_;
+        }
         // debug by guojinwei [inner table error][multi_cluster] 20150919:b
         if (0 != batch_start_time())
         {
@@ -2133,6 +2853,7 @@ namespace oceanbase
       UNUSED(host);
       UNUSED(task);
       UNUSED(pdata);
+     // TBSYS_LOG(INFO, "test::zhouhuan:handle_fake_write_for_keep_alive start!");
       UPS.ups_handle_fake_write_for_keep_alive();
       return true;
     }
@@ -2153,6 +2874,7 @@ namespace oceanbase
     {
       UNUSED(host);
       UNUSED(pdata);
+      //TBSYS_LOG(INFO,"test::zhouhuan switch schema!!");
       UPS.ups_switch_schema(task.pkt.get_api_version(),
                             &(task.pkt),
                             *(task.pkt.get_buffer()));
@@ -2163,6 +2885,7 @@ namespace oceanbase
     {
       UNUSED(host);
       UNUSED(pdata);
+      //TBSYS_LOG(INFO,"test::zhouhuan force fetch schema!!");
       UPS.ups_force_fetch_schema(task.pkt.get_api_version(),
                                  task.pkt.get_request(),
                                  task.pkt.get_channel_id());
@@ -2173,6 +2896,7 @@ namespace oceanbase
     {
       UNUSED(host);
       pdata.buffer.get_position() = 0;
+      //TBSYS_LOG(INFO,"test::zhouhuan switch commit log!!");
       UPS.ups_switch_commit_log(task.pkt.get_api_version(),
                                 task.pkt.get_request(),
                                 task.pkt.get_channel_id(),
@@ -2188,6 +2912,170 @@ namespace oceanbase
       //TBSYS_LOG(INFO, "handle nop");
       return false;
     }
+    //add by hushuang [scalablecommit] 20160415
+   /* TransExecutor::CommitTask::CommitTask():mgr_(NULL)
+    {
+
+    }
+
+    TransExecutor::CommitTask::~CommitTask()
+    {
+      mgr_ = NULL;
+    }
+
+    int TransExecutor::CommitTask::end_session()
+    {
+      int err = OB_SUCCESS;
+      int ret_ok = OB_SUCCESS;
+      SessionGuard session_guard(mgr_, lock_mgr_, ret_ok);
+      RWSessionCtx *session_ctx = NULL;
+      if(OB_SUCCESS != (err = session_guard.fetch_session(sid_, session_ctx)))
+      {
+        TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", err, to_cstring(task->sid));
+        kill(getpid(), SIGTERM);
+      }
+      else
+      {
+        session_guard.revert();
+        err = session_mgr_.end_session(session_ctx->get_session_descriptor(), false, true, BaseSessionCtx::ES_PUBLISH);
+      }
+      if(OB_SUCCESS == err)
+      {
+        err = session_mgr_.end_session(session_ctx->get_session_descriptor(), false, true, )
+      }
+      return err;
+    }
+
+    int64_t TransExecutor::CommitTask::get_seq()
+    {
+      return sync_log_id_;
+    }
+    */
+//    int TransExecutor::Task::end_session()
+    int TransExecutor::task_end_session(void *ptask, void *pdata)
+    {
+      int err = OB_SUCCESS;
+      int ret_ok = OB_SUCCESS;
+      Task *task = (Task*) ptask;
+      TransParamData *trans_data = (TransParamData *)(pdata);
+      ObDataBuffer &buffer = trans_data->buffer;
+      buffer.get_position() = 0;
+      RWSessionCtx *session_ctx = NULL;
+
+      {
+        SessionGuard session_guard(session_mgr_, lock_mgr_, ret_ok);
+        if(OB_SUCCESS != (err = session_guard.fetch_session(task->sid, session_ctx)))
+        {
+          TBSYS_LOG(ERROR, "unexpected fetch_session fail ret=%d %s, will kill self", err, to_cstring(task->sid));
+          kill(getpid(), SIGTERM);
+        }
+        else
+        {
+          //add by zhouhuan for __all_server_stat 20160530
+          if (0 != session_ctx->get_last_proc_time())
+          {
+            int64_t cur_time = tbsys::CTimeUtil::getTime();
+            OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_WPTIME, cur_time - session_ctx->get_last_proc_time());
+            //TBSYS_LOG(INFO,"test::zhouhuan log_id = %ld, wp_time = %ld",task->log_id_, cur_time - session_ctx->get_last_proc_time());
+            session_ctx->set_last_proc_time(cur_time);
+          }
+          //add:e
+          session_ctx->get_ups_result().serialize(buffer.get_data(), buffer.get_capacity(), buffer.get_position());
+        }
+      }
+
+      if(OB_SUCCESS != err)
+      {}
+      else if (OB_SUCCESS != (err = session_mgr_.end_session(session_ctx->get_session_descriptor(), false, true, BaseSessionCtx::ES_PUBLISH)))
+      {
+        TBSYS_LOG(ERROR,"unexpected end_sseion(ES_PUBLISH) fail ret=%d %s, will kill self", err, to_cstring(task->sid));
+        kill(getpid(), SIGTERM);
+      }
+      else if (OB_SUCCESS != (session_mgr_.end_session(session_ctx->get_session_descriptor(), false, true, BaseSessionCtx::ES_FREE)))
+      {
+        TBSYS_LOG(ERROR,"unexpected end_sseion(ES_FREE) fail ret=%d %s, will kill self", err, to_cstring(task->sid));
+        kill(getpid(), SIGTERM);
+      }
+
+      if(OB_SUCCESS == err)
+      {
+
+        UPS.response_buffer(err, task->pkt, buffer);
+      }
+      else
+      {
+        //TBSYS_LOG(ERROR,"test::zhouhuan common task failed. response the err!! pcode=%d", task->pkt.get_packet_code());
+        UPS.response_result(err, task->pkt);
+      }
+      allocator_.free(task);
+      return err;
+    }
+
+    void TransExecutor::handle_commit_end(void *pdata)
+    {
+      int ret = OB_SUCCESS;
+      ObCommitQueue &task_queue = commit_queue_[TransHandlePool::get_thread_index()];
+      void *ptask = NULL;
+      ICommitTask *task = NULL;
+      while( task_queue.get_total() > 0 )
+      {
+        if(OB_SUCCESS != (ret = task_queue.next(ptask)))
+        {
+          TBSYS_LOG(ERROR, "failed to next data, %d",ret);
+          break;
+        }
+        else
+        {
+          task = (ICommitTask*)ptask;
+          //TBSYS_LOG(ERROR,"test::zhouhuan task_queue_.next()");
+        }
+        __sync_synchronize();
+        //int64_t num = ATOMIC_INC(&response_id);
+        //TBSYS_LOG(ERROR, "test::zhouhuan begin to end_task,global_log_id=[%ld]  task.log_id=[%ld] task_queue[%ld].size=[%ld]",
+          //         OB_GLOBAL_SYNC_LOG_ID, task->get_seq(), TransHandlePool::get_thread_index(), task_queue.get_total());
+
+        if( OB_GLOBAL_SYNC_LOG_ID >= task->get_seq() )
+        {
+          //int64_t num = ATOMIC_INC(&response_id);
+          //TBSYS_LOG(ERROR, "test::zhouhuan begin to end_task,global_log_id=[%ld] > task.log_id=[%ld] size=%ld thread_no=%ld id=%ld",
+          //           OB_GLOBAL_SYNC_LOG_ID, task->get_seq(),task_queue.get_total(), TransHandlePool::get_thread_index(), num);
+          if( OB_SUCCESS != (ret = task_end_session(ptask, pdata)))
+          {
+            TBSYS_LOG(WARN, "end session failed, ret = %d", ret);
+            break;
+          }
+          else if( OB_SUCCESS != (ret = task_queue.pop(ptask)))
+          {
+            TBSYS_LOG(WARN, "failed to pop task from the commit queue");
+            break;
+          }
+        }
+        else
+        {
+          break;
+        }
+      }
+    }
+
+    int TransExecutor::push_private_task(Task &task)
+    {
+      //int64_t num = ATOMIC_INC(&push_id);
+      //TBSYS_LOG(ERROR,"test::zhouhuan push_private_task log_id = %ld CommitQueue[%ld].size=%ld",
+        //        task.log_id_, TransHandlePool::get_thread_index(), commit_queue_[TransHandlePool::get_thread_index()].get_total());
+      return commit_queue_[TransHandlePool::get_thread_index()].push(&task);
+    }
+
+//    int64_t TransExecutor::task_get_seq(void *ptask)
+//    {
+//      Task *task = (Task*) ptask;
+//      return task->log_id_;
+//    }
+
+//    int64_t TransExecutor::Task::get_seq()
+//    {
+//      return log_id_;
+//    }
+    //add e
 
     //add chujiajia [log synchronization][multi_cluster] 20160606:b
     int TransExecutor::handle_uncommited_session_list_after_switch()

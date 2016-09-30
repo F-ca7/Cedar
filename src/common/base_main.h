@@ -89,6 +89,9 @@ namespace oceanbase
         //add chujiajia [rs_election][multi_cluster] 20150929:b
         int64_t cmd_rs_election_random_wait_time_;
         // add:e
+        //add hushuang [scalable commit]20160630
+        int64_t cmd_commit_group_size_;
+        //add e
         char cmd_ms_type_[OB_MAX_MS_TYPE_LENGTH];
         const char *pid_dir_;
         const char *log_dir_;

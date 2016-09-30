@@ -300,6 +300,7 @@ namespace oceanbase
         }
         else
         {
+          //TBSYS_LOG(WARN,"test::zhouhuan Replay do_commit commit_queue_.get(task.log_id=%ld)",task->log_id_);
           set_next_commit_log_id(task->log_id_ + 1);
           if (task->is_last_log_of_batch())
           {
@@ -364,6 +365,7 @@ namespace oceanbase
         }
         while(!_stop && OB_SUCCESS == err_ && OB_EAGAIN == (err = commit_queue_.add(task->log_id_, (void*)task)))
           ;
+        //TBSYS_LOG(WARN,"test::zhouhuan Replay commit_queue_.add(task.log_id=%ld)",task->log_id_);
         if (OB_SUCCESS != err && OB_EAGAIN != err)
         {
           err_ = err;
@@ -479,7 +481,6 @@ namespace oceanbase
       int64_t new_pos = pos;
       bool check_integrity = true;
       bool is_barrier = true;
-      //TBSYS_LOG(INFO, "submit(task.log_id[%ld], next_submit_log_id[%ld], next_commit_log_id[%ld])", task.log_id_, next_submit_log_id_, next_commit_log_id_);
       if (_stop)
       {
         err = OB_CANCELED;
@@ -542,6 +543,7 @@ namespace oceanbase
         log_id = task.log_id_;
         task.profile_.enable_ = (TraceLog::get_log_level() <= TBSYS_LOG_LEVEL_INFO);
         log_applier_->on_submit(task);
+        //TBSYS_LOG(WARN, "test::zhouhuan submit(task.log_id[%ld], log_entry[%s])", task.log_id_, to_cstring(task.log_entry_));
         if (OB_SUCCESS != (err = apply_worker_.push(&task))
             && OB_EAGAIN != err)
         {

@@ -61,9 +61,10 @@ namespace oceanbase
     BaseMain::BaseMain(const bool daemon)
       : cmd_cluster_id_(0), cmd_rs_port_(0), cmd_master_rs_port_(0), cmd_port_(0),
         cmd_inner_port_(0), cmd_obmysql_port_(0),
-        //modify chujiajia [rs_election][multi_cluster] 20150929:b
-        cmd_rs_election_random_wait_time_(0),pid_dir_(DEFAULT_PID_DIR),
-        //modify:e
+        // modify by chujiajia [rs_election][multi_cluster] 20150929:b
+        //modify by hushuang [scalablecommit] 20160630 :add cmd_commit_group_size_
+        cmd_rs_election_random_wait_time_(0),cmd_commit_group_size_(GROUP_ARRAY_SIZE), pid_dir_(DEFAULT_PID_DIR),
+        // modify:e
         log_dir_(DEFAULT_LOG_DIR), server_name_(NULL), use_daemon_(daemon)
     {
       setlocale(LC_ALL, "");
@@ -182,7 +183,7 @@ namespace oceanbase
       // which is comprised of all the ip addresses and ports, seperate by comma.
       // Example:192.168.1.1：10000#192.168.1.2:10006#192.168.1.2:10012
       //const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:";
-      const char* opt_string = "r:R:p:i:C:c:n:m:o:z:D:P:hNVt:f:s:";
+      const char* opt_string = "r:R:p:i:C:G:c:n:m:o:z:D:P:hNVt:f:s:";
       // modify:e
       struct option longopts[] =
         {
@@ -193,6 +194,7 @@ namespace oceanbase
           {"interface", 1, NULL, 'i'},
           {"config", 1, NULL, 'c'},
           {"cluster_id", 1, NULL, 'C'},
+          {"group_size", 1, NULL, 'G'},
           {"appname", 1, NULL, 'n'},
           {"inner_port", 1, NULL, 'm'},
           {"master_rootserver", 1, NULL, 'R'},
@@ -226,6 +228,11 @@ namespace oceanbase
           case 'C':
             cmd_cluster_id_ = static_cast<int32_t>(strtol(optarg, NULL, 0));
             break;
+          //add hushuang [scalable commit]20160630
+          case 'G':
+           cmd_commit_group_size_ = static_cast<int32_t>(strtol(optarg, NULL, 0));
+           break;
+          //add e
           case 'o':
             snprintf(cmd_extra_config_, sizeof (cmd_extra_config_), "%s", optarg);
             break;

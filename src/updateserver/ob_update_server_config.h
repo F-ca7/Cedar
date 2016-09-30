@@ -81,7 +81,7 @@ namespace oceanbase
 
       public:
         DEF_INT(replay_worker_num, "0", "replay worker number"); /* calc later */
-        DEF_INT(commit_end_thread_num, "4", "number of thread to end session and response to client");
+        DEF_INT(commit_end_thread_num, "10", "number of thread to end session and response to client");
         DEF_INT(trans_thread_num, "0", "number of thread to process read/write transaction");  /* calc later */
         DEF_CAP(memtable_hash_buckets_size, "0", "number of hash index buckets"); /* calc later */
 
@@ -118,6 +118,7 @@ namespace oceanbase
         DEF_INT(max_n_lagged_log_allowed, "10000", "commit log laged count beyond this value beyond this valud between master and slave ups will give an alarm");
 
         DEF_TIME(state_check_period, "50ms", "interval of slave to check sync-stat");
+        //modify by zhouhuan 0-async  1-sync
         DEF_INT(log_sync_type, "1", "sync log to disk");
         DEF_INT(log_sync_retry_times, "2", "log sync retry times");
 
@@ -149,7 +150,9 @@ namespace oceanbase
         DEF_CAP(sstable_block_size, "64K", "sstable block size");
         DEF_MOMENT(major_freeze_duty_time, "Disable", OB_CONFIG_DYNAMIC, "major freeze duty time");
         DEF_TIME(min_major_freeze_interval, "3600s", "minimal time to generate major freeze version");
-        DEF_BOOL(replay_checksum_flag, "True", "memtable checksum when replay");
+        //modify by zhouhuan [scalablecommit] 20160515
+        //DEF_BOOL(replay_checksum_flag, "True", "memtable checksum when replay");
+        DEF_BOOL(replay_checksum_flag, "False", "memtable checksum when replay");
         DEF_BOOL(allow_write_without_token, "True", "allow write without token");
 
         DEF_TIME(lsync_fetch_timeout, "5s", "fetch commit log timeout from lsync or master ups");
@@ -177,7 +180,9 @@ namespace oceanbase
         // add by guojinwei [commit point for log repaly][multi_cluster] 20151127:b
         DEF_INT(commit_point_sync_type, "1", "sync commit point to disk");
         // add:e
-
+        //add by hushuang[scalabale commit] 20160630
+        DEF_INT(commit_group_size, "30", "[1,100]", "commit_group_size");
+        //add:e
         DEF_BOOL(using_static_cm_column_id, "False", "should treat 2 and 3 as create_time and modify_time column id");
         DEF_BOOL(using_hash_index, "True", "using hash index");
 
@@ -203,6 +208,10 @@ namespace oceanbase
         DEF_INT(io_thread_end_cpu,   "-1", "end number of cpu, set affinity by io thread");
 
         DEF_INT(commit_bind_core_id, "-1", "commit thread will bind to this core(given configured core_id > 0)");
+        //add by zhouhuan [scalable commit] 20160711:b
+        DEF_INT(switch_bind_core_id, "-1", "switch group thread will bind to this core(given configured core_id > 0)");
+        DEF_TIME(switch_group_period, "50us","switch group period");
+        //add:e
     };
   }
 }

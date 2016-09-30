@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_sessionctx_factory.h
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_03_14
+ */
 ////===================================================================
  //
  // ob_sessionctx_factory.h updateserver / Oceanbase
@@ -134,6 +149,7 @@ namespace oceanbase
         RWSessionCtx(const SessionType type, SessionMgr &host, common::FIFOAllocator &fifo_allocator, const bool need_gen_mutator=true);
         virtual ~RWSessionCtx();
       public:
+        int precommit();
         void end(const bool need_rollback);
         void publish();
         void on_free();
@@ -214,6 +230,10 @@ namespace oceanbase
         void set_frozen();
         bool is_frozen() const;
         void reset_stmt();
+        //add by zhouhuan [scalablecommit] 20160426:b
+        void set_group_id(int64_t group_id) { group_id_ = group_id ; }
+        int64_t get_group_id() { return group_id_ ; }
+        //add :e
       private:
         common::ModulePageAllocator mod_;
         common::ModuleArena page_arena_;
@@ -236,6 +256,7 @@ namespace oceanbase
         uint64_t mark_stmt_checksum_;
         v4si mark_dml_count_;
         v4si dml_count_;
+        int64_t group_id_; //add by zhouhuan [scalablecommit] 20160426
         //add wangjiahao [tablelock] 20160616 :b
         SessionTableLockInfo* table_lock_info_;
         //add :e

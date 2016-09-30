@@ -159,6 +159,7 @@ int ObUpsSlaveMgr::post_log_to_slave(const ObLogCursor& start_cursor, const ObLo
   int64_t slave_num = 0;
   ObDataBuffer send_buf;
 
+  //TBSYS_LOG(ERROR,"test::zhouhuan post to slave logid[%ld,%ld]", start_cursor.log_id_, end_cursor.log_id_);
   if (NULL == rpc_stub_)
   {
     ret = OB_NOT_INIT;

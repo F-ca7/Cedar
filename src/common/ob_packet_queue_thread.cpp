@@ -18,6 +18,7 @@
 #include "ob_profile_log.h"
 #include "ob_profile_type.h"
 #include "ob_tsi_factory.h"
+#include <sys/syscall.h>
 
 using namespace oceanbase::common;
 
@@ -407,6 +408,7 @@ void ObPacketQueueThread::run(tbsys::CThread* thread, void* args)
   *host = host_;
   ObPacket* packet = NULL;
   void *task = NULL;
+  TBSYS_LOG(INFO, "test::zhouhuan1 lease or store thread tid = [%ld]",syscall(SYS_gettid));
   while (!_stop)
   {
     if (OB_SUCCESS != queue_.pop(task, &timeout_))

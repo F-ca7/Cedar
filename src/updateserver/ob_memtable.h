@@ -4,7 +4,7 @@
  //
  // Copyright (C) 2010 Taobao.com, Inc.
  //
- // Created on 2010-09-09 by Yubai (yubai.lk@taobao.com) 
+ // Created on 2010-09-09 by Yubai (yubai.lk@taobao.com)
  //
  // -------------------------------------------------------------------
  //
@@ -12,7 +12,7 @@
  //
  //
  // -------------------------------------------------------------------
- // 
+ //
  // Change Log
  //
 ////====================================================================
@@ -52,6 +52,9 @@ namespace oceanbase
 {
   namespace updateserver
   {
+    //add hushuang[scalable commit]20160507
+    #define RowCounterCAS(x, old_pos, new_pos) __sync_bool_compare_and_swap(x, old_pos, new_pos)
+    //add e
     class MemTable;
 
     typedef QueryEngine TableEngine;
@@ -286,7 +289,7 @@ namespace oceanbase
         int start_transaction(const TETransType trans_type, MemTableTransDescriptor &td, const int64_t trans_id = -1);
 
         int end_transaction(const MemTableTransDescriptor td, bool rollback = false);
-        
+
         // 开始一次事务性的更新
         // 一次mutation结束之前不能开启新的mutation
         int start_mutation(const MemTableTransDescriptor td);
@@ -294,7 +297,7 @@ namespace oceanbase
         // 结束一次mutation
         // @param[in] rollback 是否回滚
         int end_mutation(const MemTableTransDescriptor td, bool rollback);
-        
+
         inline int64_t get_version() const
         {
           return version_;
@@ -410,7 +413,12 @@ namespace oceanbase
 
         inline void add_row_counter(const int64_t row_counter)
         {
-          row_counter_ += row_counter;
+          //row_counter_ += row_counter; modify hushuang [scalable commit] 20160507
+          int64_t pre_counter = row_counter_;
+          while(!CAS(&row_counter_, pre_counter, row_counter_ + row_counter))
+          {
+            pre_counter = row_counter_;
+          }
         }
 
         inline int64_t size() const
@@ -610,7 +618,7 @@ namespace oceanbase
         common::ObObj MIN_OBJ;
         common::ObObj MAX_OBJ;
         TransMgr trans_mgr_;
-        int64_t row_counter_;
+        volatile int64_t row_counter_;
 
         TEValueSessionCallback tevalue_cb_;
         TransSessionCallback trans_cb_;

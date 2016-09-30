@@ -174,6 +174,11 @@ namespace oceanbase
     const int OB_NOT_FREE = -125;
     const int OB_INIT_SQL_CONTEXT_ERROR = -126;
     const int OB_SKIP_INVALID_ROW = -127;
+    //add by zhouhuan [Session frozen] 20160419:b
+    const int OB_SESSION_FROZEN = -128;
+    const int OB_GROUP_SWITCHED = -129;
+    const int GROUP_ARRAY_SIZE = 30;
+    //add:e
 
     const int OB_SYS_CONFIG_TABLE_ERROR = -131;
     const int OB_READ_CONFIG_ERROR = -132;

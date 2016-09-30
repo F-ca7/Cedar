@@ -17,6 +17,7 @@
  */
 #include "ob_commit_point_runnable.h"
 #include "ob_update_server_main.h"
+#include <sys/syscall.h>
 
 #define UPS ObUpdateServerMain::get_instance()->get_update_server()
 
@@ -41,6 +42,7 @@ namespace oceanbase
       UNUSED(thread);
       UNUSED(arg);
       TBSYS_LOG(INFO, "[NOTICE] CommitPointRunnable start");
+      TBSYS_LOG(INFO, "test::zhouhuan1 Commit Point Runnable tid = [%ld]", syscall(SYS_gettid));
       while (!_stop)
       {
         // modify by guojinwei [commit point for log replay][multi_cluster] 20151127:b

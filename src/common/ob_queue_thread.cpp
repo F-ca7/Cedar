@@ -1,10 +1,25 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_queue_thread.cpp
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_03_14
+ */
 ////===================================================================
  //
  // ob_queue_thread.cpp common / Oceanbase
  //
  // Copyright (C) 2010 Taobao.com, Inc.
  //
- // Created on 2012-09-01 by Yubai (yubai.lk@taobao.com) 
+ // Created on 2012-09-01 by Yubai (yubai.lk@taobao.com)
  //
  // -------------------------------------------------------------------
  //
@@ -12,12 +27,13 @@
  //
  //
  // -------------------------------------------------------------------
- // 
+ //
  // Change Log
  //
 ////====================================================================
 
 #include <errno.h>
+#include <sys/syscall.h>
 #include "common/ob_trace_log.h"
 #include "priority_packet_queue_thread.h"
 #include "ob_queue_thread.h"
@@ -93,6 +109,16 @@ namespace oceanbase
       }
       return ret;
     }
+    //add hushuang[scalablecommit]20160417
+    //////////////////////////////////////////////////////////
+//    int S2MQueueThread::ObCommitCbInfo::cb_func(void *data, uint64_t desp)
+//    {
+//      int ret = OB_SUCCESS;
+//      ThreadConf *tc = (ThreadConf*) data;
+//      tc[desp].queue_cond.signal();
+//      return ret;
+//    }
+    //add e
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -101,6 +127,7 @@ namespace oceanbase
                                        thread_conf_lock_(),
                                        queued_num_(0),
                                        queue_rebalance_(false)
+
     {
     }
 
@@ -109,10 +136,12 @@ namespace oceanbase
       destroy();
     }
 
-    int S2MQueueThread::init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance)
+    //int S2MQueueThread::init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance)
+    int S2MQueueThread::init(const int64_t thread_num, const int64_t task_num_limit, const bool queue_rebalance, const bool dynamic_rebalance, void *tbd_ptr)
     {
       int ret = OB_SUCCESS;
       queue_rebalance_ = queue_rebalance;
+      TBSYS_LOG(INFO, "test::zhouhuan1 init trans thread pool !!");
       if (0 != thread_num_)
       {
         ret = OB_INIT_TWICE;
@@ -125,7 +154,10 @@ namespace oceanbase
                   thread_num, task_num_limit);
         ret = OB_INVALID_ARGUMENT;
       }
-      else if (OB_SUCCESS != (ret = launch_thread_(thread_num, task_num_limit)))
+      //modify hushuang [scalable commit]20160507
+      //else if (OB_SUCCESS != (ret = launch_thread_(thread_num, task_num_limit)))
+      else if(OB_SUCCESS != (ret = launch_thread_(thread_num, task_num_limit, tbd_ptr)))
+      //modify e
       {
         TBSYS_LOG(WARN, "launch thread fail, ret=%d thread_num=%ld task_num_limit=%ld", ret, thread_num, task_num_limit);
       }
@@ -162,6 +194,7 @@ namespace oceanbase
         tc.spec_task_queue.destroy();
         tc.comm_task_queue.destroy();
         tc.low_prio_task_queue.destroy();
+        tc.response_flag = false;
       }
       thread_num_ = 0;
     }
@@ -224,6 +257,41 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //delete by zhutao :b
+//    int S2MQueueThread::push_private_task(uint64_t thread_no, ICommitTask *task)
+//    {
+//      int ret = OB_SUCCESS;
+//      if(NULL == task)
+//      {
+//        ret = OB_ERROR;
+//      }
+//      else if(NULL == thread_conf_array_[thread_no].tbd_queue)
+//      {
+//        ret = OB_ERROR;
+//        TBSYS_LOG(ERROR, "the tbd_queue is null!");
+//      }
+//      else if(OB_SUCCESS != (ret = ((ObCommitQueue*)(thread_conf_array_[thread_no].tbd_queue))->submit(task)))
+//      {
+//        TBSYS_LOG(ERROR, "submit task failed, ret=>%d", ret);
+//      }
+//      //TBSYS_LOG(ERROR,"test::zhouhuan thread_id=%ld, log_id=%ld", thread_no, task->log_id_);
+//      return ret;
+//    }
+    void S2MQueueThread::wake_up(int64_t idx)
+    {
+      ThreadConf &tc = thread_conf_array_[idx];
+      if( tc.high_prio_task_queue.get_total() == 0 &&
+          tc.spec_task_queue.get_total() ==0 &&
+          tc.comm_task_queue.get_total() == 0 &&
+          tc.low_prio_task_queue.get_total() == 0 )
+      {
+        //TBSYS_LOG(ERROR,"test::zhouhuan wake_up commit_queue[i=%ld]",idx);
+        tc.queue_cond.signal();
+      }
+    }
+
+    //e
 
     int S2MQueueThread::push(void *task, const uint64_t task_sign, const int64_t prio)
     {
@@ -345,6 +413,7 @@ namespace oceanbase
           tc.spec_task_queue.destroy();
           tc.comm_task_queue.destroy();
           tc.low_prio_task_queue.destroy();
+          tc.response_flag = false;
           TBSYS_LOG(INFO, "join thread succ, index=%ld", i);
         }
       }
@@ -377,7 +446,10 @@ namespace oceanbase
       return ret;
     }
 
-    int S2MQueueThread::launch_thread_(const int64_t thread_num, const int64_t task_num_limit)
+    //modify hushuang [scalable commit] 20160507
+    //int S2MQueueThread::launch_thread_(const int64_t thread_num, const int64_t task_num_limit)
+    int S2MQueueThread::launch_thread_(const int64_t thread_num, const int64_t task_num_limit, void *tbd_ptr)
+    //modify e
     {
       int ret = OB_SUCCESS;
       int64_t thread_num2launch = std::min(MAX_THREAD_NUM - thread_num_, thread_num);
@@ -410,6 +482,25 @@ namespace oceanbase
           TBSYS_LOG(WARN, "low prio task queue init fail, task_num_limit=%ld", task_num_limit);
           break;
         }
+        //add hushuang [scalable commit]20160507
+//        if (NULL != tbd_ptr)
+//        {
+
+//          ObCommitQueue* tbd = (ObCommitQueue*)(tbd_ptr) + i;
+//          if(OB_SUCCESS != (ret = tbd->set_cond(&tc.queue_cond)))
+//          {
+//            TBSYS_LOG(WARN, "tbd_queue is not NULL, but initial failed=>%d", ret);
+//            break;
+//          }
+//          tc.tbd_queue = (ObCommitQueue*)tbd_ptr + i;
+//        }
+        //add e
+        //add zhouhuan [scalable commit]
+        if (NULL != tbd_ptr)
+        {
+          tc.response_flag = true;
+        }
+        //add e
         int tmp_ret = 0;
         if (0 != (tmp_ret = pthread_create(&(tc.pd), NULL, thread_func_, &tc)))
         {
@@ -444,12 +535,26 @@ namespace oceanbase
         tc->host->thread_index() = tc->index;
         void *pdata = tc->host->on_begin();
         bool last_rebalance_got = false;
+        TBSYS_LOG(INFO,"test::zhouhuan1 trans_pool tid = [%ld]", syscall(SYS_gettid));
         while (tc->run_flag
               || 0 != tc->high_prio_task_queue.get_total()
               || 0 != tc->spec_task_queue.get_total()
               || 0 != tc->comm_task_queue.get_total()
               || 0 != tc->low_prio_task_queue.get_total())
         {
+          //add hushuang [scalable commit]20150607
+
+          if (false != tc->response_flag)
+          {
+           tc->host->handle_local_task(pdata);
+          }
+//          if(NULL != tc->tbd_queue)
+//          {
+
+//            ObCommitQueue* tbd = (ObCommitQueue *)(tc->tbd_queue);
+//            tbd->handle_unfinished_task(host, pdata,tc->index);
+//          }
+          //add e
           void *task = NULL;
           int64_t start_time = tbsys::CTimeUtil::getTime();
           int64_t idx = -1;
@@ -525,7 +630,10 @@ namespace oceanbase
                 && (last_rebalance_got = (NULL != (task = tc->host->rebalance_(*tc))))))
           {
             ATOMIC_ADD(&tc->host->queued_num_, -1);
+            //modify hushuang[scalable commit]20160506
+            //tc->host->handle_with_stopflag(task, pdata, tc->stop_flag);
             tc->host->handle_with_stopflag(task, pdata, tc->stop_flag);
+            //modify e
             tc->last_active_time = tbsys::CTimeUtil::getTime();
           }
           else

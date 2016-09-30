@@ -159,7 +159,7 @@ namespace oceanbase
       return pos;
     }
 
-    int ObLogDataWriter::init(const char* log_dir, const int64_t file_size, int64_t du_percent,
+    int ObLogDataWriter::init(const char* log_dir, const int64_t file_size, const int64_t du_percent,
                               const int64_t log_sync_type,
                               MinAvailFileIdGetter* min_avail_file_id_getter)
     {
@@ -338,6 +338,8 @@ namespace oceanbase
                                const char* data, const int64_t len)
     {
       int err = OB_SUCCESS;
+      //TBSYS_LOG(ERROR,"test::zhouhuan: DataWriter:end_cusor_[%s], start_cursor=[%s], end_cursor=[%s]",
+     //           to_cstring(end_cursor_), to_cstring(start_cursor), to_cstring(end_cursor));
       if (NULL == log_dir_)
       {
         err = OB_NOT_INIT;

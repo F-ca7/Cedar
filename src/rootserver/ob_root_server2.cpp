@@ -1008,7 +1008,10 @@ int ObRootServer2::do_bootstrap(ObBootstrap & bootstrap)
   if (OB_SUCCESS == ret)
   {
     ret = OB_NOT_INIT;
-    for (int i = 0; i < 100; i++) /* 10s */
+    //modify by zhouhuan
+    //for (int i = 0; i < 100; i++) /* 10s */
+     for (int i = 0; i < 200; i++) /* 20s */
+    //mod:e
     {
       if (async_task_queue_empty())
       {

@@ -97,6 +97,32 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
           table_schema.table_name_, table_schema.table_id_);
     }
   }
+  //add hushuang[scalable commit]20160710
+  if(OB_SUCCESS == ret)
+  {
+    ObString table_name;
+    table_name.assign_ptr(const_cast<char*>(table_schema.table_name_), static_cast<int32_t>(strlen(table_schema.table_name_)));
+    uint64_t table_id = OB_INVALID_ID;
+    int retry_time = 0;
+    while(retry_time < 50)
+    {
+      if(OB_SUCCESS == (ret = schema_client_->get_table_id(table_name, table_id)))
+      {
+        break;
+      }
+      else
+      {
+        retry_time ++;
+        ret = OB_ERROR;
+      }
+    }
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(ERROR, "create table failed!");
+    }
+  }
+  //add e
+
   return ret;
 }
 

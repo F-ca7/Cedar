@@ -46,6 +46,7 @@
 #include "common/ob_iterator_adaptor.h"
 #include "common/ob_resource_pool.h"
 #include "common/ob_log_writer.h"
+#include "common/ob_log_writer3.h"
 #include "common/btree/key_btree.h"
 #include "sstable/ob_sstable_row.h"
 #include "sstable/ob_sstable_block_builder.h"
@@ -463,7 +464,7 @@ namespace oceanbase
           MAJOR_LOAD_BYPASS = 4,
         };
       public:
-        TableMgr(common::ObILogWriter &log_writer);
+        TableMgr(common::ObLogWriterV3/*ObILogWriter*/ &log_writer);//modify by zhouhuan [scalablecommit] 20160510
         ~TableMgr();
       public:
         virtual int add_sstable(const uint64_t sstable_id);
@@ -568,7 +569,8 @@ namespace oceanbase
                                   const int64_t minor_version);
         bool less_than(const TableItemKey *v, const TableItemKey *t, int exclusive_equal);
       private:
-        common::ObILogWriter &log_writer_;
+        //common::ObILogWriter &log_writer_;
+        ObLogWriterV3 &log_writer_;
         bool inited_;
         bool sstable_scan_finished_;
         TableItemAllocator table_allocator_;

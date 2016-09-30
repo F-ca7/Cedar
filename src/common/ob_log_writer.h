@@ -1,4 +1,18 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * @file ob_log_writer.h
+ * @brief modify some functions and variables for scalable commit
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_07_22
+ */
+/**
  * (C) 2007-2010 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +39,7 @@
 #include "ob_log_cursor.h"
 #include "ob_log_generator.h"
 #include "ob_log_data_writer.h"
+#include "ob_log_generator2.h"
 
 namespace oceanbase
 {
@@ -36,6 +51,7 @@ namespace oceanbase
         virtual ~ObILogWriter() {};
       public:
         virtual int switch_log_file(uint64_t &new_log_file_id) = 0;
+        virtual int switch_log_file(uint64_t &new_log_file_id, FLogPos& cur_pos, const int64_t max_cmt_id) = 0; //add by zhouhuan
         virtual int write_replay_point(uint64_t replay_point) = 0;
     };
 
@@ -72,6 +88,18 @@ namespace oceanbase
           UNUSED(data_len);
           return OB_SUCCESS;
       }
+
+      //add zhouhuan[scalable commit]20160510
+      virtual int switch_log_file(uint64_t &new_log_file_id, FLogPos& cur_pos, const int64_t max_cmt_id)
+      {
+        int ret = OB_SUCCESS;
+        UNUSED(new_log_file_id);
+        UNUSED(cur_pos);
+        UNUSED(max_cmt_id);
+        return ret;
+      }
+      //add e
+
       bool check_log_size(const int64_t size) const { return log_generator_.check_log_size(size); }
       int start_log(const ObLogCursor& start_cursor);
       int start_log_maybe(const ObLogCursor& start_cursor);

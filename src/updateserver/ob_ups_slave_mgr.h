@@ -33,6 +33,7 @@
 
 #include "common/ob_slave_mgr.h"
 #include "common/ob_ack_queue.h"
+#include "common/ob_log_generator2.h"
 #include "ob_ups_role_mgr.h"
 
 using namespace oceanbase::common;

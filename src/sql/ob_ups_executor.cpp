@@ -33,6 +33,7 @@
 #include "ob_ups_executor.h"
 #include "common/utility.h"
 #include "common/ob_trace_log.h"
+#include "common/ob_common_stat.h"
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
@@ -149,6 +150,7 @@ int ObUpsExecutor::open()
   int64_t remain_us = 0;
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
+    int64_t begin_time_us = tbsys::CTimeUtil::getTime();
     if (my_phy_plan_->is_timeout(&remain_us))
     {
       ret = OB_PROCESS_TIMEOUT;
@@ -160,6 +162,9 @@ int ObUpsExecutor::open()
     }
     else if (OB_SUCCESS != (ret = rpc_->ups_plan_execute(remain_us, *inner_plan_, local_result_)))
     {
+      int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+      OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_COUNT);
+      OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_TIME, elapsed_us);
       TBSYS_LOG(WARN, "failed to execute plan on updateserver, err=%d", ret);
       if (OB_TRANS_ROLLBACKED == ret)
       {
@@ -172,11 +177,18 @@ int ObUpsExecutor::open()
     }
     else
     {
+      int64_t elapsed_us = tbsys::CTimeUtil::getTime() - begin_time_us;
+      OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_COUNT);
+      OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_TIME, elapsed_us);
       ret = local_result_.get_error_code();
       if (start_new_trans && local_result_.get_trans_id().is_valid())
       {
         FILL_TRACE_LOG("ups_err=%d ret_trans_id=%s", ret, to_cstring(local_result_.get_trans_id()));
         session->set_trans_id(local_result_.get_trans_id());
+        int64_t now = tbsys::CTimeUtil::getTime();
+        OB_STAT_INC(OBMYSQL, SQL_MULTI_STMT_TRANS_COUNT);
+        OB_STAT_INC(OBMYSQL, SQL_MULTI_STMT_TRANS_STMT_COUNT);
+        TBSYS_LOG(DEBUG, "new trans start, start=%ld", now);
       }
       if (OB_SUCCESS != ret)
       {

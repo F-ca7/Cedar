@@ -12,13 +12,15 @@
  * modify by guojinwei, liubozhong, zhangcd: support multiple
  *     clusters for HA by adding or modifying some functions,
  *     member variables
+ *modified by zhouhuan add some functions and variables for scalable commit
  *
- * @version CEDAR 0.2
+ * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_24
+ *         zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_07_24
  *//*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -36,6 +38,7 @@
  *
  */
 #include <math.h>
+#include <sys/syscall.h>
 #include "common/ob_trace_log.h"
 #include "common/serialization.h"
 #include "common/utility.h"
@@ -144,6 +147,10 @@ namespace oceanbase
       is_restarting_ = false;
       last_obi_change_to_slave_time_us_ = 0;
       // add:e
+      //add by zhouhuan [scalbale commit] 20160712:b
+      obi_switch_flag_ = false;
+      force_switch_flag_ = false;
+      //add:e
 
       if (OB_SUCCESS == err)
       {
@@ -348,11 +355,12 @@ namespace oceanbase
                                                     &obi_role_,
                                                     &role_mgr_,
                                                     config_.log_sync_type
-                                                    //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+													//delete chujiajia [log synchronization][multi_cluster] 20160625:b
                                                     //add by lbzhong [Commit Point] 20150824:b
                                                     //, &commit_point_thread_
                                                     //add:e
-                                                    //delete:e
+                                                    ,config_.commit_group_size
+													//delete:e
                                                     )))
         {
           TBSYS_LOG(WARN, "failed to init log mgr, path=%s, log_file_size=%ld, err=%d",
@@ -376,6 +384,10 @@ namespace oceanbase
         write_thread_queue_.setThreadParameter(1, this, NULL);
         lease_thread_queue_.setThreadParameter(1, this, NULL);
         store_thread_.setThreadParameter(static_cast<int32_t>(store_thread_count), this, NULL);
+        //add by zhouhuan for [scalable commit] 20160710
+        alive_thread_queue_.setThreadParameter(1, this, NULL);
+        switch_group_thread_.setThreadParamter(1, this, config_.switch_group_period);
+        //add:e
       }
 
       if (OB_SUCCESS == err)
@@ -409,8 +421,9 @@ namespace oceanbase
         err = trans_executor_.init(config_.trans_thread_num,
                                   config_.trans_thread_start_cpu,
                                   config_.trans_thread_end_cpu,
-                                  config_.commit_bind_core_id,
-                                  config_.commit_end_thread_num);
+                                  config_.commit_bind_core_id);
+                                  //config_.commit_end_thread_num);
+                                  //modify by zhouhuan [scalabecommit] 20160427
         if (OB_SUCCESS != err)
         {
           TBSYS_LOG(WARN, "trans executor init fail, err=%d", err);
@@ -493,11 +506,11 @@ namespace oceanbase
       role_mgr_.set_state(ObUpsRoleMgr::STOP);
       log_mgr_.signal_stop();
       replay_worker_.stop();
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+	  //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
       //commit_point_thread_.stop();
       //add:e
-      //delete:e
+	  //delete:e
       ObBaseServer::destroy();
     }
 
@@ -518,14 +531,21 @@ namespace oceanbase
       /// 转储线程
       store_thread_.stop();
 
+      //add by zhouhuan for [scalable commit] 20160710
+      /// keep_alive线程
+      alive_thread_queue_.stop();
+
+      switch_group_thread_.stop();
+      //add :e
+
       ///日志回放线程
       log_replay_thread_.stop();
 
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+	   //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
       //commit_point_thread_.stop();
       //add:e
-      //delete:e
+	  //delete:e
 
       replay_worker_.wait();
 
@@ -541,14 +561,21 @@ namespace oceanbase
       /// 转储线程
       store_thread_.wait();
 
+      //add by zhouhuan for [scalable commit] 20160710
+      /// keep_alive线程
+      alive_thread_queue_.wait();
+
+      switch_group_thread_.wait();
+      //add :e
+
       ///日志回放线程
       log_replay_thread_.wait();
 
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+	  //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //add lbzhong [Commit Point] 20150820:b
       //commit_point_thread_.wait();
       //add:e
-      //delete:e
+	  //delete:e
 
       timer_.destroy();
       config_timer_.destroy();
@@ -710,12 +737,11 @@ namespace oceanbase
       {
         err = start_timer_schedule();
       }
-
       //add lbzhong [Commit Point] 20150820:b
       /*
        * waiting util the role of the ups is clear
        */
-      //delete chujiajia [log synchronization][multi_cluster] 20160625:b
+	  //delete chujiajia [log synchronization][multi_cluster] 20160625:b
       //bool was_master = false;
       //if(OB_SUCCESS != (err = log_mgr_.get_was_master(was_master))) {
       //  TBSYS_LOG(ERROR, "log_mgr_.get_was_master()=>%d", err);
@@ -728,6 +754,7 @@ namespace oceanbase
       //  }
       //}
       //delete:e
+
       if (OB_SUCCESS == err)
       {
         err = submit_replay_commit_log();
@@ -853,6 +880,13 @@ namespace oceanbase
       /// 转储线程
       store_thread_.start();
 
+      //add by zhouhuan for [scalable commit] 20160710
+      /// keep_alive线程
+      alive_thread_queue_.start();
+
+      switch_group_thread_.start();
+      //add :e
+
       ///日志回放线程
       log_replay_thread_.start();
 
@@ -951,6 +985,11 @@ namespace oceanbase
         if (OB_SUCCESS == err)
         {
           TBSYS_LOG(INFO, "switch to master_master succ, %s", to_cstring(log_mgr_));
+          //add by zhouhuan for [scalable commit] 20160621:b
+          int64_t timestamp = trans_executor_.get_session_mgr().get_published_trans_id();
+          log_mgr_.set_group_as_slave(log_mgr_.get_max_flushed_log_id() - 1,timestamp);
+          //add:e
+          __sync_synchronize();
           obi_role_.set_role(ObiRole::MASTER);
           role_mgr_.set_role(ObUpsRoleMgr::MASTER);
           trans_executor_.get_session_mgr().enable_start_write_session();
@@ -976,25 +1015,32 @@ namespace oceanbase
       {
         role_mgr_.set_role(ObUpsRoleMgr::SLAVE);
       }
+      //add by zhouhuan for [scalable commit] 20160712:b
+      obi_switch_flag_ = true;
+      __sync_synchronize();
+      //add:e
       write_thread_queue_.notify_state_change();
       while(!stoped_ && !write_thread_queue_.wait_state_change_ack())
       {
         usleep(static_cast<useconds_t>(wait_us));
       }
-      //add chujiajia [log synchronization][multi_cluster] 20160703:b
-      if(OB_SUCCESS != (err = trans_executor_.handle_uncommited_session_list_after_switch()))
-      {
-        TBSYS_LOG(ERROR, "err = %d", err);
-      }
+		//add chujiajia [log synchronization][multi_cluster] 20160703:b
+//	  if(OB_SUCCESS != (err = trans_executor_.handle_uncommited_session_list_after_switch()))
+//      {
+//        TBSYS_LOG(ERROR, "err = %d", err);
+//      }
       if(OB_SUCCESS != (err = log_mgr_.update_tmp_log_cursor()))
       {
         TBSYS_LOG(ERROR, "update_tmp_log_cursor err->%d", err);
       }
-	  //add:e
       while(!stoped_ && OB_SUCCESS != (err = trans_executor_.get_session_mgr().wait_write_session_end_and_lock(wait_write_session_end_timeout_us)))
       {
         TBSYS_LOG(INFO, "master_switch_to_slave wait session end.");
       }
+      //add by zhouhuan for [scalablecommit] 20160712:b
+      __sync_synchronize();
+      obi_switch_flag_ = false;
+      //add:e
       if (OB_SUCCESS != err)
       {
         TBSYS_LOG(ERROR, "wait_write_session_end_and_lock(timeout=%ld)=>%d, log_mgr=%s, switch_to_slave fail, will kill self",
@@ -1004,6 +1050,7 @@ namespace oceanbase
       else
       {
         TBSYS_LOG(INFO, "wait_write_session_end_and_lock succ, %s.", to_cstring(log_mgr_));
+        //log_mgr_.reset_next_pos();//add by zhouhuan for [scalable commit] 20160621
         trans_executor_.get_session_mgr().disable_start_write_session();
         trans_executor_.get_session_mgr().unlock_write_session();
         slave_mgr_.reset_slave_list();
@@ -1610,12 +1657,21 @@ namespace oceanbase
             rc = OB_ERROR;
           }
           // add:e
-          else if (OB_INTERNAL_WRITE == packet_code || OB_FAKE_WRITE_FOR_KEEP_ALIVE == packet_code)
+          //modify by zhouhuan [scalablecommit] 20160417:b
+          //else if (OB_INTERNAL_WRITE == packet_code || OB_FAKE_WRITE_FOR_KEEP_ALIVE == packet_code)
+          else if (OB_INTERNAL_WRITE == packet_code)
+          //modify:e
           {
             //ps = write_thread_queue_.push(req, write_task_queue_size_, false);
             trans_executor_.handle_packet(*req);
             ps = true;
           }
+          //add by zhouhuan [scalablecommit] 20160417:b
+          else if (OB_FAKE_WRITE_FOR_KEEP_ALIVE == packet_code)
+          {
+            ps = alive_thread_queue_.push(req, write_task_queue_size_, false);
+          }
+          //add :e
           else
           {
             //ps = write_thread_queue_.push(req, write_task_queue_size_, false);
@@ -1850,10 +1906,10 @@ namespace oceanbase
           OB_STAT_INC(UPDATESERVER, UPS_STAT_PACKET_LONG_WAIT_COUNT, 1);
           TBSYS_LOG(WARN, "packet wait too long time, receive_time=%ld cur_time=%ld packet_max_timewait=%ld packet_code=%d "
               "priority=%d last_log_network_elapse=%ld last_log_disk_elapse=%ld "
-              "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu",
+              "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu alive_task_queue_size=%zu",
               ob_packet->get_receive_ts(), tbsys::CTimeUtil::getTime(), packet_timewait, packet_code, priority,
               log_mgr_.get_last_net_elapse(), log_mgr_.get_last_disk_elapse(),
-              read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size());
+              read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size(), alive_thread_queue_.size());
         }
         else if (in_buf == NULL)
         {
@@ -2572,10 +2628,120 @@ namespace oceanbase
       return ret;//if return true packet will be deleted.
     }
 
+    int ObUpdateServer::handleSwitchGroup()
+    {
+      int err = OB_SUCCESS;
+      //rebind_cpu(config_.switch_bind_core_id);
+      int64_t ref_cnt = 0;
+      bool switch_flag = false;
+      FLogPos cur_pos;
+      if (!(ObiRole::MASTER == obi_role_.get_role()
+            && ObUpsRoleMgr::MASTER == role_mgr_.get_role()
+            && ObUpsRoleMgr::ACTIVE == role_mgr_.get_state()
+            && election_role_.is_master()
+            && is_rs_election_lease_valid()
+            && is_lease_valid()) &&  !obi_switch_flag_)
+      {
+        err = OB_NOT_MASTER;
+      }
+      else
+      {
+
+        int64_t cur_time_us = tbsys::CTimeUtil::getTime();
+        if ( (force_switch_flag_ == true) ||
+            (0 >= trans_executor_.get_commit_task_num()
+            && 0 == trans_executor_.TransCommitThread::get_queued_num()
+            && (trans_executor_.get_message_residence_time_us() < trans_executor_.get_message_residence_max_us()?
+                trans_executor_.get_message_residence_time_us() + trans_executor_.get_message_residence_protection_us():
+                trans_executor_.get_message_residence_max_us()) <= cur_time_us - trans_executor_.get_last_commit_log_time_us()))
+        //if (0 == trans_executor_.get_commit_task_num() && trans_executor_.get_message_residence_max_us() <= cur_time_us - trans_executor_.get_last_commit_log_time_us())
+        {
+          trans_executor_.get_write_clog_mutex().wrlock();
+          //ObSpinLockGuard guard(trans_executor_.get_spinlock());
+          cur_pos = log_mgr_.get_next_pos();
+          if ((cur_pos.rel_id_ != 0 || cur_pos.rel_offset_ != 0)
+              && log_mgr_.switch_group(cur_pos))
+          {
+//            TBSYS_LOG(INFO,"test::zhouhuan commit_task=[%ld], commit_queue=[%ld], slave_ptime=[%ld], peroid_switch=[%ld], force_switch_flag=%d cur_pos = [%s]",
+//                      trans_executor_.get_commit_task_num(), trans_executor_.TransCommitThread::get_queued_num(),
+//                      trans_executor_.get_message_residence_time_us(), cur_time_us - trans_executor_.get_last_commit_log_time_us(), force_switch_flag_, to_cstring(cur_pos));
+            trans_executor_.set_last_commit_log_time_us(tbsys::CTimeUtil::getTime());
+            switch_flag = true;
+          }
+          trans_executor_.get_write_clog_mutex().unlock();
+
+        }
+//        if (0 == trans_executor_.TransCommitThread::get_queued_num()
+//            &&log_mgr_.get_next_pos().equal(cur_pos)
+//            && (cur_pos.rel_id_ != 0 || cur_pos.rel_offset_ != 0)
+//            && log_mgr_.switch_group(cur_pos))
+//        if ((cur_pos.rel_id_ != 0 || cur_pos.rel_offset_ != 0)
+//            && log_mgr_.switch_group(cur_pos))
+        if (switch_flag)
+        {
+          if (OB_SUCCESS != (err = log_mgr_.write_end_log(cur_pos, ref_cnt, log_mgr_.get_flushed_clog_id_without_update())))
+          {
+            TBSYS_LOG(ERROR, "switch_log_group, err=%d", err);
+          }
+          else if (OB_SUCCESS != (err = trans_executor_.push_commit_group(cur_pos, ref_cnt)))
+          {
+            TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+          }
+
+          if(OB_SUCCESS != err)
+          {
+            TBSYS_LOG(ERROR, "handle frozen group error ,kill self, err=%d", err);
+            kill(getpid(), SIGTERM);
+          }
+        }
+      }
+      return err;
+    }
+
+//    //add by zhouhuan for [scalablecommit] 20160723:b
+    int ObUpdateServer::switch_group()
+    {
+      int err = OB_SUCCESS;
+      int64_t ref_cnt = 0;
+      FLogPos cur_pos;
+      bool switch_flag = false;
+
+      {
+        trans_executor_.get_write_clog_mutex().wrlock();
+        cur_pos = log_mgr_.get_next_pos();
+        if ((cur_pos.rel_id_ != 0 || cur_pos.rel_offset_ != 0)
+            && log_mgr_.switch_group(cur_pos))
+        {
+          switch_flag = true;
+        }
+        trans_executor_.get_write_clog_mutex().unlock();
+      }
+
+      if (switch_flag)
+      {
+        if (OB_SUCCESS != (err = log_mgr_.write_end_log(cur_pos, ref_cnt, log_mgr_.get_flushed_clog_id_without_update())))
+        {
+          TBSYS_LOG(ERROR, "switch_log_group, err=%d", err);
+        }
+        else if (OB_SUCCESS != (err = trans_executor_.push_commit_group(cur_pos, ref_cnt)))
+        {
+          TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+        }
+
+        if(OB_SUCCESS != err)
+        {
+          TBSYS_LOG(ERROR, "handle frozen group error ,kill self, err=%d", err);
+          kill(getpid(), SIGTERM);
+        }
+      }
+      return err;
+    }
+    //add :e
+
     int ObUpdateServer::ups_handle_fake_write_for_keep_alive()
     {
       int err = OB_SUCCESS;
-      int64_t end_log_id = 0;
+      //int64_t end_log_id = 0;
       if (!(ObiRole::MASTER == obi_role_.get_role()
             && ObUpsRoleMgr::MASTER == role_mgr_.get_role()
             && ObUpsRoleMgr::ACTIVE == role_mgr_.get_state()
@@ -2592,7 +2758,9 @@ namespace oceanbase
                   STR_BOOL(is_lease_valid()), STR_BOOL(is_rs_election_lease_valid()));
         // modify:e
       }
-      //modify chujiajia [log synchronization][multi_cluster] 20160328:b
+      //modify by zhouhuan [scalablecommit] 20160503:b
+      /*else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log()))
+	  //modify chujiajia [log synchronization][multi_cluster] 20160328:b
       //else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log()))
       else if (OB_SUCCESS != (err = log_mgr_.write_keep_alive_log(true, log_mgr_.get_flushed_clog_id_without_update())))
       //modify:e
@@ -2602,6 +2770,93 @@ namespace oceanbase
       else if (OB_SUCCESS != (err = log_mgr_.async_flush_log(end_log_id, TraceLog::get_logbuffer())))
       {
         TBSYS_LOG(ERROR, "log_mgr.flush_log()=>%d", err);
+      }*/
+      else
+      {
+        FLogPos cur_pos = log_mgr_.get_next_pos();
+        FLogPos next_pos;
+        int64_t switch_flag = 0;
+        int64_t ref_cnt = 0;
+
+        {
+          //ObSpinLockGuard guard(trans_executor_.get_spinlock());
+          trans_executor_.get_write_clog_mutex().rdlock();
+          if (OB_SUCCESS != (err = log_mgr_.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", err);
+          }
+          trans_executor_.get_write_clog_mutex().unlock();
+        }
+
+        if (OB_SUCCESS == err)
+        {
+          if (OB_SUCCESS != log_mgr_.write_keep_alive_log(cur_pos, ref_cnt, log_mgr_.get_flushed_clog_id_without_update()))
+          {
+            TBSYS_LOG(ERROR, "log_mgr.write_keep_alive_log()=>%d", err);
+          }
+          else
+          {
+            LogGroup* cur_group = log_mgr_.get_log_group(cur_pos.group_id_);
+            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+            {
+              if (cur_pos.rel_id_ != 0)
+              {
+                int64_t trans_id = cur_group->start_timestamp_ + cur_group->count_ -1;
+                cur_group->need_ack_ = true;
+                if (OB_SUCCESS != (err = trans_executor_.get_session_mgr().update_commited_trans_id(trans_id)))
+                {
+                  TBSYS_LOG(ERROR, "update_commited-trans_id(trans_id=%ld),err=%d",trans_id, err);
+                }
+              }
+
+              if (OB_SUCCESS != (err = trans_executor_.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+              }
+            }
+          }
+        }
+
+//        if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
+//        {
+//          LogGroup* cur_group = log_mgr_.get_log_group(cur_pos.group_id_);
+//          if ( OB_SUCCESS != (err = log_mgr_.switch_log_group(cur_pos, next_pos, ref_cnt)))
+//          {
+//            TBSYS_LOG(WARN, "handle switch group fail");
+//          }
+//          else
+//          {
+
+//            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+//            {
+//              //TBSYS_LOG(ERROR, "test::zhouhuan fake_write_for_keep_alive ref_cnt = [%ld], count=[%ld], group_id=[%ld]",
+//                //        ref_cnt, cur_group->count_, cur_pos.group_id_);
+//              cur_group->need_ack_ = true;
+//              if (OB_SUCCESS != (err = trans_executor_.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+//              {
+//                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+//              }
+//            }
+//            cur_pos = next_pos;
+//          }
+//        }
+
+//        if (OB_SUCCESS == err)
+//        {
+//          LogGroup* cur_group = log_mgr_.get_log_group(cur_pos.group_id_);
+//          if (OB_SUCCESS != log_mgr_.write_keep_alive_log(cur_pos))
+//          {
+//            TBSYS_LOG(ERROR, "log_mgr.write_keep_alive_log()=>%d", err);
+//          }
+//          else if (OB_SUCCESS != (err = trans_executor_.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+//          {
+//            TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", err);
+//          }
+//          else if (OB_SUCCESS != (err = log_mgr_.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+//          {
+//            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", err);
+//          }
+//        }
       }
       if (OB_SUCCESS != err)
       {
@@ -2839,6 +3094,7 @@ namespace oceanbase
         TBSYS_LOG(INFO, "io thread setaffinity tid=%ld ret=%d cpu=%ld start=%ld end=%ld",
                   GETTID(), ret, local_cpu, affinity_start_cpu, affinity_end_cpu);
       }
+      TBSYS_LOG(INFO,"test::zhouhuan1 ups io thread tid = [%ld]", syscall(SYS_gettid));
     }
 
     /*int ObUpdateServer::slave_set_fetch_param(const int32_t version, common::ObDataBuffer& in_buff,
@@ -3011,8 +3267,12 @@ namespace oceanbase
         stat.next_flush_log_id_ = replay_worker_.get_next_flush_log_id();
         stat.last_barrier_log_id_ = replay_worker_.get_last_barrier_log_id();
         stat.wait_trans_ = trans_executor_.TransHandlePool::get_queued_num();
-        stat.wait_commit_ = trans_executor_.get_commit_queue_len();
-        stat.wait_response_ = trans_executor_.CommitEndHandlePool::get_queued_num();
+        //modify by zhouhuan [scalablecommit] 20160510
+        //stat.wait_commit_ = trans_executor_.get_commit_queue_len();
+        //stat.wait_response_ = trans_executor_.CommitEndHandlePool::get_queued_num();
+        stat.wait_commit_ = log_mgr_.get_next_pos().group_id_ - trans_executor_.get_commit_queue_len();
+        stat.wait_response_ = 0;
+        //modify:e
       }
       if (OB_SUCCESS !=
           (err = response_data_(err, stat, OB_GET_CLOG_STATUS_RESPONSE, MY_VERSION, req, channel_id, out_buff)))
@@ -3895,7 +4155,7 @@ namespace oceanbase
       {
         err = OB_ERROR_FUNC_VERSION;
       }
-      
+
       if (OB_SUCCESS == err)
       {
         if (NULL == scan_param_ptr
@@ -4333,7 +4593,7 @@ namespace oceanbase
       }
       // modify by guojinwei [lease between rs and ups][multi_cluster] 20150901:b
       //else if (lease_expire_time_us_ < cur_time_us)
-      else if ((lease_expire_time_us_ < cur_time_us) 
+      else if ((lease_expire_time_us_ < cur_time_us)
                || (rs_election_lease_ - cur_time_us < config_.rs_election_lease_protection_time))
       // modify:e
       {
@@ -4342,7 +4602,7 @@ namespace oceanbase
         {
           if (ObiRole::MASTER == obi_role_.get_role())
           {
-            //modify chujiajia [log synchronization][multi_cluster] 20160527:b
+			//modify chujiajia [log synchronization][multi_cluster] 20160527:b
             //TBSYS_LOG(WARN, "master rs election lease timeout, need restart updateserver!
             //    lease=%ld, cur_time=%ld", rs_election_lease_, cur_time_us);
             TBSYS_LOG(WARN, "master rs election lease timeout, need switch to slave updateserver! \
@@ -4486,7 +4746,10 @@ namespace oceanbase
 
     int ObUpdateServer::submit_fake_write_for_keep_alive()
     {
-      return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, write_thread_queue_, write_task_queue_size_);
+      //modify by zhouhuan for [scalable commit] 20160710
+      //return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, write_thread_queue_, write_task_queue_size_);
+      return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, alive_thread_queue_, write_task_queue_size_);
+      //modify :e
     }
 
     int ObUpdateServer::submit_handle_frozen()
@@ -4784,7 +5047,7 @@ namespace oceanbase
           ob_packet->set_channel_id(packet->get_channel_id());
           ob_packet->set_source_timeout(packet->get_source_timeout());
         }
-        
+
         uint32_t new_chid = atomic_inc(&ObPacket::global_chid);
         ob_packet->set_channel_id(new_chid);
         uint32_t *chid = GET_TSI_MULT(uint32_t, TSI_COMMON_PACKET_CHID_1);
@@ -5414,6 +5677,7 @@ namespace oceanbase
     int ObUpdateServer::response_result(int32_t ret_code, ObPacket &pkt)
     {
       int ret = OB_SUCCESS;
+      //TBSYS_LOG(ERROR,"test::zhouhuan response_result ret_code=%d,packet_code=%d",ret_code, pkt.get_packet_code());
       ret = response_result_(ret_code, pkt.get_packet_code(), pkt.get_api_version(),
                              pkt.get_request(), pkt.get_channel_id(), pkt.get_receive_ts());
       // 忽略前两个字段 trace_id和chid
@@ -5477,6 +5741,7 @@ namespace oceanbase
       else
       {
         ObDataBuffer out_buffer(my_buffer->current(), my_buffer->remain());
+        //TBSYS_LOG(ERROR,"test::zhouhuan response_buffer buffer.capacity=%ld position=%ld",buffer.get_capacity(), buffer.get_position());
         ret = response_data_(ret_code, buffer, pkt.get_packet_code(), pkt.get_api_version(),
                              pkt.get_request(), pkt.get_channel_id(), out_buffer, pkt.get_receive_ts(), NULL, ret_string);
       }
@@ -5600,18 +5865,18 @@ namespace oceanbase
       {
         TBSYS_LOG(WARN, "transaction process time is too long, process_time=%ld cur_time=%ld response_num=%ld "
             "last_log_network_elapse=%ld last_log_disk_elapse=%ld trans_counter=%ld "
-            "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu",
+            "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu alive_task_queue_size=%zu",
             trans_proc_time, tbsys::CTimeUtil::getTime(), last_idx - start_idx + 1,
             log_mgr_.get_last_net_elapse(), log_mgr_.get_last_disk_elapse(), counter,
-            read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size());
+            read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size(), alive_thread_queue_.size());
         counter = 0;
       }
       FILL_TRACE_LOG("process_time=%ld cur_time=%ld response_num=%ld "
                 "last_log_network_elapse=%ld last_log_disk_elapse=%ld trans_counter=%ld "
-                "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu",
+                "read_task_queue_size=%zu write_task_queue_size=%zu lease_task_queue_size=%zu alive_task_queue_size=%zu",
                 trans_proc_time, tbsys::CTimeUtil::getTime(), last_idx - start_idx + 1,
                 log_mgr_.get_last_net_elapse(), log_mgr_.get_last_disk_elapse(), counter,
-                read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size());
+                read_thread_queue_.size(), write_thread_queue_.size(), lease_thread_queue_.size(), alive_thread_queue_.size());
       OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_COUNT, 1);
       OB_STAT_INC(UPDATESERVER, UPS_STAT_BATCH_TIMEU, GET_TRACE_TIMEU());
       FILL_TRACE_LOG("resp_ret=%d proc_ret=%d", resp_ret, proc_ret);
@@ -5911,9 +6176,10 @@ namespace oceanbase
            {
              TBSYS_LOG(INFO, "master_master_ups change to slave_slave_ups success!");
            }
-           //delete chujiajia [lease between rs and ups][multi_cluster] 20160527:b
+			//delete chujiajia [lease between rs and ups][multi_cluster] 20160527:b
            //need_restart_ = true;
            //delete:e
+          
            // add:e
          }
          else if (ObiRole::SLAVE == obi_role_.get_role()
@@ -5949,7 +6215,7 @@ namespace oceanbase
              {
                TBSYS_LOG(INFO, "master_master_ups change to slave_master_ups success!");
              }
-             //delete chujiajia [log synchronization][multi_cluster] 20160527:b
+			 //delete chujiajia [log synchronization][multi_cluster] 20160527:b
              //need_restart_ = true;
              //delete:e
              // add:e
@@ -6487,8 +6753,52 @@ namespace oceanbase
       int proc_ret = OB_SUCCESS;
       if (OB_SUCCESS == ret)
       {
-        proc_ret = log_mgr_.switch_log_file(new_log_file_id);
-        TBSYS_LOG(INFO, "switch log file id ret=%d new_log_file_id=%lu", ret, new_log_file_id);
+        //modify by zhouhuan [scalablecommit] 20160428:b
+        //proc_ret = log_mgr_.switch_log_file(new_log_file_id);
+        //TBSYS_LOG(INFO, "switch log file id ret=%d new_log_file_id=%lu", ret, new_log_file_id);
+        FLogPos cur_pos = log_mgr_.get_next_pos();
+        FLogPos next_pos;
+        int64_t switch_flag = 0;
+        int64_t ref_cnt = 0;
+        //TBSYS_LOG(ERROR, "test::zhouhuan:ups_switch_commit_log start!");
+        if (cur_pos.rel_id_ != 0 && cur_pos.rel_offset_ != 0)
+        {
+          LogGroup* cur_group = log_mgr_.get_log_group(cur_pos.group_id_);
+          if ( OB_SUCCESS != (ret = log_mgr_.switch_log_group(cur_pos, next_pos, ref_cnt, log_mgr_.get_flushed_clog_id_without_update())))
+          {
+            TBSYS_LOG(WARN, "handle switch group fail");
+          }
+          else
+          {
+            if (ref_cnt == cur_group->count_ && cur_pos.group_id_ == cur_group->group_id_)
+            {
+              cur_group->need_ack_ = true;
+              if (OB_SUCCESS != (ret = trans_executor_.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+              {
+                TBSYS_LOG(ERROR, "commit thread queue is full, err=%d", ret);
+              }
+            }
+            cur_pos = next_pos;
+          }
+        }
+
+        if(OB_SUCCESS == ret)
+        {
+          LogGroup* cur_group = log_mgr_.get_log_group(cur_pos.group_id_);
+          proc_ret = log_mgr_.switch_log_file(new_log_file_id, cur_pos, log_mgr_.get_flushed_clog_id_without_update());
+          if (OB_SUCCESS != (ret = trans_executor_.TransCommitThread::push(cur_pos.group_id_, cur_group)))
+          {
+            TBSYS_LOG(WARN, "commit thread queue is full ret=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = log_mgr_.set_log_position(cur_pos, 0, switch_flag, next_pos)))
+          {
+            TBSYS_LOG(ERROR, "set_log_position(len=0)=>%d", ret);
+          }
+          else
+          {
+            TBSYS_LOG(INFO, "switch commit log file id ret=%d new_log_file_id=%lu", ret, new_log_file_id);
+          }
+        }
       }
       ret = response_data_(proc_ret, new_log_file_id, OB_UPS_SWITCH_COMMIT_LOG_RESPONSE, MY_VERSION,
           req, channel_id, out_buff);

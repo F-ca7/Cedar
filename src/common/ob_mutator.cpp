@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_mutator.cpp
+ * @brief modify by zhouhuan: support scalable commit by adding
+ *        or modifying some functions, member variables
+ *
+ * @version __DaSE_VERSION
+ * @author zhouhuan <zhouhuan@stu.ecnu.edu.cn>
+ * @date 2016_07_24
+ */
 /*
  * (C) 2007-2010 Taobao Inc.
  *
@@ -492,7 +507,9 @@ namespace oceanbase
       }
       else
       {
-        err = copy_cell_(cell, cur_node->cell, row_changed_stat, store_size);
+        //modify by zhouhuan [scalablecommit] 20160520
+        //err = copy_cell_(cell, cur_node->cell, row_changed_stat, store_size);
+        err = copy_cell_(cell, cur_node->cell, row_changed_stat, store_size, barrier_flag);
         if (OB_SUCCESS != err)
         {
           TBSYS_LOG(WARN, "failed to copy cell, err=%d", err);
@@ -518,7 +535,23 @@ namespace oceanbase
 
       if (OB_SUCCESS == err)
       {
-        cell_store_size_ += store_size;
+        //modify by zhouhuan [scalablecommit] 20160425:b
+        //cell_store_size_ += store_size;
+        //TBSYS_LOG(ERROR, "test::whx cell store size %ld,type %d, barrier_flag %d", cell_store_size_, cur_node->dml_type, cur_node->barrier_flag);
+        if(ROW_DML_TYPE == cur_node->barrier_flag)
+        {
+          cell_store_size_ += (get_obj_serialize_size_(ObActionFlag::DML_TYPE_FIELD, true)
+                               +get_obj_serialize_size_(cur_node->dml_type, false));
+        }
+        else if(ROWKEY_BARRIER == cur_node->barrier_flag)
+        {
+          cell_store_size_ += 0;
+        }
+        else
+        {
+          cell_store_size_ += store_size;
+        }
+        //modify:e
       }
 
       return err;
@@ -718,16 +751,20 @@ namespace oceanbase
             err = tmp_obj.serialize(buf, buf_len, pos);
           }
         }
-
+        //add  whx
+       // int64_t val = 0,tmp = pos;
         while (OB_SUCCESS == err && NULL != node)
         {
+          //val += pos-tmp;
+          //tmp = pos;
+          //TBSYS_LOG(ERROR,"test::whx lag = %ld",val);
           if (NO_BARRIER != node->barrier_flag)
           {
             if (ROWKEY_BARRIER & node->barrier_flag)
             {
               last_row_key.assign(NULL, 0);
             }
-            if (ROW_DML_TYPE & node->barrier_flag)
+            if (ROW_DML_TYPE & node-> barrier_flag)
             {
               err = serialize_flag_(buf, buf_len, pos, ObActionFlag::DML_TYPE_FIELD);
               {
@@ -777,9 +814,11 @@ namespace oceanbase
             else
             {
               // serialize table id
+              //TBSYS_LOG(ERROR, "test::whx last tid = %ld, new tid = %ld", last_table_id, node->cell.cell_info.table_id_);
               if (last_table_id != node->cell.cell_info.table_id_)
               {
                 table_changed = true;
+                //int64_t p = pos;
                 err = serialize_flag_(buf, buf_len, pos, ObActionFlag::TABLE_NAME_FIELD);
                 if (OB_SUCCESS == err)
                 {
@@ -787,6 +826,7 @@ namespace oceanbase
                   tmp_obj.set_int(node->cell.cell_info.table_id_);
                   err = tmp_obj.serialize(buf, buf_len, pos);
                 }
+                //BSYS_LOG(ERROR, "test::whx seri p =>%ld", pos-p);
               }
             }
 
@@ -796,11 +836,13 @@ namespace oceanbase
               if (table_changed
                   || 0 != node->cell.cell_info.row_key_.compare(last_row_key))
               {
+                //int64_t tmp = pos;
                 err = serialize_flag_(buf, buf_len, pos, ObActionFlag::FORMED_ROW_KEY_FIELD);
                 if (OB_SUCCESS == err)
                 {
                   err = node->cell.cell_info.row_key_.serialize(buf, buf_len, pos);
                 }
+                //TBSYS_LOG(ERROR, "test::whx seri len=>%ld", pos-tmp);
               }
             }
 
@@ -832,20 +874,26 @@ namespace oceanbase
                   {
                     tmp_obj.reset();
                     tmp_obj.set_int(node->cell.cell_info.column_id_);
+                    //int64_t t2 = pos;
                     err = tmp_obj.serialize(buf, buf_len, pos);
+                    //TBSYS_LOG(ERROR, "test::whx seri len = %ld",pos-t2);
                   }
                 }
 
                 // serialize op type
                 if (OB_SUCCESS == err)
                 {
+                 // int64_t m = pos;
                   err = node->cell.op_type.serialize(buf, buf_len, pos);
+                  //TBSYS_LOG(ERROR, "test::whx seri m len = %ld", pos-m);
                 }
 
                 // serialize column value
                 if (OB_SUCCESS == err)
                 {
+                  //int64_t t3 = pos;
                   err = node->cell.cell_info.value_.serialize(buf, buf_len, pos);
+                  //TBSYS_LOG(ERROR, "test::whx seri len = %ld", pos-t3);
                 }
               }
             }
@@ -1149,143 +1197,57 @@ namespace oceanbase
 
     int64_t ObMutator :: get_serialize_size(void) const
     {
+      //TBSYS_LOG(ERROR,"test::zhouhuan Mutator size cell_store_size=[%ld]", cell_store_size_);
       int64_t store_size = cell_store_size_ + get_obj_serialize_size_(ObActionFlag::MUTATOR_PARAM_FIELD, true)
         + get_obj_serialize_size_(ObActionFlag::END_PARAM_FIELD, true);
       store_size += get_obj_serialize_size_(ObActionFlag::MUTATOR_TYPE_FIELD, true) + get_obj_serialize_size_(type_, false);
       return store_size;
     }
 
+    //modify by zhouhuan[scalablecommit] 20160520
+    //int ObMutator :: copy_cell_(const ObMutatorCellInfo& src_cell, ObMutatorCellInfo& dst_cell,
+    //                            RowChangedStat row_changed_stat, int64_t& store_size)
     int ObMutator :: copy_cell_(const ObMutatorCellInfo& src_cell, ObMutatorCellInfo& dst_cell,
-                                RowChangedStat row_changed_stat, int64_t& store_size)
+                                RowChangedStat row_changed_stat, int64_t& store_size, const BarrierFlag barrier_flag)
     {
       int err = OB_SUCCESS;
       store_size = 0;
-
+      //TBSYS_LOG(ERROR, "test::whx copy cell store size =>%ld", store_size);
       int64_t ext_val = 0;
       int64_t type = src_cell.cell_info.value_.get_type();
-      if (ObExtendType == type)
-      {
-        src_cell.cell_info.value_.get_ext(ext_val);
-      }
 
-      if (ObExtendType == type
-          && (ObActionFlag::OP_USE_OB_SEM == ext_val
-            || ObActionFlag::OP_USE_DB_SEM == ext_val))
+      //add by zhouhuan [scalablecommit] 20160520:b
+      if (NO_BARRIER != barrier_flag)
       {
-        dst_cell.cell_info.reset();
-        dst_cell.cell_info.value_.reset();
-        dst_cell.cell_info.value_.set_ext(ext_val);
-        store_size += (get_obj_serialize_size_(ObActionFlag::OBDB_SEMANTIC_FIELD, true)
-            + dst_cell.cell_info.value_.get_serialize_size());
+        if(ROW_DML_TYPE == barrier_flag || ROWKEY_BARRIER == barrier_flag)
+        {
+          dst_cell.cell_info.reset();
+          dst_cell.cell_info.value_.reset();
+        }
       }
       else
       {
-        bool table_changed = false;
-        // store table name or table id
-        if (0 != src_cell.cell_info.table_name_.length())
+      //add :e
+        if (ObExtendType == type)
         {
-          if (USE_ID == id_name_type_)
-          {
-            TBSYS_LOG(WARN, "invalid status, should use name");
-            err = OB_ERROR;
-          }
-          else
-          {
-            id_name_type_ = USE_NAME;
-            dst_cell.cell_info.table_id_ = common::OB_INVALID_ID;
-            // store table name
-            if (0 == src_cell.cell_info.table_name_.compare(last_table_name_))
-            {
-              dst_cell.cell_info.table_name_ = last_table_name_;
-            }
-            else
-            {
-              table_changed = true;
-              err = str_buf_.write_string(src_cell.cell_info.table_name_,
-                  &(dst_cell.cell_info.table_name_));
-              if (OB_SUCCESS != err)
-              {
-                TBSYS_LOG(WARN, "failed to store table name, err=%d", err);
-              }
-              else
-              {
-                store_size += (get_obj_serialize_size_(ObActionFlag::TABLE_NAME_FIELD, true)
-                    + get_obj_serialize_size_(dst_cell.cell_info.table_name_));
-              }
-            }
-          }
+          src_cell.cell_info.value_.get_ext(ext_val);
         }
-        else
+        if (ObExtendType == type
+            && (ObActionFlag::OP_USE_OB_SEM == ext_val
+              || ObActionFlag::OP_USE_DB_SEM == ext_val))
         {
-          if (USE_NAME == id_name_type_)
-          {
-            TBSYS_LOG(WARN, "invalid status, should use id");
-            err = OB_ERROR;
-          }
-          else
-          {
-            id_name_type_ = USE_ID;
-            dst_cell.cell_info.table_name_.assign(NULL, 0);
-            // store table id
-            if (last_table_id_ == src_cell.cell_info.table_id_)
-            {
-              dst_cell.cell_info.table_id_ = last_table_id_;
-            }
-            else
-            {
-              table_changed = true;
-              dst_cell.cell_info.table_id_ = src_cell.cell_info.table_id_;
-              store_size += (get_obj_serialize_size_(ObActionFlag::TABLE_NAME_FIELD, true)
-                  + get_obj_serialize_size_(dst_cell.cell_info.table_id_, false));
-            }
-          }
-        }
-
-        // store row key
-        if (OB_SUCCESS == err)
-        {
-          if (NOCHANGED == row_changed_stat)
-          {
-            dst_cell.cell_info.row_key_ = last_row_key_;
-          }
-          else if (!table_changed && CHANGED_UNKNOW == row_changed_stat
-                  && 0 == src_cell.cell_info.row_key_.compare(last_row_key_))
-          {
-            dst_cell.cell_info.row_key_ = last_row_key_;
-          }
-          else
-          {
-            err = str_buf_.write_string(src_cell.cell_info.row_key_,
-                &(dst_cell.cell_info.row_key_));
-            if (OB_SUCCESS != err)
-            {
-              TBSYS_LOG(WARN, "failed to store row key, err=%d", err);
-            }
-            else
-            {
-              store_size += (get_obj_serialize_size_(ObActionFlag::ROW_KEY_FIELD, true)
-                  + get_obj_serialize_size_(dst_cell.cell_info.row_key_));
-            }
-          }
-        }
-
-        if (OB_SUCCESS != err)
-        {
-          // does nothing
-        }
-        else if (ObExtendType == type && ObActionFlag::OP_DEL_ROW == ext_val)
-        {
-          // delete row
-          dst_cell.cell_info.column_id_ = common::OB_INVALID_ID;
-          dst_cell.cell_info.column_name_.assign(NULL, 0);
+          dst_cell.cell_info.reset();
           dst_cell.cell_info.value_.reset();
           dst_cell.cell_info.value_.set_ext(ext_val);
-          store_size += get_obj_serialize_size_(ObActionFlag::OP_DEL_ROW, true);
+          store_size += (get_obj_serialize_size_(ObActionFlag::OBDB_SEMANTIC_FIELD, true)
+              + dst_cell.cell_info.value_.get_serialize_size());
+          //TBSYS_LOG(ERROR, "test::whx copy cell store size 1 =>%ld", store_size);
         }
         else
         {
-          // store column name
-          if (0 != src_cell.cell_info.column_name_.length())
+          bool table_changed = false;
+          // store table name or table id
+          if (0 != src_cell.cell_info.table_name_.length())
           {
             if (USE_ID == id_name_type_)
             {
@@ -1295,17 +1257,27 @@ namespace oceanbase
             else
             {
               id_name_type_ = USE_NAME;
-              dst_cell.cell_info.column_id_ = common::OB_INVALID_ID;
-
-              err = str_buf_.write_string(src_cell.cell_info.column_name_,
-                  &(dst_cell.cell_info.column_name_));
-              if (OB_SUCCESS != err)
+              dst_cell.cell_info.table_id_ = common::OB_INVALID_ID;
+              // store table name
+              if (0 == src_cell.cell_info.table_name_.compare(last_table_name_))
               {
-                TBSYS_LOG(WARN, "failed to store column name, err=%d", err);
+                dst_cell.cell_info.table_name_ = last_table_name_;
               }
               else
               {
-                store_size += get_obj_serialize_size_(dst_cell.cell_info.column_name_);
+                table_changed = true;
+                err = str_buf_.write_string(src_cell.cell_info.table_name_,
+                    &(dst_cell.cell_info.table_name_));
+                if (OB_SUCCESS != err)
+                {
+                  TBSYS_LOG(WARN, "failed to store table name, err=%d", err);
+                }
+                else
+                {
+                  store_size += (get_obj_serialize_size_(ObActionFlag::TABLE_NAME_FIELD, true)
+                      + get_obj_serialize_size_(dst_cell.cell_info.table_name_));
+                  //TBSYS_LOG(ERROR, "test::whx copy cell store size 2=>%ld", store_size);
+                }
               }
             }
           }
@@ -1319,40 +1291,142 @@ namespace oceanbase
             else
             {
               id_name_type_ = USE_ID;
-              dst_cell.cell_info.column_name_.assign(NULL, 0);
-              //store column id
-              dst_cell.cell_info.column_id_ = src_cell.cell_info.column_id_;
-              store_size += get_obj_serialize_size_(dst_cell.cell_info.column_id_, false);
+              dst_cell.cell_info.table_name_.assign(NULL, 0);
+              // store table id
+              if (last_table_id_ == src_cell.cell_info.table_id_)
+              {
+                dst_cell.cell_info.table_id_ = last_table_id_;
+              }
+              else
+              {
+                table_changed = true;
+                dst_cell.cell_info.table_id_ = src_cell.cell_info.table_id_;
+                store_size += (get_obj_serialize_size_(ObActionFlag::TABLE_NAME_FIELD, true)
+                    + get_obj_serialize_size_(dst_cell.cell_info.table_id_, false));
+                //TBSYS_LOG(ERROR, "test::whx copy cell store size 3 =>%ld, last_tid = %ld, new_tid=%ld", store_size, last_table_id_,dst_cell.cell_info.table_id_);
+              }
             }
           }
 
-          // store op type
+          // store row key
           if (OB_SUCCESS == err)
           {
-            dst_cell.op_type = src_cell.op_type;
-            store_size += dst_cell.op_type.get_serialize_size();
-          }
-
-          if (OB_SUCCESS == err)
-          {
-            // store column value
-            err = str_buf_.write_obj(src_cell.cell_info.value_, &(dst_cell.cell_info.value_));
-            if (OB_SUCCESS != err)
+            if (NOCHANGED == row_changed_stat)
             {
-              TBSYS_LOG(WARN, "failed to store column value, err=%d", err);
+              dst_cell.cell_info.row_key_ = last_row_key_;
+            }
+            else if (!table_changed && CHANGED_UNKNOW == row_changed_stat
+                    && 0 == src_cell.cell_info.row_key_.compare(last_row_key_))
+            {
+              dst_cell.cell_info.row_key_ = last_row_key_;
             }
             else
             {
-              store_size += dst_cell.cell_info.value_.get_serialize_size();
+              err = str_buf_.write_string(src_cell.cell_info.row_key_,
+                  &(dst_cell.cell_info.row_key_));
+              if (OB_SUCCESS != err)
+              {
+                TBSYS_LOG(WARN, "failed to store row key, err=%d", err);
+              }
+              else
+              {
+                store_size += (get_obj_serialize_size_(ObActionFlag::ROW_KEY_FIELD, true)
+                    + get_obj_serialize_size_(dst_cell.cell_info.row_key_));
+                //TBSYS_LOG(ERROR, "test::whx copye cell store size 4 =>%ld, key = %s", store_size, to_cstring(dst_cell.cell_info.row_key_));
+              }
             }
           }
-        }
 
-        if (OB_SUCCESS == err)
-        {
-          last_table_name_ = dst_cell.cell_info.table_name_;
-          last_row_key_ = dst_cell.cell_info.row_key_;
-          last_table_id_ = dst_cell.cell_info.table_id_;
+          if (OB_SUCCESS != err)
+          {
+            // does nothing
+          }
+          else if (ObExtendType == type && ObActionFlag::OP_DEL_ROW == ext_val)
+          {
+            // delete row
+            dst_cell.cell_info.column_id_ = common::OB_INVALID_ID;
+            dst_cell.cell_info.column_name_.assign(NULL, 0);
+            dst_cell.cell_info.value_.reset();
+            dst_cell.cell_info.value_.set_ext(ext_val);
+            store_size += get_obj_serialize_size_(ObActionFlag::OP_DEL_ROW, true);
+            //TBSYS_LOG(ERROR, "test::whx copy cell store size 5 =>%ld", store_size);
+          }
+          else
+          {
+            // store column name
+            if (0 != src_cell.cell_info.column_name_.length())
+            {
+              if (USE_ID == id_name_type_)
+              {
+                TBSYS_LOG(WARN, "invalid status, should use name");
+                err = OB_ERROR;
+              }
+              else
+              {
+                id_name_type_ = USE_NAME;
+                dst_cell.cell_info.column_id_ = common::OB_INVALID_ID;
+
+                err = str_buf_.write_string(src_cell.cell_info.column_name_,
+                    &(dst_cell.cell_info.column_name_));
+                if (OB_SUCCESS != err)
+                {
+                  TBSYS_LOG(WARN, "failed to store column name, err=%d", err);
+                }
+                else
+                {
+                  store_size += get_obj_serialize_size_(dst_cell.cell_info.column_name_);
+                  //TBSYS_LOG(ERROR, "test::whx copy cell store size 6=>%ld", store_size);
+                }
+              }
+            }
+            else
+            {
+              if (USE_NAME == id_name_type_)
+              {
+                TBSYS_LOG(WARN, "invalid status, should use id");
+                err = OB_ERROR;
+              }
+              else
+              {
+                id_name_type_ = USE_ID;
+                dst_cell.cell_info.column_name_.assign(NULL, 0);
+                //store column id
+                dst_cell.cell_info.column_id_ = src_cell.cell_info.column_id_;
+                store_size += get_obj_serialize_size_(dst_cell.cell_info.column_id_, false);
+                //TBSYS_LOG(ERROR, "test::whx copy cell store size 7 =>%ld,column_id=%ld", store_size, dst_cell.cell_info.column_id_);
+              }
+            }
+
+            // store op type
+            if (OB_SUCCESS == err)
+            {
+              dst_cell.op_type = src_cell.op_type;
+              store_size += dst_cell.op_type.get_serialize_size();
+              //TBSYS_LOG(ERROR, "test::whx copy cell store size 8 =>%ld, obj =%s", store_size, to_cstring(dst_cell.op_type));
+            }
+
+            if (OB_SUCCESS == err)
+            {
+              // store column value
+              err = str_buf_.write_obj(src_cell.cell_info.value_, &(dst_cell.cell_info.value_));
+              if (OB_SUCCESS != err)
+              {
+                TBSYS_LOG(WARN, "failed to store column value, err=%d", err);
+              }
+              else
+              {
+                store_size += dst_cell.cell_info.value_.get_serialize_size();
+                //TBSYS_LOG(ERROR, "test::whx copy cell store size 9=>%ld dst value = %s", store_size, to_cstring(dst_cell.cell_info.value_));
+              }
+            }
+          }
+
+          if (OB_SUCCESS == err)
+          {
+            last_table_name_ = dst_cell.cell_info.table_name_;
+            last_row_key_ = dst_cell.cell_info.row_key_;
+            last_table_id_ = dst_cell.cell_info.table_id_;
+          }
         }
       }
 
