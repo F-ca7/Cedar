@@ -1260,7 +1260,7 @@ namespace oceanbase
         {
           ObString var_name;
           idx_val.get_varchar(var_name);
-          if( NULL != (tmp_obj = result_set->get_session()->get_variable_value(var_name)) )
+          if( NULL == (tmp_obj = result_set->get_session()->get_variable_value(var_name)) )
           {
             ret = OB_ERR_VARIABLE_UNKNOWN;
             TBSYS_LOG(WARN, "index variables does not contain int type value, %s", to_cstring(idx_val));
