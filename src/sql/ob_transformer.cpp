@@ -1044,9 +1044,17 @@ int ObTransformer::gen_physical_procedure_execute(
     {
          TBSYS_LOG(WARN, "result_op set hint error");
     }
+    //add by qx 20170317 :b
+    else if (OB_SUCCESS != (ret = result_op->set_long_trans(stmt->get_long_trans())))
+    {
+      TBSYS_LOG(WARN, "result_op set long transcation hint error");
+    }
+    //add :e
     else
     {
       TBSYS_LOG(TRACE, "call procedure with no_group is %d", result_op->get_no_group());//add by wdh 20160718
+      //add qx test
+      //TBSYS_LOG(ERROR,"TJQX no_group = %d  long_trans = %d",result_op->get_no_group(),result_op->get_long_trans());
       ObSQLSessionInfo *session_info = NULL;
       if ((sql_context_ == NULL || (session_info = sql_context_->session_info_) == NULL))
       {
@@ -1072,7 +1080,8 @@ int ObTransformer::gen_physical_procedure_execute(
           if (!(sql_context_->merge_service_->get_merge_server()->get_procedure_manager().is_consisitent(
                   stmt->get_proc_name(),
                   *(session_info->get_plan(stmt_id)),
-                  stmt->get_no_group()))
+                  stmt->get_no_group(),
+                  stmt->get_long_trans())) //modify by  qx 20170317 add long  transcation
               )
           {
             TBSYS_LOG(WARN, "detected inconsistency plan for [%.*s]", stmt->get_proc_name().length(), stmt->get_proc_name().ptr());
@@ -1100,7 +1109,10 @@ int ObTransformer::gen_physical_procedure_execute(
         if( need_compile)
         {
           if (OB_SUCCESS != (ret = sql_context_->merge_service_->get_merge_server()->
-                             get_procedure_manager().get_procedure_lazy(stmt->get_proc_name(), *sql_context_, stmt_id, stmt->get_no_group())) )
+                             get_procedure_manager().get_procedure_lazy(stmt->get_proc_name(),
+                                                                        *sql_context_, stmt_id,
+                                                                        stmt->get_no_group(),
+                                                                        stmt->get_long_trans())))// modify by qx 20170317 add long transcation  flag
           {
             TBSYS_LOG(WARN, "failed to execute proc[%.*s], ret=%d", stmt->get_proc_name().length(), stmt->get_proc_name().ptr(), ret);
           }

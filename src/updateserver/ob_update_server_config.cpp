@@ -251,7 +251,7 @@ int ObUpdateServerConfig::load_config()
   int ret = OB_SUCCESS;
   if (0 != stat(path, &buf))
   {
-    TBSYS_LOG(WARN, "No config file,if path is right && frist start ups ,it is not error.  path: [%s]", path);
+    TBSYS_LOG(WARN, "No config file,if path[%s] is right and frist start ups ,it is not an error.", path);
   }
   else
   {
@@ -296,16 +296,30 @@ int ObUpdateServerConfig::load_config()
       }
       else
       {
+        //add by qx :20170208 add threshold
         //TBSYS_LOG(INFO, "TO_OJ buffer size load begin !");
-        OB_MAX_LOG_BUFFER_SIZE = max_log_buffer_size;
-        OB_LOG_BUFFER_MAX_SIZE = log_buffer_max_size;
-        OB_DEFAULT_BLOCK_BITS = block_bits;
+        // 2MB - 2GB
+        if (max_log_buffer_size >= 1966080 && max_log_buffer_size <= (0x80000000))
+        {
+          if (max_log_buffer_size < (log_buffer_max_size - (1<<19)))
+          {
+            OB_MAX_LOG_BUFFER_SIZE = max_log_buffer_size;
+          }
+          else if ((log_buffer_max_size - (1<<19)) > 1966080 )
+          {
+             OB_MAX_LOG_BUFFER_SIZE =  log_buffer_max_size - (1<<19);
+          }
+        }
+        if(log_buffer_max_size >= (1<<21) && log_buffer_max_size <= (0x80000000))
+          OB_LOG_BUFFER_MAX_SIZE = log_buffer_max_size;
+        if(block_bits >= 22 && block_bits <= 31)
+          OB_DEFAULT_BLOCK_BITS = block_bits;
         // remind now we use same configure
         //OB_MAX_THREAD_BUFFER_SIZE = static_cast<int32_t>(max_thread_buffer_size);
         //OB_RPC_BUFFER_SIZE = static_cast<int32_t>(rpc_buffer_size);
-        OB_MAX_THREAD_BUFFER_SIZE = static_cast<int32_t>(log_buffer_max_size);
-        OB_RPC_BUFFER_SIZE = static_cast<int32_t>(log_buffer_max_size);
-
+        OB_MAX_THREAD_BUFFER_SIZE = static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE);
+        OB_RPC_BUFFER_SIZE = static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE);
+        //add e:
       }
     }
   }

@@ -8,7 +8,6 @@ namespace oceanbase {
     int32_t OB_MAX_THREAD_BUFFER_SIZE = 1<<21;
     int32_t OB_RPC_BUFFER_SIZE = 1<<21;
 
-    int64_t OB_FLUSH_DISK_BUFFER_SIZE=1<<22;
-
+    int64_t OB_FLUSH_DISK_BUFFER_SIZE = 1<<22;
   }
 }

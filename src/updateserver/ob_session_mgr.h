@@ -84,6 +84,7 @@ namespace oceanbase
       ST_READ_ONLY = 0,
       ST_REPLAY = 1,
       ST_READ_WRITE = 2,
+      ST_LONG_READ_WRITE = 3, // add by qx 20170314 for long  transcations
       SESSION_TYPE_NUM,
     };
 
@@ -136,9 +137,10 @@ namespace oceanbase
         {
           // do nothing
         };
-        virtual void on_free() // on free
+        virtual int on_free() // on free  // modify by qx 20170225 void on_free();
         {
           // do nothing
+          return OB_SUCCESS;
         };
         virtual void reset()
         {
@@ -561,6 +563,7 @@ namespace oceanbase
         int init(const uint32_t max_ro_num,
                 const uint32_t max_rp_num,
                 const uint32_t max_rw_num,
+                const  uint32_t max_lrw_num,  // add by qx 20170314 for long transcations
                 ISessionCtxFactory *factory);
 
         void destroy();

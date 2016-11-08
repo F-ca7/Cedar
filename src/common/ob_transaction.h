@@ -52,6 +52,7 @@ namespace oceanbase
       READ_WRITE_TRANS = 1,
       INTERNAL_WRITE_TRANS = 2, // 不加锁,避免触发trigger
       REPLAY_TRANS = 3, // 不加锁，
+      LONG_READ_WRITE_TRANS = 4, // add by qx 20170314 for long transcations
     };
 
     struct ObTransReq

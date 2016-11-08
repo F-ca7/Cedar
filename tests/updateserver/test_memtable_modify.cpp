@@ -161,7 +161,7 @@ TEST(TestObInsertDBSemFilter, iter_succ)
 
   SessionCtxFactory scf;
   SessionMgr sm;
-  sm.init(1000, 1000, 1000, &scf);
+  sm.init(1000, 1000, 1000 ,1000, &scf); // add a parameter by qx 20170314 for long transcation
 
   MockUpsTableMgr tm;
   uint32_t sd = 0;

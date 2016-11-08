@@ -231,6 +231,10 @@ namespace oceanbase
         //delete :e
         DEF_INT2(disk_default_buffer_size,"4194304","dault buffer size of disk")
         //add :e
+        //add by qx 20170310 :b
+        DEF_INT2(allocator_total_limit,"16106127360","allocator total limit default 15GB")
+        DEF_INT2(allocator_hold_limit,"8589934592","allocator total limit default 8GB")
+        //add :e
     };
   }
 }

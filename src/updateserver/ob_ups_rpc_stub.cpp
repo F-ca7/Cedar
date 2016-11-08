@@ -1248,6 +1248,43 @@ namespace oceanbase
         {
           TBSYS_LOG(ERROR, "fail to send request to rootserver [%s], err = %d", rootserver.to_cstring(), err);
         }
+        //add by qx 20170225 :b
+        // helpless decision: fix rs offline bug
+        // we will kill ups, but will produce another problem: maybe rs very fast restarted, it cause lost trigger event
+        if (OB_SUCCESS != err && msg.type != SLAVE_BOOT_STRAP_TRIGGER)
+        {
+//          data_buff.reset();
+//          ObTriggerMsg t_msg;
+//          t_msg.type = CHECK_RS_ONLINE_TRIGGER;
+//          t_msg.src.clone(msg.src);
+//          t_msg.param = 0;
+
+//          err = get_thread_buffer_(data_buff);
+//          if (OB_SUCCESS == err)
+//          {
+//            err = t_msg.serialize(data_buff.get_data(), data_buff.get_capacity(), data_buff.get_position());
+//          }
+//          if (OB_SUCCESS == err)
+//          {
+//            err = client_mgr_->send_request(rootserver, OB_HANDLE_TRIGGER_EVENT, DEFAULT_VERSION, timeout_us, data_buff);
+//            if(err != OB_SUCCESS)
+//            {
+//              TBSYS_LOG(ERROR, "rs may be offline, we need kill ups avoid to produce some error. =>%d", err);
+//              err = OB_RS_OFFLINE;
+//            }
+//            else
+//            {
+//              TBSYS_LOG(INFO, "rs online =>%d", err);
+//            }
+//          }
+          TBSYS_LOG(ERROR, "rs may be offline or not normal work, we need kill ups avoid to produce some error. =>%d", err);
+          err = OB_RS_OFFLINE;
+        }
+        else
+        {
+          err = OB_SUCCESS;
+        }
+        //add :e
       }
       return err; 
     }

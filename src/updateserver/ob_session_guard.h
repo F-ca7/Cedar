@@ -82,6 +82,11 @@ namespace oceanbase
             case READ_WRITE_TRANS:
               session_type = ST_READ_WRITE;
               break;
+            //add by qx 20170314 :b
+            case LONG_READ_WRITE_TRANS:
+              session_type = ST_LONG_READ_WRITE;
+              break;
+            //add :e
             case INTERNAL_WRITE_TRANS:
             case REPLAY_TRANS:
               session_type = ST_REPLAY;

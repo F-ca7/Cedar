@@ -121,6 +121,7 @@ int SpMsInstExecStrategy::execute_rd_base(SpRdBaseInst *inst)
   op->get_phy_plan()->set_result_set(phy_plan->get_result_set());
 
   op->get_phy_plan()->set_group_exec(false);
+  op->get_phy_plan()->set_long_trans_exec(false); //add by qx 20170317
   if( OB_SUCCESS !=  (ret = op->open()) )
   {
     TBSYS_LOG(WARN, "rd_base fail, sp rdbase inst exec(proc_op: %p, phy_plan: %p, result_set: %p)", inst->get_ownner(), phy_plan, phy_plan->get_result_set());
@@ -358,6 +359,14 @@ int SpMsInstExecStrategy::init_physical_plan(ObPhysicalPlan &exec_plan, ObPhysic
   start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
 //  start_new_trans = false; //a hack for payment test
   exec_plan.set_start_trans(start_new_trans);
+
+  //add by qx 210170317 :b
+  exec_plan.set_long_trans_exec(out_plan.is_long_trans_exec());
+  if (exec_plan.is_long_trans_exec())
+  {
+    exec_plan.get_trans_req().type_ = LONG_READ_WRITE_TRANS;
+  }
+  //add :e
 
 //  common::ObTransReq &start_trans_req = exec_plan.get_trans_req();
   return set_trans_params(session, exec_plan.get_trans_req());

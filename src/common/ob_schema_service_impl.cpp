@@ -1029,6 +1029,15 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
     {
       ret = hash::HASH_NOT_EXIST == err ? OB_ENTRY_NOT_EXIST : OB_ERROR;
       TBSYS_LOG(WARN, "id name map get fail:err[%d], table_id[%lu]", err, table_id);
+      //add by qx 20170225 :b for test
+//      hash::ObHashMap<uint64_t, ObString>::const_iterator iter1=id_name_map_.begin();
+//      for (;iter1!=id_name_map_.end();iter1++)
+//      {
+//        int64_t id = (uint64_t)(iter1->first);
+//        ObString name = iter1->second ;
+//        TBSYS_LOG(WARN, "reseting name hash map iter->first=%ld  second=%s", id, name.ptr());
+//      }
+      //add :e
     }
   }
   TBSYS_LOG(DEBUG, "get table_name=%.*s", table_name.length(), table_name.ptr());

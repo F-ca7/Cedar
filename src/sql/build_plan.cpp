@@ -4889,7 +4889,7 @@ int resolve_procedure_execute_stmt(
     uint64_t& query_id)
 {
   OB_ASSERT(result_plan);
-  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 3);//modify by wdh 20160716
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 3);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureExecuteStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
@@ -4938,18 +4938,49 @@ int resolve_procedure_execute_stmt(
             }
           }
           //add by wdh 20160716 :b
-          if(ret == OB_SUCCESS && node->children_[2]!=NULL)
-          {
-            OB_ASSERT(node->children_[2]->children_[0]->type_ == T_NO_GROUP);
-            ret = stmt->set_no_group(true);
-            TBSYS_LOG(DEBUG,"www: no_group is %d", true);
-          }
-          else if(ret == OB_SUCCESS && node->children_[2]== NULL)
-          {
-              stmt->set_no_group(false);
-              TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
-          }
+//          if(ret == OB_SUCCESS && node->children_[2]!=NULL)
+//          {
+//            OB_ASSERT(node->children_[2]->children_[0]->type_ == T_NO_GROUP);
+//            ret = stmt->set_no_group(true);
+//            TBSYS_LOG(DEBUG,"www: no_group is %d", true);
+//          }
+//          else if(ret == OB_SUCCESS && node->children_[2]== NULL)
+//          {
+//              stmt->set_no_group(false);
+//              TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
+//          }
           //add :e
+         //modify by qx 20170317 :b
+         if (ret == OB_SUCCESS && node->children_[2]!= NULL)
+         {
+           for (int32_t i = 0;i < node->children_[2]->num_child_; i++)
+           {
+             if (node->children_[2]->children_[i]->type_ == T_NO_GROUP)
+             {
+               ret = stmt->set_no_group(true);
+               TBSYS_LOG(ERROR,"www: no_group is %d", true);
+             }
+             else if (node->children_[2]->children_[i]->type_ == T_LONG_TRANS)
+             {
+               ret = stmt->set_long_trans(true);
+               TBSYS_LOG(ERROR,"www: long_trans is %d", true);
+             }
+             else
+             {
+              // shouldn't go here
+               TBSYS_LOG(ERROR,"www: find ET !");
+             }
+           }
+
+         }
+         else if (ret == OB_SUCCESS && node->children_[2]== NULL)
+         {
+           stmt->set_no_group(false);
+           TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
+           stmt->set_long_trans(false);
+           TBSYS_LOG(DEBUG,"www: long_trans is null, long_trans is %d", false);
+         }
+         //add :e
       }
   }
   return ret;

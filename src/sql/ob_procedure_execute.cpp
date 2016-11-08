@@ -71,6 +71,17 @@ bool ObProcedureExecute::get_no_group()
   return no_group_;
 }
 //add :e
+//add by qx 20170317 :b
+bool ObProcedureExecute::get_long_trans()
+{
+  return long_trans_;
+}
+int ObProcedureExecute::set_long_trans(bool long_trans)
+{
+  long_trans_ = long_trans;
+  return OB_SUCCESS;
+}
+//add :e
 void ObProcedureExecute::reset()
 {
   stmt_id_=common::OB_INVALID_ID;

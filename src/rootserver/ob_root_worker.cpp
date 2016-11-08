@@ -6095,7 +6095,15 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
             int64_t count = 0;
             if (role != common::ObiRole::MASTER)
             {
-              ret = root_server_.renew_user_schema(count);
+              //modify by qx 20170225 :b
+              // fix schema fail to refresh bug after drop table
+                ret = root_server_.renew_user_schema(count);
+                if (OB_SUCCESS != ret)
+                {
+                   TBSYS_LOG(WARN, "fail to refresh schema. in fact, if you restart rs, schema will be refresh. ret=%d", ret);
+//                   sleep(1);
+                }
+              // modidfy :e
             }
             TBSYS_LOG(INFO, "[TRIGGER][renew_user_schema(%ld)] done. ret=%d", count, ret);
             break;
@@ -6131,10 +6139,19 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
           {
             if (role != common::ObiRole::MASTER)
             {
+              // modify by qx 20170224 :b
+              // add a do while dead loop
               if (OB_SUCCESS != (ret = root_server_.trigger_create_table(msg.param)))
               {
                 TBSYS_LOG(WARN, "fail to create table for slave obi master, ret=%d", ret);
+                //delete by qx 20170225
+                //, maybe due to no one cs or ms, another one reason is ups restart.
+                //if you are sure the table already create success and want to stop dead loop, you can restart rs
+             //   sleep(1);
+                if (ret == OB_ENTRY_NOT_EXIST)
+                  ret = OB_SUCCESS;
               }
+              // modify :e
             }
             TBSYS_LOG(INFO, "[TRIGGER][slave_create_table] done. ret=%d", ret);
             break;
@@ -6152,16 +6169,21 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
             break;
           }
         //add by wdh 20160730 :b
-      case CREATE_PROCEDURE_TRIGGER:
-      case DROP_PROCEDURE_TRIGGER:
+        case CREATE_PROCEDURE_TRIGGER:
+        case DROP_PROCEDURE_TRIGGER:
           if (role != common::ObiRole::MASTER)
           {
-              if(OB_SUCCESS != (ret = root_server_.trigger_create_procedure()))
-              {
-                  TBSYS_LOG(WARN, "fail to create procedure for slave obi master, ret=%d", ret);
-              }
+            if(OB_SUCCESS != (ret = root_server_.trigger_create_procedure()))
+            {
+                TBSYS_LOG(WARN, "fail to create procedure for slave obi master, ret=%d", ret);
+            }
           }
           TBSYS_LOG(INFO, "[TRIGGER][slave_create_procedure] done.");
+          break;
+        //add :e
+        //add by qx 20170225 :b
+        case CHECK_RS_ONLINE_TRIGGER:
+          TBSYS_LOG(INFO, "[TRIGGER][ups check rs online] done.");
           break;
         //add :e
         default:
@@ -6169,17 +6191,26 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
             TBSYS_LOG(WARN, "get unknown trigger event msg:type[%ld]", msg.type);
           }
       }
-      int err = OB_SUCCESS;
-      // send response message, always success
-      if (OB_SUCCESS != (err = res.serialize(out_buff.get_data(),
-              out_buff.get_capacity(), out_buff.get_position())))
+      //add by qx 20170225 :b
+      if (OB_SUCCESS != ret)
       {
-        TBSYS_LOG(WARN, "failed to serialize, err=%d", err);
+        //not to send response
       }
-      else if (OB_SUCCESS != (err = send_response(OB_HANDLE_TRIGGER_EVENT_RESPONSE,
-              MY_VERSION, out_buff, req, channel_id)))
+      else
       {
-        TBSYS_LOG(WARN, "failed to send response, err=%d", err);
+      //add :e
+        int err = OB_SUCCESS;
+        // send response message, always success
+        if (OB_SUCCESS != (err = res.serialize(out_buff.get_data(),
+                out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to serialize, err=%d", err);
+        }
+        else if (OB_SUCCESS != (err = send_response(OB_HANDLE_TRIGGER_EVENT_RESPONSE,
+                MY_VERSION, out_buff, req, channel_id)))
+        {
+          TBSYS_LOG(WARN, "failed to send response, err=%d", err);
+        }
       }
       return ret;
     }

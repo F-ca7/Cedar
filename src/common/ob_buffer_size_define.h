@@ -14,7 +14,9 @@ namespace oceanbase {
     extern int32_t OB_MAX_THREAD_BUFFER_SIZE;
     extern int32_t OB_RPC_BUFFER_SIZE;
     extern int64_t OB_FLUSH_DISK_BUFFER_SIZE;
-
+    extern int64_t OB_ALLOCATOR_PAGE_SIZE;
+    extern int64_t OB_ALLOCATOR_TOTAL_LIMIT;
+    extern int64_t OB_ALLOCATOR_HOLD_LIMIT;
   }
 }
 

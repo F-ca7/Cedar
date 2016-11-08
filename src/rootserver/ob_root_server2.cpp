@@ -1586,7 +1586,8 @@ int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
       }
       res_ = NULL;
     }
-    if(OB_ERROR != ret)
+    //if(OB_ERROR != ret)
+    if(OB_ERROR != ret && OB_INNER_STAT_ERROR != ret) //modify by qx 20170224
     {
         ret = OB_SUCCESS;
     }
@@ -8406,11 +8407,18 @@ int ObRootServer2::trigger_create_table(const uint64_t table_id/* =0 */)
   }
   if (OB_SUCCESS == ret)
   {
+    //modify by qx 20170220 :b
+    // we must get schema, otherwise slave cluster will lost table, even restart ups due to commit point aready pass.
+    //    if (OB_SUCCESS != ret)
+    //    {
+    //      TBSYS_LOG(WARN, "fail to get schema, ret=%d", ret);
+    //    }
     ret = get_schema(true, false, *new_schema);
     if (OB_SUCCESS != ret)
     {
-      TBSYS_LOG(WARN, "fail to get schema. ret=%d", ret);
+      TBSYS_LOG(WARN, "fail to get schema, ret=%d", ret);
     }
+    //add :e
   }
   common::ObArray<uint64_t> new_tables;
   TableSchema table_schema;
@@ -8969,14 +8977,34 @@ int ObRootServer2::trigger_create_procedure()
   if (OB_SUCCESS == ret)
   {
     name_code_map_->reset();
+    //modify by qx 20170224 :b
+    // fix bug procedure fail to renew procedure cache.
+    // rs procedure cache each update when create procedure trigger event happened
+    // once no one ms, cause rs can't update procedure cache
+    // however trigger event can't reproduce in cluster rootservers
+    // so only dead cycle fix
+//    if (OB_SUCCESS != (ret = get_procedure(*name_code_map_)))
+//    {
+//      TBSYS_LOG(WARN, "fail to renew procedure cache. ret=%d", ret);
+//    }
+//    else if(OB_SUCCESS != (ret = sync_proc_all_ms()))
+//    {
+//      TBSYS_LOG(WARN, "fail to sync to all ms. ret=%d", ret);
+//    }
+
     if (OB_SUCCESS != (ret = get_procedure(*name_code_map_)))
     {
-      TBSYS_LOG(WARN, "fail to renew procedure cache. ret=%d", ret);
+      TBSYS_LOG(WARN, "fail to renew procedure cache, we will alway retry until ret is success. ret=%d", ret);
     }
     else if(OB_SUCCESS != (ret = sync_proc_all_ms()))
     {
       TBSYS_LOG(WARN, "fail to sync to all ms. ret=%d", ret);
+      //add by qx 20170225 :b
+      // just some ms offline we can use heartbeat fix
+      ret = OB_SUCCESS;
+      //add :e
     }
+    //modify :e
   }
   return ret;
 }

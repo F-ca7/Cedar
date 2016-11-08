@@ -244,8 +244,7 @@ namespace oceanbase
 
       return err;
     }
-
-    //add huangjianwei [secondary index debug] 20170313:b
+    //add by qx 20170210 :b
     int ObMutator :: update(const uint64_t table_id, const ObRowkey& row_key,
         const uint64_t column_id, const ObObj& value, bool is_row_changed, const int return_flag)
     {
@@ -518,8 +517,14 @@ namespace oceanbase
     {
       return add_cell(cell, CHANGED_UNKNOW, NO_BARRIER, OB_DML_UNKNOW);
     }
+    //add by qx 20170210
+    int ObMutator::add_cell(const ObMutatorCellInfo& cell, bool is_row_changed)
+    {
+      return add_cell(cell,is_row_changed? CHANGED:NOCHANGED, NO_BARRIER, OB_DML_UNKNOW);
+    }
+    //add :e
 
-    //add huangjianwei [secondary index debug] 20170313:b
+    //add by qx 20170210
     int ObMutator::add_cell(const ObMutatorCellInfo& cell, bool is_row_changed)
     {
       return add_cell(cell,is_row_changed? CHANGED:NOCHANGED, NO_BARRIER, OB_DML_UNKNOW);

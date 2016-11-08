@@ -223,6 +223,10 @@ int ObResultSet::reset()
   cur_time_ = NULL;
   errcode_ = 0;
   // don't set stmt_type_ = ObBasicStmt::T_NONE;
+  //add by qx 20170318 :b
+  no_group_ = true;
+  long_trans_ = false;
+  //add :e
   return ret;
 }
 
@@ -408,6 +412,7 @@ int ObResultSet::to_prepare(ObResultSet& other)
   other.query_string_id_ = query_string_id_;
   other.stmt_hash_code_ = stmt_hash_code_; //add by zhutao
   other.no_group_ = no_group_;  //add  by zhutao
+  other.long_trans_ = long_trans_; //add by qx 20170318
   other.cur_schema_version_ = cur_schema_version_; //add by wdh 20160822
   this->statement_name_.reset();
   this->physical_plan_ = NULL;

@@ -735,6 +735,10 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
     return MERGE_JOIN;
     /* add e */
 }
+<hint>LONG_TRANS  {
+    /* add by qx 20170317 */
+      return LONG_TRANS;
+    }
 <hint>WEAK  {
     return WEAK;
 }

@@ -208,6 +208,20 @@ namespace oceanbase
          * @return flag
          */
         bool get_no_group() const { return no_group_; }
+        //add by qx 20170317 :b
+        /**
+         * @brief set_long_trans
+         * set long transcation flag
+         * @param long_trans
+         */
+        void set_long_trans(bool long_trans) {long_trans_ = long_trans;}
+        /**
+         * @brief get_long_trans
+         * get long transcation flag
+         * @return
+         */
+        bool get_long_trans() const {return long_trans_;}
+        //add :e
         //add zt 20151201:e
         //add by wdh 20160822 :b
         void set_cur_schema_version(int64_t cur_schema_version) {cur_schema_version_ = cur_schema_version;}
@@ -262,6 +276,7 @@ namespace oceanbase
         int64_t stmt_hash_code_;  ///<  statement hash code_
         bool no_group_;  ///< no group excution flag
         int64_t cur_schema_version_; // add by wdh 20160822 [dev compile] used in cache manage
+        bool long_trans_;   ///< long transcation flag  add by qx 20170317
 
     };
 

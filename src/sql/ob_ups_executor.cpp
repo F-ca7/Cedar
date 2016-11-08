@@ -94,7 +94,6 @@ int ObUpsExecutor::open()
     outer_result_set = my_result_set->get_session()->get_current_result_set();
     my_result_set->set_session(outer_result_set->get_session()); // be careful!
     session = my_phy_plan_->get_result_set()->get_session();
-
     inner_plan_->set_result_set(my_result_set);
 //add wangjiahao [dev_update_more] 20160119 :b
     //set inner_plan timeout_timestamp in order to terminate the long running in subquery.
@@ -137,6 +136,19 @@ int ObUpsExecutor::open()
   {
     start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
     inner_plan_->set_start_trans(start_new_trans);
+    //add by qx 210170317 :b
+    //TBSYS_LOG(ERROR,"outer result set[%p] = %d  no group =%d my rs[%p] =%d no group = %d",
+    //          outer_result_set,outer_result_set->get_long_trans(),outer_result_set->get_no_group(), my_result_set,my_result_set->get_long_trans(), my_result_set->get_no_group());
+    inner_plan_->set_long_trans_exec(my_result_set->get_long_trans());
+    if (inner_plan_->is_long_trans_exec())
+    {
+      inner_plan_->get_trans_req().type_ = LONG_READ_WRITE_TRANS;
+    }
+    else
+    {
+      inner_plan_->get_trans_req().type_ = READ_WRITE_TRANS;
+    }
+    //add :e
     if (start_new_trans
         && (OB_SUCCESS != (ret = set_trans_params(session, inner_plan_->get_trans_req()))))
     {

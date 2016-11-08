@@ -203,6 +203,13 @@ namespace oceanbase
         my_buffer->reset();
         buf = my_buffer->current();
         len = my_buffer->remain();
+
+        //add by qx 20170303 :b
+        //fix maybe happened error
+        if (len > OB_MAX_LOG_BUFFER_SIZE)
+          len = OB_MAX_LOG_BUFFER_SIZE;
+        //add :e
+
         end_cursor = start_cursor;
       }
       //TBSYS_LOG(WARN,"test::zhouhuan prefetch_log start_cursor=[%s]",to_cstring(start_cursor));

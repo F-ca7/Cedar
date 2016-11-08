@@ -257,9 +257,13 @@ namespace oceanbase
     const int OB_FORCE_TIME_OUT = -2010;
     const int OB_BEGIN_TRANS_LOCKED = -2011;
     //add chujiajia [log synchronization][multi_cluster] 20160603:b
-	const int OB_NOT_EQUAL = -2012;
+    const int OB_NOT_EQUAL = -2012;
     const int OB_NOTIFY_EQUAL = -2013;
-	//add:e
+    //add:e
+    //add by qx 20170225 :b
+    const int OB_RS_OFFLINE = -2014;    ///<slave cluster rs offline need kill ups to prohibit replay log
+    //add :e
+
     //error code for root server -3001 ---- -4000
     const int OB_ERROR_TIME_STAMP = -3001;
     const int OB_ERROR_INTRESECT = -3002;

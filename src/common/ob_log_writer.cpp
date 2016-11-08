@@ -259,13 +259,13 @@ int ObLogWriter::async_flush_log(int64_t& end_log_id, TraceLog::LogBuffer &tlog_
                  start_cursor.log_id_, end_cursor.log_id_);
   if (OB_SUCCESS != ret)
   {}
-  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
-  {
-    TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
-  }
   else if (OB_SUCCESS != (ret = write_log_hook(true, start_cursor, end_cursor, buf, len)))
   {
     TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
+  }
+  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  {
+    TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
   }
   else if (len > 0)
   {
@@ -343,13 +343,13 @@ int ObLogWriter::flush_log(TraceLog::LogBuffer &tlog_buffer, const bool sync_to_
                  start_cursor.log_id_, end_cursor.log_id_);
   if (OB_SUCCESS != ret)
   {}
-  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
-  {
-    TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
-  }
   else if (OB_SUCCESS != (ret = write_log_hook(is_master, start_cursor, end_cursor, buf, len)))
   {
     TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
+  }
+  else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
+  {
+    TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
   }
   else if (len > 0)
   {

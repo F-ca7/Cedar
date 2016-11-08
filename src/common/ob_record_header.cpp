@@ -76,7 +76,6 @@ namespace oceanbase
       {
         ret = OB_SUCCESS;
       }
-
       return ret;
     }
 

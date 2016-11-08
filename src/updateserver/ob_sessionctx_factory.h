@@ -152,7 +152,7 @@ namespace oceanbase
         int precommit();
         void end(const bool need_rollback);
         void publish();
-        void on_free();
+        int on_free();  // modify by qx 20170225 void on_free();
         void *alloc(const int64_t size);
         void reset();
         virtual void kill();
@@ -273,9 +273,14 @@ namespace oceanbase
 
     class SessionCtxFactory : public ISessionCtxFactory
     {
-      static const int64_t ALLOCATOR_TOTAL_LIMIT = 5L * 1024L * 1024L * 1024L;
-      static const int64_t ALLOCATOR_HOLD_LIMIT = static_cast<int64_t>(1.5 * 1024L * 1024L * 1024L); //1.5G //ALLOCATOR_TOTAL_LIMIT / 2;
+//      static const int64_t ALLOCATOR_TOTAL_LIMIT = 5L * 1024L * 1024L * 1024L;
+//      static const int64_t ALLOCATOR_HOLD_LIMIT = static_cast<int64_t>(1.5 * 1024L * 1024L * 1024L); //1.5G //ALLOCATOR_TOTAL_LIMIT / 2;
+      static const int64_t ALLOCATOR_TOTAL_LIMIT = 6L * 1024L * 1024L * 1024L;
+      static const int64_t ALLOCATOR_HOLD_LIMIT = static_cast<int64_t>(3 * 1024L * 1024L * 1024L);
+      //modify by qx 20170311 :b
       static const int64_t ALLOCATOR_PAGE_SIZE = 16L * 1024L * 1024L;
+      //static const int64_t ALLOCATOR_PAGE_SIZE = 4L * 1024L * 1024L;
+      //modify :e
       public:
         SessionCtxFactory();
         ~SessionCtxFactory();
@@ -286,6 +291,7 @@ namespace oceanbase
         common::ModulePageAllocator mod_;
         common::ModuleArena allocator_;
         common::FIFOAllocator ctx_allocator_;
+        common::FIFOAllocator long_trans_ctx_allocator_;
     };
   }
 }

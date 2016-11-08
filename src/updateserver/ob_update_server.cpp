@@ -312,7 +312,12 @@ namespace oceanbase
       {
         int64_t timeout_delta = 50 * 1000;
         int64_t n_blocks = config_.log_cache_n_block;
-        int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size) - 1;
+        // modify by qx 20170306 :b
+        //fix bug
+        //  I don't understand why need -1 ? This means error for cfg2mb
+        //int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size) - 1;
+        int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size);
+        // modify :e
         int64_t log_file_max_size = config_.commit_log_size;
         int64_t n_replay_worker = config_.replay_worker_num;
         int64_t replay_log_buf_len = config_.replay_log_buf_size;
