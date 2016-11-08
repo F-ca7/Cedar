@@ -97,12 +97,14 @@ namespace oceanbase
     TransExecutor::TransExecutor(ObUtilInterface &ui) : TransHandlePool(),
                                                         TransCommitThread(),
                                                         ui_(ui),
+                                                        my_thread_buffer_(static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE)),  // enable handle log pkt
                                                         allocator_(),
                                                         session_ctx_factory_(),
                                                         session_mgr_(),
                                                         lock_mgr_(),
                                                         uncommited_session_list_(),
                                                         ups_result_buffer_(ups_result_memory_, OB_MAX_PACKET_LENGTH)
+
     {
       allocator_.set_mod_id(ObModIds::OB_UPS_TRANS_EXECUTOR_TASK);
       memset(ups_result_memory_, 0, OB_MAX_PACKET_LENGTH);
@@ -180,7 +182,7 @@ namespace oceanbase
       // add:e
       TransHandlePool::set_cpu_affinity(trans_thread_start_cpu, trans_thread_end_cpu);
       TransCommitThread::set_cpu_affinity(commit_thread_cpu);
-      if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE)))
+      if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, OB_LOG_BUFFER_MAX_SIZE)))
       {
         TBSYS_LOG(WARN, "init allocator fail ret=%d", ret);
       }

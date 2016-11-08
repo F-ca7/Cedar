@@ -15,6 +15,7 @@
  */
 #include "ob_explain.h"
 #include "common/utility.h"
+#include "common/ob_malloc.h"
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
@@ -87,17 +88,24 @@ int ObExplain::get_next_row(const common::ObRow *&row)
   }
   else
   {
-    char buf[OB_MAX_LOG_BUFFER_SIZE];
+    //modify by qx 20161024: b
+    //warn: I don't know change static allocation to dynamic allocation how impact explain speed.
+    //update 20161106: I think OB_MAX_LOG_BUFFER_SIZE is not a matter ,in fact don't need so large space.
+    //so now we use OB_MAX_PACKET_LENGTH repace it.if some problem happened ,you can use dynamic allocation as top
+    //char buf[OB_MAX_LOG_BUFFER_SIZE];
+    char buf[OB_MAX_PACKET_LENGTH];
+    //char *buf = static_cast<char*>(ob_malloc(OB_MAX_LOG_BUFFER_SIZE,ObModIds::OB_SQL_EXPLAIN));
+    //modif :e
     int64_t pos = 0;
     if (verbose_)
     {
       // add logical plan to output
       // now logical plan can not add to buf, we will do it later
       // FIX ME
-      databuff_printf(buf, OB_MAX_LOG_BUFFER_SIZE, pos, "\n");
+      databuff_printf(buf, OB_MAX_PACKET_LENGTH, pos, "\n");
       pos += strlen("\n");
     }
-    pos += to_string(buf + pos, OB_MAX_LOG_BUFFER_SIZE - pos);
+    pos += to_string(buf + pos, OB_MAX_PACKET_LENGTH - pos);
     ObString str(static_cast<int32_t>(pos), static_cast<int32_t>(pos), buf);
     ObString stored_str;
     if ((ret = str_buf_.write_string(str, &stored_str)) != OB_SUCCESS)
@@ -118,6 +126,8 @@ int ObExplain::get_next_row(const common::ObRow *&row)
         row = &row_;
       }
     }
+    //free buf
+    //ob_free(buf);
   }
 
   return ret;

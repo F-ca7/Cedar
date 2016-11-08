@@ -231,7 +231,7 @@ int64_t ObUpsLogMgr::FileIdBeforeLastMajorFrozen::get()
   return (0 < file_id) ? (file_id - 1) : file_id;
 }
 
-ObUpsLogMgr::ObUpsLogMgr(): log_buffer_for_fetch_(LOG_BUFFER_SIZE), log_buffer_for_replay_(LOG_BUFFER_SIZE)
+ObUpsLogMgr::ObUpsLogMgr(): log_buffer_for_fetch_(static_cast<int32_t>(OB_MAX_LOG_BUFFER_SIZE)), log_buffer_for_replay_(static_cast<int32_t>(OB_MAX_LOG_BUFFER_SIZE))
 {
   table_mgr_ = NULL;
   role_mgr_ = NULL;
@@ -828,7 +828,7 @@ int ObUpsLogMgr::slave_receive_log(const char* buf, int64_t len, const int64_t w
   }
   else if (OB_SUCCESS != (err = append_to_log_buffer(&recent_log_cache_, start_id, end_id, buf, len)))
   {
-    TBSYS_LOG(ERROR, "append_to_log_buffer(log_id=[%ld,%ld))=>%d", start_id, end_id, err);
+    TBSYS_LOG(ERROR, "append_to_log_buffer(log_id=[%ld,%ld)) len=%ld  =>%d", start_id, end_id, len, err);
   }
   else
   {

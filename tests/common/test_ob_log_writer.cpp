@@ -144,7 +144,7 @@ namespace oceanbase
 
         EXPECT_EQ(OB_SUCCESS, log_writer.flush_log());
 
-        int t = static_cast<int32_t>((ObLogWriter::LOG_BUFFER_SIZE - ObLogWriter::LOG_FILE_ALIGN_SIZE) / (BUFSIZ + entry.get_serialize_size()));
+        int t = static_cast<int32_t>((OB_MAX_LOG_BUFFER_SIZE - ObLogWriter::LOG_FILE_ALIGN_SIZE) / (BUFSIZ + entry.get_serialize_size()));
         for (int i = 0; i < t; i++)
         {
           EXPECT_EQ(OB_SUCCESS, log_writer.write_log(OB_LOG_UPS_MUTATOR, buf, BUFSIZ));
@@ -206,7 +206,7 @@ namespace oceanbase
 
         EXPECT_EQ(log_writer.cur_log_size_, get_write_size(BUFSIZ + entry.get_serialize_size()));
 
-        int t = static_cast<int32_t>(ObLogWriter::LOG_BUFFER_SIZE / get_write_size(BUFSIZ + entry.get_serialize_size()));
+        int t = static_cast<int32_t>(OB_MAX_LOG_BUFFER_SIZE / get_write_size(BUFSIZ + entry.get_serialize_size()));
         for (int i = 0; i < t; i++)
         {
           EXPECT_EQ(OB_SUCCESS, log_writer.write_and_flush_log(OB_LOG_UPS_MUTATOR, buf, BUFSIZ));

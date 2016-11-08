@@ -46,9 +46,9 @@ int ObLogWriter::init(const char* log_dir, const int64_t log_file_max_size, ObSl
     TBSYS_LOG(ERROR, "Parameter are invalid[log_dir=%p slave_mgr=%p]", log_dir, slave_mgr);
     ret = OB_INVALID_ARGUMENT;
   }
-  else if (OB_SUCCESS != (ret = log_generator_.init(LOG_BUFFER_SIZE, log_file_max_size, server)))
+  else if (OB_SUCCESS != (ret = log_generator_.init(OB_MAX_LOG_BUFFER_SIZE, log_file_max_size, server)))
   {
-    TBSYS_LOG(ERROR, "log_generator.init(buf_size=%ld, file_limit=%ld)=>%d", LOG_BUFFER_SIZE, log_file_max_size, ret);
+    TBSYS_LOG(ERROR, "log_generator.init(buf_size=%ld, file_limit=%ld)=>%d", OB_MAX_LOG_BUFFER_SIZE, log_file_max_size, ret);
   }
   else if (OB_SUCCESS != (ret = log_writer_.init(log_dir, log_file_max_size, du_percent, log_sync_type, fufid_getter)))
   {

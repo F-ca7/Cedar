@@ -48,6 +48,8 @@
 #include <stdlib.h>
 #include <openssl/md5.h>
 
+#include "ob_buffer_size_define.h"
+
 namespace oceanbase
 {
   namespace common
@@ -515,8 +517,10 @@ namespace oceanbase
     const int64_t OB_MAX_CIPHER_LENGTH = MD5_DIGEST_LENGTH * 2;
 
     const int64_t OB_MAX_RESULT_MESSAGE_LENGTH = 1024;
-    const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
-
+    //delete by qx 20161106 :b
+    //defined in ob_buffer_size_define.h now
+    //const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
+    //delete :e
     const int32_t OB_SAFE_COPY_COUNT = 3;
     const int32_t OB_DEC_AND_LOCK = 2626; /* used by remoe_plan in ObPsStore */
     // OceanBase Log Synchronization Type

@@ -680,7 +680,7 @@ namespace oceanbase
       private:
         static const int MY_VERSION = 1;
         static const int HEARTBEAT_VERSION = 2;
-        static const int32_t RPC_BUFFER_SIZE = 1024*1024*2; //2MB
+        //static const int32_t RPC_BUFFER_SIZE = 1024*1024*2; //2MB
         static const int32_t DEFAULT_TASK_READ_QUEUE_SIZE = 1000;
         static const int32_t DEFAULT_TASK_WRITE_QUEUE_SIZE = 1000;
         static const int32_t DEFAULT_TASK_PREPROCESS_QUEUE_SIZE = 1000;

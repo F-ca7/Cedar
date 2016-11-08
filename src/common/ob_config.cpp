@@ -118,6 +118,34 @@ int64_t ObConfigIntItem::get(const char* str, bool &valid) const
   }
   return value;
 }
+//add by qx 20161027 :b
+int64_t ObConfigInt2Item::get(const char* str, bool &valid) const
+{
+  char *p_end = NULL;
+  int64_t value = 0;
+
+  if (NULL == str || '\0' == str[0])
+  {
+    valid = false;
+  }
+  else
+  {
+    valid = true;
+    value = strtol(str, &p_end, 0);
+    if ('\0' == *p_end)
+    {
+      valid = true;
+    }
+    else
+    {
+      valid = false;
+      TBSYS_LOG(ERROR, "set int error! name: [%s], str: [%s]", name(), str);
+    }
+  }
+  return value;
+}
+//add :e
+
 
 int64_t ObConfigTimeItem::get(const char* str, bool &valid) const
 {

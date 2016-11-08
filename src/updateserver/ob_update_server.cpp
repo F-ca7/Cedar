@@ -106,7 +106,8 @@ namespace oceanbase
                                    ObUpdateServerConfig& config)
       : config_(config),
         config_mgr_(config_mgr),
-        rpc_buffer_(RPC_BUFFER_SIZE),
+        rpc_buffer_(OB_RPC_BUFFER_SIZE),
+        my_thread_buffer_(OB_MAX_THREAD_BUFFER_SIZE),
         read_task_queue_size_(DEFAULT_TASK_READ_QUEUE_SIZE),
         write_task_queue_size_(DEFAULT_TASK_WRITE_QUEUE_SIZE),
         lease_task_queue_size_(DEFAULT_TASK_LEASE_QUEUE_SIZE),

@@ -17,7 +17,7 @@ namespace oceanbase
 {
   namespace updateserver
   {
-    ObReplayLogSrc::ObReplayLogSrc(): read_pos_(0), log_buffer_(NULL), prefetch_log_task_submitter_(NULL)
+    ObReplayLogSrc::ObReplayLogSrc(): read_pos_(0), log_buffer_(NULL), prefetch_log_task_submitter_(NULL),log_buffer_for_prefetch_(common::OB_MAX_THREAD_BUFFER_SIZE)
     {}
 
     ObReplayLogSrc::~ObReplayLogSrc()

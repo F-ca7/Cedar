@@ -210,8 +210,6 @@ namespace oceanbase
         {
           s->r.user_data = args;
         }
-        TBSYS_LOG(DEBUG, "post packet, pcode=%d channel=%u session=%p session_id=%ld",
-                  packet->get_packet_code(), packet->get_channel_id(), s, session_id);
         rc = post_session_using_dedicate_thread(s, thread_idx);
         if (OB_SUCCESS != rc)
         {

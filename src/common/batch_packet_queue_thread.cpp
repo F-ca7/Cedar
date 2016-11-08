@@ -29,7 +29,8 @@ namespace common {
 
 
 // 构造
-BatchPacketQueueThread::BatchPacketQueueThread() : tbsys::CDefaultRunnable() {
+// add by qx 20161103,use my constructor for _queue ,BatchPacketQueueThread only used by updaterserver
+BatchPacketQueueThread::BatchPacketQueueThread() : tbsys::CDefaultRunnable(),_queue(OB_LOG_BUFFER_MAX_SIZE) {
     _stop = 0;
     _waitFinish = false;
     _handler = NULL;
@@ -43,8 +44,9 @@ BatchPacketQueueThread::BatchPacketQueueThread() : tbsys::CDefaultRunnable() {
 }
 
 // 构造
+// add by qx 20161103,use my constructor for _queue ,BatchPacketQueueThread only used by updaterserver
 BatchPacketQueueThread::BatchPacketQueueThread(int threadCount, IBatchPacketQueueHandler *handler, void *args)
-        : tbsys::CDefaultRunnable(threadCount) {
+        : tbsys::CDefaultRunnable(threadCount),_queue(OB_LOG_BUFFER_MAX_SIZE) {
     _stop = 0;
     _waitFinish = false;
     _handler = handler;
