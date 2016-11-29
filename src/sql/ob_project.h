@@ -1,19 +1,20 @@
 /**
-* Copyright (C) 2013-2016 DaSE .
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_project.h
-* @brief for operations of project
-*
-* modified by maoxiaoxiao:add functions to get next row if table has index and reset iterator
-*
-* @version CEDAR 0.2 
-* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_project.h
+ * @brief for operations of project
+ *
+ * modified by maoxiaoxiao:add functions to get next row if table has index and reset iterator
+ *
+ * @version __DaSE_VERSION
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ *
+ * @date 2016_07_29
+ */
 
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.

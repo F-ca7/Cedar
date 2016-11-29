@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,11 +10,14 @@
  *
  * modified by longfei：add some case
  * modified by maoxiaoxiao: add some case
+ * modified by zhutao: add T_ARRAY type
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @date 2016_07_27
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @date 2016_07_30
  */
 
 #include "ob_item_type.h"
@@ -221,8 +224,8 @@ const char* get_type_name(int type)
   case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
   case T_USE_INDEX : return "T_USE_INDEX"; //add longfei
   case T_KILL : return "T_KILL";
-	case T_MAX : return "T_MAX";
-
+  case T_MAX : return "T_MAX";
+  case T_ARRAY : return "T_ARRAY";  //add zt 20151125
 	// add [secondaryindex reconstruct] longfei [create index]
 	case T_CREATE_INDEX : return "T_CREATE_INDEX";
 	case T_INDEX_ELEMENT_LIST : return "T_INDEX_ELEMENT_LIST";

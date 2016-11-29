@@ -1,19 +1,22 @@
 /**
-* Copyright (C) 2013-2016 DaSE .
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_execute_stmt.h
-* @brief this class present a procedure "execute" logic plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version CEDAR 0.2 
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_procedure_execute_stmt.h
+ * @brief the ObProcedureExecuteStmt class definition that warp procedure execute statement
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_28
+ */
+
 #ifndef OCEANBASE_SQL_OB_PROCEDURE_EXECUTE_STMT_H_
 #define OCEANBASE_SQL_OB_PROCEDURE_EXECUTE_STMT_H_
 #include "common/ob_string.h"
@@ -21,97 +24,116 @@
 #include "common/ob_array.h"
 #include "ob_basic_stmt.h"
 #include "parse_node.h"
-#include <map>
 using namespace oceanbase::common;
 
-namespace oceanbase {
-namespace sql {
-
-/**
- * @brief The ObProcedureExecuteStmt class
- */
-class ObProcedureExecuteStmt: public ObBasicStmt {
-	public:
-	ObProcedureExecuteStmt() :
-				ObBasicStmt(T_PROCEDURE_EXEC) {
-			proc_stmt_id_=common::OB_INVALID_ID;
-		}
-		virtual ~ObProcedureExecuteStmt() {
-		}
-
+namespace oceanbase
+{
+  namespace sql
+  {
+    /**
+     * @brief The ObProcedureExecuteStmt class
+     * procedure execute statement class definition
+     */
+    class ObProcedureExecuteStmt: public ObBasicStmt
+    {
+      public:
         /**
-         * @brief set procedure name
-         * @param proc_name
-         * @return
+         * @brief constructor
          */
-		int set_proc_name(ObString &proc_name);
-
+        ObProcedureExecuteStmt() :
+            ObBasicStmt(T_PROCEDURE_EXEC)
+        {
+          proc_stmt_id_=common::OB_INVALID_ID;
+        }
         /**
-         * @brief set procedure statement id
-         * @param proc_stmt_id
-         * @return
+         * @brief destructor
          */
-		int set_proc_stmt_id(uint64_t& proc_stmt_id);
-
+        virtual ~ObProcedureExecuteStmt()
+        {
+        }
         /**
-         * @brief get procedure name
-         * @return
+         * @brief set_proc_name
+         * set procedure name
+         * @param proc_name procedure name
+         * @return error code
          */
-        ObString& get_proc_name();
+        int set_proc_name(const ObString &proc_name);
         /**
-         * @brief get proccedure statement id
-         * @return
+         * @brief set_proc_stmt_id
+         * set procedure statement id
+         * @param proc_stmt_id  procedure statement id
+         * @return error code
          */
-        uint64_t& get_proc_stmt_id();
-
-		virtual void print(FILE* fp, int32_t level, int32_t index);
-
+        int set_proc_stmt_id(uint64_t proc_stmt_id);
         /**
-         * @brief add variable
-         * @param name
-         * @return
+         * @brief get_proc_name
+         * get procedure name
+         * @return procedure name
          */
-		int add_variable_name(ObString& name);
+        const ObString& get_proc_name() const;/*获取存储过程名*/
         /**
-         * @brief get variable name by index
+         * @brief get_proc_stmt_id
+         * get procedure statement id
+         * @return procedure statement id
+         */
+        uint64_t get_proc_stmt_id() const;/*获取存储过程对应语句id*/
+        /**
+         * @brief print
+         * print procedure execute statement information
+         * @param fp
+         * @param level
          * @param index
-         * @return
          */
-		ObString& get_variable_name(int64_t index);
+        virtual void print(FILE* fp, int32_t level, int32_t index);
+
+        //    int add_variable_name(const ObString& name);
+
+        //    const ObString& get_variable_name(int64_t index) const;
+
+        //    int64_t get_variable_size() const;
         /**
-         * @brief get variable size
+         * @brief add_param_expr
+         * add a paramer expression id
+         * @param expr_id paramer expression id
          * @return
          */
-		int64_t get_variable_size();
-
+        int add_param_expr(uint64_t expr_id);
         /**
-         * @brief add execute parameter expression id
-         * @param expr_id
-         * @return
+         * @brief get_param_expr
+         * get paramer expression id by array index
+         * @param index array index
+         * @return paramer expression id
          */
-		int add_param_expr(uint64_t& expr_id);
-
+        uint64_t get_param_expr(int64_t index) const;
         /**
-         * @brief get parameter expression by index
-         * @param index
-         * @return
+         * @brief get_param_size
+         * get paramer array size
+         * @return paramer array number
          */
-		uint64_t get_param_expr(int64_t index);
+        int64_t get_param_size() const;
         /**
-         * @brief get parameter size
-         * @return
+         * @brief set_no_group
+         * set no group execution
+         * @param no_group  no group flag
+         * @return error code
          */
-		int64_t get_param_size();
+        int set_no_group(bool no_group);//add by wdh 20160718
+        /**
+         * @brief get_no_group
+         * get no group execution flag
+         * @return bool value
+         */
+        bool get_no_group();
+      private:
+        ObString proc_name_;  ///<  procedure name
+        //		common::ObArray<common::ObString> variable_names_;
+        common::ObArray<uint64_t> param_list_;   ///<  paramer list
+        /// need to query data generated from the table when the stored procedure to generate a program corresponding to the stored procedure statement ID
+        uint64_t proc_stmt_id_;
+        bool no_group_;   ///<  no group execution flag
+    };
 
-	private:
-        ObString proc_name_;///< procedure name
-        common::ObArray<common::ObString> variable_names_;///> variables name
-        common::ObArray<uint64_t> param_list_;///> parameter list
-        uint64_t proc_stmt_id_;///> procedure statement id
-	};
-
-
-}
+  }
 }
 
 #endif

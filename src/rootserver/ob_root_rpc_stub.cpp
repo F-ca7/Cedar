@@ -12,13 +12,16 @@
  * modified by guojinwei:add some remote process control function to the ObRootRpcStub class.
  *                       ObRootRpcStub support multiple clusters for HA by adding or modifying
  *                       some functions, member variables
+ * modified by wangdonghui:add update and delete procedure cache functions
  *
  * @version __DaSE_VERSION
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date  2016_01_24
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date  2016_07_30
  */
 
 #include "rootserver/ob_root_worker.h"
@@ -114,7 +117,7 @@ int ObRootRpcStub::slave_register(const ObServer& master, const ObServer& slave_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// ÉèÖÃ±¸rsµÄ½ÇÉ«µÄÔ¶³Ìµ÷ÓÃ
+// ï¿½ï¿½ï¿½Ã±ï¿½rsï¿½Ä½ï¿½É«ï¿½ï¿½Ô¶ï¿½Ìµï¿½ï¿½ï¿½
 int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRole &role, const int64_t timeout)
 {
   int err = OB_SUCCESS;
@@ -170,7 +173,7 @@ int ObRootRpcStub::set_slave_obi_role(const ObServer& slave, const common::ObiRo
 // add:e
 
 // add by zcd [multi_cluster] 20150416:b
-// bootstrapÃüÁîµÄÔ¶³Ìµ÷ÓÃ
+// bootstrapï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½Ìµï¿½ï¿½ï¿½
 int ObRootRpcStub::boot_strap(const common::ObServer& server)
 {
   int ret = OB_SUCCESS;
@@ -288,7 +291,7 @@ int ObRootRpcStub::get_row_checksum(const common::ObServer& server, const int64_
 }
 
 // add by zcd [multi_cluster] 20150405:b
-// Ô¶³ÌÉèÖÃÆäËûserverµÄconfigÐÅÏ¢µÄµ÷ÓÃ¹ý³Ì
+// Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½serverï¿½ï¿½configï¿½ï¿½Ï¢ï¿½Äµï¿½ï¿½Ã¹ï¿½ï¿½ï¿½
 int ObRootRpcStub::set_config(const common::ObServer& server, const ObString& config_str, int64_t timeout_us)
 {
   int ret = OB_SUCCESS;
@@ -410,6 +413,163 @@ int ObRootRpcStub::switch_schema(const common::ObServer& server, const common::O
   }
   return ret;
 }
+
+//add by wangdonghui 20160122 :b
+int ObRootRpcStub::update_cache(const common::ObServer& server, const common::ObString& proc_name, const common::ObString & proc_source_code, const int64_t local_version, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(INFO, "before rpc ms %s: proc name %s, proc source code %s, timeout: %ld", to_cstring(server),
+            proc_name.ptr(), proc_source_code.ptr(), timeout_us);
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_name.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc name, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_source_code.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc source code, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), local_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_UPDATE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to update cache, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send update cache, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160730 :b
+int ObRootRpcStub::update_whole_cache(const common::ObServer& server, common::ObNameCodeMap* name_code_map, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(DEBUG, "before rpc ms %s", to_cstring(server));
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = name_code_map->serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize name code map, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), name_code_map->get_local_version())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_UPDATE_ALL_PROCEDURE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to sync all procedure, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send sync all procedure, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160305 :b
+int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::ObString& proc_name, const int64_t local_version, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer msgbuf;
+  TBSYS_LOG(INFO, "before rpc ms %s: proc name %s timeout: %ld", to_cstring(server),
+            proc_name.ptr(), timeout_us);
+
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(msgbuf)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = proc_name.serialize(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize proc name, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), local_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize local version, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_DELETE_CACHE, DEFAULT_VERSION, timeout_us, msgbuf)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(msgbuf.get_data(), msgbuf.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to update cache, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send update cache, server=%s ", to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add :e
+
 
 int ObRootRpcStub::migrate_tablet(const common::ObServer& dest_server, const common::ObDataSourceDesc& desc, const int64_t timeout_us)
 {
@@ -760,7 +920,8 @@ int ObRootRpcStub::heartbeat_to_cs_with_index(const ObServer &cs, const int64_t 
 //add e
 
 int ObRootRpcStub::heartbeat_to_ms(const common::ObServer& ms, const int64_t lease_time, const int64_t frozen_mem_version,
-    const int64_t schema_version, const common::ObiRole &role, const int64_t privilege_version, const int64_t config_version)
+                                   const int64_t schema_version, const common::ObiRole &role, const int64_t privilege_version,
+                                   const int64_t config_version, const int64_t procedure_version, const bool all_ups_state)
 {
   int ret = OB_SUCCESS;
   ObDataBuffer msgbuf;
@@ -799,6 +960,16 @@ int ObRootRpcStub::heartbeat_to_ms(const common::ObServer& ms, const int64_t lea
   {
     TBSYS_LOG(ERROR, "failed to serialize config_version, err=%d", ret);
   }
+  else if (OB_SUCCESS != (ret = common::serialization::encode_vi64(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), procedure_version)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize procedure_version, err=%d", ret);
+  }
+  //add by qx 20160830 :b
+  else if (OB_SUCCESS != (ret = common::serialization::encode_bool(msgbuf.get_data(), msgbuf.get_capacity(), msgbuf.get_position(), all_ups_state)))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize all_ups_state, err=%d", ret);
+  }
+  //add :e
   else if (OB_SUCCESS != (ret = client_mgr_->post_request(ms, OB_REQUIRE_HEARTBEAT, MY_VERSION, msgbuf)))
   {
     TBSYS_LOG(WARN, "failed to send request, err=%d", ret);

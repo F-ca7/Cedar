@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_get_param.h
+ * @brief the ObGetParam class difinition that get paramer
+ *
+ * modified by zhutao: add some function for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -549,6 +567,26 @@ namespace oceanbase
         allocator_.reuse();
       }
       deep_copy_args_ = deep_copy_args;
+    }
+
+    void ObGetParam::reset_cells()
+    {
+      cell_size_ = 0;
+      row_size_ = 0;
+      prev_rowkey_.assign(NULL, 0);
+      id_only_ = true;
+      row_index_ = NULL;
+      cell_list_ = NULL;
+      // if memory inflates too large, free.
+      if (allocator_.total() > DEFAULT_CELLS_BUF_SIZE)
+      {
+        allocator_.free();
+      }
+      else
+      {
+        allocator_.reuse();
+      }
+//      deep_copy_args_ = deep_copy_args;
     }
 
     int ObGetParam::serialize_flag(char* buf, const int64_t buf_len, int64_t& pos,

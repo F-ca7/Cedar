@@ -57,7 +57,7 @@ namespace oceanbase
          * @param row             行结束时返回这一行的紧凑格式的内存区域
          */
         int get_cell(uint64_t &column_id, const ObObj *&value,
-            bool *is_row_finished = NULL, ObString *row = NULL);
+        bool *is_row_finished = NULL, ObString *row = NULL);
 
         /*
          * 用于稠密格式读取cell
@@ -70,7 +70,7 @@ namespace oceanbase
          * 因为效率问题，此函数过期
          */
         int get_cell(uint64_t &column_id, ObObj &value,
-            bool *is_row_finished = NULL, ObString *row = NULL);
+        bool *is_row_finished = NULL, ObString *row = NULL);
 
         void reset_iter();
         inline int64_t parsed_size();

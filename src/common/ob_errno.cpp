@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -9,12 +9,16 @@
  * @brief error code
  *
  * modified by longfei：add an error code: OB_INDEX_NOT_EXIST for secondary index
+ * modified by zhutao: add some error code information
+ * modified by quxing: add some error code information
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author quxing <tianjiqx@126.com>
+ *
+ * @date 2016_07_29
  */
-
 
 /**
  * (C) 2010-2013 Alibaba Group Holding Limited.
@@ -251,8 +255,7 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_DATA_SOURCE_CONCURRENCY_FULL, "Data source concurrency full");
     ADD_ERROR_STR(OB_DATA_SOURCE_WRONG_URI_FORMAT, "Data source wrong URI format");
     ADD_ERROR_STR(OB_SSTABLE_VERSION_UNEQUAL, "SSTable version not equal");
-
-    //error code for merge server -4000 ---- -5000
+   //error code for merge server -4000 ---- -5000
     ADD_ERROR_STR(OB_INNER_STAT_ERROR, "Inner state error");     // inner stat check error
     ADD_ERROR_STR(OB_OLD_SCHEMA_VERSION, "Schema version too old");   // find old schema version
     ADD_ERROR_STR(OB_INPUT_PARAM_ERROR, "Input parameter error");    // check input param error
@@ -341,6 +344,44 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_PROTOCOL_NOT_RECOGNIZE, "Incorrect protocol");
     ADD_ERROR_STR(OB_ERR_WRITE_AUTH_ERROR, "Write auth packet error");
     ADD_ERROR_STR(OB_INDEX_NOT_EXIST, "This table don't have index");//add longfei [drop table with index timeout] 151202:b
+
+    //add by zt 20160713:b
+    //error string for stored procedure
+    ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705
+
+    ADD_ERROR_STR(OB_ERR_TOO_MANY_ROWS, "Result consisted of more than one row");
+    ADD_ERROR_STR(OB_ERR_SP_BAD_SQLSTAT, "Bad SQLSTATE");
+    ADD_ERROR_STR(OB_ERR_SP_CASE_NOT_FOUND, "Case no found for CASE statement");
+    ADD_ERROR_STR(OB_ERR_SP_WRONG_NO_OF_ARGS, "Incorrect number of arguments");
+    ADD_ERROR_STR(OB_ERR_SP_NOT_VAR_ARGS, "OUT or INOUT argument is not a variable");
+    ADD_ERROR_STR(OB_ERR_SP_DOES_NOT_EXIST, "Procedure does not exist");
+    ADD_ERROR_STR(OB_ERR_SP_BADSTATEMENT, "Bad statement is not allowed in stored procedures");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE, "Incorrect parameter count to procedure");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_PARAM, "Duplicate parameter");
+    ADD_ERROR_STR(OB_ERR_SP_UNDECLARED_VAR, "Undeclared variable");
+    ADD_ERROR_STR(OB_ERR_SP_DUP_VAR, "Duplicate variable");
+
+    //add by zt 20160713:e
+
+    //add by qx 20160720:b
+    ADD_ERROR_STR(OB_ERR_SP_ALREADY_EXISTS,"Procedure already exists");
+    ADD_ERROR_STR(OB_ERR_SP_DROP_FAILED,"Failed to drop procedure");
+    ADD_ERROR_STR(OB_ERR_SP_STORE_FAILED,"Failed to create procedure");
+    //add :e
+
+    //add by qx 20160731:b
+    // they not be used
+    ADD_ERROR_STR(OB_ERR_SP_UNINIT_VAR,"Referring to uninitialized variable");
+    ADD_ERROR_STR(OB_ERR_SP_BADSELECT,"Procedure can't return a result set in the given context");
+    ADD_ERROR_STR(OB_ERR_UNKNOWN_PROCEDURE,"Unknown procedure");
+    ADD_ERROR_STR(OB_ERR_SP_WRONG_NAME,"Incorrect routine name");
+    ADD_ERROR_STR(OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE,"Incorrect parameters to procedure");
+    //add :e
+
+    //add by qx 20160829:b
+    ADD_ERROR_STR(OB_PROCEDURE_PROHIBIT_CALL,"Procedure is prohibited call now");
+    //add :e
+
 
     ADD_ERROR_STR(OB_ERR_PS_TOO_MANY_PARAM, "Prepared statement contains too many placeholders");
     ADD_ERROR_STR(OB_ERR_READ_ONLY, "The server is read only now");

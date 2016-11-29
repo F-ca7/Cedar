@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,6 +16,7 @@
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
+ *
  * @date 2016_07_27
  */
 
@@ -118,7 +119,6 @@ namespace oceanbase
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
       PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
 
-      //zhounan unmark:b
       PHY_CURSOR_DECLARE,
       PHY_CURSOR_FETCH,
       PHY_CURSOR_FETCH_INTO,
@@ -151,8 +151,9 @@ namespace oceanbase
       PHY_PROCEDURE_WHILE,
       PHY_PROCEDURE_ELSE,
       PHY_PROCEDURE_SELECT_INTO,
+      PHY_VARIABLE_SET_ARRAY,
       //add:e
-      PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616
+      PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616	  
       PHY_END, /* end of phy operator type */
 
     };

@@ -261,6 +261,13 @@ namespace oceanbase
         inline const char* ptr() const { return ptr_; }
         inline char* ptr() { return ptr_; }
 
+        //add by qx 20160903 :b
+        inline void set_length(obstr_size_t data_length)
+        {
+          data_length_ = data_length;
+        }
+        //add :e
+
         inline int64_t hash() const
         {
           int64_t hash_val = 0;

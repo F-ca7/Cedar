@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_row_desc_ext.h
+ * @brief the ObRowDescExt class definition
+ *
+ * modified by zhutao:add deserialize and serialize functions
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -37,6 +56,23 @@ namespace oceanbase
         int64_t get_column_num() const;
         
         int add_column_desc(const uint64_t table_id, const uint64_t column_id, const ObObj &data_type);
+
+        //add zt 20151113:b
+        /**
+         * @brief get_row_desc
+         * get row descriptor
+         * @return row descriptor
+         */
+        const ObRowDesc & get_row_desc() const { return row_desc_; }
+        /**
+         * @brief serialize and deserialize function
+         * @param buf
+         * @param buf_len
+         * @param pos
+         * @return
+         */
+        NEED_SERIALIZE_AND_DESERIALIZE;
+        //add zt 20151113:e
       private:
         // data members
         ObRowDesc row_desc_;

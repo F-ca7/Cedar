@@ -1,4 +1,22 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_get_param.h
+ * @brief the ObGetParam class difinition that get paramer
+ *
+ * modified by zhutao: add some function for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2011 Taobao Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -143,7 +161,11 @@ namespace oceanbase
        * reset get parameter, easier to reuse it.
        */
       void reset(bool deep_copy_args = false);
-
+      /**
+       * @brief reset_cells
+       * clear all cells
+       */
+      void reset_cells(); //add by zt 20160118
       /**
        * get how mang rows in get parameter 
        * 

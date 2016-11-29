@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_raw_expr.cpp
+ * @brief raw expression relation class definition
+ *
+ * modified by zhutao:add some functions and a class for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 #include "ob_raw_expr.h"
 #include "ob_transformer.h"
 #include "type_name.c"
@@ -254,6 +272,70 @@ int ObConstRawExpr::fill_sql_expression(
   }
   return ret;
 }
+
+//add zt 20151125:b
+int ObArrayRawExpr::fill_sql_expression(
+    ObSqlExpression &inter_expr,
+    ObTransformer *transformer,
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan) const
+{
+  int ret = OB_SUCCESS;
+  ExprItem item, idx_item;
+  UNUSED(transformer);
+  UNUSED(logical_plan);
+  UNUSED(physical_plan);
+//  if( OB_SUCCESS != (ret = idx_expr_->fill_sql_expression(
+//                             inter_expr,
+//                             transformer,
+//                             logical_plan,
+//                             physical_plan)))
+//  {
+//    TBSYS_LOG(WARN, "fill expression for the array idx fail");
+//  }
+
+  item.type_ = get_expr_type();
+  item.data_type_ = get_result_type();
+  item.string_ = array_name_;
+
+  idx_item.data_type_ = ObIntType; //idx must be int value
+  if( ObIntType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_INT;
+    idx_value_.get_int(idx_item.value_.int_);
+  }
+  else if ( ObVarcharType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_TEMP_VARIABLE;
+    idx_value_.get_varchar(idx_item.string_);
+  }
+
+  if( OB_SUCCESS == ret )
+  {
+    //comment: it is more reasonable to push idx_item first, then item
+    //Thus, idx value would be calculated first, then the array value
+    //However, I want to control the serialization of array var,
+    //Maybe the array val could computed before serialization
+    if( OB_SUCCESS != (ret = inter_expr.add_expr_item(item)) )
+    {
+      TBSYS_LOG(WARN, "add idx item fail");
+    }
+    else
+    {
+      ret = inter_expr.add_expr_item(idx_item);
+    }
+  }
+  return ret;
+}
+
+void ObArrayRawExpr::print(FILE *fp, int32_t level) const
+{
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "%s : ", get_type_name(get_expr_type()));
+  fprintf(fp, "%.*s[%s]\n", array_name_.length(), array_name_.ptr(), to_cstring(idx_value_));
+//  idx_expr_->print(fp, level+1);
+}
+//add zt 20151125:e
 
 void ObCurTimeExpr::print(FILE* fp, int32_t level) const
 {

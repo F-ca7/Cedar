@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_server.cpp
+ * @brief merge server
+ *
+ * modified by wangdonghui:add procedure manager function member and data member
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
 #include "common/ob_define.h"
 #include "common/ob_trace_log.h"
 #include "ob_merge_server.h"
@@ -21,7 +40,10 @@ namespace oceanbase
         response_buffer_(RESPONSE_PACKET_BUFFER_SIZE),
         rpc_buffer_(RESPONSE_PACKET_BUFFER_SIZE),
         scan_req_pool_(common::ObModIds::OB_MS_SQL_SCAN_REQ_POOL),
-        get_req_pool_(common::ObModIds::OB_MS_SQL_GET_REQ_POOL)
+        get_req_pool_(common::ObModIds::OB_MS_SQL_GET_REQ_POOL),
+        //add by wangdonghui 20160301 [pl manage] :b
+        procedure_manager_()
+        //add :e
     {
     }
 
@@ -225,7 +247,13 @@ namespace oceanbase
       {
         ret = service_.initialize(this);
       }
-
+      //add by wangdonghui 20160301 [physical plan cache] :b
+      if(ret == OB_SUCCESS)
+      {
+        ret = procedure_manager_.init();
+        procedure_manager_.set_ms_service(&service_);
+      }
+      //add :e
       return ret;
     }
 

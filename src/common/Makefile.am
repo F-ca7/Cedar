@@ -319,7 +319,8 @@ common_sources=				                                                  \
   ob_log_generator2.h	ob_log_generator2.cpp\
   ob_log_writer3.h	ob_log_writer3.cpp\
   ob_commit_queue.h	ob_commit_queue.cpp\
-  group_queue_thread.h	group_queue_thread.cpp
+  group_queue_thread.h	group_queue_thread.cpp\
+  ob_name_code_map.h     ob_name_code_map.cpp
 
 
 location_sources=                                                                             \

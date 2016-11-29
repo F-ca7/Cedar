@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,6 +15,7 @@
  *        support multiple clusters for HA by adding or modifying
  *        some functions, member variables
  *        parse the cmd_rs_cluster_ips_ into clusters info array.
+ * modified by wangdonghui:add some functions for procedure
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -22,8 +23,13 @@
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
- *//*===============================================================
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_26
+ */
+
+/*===============================================================
  *   (C) 2007-2010 Taobao Inc.
  *
  *
@@ -72,10 +78,12 @@
 #include "ob_rs_trigger_event_util.h"
 #include "ob_root_ups_provider.h"
 #include "ob_root_ddl_operator.h"
-
+//add by wangdonghui
+#include "common/nb_accessor/nb_query_res.h"
+#include "common/ob_name_code_map.h"
+//add :e
 using namespace oceanbase::common;
 using namespace oceanbase::rootserver;
-
 using oceanbase::common::databuff_printf;
 
 namespace oceanbase
@@ -225,7 +233,11 @@ ObRootServer2::ObRootServer2(ObRootServerConfig &config)
     heart_beat_checker_(this),
     ms_provider_(server_manager_),
     local_schema_manager_(NULL),
-    schema_manager_for_cache_(NULL)
+    schema_manager_for_cache_(NULL),
+    //add by wangdonghui 20160229 [pl manage] :b
+    name_code_map_()
+    //add :e
+
 {
 }
 
@@ -452,6 +464,10 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
     {
       TBSYS_LOG(ERROR, "no memory");
     }
+	else if (NULL == (name_code_map_ = new(std::nothrow) ObNameCodeMap()))
+    {
+      TBSYS_LOG(ERROR, "no memory");
+    }
     // add by zcd [multi_cluster] 20150405:b
     // 将-s选项的内容转换为ip地址数组
     else if(OB_SUCCESS != (err = parse_string_to_ips(config_.all_cluster_rs_ip, slave_array_)))
@@ -531,8 +547,22 @@ bool ObRootServer2::init(const int64_t now, ObRootWorker* worker)
       // init root trigger
       root_trigger_.set_ms_provider(&ms_provider_);
       root_trigger_.set_rpc_stub(&worker_->get_general_rpc_stub());
-      res = true;
-      have_inited_ = res;
+
+      //add by wangdonghui 20160301 [procedure physical plan cache] :b
+      // init physical plan manager
+      int ret = name_code_map_->init();
+      if(ret != OB_SUCCESS)
+      {
+          TBSYS_LOG(WARN, "name_code_map init fail");
+          res = false;
+          have_inited_ = res;
+      }
+      else
+      {
+          TBSYS_LOG(INFO, "name_code_map init succ");
+          res = true;
+          have_inited_ = res;
+	  }
 
       // add by zcd [multi_cluster] 20150416:b
       std::vector<ObServer> slave = get_slave_root_cluster_ip();
@@ -861,6 +891,27 @@ int ObRootServer2::renew_user_schema(int64_t & count)
   return ret;
 }
 
+// add by wangdonghui 20160307 renew procedure info :b
+int ObRootServer2::renew_procedure_info()
+{
+  int ret = OB_ERROR;
+  const static int64_t retry_times = 3;
+  for (int64_t i = 0; (ret != OB_SUCCESS) && (i < retry_times); ++i)
+  {
+    if (OB_SUCCESS != (ret = refresh_new_procedure()))
+    {
+      TBSYS_LOG(WARN, "fail to refresh procedure, retry_time=%ld, ret=%d", i, ret);
+      sleep(1);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "refresh procedure success.");
+    }
+  }
+  return ret;
+}
+//add :e
+
 int ObRootServer2::boot_strap(void)
 {
   int ret = OB_ERROR;
@@ -1121,18 +1172,43 @@ int ObRootServer2::after_restart()
   }
   else
   {
-    // renew schema version and config version succ
-    // start service right now
-    worker_->get_config_mgr().got_version(tbsys::CTimeUtil::getTime());
-    TBSYS_LOG(INFO, "after restart renew schema succ:count[%ld]", table_count);
-    TBSYS_LOG(INFO, "[NOTICE] start service now");
+    //add by wangdonghui renew procedure info 20160307 :b
+    ret = renew_procedure_info();
+    if (OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "fail to renew procedure try again. err=%d", ret);
+      static const int64_t RETRY_TIMES = 3;
+      for (int64_t i = 0; i < RETRY_TIMES; ++i)
+      {
+        ret = worker_->schedule_after_restart_task(1000000, false);
+        if (OB_SUCCESS != ret)
+        {
+           TBSYS_LOG(ERROR, "fail to schedule after restart task.ret=%d", ret);
+           sleep(1);
+        }
+        else
+        {
+           break;
+        }
+      }
+    }
+    else
+    {
 
-    //fix bug: update rootserver info to __all_server
-    ObServer rs;
-    config_.get_root_server(rs);
-    char server_version[OB_SERVER_VERSION_LENGTH] = "";
-    get_package_and_svn(server_version, sizeof(server_version));
-    commit_task(SERVER_ONLINE, OB_ROOTSERVER, rs, 0, server_version);
+      // renew schema version and config version succ
+      // start service right now
+      worker_->get_config_mgr().got_version(tbsys::CTimeUtil::getTime());
+      TBSYS_LOG(INFO, "after restart renew schema succ:count[%ld]", table_count);
+      TBSYS_LOG(INFO, "[NOTICE] start service now");
+
+      //fix bug: update rootserver info to __all_server
+      ObServer rs;
+      config_.get_root_server(rs);
+      char server_version[OB_SERVER_VERSION_LENGTH] = "";
+      get_package_and_svn(server_version, sizeof(server_version));
+      commit_task(SERVER_ONLINE, OB_ROOTSERVER, rs, 0, server_version);
+    }
+    //add :e
   }
   return ret;
 }
@@ -1253,6 +1329,38 @@ int ObRootServer2::notify_switch_schema(bool only_core_tables, bool force_update
   }
   return ret;
 }
+
+//add by wangdonghui 20160122 :b
+int ObRootServer2::notify_update_cache(const common::ObString & proc_name, const common::ObString & proc_source_code)
+{
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS != (ret = force_sync_cahce_all_servers(proc_name, proc_source_code)))
+  {
+    TBSYS_LOG(WARN, "fail to sync physical plan to ms:ret[%d]", ret);
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "notify ms to change physical plan cache succ!");
+  }
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160305 :b
+int ObRootServer2::notify_delete_cache(const common::ObString & proc_name)
+{
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS != (ret = force_delete_cahce_all_servers(proc_name)))
+  {
+    TBSYS_LOG(WARN, "fail to delete physical plan to ms:ret[%d]", ret);
+  }
+  else
+  {
+    TBSYS_LOG(INFO, "notify ms to delete physical plan cache succ!");
+  }
+  return ret;
+}
+//add :e
 
 ObBootState* ObRootServer2::get_boot()
 {
@@ -1405,6 +1513,87 @@ int ObRootServer2::get_schema(const bool force_update, bool only_core_tables, Ob
   }
   return ret;
 }
+
+//add by wangdonghui 20160307 :b
+int ObRootServer2::get_procedure(common::ObNameCodeMap& name_code_map)
+{
+  int ret = OB_SUCCESS;
+  if (NULL == schema_service_)
+  {
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(WARN, "schema_service_ not init");
+  }
+  else
+  {
+    common::nb_accessor::QueryRes * res_ = NULL;
+    if (OB_SUCCESS != (ret = schema_service_->get_procedure_info(res_)))
+    {
+      TBSYS_LOG(WARN, "failed to get procedure info, err=%d", ret);
+      ret = OB_INNER_STAT_ERROR;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "get procedure info succ!");
+      common::nb_accessor::TableRow* table_row = NULL;
+      ObCellInfo* cell_info = NULL;
+      while(OB_SUCCESS == ret && OB_SUCCESS == (ret = res_->next_row()))
+      {
+        ObString proc_name, proc_source_code;
+        if(OB_SUCCESS == ret)
+        {
+          ret = res_->get_row(&table_row);
+          if(OB_SUCCESS != ret && OB_ITER_END != ret)
+          {
+            TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
+          }
+        }
+        if(OB_SUCCESS == ret)
+        {
+          cell_info = table_row->get_cell_info((int64_t)(0));
+          ret = cell_info->value_.get_varchar(proc_name);
+          TBSYS_LOG(INFO, "get proc_name cell info succ! %.*s", proc_name.length(), proc_name.ptr());
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "get proc_name cell info fail");
+        }
+
+        if(OB_SUCCESS == ret)
+        {
+          cell_info = table_row->get_cell_info((int64_t)(1));
+          cell_info->value_.get_varchar(proc_source_code);
+        }
+        else
+        {
+          ret = OB_ERROR;
+          TBSYS_LOG(WARN, "get souce_code cell info fail");
+        }
+        if(OB_SUCCESS == ret)
+        {
+          int err = name_code_map.put_source_code(proc_name, proc_source_code);
+          if(-1 == err)
+          {
+            ret = OB_ERROR;
+            TBSYS_LOG(WARN, "name code hash map insert error:err[%d]", err);
+          }
+          else
+          {
+            ret = OB_SUCCESS;
+            TBSYS_LOG(INFO, "add [%.*s] to name code map",proc_name.length(), proc_name.ptr());
+          }
+        }
+      }
+      res_ = NULL;
+    }
+    if(OB_ERROR != ret)
+    {
+        ret = OB_SUCCESS;
+    }
+  }
+  return ret;
+}
+//add :e
 
 int64_t ObRootServer2::get_last_frozen_version() const
 {
@@ -4925,6 +5114,35 @@ int ObRootServer2::check_table_exist(const common::ObString & table_name, bool &
   return ret;
 }
 
+//add by wangdonghui 20160122 :b
+int ObRootServer2::check_procedure_exist(const common::ObString & proc_name, bool & exist)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(INFO, "check procedure exist proc_name: %s %c", proc_name.ptr(), exist? 'Y': 'N');
+  tbsys::CRLockGuard guard(schema_manager_rwlock_);
+  if( !name_code_map_->is_created() )
+  //  if (name_code_map_->get_name_code_map()->created() == false)
+  {
+    TBSYS_LOG(WARN, "check physical plan manager failed");
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    //    const ObString *source_code = name_code_map_->get_name_code_map()->get(proc_name);
+    //    if (NULL == source_code)
+    //    {
+    //      exist = false;
+    //    }
+    //    else
+    //    {
+    //      exist = true;
+    //    }
+    exist = name_code_map_->exist(proc_name);
+  }
+  return ret;
+}
+//add :e
+
 int ObRootServer2::switch_ini_schema()
 {
   int ret = OB_SUCCESS;
@@ -5178,7 +5396,7 @@ int ObRootServer2::create_table(bool if_not_exists, const common::TableSchema &t
         }
       }
     }
-    // notify schema update to all servers
+    // notify   schema update to all servers
     if (OB_SUCCESS == ret)
     {
       if (OB_SUCCESS != (ret = notify_switch_schema(false)))
@@ -5398,6 +5616,140 @@ int ObRootServer2::get_master_ups(ObServer &ups_addr, bool use_inner_port)
   }
   return ret;
 }
+//add by wangdonghui 20160121 :b
+/// for sql api
+int ObRootServer2::create_procedure(bool if_not_exists, const common::ObString proc_name, const common::ObString proc_source_code)
+{
+  UNUSED(if_not_exists);
+  int ret = OB_SUCCESS;
+  bool exist = false;
+  int err = OB_SUCCESS;
+  // LOCK BLOCK
+  tbsys::CThreadGuard guard(&mutex_lock_);
+  if (OB_SUCCESS != (ret = check_procedure_exist(proc_name, exist)))
+  {
+    TBSYS_LOG(INFO, "check procedure exist fail");
+  }
+  else if(exist)
+  {
+      ret = OB_ERR_SP_ALREADY_EXISTS;
+      TBSYS_LOG(WARN, "check procedure already exist:proc_name[%s]", proc_name.ptr());
+  }
+  // inner procedure operation
+  else if (!exist)
+  {
+    err = ddl_tool_.create_procedure(proc_name, proc_source_code);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "create procedure throuth ddl tool failed:proc_name[%s], err[%d]",
+          proc_name.ptr(), err);
+      ret = err;
+    }
+  }
+  if (OB_SUCCESS == ret)
+  {
+      ret = name_code_map_->put_source_code(proc_name, proc_source_code);
+      if(ret == OB_SUCCESS)
+      {
+          TBSYS_LOG(DEBUG, "proc name code insert hashmap succ!: [%s]", proc_name.ptr());
+      }
+  }
+  //notify all mergeserver to synchronize procedure
+
+  if (OB_SUCCESS == ret)
+  {
+      if (OB_SUCCESS != (ret = notify_update_cache(proc_name, proc_source_code)))
+      {
+        TBSYS_LOG(WARN, "update cache fail:ret[%d]", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "notify update cache succ:procedure[%s]",
+            proc_name.ptr());
+      }
+  }
+
+  //add by wdh 20160730 :b
+  // fire an event to tell all clusters
+  if(OB_SUCCESS == ret)
+  {
+    err = ObRootTriggerUtil::create_procedure(root_trigger_);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "trigger event for create procedure failed:err[%d], ret[%d]", err, ret);
+      ret = err;
+    }
+  }
+  //add :e
+  return ret;
+}
+//add :e
+
+//add by wangdonghui 20160225 [drop procedure]:b
+int ObRootServer2::drop_procedure(const bool if_exists, const ObString & proc_name)
+{
+  // TODO lock tool long time
+  UNUSED(if_exists);
+  bool exist = true;
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS != (ret= check_procedure_exist(proc_name, exist)))
+  {
+      TBSYS_LOG(WARN, "check procedure exist fail");
+  }
+  // inner schema table operation
+  else if(!exist)
+  {
+      ret = OB_ERR_SP_DOES_NOT_EXIST;
+      TBSYS_LOG(WARN, "check procedure not exist:proc_name[%.*s]", proc_name.length(), proc_name.ptr());
+  }
+  else if (exist)
+  {
+    if (OB_SUCCESS != (ret = ddl_tool_.drop_procedure(proc_name)))
+    {
+      TBSYS_LOG(WARN, "drop procedure throuth ddl tool failed:pname[%.*s], ret[%d]",
+          proc_name.length(), proc_name.ptr(), ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "drop procedure succ:proc_name[%.*s]", proc_name.length(), proc_name.ptr());
+    }
+  }
+  int err = 0;
+  if(OB_SUCCESS == ret)
+  {
+    if(-1 == (err = name_code_map_->del_source_code(proc_name)))
+    {
+      ret = OB_ERROR;
+      TBSYS_LOG(WARN, "name code map erase fail proc_name[%s]", proc_name.ptr());
+    }
+  }
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = notify_delete_cache(proc_name)))
+    {
+      TBSYS_LOG(WARN, "delete cache fail:ret[%d]", ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "notify delete cache succ:procedure[%s]",
+          proc_name.ptr());
+    }
+  }
+  //add by wdh 20160730 :b
+  // fire an event to tell all clusters
+  if(OB_SUCCESS == ret)
+  {
+    err = ObRootTriggerUtil::drop_procedure(root_trigger_);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "trigger event for drop procedure failed:err[%d], ret[%d]", err, ret);
+      ret = err;
+    }
+  }
+  //add :e
+  return ret;
+}
+//add :e
 
 ObServer ObRootServer2::get_update_server_info(bool use_inner_port) const
 {
@@ -6641,7 +6993,7 @@ int ObRootServer2::force_heartbeat_all_servers(void)
         ret = worker_->get_rpc_stub().heartbeat_to_ms(tmp_server,
             config_.cs_lease_duration_time, last_frozen_mem_version_,
             get_schema_version(), get_obi_role(),
-            get_privilege_version(), get_config_version());
+            get_privilege_version(), get_config_version(),/*root_server_->get_procedure_version()*/0,true);
         if (OB_SUCCESS == ret)
         {
           TBSYS_LOG(INFO, "force hearbeat to ms %s", to_cstring(tmp_server));
@@ -6711,6 +7063,102 @@ int ObRootServer2::force_sync_schema_all_servers(const ObSchemaManagerV2 &schema
   } //end if master
   return ret;
 }
+
+//add by wangdonghui 20160122 :b
+int ObRootServer2::force_sync_cahce_all_servers(const common::ObString proc_name, const common::ObString proc_source_code)
+{
+    int ret = OB_SUCCESS;
+    ObServer tmp_server;
+    if (this->is_master())
+    {
+      ObChunkServerManager::iterator it = this->server_manager_.begin();
+      for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
+      {
+        if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
+        {
+          //hb to ms
+          tmp_server = it->server_;
+          tmp_server.set_port(it->port_ms_);
+          ret = this->worker_->get_rpc_stub().update_cache(tmp_server,
+              proc_name, proc_source_code, name_code_map_->get_local_version(), config_.network_timeout);
+          if (OB_SUCCESS == ret)
+          {
+            // do nothing
+            TBSYS_LOG(DEBUG, "sync cache to ms %s, proc name [%s]", to_cstring(tmp_server), proc_name.ptr());
+          }
+          else
+          {
+            TBSYS_LOG(WARN, "sync cache to ms %s failed", to_cstring(tmp_server));
+          }
+        }
+      } //end for
+    } //end if master
+    return ret;
+}
+
+//add :e
+//add by wdh 20160730 :b
+int ObRootServer2::sync_proc_all_ms(void)
+{
+    int ret = OB_SUCCESS;
+    ObServer tmp_server;
+    ObChunkServerManager::iterator it = this->server_manager_.begin();
+    for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
+    {
+      if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
+      {
+        tmp_server = it->server_;
+        tmp_server.set_port(it->port_ms_);
+        ret = this->worker_->get_rpc_stub().update_whole_cache(tmp_server,
+            name_code_map_, config_.network_timeout);
+        if (OB_SUCCESS == ret)
+        {
+          TBSYS_LOG(DEBUG, "sync all cache to ms succ");
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "sync all cache to ms %s failed", to_cstring(tmp_server));
+        }
+      }
+    }
+    return ret;
+}
+
+//add :e
+
+//add by wangdonghui 20160305 :b
+int ObRootServer2::force_delete_cahce_all_servers(const common::ObString proc_name)
+{
+  int ret = OB_SUCCESS;
+  ObServer tmp_server;
+  if (this->is_master())
+  {
+    ObChunkServerManager::iterator it = this->server_manager_.begin();
+    for (; OB_SUCCESS == ret && it != this->server_manager_.end(); ++it)
+    {
+      if (it->ms_status_ != ObServerStatus::STATUS_DEAD && it->port_ms_ != 0)
+      {
+        //hb to ms
+        tmp_server = it->server_;
+        tmp_server.set_port(it->port_ms_);
+        ret = this->worker_->get_rpc_stub().delete_cache(tmp_server,
+            proc_name, name_code_map_->get_local_version(), config_.network_timeout);
+        if (OB_SUCCESS == ret)
+        {
+          // do nothing
+          TBSYS_LOG(DEBUG, "delete cache to ms %s, proc name [%s]", to_cstring(tmp_server), proc_name.ptr());
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "delete cache to ms %s failed", to_cstring(tmp_server));
+        }
+      }
+    } //end for
+  } //end if master
+  return ret;
+}
+//add :e
+
 //for bypass
 int ObRootServer2::prepare_bypass_process(common::ObBypassTaskInfo &table_name_id)
 {
@@ -8502,7 +8950,25 @@ int ObRootServer2::clean_column_checksum(int64_t current_version)
     }
     return ret;
 }
-
+//add by wdh 20160730 :b
+int ObRootServer2::trigger_create_procedure()
+{
+  int ret = OB_SUCCESS;
+  if (OB_SUCCESS == ret)
+  {
+    name_code_map_->reset();
+    if (OB_SUCCESS != (ret = get_procedure(*name_code_map_)))
+    {
+      TBSYS_LOG(WARN, "fail to renew procedure cache. ret=%d", ret);
+    }
+    else if(OB_SUCCESS != (ret = sync_proc_all_ms()))
+    {
+      TBSYS_LOG(WARN, "fail to sync to all ms. ret=%d", ret);
+    }
+  }
+  return ret;
+}
+//add :e
 int ObRootServer2::get_column_checksum(const ObNewRange range, const int64_t required_version, ObString& column_checksum)
 {
     int ret = OB_SUCCESS;
@@ -8683,3 +9149,29 @@ int ObRootServer2::is_clusters_ready_for_election()
   return ret;
 }
 // add:e
+
+//add by wangdonghui 20160304 :b
+common::ObNameCodeMap *ObRootServer2::get_name_code_map()
+{
+    return name_code_map_;
+}
+
+//add :e
+
+//add by wangdonghui 20160307 :b
+int ObRootServer2::refresh_new_procedure()
+{
+  int ret = OB_SUCCESS;
+  ret = get_procedure(*name_code_map_);
+  if (ret != OB_SUCCESS)
+  {
+    TBSYS_LOG(WARN, "force refresh physical plan manager failed:ret[%d]", ret);
+  }
+  else
+  {
+    name_code_map_->set_state(true);
+    TBSYS_LOG(INFO, "force refresh physical plan manager succ, count = [%ld]", name_code_map_->size());
+  }
+  return ret;
+}
+//add :e

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_server.h
+ * @brief merge server
+ *
+ * modified by wangdonghui:add procedure manager function member and data member
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
+ */
+
 #ifndef OCEANBASE_MERGESERVER_MERGESERVER_H_
 #define OCEANBASE_MERGESERVER_MERGESERVER_H_
 
@@ -16,6 +35,10 @@
 #include "ob_bloom_filter_task_queue_thread.h"
 #include "ob_ms_sql_scan_request.h"
 #include "ob_ms_sql_get_request.h"
+
+//add by wangdonghui [procedure physical plan cache] 20160229 :b
+#include "mergeserver/ob_physical_plan_cache_manager.h"
+//add :e
 
 namespace oceanbase
 {
@@ -94,6 +117,18 @@ namespace oceanbase
         {
           return bloom_filter_queue_thread_;
         }
+        //add by wangdonghui [procedure physical plan cache] 20160229 :b
+        /**
+         * @brief get_procedure_manager
+         * get procedure manager object
+         * @return procedure manager object
+         */
+        inline mergeserver::ObProcedureManager & get_procedure_manager()
+        {
+          return procedure_manager_;
+        }
+
+        //add :e
 
       private:
         DISALLOW_COPY_AND_ASSIGN(ObMergeServer);
@@ -124,6 +159,10 @@ namespace oceanbase
         common::ObObjPool<mergeserver::ObMsSqlScanRequest> scan_req_pool_;
         common::ObObjPool<mergeserver::ObMsSqlGetRequest> get_req_pool_;
 
+
+        //add by wangdonghui 20160229 [procedure physical plan cache] :b
+        ObProcedureManager procedure_manager_;   ///<  procedure manager
+        //add :e
     };
   } /* mergeserver */
 } /* oceanbase */

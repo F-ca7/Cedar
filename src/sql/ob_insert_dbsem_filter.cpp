@@ -1,4 +1,21 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_insert_dbsem_filter.cpp
+ * @brief for operations of insert semantic filter
+ *
+ * modified by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @date 2016_07_27
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -195,7 +212,15 @@ namespace oceanbase
 
     DEFINE_DESERIALIZE(ObInsertDBSemFilter)
     {
-      return insert_values_.deserialize(buf, data_len, pos);;
+      //delete zt 20151113:b
+      //return insert_values_.deserialize(buf, data_len, pos);;
+      //delete zt 20151113:e
+
+      //add zt 20151113:b
+      int ret = insert_values_.deserialize(buf, data_len, pos);
+      if( OB_SUCCESS == ret) insert_values_.set_phy_plan(my_phy_plan_); //inner op
+      return ret;
+      //add zt 20151113:e
     }
 
     DEFINE_GET_SERIALIZE_SIZE(ObInsertDBSemFilter)

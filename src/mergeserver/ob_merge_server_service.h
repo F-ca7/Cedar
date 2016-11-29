@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_merge_service.h
+ * @brief merge server support service,deal request from other server
+ *
+ * modified by wangdonghui:add 3 functions for procedure cache management in ms
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_26
+ */
+
 #ifndef OCEANBASE_MERGESERVER_SERVICE_H_
 #define OCEANBASE_MERGESERVER_SERVICE_H_
 
@@ -21,6 +40,7 @@
 #include "common/ob_privilege_manager.h"
 #include "common/ob_statistics.h"
 #include "ob_get_privilege_task.h"
+#include "common/ob_name_code_map.h"
 
 namespace oceanbase
 {
@@ -63,6 +83,14 @@ namespace oceanbase
         int register_root_server(void);
 
         sql::ObSQLSessionMgr* get_sql_session_mgr() const;
+        //add by wangdonghui :b
+        /**
+         * @brief get_sql_proxy_
+         * get sql_proxy_
+         * @return  ObMsSQLProxy sql_proxy_
+         */
+        ObMsSQLProxy get_sql_proxy_() const;
+        //add :e
         void set_sql_session_mgr(sql::ObSQLSessionMgr* mgr);
         void set_sql_id_mgr(sql::ObSQLIdMgr *mgr) {sql_id_mgr_ = mgr;};
         /* reload config after update local configuration succ */
@@ -87,6 +115,43 @@ namespace oceanbase
         common::ObMergerSchemaManager *get_schema_mgr() const {return schema_mgr_;}
         common::ObTabletLocationCacheProxy *get_cache_proxy() const {return cache_proxy_;}
         common::ObStatManager *get_stat_manager() const { return service_monitor_; }
+
+        //add by wangdonghui 20160302 [ppc manager] :b
+        /**
+         * @brief get_merge_server
+         * get merge_server_
+         * @return ObMergeServer merge_server_
+         */
+        ObMergeServer *get_merge_server() const { return merge_server_; }
+        /**
+         * @brief fetch_source
+         * fecth procedure name code map when ms start or restart
+         * @param name_code_map
+         * @return error code
+         */
+        int fetch_source(common::ObNameCodeMap * name_code_map);
+        //add :e
+
+        //add by qx 20160830 :b
+        /**
+         * @brief get_ups_state
+         * get ups online or offline state
+         * @return ups state
+         */
+        inline bool get_ups_state() const
+        {
+          return ups_state_;
+        }
+        /**
+         * @brief set_ups_state
+         * set ups online or offline state
+         * @param ups_state
+         */
+        inline void set_ups_state(bool ups_state)
+        {
+          ups_state_=ups_state;
+        }
+        //add :e
 
         const common::ObVersion get_frozen_version() const
         {
@@ -200,6 +265,64 @@ namespace oceanbase
           const int64_t timeout_us);
 
 
+        //add by wangdonghui 20160122 :b
+        /**
+         * @brief ms_accept_cache
+         * mergeserver accept procedure name and source code
+         * @param receive_time receive time
+         * @param version rpc version
+         * @param channel_id  tbnet need this packet channel_id
+         * @param req packet request
+         * @param in_buffer receive packet buffer
+         * @param out_buffer databuffer
+         * @param timeout_us timeout
+         * @return error code
+         */
+        int ms_accept_cache(
+          const int64_t receive_time,
+          const int32_t version,
+          const int32_t channel_id,
+          onev_request_e* req,
+          common::ObDataBuffer& in_buffer,
+          common::ObDataBuffer& out_buffer,
+          const int64_t timeout_us);
+        //add :e
+
+        //add by wangdonghui 20160305 :b
+        /**
+         * @brief ms_delete_cache
+         * destroy procedure
+         * @param receive_time  receive time
+         * @param version rpc version
+         * @param channel_id  tbnet need this packet channel_id
+         * @param req packet request
+         * @param in_buffer receive packet buffer
+         * @param out_buffer databuffer
+         * @param timeout_us timeout
+         * @return error code
+         */
+        int ms_delete_cache(
+          const int64_t receive_time,
+          const int32_t version,
+          const int32_t channel_id,
+          onev_request_e* req,
+          common::ObDataBuffer& in_buffer,
+          common::ObDataBuffer& out_buffer,
+          const int64_t timeout_us);
+
+        //add :e
+
+        //add by wdh 20160730 :b
+        int ms_update_all_procedure(
+                const int64_t receive_time,
+                const int32_t version,
+                const int32_t channel_id,
+                onev_request_e* req,
+                common::ObDataBuffer& in_buffer,
+                common::ObDataBuffer& out_buffer,
+                const int64_t timeout_us);
+
+        //add :e
         int send_sql_response(
           onev_request_e* req,
           common::ObDataBuffer& out_buffer,
@@ -278,6 +401,10 @@ namespace oceanbase
         // instance role type
         common::ObiRole instance_role_;
 
+        //add by qx 20160830 :b
+        bool ups_state_;  ///<  ups online or offline state flag
+        //add :e
+
       private:
         static const uint64_t MAX_INNER_TABLE_COUNT = 32;
         static const uint64_t MAX_ROOT_SERVER_ACCESS_COUNT = 32;
@@ -294,6 +421,7 @@ namespace oceanbase
         ObMergerRootRpcProxy * root_rpc_;
         ObMergerUpsTask fetch_ups_task_;
         ObMergerSchemaTask fetch_schema_task_;
+        ObMergerProcedureTask fetch_procedure_task_;  //add wangdonghui [dev compile] 20160730
         ObMergerLeaseTask check_lease_task_;
         ObMergerMonitorTask monitor_task_;
         ObTabletLocationCache *location_cache_;
@@ -305,6 +433,8 @@ namespace oceanbase
         common::ObPrivilegeManager *privilege_mgr_;
         ObGetPrivilegeTask update_privilege_task_;
         sql::ObSQLIdMgr *sql_id_mgr_;
+
+
     };
 
     inline void ObMergeServerService::extend_lease(const int64_t delay)
@@ -321,6 +451,17 @@ namespace oceanbase
     {
       return sql_session_mgr_;
     }
+    //add by wangdonghui 20160320 :b
+    /**
+     * @brief ObMergeServerService::get_sql_proxy_
+     * get sql_proxy_
+     * @return ObMsSQLProxy sql_proxy_
+     */
+    inline ObMsSQLProxy ObMergeServerService::get_sql_proxy_() const
+    {
+        return sql_proxy_;
+    }
+    //add :e
 
     inline void ObMergeServerService::set_sql_session_mgr(sql::ObSQLSessionMgr* mgr)
     {
