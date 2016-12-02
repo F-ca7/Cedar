@@ -1376,6 +1376,13 @@ namespace oceanbase
           ErrStat& err_stat,
           const uint64_t& query_id,
           int32_t* index);
+        //add lbzhong [auto_increment] 20161126:b
+        bool need_auto_increment(
+            ObLogicalPlan *logical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id);
+        uint64_t get_auto_column_id(const uint64_t table_id);
+        //add:e
 
       private:
         common::ObIAllocator *mem_pool_;

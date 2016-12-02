@@ -233,6 +233,9 @@ int64_t ObCreateTable::to_string(char* buf, const int64_t buf_len) const
     databuff_printf(buf, buf_len, pos, "data_length_=%ld, ", col.data_length_);
     databuff_printf(buf, buf_len, pos, "data_precision=%ld, ", col.data_precision_);
     databuff_printf(buf, buf_len, pos, "nullable=%s, ", col.nullable_ ? "TRUE" : "FALSE");
+    //add lbzhong [auto_increment] 20161123:b
+    databuff_printf(buf, buf_len, pos, "auto_increment=%s, ", col.auto_increment_ ? "TRUE" : "FALSE");
+    //add:e
     databuff_printf(buf, buf_len, pos, "length_in_rowkey=%ld, ", col.length_in_rowkey_);
     databuff_printf(buf, buf_len, pos, "gm_create=%ld, ", col.gm_create_);
     databuff_printf(buf, buf_len, pos, "gm_modify=%ld)", col.gm_modify_);

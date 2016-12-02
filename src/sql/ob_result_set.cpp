@@ -175,7 +175,11 @@ int ObResultSet::open()
       {
         ret = main_query->open();
         FILL_TRACE_LOG("main_query finished");
-        if (OB_SUCCESS != ret)
+        if (OB_SUCCESS != ret
+            //add lbzhong [auto_increment] 20161130:b
+            && OB_ERR_AUTO_VALUE_NOT_SERVE != ret
+            //add:e
+            )
         {
           TBSYS_LOG(WARN, "failed to open main query, ret=%d", ret);
         }

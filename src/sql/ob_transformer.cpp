@@ -370,7 +370,18 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
         ret = gen_physical_delete_new(logical_plan, physical_plan, err_stat, query_id, index);
         break;
       case ObBasicStmt::T_INSERT:
+        //add lbzhong [auto_increment] 20161126:b
+        if (!need_auto_increment(logical_plan, err_stat, query_id))
+        {
+        //add:e
         ret = gen_physical_insert_new(logical_plan, physical_plan, err_stat, query_id, index);
+        //add lbzhong [auto_increment] 20161126:b
+        }
+        else
+        {
+          ret = gen_physical_replace_new(logical_plan, physical_plan, err_stat, query_id, index);
+        }
+        //add:e
         break;
       case ObBasicStmt::T_REPLACE:
           //modify maoxx
@@ -7717,6 +7728,9 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
     memcpy(table_schema.compress_func_name_, func_name, len);
     table_schema.compress_func_name_[len] = '\0';
 
+    //add lbzhong [auto_increment] 20161201:b
+    bool exist_auto_increment = false;
+    //add:e
     for (int64_t i = 0; ret == OB_SUCCESS && i < crt_tab_stmt->get_column_size(); i++)
     {
       const ObColumnDef& col_def = crt_tab_stmt->get_column_def(i);
@@ -7748,6 +7762,9 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
       col.data_precision_ = col_def.precision_;
       col.data_scale_ = col_def.scale_;
       col.nullable_ = !col_def.not_null_;
+      //add lbzhong [auto_increment] 20161123:b
+      col.auto_increment_ = col_def.atuo_increment_;
+      //add:e
       col.rowkey_id_ = col_def.primary_key_id_;
       col.column_group_id_ = 0;
       col.join_table_id_ = OB_INVALID_ID;
@@ -7767,6 +7784,21 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
           TBSYS_LOG(WARN, "fail to allocate column id:ret[%d]", ret);
         }
       }
+      //add lbzhong [auto_increment] 20161201:b
+      if (col_def.atuo_increment_)
+      {
+        if (exist_auto_increment || col_def.primary_key_id_ == 0)
+        {
+          ret = OB_ERR_AUTO_COLUMN_DEFINITION;
+          TRANS_LOG("Incorrect table definition; there can be only one auto column and it must be defined as a key");
+          break;
+        }
+        else
+        {
+          exist_auto_increment = true;
+        }
+      }
+      //add:e
     }
   }
 
@@ -7933,6 +7965,9 @@ int ObTransformer::gen_physical_alter_table(ObLogicalPlan *logical_plan, ObPhysi
         alt_col.column_.data_precision_ = col_def.precision_;
         alt_col.column_.data_scale_ = col_def.scale_;
         alt_col.column_.nullable_ = !col_def.not_null_;
+        //add lbzhong [auto_increment] 20161123:b
+        alt_col.column_.auto_increment_ = col_def.atuo_increment_;
+        //add:e
         alt_col.column_.rowkey_id_ = col_def.primary_key_id_;
         alt_col.column_.column_group_id_ = 0;
         alt_col.column_.join_table_id_ = OB_INVALID_ID;
@@ -12819,15 +12854,26 @@ int ObTransformer::gen_physical_replace_new(
     ups_modify->set_dml_type(OB_DML_REPLACE);
     uint64_t tid = insert_stmt->get_table_id();
     uint64_t cid = OB_INVALID_ID;
+    //add lbzhong [auto_increment] 20161202:b
+    uint64_t auto_column_id = get_auto_column_id(insert_stmt->get_table_id());
+    //add:e
     for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_info->get_size(); ++i)
     {
-      if (OB_SUCCESS != (ret = rowkey_info->get_column_id(i, cid)))
+      if (OB_SUCCESS != (ret = rowkey_info->get_column_id(i, cid))
+          //add lbzhong [auto_increment] 20161202:b
+          && (OB_INVALID_ID != auto_column_id && cid != auto_column_id)
+          //add:e
+          )
       {
         TBSYS_LOG(USER_ERROR, "primary key can not be empty");
         ret = OB_ERR_INSERT_NULL_ROWKEY;
         break;
       }
-      else if (OB_INVALID_INDEX == row_desc.get_idx(tid, cid))
+      else if (OB_INVALID_INDEX == row_desc.get_idx(tid, cid)
+               //add lbzhong [auto_increment] 20161202:b
+               && (OB_INVALID_ID != auto_column_id && cid != auto_column_id)
+               //add:e
+               )
       {
         TBSYS_LOG(USER_ERROR, "primary key can not be empty");
         ret = OB_ERR_INSERT_NULL_ROWKEY;
@@ -14573,3 +14619,59 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
   return ret;
 }
 //add e
+
+//add lbzhong [auto_increment] 20161126:b
+bool ObTransformer::need_auto_increment(ObLogicalPlan *logical_plan,
+                                        ErrStat& err_stat,
+                                        const uint64_t& query_id)
+{
+  bool is_auto_increment = false;
+  ObInsertStmt *insert_stmt = NULL;
+  if (OB_SUCCESS != get_stmt(logical_plan, err_stat, query_id, insert_stmt))
+  {
+  }
+  else
+  {
+    uint64_t table_id = insert_stmt->get_table_id();
+    const ObColumnSchemaV2* columns = NULL;
+    int32_t column_size = 0;
+    if ((columns = sql_context_->schema_manager_->get_table_schema(table_id, column_size)) == NULL
+        || column_size <= 0)
+    {
+    }
+    else
+    {
+      for (int32_t i = 0; i < column_size; i++)
+      {
+        if (columns[i].is_auto_increment())
+        {
+          is_auto_increment = true;
+          break;
+        }
+      }
+    }
+  }
+  return is_auto_increment;
+}
+
+uint64_t ObTransformer::get_auto_column_id(const uint64_t table_id)
+{
+  const ObColumnSchemaV2* columns = NULL;
+  int32_t column_size = 0;
+  if ((columns = sql_context_->schema_manager_->get_table_schema(table_id, column_size)) == NULL
+      || column_size <= 0)
+  {
+  }
+  else
+  {
+    for (int32_t i = 0; i < column_size; i++)
+    {
+      if (columns[i].is_auto_increment())
+      {
+        return columns[i].get_id();
+      }
+    }
+  }
+  return OB_INVALID_ID;
+}
+//add:e

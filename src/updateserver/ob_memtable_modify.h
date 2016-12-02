@@ -42,6 +42,9 @@
 //add maoxx
 #include "sql/ob_index_trigger.h"
 //add e
+//add lbzhong [auto_increment] 20161127:b
+#include "ob_update_server_main.h"
+//add:e
 
 namespace oceanbase
 {
@@ -60,6 +63,11 @@ namespace oceanbase
         int get_row_desc(const common::ObRowDesc *&row_desc) const;
         int get_affected_rows(int64_t& row_count);
         int64_t to_string(char* buf, const int64_t buf_len) const;
+        //add lbzhong [auto_increment] 20161127:b
+        int check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
+                             int64_t& auto_value, const CommonSchemaManager *&sm);
+        int get_auto_increment_value(const int64_t table_id, const uint64_t column_id, int64_t &auto_value);
+        //add:e
       private:
         RWSessionCtx &session_;
         ObIUpsTableMgr &host_;
@@ -157,11 +165,25 @@ namespace oceanbase
       {
         UpsSchemaMgrGuard sm_guard;
         const CommonSchemaManager *sm = NULL;
+        //add lbzhong [auto_increment] 20161127:b
+        uint64_t auto_column_id = OB_INVALID_ID;
+        int64_t auto_value = 0;
+        //add:e
         if (NULL == (sm = host_.get_schema_mgr().get_schema_mgr(sm_guard)))
         {
           TBSYS_LOG(WARN, "get_schema_mgr fail");
           ret = OB_SCHEMA_ERROR;
         }
+        //add lbzhong [auto_increment] 20161128:b
+        else if (OB_DML_REPLACE == T::get_dml_type() &&
+                 OB_SUCCESS != (ret = check_auto_increment(table_id, auto_column_id, auto_value, sm)))
+        {
+          if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
+          {
+            TBSYS_LOG(WARN, "check_auto_increment fail, ret=%d", ret);
+          }
+        }
+        //add:e
         else
         {
           //add maoxx
@@ -232,7 +254,11 @@ namespace oceanbase
           else
           {
             ObCellIterAdaptor cia;
-            cia.set_row_iter(T::child_op_, rki->get_size(), sm);
+            cia.set_row_iter(T::child_op_, rki->get_size(), sm
+                             //add lbzhong [auto_increment] 20161127:b
+                             , auto_column_id, auto_value
+                             //add:e
+                             );
             ret = host_.apply(session_, cia, T::get_dml_type());
             session_.inc_dml_count(T::get_dml_type());
           }
@@ -309,6 +335,126 @@ namespace oceanbase
 
     typedef MemTableModifyTmpl<sql::ObUpsModify> MemTableModify;
     typedef MemTableModifyTmpl<sql::ObUpsModifyWithDmlType> MemTableModifyWithDmlType;
+
+    //add lbzhong [auto_increment] 20161127:b
+    template <class T>
+    int MemTableModifyTmpl<T>::check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
+                                                    int64_t& auto_value, const CommonSchemaManager *&sm)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL != sm)
+      {
+        ObColumnSchemaV2* columns = NULL;
+        int32_t column_size = 0;
+        columns = const_cast<ObColumnSchemaV2*>(sm->get_table_schema(table_id, column_size));
+        if (columns != NULL)
+        {
+          for (int32_t i = 0; i < column_size; i++)
+          {
+            if (columns[i].is_auto_increment())
+            {
+              auto_column_id = columns[i].get_id();
+              break;
+            }
+          }
+        }
+        if (OB_INVALID_ID != auto_column_id)
+        {
+          if (OB_SUCCESS != (ret = get_auto_increment_value(table_id, auto_column_id, auto_value)))
+          {
+            //do nothing
+          }
+          else
+          {
+            ObAutoIncrementCellIterAdaptor aicia;
+            aicia.set_row_iter(table_id, auto_column_id, auto_value);
+            ret = host_.apply(session_, aicia, OB_DML_UPDATE);
+          }
+        }
+      }
+      return ret;
+    }
+
+    template <class T>
+    int MemTableModifyTmpl<T>::get_auto_increment_value(const int64_t table_id, const uint64_t column_id, int64_t &auto_value)
+    {
+      int ret = OB_SUCCESS;
+      ObRowDesc row_desc;
+      row_desc.set_rowkey_cell_count(2);
+
+      ObCellNewScanner new_scanner;
+      ObGetParam get_param;
+      ObCellInfo cell_info;
+      ObObj rowkey_objs[2];
+      rowkey_objs[0].set_int(table_id);
+      rowkey_objs[1].set_int(column_id);
+      cell_info.row_key_.assign(rowkey_objs, 2);
+      cell_info.table_id_ = OB_ALL_AUTO_INCREMENT_TID;
+      cell_info.column_id_ = OB_APP_MIN_COLUMN_ID + 2;
+      if (OB_SUCCESS != (ret = get_param.add_cell(cell_info)))
+      {
+        TBSYS_LOG(WARN, "fail to add cell to get param:ret[%d]", ret);
+      }
+      else if (OB_SUCCESS != (ret = row_desc.add_column_desc(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 2)))
+      {
+        TBSYS_LOG(WARN, "fail to add column to row_desc:ret[%d]", ret);
+      }
+      if (OB_SUCCESS == ret)
+      {
+        TableMgr* table_mgr = ObUpdateServerMain::get_instance()->get_update_server().get_table_mgr().get_table_mgr();
+        ObVersionRange version_range;
+        version_range.border_flag_.set_inclusive_start();
+        version_range.border_flag_.set_max_value();
+        version_range.start_version_ = table_mgr->get_cur_major_version();
+        get_param.set_version_range(version_range);
+
+        new_scanner.set_row_desc(row_desc);
+        if (OB_SUCCESS != (ret = ObUpdateServerMain::get_instance()->get_update_server().get_table_mgr().new_get(session_,
+                                  get_param, new_scanner, tbsys::CTimeUtil::getTime(), 1000, sql::LF_WRITE)))
+        {
+          TBSYS_LOG(WARN, "fail to get max_value:ret[%d]", ret);
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        ObRow row;
+        row.set_row_desc(row_desc);
+        const ObRowkey *rowkey = NULL;
+        while (OB_SUCCESS == ret)
+        {
+          ret = new_scanner.get_next_row(rowkey, row);;
+          if (OB_ITER_END == ret)
+          {
+            ret = OB_SUCCESS;
+            break;
+          }
+          else
+          {
+            const ObObj *cell = NULL;
+            if (OB_SUCCESS != (ret = row.get_cell(OB_ALL_AUTO_INCREMENT_TID, 18, cell)))
+            {
+              TBSYS_LOG(WARN, "fail to get cell:ret[%d]", ret);
+            }
+            else
+            {
+              auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
+              cell->get_int(auto_value);
+              if (OB_INVALID_AUTO_INCREMENT_VALUE != auto_value)
+              {
+                auto_value++;
+              }
+              else
+              {
+                //auto_value = 0;
+                ret = OB_ERR_AUTO_VALUE_NOT_SERVE;
+              }
+            }
+          }
+        }
+      }
+      return ret;
+    }
+    //add:e
   } // end namespace updateserver
 } // end namespace oceanbase
 

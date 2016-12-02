@@ -1373,10 +1373,14 @@ namespace oceanbase
 
         if (OB_SUCCESS != ret)
         {
-          if (phy_plan.get_start_trans()
+          if ((phy_plan.get_start_trans()
               && NULL != session_ctx
               && session_ctx->get_ups_result().get_trans_id().is_valid()
               && give_up_lock)
+              //add lbzhong [auto_increment] 20161130:b
+              || OB_ERR_AUTO_VALUE_NOT_SERVE == ret
+              //add:e
+              )
           {
             session_ctx->get_ups_result().set_error_code(ret);
             ret = OB_SUCCESS;

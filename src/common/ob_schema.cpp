@@ -371,6 +371,9 @@ namespace oceanbase
      *-----------------------------------------------------------------------------*/
 
     ObColumnSchemaV2::ObColumnSchemaV2() : maintained_(false), is_nullable_(true),
+      //add lbzhong [auto_increment] 20161124:b
+      auto_increment_(false),
+      //add:e
     table_id_(OB_INVALID_ID),column_group_id_(OB_INVALID_ID),
     column_id_(OB_INVALID_ID),size_(0),type_(ObNullType),
     default_value_(), column_group_next_(NULL)
@@ -599,6 +602,13 @@ namespace oceanbase
         ret = serialization::encode_bool(buf, buf_len, tmp_pos, is_nullable_);
       }
 
+      //add lbzhong [auto_increment] 20161124:b
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::encode_bool(buf, buf_len, tmp_pos, auto_increment_);
+      }
+      //add:e
+
       if (OB_SUCCESS == ret)
       {
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos,static_cast<int64_t>(table_id_));
@@ -757,6 +767,13 @@ namespace oceanbase
         ret = serialization::decode_bool(buf, data_len, tmp_pos, &is_nullable_);
       }
 
+      //add lbzhong [auto_increment] 20161124:b
+      if (OB_SUCCESS == ret)
+      {
+        ret = serialization::decode_bool(buf, data_len, tmp_pos, &auto_increment_);
+      }
+      //add:e
+
       if (OB_SUCCESS == ret)
       {
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, reinterpret_cast<int64_t *>(&table_id_));
@@ -838,6 +855,9 @@ namespace oceanbase
     {
       int64_t len = serialization::encoded_length_bool(maintained_);
       len += serialization::encoded_length_bool(is_nullable_);
+      //add lbzhong [auto_increment] 20161124:b
+      len += serialization::encoded_length_bool(auto_increment_);
+      //add:e
       len += serialization::encoded_length_vi64(table_id_);
       len += serialization::encoded_length_vi64(column_group_id_);
       len += serialization::encoded_length_vi64(column_id_);
@@ -4726,6 +4746,9 @@ namespace oceanbase
             old_tcolumn.set_column_size(tcolumn.data_length_);
             old_tcolumn.set_maintained(true); // @deprecated
             old_tcolumn.set_column_group_id(tcolumn.column_group_id_);
+            //add lbzhong [auto_increment] 20161124:b
+            old_tcolumn.set_auto_increment(tcolumn.auto_increment_);
+            //add:e
             // @todo join info
             if (0 < tcolumn.join_table_id_)
             {

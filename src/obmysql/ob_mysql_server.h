@@ -298,7 +298,11 @@ namespace oceanbase
          *                else return OB_ERROR
          */
         int send_response(ObMySQLCommandPacket* packet, ObMySQLResultSet* result,
-                          MYSQL_PROTOCOL_TYPE type, sql::ObSQLSessionInfo *session);
+                          MYSQL_PROTOCOL_TYPE type, sql::ObSQLSessionInfo *session
+                          //add lbzhong [auto_increment] 20161130:b
+                          , const bool need_response  = true
+                          //add:e
+                          );
 
         /**
          * Parse result set and send COM_STMT_PREPARE_RESPONSE
@@ -522,6 +526,13 @@ namespace oceanbase
                       GETTID(), ret, local_cpu, affinity_start_cpu, affinity_end_cpu);
           }
         }
+        //add lbzhong [auto_increment] 20161130:b
+        int load_auto_value_and_retry(const common::ObString& q,
+                                      ObMySQLResultSet &result,
+                                      ObSqlContext &context,
+                                      ObMySQLCommandPacket*& packet, int &err);
+        int execute_stmt(const ObString &sql_string, ObSqlContext &context);
+        //add:e
 
 
       private:

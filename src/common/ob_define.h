@@ -408,6 +408,10 @@ namespace oceanbase
     const int OB_ERR_INVALID_TABLE_NAME = -5071;
     const int OB_ERR_INVALID_INDEX_NAME = -5072;
     //add e
+    //add lbzhong [auto_increment] 20161130:b
+    const int OB_ERR_AUTO_COLUMN_DEFINITION = -5073;
+    const int OB_ERR_AUTO_VALUE_NOT_SERVE = -5074;
+    //add:e
     //add longfei [drop table with index timeout] 151202:b
     const int OB_INDEX_NOT_EXIST = -5075;
     //add e
@@ -557,6 +561,10 @@ namespace oceanbase
     const int64_t OB_SINGLE_CLUSTER = 1;
     const int64_t OB_THREE_CLUSTER = 3;
     // add:e
+    //add lbzhong [auto_increment] 20161130:b
+    const int64_t OB_INVALID_AUTO_INCREMENT_VALUE = -1;
+    const int64_t OB_DEFAULT_AUTO_INCREMENT_VALUE = 0;
+    //add:e
 
     const int64_t OB_MAX_UPS_LEASE_DURATION_US = INT64_MAX;
 
@@ -668,6 +676,9 @@ namespace oceanbase
     const char* const OB_INDEX_SERVICE_INFO_TABLE_NAME = "__index_service_info";
     const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
+    //add lbzhong [auto_increment] 20161126:b
+    const char* const OB_ALL_AUTO_INCREMENT_TABLE_NAME = "__all_auto_increment";
+    //add:e
 
 
     //modified by wangdonghui 20151223
@@ -700,6 +711,9 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
     static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei [create index]
+    //add lbzhong [auto_increment] 20161126:b
+    static const uint64_t OB_ALL_AUTO_INCREMENT_TID = 15;
+    //add:e
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //
     ///////////////////////////////////////////////////////////

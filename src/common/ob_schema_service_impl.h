@@ -66,6 +66,9 @@ namespace oceanbase
     static ObString joininfo_table_name = OB_STR(OB_ALL_JOININFO_TABLE_NAME);
     static ObString privilege_table_name = OB_STR(OB_ALL_TABLE_PRIVILEGE_TABLE_NAME);
     static ObString secondary_index_table_name = OB_STR(OB_ALL_SECONDAYR_INDEX_TABLE_NAME);//longfei [create index]
+    //add lbzhong [auto_increment] 20161211:b
+    static ObString auto_increment_table_name = OB_STR(OB_ALL_AUTO_INCREMENT_TABLE_NAME);
+    //add:e
     static ObString table_name_str = OB_STR("table_id");
     //add by wangdonghui 20160125 :b
     static ObString procedure_table_name = OB_STR(OB_ALL_PROCEDURE_TABLE_NAME);  ///< static string procedure table name
@@ -155,6 +158,10 @@ namespace oceanbase
         int reset_schema_version_mutator(ObMutator* mutator, const AlterTableSchema & schema, const int64_t old_schema_version);
         int init_id_name_map();
         int generate_new_table_name(char* buf, const uint64_t lenght, const char* table_name, const uint64_t table_name_length);
+        //add lbzhong [auto_increment] 20161201:b
+        int check_auto_increment(const TableSchema& table_schema, uint64_t& column_id);
+        int auto_increment_mutator(const uint64_t table_id, const uint64_t column_id, ObMutator* mutator);
+        //add:e
 
       // longfei [create index]
       // secondary index service

@@ -206,8 +206,13 @@ int ObUpsExecutor::open()
       }
       if (OB_SUCCESS != ret)
       {
+        //add lbzhong [auto_increment] 20161130:b
+        if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
+        {
+        //add:e
         TBSYS_LOG(WARN, "ups execute plan failed, err=%d trans_id=%s",
                   ret, to_cstring(local_result_.get_trans_id()));
+        }//add lbzhong [auto_increment] 20161130:b:e
         if (OB_TRANS_ROLLBACKED == ret)
         {
           TBSYS_LOG(USER_ERROR, "transaction is rolled back");
