@@ -446,7 +446,7 @@ namespace oceanbase
                                              is_iter_end_(false),
                                              set_row_iter_ret_(OB_SUCCESS)
                                              //add lbzhong [auto_increment] 20161127:b
-                                             , auto_row_desc_(NULL)
+                                             , auto_row_desc_(NULL), is_assigned_(false), assigned_value_(0)
                                              //add:e
     {
     }
@@ -566,14 +566,7 @@ namespace oceanbase
           //add lbzhong [auto_increment] 20161125:b
           else if (OB_INVALID_ID != auto_column_id)
           {
-            if (NULL == auto_row_desc_ && OB_SUCCESS != (tmp_ret = cons_row_desc(row_desc, auto_column_id)))
-            {
-              TBSYS_LOG(WARN, "fail to cons_row_desc, ret=%d", tmp_ret);
-            }
-            else
-            {
-              tmp_ret = single_row_iter_.get_och().reset(*auto_row_desc_, *schema_mgr);
-            }
+            tmp_ret = reset_och(row_desc, auto_column_id, schema_mgr);
           }
           //add:e
           else
@@ -625,6 +618,8 @@ namespace oceanbase
       is_iter_end_ = false;
       //add lbzhong [auto_increment] 20161127:b
       destroy_auto_row_desc();
+      is_assigned_ = false;
+      assigned_value_ = 0;
       //add:e
     }
 
@@ -637,6 +632,36 @@ namespace oceanbase
       if (NULL == auto_row_desc_ && OB_SUCCESS != (ret = cons_row_desc(row_desc, auto_column_id)))
       {
         TBSYS_LOG(WARN, "fail to cons_row_desc, ret=%d", ret);
+      }
+      else if (is_assigned_)
+      {
+        const ObObj *cell = NULL;
+        ObObj tmp_value;
+        uint64_t tid = OB_INVALID_ID;
+        uint64_t cid = OB_INVALID_ID; //UNUSED
+        ObString cast_buffer;
+        char buffer[OB_MAX_VARCHAR_LENGTH];
+        cast_buffer.assign_ptr(buffer, OB_MAX_VARCHAR_LENGTH);
+        if (OB_SUCCESS != (ret = row_desc->get_tid_cid(0, tid, cid)))
+        {
+          TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = row->get_cell(tid, auto_column_id, cell)))
+        {
+          TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+        }
+        else
+        {
+          tmp_value = *cell;
+          if (OB_SUCCESS != (ret = obj_cast(tmp_value, ObIntType, cast_buffer)))
+          {
+            TBSYS_LOG(WARN, "fail to obj_cast, ret=%d", ret);
+          }
+          else
+          {
+            tmp_value.get_int(assigned_value_);
+          }
+        }
       }
       else
       {
@@ -707,6 +732,11 @@ namespace oceanbase
           {
             TBSYS_LOG(WARN, "fail to get_tid_cid, ret=%d", ret);
           }
+          else if (auto_column_id == cid)
+          {
+            is_assigned_ = true;
+            break;
+          }
           else if (!is_insert && auto_column_id < cid) //insert
           {
             if (OB_INVALID_INDEX != auto_row_desc_->get_idx(tid, auto_column_id))
@@ -739,6 +769,25 @@ namespace oceanbase
         auto_row_desc_ = NULL;
       }
     }
+
+    int ObCellIterAdaptor::reset_och(const ObRowDesc *row_desc, const int64_t auto_column_id, const ObSchemaManagerV2 *schema_mgr)
+    {
+      int tmp_ret = OB_SUCCESS;
+      if (NULL == auto_row_desc_ && OB_SUCCESS != (tmp_ret = cons_row_desc(row_desc, auto_column_id)))
+      {
+        TBSYS_LOG(WARN, "fail to cons_row_desc, ret=%d", tmp_ret);
+      }
+      else if (is_assigned_)
+      {
+        tmp_ret = single_row_iter_.get_och().reset(*row_desc, *schema_mgr);
+      }
+      else
+      {
+        tmp_ret = single_row_iter_.get_och().reset(*auto_row_desc_, *schema_mgr);
+      }
+      return tmp_ret;
+    }
+
     //add:e
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

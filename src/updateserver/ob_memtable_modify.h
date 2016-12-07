@@ -67,6 +67,7 @@ namespace oceanbase
         int check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
                              int64_t& auto_value, const CommonSchemaManager *&sm);
         int get_auto_increment_value(const int64_t table_id, const uint64_t column_id, int64_t &auto_value);
+        int update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id, const uint64_t auto_column_id, int64_t auto_value);
         //add:e
       private:
         RWSessionCtx &session_;
@@ -175,7 +176,7 @@ namespace oceanbase
           ret = OB_SCHEMA_ERROR;
         }
         //add lbzhong [auto_increment] 20161128:b
-        else if (OB_DML_REPLACE == T::get_dml_type() &&
+        else if ((OB_DML_REPLACE == T::get_dml_type() || OB_DML_INSERT == T::get_dml_type()) &&
                  OB_SUCCESS != (ret = check_auto_increment(table_id, auto_column_id, auto_value, sm)))
         {
           if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
@@ -261,6 +262,13 @@ namespace oceanbase
                              );
             ret = host_.apply(session_, cia, T::get_dml_type());
             session_.inc_dml_count(T::get_dml_type());
+
+            //add lbzhong [auto_increment] 20161207:b
+            if (OB_SUCCESS == ret && OB_INVALID_ID != auto_column_id)
+            {
+              ret = update_auto_increment_value(cia, table_id, auto_column_id, auto_value);
+            }
+            //add:e
           }
           //add e
         }
@@ -364,12 +372,6 @@ namespace oceanbase
           {
             //do nothing
           }
-          else
-          {
-            ObAutoIncrementCellIterAdaptor aicia;
-            aicia.set_row_iter(table_id, auto_column_id, auto_value);
-            ret = host_.apply(session_, aicia, OB_DML_UPDATE);
-          }
         }
       }
       return ret;
@@ -454,6 +456,32 @@ namespace oceanbase
       }
       return ret;
     }
+
+    template <class T>
+    int MemTableModifyTmpl<T>::update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id,
+                                                           const uint64_t auto_column_id, int64_t auto_value)
+    {
+      int ret = OB_SUCCESS;
+      bool is_assigned = cia.is_assigned();
+      int64_t assigned_value = cia.get_assigned_value();
+      if (is_assigned)
+      {
+        if (assigned_value > auto_value - 1)
+        {
+          ObAutoIncrementCellIterAdaptor aicia;
+          aicia.set_row_iter(table_id, auto_column_id, assigned_value);
+          ret = host_.apply(session_, aicia, OB_DML_UPDATE);
+        }
+      }
+      else
+      {
+        ObAutoIncrementCellIterAdaptor aicia;
+        aicia.set_row_iter(table_id, auto_column_id, auto_value);
+        ret = host_.apply(session_, aicia, OB_DML_UPDATE);
+      }
+      return ret;
+    }
+
     //add:e
   } // end namespace updateserver
 } // end namespace oceanbase

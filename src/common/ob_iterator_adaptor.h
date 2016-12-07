@@ -121,7 +121,10 @@ namespace oceanbase
         int add_auto_increment_column(const ObRow *&row, ObRow& tmp_row,
                                       const uint64_t auto_column_id, const int64_t auto_value);
         int cons_row_desc(const ObRowDesc *&row_desc, const uint64_t auto_column_id);
+        int reset_och(const ObRowDesc *row_desc, const int64_t auto_column_id, const ObSchemaManagerV2 *schema_mgr);
         void destroy_auto_row_desc();
+        bool is_assigned() const { return is_assigned_; }
+        int64_t get_assigned_value() const { return assigned_value_; }
         //add:e
       private:
         sql::ObPhyOperator *row_iter_;
@@ -131,6 +134,8 @@ namespace oceanbase
         int set_row_iter_ret_;
         //add lbzhong [auto_increment] 20161127:b
         ObRowDesc* auto_row_desc_;
+        bool is_assigned_;
+        int64_t assigned_value_;
         //add:e
     };
 

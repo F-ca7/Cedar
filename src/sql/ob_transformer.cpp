@@ -14632,6 +14632,7 @@ bool ObTransformer::need_auto_increment(ObLogicalPlan *logical_plan,
   }
   else
   {
+    uint64_t auto_column_id = OB_INVALID_ID;
     uint64_t table_id = insert_stmt->get_table_id();
     const ObColumnSchemaV2* columns = NULL;
     int32_t column_size = 0;
@@ -14645,10 +14646,26 @@ bool ObTransformer::need_auto_increment(ObLogicalPlan *logical_plan,
       {
         if (columns[i].is_auto_increment())
         {
+          auto_column_id = columns[i].get_id();
           is_auto_increment = true;
           break;
         }
       }
+    }
+    if (is_auto_increment)
+    {
+      const ColumnItem* column_item = NULL;
+      for (int32_t i = 0; i < insert_stmt->get_column_size(); ++i)
+      {
+        column_item = insert_stmt->get_column_item(i);
+        OB_ASSERT(column_item);
+        OB_ASSERT(table_id == column_item->table_id_);
+        if (auto_column_id == column_item->column_id_)
+        {
+          is_auto_increment = false;
+          break;
+        }
+      } // end for
     }
   }
   return is_auto_increment;
