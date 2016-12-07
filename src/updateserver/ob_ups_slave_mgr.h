@@ -46,7 +46,7 @@ namespace oceanbase
       public:
         static const int32_t RPC_VERSION = 1;
         static const int64_t MAX_SLAVE_NUM = 8;
-        static const int64_t DEFAULT_ACK_QUEUE_LEN = 1024;
+        static const int64_t DEFAULT_ACK_QUEUE_LEN = 2048;  //modify by qx 20161207 old =1024 for avoid ack_queue fulled
         ObUpsSlaveMgr();
         virtual ~ObUpsSlaveMgr();
 
