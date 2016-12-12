@@ -471,6 +471,10 @@ namespace oceanbase
           ObAutoIncrementCellIterAdaptor aicia;
           aicia.set_row_iter(table_id, auto_column_id, assigned_value);
           ret = host_.apply(session_, aicia, OB_DML_UPDATE);
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "fail to update auto_increment, ret=%d", ret);
+          }
         }
       }
       else

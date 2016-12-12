@@ -446,7 +446,7 @@ namespace oceanbase
                                              is_iter_end_(false),
                                              set_row_iter_ret_(OB_SUCCESS)
                                              //add lbzhong [auto_increment] 20161127:b
-                                             , auto_row_desc_(NULL), is_assigned_(false), assigned_value_(0)
+                                             , auto_row_desc_(NULL), auto_row_(NULL), is_assigned_(false), assigned_value_(0)
                                              //add:e
     {
     }
@@ -454,7 +454,7 @@ namespace oceanbase
     ObCellIterAdaptor::~ObCellIterAdaptor()
     {
       //add lbzhong [auto_increment] 20161129:b
-      destroy_auto_row_desc();
+      destroy_auto_row();
       //add:e
     }
 
@@ -596,10 +596,9 @@ namespace oceanbase
             else
             {
               //add lbzhong [auto_increment] 20161124:b
-              ObRow tmp_row;
               if (OB_INVALID_ID != auto_column_id)
               {
-                tmp_ret = add_auto_increment_column(row, tmp_row, auto_column_id, auto_value);
+                tmp_ret = add_auto_increment_column(row, auto_column_id, auto_value);
               }
               //add:e
               single_row_iter_.set_row(row, rk_size);
@@ -617,15 +616,14 @@ namespace oceanbase
       single_row_iter_.reset();
       is_iter_end_ = false;
       //add lbzhong [auto_increment] 20161127:b
-      destroy_auto_row_desc();
+      destroy_auto_row();
       is_assigned_ = false;
       assigned_value_ = 0;
       //add:e
     }
 
     //add lbzhong [auto_increment] 20161127:b
-    int ObCellIterAdaptor::add_auto_increment_column(const ObRow *&row, ObRow& tmp_row,
-                                                      const uint64_t auto_column_id, const int64_t auto_value)
+    int ObCellIterAdaptor::add_auto_increment_column(const ObRow *&row, const uint64_t auto_column_id, const int64_t auto_value)
     {
       int ret = OB_SUCCESS;
       const ObRowDesc* row_desc = row->get_row_desc();
@@ -665,38 +663,60 @@ namespace oceanbase
       }
       else
       {
-        tmp_row.set_row_desc(*auto_row_desc_);
-        uint64_t tid = OB_INVALID_ID;
-        uint64_t cid = OB_INVALID_ID;
-        const ObObj *cell = NULL;
-        bool is_insert = false;
-        for (int64_t i = 0; OB_SUCCESS == ret && i < row->get_row_desc()->get_column_num(); ++i)
+        if (NULL != auto_row_)
         {
-          if (OB_SUCCESS != (ret = row->get_row_desc()->get_tid_cid(i, tid, cid)))
+          ret = OB_INVALID_ARGUMENT;
+          TBSYS_LOG(WARN, "auto_row is not null");
+        }
+        else
+        {
+          void* auto_row_buf = ob_malloc(sizeof(ObRow), ObModIds::OB_SQL_AUTO_INCREMENT);
+          if (NULL == auto_row_buf)
           {
-            TBSYS_LOG(WARN, "fail to get_tid_cid, ret=%d", ret);
+            TBSYS_LOG(WARN, "no memory");
+            ret = OB_ALLOCATE_MEMORY_FAILED;
           }
-          else if (!is_insert && auto_column_id < cid) //insert
+          else
           {
-            ObObj tmp_cell;
-            tmp_cell.set_type(ObIntType);
-            tmp_cell.set_int(auto_value);
-            if (OB_SUCCESS != (ret = tmp_row.set_cell(tid, auto_column_id, tmp_cell)))
+            auto_row_ = new(auto_row_buf) ObRow();
+            auto_row_->clear();
+          }
+        }
+        if (OB_SUCCESS == ret)
+        {
+          auto_row_->set_row_desc(*auto_row_desc_);
+          uint64_t tid = OB_INVALID_ID;
+          uint64_t cid = OB_INVALID_ID;
+          const ObObj *cell = NULL;
+          bool is_insert = false;
+          for (int64_t i = 0; OB_SUCCESS == ret && i < row->get_row_desc()->get_column_num(); ++i)
+          {
+            if (OB_SUCCESS != (ret = row->get_row_desc()->get_tid_cid(i, tid, cid)))
+            {
+              TBSYS_LOG(WARN, "fail to get_tid_cid, ret=%d", ret);
+            }
+            else if (!is_insert && auto_column_id < cid) //insert
+            {
+              ObObj tmp_cell;
+              tmp_cell.set_type(ObIntType);
+              tmp_cell.set_int(auto_value);
+              if (OB_SUCCESS != (ret = auto_row_->set_cell(tid, auto_column_id, tmp_cell)))
+              {
+                TBSYS_LOG(WARN, "fail to set cell, ret=%d", ret);
+              }
+              is_insert = true;
+            }
+            if (OB_SUCCESS != (ret = row->get_cell(tid, cid, cell)))
+            {
+              TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+            }
+            else if (OB_SUCCESS != (ret = auto_row_->set_cell(tid, cid, *cell)))//copy
             {
               TBSYS_LOG(WARN, "fail to set cell, ret=%d", ret);
             }
-            is_insert = true;
           }
-          if (OB_SUCCESS != (ret = row->get_cell(tid, cid, cell)))
-          {
-            TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
-          }
-          else if (OB_SUCCESS != (ret = tmp_row.set_cell(tid, cid, *cell)))//copy
-          {
-            TBSYS_LOG(WARN, "fail to set cell, ret=%d", ret);
-          }
+          row = auto_row_;
         }
-        row = &tmp_row;
       }
       return ret;
     }
@@ -706,7 +726,8 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       if (NULL != auto_row_desc_)
       {
-        auto_row_desc_->reset();
+        ret = OB_INVALID_ARGUMENT;
+        TBSYS_LOG(WARN, "auto_row_desc is not null!");
       }
       else
       {
@@ -761,12 +782,18 @@ namespace oceanbase
       return ret;
     }
 
-    void ObCellIterAdaptor::destroy_auto_row_desc()
+    void ObCellIterAdaptor::destroy_auto_row()
     {
       if (NULL != auto_row_desc_)
       {
         ob_free(auto_row_desc_);
         auto_row_desc_ = NULL;
+      }
+      if (NULL != auto_row_)
+      {
+        auto_row_->~ObRow();
+        ob_free(auto_row_);
+        auto_row_ = NULL;
       }
     }
 
@@ -1337,29 +1364,26 @@ namespace oceanbase
       single_row_iter_.reset();
       is_iter_end_ = false;
       int tmp_ret = OB_SUCCESS;
-      ObRow row;
-      ObRowDesc row_desc;
-      row_desc.set_rowkey_cell_count(2);
-      row.set_row_desc(row_desc);
+      row_desc_.set_rowkey_cell_count(2);
       for (int32_t i = 0; OB_SUCCESS == tmp_ret && i < 3; i++)
       {
-        if (OB_SUCCESS != (tmp_ret = row_desc.add_column_desc(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + i)))
+        if (OB_SUCCESS != (tmp_ret = row_desc_.add_column_desc(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + i)))
         {
           TBSYS_LOG(WARN, "fail to add column desc, ret=%d", tmp_ret);
         }
       }
       if (OB_SUCCESS == tmp_ret)
       {
-        row.set_row_desc(row_desc);
+        row_.set_row_desc(row_desc_);
         ObObj cell;
         cell.set_int(table_id);
-        row.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID, cell);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID, cell);
         cell.set_int(column_id);
-        row.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 1, cell);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 1, cell);
         cell.set_int(auto_value);
-        row.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 2, cell);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 2, cell);
 
-        single_row_iter_.set_row(&row, 2);
+        single_row_iter_.set_row(&row_, 2);
       }
       set_row_iter_ret_ = tmp_ret;
     }

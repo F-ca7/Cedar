@@ -118,11 +118,10 @@ namespace oceanbase
                           );
         void reset();
         //add lbzhong [auto_increment] 20161127:b
-        int add_auto_increment_column(const ObRow *&row, ObRow& tmp_row,
-                                      const uint64_t auto_column_id, const int64_t auto_value);
+        int add_auto_increment_column(const ObRow *&row, const uint64_t auto_column_id, const int64_t auto_value);
         int cons_row_desc(const ObRowDesc *&row_desc, const uint64_t auto_column_id);
         int reset_och(const ObRowDesc *row_desc, const int64_t auto_column_id, const ObSchemaManagerV2 *schema_mgr);
-        void destroy_auto_row_desc();
+        void destroy_auto_row();
         bool is_assigned() const { return is_assigned_; }
         int64_t get_assigned_value() const { return assigned_value_; }
         //add:e
@@ -134,6 +133,7 @@ namespace oceanbase
         int set_row_iter_ret_;
         //add lbzhong [auto_increment] 20161127:b
         ObRowDesc* auto_row_desc_;
+        ObRow* auto_row_;
         bool is_assigned_;
         int64_t assigned_value_;
         //add:e
@@ -236,6 +236,8 @@ namespace oceanbase
         void set_row_iter(const uint64_t table_id, const uint64_t column_id, const int64_t auto_value);
         void reset();
       private:
+        ObRow row_;
+        ObRowDesc row_desc_;
         ObAutoIncrementCellAdaptor single_row_iter_;
         bool is_iter_end_;
         int set_row_iter_ret_;
