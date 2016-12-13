@@ -118,12 +118,25 @@ namespace oceanbase
                           );
         void reset();
         //add lbzhong [auto_increment] 20161127:b
-        int add_auto_increment_column(const ObRow *&row, const uint64_t auto_column_id, const int64_t auto_value);
-        int cons_row_desc(const ObRowDesc *&row_desc, const uint64_t auto_column_id);
-        int reset_och(const ObRowDesc *row_desc, const int64_t auto_column_id, const ObSchemaManagerV2 *schema_mgr);
-        void destroy_auto_row();
-        bool is_assigned() const { return is_assigned_; }
-        int64_t get_assigned_value() const { return assigned_value_; }
+        int cons_auto_info(const uint64_t auto_column_id, const int64_t auto_value);
+        int add_auto_increment_column(const ObRow *&row);
+        int reset_och(const ObRowDesc *row_desc, const ObSchemaManagerV2 *schema_mgr);
+        void destroy_auto_info();
+        int get_auto_value(int64_t& auto_value) const;
+      private:
+        struct AutoIncrementInfo
+        {
+          ObRowDesc* auto_row_desc_;
+          ObRow* auto_row_;
+          uint64_t auto_column_id_;
+          int64_t auto_value_;
+          bool is_assigned_;
+          AutoIncrementInfo(const uint64_t auto_column_id, const int64_t auto_value);
+          ~AutoIncrementInfo();
+          int cons_row_desc(const ObRowDesc *&row_desc);
+          void set_auto_value(const int64_t auto_value);
+          int cons_auto_row(const ObRow *&row);
+        };
         //add:e
       private:
         sql::ObPhyOperator *row_iter_;
@@ -132,10 +145,7 @@ namespace oceanbase
         bool is_iter_end_;
         int set_row_iter_ret_;
         //add lbzhong [auto_increment] 20161127:b
-        ObRowDesc* auto_row_desc_;
-        ObRow* auto_row_;
-        bool is_assigned_;
-        int64_t assigned_value_;
+        AutoIncrementInfo* auto_info_;
         //add:e
     };
 
@@ -232,6 +242,7 @@ namespace oceanbase
         int get_cell(ObCellInfo** cell);
         int get_cell(ObCellInfo** cell, bool* is_row_changed);
         int is_row_finished(bool* is_row_finished);
+        int get_type() const { return ITERATOR_AUTO_INCREMENT; }
       public:
         void set_row_iter(const uint64_t table_id, const uint64_t column_id, const int64_t auto_value);
         void reset();

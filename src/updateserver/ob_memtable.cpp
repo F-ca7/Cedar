@@ -1264,7 +1264,12 @@ namespace oceanbase
                       str_dml_type(dml_type), total_row_counter, new_row_counter, cell_counter, ret);
         if (OB_SUCCESS == ret)
         {
+          //add lbzhong [auto_increment] 20161213:b
+          if (iter.get_type() != ITERATOR_AUTO_INCREMENT)
+          {
+          //add:e
           session_ctx.get_ups_result().set_affected_rows(total_row_counter);
+          } //add lbzhong [auto_increment] 20161213:b:e
           session_ctx.get_uc_info().uc_row_counter += new_row_counter;
           session_ctx.get_uc_info().uc_checksum = bc.calc();
           //session_ctx.commit_prepare_list();

@@ -67,7 +67,8 @@ namespace oceanbase
         int check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
                              int64_t& auto_value, const CommonSchemaManager *&sm);
         int get_auto_increment_value(const int64_t table_id, const uint64_t column_id, int64_t &auto_value);
-        int update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id, const uint64_t auto_column_id, int64_t auto_value);
+        int update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id,
+                                        const uint64_t auto_column_id, const int64_t old_value);
         //add:e
       private:
         RWSessionCtx &session_;
@@ -441,13 +442,8 @@ namespace oceanbase
             {
               auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
               cell->get_int(auto_value);
-              if (OB_INVALID_AUTO_INCREMENT_VALUE != auto_value)
+              if (OB_INVALID_AUTO_INCREMENT_VALUE == auto_value)
               {
-                auto_value++;
-              }
-              else
-              {
-                //auto_value = 0;
                 ret = OB_ERR_AUTO_VALUE_NOT_SERVE;
               }
             }
@@ -459,29 +455,23 @@ namespace oceanbase
 
     template <class T>
     int MemTableModifyTmpl<T>::update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id,
-                                                           const uint64_t auto_column_id, int64_t auto_value)
+                                                           const uint64_t auto_column_id, const int64_t old_value)
     {
       int ret = OB_SUCCESS;
-      bool is_assigned = cia.is_assigned();
-      int64_t assigned_value = cia.get_assigned_value();
-      if (is_assigned)
+      int64_t auto_value = 0;
+      if (OB_SUCCESS != (ret = cia.get_auto_value(auto_value)))
       {
-        if (assigned_value > auto_value - 1)
-        {
-          ObAutoIncrementCellIterAdaptor aicia;
-          aicia.set_row_iter(table_id, auto_column_id, assigned_value);
-          ret = host_.apply(session_, aicia, OB_DML_UPDATE);
-          if (OB_SUCCESS != ret)
-          {
-            TBSYS_LOG(WARN, "fail to update auto_increment, ret=%d", ret);
-          }
-        }
+        TBSYS_LOG(WARN, "fail to get auto_value, ret=%d", ret);
       }
-      else
+      else if (auto_value > old_value)
       {
         ObAutoIncrementCellIterAdaptor aicia;
         aicia.set_row_iter(table_id, auto_column_id, auto_value);
         ret = host_.apply(session_, aicia, OB_DML_UPDATE);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "fail to update auto_increment, ret=%d", ret);
+        }
       }
       return ret;
     }
