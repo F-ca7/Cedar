@@ -894,11 +894,7 @@ int ObSchemaServiceImpl::drop_table(const ObString& table_name)
   //add lbzhong [auto_increment] 20161201:b
   if (OB_SUCCESS == ret)
   {
-    ret = nb_accessor_.delete_auto_increment_row(OB_ALL_AUTO_INCREMENT_TABLE_NAME, SC("table_id")("column_id"), ScanConds("table_id", EQ, table_id));
-    if(OB_SUCCESS != ret)
-    {
-      TBSYS_LOG(WARN, "delete row from auto increment table fail:ret[%d]", ret);
-    }
+    ret = delete_auto_increment(table_id);
   }
   //add:e
 
@@ -2516,4 +2512,91 @@ int ObSchemaServiceImpl::auto_increment_mutator(const uint64_t table_id, const u
   }
   return ret;
 }
+
+int ObSchemaServiceImpl::fetch_auto_column_id(const uint64_t table_id, uint64_t& auto_column_id)
+{
+  int ret = OB_SUCCESS;
+  QueryRes* res = NULL;
+
+  ObNewRange range;
+  int32_t rowkey_column = 2;
+  ObObj start_rowkey[rowkey_column];
+  ObObj end_rowkey[rowkey_column];
+  start_rowkey[0].set_int(table_id);
+  start_rowkey[1].set_min_value();
+  end_rowkey[0].set_int(table_id);
+  end_rowkey[1].set_max_value();
+  if (OB_SUCCESS == ret)
+  {
+    range.start_key_.assign(start_rowkey, rowkey_column);
+    range.end_key_.assign(end_rowkey, rowkey_column);
+  }
+  if(OB_SUCCESS == ret)
+  {
+    ret = nb_accessor_.scan(res, OB_ALL_COLUMN_TABLE_NAME, range, SC("column_id")("auto_increment"), ScanConds("table_id", EQ, table_id));
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "scan column table fail:ret[%d]", ret);
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    TableRow* table_row = NULL;
+    while(OB_SUCCESS == res->next_row() && OB_SUCCESS == ret)
+    {
+      res->get_row(&table_row);
+      if(NULL != table_row)
+      {
+        uint64_t column_id = OB_INVALID_ID;
+        int64_t auto_increment = 0;
+        ASSIGN_INT("column_id", column_id, uint64_t);
+        ASSIGN_INT("auto_increment", auto_increment, int64_t);
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "get auto_column_id fail:ret[%d]", ret);
+        }
+        else if (auto_increment == 1)
+        {
+          auto_column_id = column_id;
+          break;
+        }
+      }
+      else
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "get column fail");
+      }
+    }
+  }
+  nb_accessor_.release_query_res(res);
+  res = NULL;
+
+  return ret;
+}
+
+int ObSchemaServiceImpl::delete_auto_increment(const int64_t table_id)
+{
+  int ret = OB_SUCCESS;
+  uint64_t auto_column_id = OB_INVALID_ID;
+  if (OB_SUCCESS != (ret = fetch_auto_column_id(table_id, auto_column_id)))
+  {
+    TBSYS_LOG(WARN, "fail to fetch auto_column_id, ret=%d", ret);
+  }
+  else
+  {
+    ObObj value[2];
+    value[0].set_int(table_id);
+    value[1].set_int(auto_column_id);
+    ObRowkey rowkey;
+    rowkey.assign(value, 2);
+    ret = nb_accessor_.delete_row(OB_ALL_AUTO_INCREMENT_TABLE_NAME, rowkey);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "delete row from auto increment table fail:ret[%d], rowkey=%s", ret, to_cstring(rowkey));
+    }
+  }
+  return ret;
+}
+
 //add:e

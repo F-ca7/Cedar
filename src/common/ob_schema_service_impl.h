@@ -161,6 +161,8 @@ namespace oceanbase
         //add lbzhong [auto_increment] 20161201:b
         int check_auto_increment(const TableSchema& table_schema, uint64_t& column_id);
         int auto_increment_mutator(const uint64_t table_id, const uint64_t column_id, ObMutator* mutator);
+        int fetch_auto_column_id(const uint64_t table_id, uint64_t& auto_column_id);
+        int delete_auto_increment(const int64_t table_id);
         //add:e
 
       // longfei [create index]
