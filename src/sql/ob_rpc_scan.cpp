@@ -1042,7 +1042,13 @@ int ObRpcScan::get_next_compact_row(const common::ObRow *&row)
       }
       else if (OB_SUCCESS != (ret = create_get_param_for_index(*get_param_)))
       {
-        TBSYS_LOG(WARN, "fail to create scan param. ret=%d", ret);
+        //mod longfei 2016-03-25 14:32:29
+        if(OB_ITER_END != ret)
+        {
+          TBSYS_LOG(WARN, "fail to create scan param. ret=%d", ret);
+        }
+        //TBSYS_LOG(WARN, "fail to create scan param. ret=%d", ret);
+        //mod e
       }
       else if (OB_SUCCESS != (ret = cons_index_row_desc(*get_param_, get_row_desc_)))
       {
@@ -1206,7 +1212,7 @@ int ObRpcScan::set_is_use_index_for_storing(uint64_t main_tid, common::ObRowDesc
   return ret;
 }
 
-int ObRpcScan::set_main_rowkey_info(common::ObRowkeyInfo rowkey_info)
+int ObRpcScan::set_main_rowkey_info(const common::ObRowkeyInfo& rowkey_info)
 {
   main_rowkey_info_ = rowkey_info;
   return OB_SUCCESS;
@@ -1466,12 +1472,21 @@ int ObRpcScan::create_get_param_for_index(ObSqlGetParam &get_param) //生成第�
   int ret = OB_SUCCESS;
   if (OB_SUCCESS != (ret = cons_get_rows_for_index(get_param)))  //构造主键的范围
   {
-    TBSYS_LOG(WARN, "fail to construct scan range. ret=%d", ret);
+    //mod longfei 2016-03-25 13:27:27
+    if(OB_ITER_END != ret)
+    {
+      TBSYS_LOG(WARN, "fail to construct scan range. ret=%d", ret);
+    }
+    //TBSYS_LOG(WARN, "fail to construct scan range. ret=%d", ret);
+    //mod e
   }
   if (OB_SUCCESS == ret)
   {
 
     read_param_->reset();
+    //add longfei 2016-03-25 13:44:31
+    read_param_->set_is_read_consistency(hint_.read_consistency_ == STRONG);
+    //add e
     get_param.set_phy_plan(get_phy_plan());
     //read_param_ = get_param_;
 
@@ -1484,7 +1499,17 @@ int ObRpcScan::create_get_param_for_index(ObSqlGetParam &get_param) //生成第�
       read_param_=&get_param;
     }
   }
-  reset_read_param_for_index();
+  //mod longfei
+  //mod longfei 2016-04-05 22:13:53
+  if (OB_SUCCESS == ret && OB_SUCCESS != (ret = reset_read_param_for_index()))
+//  if (OB_SUCCESS != (ret = reset_read_param_for_index()))
+  //mod e
+  {
+    ret = OB_ERR_UNEXPECTED;
+    TBSYS_LOG(ERROR, "error unexpected. ret = %d", ret);
+  }
+//  reset_read_param_for_index();
+  //mod e
   return ret;
 }
 
@@ -1761,7 +1786,38 @@ PHY_OPERATOR_ASSIGN(ObRpcScan)
   hint_ = o_ptr->hint_;
   need_cache_frozen_data_ = o_ptr->need_cache_frozen_data_;
   cache_bloom_filter_ = o_ptr->cache_bloom_filter_;
-  if ((ret = cur_row_desc_.assign(o_ptr->cur_row_desc_)) != OB_SUCCESS)
+  //add longfei [prepare bug fix] 2016-04-22 10:21:42
+  is_use_index_ = o_ptr->is_use_index_;
+  is_use_index_for_storing_ = o_ptr->is_use_index_for_storing_;
+  main_table_id_ = o_ptr->main_table_id_;
+  get_next_row_count_ = o_ptr->get_next_row_count_;
+  main_filter_.set_phy_plan(my_phy_plan_);
+  main_project.set_phy_plan(my_phy_plan_);
+  if (OB_SUCCESS != (ret = main_filter_.assign(&o_ptr->main_filter_)))
+  {
+    TBSYS_LOG(WARN, "Assign main_filter_ for seIndex failed, ret=%d", ret);
+  }
+  else if(OB_SUCCESS != (ret = main_project.assign(&o_ptr->main_project)))
+  {
+    TBSYS_LOG(WARN, "Assign main_project_ for seIndex failed, ret=%d", ret);
+  }
+  else if(OB_SUCCESS != (ret = second_row_desc_.assign(o_ptr->second_row_desc_)))
+  {
+    TBSYS_LOG(WARN, "Assign second_row_desc_ for seIndex failed, ret=%d", ret);
+  }
+  else if(OB_SUCCESS != (ret = cur_row_desc_for_storing.assign(o_ptr->cur_row_desc_for_storing)))
+  {
+    TBSYS_LOG(WARN, "Assign cur_row_desc_for_storing_ for seIndex failed, ret=%d", ret);
+  }
+  else if(OB_SUCCESS != (ret = main_rowkey_info_.assign(o_ptr->main_rowkey_info_)))
+  {
+    TBSYS_LOG(WARN, "Assign main_rowkey_info_ for seIndex failed, ret=%d", ret);
+  }
+  //add e
+  //mod longfei 2016-04-22 10:32:54
+//  if ((ret = cur_row_desc_.assign(o_ptr->cur_row_desc_)) != OB_SUCCESS)
+  else if((ret = cur_row_desc_.assign(o_ptr->cur_row_desc_)) != OB_SUCCESS)
+  //mod e
   {
     TBSYS_LOG(WARN, "Assign ObRowDesc failed, ret=%d", ret);
   }

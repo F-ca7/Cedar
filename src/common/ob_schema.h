@@ -167,6 +167,39 @@ namespace oceanbase
         return size_;
       }
 
+      //add longfei [assign] 2016-04-22 10:38:48
+      int assign(const ObRowkeyInfo& other)
+      {
+        int ret = OB_SUCCESS;
+        reset();
+        if(this == &other)
+        {
+          TBSYS_LOG(INFO, "same rowkeyinfo");
+        }
+        else
+        {
+          TBSYS_LOG(DEBUG, "in %s, other size is %ld", __FUNCTION__, other.get_size());
+          for(int64_t i = 0; i < other.get_size(); i++)
+          {
+            ret = this->set_column(i, *other.get_column(i));
+            if (OB_SUCCESS != ret)
+            {
+              TBSYS_LOG(WARN, "in %s, assign failed", __FUNCTION__);
+              break;
+            }
+          }
+        }
+        return ret;
+      }
+      //add e
+
+      //add longfei [reset] 2016-04-23 10:44:22
+      void reset()
+      {
+        size_ = 0;
+      }
+      //add e
+
       /**
        * get sum of every column's length.
        */

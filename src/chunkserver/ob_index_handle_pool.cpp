@@ -235,7 +235,13 @@ namespace oceanbase
 
           }
         }
-        TBSYS_LOG(INFO,"allocate memory for index handler finish");
+        //mod longfei
+        if (OB_SUCCESS == ret)
+        {
+          TBSYS_LOG(INFO,"allocate memory for index handler success");
+        }
+//        TBSYS_LOG(INFO,"allocate memory for index handler finish");
+        //mod e
       }
       return ret;
     }

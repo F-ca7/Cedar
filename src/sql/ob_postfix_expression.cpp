@@ -8,7 +8,7 @@
  * @file ob_postfix_expression.cpp
  * @brief postfix expression class definition
  *
- * modified by longfei：add interface: get_expr()
+ * modified by longfei锛歛dd interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
  * modified by maoxiaoxiao: modify the if condition because of the added enum type "QUERY_ID"
  *
@@ -177,10 +177,10 @@ namespace oceanbase
       return ret;
     }
 
-    /*     初始化数学运算操作调用表 */
+    /*     鍒濆鍖栨暟瀛﹁繍绠楁搷浣滆皟鐢ㄨ〃 */
     op_call_func_t ObPostfixExpression::call_func[T_MAX_OP - T_MIN_OP - 1] = {
-      /*   WARNING: 下面的顺序不可以调换�
-       *   需要与(ob_item_tpye.h) ExprType enum定义对应
+      /*   WARNING: 涓嬮潰鐨勯『搴忎笉鍙互璋冩崲锛
+       *   闇€瑕佷笌(ob_item_tpye.h) ExprType enum瀹氫箟瀵瑰簲
        */
       ObPostfixExpression::minus_func, /* T_OP_NEG */
       ObPostfixExpression::plus_func, /* T_OP_POS */
@@ -815,7 +815,7 @@ namespace oceanbase
       const ObObj *var = NULL;
       while (OB_SUCCESS == ret)
       {
-        // 获得数据类型:列id、数字、操作符、结束标�
+        // 鑾峰緱鏁版嵁绫诲瀷:鍒梚d銆佹暟瀛椼€佹搷浣滅銆佺粨鏉熸爣璁
         if (OB_SUCCESS != (ret = expr_[idx++].get_int(type)))
         {
           TBSYS_LOG(WARN, "fail to get int value. unexpected! ret=%d idx=%d", ret, idx-1);
@@ -831,7 +831,7 @@ namespace oceanbase
           ret = OB_ERR_UNEXPECTED;
           break;
         }
-        else if (END == type)   // expr_中以END符号表示结束
+        else if (END == type)   // expr_涓互END绗﹀彿琛ㄧず缁撴潫
         {
           if (idx_i != 1)
           {
@@ -947,7 +947,7 @@ namespace oceanbase
             }
             //add zt 20151126:e
             case OP:
-              // 根据OP的类型，从堆栈中弹出1个或多个操作数，进行计算
+              // 鏍规嵁OP鐨勭被鍨嬶紝浠庡爢鏍堜腑寮瑰嚭1涓垨澶氫釜鎿嶄綔鏁帮紝杩涜璁＄畻
               if (OB_SUCCESS != (ret = expr_[idx++].get_int(value)))
               {
                 TBSYS_LOG(WARN,"get operator type failed [err:%d]", ret);
@@ -2731,24 +2731,24 @@ namespace oceanbase
 
     inline int ObPostfixExpression::in_func(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params)
     {
-      // in的算�
+      // in鐨勭畻娉
       //
-      // �.
-      // 2 IN (3, 4) 的后缀表达式为
-      // [栈顶] 2, 3, 4, Row(2), IN(2)
-      // in_row_operator_中数据的layout为：
+      // 渚.
+      // 2 IN (3, 4) 鐨勫悗缂€琛ㄨ揪寮忎负
+      // [鏍堥《] 2, 3, 4, Row(2), IN(2)
+      // in_row_operator_涓暟鎹殑layout涓猴細
       // 2 3 4
       // width = 1
       //
-      // �.
-      // (1, 3) IN ((3, 4), (1, 2))的后缀表达式为
-      // [栈顶] 1, 3, Row(2), 3, 4, Row(2), 1, 2, Row(2), Row(2), IN(2)
-      // in_row_operator_中数据的layout为：
+      // 渚.
+      // (1, 3) IN ((3, 4), (1, 2))鐨勫悗缂€琛ㄨ揪寮忎负
+      // [鏍堥《] 1, 3, Row(2), 3, 4, Row(2), 1, 2, Row(2), Row(2), IN(2)
+      // in_row_operator_涓暟鎹殑layout涓猴細
       // 1 3 3 4 1 2
       // width = 2
       //
-      // 显然，根据width，取出前width个数，逐个往后比较即可计算得到in的结�
-      // note: 1. 该后缀表达式计算中，左操作数先出栈 2. 最后一个T_OP_ROW操作被实际上忽略
+      // 鏄剧劧锛屾牴鎹畐idth锛屽彇鍑哄墠width涓暟锛岄€愪釜寰€鍚庢瘮杈冨嵆鍙绠楀緱鍒癷n鐨勭粨鏋
+      // note: 1. 璇ュ悗缂€琛ㄨ揪寮忚绠椾腑锛屽乏鎿嶄綔鏁板厛鍑烘爤 2. 鏈€鍚庝竴涓猅_OP_ROW鎿嶄綔琚疄闄呬笂蹇界暐
       //
       int ret = OB_SUCCESS;
       if (NULL == stack_i)
@@ -3653,7 +3653,7 @@ namespace oceanbase
             databuff_printf(buf, buf_len, pos, "[]");
             //add zt 20151208:e
           case OP:
-            // 根据OP的类型，从堆栈中弹出1个或多个操作数，进行计算
+            // 鏍规嵁OP鐨勭被鍨嬶紝浠庡爢鏍堜腑寮瑰嚭1涓垨澶氫釜鎿嶄綔鏁帮紝杩涜璁＄畻
             if (OB_SUCCESS != (err = expr_[idx++].get_int(value)))
             {
               TBSYS_LOG(WARN,"get_int error [err:%d]", err);
@@ -3738,7 +3738,10 @@ namespace oceanbase
       {
         num = 3;
       }
-      else if (type == CONST_OBJ )
+      //mod longfei [bugfix:prepare] 2016-04-16 13:42:51
+      else if (type == CONST_OBJ || PARAM_IDX == type)
+//      else if (type == CONST_OBJ )
+      //mod e
       {
         num = 2;
       }

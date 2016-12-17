@@ -3977,7 +3977,7 @@ int ObTransformer::gen_phy_table_not_back(
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+    TBSYS_LOG(DEBUG,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
               (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
     if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
@@ -3989,7 +3989,7 @@ int ObTransformer::gen_phy_table_not_back(
     }
   }
 
-  TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+  TBSYS_LOG(DEBUG,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
             (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
   if (ret == OB_SUCCESS)
   {
@@ -4412,8 +4412,7 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
   return ret;
 }
 
-bool ObTransformer::
-handle_index_for_one_table(
+bool ObTransformer::handle_index_for_one_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
     ErrStat& err_stat,
@@ -4424,6 +4423,10 @@ handle_index_for_one_table(
     bool* limit_pushed_down)
 {
   Expr_Array filter_array;
+  //add longfei 2016-04-05 19:42:00
+  //BUGFIX[memory]:pointer to filter,for release filter;
+  common::ObArray<sql::ObSqlExpression*> p_filter;
+  //add e
   Expr_Array project_array;
   ObArray<uint64_t> alias_exprs;
   int& ret = err_stat.err_code_ = OB_SUCCESS;
@@ -4491,14 +4494,20 @@ handle_index_for_one_table(
           //TBSYS_LOG(WARN,"test::longfei>>>filter[%d] is %s", i, to_cstring(*filter));
           if(OB_SUCCESS != (ret = filter_array.push_back(*filter)))
           {
+            //add longfei 2016-04-05 19:44:12
+            ObSqlExpression::free(filter);
+            //add e
             TBSYS_LOG(ERROR, "OBArray push back failed");
             ret = OB_ERROR;
           }
-          //add longfei 2016-03-23 15:24:28:b
-          //fixbug 释放filter指针指向的内存空间
-          //TBSYS_LOG(WARN, "debug::longfei>>>free filter memory, count[%ld], filter[%s]", filter_array.count(), to_cstring(*filter));
-          ObSqlExpression::free(filter);
-          //adde
+          //add longfei 2016-04-05 19:47:25
+          else if(OB_SUCCESS != (ret = p_filter.push_back(filter)))
+          {
+            TBSYS_LOG(ERROR, "p_filter push back failed");
+            ObSqlExpression::free(filter);
+            ret = OB_ERROR;
+          }
+          //add e
         }
       }
     }
@@ -4723,6 +4732,21 @@ handle_index_for_one_table(
         }
       }
     }
+  }
+  //add longfei 2016-04-05 19:52:02
+  //BUGFIX[memory]
+  for(int64_t i = 0; i < p_filter.count(); i++)
+  {
+    ObSqlExpression *filter = NULL;
+    if(OB_SUCCESS != (ret = p_filter.pop_back(filter)))
+    {
+      if(ret != OB_ENTRY_NOT_EXIST)
+      {
+        TBSYS_LOG(ERROR, "p_filter pop back failed");
+      }
+    }
+    if(filter != NULL)
+      ObSqlExpression::free(filter);
   }
   //add BUG
   if (OB_SUCCESS != ret && is_gen_table == true)

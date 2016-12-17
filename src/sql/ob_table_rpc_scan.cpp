@@ -397,7 +397,7 @@ namespace oceanbase
       rpc_scan_.set_is_use_index_for_storing(tid, row_desc);
     }
 
-    void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo rowkey_info)
+    void ObTableRpcScan::set_main_rowkey_info(const common::ObRowkeyInfo &rowkey_info)
     {
       rpc_scan_.set_main_rowkey_info(rowkey_info);
     }
@@ -830,7 +830,24 @@ namespace oceanbase
         has_limit_ = o_ptr->has_limit_;
         is_skip_empty_row_ = o_ptr->is_skip_empty_row_;
         //add longfei
-        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+//        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+        //add e
+        //add longfei [prepare bug fix] 2016-04-22 10:10:23
+        is_use_index_rpc_scan_ = o_ptr->is_use_index_rpc_scan_;
+        is_use_index_for_storing_ = o_ptr->is_use_index_for_storing_;
+        main_tid_ = o_ptr->main_tid_;
+        index_tid_for_storing_for_tostring_ = o_ptr->index_tid_for_storing_for_tostring_;
+        index_tid_without_storing_for_tostring_ = o_ptr->index_tid_without_storing_for_tostring_;
+        main_filter_.set_phy_plan(my_phy_plan_);
+        main_project_.set_phy_plan(my_phy_plan_);
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = main_filter_.assign(&o_ptr->main_filter_)))
+        {
+          TBSYS_LOG(WARN, "Assign main_filter for secondary index failed. ret=%d", ret);
+        }
+        else if(OB_SUCCESS != (ret = main_project_.assign(&o_ptr->main_project_)))
+        {
+          TBSYS_LOG(WARN, "Assign main_project for secondary index failed. ret=%d", ret);
+        }
         //add e
         read_method_ = o_ptr->read_method_;
       }

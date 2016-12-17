@@ -96,7 +96,7 @@ int ObSecondaryIndexServiceImpl::find_cid(
       }
     }
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -145,7 +145,7 @@ int ObSecondaryIndexServiceImpl::change_tid(
       column_count++;
       idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -201,7 +201,7 @@ int ObSecondaryIndexServiceImpl::get_cid(
         idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -276,7 +276,7 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
       }
     }
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW  // ??
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -341,7 +341,7 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
       }
     }
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP)
+             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -381,7 +381,7 @@ int ObSecondaryIndexServiceImpl::get_all_cloumn(
     }
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
              || type == CONST_OBJ || type == END
-             || type == UPS_TIME_OP)
+             || type == UPS_TIME_OP  || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -473,7 +473,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
     }
     else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
              || type == CONST_OBJ || type == END
-             || type == UPS_TIME_OP)
+             || type == UPS_TIME_OP  || type == PARAM_IDX)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
