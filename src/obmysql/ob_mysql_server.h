@@ -531,7 +531,6 @@ namespace oceanbase
                                       ObMySQLResultSet &result,
                                       ObSqlContext &context,
                                       ObMySQLCommandPacket*& packet, int &err);
-        int execute_stmt(const ObString &sql_string, ObSqlContext &context);
         //add:e
 
 

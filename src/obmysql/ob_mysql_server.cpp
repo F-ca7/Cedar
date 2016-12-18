@@ -3512,75 +3512,37 @@ namespace oceanbase
     int ObMySQLServer::load_auto_value_and_retry(const common::ObString& q, ObMySQLResultSet &result, ObSqlContext &context,
                                   ObMySQLCommandPacket*& packet, int &err)
     {
-      int ret = OB_SUCCESS;
-
-      char sql_buf[512];
-      int cnt = snprintf(sql_buf, 512, "UPDATE __all_auto_increment SET max_value=max_value");
-      ObString sql_string;
-      sql_string.assign_ptr(sql_buf, cnt);
-      if (OB_SUCCESS != (ret = execute_stmt(sql_string, context)))
+      int ret = OB_ERR_AUTO_VALUE_NOT_SERVE;
+      bool need_response = false;
+      int count = 0;
+      int max_retry_times = 10;
+      context.need_load_auto_value_ = true;
+      while (OB_ERR_AUTO_VALUE_NOT_SERVE == ret && !need_response)
       {
-        TBSYS_LOG(WARN, "fail to execute sql. ret=%d", ret);
-      }
-      else
-      {
-        ret = OB_ERR_AUTO_VALUE_NOT_SERVE;
-        bool need_response = false;
-        int count = 0;
-        int max_retry_times = 10;
-        while (OB_ERR_AUTO_VALUE_NOT_SERVE == ret && !need_response)
+        usleep(500);
+        count++;
+        if (count > max_retry_times)
         {
-          usleep(500);
-          count++;
-          if (count > max_retry_times)
-          {
-            need_response = true;
-          }
+          need_response = true;
+        }
 
-          result.reset();
-          ret = ObSql::direct_execute(q, result, context);
-          // process result
-          if (OB_SUCCESS != ret)
+        result.reset();
+        ret = ObSql::direct_execute(q, result, context);
+        // process result
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "direct_execute failed, err=%d stmt=\"%.*s\" ret is %d",
+                    ret, q.length(), q.ptr(), ret);
+          if (OB_SUCCESS != (err = send_error_packet(packet, &result)))
           {
-            TBSYS_LOG(WARN, "direct_execute failed, err=%d stmt=\"%.*s\" ret is %d",
-                      ret, q.length(), q.ptr(), ret);
-            if (OB_SUCCESS != (err = send_error_packet(packet, &result)))
-            {
-              TBSYS_LOG(WARN, "fail to send error packet. err=%d", err);
-              break;
-            }
-          }
-          else
-          {
-            ret = send_response(packet, &result, TEXT, context.session_info_, need_response);
+            TBSYS_LOG(WARN, "fail to send error packet. err=%d", err);
+            break;
           }
         }
-      }
-      return ret;
-    }
-
-    int ObMySQLServer::execute_stmt(const ObString &sql_string, ObSqlContext &context)
-    {
-      int ret = OB_SUCCESS;
-      ObResultSet tmp_result;
-      if (OB_SUCCESS != (ret = tmp_result.init()))
-      {
-        TBSYS_LOG(WARN, "Init temp result set failed, ret=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = ObSql::direct_execute(sql_string, tmp_result, context)))
-      {
-        TBSYS_LOG(WARN, "Direct_execute failed, sql=%.*s ret=%d",
-                  sql_string.length(), sql_string.ptr(), ret);
-      }
-      else if (OB_SUCCESS != (ret = tmp_result.open()))
-      {
-        TBSYS_LOG(WARN, "Open result set failed, sql=%.*s ret=%d",
-                  sql_string.length(), sql_string.ptr(), ret);
-      }
-      else if ((ret = tmp_result.close()) != OB_SUCCESS)
-      {
-        TBSYS_LOG(WARN, "Failed to close temp result set, sql=%.*s ret=%d",
-                  sql_string.length(), sql_string.ptr(), ret);
+        else
+        {
+          ret = send_response(packet, &result, TEXT, context.session_info_, need_response);
+        }
       }
       return ret;
     }

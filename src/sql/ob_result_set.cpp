@@ -231,6 +231,9 @@ int ObResultSet::reset()
   no_group_ = true;
   long_trans_ = false;
   //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  auto_increment_ = false;
+  //add:e
   return ret;
 }
 

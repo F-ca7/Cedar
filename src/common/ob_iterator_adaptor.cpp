@@ -446,16 +446,13 @@ namespace oceanbase
                                              is_iter_end_(false),
                                              set_row_iter_ret_(OB_SUCCESS)
                                              //add lbzhong [auto_increment] 20161127:b
-                                             , auto_info_(NULL)
+                                             , updated_auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
                                              //add:e
     {
     }
 
     ObCellIterAdaptor::~ObCellIterAdaptor()
     {
-      //add lbzhong [auto_increment] 20161129:b
-      destroy_auto_info();
-      //add:e
     }
 
     int ObCellIterAdaptor::next_cell()
@@ -484,12 +481,6 @@ namespace oceanbase
           {
             ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
           }
-          //add lbzhong [auto_increment] 20161124:b
-          else if (NULL != auto_info_ && OB_SUCCESS != (ret = add_auto_increment_column(row)))
-          {
-            TBSYS_LOG(WARN, "fail to add auto increment column, ret=%d", ret);
-          }
-          //add:e
           else
           {
             single_row_iter_.set_row(row, rk_size_);
@@ -548,7 +539,7 @@ namespace oceanbase
 
     void ObCellIterAdaptor::set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr
                                          //add lbzhong [auto_increment] 20161127:b
-                                         , const uint64_t auto_column_id /* = OB_INVALID_ID */, const int64_t auto_value /* = 0 */
+                                         , const bool is_update_auto_value /* = false */
                                          //add:e
                                          )
     {
@@ -560,17 +551,6 @@ namespace oceanbase
           && 0 < rk_size)
       {
         int tmp_ret = OB_SUCCESS;
-        //add lbzhong [auto_increment] 20161213:b
-        if (OB_INVALID_ID != auto_column_id)
-        {
-          tmp_ret = cons_auto_info(auto_column_id, auto_value);
-        }
-        if (OB_SUCCESS != tmp_ret)
-        {
-          //do nothing
-        }
-        else
-        //add:e
         if (NULL != schema_mgr)
         {
           const ObRowDesc *row_desc = NULL;
@@ -580,12 +560,6 @@ namespace oceanbase
             TBSYS_LOG(WARN, "get_row_desc fail ret=%d phy_op=%p phy_type=%d", tmp_ret, row_iter, row_iter->get_type());
             tmp_ret = (OB_SUCCESS == tmp_ret) ? OB_ERROR : tmp_ret;
           }
-          //add lbzhong [auto_increment] 20161125:b
-          else if (OB_INVALID_ID != auto_column_id)
-          {
-            tmp_ret = reset_och(row_desc, schema_mgr);
-          }
-          //add:e
           else
           {
             tmp_ret = single_row_iter_.get_och().reset(*row_desc, *schema_mgr);
@@ -613,11 +587,9 @@ namespace oceanbase
             else
             {
               //add lbzhong [auto_increment] 20161124:b
-              if (OB_INVALID_ID != auto_column_id)
+              if (is_update_auto_value)
               {
-                tmp_ret = add_auto_increment_column(row);
-                //rk_size_++;
-                //const_cast<int64_t>(rk_size) = rk_size_;
+                tmp_ret = set_updated_auto_value(row);
               }
               //add:e
               single_row_iter_.set_row(row, rk_size);
@@ -635,278 +607,34 @@ namespace oceanbase
       single_row_iter_.reset();
       is_iter_end_ = false;
       //add lbzhong [auto_increment] 20161127:b
-      destroy_auto_info();
+      updated_auto_value_ = OB_INVALID_AUTO_INCREMENT_VALUE;
       //add:e
     }
 
     //add lbzhong [auto_increment] 20161127:b
-    ObCellIterAdaptor::AutoIncrementInfo::AutoIncrementInfo(const uint64_t auto_column_id, const int64_t auto_value):
-      auto_row_desc_(NULL), auto_row_(NULL),
-      auto_column_id_(auto_column_id), auto_value_(auto_value), is_assigned_(false)
-    {
-    }
-
-    ObCellIterAdaptor::AutoIncrementInfo::~AutoIncrementInfo()
-    {
-      if (NULL != auto_row_desc_)
-      {
-        ob_free(auto_row_desc_);
-        auto_row_desc_ = NULL;
-      }
-      if (NULL != auto_row_)
-      {
-        auto_row_->~ObRow();
-        ob_free(auto_row_);
-        auto_row_ = NULL;
-      }
-    }
-
-    int ObCellIterAdaptor::AutoIncrementInfo::cons_row_desc(const ObRowDesc *&row_desc)
+    int ObCellIterAdaptor::set_updated_auto_value(const ObRow *&row)
     {
       int ret = OB_SUCCESS;
-      if (NULL == auto_row_desc_)
+      const ObObj *value = NULL;
+      uint64_t table_id = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      if (OB_SUCCESS != (ret = row->raw_get_cell(2, value, table_id, column_id))
+          || NULL == value)
       {
-        auto_row_desc_ = static_cast<ObRowDesc *>(ob_malloc(sizeof(ObRowDesc), ObModIds::OB_SQL_AUTO_INCREMENT));
-        if (NULL == auto_row_desc_)
-        {
-          TBSYS_LOG(WARN, "fail alloc memory for auto_row_desc!");
-          ret = OB_ALLOCATE_MEMORY_FAILED;
-        }
-        else
-        {
-          auto_row_desc_->reset();
-        }
-        if (OB_SUCCESS == ret)
-        {
-          uint64_t tid = OB_INVALID_ID;
-          uint64_t cid = OB_INVALID_ID;
-          bool is_insert = false;
-          for (int64_t i = 0; OB_SUCCESS == ret && i < row_desc->get_column_num(); ++i)
-          {
-            if (OB_SUCCESS != (ret = row_desc->get_tid_cid(i, tid, cid)))
-            {
-              TBSYS_LOG(WARN, "fail to get_tid_cid, ret=%d", ret);
-            }
-            else if (auto_column_id_ == cid)
-            {
-              is_assigned_ = true;
-              break;
-            }
-            else if (!is_insert && auto_column_id_ < cid) //insert
-            {
-              if (OB_INVALID_INDEX != auto_row_desc_->get_idx(tid, auto_column_id_))
-              {
-                is_insert = true;
-              }
-              else if (OB_SUCCESS != (ret = auto_row_desc_->add_column_desc(tid, auto_column_id_)))
-              {
-                TBSYS_LOG(WARN, "fail to add column desc, ret=%d", ret);
-              }
-              else
-              {
-                is_insert = true;
-              }
-            }
-            if (OB_SUCCESS == ret && OB_SUCCESS != (ret = auto_row_desc_->add_column_desc(tid, cid)))
-            {
-              TBSYS_LOG(WARN, "fail to add column desc, ret=%d", ret);
-            }
-          }
-        }
-      }
-      return ret;
-    }
-
-    void ObCellIterAdaptor::AutoIncrementInfo::set_auto_value(const int64_t auto_value)
-    {
-      if (auto_value > auto_value_) // max value
-      {
-        auto_value_ = auto_value;
-      }
-    }
-
-    int ObCellIterAdaptor::AutoIncrementInfo::cons_auto_row(const ObRow *&row)
-    {
-      int ret = OB_SUCCESS;
-      if (NULL != auto_row_) // free pre row
-      {
-        auto_row_->~ObRow();
-        ob_free(auto_row_);
-        auto_row_ = NULL;
-      }
-      void* auto_row_buf = ob_malloc(sizeof(ObRow), ObModIds::OB_SQL_AUTO_INCREMENT);
-      if (NULL == auto_row_buf)
-      {
-        TBSYS_LOG(WARN, "no memory");
-        ret = OB_ALLOCATE_MEMORY_FAILED;
+        TBSYS_LOG(WARN, "fail to get updated auto value, ret=%d", ret);
       }
       else
       {
-        auto_row_ = new(auto_row_buf) ObRow();
-      }
-      if (OB_SUCCESS == ret)
-      {
-        auto_row_->set_row_desc(*auto_row_desc_);
-        uint64_t tid = OB_INVALID_ID;
-        uint64_t cid = OB_INVALID_ID;
-        const ObObj *cell = NULL;
-        bool is_insert = false;
-        for (int64_t i = 0; OB_SUCCESS == ret && i < row->get_row_desc()->get_column_num(); ++i)
-        {
-          if (OB_SUCCESS != (ret = row->get_row_desc()->get_tid_cid(i, tid, cid)))
-          {
-            TBSYS_LOG(WARN, "fail to get_tid_cid, ret=%d", ret);
-          }
-          else if (!is_insert && auto_column_id_ < cid) //insert
-          {
-            ObObj tmp_cell;
-            tmp_cell.set_type(ObIntType);
-            tmp_cell.set_int(++auto_value_);
-            if (OB_SUCCESS != (ret = auto_row_->set_cell(tid, auto_column_id_, tmp_cell)))
-            {
-              TBSYS_LOG(WARN, "fail to set cell, ret=%d", ret);
-            }
-            is_insert = true;
-          }
-          if (OB_SUCCESS != (ret = row->get_cell(tid, cid, cell)))
-          {
-            TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
-          }
-          else if (OB_SUCCESS != (ret = auto_row_->set_cell(tid, cid, *cell)))//copy
-          {
-            TBSYS_LOG(WARN, "fail to set cell, ret=%d", ret);
-          }
-        }
-        row = auto_row_;
+        value->get_int(updated_auto_value_);
       }
       return ret;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    int ObCellIterAdaptor::cons_auto_info(const uint64_t auto_column_id, const int64_t auto_value)
+    int64_t ObCellIterAdaptor::get_updated_auto_value()
     {
-      int ret = OB_SUCCESS;
-      if (NULL != auto_info_)
-      {
-        ret = OB_INIT_TWICE;
-        TBSYS_LOG(WARN, "auto_info is not null");
-      }
-      else
-      {
-        void* buf = ob_malloc(sizeof(AutoIncrementInfo), ObModIds::OB_SQL_AUTO_INCREMENT);
-        if (NULL == buf)
-        {
-          TBSYS_LOG(WARN, "no memory");
-          ret = OB_ALLOCATE_MEMORY_FAILED;
-        }
-        else
-        {
-          auto_info_ = new (buf) AutoIncrementInfo(auto_column_id, auto_value);
-        }
-      }
-      return ret;
+      return updated_auto_value_;
     }
 
-    int ObCellIterAdaptor::add_auto_increment_column(const ObRow *&row)
-    {
-      int ret = OB_SUCCESS;
-      const ObRowDesc* row_desc = row->get_row_desc();
-      if (NULL == auto_info_)
-      {
-        ret = OB_NOT_INIT;
-        TBSYS_LOG(WARN, "auto_info is null");
-      }
-      else if (OB_SUCCESS != (ret = auto_info_->cons_row_desc(row_desc)))
-      {
-        TBSYS_LOG(WARN, "fail to cons_row_desc, ret=%d", ret);
-      }
-      else if (auto_info_->is_assigned_)
-      {
-        const ObObj *cell = NULL;
-        ObObj tmp_value;
-        uint64_t tid = OB_INVALID_ID;
-        uint64_t cid = OB_INVALID_ID; //UNUSED
-        ObString cast_buffer;
-        char buffer[OB_MAX_VARCHAR_LENGTH];
-        cast_buffer.assign_ptr(buffer, OB_MAX_VARCHAR_LENGTH);
-        if (OB_SUCCESS != (ret = row_desc->get_tid_cid(0, tid, cid)))
-        {
-          TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
-        }
-        else if (OB_SUCCESS != (ret = row->get_cell(tid, auto_info_->auto_column_id_, cell)))
-        {
-          TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
-        }
-        else
-        {
-          tmp_value = *cell;
-          if (OB_SUCCESS != (ret = obj_cast(tmp_value, ObIntType, cast_buffer)))
-          {
-            TBSYS_LOG(WARN, "fail to obj_cast, ret=%d", ret);
-          }
-          else
-          {
-            int64_t tmp_int = 0;
-            tmp_value.get_int(tmp_int);
-            auto_info_->set_auto_value(tmp_int);
-          }
-        }
-      }
-      else if (OB_SUCCESS != (ret = auto_info_->cons_auto_row(row)))
-      {
-        TBSYS_LOG(WARN, "fail to cons auto_row, ret=%d", ret);
-      }
-      return ret;
-    }
-
-    void ObCellIterAdaptor::destroy_auto_info()
-    {
-      if (NULL != auto_info_)
-      {
-        auto_info_->~AutoIncrementInfo();
-        ob_free(auto_info_);
-        auto_info_ = NULL;
-      }
-    }
-
-    int ObCellIterAdaptor::reset_och(const ObRowDesc *row_desc, const ObSchemaManagerV2 *schema_mgr)
-    {
-      int tmp_ret = OB_SUCCESS;
-      if (NULL == auto_info_)
-      {
-        tmp_ret = OB_NOT_INIT;
-        TBSYS_LOG(WARN, "auto_info is null");
-      }
-      else if (OB_SUCCESS != (tmp_ret = auto_info_->cons_row_desc(row_desc)))
-      {
-        TBSYS_LOG(WARN, "fail to cons_row_desc, ret=%d", tmp_ret);
-      }
-      else if (auto_info_->is_assigned_)
-      {
-        tmp_ret = single_row_iter_.get_och().reset(*row_desc, *schema_mgr);
-      }
-      else
-      {
-        tmp_ret = single_row_iter_.get_och().reset(*(auto_info_->auto_row_desc_), *schema_mgr);
-      }
-      return tmp_ret;
-    }
-
-    int ObCellIterAdaptor::get_auto_value(int64_t& auto_value) const
-    {
-      int ret = OB_SUCCESS;
-      if (NULL == auto_info_)
-      {
-        ret = OB_NOT_INIT;
-        TBSYS_LOG(WARN, "auto_info is null");
-      }
-      else
-      {
-        auto_value = auto_info_->auto_value_;
-      }
-      return ret;
-    }
     //add:e
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1070,6 +798,9 @@ namespace oceanbase
                                                    single_row_iter_(),
                                                    is_iter_end_(false),
                                                    set_row_iter_ret_(OB_SUCCESS)
+                                                   //add lbzhong [auto_increment] 20161217:b
+                                                   , auto_column_id_(OB_INVALID_ID), max_auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+                                                   //add:e
     {
     }
 
@@ -1103,6 +834,12 @@ namespace oceanbase
           {
             ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
           }
+          //add lbzhong [auto_increment] 20161217:b
+          else if (OB_INVALID_ID != auto_column_id_ && OB_SUCCESS != (ret = update_max_auto_value()))
+          {
+            //do nothing
+          }
+          //add:e
           else
           {
             single_row_iter_.set_row(&index_row_tmp_, rk_size_);
@@ -1192,6 +929,12 @@ namespace oceanbase
               {
                 is_iter_end_ = true;
               }
+              //add lbzhong [auto_increment] 20161217:b
+              else if (OB_INVALID_ID != auto_column_id_ && OB_SUCCESS != (tmp_ret = update_max_auto_value()))
+              {
+                //do nothing
+              }
+              //add:e
               else
               {
                 single_row_iter_.set_row(&index_row_tmp_, rk_size);
@@ -1209,10 +952,62 @@ namespace oceanbase
       rk_size_ = 0;
       single_row_iter_.reset();
       is_iter_end_ = false;
+      //add lbzhong [auto_increment] 20161217:b
+      auto_column_id_ = OB_INVALID_ID;
+      max_auto_value_ = OB_INVALID_AUTO_INCREMENT_VALUE;
+      //add:e
     }
     //add e
 
     //add lbzhong [auto_increment] 20161127:b
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    void ObRowCellIterAdaptor::set_auto_column_id(const uint64_t auto_column_id)
+    {
+      auto_column_id_ = auto_column_id;
+    }
+
+    int64_t ObRowCellIterAdaptor::get_max_auto_value() const
+    {
+      return max_auto_value_;
+    }
+
+    int ObRowCellIterAdaptor::update_max_auto_value()
+    {
+      int ret = OB_SUCCESS;
+      const ObObj *cell = NULL;
+      ObObj tmp_value;
+      uint64_t tid = OB_INVALID_ID;
+      uint64_t cid = OB_INVALID_ID; //UNUSED
+      ObString cast_buffer;
+      char buffer[OB_MAX_VARCHAR_LENGTH];
+      cast_buffer.assign_ptr(buffer, OB_MAX_VARCHAR_LENGTH);
+      if (OB_SUCCESS != (ret = row_desc_.get_tid_cid(0, tid, cid)))
+      {
+        TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = index_row_tmp_.get_cell(tid, auto_column_id_, cell)))
+      {
+        TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+      }
+      else
+      {
+        tmp_value = *cell;
+        if (OB_SUCCESS != (ret = obj_cast(tmp_value, ObIntType, cast_buffer)))
+        {
+          TBSYS_LOG(WARN, "fail to obj_cast, ret=%d", ret);
+        }
+        else
+        {
+          int64_t tmp_int = 0;
+          tmp_value.get_int(tmp_int);
+          if (tmp_int > max_auto_value_)
+          {
+            max_auto_value_ = tmp_int;
+          }
+        }
+      }
+      return ret;
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     ObAutoIncrementCellAdaptor::ObAutoIncrementCellAdaptor() : row_(NULL),

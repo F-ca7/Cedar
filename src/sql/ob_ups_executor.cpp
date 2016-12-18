@@ -95,6 +95,12 @@ int ObUpsExecutor::open()
     my_result_set->set_session(outer_result_set->get_session()); // be careful!
     session = my_phy_plan_->get_result_set()->get_session();
     inner_plan_->set_result_set(my_result_set);
+    //add lbzhong [auto_increment] 20161218:b
+    if (my_result_set->is_auto_increment())
+    {
+      inner_plan_->set_auto_increment(true);
+    }
+    //add:e
 //add wangjiahao [dev_update_more] 20160119 :b
     //set inner_plan timeout_timestamp in order to terminate the long running in subquery.
     inner_plan_->set_timeout_timestamp(this->my_phy_plan_->get_timeout_timestamp());
@@ -223,6 +229,9 @@ int ObUpsExecutor::open()
       }
       else
       {
+        //add lbzhong [auto_increment] 20161216:b
+        my_phy_plan_->get_result_set()->set_auto_value(local_result_.get_auto_value());
+        //add:e
         TBSYS_LOG(DEBUG, "affected_rows=%ld warning_count=%ld",
                   local_result_.get_affected_rows(), local_result_.get_warning_count());
         outer_result_set->set_affected_rows(local_result_.get_affected_rows());

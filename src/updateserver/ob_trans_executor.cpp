@@ -1303,6 +1303,13 @@ namespace oceanbase
           TBSYS_LOG(WARN, "main query null pointer");
           ret = OB_ERR_UNEXPECTED;
         }
+        //add lbzhong [auto_increment] 20161218:b
+        else if (phy_plan.is_auto_increment() && PHY_UPS_MODIFY_WITH_DML_TYPE == main_op->get_type()
+                 && OB_SUCCESS != (ret = static_cast<MemTableModifyWithDmlType*>(main_op)->set_is_update_auto_value()))
+        {
+          //do nothing
+        }
+        //add:e
         else if (OB_SUCCESS != (ret = main_op->open())
                 || OB_SUCCESS != (ret = fill_return_rows_(*main_op, new_scanner, session_ctx->get_ups_result())))
         {
@@ -1365,6 +1372,13 @@ namespace oceanbase
         //}
         else
         {
+          //add lbzhong [auto_increment] 20161218:b
+          if (phy_plan.is_auto_increment() && PHY_UPS_MODIFY_WITH_DML_TYPE == main_op->get_type())
+          {
+              session_ctx->get_ups_result().set_auto_value(static_cast<MemTableModifyWithDmlType*>(main_op)->get_updated_auto_value());
+              session_ctx->get_ups_result().set_affected_rows(0);//ignore affect
+          }
+          //add:e
           session_ctx->commit_stmt();
           main_op->close();
           fill_warning_strings_(session_ctx->get_ups_result());
@@ -1378,7 +1392,7 @@ namespace oceanbase
               && session_ctx->get_ups_result().get_trans_id().is_valid()
               && give_up_lock)
               //add lbzhong [auto_increment] 20161130:b
-              || OB_ERR_AUTO_VALUE_NOT_SERVE == ret
+              //|| OB_ERR_AUTO_VALUE_NOT_SERVE == ret
               //add:e
               )
           {

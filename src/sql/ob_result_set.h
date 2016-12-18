@@ -149,6 +149,12 @@ namespace oceanbase
         void set_affected_rows(const int64_t& affected_rows);
         void set_warning_count(const int64_t& warning_count);
         void set_physical_plan(ObPhysicalPlan *physical_plan, bool did_own);
+        //add lbzhong [auto_increment] 20161218:b
+        void set_auto_increment(const bool auto_increment) { auto_increment_ = auto_increment; }
+        bool is_auto_increment() const { return auto_increment_; }
+        void set_auto_value(const int64_t auto_value) { auto_value_ = auto_value; }
+        int64_t get_auto_value() const { return auto_value_; }
+        //add:e
         void fileds_clear();
         void set_stmt_type(ObBasicStmt::StmtType stmt_type);
         void set_inner_stmt_type(ObBasicStmt::StmtType stmt_type);
@@ -278,6 +284,10 @@ namespace oceanbase
         int64_t cur_schema_version_; // add by wdh 20160822 [dev compile] used in cache manage
         bool long_trans_;   ///< long transcation flag  add by qx 20170317
 
+        //add lbzhong [auto_increment] 20161218:b
+        bool auto_increment_;
+        int64_t auto_value_;
+        //add:e
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
@@ -312,6 +322,10 @@ namespace oceanbase
        query_string_id_(0),
        cur_time_(NULL),
        proc_(NULL) //add zt 20151202
+       cur_time_(NULL)
+       //add lbzhong [auto_increment] 20161218:b
+       , auto_increment_(false), auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+       //add:e
     {
       message_[0] = '\0';
     }

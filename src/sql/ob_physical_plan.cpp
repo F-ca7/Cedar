@@ -71,6 +71,10 @@ ObPhysicalPlan::ObPhysicalPlan()
    //add by qx 21070317 :b
    long_trans_exec_mode_(false)
    //add :e
+   next_phy_operator_id_(0)
+   //add lbzhong [auto_increment] 20161218:b
+   , auto_increment_(false)
+   //add:e
 {
 }
 
@@ -106,7 +110,12 @@ int ObPhysicalPlan::deserialize_header(const char* buf, const int64_t data_len, 
               ret);
   }
   //add :e
-
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to decode auto_increment, err=%d", ret);
+  }
+  //add:e
   return ret;
 }
 
@@ -449,6 +458,9 @@ int ObPhysicalPlan::assign(const ObPhysicalPlan& other)
     group_exec_mode_ = other.group_exec_mode_;
     long_trans_exec_mode_ = other.long_trans_exec_mode_;
     //add :e
+    //add lbzhong [auto_increment] 20161218:b
+    auto_increment_ = other.auto_increment_;
+    //add:e
     for (int32_t i = 0; i < other.phy_querys_.count(); ++i)
     {
       const ObPhyOperator *subquery = other.phy_querys_.at(i);
@@ -571,6 +583,12 @@ DEFINE_SERIALIZE(ObPhysicalPlan)
               ret, buf_len, pos);
   }
   //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to serialize auto_increment, err=%d buf_len=%ld pos=%ld", ret, buf_len, pos);
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = encode_vi32(buf, buf_len, pos, main_query_idx)))
   {
     TBSYS_LOG(WARN, "fail to encode main query idx:ret[%d]", ret);
@@ -620,6 +638,12 @@ DEFINE_DESERIALIZE(ObPhysicalPlan)
     TBSYS_LOG(WARN, "failed to decode long_trans_exec_mode_, err=%d",ret);
   }
   //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to decode auto_increment_, err=%d", ret);
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = decode_vi32(buf, data_len, pos, &main_query_idx)))
   {
     TBSYS_LOG(WARN, "fail to decode main query idx:ret[%d]", ret);

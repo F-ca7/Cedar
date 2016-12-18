@@ -5383,13 +5383,20 @@ int ObTransformer::gen_phy_values_for_replace(
     const ObRowDesc& row_desc,
     const ObRowDescExt& row_desc_ext,
     const ObSEArray<int64_t, 64> *row_desc_map,
-    ObExprValues& value_op)
+    ObExprValues& value_op
+    //add lbzhong [auto_increment] 20161217:b
+    , const uint64_t auto_column_id, const int64_t auto_value
+    //add:e
+    )
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   OB_ASSERT(logical_plan);
   OB_ASSERT(insert_stmt);
   value_op.set_row_desc(row_desc, row_desc_ext);
   int64_t num = insert_stmt->get_value_row_size();
+  //add lbzhong [auto_increment] 20161217:b
+  int64_t tmp_auto_value = auto_value;
+  //add:e
   for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
   {
     const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
@@ -5398,34 +5405,92 @@ int ObTransformer::gen_phy_values_for_replace(
       value_op.reserve_values(num * value_row.count());
       FILL_TRACE_LOG("expr_values_count=%ld", num * value_row.count());
     }
-    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+    //add lbzhong [auto_increment] 20161217:b
+    bool is_insert = false;
+    int64_t offset = 0;
+    //add:e
+    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count()
+         //add lbzhong [auto_increment] 20161217:b
+         + (is_insert ? 1 : 0)
+         //add:e
+         ; j++)
     {
-      ObSqlExpression val_expr;
-      int64_t expr_idx = OB_INVALID_INDEX;
-      if (NULL != row_desc_map)
+      //add lbzhong [auto_increment] 20161217:b
+      uint64_t tid = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+          !is_insert && auto_column_id != OB_INVALID_ID &&
+          OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)))
       {
-        OB_ASSERT(value_row.count() == row_desc_map->count());
-        expr_idx = value_row.at(row_desc_map->at(j));
+        TRANS_LOG("Failed to get tid cid, err=%d", ret);
+        break;
+      }
+      else if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+               !is_insert && auto_column_id != OB_INVALID_ID && auto_column_id == column_id)
+      {
+        ObSqlExpression val_expr;
+        ObObj val_obj;
+        val_obj.set_int(++tmp_auto_value);
+        ObConstRawExpr value(val_obj, T_INT);
+        ObSqlRawExpr auto_expr(OB_INVALID_ID, OB_INVALID_ID, OB_INVALID_ID, &value);
+        if (OB_SUCCESS != (ret = auto_expr.fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
+        {
+          TRANS_LOG("Failed to fill expr, err=%d", ret);
+          break;
+        }
+        else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
+        {
+          TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
+          break;
+        }
+        else
+        {
+          is_insert = true;
+          offset = -1;
+        }
       }
       else
       {
-        expr_idx = value_row.at(j);
-      }
-      ObSqlRawExpr *value_expr = logical_plan->get_expr(expr_idx);
-      OB_ASSERT(NULL != value_expr);
-      if (OB_SUCCESS != (ret = value_expr->fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
-      {
-        TRANS_LOG("Failed to fill expr, err=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
-      {
-        TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
-      }
-      //add by zhutao [procedure compilation] 20170727
-      ext_var_info_where(value_expr, j < row_desc.get_rowkey_cell_count());
-      //add :e
+      //add:e
+        ObSqlExpression val_expr;
+        int64_t expr_idx = OB_INVALID_INDEX;
+        if (NULL != row_desc_map)
+        {
+          OB_ASSERT(value_row.count() == row_desc_map->count());
+          expr_idx = value_row.at(row_desc_map->at(j
+                                                   //add lbzhong [auto_increment] 20161217:b
+                                                   + offset
+                                                   //add:e
+                                                   ));
+        }
+        else
+        {
+          expr_idx = value_row.at(j
+                                  //add lbzhong [auto_increment] 20161217:b
+                                  + offset
+                                  //add:e
+                                  );
+        }
+        ObSqlRawExpr *value_expr = logical_plan->get_expr(expr_idx);
+        OB_ASSERT(NULL != value_expr);
+        if (OB_SUCCESS != (ret = value_expr->fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
+        {
+          TRANS_LOG("Failed to fill expr, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
+        {
+          TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
+        }
+        //add by zhutao [procedure compilation] 20170727
+        ext_var_info_where(value_expr, j < row_desc.get_rowkey_cell_count());
+        //add :e
+      } //add lbzhong [auto_increment] 20161217:b:e
     } // end for
-    for(int64_t k = value_row.count(); k < row_desc.get_column_num(); k++)
+    for(int64_t k = value_row.count()
+        //add lbzhong [auto_increment] 20161217:b
+        + (is_insert ? 1 : 0)
+        //add:e
+        ; k < row_desc.get_column_num(); k++)
     {
       uint64_t table_id = OB_INVALID_ID;
       uint64_t column_id = OB_INVALID_ID;
@@ -9722,7 +9787,11 @@ int ObTransformer::gen_phy_static_data_scan_for_replace(
     const ObSEArray<int64_t, 64> &row_desc_map,
     const uint64_t table_id,
     const ObRowkeyInfo &rowkey_info,
-    ObTableRpcScan &table_scan)
+    ObTableRpcScan &table_scan
+    //add lbzhong [auto_increment] 20161217:b
+    , const uint64_t auto_column_id, const int64_t auto_value
+    //add:e
+    )
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   OB_ASSERT(logical_plan);
@@ -9809,6 +9878,9 @@ int ObTransformer::gen_phy_static_data_scan_for_replace(
   uint64_t column_id = OB_INVALID_ID;
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
+    //add lbzhong [auto_increment] 20161217:b
+    int64_t tmp_auto_value = auto_value;
+    //add:e
     int64_t row_num = insert_stmt->get_value_row_size();
     //mod huangjianwei [secondary index maintain] 20161201:b
     //for (int64_t i = 0; ret == OB_SUCCESS && i < row_num; i++)// for each row
@@ -9817,27 +9889,64 @@ int ObTransformer::gen_phy_static_data_scan_for_replace(
     {
       const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
       OB_ASSERT(value_row.count() == row_desc_map.count());
+      //add lbzhong [auto_increment] 20161217:b
+      bool is_insert = false;
+      int64_t offset = 0;
+      //add:e
       for (int64_t j = 0; ret == OB_SUCCESS && j < row_desc_map.count(); j++)
       {
-        ObSqlRawExpr *value_expr = logical_plan->get_expr(value_row.at(row_desc_map.at(j)));
-        if (value_expr == NULL)
-        {
-          ret = OB_ERR_ILLEGAL_ID;
-          TRANS_LOG("Get value failed");
-        }
-        else if (OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)))
+        //add lbzhong [auto_increment] 20161217:b
+        if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+            !is_insert && auto_column_id != OB_INVALID_ID &&
+            OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)))
         {
           TRANS_LOG("Failed to get tid cid, err=%d", ret);
         }
-        // success
-        else if (rowkey_info.is_rowkey_column(column_id))
+        else if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+                 !is_insert && auto_column_id != OB_INVALID_ID && auto_column_id == column_id)
         {
-          // add right oprands of the IN operator
-          if (OB_SUCCESS != (ret = value_expr->get_expr()->fill_sql_expression(*rows_filter, this, logical_plan, physical_plan)))
+          ObObj val_obj;
+          val_obj.set_int(++tmp_auto_value);
+          ObConstRawExpr value(val_obj, T_INT);
+          ObSqlRawExpr auto_expr(OB_INVALID_ID, OB_INVALID_ID, OB_INVALID_ID, &value);
+          if (OB_SUCCESS != (ret = auto_expr.get_expr()->fill_sql_expression(*rows_filter, this, logical_plan, physical_plan)))
           {
             TRANS_LOG("Failed to fill expr, err=%d", ret);
+            break;
+          }
+          else
+          {
+            is_insert = true;
+            offset = -1;
           }
         }
+        else
+        {
+        //add:e
+          ObSqlRawExpr *value_expr = logical_plan->get_expr(value_row.at(row_desc_map.at(j
+                                                                                         //add lbzhong [auto_increment] 20161217:b
+                                                                                         + offset
+                                                                                         //add:e
+                                                                                         )));
+          if (value_expr == NULL)
+          {
+            ret = OB_ERR_ILLEGAL_ID;
+            TRANS_LOG("Get value failed");
+          }
+          else if (OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)))
+          {
+            TRANS_LOG("Failed to get tid cid, err=%d", ret);
+          }
+          // success
+          else if (rowkey_info.is_rowkey_column(column_id))
+          {
+            // add right oprands of the IN operator
+            if (OB_SUCCESS != (ret = value_expr->get_expr()->fill_sql_expression(*rows_filter, this, logical_plan, physical_plan)))
+            {
+              TRANS_LOG("Failed to fill expr, err=%d", ret);
+            }
+          }
+        } //add lbzhong [auto_increment] 20161217:b:e
       } // end for
       if (OB_LIKELY(ret == OB_SUCCESS))
       {
@@ -10188,6 +10297,19 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
           insert_sem->set_input_values(input_values->get_id());
         }
       }
+      //add lbzhong [auto_increment] 20161218:b
+      uint64_t auto_column_id = get_auto_column_id(insert_stmt->get_table_id());;
+      int64_t auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
+      ObAutoIncrementFilter *auto_increment_filter_op = NULL;
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS != (ret = check_and_load_auto_value(auto_column_id, need_modify_index_flag, insert_stmt,
+                                  insert_stmt->get_value_row_size(), auto_value, ups_modify)))
+        {
+          TBSYS_LOG(WARN, "fail to check auto_value, ret=%d", ret);
+        }
+      }
+      //add:e
       //add maoxx
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
@@ -10198,10 +10320,21 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
             ret = OB_ALLOCATE_MEMORY_FAILED;
             TRANS_LOG("Failed to create phy operator index_trigger");
           }
-          else if (OB_SUCCESS != (ret = index_trigger->set_child(0, *insert_sem)))
+          else if (
+                   //add lbzhong [auto_increment] 20161218:b
+                   OB_INVALID_ID == auto_column_id &&
+                   //add:e
+                   OB_SUCCESS != (ret = index_trigger->set_child(0, *insert_sem)))
           {
             TRANS_LOG("Failed to set child, err=%d", ret);
           }
+          //add lbzhong [auto_increment] 20161218:b
+          else if (OB_INVALID_ID != auto_column_id &&
+                   OB_SUCCESS != (ret = add_auto_increment_op(inner_plan, err_stat, auto_increment_filter_op, index_trigger, insert_sem)))
+          {
+            TRANS_LOG("Failed to add auto_increment_op");
+          }
+          //add:e
           else if (NULL != index_trigger)
           {
             //mod huangjianwei [secondary index maintain] 20160909:b
@@ -10293,10 +10426,21 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
           if ((ret = gen_phy_when(logical_plan, inner_plan, err_stat, query_id, *insert_sem, when_filter_op)) != OB_SUCCESS)
           {
           }
-          else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
+          else if (
+                   //add lbzhong [auto_increment] 20161218:b
+                   OB_INVALID_ID == auto_column_id &&
+                   //add:e
+                   (ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
           {
             TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
           }
+          //add lbzhong [auto_increment] 20161218:b
+          else if (OB_INVALID_ID != auto_column_id &&
+                   OB_SUCCESS != (ret = add_auto_increment_op(inner_plan, err_stat, auto_increment_filter_op, ups_modify, when_filter_op)))
+          {
+            TRANS_LOG("Failed to add auto_increment_op");
+          }
+          //add:e
         }
         /*
         else if (OB_SUCCESS != (ret = ups_modify->set_child(0, *insert_sem)))
@@ -10316,10 +10460,22 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
           }
           else
           {
-            if (OB_SUCCESS != (ret = ups_modify->set_child(0, *insert_sem)))
+            //add:e
+            if (
+                //add lbzhong [auto_increment] 20161218:b
+                OB_INVALID_ID == auto_column_id &&
+                //add:e
+                OB_SUCCESS != (ret = ups_modify->set_child(0, *insert_sem)))
             {
               TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
             }
+            //add lbzhong [auto_increment] 20161218:b
+            else if (OB_INVALID_ID != auto_column_id &&
+                     OB_SUCCESS != (ret = add_auto_increment_op(inner_plan, err_stat, auto_increment_filter_op, ups_modify, insert_sem)))
+            {
+              TRANS_LOG("Failed to add auto_increment_op");
+            }
+            //add:e
           }
         }
         //modify e
@@ -12825,7 +12981,10 @@ int ObTransformer::gen_physical_replace_new(
   bool need_modify_index_flag = false;
   IndexList modifiable_index_list;
   ObIndexTrigger *index_trigger = NULL;
-
+  //add lbzhong [auto_increment] 20161202:b
+  uint64_t auto_column_id = OB_INVALID_ID;
+  int64_t auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
+  //add:e
   if (OB_SUCCESS != (ret = wrap_ups_executor(physical_plan, query_id, inner_plan, index, err_stat)))
   {
     TBSYS_LOG(WARN, "err=%d", ret);
@@ -12855,7 +13014,7 @@ int ObTransformer::gen_physical_replace_new(
     uint64_t tid = insert_stmt->get_table_id();
     uint64_t cid = OB_INVALID_ID;
     //add lbzhong [auto_increment] 20161202:b
-    uint64_t auto_column_id = get_auto_column_id(insert_stmt->get_table_id());
+    auto_column_id = get_auto_column_id(insert_stmt->get_table_id());
     //add:e
     for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_info->get_size(); ++i)
     {
@@ -12914,6 +13073,17 @@ int ObTransformer::gen_physical_replace_new(
       need_modify_index_flag = true;
     }
   }
+  //add lbzhong [auto_increment] 20161215:b
+  ObAutoIncrementFilter *auto_increment_filter_op = NULL;
+  if (OB_LIKELY(OB_SUCCESS == ret))
+  {
+    if (OB_SUCCESS != (ret = check_and_load_auto_value(auto_column_id, need_modify_index_flag, insert_stmt,
+                              insert_stmt->get_value_row_size(), auto_value, ups_modify)))
+    {
+      TBSYS_LOG(WARN, "fail to check auto_value, ret=%d", ret);
+    }
+  }
+  //add:e
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
     if (need_modify_index_flag)   //replace table with index
@@ -12945,7 +13115,11 @@ int ObTransformer::gen_physical_replace_new(
         }
         else if (OB_SUCCESS != (ret = gen_phy_static_data_scan_for_replace(logical_plan, inner_plan, err_stat,
                                                                            insert_stmt, row_desc_for_static_data, row_desc_map,
-                                                                           table_id, *rowkey_info, *table_scan)))
+                                                                           table_id, *rowkey_info, *table_scan
+                                                                           //add lbzhong [auto_increment] 20161217:b
+                                                                           , auto_column_id, auto_value
+                                                                           //add:e
+                                                                           )))
         {
           TRANS_LOG("err=%d", ret);
         }
@@ -13047,8 +13221,11 @@ int ObTransformer::gen_physical_replace_new(
 //        else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
 //                                                                 row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
         else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                                 row_desc, row_desc_ext, &row_desc_map, *input_values)))
-        //modify e
+                                                                 row_desc, row_desc_ext, &row_desc_map, *input_values
+                                                                 //add lbzhong [auto_increment] 20161217:b
+                                                                 , auto_column_id, auto_value
+                                                                 //add:e
+                                                                 )))
         {
           TRANS_LOG("Failed to generate values, err=%d", ret);
         }
@@ -13277,29 +13454,52 @@ int ObTransformer::gen_physical_replace_new(
       ObWhenFilter *when_filter_op = NULL;
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
-        if (insert_stmt->get_when_expr_size() > 0)
+        //add lbzhong [auto_increment] 20161218:b
+        if (OB_INVALID_ID == auto_column_id)
         {
-          if ((ret = gen_phy_when(logical_plan,
+        //add:e
+          if (insert_stmt->get_when_expr_size() > 0)
+          {
+            if ((ret = gen_phy_when(logical_plan,
+                                    inner_plan,
+                                    err_stat,
+                                    query_id,
+                                    *value_op,
+                                    when_filter_op
+                                    )) != OB_SUCCESS)
+            {
+            }
+            else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+            }
+          }
+          else
+          {
+            if (OB_SUCCESS != (ret = ups_modify->set_child(0, *value_op)))
+            {
+              TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+            }
+          }
+        //add lbzhong [auto_increment] 20161218:b
+        }
+        else if (OB_SUCCESS != (ret = gen_phy_auto_increment(
+                                  logical_plan,
                                   inner_plan,
                                   err_stat,
                                   query_id,
-                                  *value_op,
-                                  when_filter_op
-                                  )) != OB_SUCCESS)
-          {
-          }
-          else if ((ret = ups_modify->set_child(0, *when_filter_op)) != OB_SUCCESS)
-          {
-            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-          }
-        }
-        else
+                                  insert_stmt->get_when_expr_size(),
+                                  value_op,
+                                  when_filter_op,
+                                  auto_increment_filter_op)))
         {
-          if (OB_SUCCESS != (ret = ups_modify->set_child(0, *value_op)))
-          {
-            TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
-          }
+          //do nothing
         }
+        else if (OB_SUCCESS != (ret = ups_modify->set_child(0, *auto_increment_filter_op)))
+        {
+          TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+        }
+        //add:e
       }
       if (OB_SUCCESS == ret)
       {
@@ -14526,6 +14726,9 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
     uint64_t cid = OB_INVALID_ID;
     ori = table_schema->get_rowkey_info();
     desc.set_rowkey_cell_count(ori.get_size());
+    //add lbzhong [auto_increment] 20161216:b
+    bool is_insert = false;
+    //add:e
     for(int64_t i = 0; i < ori.get_size(); i++)
     {
       const ObColumnSchemaV2* ocs = NULL;
@@ -14550,8 +14753,18 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
           ret = OB_ERROR;
           break;
         }
-        else if(column_in_stmt_flag)
+        else if(column_in_stmt_flag
+                //add lbzhong [auto_increment] 20161217:b
+                || (!is_insert && ocs->is_auto_increment())
+                //add:e
+                )
         {
+          //add lbzhong [auto_increment] 20161217:b
+          if (ocs->is_auto_increment()) //insert
+          {
+            is_insert = true;
+          }
+          //add:e
           if (OB_SUCCESS != (ret = desc.add_column_desc(table_id, cid)))
           {
             TBSYS_LOG(WARN,"failed to add row desc, err=%d", ret);
@@ -14691,4 +14904,150 @@ uint64_t ObTransformer::get_auto_column_id(const uint64_t table_id)
   }
   return OB_INVALID_ID;
 }
+
+int ObTransformer::update_and_get_auto_value(const uint64_t table_id, const uint64_t column_id, const int64_t row_count, int64_t& auto_value)
+{
+  int ret = OB_SUCCESS;
+  if (row_count > 0)
+  {
+    ObResultSet tmp_result;
+    tmp_result.set_auto_increment(true);
+    char sql_buf[512];
+    int cnt = snprintf(sql_buf, 512, "UPDATE __all_auto_increment SET max_value=max_value+%ld where table_id=%ld and column_id=%ld",
+                       row_count, table_id, column_id);
+    ObString sql_string;
+    sql_string.assign_ptr(sql_buf, cnt);
+    if (OB_SUCCESS != (ret = tmp_result.init()))
+    {
+      TBSYS_LOG(WARN, "Init temp result set failed, ret=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = ObSql::direct_execute(sql_string, tmp_result, *sql_context_)))
+    {
+      TBSYS_LOG(WARN, "Direct_execute failed, sql=%.*s ret=%d",
+                sql_string.length(), sql_string.ptr(), ret);
+    }
+    else if (OB_SUCCESS != (ret = tmp_result.open()))
+    {
+      TBSYS_LOG(WARN, "Open result set failed, sql=%.*s ret=%d",
+                sql_string.length(), sql_string.ptr(), ret);
+    }
+    else
+    {
+      auto_value = tmp_result.get_auto_value() - row_count;
+    }
+    tmp_result.close();
+  }
+  return ret;
+}
+
+int ObTransformer::gen_phy_auto_increment(
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan,
+    ErrStat& err_stat,
+    const uint64_t& query_id,
+    const uint64_t when_expr_size,
+    ObExprValues* value_op,
+    ObWhenFilter* when_filter_op,
+    ObAutoIncrementFilter*& auto_increment_filter)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  if (CREATE_PHY_OPERRATOR(auto_increment_filter, ObAutoIncrementFilter, physical_plan, err_stat) == NULL)
+  {
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+    TRANS_LOG("Failed to create phy operator");
+  }
+  else
+  {
+    if (when_expr_size > 0)
+    {
+      if ((ret = gen_phy_when(logical_plan,
+                              physical_plan,
+                              err_stat,
+                              query_id,
+                              *value_op,
+                              when_filter_op
+                              )) != OB_SUCCESS)
+      {
+      }
+      else if ((ret = auto_increment_filter->set_child(0, *when_filter_op)) != OB_SUCCESS)
+      {
+        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+      }
+    }
+    else
+    {
+      if (OB_SUCCESS != (ret = auto_increment_filter->set_child(0, *value_op)))
+      {
+        TRANS_LOG("Set child of ups_modify operator failed, err=%d", ret);
+      }
+    }
+  }
+  return ret;
+}
+
+int ObTransformer::check_and_load_auto_value(const uint64_t auto_column_id,
+                                             const bool need_modify_index_flag,
+                                             ObInsertStmt *insert_stmt,
+                                             const int64_t row_count,
+                                             int64_t& auto_value,
+                                             ObUpsModifyWithDmlType *&ups_modify)
+{
+  int ret = OB_SUCCESS;
+  bool need_get_auto_value = false;
+  if (OB_INVALID_ID != auto_column_id)
+  {
+    if (sql_context_->need_load_auto_value_)
+    {
+      need_get_auto_value = true;
+    }
+    else if (need_modify_index_flag)
+    {
+      bool column_in_stmt_flag = false;
+      if(OB_SUCCESS != (ret = column_in_stmt(insert_stmt, insert_stmt->get_table_id(), auto_column_id, column_in_stmt_flag)))
+      {
+        TBSYS_LOG(WARN, "fail to check column in stmt, ret=%d", ret);
+      }
+      else if (!column_in_stmt_flag)
+      {
+        need_get_auto_value = true;
+      }
+    }
+  }
+  if (OB_SUCCESS == ret && need_get_auto_value)
+  {
+    if (OB_SUCCESS != (ret = update_and_get_auto_value(insert_stmt->get_table_id(), auto_column_id, row_count, auto_value)))
+    {
+      TBSYS_LOG(WARN, "fail to update and get auto value. ret=%d", ret);
+    }
+    else
+    {
+      ups_modify->set_auto_value(auto_value);
+    }
+  }
+  return ret;
+}
+
+int ObTransformer::add_auto_increment_op(ObPhysicalPlan *physical_plan,
+                          ErrStat& err_stat,
+                          ObAutoIncrementFilter*& auto_increment_filter_op,
+                          ObPhyOperator* parent_op,
+                          ObPhyOperator* child_op)
+{
+  int &ret = err_stat.err_code_ = OB_SUCCESS;
+  if (CREATE_PHY_OPERRATOR(auto_increment_filter_op, ObAutoIncrementFilter, physical_plan, err_stat) == NULL)
+  {
+    ret = OB_ALLOCATE_MEMORY_FAILED;
+    TRANS_LOG("Failed to create phy operator");
+  }
+  else if (OB_SUCCESS != (ret = auto_increment_filter_op->set_child(0, *child_op)))
+  {
+    TRANS_LOG("Failed to set child");
+  }
+  else if (OB_SUCCESS != (ret = parent_op->set_child(0, *auto_increment_filter_op)))
+  {
+    TRANS_LOG("Failed to set child");
+  }
+  return ret;
+}
+
 //add:e

@@ -44,6 +44,7 @@
 //add e
 //add lbzhong [auto_increment] 20161127:b
 #include "ob_update_server_main.h"
+#include "sql/ob_auto_increment_filter.h"
 //add:e
 
 namespace oceanbase
@@ -65,19 +66,30 @@ namespace oceanbase
         int64_t to_string(char* buf, const int64_t buf_len) const;
         //add lbzhong [auto_increment] 20161127:b
         int check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
-                             int64_t& auto_value, const CommonSchemaManager *&sm);
+                             int64_t& auto_value, const CommonSchemaManager *&sm,
+                                 ObPhyOperator * child_op,
+                                 ObAutoIncrementFilter *& auto_increment_op);
         int get_auto_increment_value(const int64_t table_id, const uint64_t column_id, int64_t &auto_value);
-        int update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id,
+        int update_auto_increment_value(const int64_t current_value, const uint64_t table_id,
                                         const uint64_t auto_column_id, const int64_t old_value);
+        int set_is_update_auto_value();
+        int64_t get_updated_auto_value() const;
         //add:e
       private:
         RWSessionCtx &session_;
         ObIUpsTableMgr &host_;
+        //add lbzhong [auto_increment] 20161218:b
+        bool is_update_auto_value_;
+        int64_t update_auto_value_;
+        //add:e
     };
 
     template <class T>
     MemTableModifyTmpl<T>::MemTableModifyTmpl(RWSessionCtx &session, ObIUpsTableMgr &host): session_(session),
                                                                                  host_(host)
+                                                                                 //add lbzhong [auto_increment] 20161218:b
+                                                                                 , is_update_auto_value_(false), update_auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+                                                                                 //add:e
     {
     }
 
@@ -125,6 +137,31 @@ namespace oceanbase
 
       }
 //add :e
+      //add lbzhong [auto_increment] 20161128:b
+      uint64_t auto_column_id = OB_INVALID_ID;
+      int64_t auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
+      int64_t cur_auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
+      ObAutoIncrementFilter *auto_increment_op = NULL;
+      const CommonSchemaManager *sm = NULL;
+      if (OB_SUCCESS == ret)
+      {
+        UpsSchemaMgrGuard sm_guard;
+        if (NULL == (sm = host_.get_schema_mgr().get_schema_mgr(sm_guard)))
+        {
+          TBSYS_LOG(WARN, "get_schema_mgr fail");
+          ret = OB_SCHEMA_ERROR;
+        }
+        else if ((OB_DML_REPLACE == T::get_dml_type() || OB_DML_INSERT == T::get_dml_type()) &&
+                 OB_SUCCESS != (ret = check_auto_increment(table_id, auto_column_id,
+                                                           auto_value, sm, T::child_op_, auto_increment_op)))
+        {
+          if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
+          {
+            TBSYS_LOG(WARN, "check_auto_increment fail, ret=%d", ret);
+          }
+        }
+      }
+      //add:e
       if (OB_SUCCESS != ret)
       {}
       else if (NULL == T::child_op_)
@@ -165,29 +202,20 @@ namespace oceanbase
       }
       else
       {
+        //del lbzhong [auto_increment] 20161218:b
+        /*
         UpsSchemaMgrGuard sm_guard;
         const CommonSchemaManager *sm = NULL;
-        //add lbzhong [auto_increment] 20161127:b
-        uint64_t auto_column_id = OB_INVALID_ID;
-        int64_t auto_value = 0;
-        //add:e
         if (NULL == (sm = host_.get_schema_mgr().get_schema_mgr(sm_guard)))
         {
           TBSYS_LOG(WARN, "get_schema_mgr fail");
           ret = OB_SCHEMA_ERROR;
         }
-        //add lbzhong [auto_increment] 20161128:b
-        else if ((OB_DML_REPLACE == T::get_dml_type() || OB_DML_INSERT == T::get_dml_type()) &&
-                 OB_SUCCESS != (ret = check_auto_increment(table_id, auto_column_id, auto_value, sm)))
-        {
-          if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
-          {
-            TBSYS_LOG(WARN, "check_auto_increment fail, ret=%d", ret);
-          }
-        }
-        //add:e
+
         else
         {
+        */
+        //del:e
           //add maoxx
           if(T::child_op_->get_type() == sql::PHY_INDEX_TRIGGER)
           {
@@ -204,6 +232,12 @@ namespace oceanbase
               ObRowStore *pre_row_store = NULL;
               ObRowStore *post_row_store = NULL;
               ObRowCellIterAdaptor cia;
+              //add lbzhong [auto_increment] 20161217:b
+              if (OB_INVALID_ID != auto_column_id)
+              {
+                cia.set_auto_column_id(auto_column_id);
+              }
+              //add:e
               tmp_index_trigger->get_sql_type(sql_type);
               if(DELETE == sql_type)
               {
@@ -249,6 +283,10 @@ namespace oceanbase
                     {
                       index_num = tmp_index_tri->get_index_num();
                     }*/
+              if (OB_INVALID_ID != auto_column_id)
+              {
+                cur_auto_value = cia.get_max_auto_value();
+              }
             }
             else
               TBSYS_LOG(WARN, "index_trigger get_next_data_row fail ret=%d", ret);
@@ -258,22 +296,44 @@ namespace oceanbase
             ObCellIterAdaptor cia;
             cia.set_row_iter(T::child_op_, rki->get_size(), sm
                              //add lbzhong [auto_increment] 20161127:b
-                             , auto_column_id, auto_value
+                             , is_update_auto_value_
                              //add:e
                              );
             ret = host_.apply(session_, cia, T::get_dml_type());
             session_.inc_dml_count(T::get_dml_type());
 
             //add lbzhong [auto_increment] 20161207:b
-            if (OB_SUCCESS == ret && OB_INVALID_ID != auto_column_id)
+            if (OB_INVALID_ID != auto_column_id)
             {
-              ret = update_auto_increment_value(cia, table_id, auto_column_id, auto_value);
+              if (auto_increment_op == NULL)
+              {
+                TBSYS_LOG(WARN, "auto_increment_op is NULL");
+                ret = OB_ERR_UNEXPECTED;
+              }
+              else
+              {
+                cur_auto_value = auto_increment_op->get_cur_auto_value();
+              }
+            }
+            else if (is_update_auto_value_)
+            {
+              update_auto_value_ = cia.get_updated_auto_value();
             }
             //add:e
           }
           //add e
+        //} //del lbzhong [auto_increment] 20161218:b
+      }
+      //add lbzhong [auto_increment] 20161218:b
+      if (OB_SUCCESS == ret)
+      {
+        if (OB_SUCCESS == ret && OB_INVALID_ID != auto_column_id
+            && this->get_auto_value() == OB_INVALID_AUTO_INCREMENT_VALUE)
+        {
+          ret = update_auto_increment_value(cur_auto_value, table_id, auto_column_id, auto_value);
         }
       }
+      //add:e
       if (OB_SUCCESS != ret)
       {
         if (NULL != T::child_op_)
@@ -348,7 +408,9 @@ namespace oceanbase
     //add lbzhong [auto_increment] 20161127:b
     template <class T>
     int MemTableModifyTmpl<T>::check_auto_increment(const int64_t table_id, uint64_t& auto_column_id,
-                                                    int64_t& auto_value, const CommonSchemaManager *&sm)
+                                                    int64_t& auto_value, const CommonSchemaManager *&sm,
+                                                    ObPhyOperator * child_op,
+                                                    ObAutoIncrementFilter *& auto_increment_op)
     {
       int ret = OB_SUCCESS;
       if (NULL != sm)
@@ -369,9 +431,27 @@ namespace oceanbase
         }
         if (OB_INVALID_ID != auto_column_id)
         {
-          if (OB_SUCCESS != (ret = get_auto_increment_value(table_id, auto_column_id, auto_value)))
+          if ((auto_value = this->get_auto_value()) > OB_INVALID_AUTO_INCREMENT_VALUE)
           {
             //do nothing
+          }
+          else if (OB_SUCCESS != (ret = get_auto_increment_value(table_id, auto_column_id, auto_value)))
+          {
+            //do nothing
+          }
+          ObPhyOperator *tmp_op = child_op;
+          while (NULL != tmp_op)
+          {
+            if(PHY_AUTO_INCREMENT_FILTER == tmp_op->get_type())
+            {
+              auto_increment_op = static_cast<ObAutoIncrementFilter*>(tmp_op);
+              break;
+            }
+            tmp_op = tmp_op->get_child(0);
+          }
+          if (auto_increment_op != NULL)
+          {
+            auto_increment_op->set_auto_column(auto_column_id, auto_value);
           }
         }
       }
@@ -454,19 +534,14 @@ namespace oceanbase
     }
 
     template <class T>
-    int MemTableModifyTmpl<T>::update_auto_increment_value(const ObCellIterAdaptor &cia, const uint64_t table_id,
+    int MemTableModifyTmpl<T>::update_auto_increment_value(const int64_t current_value, const uint64_t table_id,
                                                            const uint64_t auto_column_id, const int64_t old_value)
     {
       int ret = OB_SUCCESS;
-      int64_t auto_value = 0;
-      if (OB_SUCCESS != (ret = cia.get_auto_value(auto_value)))
-      {
-        TBSYS_LOG(WARN, "fail to get auto_value, ret=%d", ret);
-      }
-      else if (auto_value > old_value)
+      if (current_value > old_value)
       {
         ObAutoIncrementCellIterAdaptor aicia;
-        aicia.set_row_iter(table_id, auto_column_id, auto_value);
+        aicia.set_row_iter(table_id, auto_column_id, current_value);
         ret = host_.apply(session_, aicia, OB_DML_UPDATE);
         if (OB_SUCCESS != ret)
         {
@@ -476,6 +551,18 @@ namespace oceanbase
       return ret;
     }
 
+    template <class T>
+    int MemTableModifyTmpl<T>:: set_is_update_auto_value()
+    {
+      is_update_auto_value_ = true;
+      return OB_SUCCESS;
+    }
+
+    template <class T>
+    int64_t MemTableModifyTmpl<T>:: get_updated_auto_value() const
+    {
+      return update_auto_value_;
+    }
     //add:e
   } // end namespace updateserver
 } // end namespace oceanbase

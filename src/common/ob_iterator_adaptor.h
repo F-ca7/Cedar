@@ -113,30 +113,13 @@ namespace oceanbase
       public:
         void set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr
                           //add lbzhong [auto_increment] 20161127:b
-                          , const uint64_t auto_column_id = OB_INVALID_ID, const int64_t auto_value  = 0
+                          , const bool is_update_auto_value = false
                           //add:e
                           );
         void reset();
         //add lbzhong [auto_increment] 20161127:b
-        int cons_auto_info(const uint64_t auto_column_id, const int64_t auto_value);
-        int add_auto_increment_column(const ObRow *&row);
-        int reset_och(const ObRowDesc *row_desc, const ObSchemaManagerV2 *schema_mgr);
-        void destroy_auto_info();
-        int get_auto_value(int64_t& auto_value) const;
-      private:
-        struct AutoIncrementInfo
-        {
-          ObRowDesc* auto_row_desc_;
-          ObRow* auto_row_;
-          uint64_t auto_column_id_;
-          int64_t auto_value_;
-          bool is_assigned_;
-          AutoIncrementInfo(const uint64_t auto_column_id, const int64_t auto_value);
-          ~AutoIncrementInfo();
-          int cons_row_desc(const ObRowDesc *&row_desc);
-          void set_auto_value(const int64_t auto_value);
-          int cons_auto_row(const ObRow *&row);
-        };
+        int set_updated_auto_value(const ObRow *&row);
+        int64_t get_updated_auto_value();
         //add:e
       private:
         sql::ObPhyOperator *row_iter_;
@@ -145,7 +128,7 @@ namespace oceanbase
         bool is_iter_end_;
         int set_row_iter_ret_;
         //add lbzhong [auto_increment] 20161127:b
-        AutoIncrementInfo* auto_info_;
+        int64_t updated_auto_value_;
         //add:e
     };
 
@@ -199,6 +182,11 @@ namespace oceanbase
       public:
         void set_row_iter(ObRowStore *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr, ObRowDesc row_desc);
         void reset();
+        //add lbzhong [auto_increment] 20161217:b
+        void set_auto_column_id(const uint64_t auto_column_id);
+        int64_t get_max_auto_value() const;
+        int update_max_auto_value();
+        //add:e
       private:
         ObRowStore *row_iter_;
         ObRowDesc row_desc_;
@@ -207,6 +195,10 @@ namespace oceanbase
         ObCellAdaptor single_row_iter_;
         bool is_iter_end_;
         int set_row_iter_ret_;
+        //add lbzhong [auto_increment] 20161217:b
+        uint64_t auto_column_id_;
+        int64_t max_auto_value_;
+        //add:e
     };
     //add e
     //add lbzhong [auto_increment] 20161127:b
