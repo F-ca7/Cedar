@@ -802,6 +802,17 @@ namespace oceanbase
       GLOBAL_INDEX_STAGE     ///< 全局索引创建阶段
     };
     // add e
+
+    //add huangjianwei [secondary index maintain] 20160909:b
+    enum SQLTYPE
+    {
+      INSERT = 0,
+      DELETE, // 1
+      UPDATE, // 2
+      REPLACE //3
+    };
+    //add:e
+
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \

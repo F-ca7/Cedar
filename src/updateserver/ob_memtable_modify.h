@@ -172,13 +172,16 @@ namespace oceanbase
             tmp_index_trigger = static_cast<sql::ObIndexTrigger*>(T::child_op_);
             if(OB_SUCCESS == (ret = (tmp_index_trigger->cons_data_row_store())))
             {
-              int sql_type;
+              //mod huangjianwei [secondary index maintain] 20160909:b
+              //int sql_type;
+              SQLTYPE sql_type;
+              //mod:e
               ObRowDesc *row_desc = NULL;
               ObRowStore *pre_row_store = NULL;
               ObRowStore *post_row_store = NULL;
               ObRowCellIterAdaptor cia;
               tmp_index_trigger->get_sql_type(sql_type);
-              if(1 == sql_type)
+              if(DELETE == sql_type)
               {
                 tmp_index_trigger->get_pre_data_row_desc(row_desc);
                 if (OB_SUCCESS != (ret = row_desc->add_column_desc(table_id, OB_ACTION_FLAG_COLUMN_ID)))
@@ -191,7 +194,7 @@ namespace oceanbase
                   cia.set_row_iter(pre_row_store, row_desc->get_rowkey_cell_count(), sm, *row_desc);
                 }
               }
-              else if(0 == sql_type || 2 == sql_type || 3 == sql_type)
+              else if(INSERT == sql_type || UPDATE == sql_type || REPLACE == sql_type)
               {
                 tmp_index_trigger->get_post_data_row_desc(row_desc);
                 tmp_index_trigger->get_post_data_row_store(post_row_store);

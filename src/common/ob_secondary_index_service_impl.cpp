@@ -77,7 +77,7 @@ int ObSecondaryIndexServiceImpl::find_cid(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tid)))
       {
@@ -92,11 +92,11 @@ int ObSecondaryIndexServiceImpl::find_cid(
       else
       {
         column_count++;
-        idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -139,13 +139,14 @@ int ObSecondaryIndexServiceImpl::change_tid(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       tmp_index = idx + 1;
       column_count++;
-      idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+      idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -183,7 +184,7 @@ int ObSecondaryIndexServiceImpl::get_cid(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tmp_tid)))
       {
@@ -198,10 +199,11 @@ int ObSecondaryIndexServiceImpl::get_cid(
       else
       {
         column_count++;
-        idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -249,7 +251,7 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {      
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tid)))
       {
@@ -272,11 +274,11 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
           break;
         }
         else
-          idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+          idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW  // ??
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW  // ??
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -312,7 +314,7 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tid)))
       {
@@ -336,12 +338,12 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
         else
         {
           column_count++;
-          idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+          idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
         }
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END || type == UPS_TIME_OP || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -374,14 +376,14 @@ int ObSecondaryIndexServiceImpl::get_all_cloumn(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       column_index.push_back(idx + 1);
-      idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+      idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END
-             || type == UPS_TIME_OP  || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END
+             || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -422,7 +424,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
       TBSYS_LOG(WARN, "Fail to get op type. unexpected! ret=%d", ret);
       break;
     }
-    else if (type == COLUMN_IDX)
+    else if (type == sql::ObPostfixExpression::COLUMN_IDX)
     {
       if (OB_SUCCESS != (ret = expr_[idx + 1].get_int(tid)))
       {
@@ -439,10 +441,10 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
       else
       {
         column_count++;
-        idx = idx + pf_expr.get_type_num(idx, COLUMN_IDX);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
       }
     }
-    else if (type == OP)
+    else if (type == sql::ObPostfixExpression::OP)
     {
       if (ObIntType != expr_[idx + 1].get_type())
       {
@@ -459,21 +461,21 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
       else if (tmp_type == T_OP_EQ)
       {
         EQ_count++;
-        idx = idx + pf_expr.get_type_num(idx, OP);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::OP);
       }
       else if (tmp_type == T_OP_IN)
       {
         IN_count++;
-        idx = idx + pf_expr.get_type_num(idx, OP);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::OP);
       }
       else
       {
-        idx = idx + pf_expr.get_type_num(idx, OP);
+        idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::OP);
       }
     }
-    else if (type == OP || type == COLUMN_IDX || type == T_OP_ROW
-             || type == CONST_OBJ || type == END
-             || type == UPS_TIME_OP  || type == PARAM_IDX)
+    else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END
+             || type == sql::ObPostfixExpression::UPS_TIME_OP)
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }

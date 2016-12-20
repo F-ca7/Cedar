@@ -239,32 +239,110 @@ int ObExprValues::eval()
         }
       }
     }
-    for (int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); i+=col_num) // for each row
+    //add huangjianwei [secondary index maintain] 20161108:b
+    if (replace_check_rowkey_duplicat_ && row_num > 1)
     {
-      ObRow val_row;
-      val_row.set_row_desc(row_desc_);
-      ObString varchar;
-      ObObj casted_cell;
-      for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
+      //ergodic from the back forward,give up the forward of rowkey is same with back
+      for (int64_t i = values_.count(); OB_SUCCESS == ret && i > 0; i-=col_num)
       {
-        varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-        casted_cell.set_varchar(varchar); // reuse the varchar buffer
-        const ObObj *single_value = NULL;
-        uint64_t table_id = OB_INVALID_ID;
-        uint64_t column_id = OB_INVALID_ID;
-        ObObj tmp_value;
-        ObObj data_type;
-        ObSqlExpression &val_expr = values_.at(i+j);
-        if ((ret = val_expr.calc(val_row, single_value)) != OB_SUCCESS) // the expr should be a const expr here
+        ObRow val_row;
+        val_row.set_row_desc(row_desc_);
+        ObString varchar;
+        ObObj casted_cell;
+        for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
-          TBSYS_LOG(WARN, "Calculate value result failed, err=%d", ret);
-        }
-        else if (OB_SUCCESS != (ret = row_desc_ext_.get_by_idx(j, table_id, column_id, data_type)))
+          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          const ObObj *single_value = NULL;
+          uint64_t table_id = OB_INVALID_ID;
+          uint64_t column_id = OB_INVALID_ID;
+          ObObj tmp_value;
+          ObObj data_type;
+          ObSqlExpression &val_expr = values_.at(i-col_num+j);
+          if ((ret = val_expr.calc(val_row, single_value)) != OB_SUCCESS) // the expr should be a const expr here
+          {
+            TBSYS_LOG(WARN, "Calculate value result failed, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = row_desc_ext_.get_by_idx(j, table_id, column_id, data_type)))
+          {
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+          {
+            TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value)))
+          {
+            TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
+          }
+          else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
+          {
+            TBSYS_LOG(WARN, "Add value to ObRow failed");
+          }
+          else
+          {
+            //TBSYS_LOG(DEBUG, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));
+          }
+        } // end for
+        if (OB_LIKELY(OB_SUCCESS == ret))
         {
-          ret = OB_ERR_UNEXPECTED;
-          TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
+          if (indicator)
+          {
+            const ObRowkey *rowkey = NULL;
+            bool is_dup = false;
+            if ((ret = val_row.get_rowkey(rowkey)) != OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "Get RowKey failed, err=%d", ret);
+            }
+            else if ((ret = indicator->have_seen(*rowkey, is_dup)) != OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "Check duplication failed, err=%d", ret);
+            }
+            else if (is_dup)
+            {
+              TBSYS_LOG(INFO, "replace check rowkey isdup is %c rowkey=%s", is_dup?'Y':'N', to_cstring(*rowkey));
+            }
+            else
+            {
+              if (OB_SUCCESS != (ret = row_store_.add_row(val_row, stored_row)))
+              {
+                TBSYS_LOG(WARN, "failed to add row into store, err=%d", ret);
+              }
+            }
+          }
         }
-        /*
+      }// end for
+    }
+    else
+    {
+    //add:e
+      for (int64_t i = 0; OB_SUCCESS == ret && i < values_.count(); i+=col_num) // for each row
+      {
+        ObRow val_row;
+        val_row.set_row_desc(row_desc_);
+        ObString varchar;
+        ObObj casted_cell;
+        for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
+        {
+          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          const ObObj *single_value = NULL;
+          uint64_t table_id = OB_INVALID_ID;
+          uint64_t column_id = OB_INVALID_ID;
+          ObObj tmp_value;
+          ObObj data_type;
+          ObSqlExpression &val_expr = values_.at(i+j);
+          if ((ret = val_expr.calc(val_row, single_value)) != OB_SUCCESS) // the expr should be a const expr here
+          {
+            TBSYS_LOG(WARN, "Calculate value result failed, err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = row_desc_ext_.get_by_idx(j, table_id, column_id, data_type)))
+          {
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
+          }
+          /*
         else if (0 < row_desc_.get_rowkey_cell_count()
                  && j < row_desc_.get_rowkey_cell_count()
                  && single_value->is_null())
@@ -273,50 +351,51 @@ int ObExprValues::eval()
           ret = OB_ERR_INSERT_NULL_ROWKEY;
         }
         */
-        else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
-        {
-          TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
-        }
-        else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value)))
-        {
-          TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
-        }
-        else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
-        {
-          TBSYS_LOG(WARN, "Add value to ObRow failed");
-        }
-        else
-        {
-          //TBSYS_LOG(DEBUG, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));
-        }
-      } // end for
-      if (OB_LIKELY(OB_SUCCESS == ret))
-      {
-        if (OB_SUCCESS != (ret = row_store_.add_row(val_row, stored_row)))
-        {
-          TBSYS_LOG(WARN, "failed to add row into store, err=%d", ret);
-        }
-        else if (indicator)
-        {
-          const ObRowkey *rowkey = NULL;
-          bool is_dup = false;
-          if ((ret = val_row.get_rowkey(rowkey)) != OB_SUCCESS)
+          else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
           {
-            TBSYS_LOG(WARN, "Get RowKey failed, err=%d", ret);
+            TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
           }
-          else if ((ret = indicator->have_seen(*rowkey, is_dup)) != OB_SUCCESS)
+          else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value)))
           {
-            TBSYS_LOG(WARN, "Check duplication failed, err=%d", ret);
+            TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
           }
-          else if (is_dup)
+          else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
           {
-            ret = OB_ERR_PRIMARY_KEY_DUPLICATE;
-            TBSYS_LOG(USER_ERROR, "Duplicate entry \'%s\' for key \'PRIMARY\'", to_cstring(*rowkey));
+            TBSYS_LOG(WARN, "Add value to ObRow failed");
           }
-          TBSYS_LOG(INFO, "check rowkey isdup is %c rowkey=%s", is_dup?'Y':'N', to_cstring(*rowkey));
+          else
+          {
+            //TBSYS_LOG(DEBUG, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));
+          }
+        } // end for
+        if (OB_LIKELY(OB_SUCCESS == ret))
+        {
+          if (OB_SUCCESS != (ret = row_store_.add_row(val_row, stored_row)))
+          {
+            TBSYS_LOG(WARN, "failed to add row into store, err=%d", ret);
+          }
+          else if (indicator)
+          {
+            const ObRowkey *rowkey = NULL;
+            bool is_dup = false;
+            if ((ret = val_row.get_rowkey(rowkey)) != OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "Get RowKey failed, err=%d", ret);
+            }
+            else if ((ret = indicator->have_seen(*rowkey, is_dup)) != OB_SUCCESS)
+            {
+              TBSYS_LOG(WARN, "Check duplication failed, err=%d", ret);
+            }
+            else if (is_dup)
+            {
+              ret = OB_ERR_PRIMARY_KEY_DUPLICATE;
+              TBSYS_LOG(USER_ERROR, "Duplicate entry \'%s\' for key \'PRIMARY\'", to_cstring(*rowkey));
+            }
+            TBSYS_LOG(INFO, "check rowkey isdup is %c rowkey=%s", is_dup?'Y':'N', to_cstring(*rowkey));
+          }
         }
-      }
-    }   // end for
+      }// end for
+    }
     if (indicator)
     {
       indicator->~ObDuplicateIndicator();

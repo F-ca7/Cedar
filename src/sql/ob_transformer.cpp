@@ -9600,7 +9600,10 @@ int ObTransformer::gen_phy_static_data_scan_for_replace(
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
     int64_t row_num = insert_stmt->get_value_row_size();
-    for (int64_t i = 0; ret == OB_SUCCESS && i < row_num; i++) // for each row
+    //mod huangjianwei [secondary index maintain] 20161201:b
+    //for (int64_t i = 0; ret == OB_SUCCESS && i < row_num; i++)// for each row
+    for (int64_t i = row_num-1; ret == OB_SUCCESS && i >= 0; i--)// for each row,From the back forward scan row to match inc_data
+    //mod:e
     {
       const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
       OB_ASSERT(value_row.count() == row_desc_map.count());
@@ -9991,7 +9994,10 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
           }
           else if (NULL != index_trigger)
           {
-            int sql_type = 0;
+            //mod huangjianwei [secondary index maintain] 20160909:b
+            //int sql_type = 0;
+            SQLTYPE sql_type = INSERT;
+            //mod:e
             index_trigger->set_sql_type(sql_type);
             index_trigger->set_data_tid(insert_stmt->get_table_id());
             index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
@@ -12046,7 +12052,10 @@ int ObTransformer::gen_physical_update_new(
       }
       else if (NULL != index_trigger)
       {
-        int sql_type = 2;
+        //mod huangjianwei [secondary index maintain] 20160909:b
+        //int sql_type = 2;
+        SQLTYPE sql_type = UPDATE;
+        //mod:e
         index_trigger->set_sql_type(sql_type);
         index_trigger->set_data_tid(update_stmt->get_update_table_id());
         index_trigger->set_need_modify_index_num(hit_index_list.get_count());
@@ -12414,7 +12423,10 @@ int ObTransformer::gen_physical_delete_new(
       }
       else if (NULL != index_trigger)
       {
-        int sql_type = 1;
+        //mod huangjianwei [secondary index maintain] 20160909:b
+        //int sql_type = 1;
+        SQLTYPE sql_type = DELETE;
+        //mod:e
         index_trigger->set_sql_type(sql_type);
         index_trigger->set_data_tid(delete_stmt->get_delete_table_id());
         index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
@@ -12812,6 +12824,9 @@ int ObTransformer::gen_physical_replace_new(
         else
         {
           input_values->set_check_rowkey_duplicate(true);
+          //add huangjianwei [secondary index maintain] 20161108:b
+          input_values->set_replace_check_rowkey_duplicate(true);
+          //mod:e
         }
       }
       if (OB_LIKELY(OB_SUCCESS == ret))
@@ -12827,7 +12842,10 @@ int ObTransformer::gen_physical_replace_new(
         }
         else if (NULL != index_trigger)
         {
-          int sql_type = 3;
+          //mod huangjianwei [secondary index maintain] 20160909:b
+          //int sql_type = 3;
+          SQLTYPE sql_type = REPLACE;
+          //mod:e
           index_trigger->set_sql_type(sql_type);
           index_trigger->set_data_tid(insert_stmt->get_table_id());
           index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
@@ -12835,14 +12853,19 @@ int ObTransformer::gen_physical_replace_new(
           index_trigger->set_post_data_row_desc(row_desc_for_static_data);
           //index_trigger->set_replace_values_id(input_values->get_id());
           inc_scan->set_values(input_values->get_id(), false);
-          input_values->open();
+          //del huangjianwei [secondary index maintain] 20160909:b
+          /*input_values->open();
           const ObRow *row;
           while(OB_SUCCESS == (ret = input_values->get_next_row(row)))
           {
             index_trigger->add_post_data_row(*row);
           }
           if(OB_ITER_END == ret)
-            ret = OB_SUCCESS;
+            ret = OB_SUCCESS;*/
+          //del:e
+          //add huangjianwei [secondary index maintain] 20160909:b
+          index_trigger->set_input_values(input_values->get_id());
+          //add:e
           for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
           {
             const ObTableSchema* index_schema = NULL;

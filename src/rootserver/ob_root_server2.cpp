@@ -8802,6 +8802,18 @@ int ObRootServer2::drop_indexs(const bool if_exists, const ObStrings &tables)
          TBSYS_LOG(WARN, "fail to notify switch schema:ret[%d]", ret);
          ret = err;
       }
+      //add huangjianwei [secondary index maintain] 20161115:b
+      // only refresh the new schema manager
+      // fire an event to tell all clusters
+      {
+        int err = ObRootTriggerUtil::notify_slave_refresh_schema(root_trigger_);
+        if (err != OB_SUCCESS)
+        {
+          TBSYS_LOG(ERROR, "trigger event for drop table failed:err[%d], ret[%d]", err, ret);
+          ret = err;
+        }
+      }
+      //add:e
     }
   }
   else

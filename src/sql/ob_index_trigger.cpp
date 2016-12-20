@@ -71,6 +71,12 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "close child_op fail ret=%d", tmp_ret);
         }
+        //add huangjianwei [secondary index maintain] 20160909:b
+        else if (OB_SUCCESS != (tmp_ret = replace_values_.close()))
+        {
+          TBSYS_LOG(WARN, "fail to close replace_values, err=%d", tmp_ret);
+        }
+        //add:e
       }
       return ret;
     }
@@ -108,13 +114,17 @@ namespace oceanbase
       }
       return ret;
     }
-
-    void ObIndexTrigger::set_sql_type(int type)
+    //mod huangjianwei [secondary index maintain] 20160909:b
+    //void ObIndexTrigger::set_sql_type(int type)
+    void ObIndexTrigger::set_sql_type(const SQLTYPE type)
+    //mod:e
     {
       sql_type_ = type;
     }
-
-    void ObIndexTrigger::get_sql_type(int &type)
+    //mod huangjianwei [secondary index maintain] 20160909:b
+    //void ObIndexTrigger::get_sql_type(int &type)
+    void ObIndexTrigger::get_sql_type(SQLTYPE &type)
+    //mod:e
     {
       type = sql_type_;
     }
@@ -164,7 +174,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       const ObRow *row = NULL;
       const ObRowStore::StoredRow *stored_row = NULL;
-      if(0 == sql_type_)
+      if(INSERT == sql_type_)
       {
         while(OB_SUCCESS == (ret = child_op_->get_next_row(row)))
         {
@@ -173,7 +183,7 @@ namespace oceanbase
         if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
       }
-      else if(1 == sql_type_)
+      else if(DELETE == sql_type_)
       {
         ObProject* project_op = dynamic_cast<ObProject*> (child_op_);
         while(OB_SUCCESS == (ret = project_op->get_next_row_with_index(row, &pre_data_row_store_, NULL)))
@@ -183,7 +193,7 @@ namespace oceanbase
         if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
       }
-      else if(2 == sql_type_)
+      else if(UPDATE == sql_type_)
       {
         ObProject* project_op = dynamic_cast<ObProject*> (child_op_);
         while(OB_SUCCESS == (ret = project_op->get_next_row_with_index(row, &pre_data_row_store_, &post_data_row_store_)))
@@ -193,7 +203,7 @@ namespace oceanbase
         if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
       }
-      else if(3 == sql_type_)
+      else if(REPLACE == sql_type_)
       {
         bool row_empty_flag = false;
         while(OB_SUCCESS == (ret = child_op_->get_next_row(row)))
@@ -210,15 +220,18 @@ namespace oceanbase
         }
         if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
-        /*if(OB_SUCCESS == ret)
-              {
-                  while(OB_SUCCESS == (ret = replace_values_.get_next_row(row)))
-                  {
-                      post_data_row_store_.add_row(*row, stored_row);
-                  }
-                  if(OB_ITER_END == ret)
-                      ret = OB_SUCCESS;
-              }*/
+        //add huangjianwei [secondary index maintain] 20160909:b
+        if(OB_SUCCESS == ret)
+        {
+          replace_values_.open();
+          while(OB_SUCCESS == (ret = replace_values_.get_next_row(row)))
+          {
+             post_data_row_store_.add_row(*row, stored_row);
+          }
+          if(OB_ITER_END == ret)
+          ret = OB_SUCCESS;
+        }
+        //add:e
       }
       return ret;
     }
@@ -307,12 +320,12 @@ namespace oceanbase
 
     void ObIndexTrigger::reset_iterator()
     {
-      if(0 == sql_type_)
+      if(INSERT == sql_type_)
       {
         ObInsertDBSemFilter *insert_sem = static_cast<ObInsertDBSemFilter*>(child_op_);
         insert_sem->reset_iterator();
       }
-      else if(1 == sql_type_ || 2 == sql_type_)
+      else if(DELETE == sql_type_ || UPDATE == sql_type_)
       {
         if(!cond_flag_)
         {
@@ -325,10 +338,13 @@ namespace oceanbase
           fuse_op->reset_iterator();
         }
       }
-      else if(3 == sql_type_)
+      else if(REPLACE == sql_type_)
       {
         ObMultipleGetMerge* fuse_op = static_cast<ObMultipleGetMerge*>(child_op_);
         fuse_op->reset_iterator();
+        //add huangjianwei [secondary index maintain] 20160909:b
+        replace_values_.reset_iterator();
+        //add:e
       }
     }
 
@@ -342,7 +358,7 @@ namespace oceanbase
       }
       else
       {
-        if(2 == sql_type_ || 3 == sql_type_)
+        if(UPDATE == sql_type_ || REPLACE == sql_type_)
           ret = pre_data_row_desc_.add_column_desc(OB_INVALID_ID, OB_ACTION_FLAG_COLUMN_ID);
         for(int64_t i = 0; OB_SUCCESS == ret && i < need_modify_index_num_; i++)
         {
@@ -388,13 +404,13 @@ namespace oceanbase
         common::ObRow post_data_row;
         const ObObj *obj = NULL;
         ObObj obj_dml, obj_virtual;;
-        if(OB_SUCCESS == ret && (1 == sql_type_ || (2 == sql_type_ ) || (3 == sql_type_ )))
+        if(OB_SUCCESS == ret && (DELETE == sql_type_ || (UPDATE == sql_type_ ) || (REPLACE == sql_type_ )))
         {
           pre_data_row.set_row_desc(pre_data_row_desc_);
           pre_data_row_store_.reset_iterator();
           while(OB_SUCCESS == (ret = (pre_data_row_store_.get_next_row(pre_data_row))))
           {
-            if((1 == sql_type_) || (2 == sql_type_ && delete_flag_for_update_) || (3 == sql_type_ && delete_flag_for_replace_))
+            if((DELETE == sql_type_) || (UPDATE == sql_type_ && delete_flag_for_update_) || (REPLACE == sql_type_ && delete_flag_for_replace_))
             {
               row_to_store_del.set_row_desc(index_row_desc_del_[index_idx]);
               for(int index_cid_idx = 0; index_cid_idx < index_row_desc_del_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
@@ -449,7 +465,7 @@ namespace oceanbase
           if(OB_ITER_END == ret)
             ret = OB_SUCCESS;
         }
-        if(OB_SUCCESS == ret && (0 == sql_type_ || 2 == sql_type_ || 3 == sql_type_))
+        if(OB_SUCCESS == ret && (INSERT == sql_type_ || UPDATE == sql_type_ || REPLACE == sql_type_))
         {
           post_data_row.set_row_desc(post_data_row_desc_);
           post_data_row_store_.reset_iterator();
@@ -474,7 +490,7 @@ namespace oceanbase
               }
               else
               {
-                if((2 == sql_type_|| 3 == sql_type_) && (OB_INVALID_INDEX == post_data_row_desc_.get_idx(data_tid_, index_cid)))
+                if((UPDATE == sql_type_|| REPLACE == sql_type_) && (OB_INVALID_INDEX == post_data_row_desc_.get_idx(data_tid_, index_cid)))
                 {
                   if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
                   {
@@ -525,14 +541,14 @@ namespace oceanbase
       }
       if(OB_SUCCESS == ret)
       {
-        if(1 == sql_type_ || (2 == sql_type_ && delete_flag_for_update_) || (3 == sql_type_ && delete_flag_for_replace_))
+        if(DELETE == sql_type_ || (UPDATE == sql_type_ && delete_flag_for_update_) || (REPLACE == sql_type_ && delete_flag_for_replace_))
         {
           ObRowCellIterAdaptor cia;
           ObDmlType dml_type = OB_DML_DELETE;
           cia.set_row_iter(&index_row_del, index_row_desc_del_[index_idx].get_rowkey_cell_count(), schema_mgr, index_row_desc_del_[index_idx]);
           ret = host->apply(session_ctx, cia, dml_type);
         }
-        if(0 == sql_type_ || 2 == sql_type_ || 3 == sql_type_)
+        if(INSERT == sql_type_ || UPDATE == sql_type_ || REPLACE == sql_type_)
         {
           ObRowCellIterAdaptor cia;
           ObDmlType dml_type = OB_DML_INSERT;
@@ -549,6 +565,10 @@ namespace oceanbase
     {
       data_tid_ = OB_INVALID_ID;
       need_modify_index_num_ = 0;
+      //add huangjianwei [secondary index maintain] 20160909:b
+      replace_values_id_ = OB_INVALID_ID;
+      replace_values_.reset();
+      //add:e
       //data_row_desc_.reset();
       pre_data_row_desc_.reset();
       post_data_row_desc_.reset();
@@ -569,6 +589,10 @@ namespace oceanbase
     {
       data_tid_ = OB_INVALID_ID;
       need_modify_index_num_ = 0;
+      //add huangjianwei [secondary index maintain] 20160909:b
+      replace_values_id_ = OB_INVALID_ID;
+      replace_values_.reuse();
+      //add:e
       //data_row_desc_.reset();
       pre_data_row_desc_.reset();
       post_data_row_desc_.reset();
@@ -588,13 +612,13 @@ namespace oceanbase
     int64_t ObIndexTrigger::to_string(char* buf, const int64_t buf_len) const
     {
       int64_t pos = 0;
-      if(0 == sql_type_)
+      if(INSERT == sql_type_)
         databuff_printf(buf, buf_len, pos, "Sql_Type: Insert");
-      else if(1 == sql_type_)
+      else if(DELETE == sql_type_)
         databuff_printf(buf, buf_len, pos, "Sql_Type: Delete");
-      else if(2 == sql_type_)
+      else if(UPDATE == sql_type_)
         databuff_printf(buf, buf_len, pos, "Sql_Type: Update");
-      else if(3 == sql_type_)
+      else if(REPLACE == sql_type_)
         databuff_printf(buf, buf_len, pos, "Sql_Type: Replace");
       databuff_printf(buf, buf_len, pos, "\n");
       databuff_printf(buf, buf_len, pos, "ObIndexTrigger: index_num=[%ld],main_tid=[%lu],", need_modify_index_num_, data_tid_);
@@ -618,7 +642,11 @@ namespace oceanbase
       }
       cur_pos = index_row_desc_ins_[i].to_string(buf + pos, buf_len - pos);
       pos += cur_pos;
-      databuff_printf(buf, buf_len, pos, "]");
+
+      //add huangjianwei [secondary index maintain] 20160909:b
+      databuff_printf(buf, buf_len, pos, "],replace_values_id=[%lu],values=", replace_values_id_);
+      pos += replace_values_.to_string(buf + pos, buf_len - pos);
+      //add:e
 
       if (NULL != child_op_)
       {
@@ -653,15 +681,19 @@ namespace oceanbase
         size += index_row_desc_del_[i].get_serialize_size();
         size += index_row_desc_ins_[i].get_serialize_size();
       }
-      /*if(3 == sql_type_)
-                size += replace_values_.get_serialize_size();
-            size += static_cast<int64_t>(sizeof(int64_t));
-            for(int64_t j = 0; j < set_index_column_.count(); j++)
-            {
-              const ObSqlExpression &expr = set_index_column_.at(j);
-              size += expr.get_serialize_size();
-            }
-            size += static_cast<int64_t>(sizeof(int64_t));
+      //add huangjianwei [secondary index maintain] 20160909:b
+      if(REPLACE== sql_type_)
+      {
+        size += replace_values_.get_serialize_size();
+        //size += static_cast<int64_t>(sizeof(int64_t));
+      }
+      //add:e
+      /*for(int64_t j = 0; j < set_index_column_.count(); j++)
+        {
+          const ObSqlExpression &expr = set_index_column_.at(j);
+          size += expr.get_serialize_size();
+        }
+          size += static_cast<int64_t>(sizeof(int64_t));
             for(int64_t k = 0; k < set_cast_obj_.count(); k++)
             {
               const ObObj &obj = set_cast_obj_.at(k);
@@ -733,7 +765,8 @@ namespace oceanbase
           }
         }
       }
-      /*if(3 == sql_type_)
+      //add huangjianwei [secondary index maintain] 20160909:b
+      if(REPLACE == sql_type_)
             {
                 ObExprValues *replace_values = NULL;
                 if (OB_SUCCESS == ret)
@@ -744,11 +777,12 @@ namespace oceanbase
                   }
                   else if (OB_SUCCESS != (ret = replace_values->serialize(buf, buf_len, pos)))
                   {
-                    TBSYS_LOG(WARN, "serialize fail. ret=%d", ret);
+                    TBSYS_LOG(WARN, "fail to serialize expr_values. ret=%d", ret);
                   }
                 }
             }
-            if(OB_SUCCESS == ret)
+      //add:e
+           /*if(OB_SUCCESS == ret)
             {
               int64_t set_index_column_count = 0;
               set_index_column_count = set_index_column_.count();
@@ -912,18 +946,23 @@ namespace oceanbase
             }*/
       if(OB_SUCCESS == ret)
       {
-        sql_type_ = (int)sql_type;
+        //mod huangjianwei [secondary index maintain] 20160909:b
+        //sql_type_ = (int)sql_type;
+        sql_type_ = (SQLTYPE)sql_type;
+        //mod:e
         cond_flag_ = cond_flag == 0 ? false : true;
         delete_flag_for_update_ = delete_flag_for_update == 0 ? false : true;
         delete_flag_for_replace_ = delete_flag_for_replace == 0 ? false : true;
       }
-      /*if(3 == sql_type_)
-            {
-                if (OB_SUCCESS == ret && OB_SUCCESS != (ret = replace_values_.deserialize(buf, data_len, pos)))
-                {
-                  TBSYS_LOG(WARN, "deserialize fail. ret=%d", ret);
-                }
-            }*/
+      //add huangjianwei [secondary index maintain] 20160909:b
+      if(REPLACE == sql_type_)
+      {
+        if (OB_SUCCESS == ret && OB_SUCCESS != (ret = replace_values_.deserialize(buf, data_len, pos)))
+          {
+             TBSYS_LOG(WARN, "fail to deserialize replace values. ret=%d", ret);
+          }
+      }
+      //add:e
       return ret;
     }
 
@@ -943,9 +982,12 @@ namespace oceanbase
         index_row_desc_del_[i] = o_ptr->index_row_desc_del_[i];
         index_row_desc_ins_[i] = o_ptr->index_row_desc_ins_[i];
       }
-      /*if(3 == sql_type_)
-              replace_values_id_ = o_ptr->replace_values_id_;
-          for(int64_t j = 0; j < o_ptr->set_index_column_.count(); j++)
+      //add huangjianwei [secondary index maintain] 20160909:b
+      if(REPLACE == sql_type_)
+      {
+        replace_values_id_ = o_ptr->replace_values_id_;
+      }
+          /*for(int64_t j = 0; j < o_ptr->set_index_column_.count(); j++)
           {
             if (ret != OB_SUCCESS)
                 break;
