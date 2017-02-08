@@ -4644,10 +4644,12 @@ bool ObTransformer::handle_index_for_one_table(
                 is_use_index_without_storing = true;
                 break;
               }
-              else
-              {
-                break;
-              }
+              //del huangjianwei [secondary index maintain] 20170116:b
+//              else
+//              {
+//                break;
+//              }
+              //del:e
             }
           }
         }
