@@ -1,29 +1,25 @@
-/**
- * Copyright (C) 2013-2016 ECNU_DaSE.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * @file type_name.c
- * @brief get type name
- *
- * modified by longfei：add some case
- * modified by maoxiaoxiao: add some case
- * modified by zhutao: add T_ARRAY type
- *
- * @version CEDAR 0.2 
- * @author longfei <longfei@stu.ecnu.edu.cn>
- * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_07_27
- * @author zhutao <zhutao@stu.ecnu.edu.cn>
- * @date 2016_07_30
- */
-
 #include "ob_item_type.h"
 const char* get_type_name(int type)
 {
 	switch(type){
+	case T_CURSOR_DECLARE : return "T_CURSOR_DECLARE";
+	case T_CURSOR_FETCH : return "T_CURSOR_FETCH";
+	case T_CURSOR_FETCH_INTO : return "T_CURSOR_FETCH_INTO";
+	case T_CURSOR_FETCH_PRIOR : return "T_CURSOR_FETCH_PRIOR";
+	case T_CURSOR_FETCH_PRIOR_INTO : return "T_CURSOR_FETCH_PRIOR_INTO";
+	case T_CURSOR_FETCH_FIRST : return "T_CURSOR_FETCH_FIRST";
+	case T_CURSOR_FETCH_FIRST_INTO : return "T_CURSOR_FETCH_FIRST_INTO";
+	case T_CURSOR_FETCH_LAST : return "T_CURSOR_FETCH_LAST";
+	case T_CURSOR_FETCH_LAST_INTO : return "T_CURSOR_FETCH_LAST_INTO";
+	case T_CURSOR_FETCH_RELATIVE : return "T_CURSOR_FETCH_RELATIVE";
+	case T_CURSOR_FETCH_RELATIVE_INTO : return "T_CURSOR_FETCH_RELATIVE_INTO";
+	case T_CURSOR_FETCH_ABSOLUTE : return "T_CURSOR_FETCH_ABSOLUTE";
+	case T_CURSOR_FETCH_ABS_INTO : return "T_CURSOR_FETCH_ABS_INTO";
+	case T_CURSOR_FETCH_FROMTO : return "T_CURSOR_FETCH_FROMTO";
+	case T_CURSOR_OPEN : return "T_CURSOR_OPEN";
+	case T_CURSOR_CLOSE : return "T_CURSOR_CLOSE";
+	case T_CURSOR_FETCH_NEXT : return "T_CURSOR_FETCH_NEXT";
+	case T_CURSOR_FETCH_NEXT_INTO : return "T_CURSOR_FETCH_NEXT_INTO";
 	case T_INT : return "T_INT";
 	case T_STRING : return "T_STRING";
 	case T_BINARY : return "T_BINARY";
@@ -139,8 +135,12 @@ const char* get_type_name(int type)
 	case T_CASE : return "T_CASE";
 	case T_WHEN : return "T_WHEN";
 	case T_CREATE_TABLE : return "T_CREATE_TABLE";
+	case T_CREATE_INDEX : return "T_CREATE_INDEX"; // add longfei [create index] [secondaryindex reconstruct] 20150916:e
 	case T_TABLE_ELEMENT_LIST : return "T_TABLE_ELEMENT_LIST";
+	case T_INDEX_ELEMENT_LIST : return "T_INDEX_ELEMENT_LIST"; // add longfei [create index] [secondaryindex reconstruct] 20150916:e
+	case T_INDEX_STORING_LIST : return "T_INDEX_STORING_LIST"; // add longfei [create index] [secondaryindex reconstruct] 20150921:e
 	case T_TABLE_OPTION_LIST : return "T_TABLE_OPTION_LIST";
+	case T_INDEX_OPTION_LIST : return "T_INDEX_OPTION_LIST"; // add longfei [create index] [secondaryindex reconstruct] 20150916:e
 	case T_PRIMARY_KEY : return "T_PRIMARY_KEY";
 	case T_COLUMN_DEFINITION : return "T_COLUMN_DEFINITION";
 	case T_COLUMN_ATTRIBUTES : return "T_COLUMN_ATTRIBUTES";
@@ -163,8 +163,8 @@ const char* get_type_name(int type)
 	case T_CONSISTENT_MODE : return "T_CONSISTENT_MODE";
 	case T_DROP_TABLE : return "T_DROP_TABLE";
 	case T_TABLE_LIST : return "T_TABLE_LIST";
-	case T_DROP_INDEX : return "T_DROP_INDEX";
-	case T_INDEX_LIST : return "T_INDEX_LIST";
+	case T_DROP_INDEX : return "T_DROP_INDEX"; // add longfei [drop index] 20151024:e
+	case T_INDEX_LIST : return "T_INDEX_LIST"; // add longfei [drop index] 20151024:e
 	case T_ALTER_TABLE : return "T_ALTER_TABLE";
 	case T_ALTER_ACTION_LIST : return "T_ALTER_ACTION_LIST";
 	case T_TABLE_RENAME : return "T_TABLE_RENAME";
@@ -182,6 +182,7 @@ const char* get_type_name(int type)
 	case T_CLUSTER : return "T_CLUSTER";
 	case T_SERVER_ADDRESS : return "T_SERVER_ADDRESS";
 	case T_SHOW_TABLES : return "T_SHOW_TABLES";
+	case T_SHOW_INDEX : return "T_SHOW_INDEX";
 	case T_SHOW_VARIABLES : return "T_SHOW_VARIABLES";
 	case T_SHOW_COLUMNS : return "T_SHOW_COLUMNS";
 	case T_SHOW_SCHEMA : return "T_SHOW_SCHEMA";
@@ -218,27 +219,48 @@ const char* get_type_name(int type)
 	case T_HINT_OPTION_LIST : return "T_HINT_OPTION_LIST";
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
-	case T_UNKOWN_HINT: return "T_UNKOWN_HINT"; //add longfei
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
-	
-  case T_SEMI_JOIN : return "T_SEMI_JOIN";//add by yusj [semijoin] 20150819
-  case T_USE_INDEX : return "T_USE_INDEX"; //add longfei
-  case T_KILL : return "T_KILL";
-  case T_MAX : return "T_MAX";
-  case T_ARRAY : return "T_ARRAY";  //add zt 20151125
-	// add [secondaryindex reconstruct] longfei [create index]
-	case T_CREATE_INDEX : return "T_CREATE_INDEX";
-	case T_INDEX_ELEMENT_LIST : return "T_INDEX_ELEMENT_LIST";
-	case T_INDEX_STORING_LIST : return "T_INDEX_STORING_LIST";
-	case T_INDEX_OPTION_LIST : return "T_INDEX_OPTION_LIST";
-	// add e
-
-  /*add maoxx [bloomfilter_join] 20160406*/
-  case T_JOIN_OP_TYPE_LIST : return "T_JOIN_OP_TYPE_LIST";
-  case T_BLOOMFILTER_JOIN : return "T_BLOOMFILTER_JOIN";
-  case T_MERGE_JOIN : return "T_MERGE_JOIN";
-  /*add e*/
-
+	case T_NO_GROUP : return "T_NO_GROUP";//add by wdh 20160716
+	case T_USE_INDEX : return "T_USE_INDEX";// add longfei
+	case T_UNKOWN_HINT : return "T_UNKOWN_HINT";// add longfei
+	case T_SEMI_JOIN : return "T_SEMI_JOIN";// add by yusj [SEMI_JOIN] 20150819
+	case T_KILL : return "T_KILL";
+	case T_MAX : return "T_MAX";
+	case T_LOCK_TABLE : return "T_LOCK_TABLE"; // add wangjiahao [table lock] 20160616
+	case T_PROCEDURE_CREATE : return "T_PROCEDURE_CREATE";//add zz for test 2014-11-27
+	case T_PROCEDURE_DECL : return "T_PROCEDURE_DECL";
+	case T_PARAM_DEFINITION : return "T_PARAM_DEFINITION";
+	case T_IN_PARAM_DEFINITION : return "T_IN_PARAM_DEFINITION";
+	case T_OUT_PARAM_DEFINITION : return "T_OUT_PARAM_DEFINITION";
+	case T_INOUT_PARAM_DEFINITION : return "T_INOUT_PARAM_DEFINITION";
+	case T_PARAM_LIST : return "T_PARAM_LIST";
+	case T_PROCEDURE_BLOCK : return "T_PROCEDURE_BLOCK";
+	case T_PROCEDURE_STMTS : return "T_PROCEDURE_STMTS";
+	case T_PROCEDURE_IF : return "T_PROCEDURE_IF";
+	case T_PROCEDURE_ELSEIFS : return "T_PROCEDURE_ELSEIFS";
+	case T_PROCEDURE_ELSEIF : return "T_PROCEDURE_ELSEIF";
+	case T_PROCEDURE_ELSE : return "T_PROCEDURE_ELSE";
+	case T_PROCEDURE_EXEC : return "T_PROCEDURE_EXEC";
+	case T_PROCEDURE_DECLARE : return "T_PROCEDURE_DECLARE";
+	case T_PROCEDURE_ASSGIN : return "T_PROCEDURE_ASSGIN";
+	case T_VAR_TYPE_LIST : return "T_VAR_TYPE_LIST";
+	case T_VAR_DEFINITION : return "T_VAR_DEFINITION";
+	case T_VAR_VAL_LIST : return "T_VAR_VAL_LIST";
+	case T_PROCEDURE_WHILE : return "T_PROCEDURE_WHILE";
+	case T_PROCEDURE_LOOP : return "T_PROCEDURE_LOOP";
+	case T_PROCEDURE_DROP : return "T_PROCEDURE_DROP";
+	case T_PROCEDURE_SHOW : return "T_PROCEDURE_SHOW";
+	case T_PROCEDURE_CASE : return "T_PROCEDURE_CASE";
+	case T_PROCEDURE_CASE_WHEN_LIST : return "T_PROCEDURE_CASE_WHEN_LIST";
+	case T_PROCEDURE_CASE_WHEN : return "T_PROCEDURE_CASE_WHEN";
+	case T_PROCEDURE_EXIT : return "T_PROCEDURE_EXIT";
+	case T_PROCEDURE_CONTINUE : return "T_PROCEDURE_CONTINUE";
+	case T_SELECT_INTO : return "T_SELECT_INTO";/*select into sentence*/
+	case T_JOIN_OP_TYPE_LIST : return "T_JOIN_OP_TYPE_LIST";
+	case T_BLOOMFILTER_JOIN : return "T_BLOOMFILTER_JOIN";
+	case T_MERGE_JOIN : return "T_MERGE_JOIN";
+	case T_ARRAY : return "T_ARRAY";
+	case T_VAR_ARRAY_VAL : return "T_VAR_ARRAY_VAL";
 	default:return "Unknown";
 	}
 }
