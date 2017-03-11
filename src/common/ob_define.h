@@ -199,6 +199,7 @@ namespace oceanbase
     const int OB_DISCARD_PACKET = -150;
 
     const int OB_SP_EXIT = -151;//add by wdh 20160624
+    const int OB_OPERATION_NOT_ALLOWED = -152; //add dragon [Bugfix#12] 2017-3-8
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
@@ -706,6 +707,11 @@ namespace oceanbase
 //#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
 #define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
     //mod e
+
+    //add dragon [Bugfix#12] 2017-3-8 b
+#define IS_COLUMN_CHECKSUM(tid) ((tid) == OB_ALL_COLUMN_CHECKSUM_INFO_TID)
+    //add e
+
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////

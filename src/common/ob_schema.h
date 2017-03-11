@@ -761,6 +761,14 @@ namespace oceanbase
          * @return error code
          */
         int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
+        /**
+         * @brief get_all_init_index_tid
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);

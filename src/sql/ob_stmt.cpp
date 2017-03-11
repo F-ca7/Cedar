@@ -4,6 +4,9 @@
 #include "ob_logical_plan.h"
 #include "ob_schema_checker.h"
 #include "common/utility.h"
+//add dragon [Bugfix#7] 2017-3-8 b
+#include "common/ob_schema_service.h"
+//add dragon [Bugfix#7] 2017-3-8 e
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
@@ -75,6 +78,30 @@ int ObStmt::add_table_item(
               "table '%.*s' does not exist", table_name.length(), table_name.ptr());
           break;
         }
+        //add dragon [Bugfix#12] 2017-3-8
+        //all DML operation except query to checksum system table is not allowed at present
+        if(is_dml_type() && IS_COLUMN_CHECKSUM(item.ref_id_))
+        {
+          ret = OB_OPERATION_NOT_ALLOWED;
+          snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
+              "all DML operation except query to table '%.*s' is not allowed",
+                   table_name.length(), table_name.ptr());
+          break;
+        }
+        //add e
+
+        //add dragon [Bugfix#7] 2017-3-8
+        //disallow DML operation directly to index table
+        if(is_dml_type() && TableSchema::is_secondary_index_table(table_name))
+        {
+          ret = OB_OPERATION_NOT_ALLOWED;
+          snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
+              "DML operation directly to index table '%.*s' is not allowed",
+                   table_name.length(), table_name.ptr());
+          break;
+        }
+        //add e
+
         if (type == TableItem::BASE_TABLE)
           item.table_id_ = item.ref_id_;
         else
