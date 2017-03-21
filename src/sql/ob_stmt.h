@@ -368,6 +368,12 @@ namespace oceanbase
       }
 
       virtual void print(FILE* fp, int32_t level, int32_t index = 0);
+      
+      // add by lxb on 2017/03/21 for logical optimizer
+      common::ObRowDesc* get_table_hash()
+      {
+        return &tables_hash_;
+      }
 
     protected:
       common::ObStringBuf* name_pool_;
