@@ -183,7 +183,26 @@ namespace oceanbase
         OB_ASSERT(index >= 0 && index < get_stmts_count());
         return stmts_.at(index);
       }
+      
+      /*
+       * delete expr by id
+       * add by lxb on 2016/12/25
+       */ 
+      void delete_expr_by_id(uint64_t expr_id) ;
+      
+      /*
+       * delete stmt by query id
+       * add by lxb on 2016/12/25
+       */
+      void delete_stmt_by_query_id(uint64_t query_id);
+      
       void print(FILE* fp = stderr, int32_t level = 0) const;
+      
+      // add by lxb on 2017/02/16 for logical optimizer
+      int64_t generate_alias_table_id()
+      {
+        return new_gen_aid_++;
+      }
 
     protected:
       oceanbase::common::ObStringBuf* name_pool_;
@@ -199,6 +218,9 @@ namespace oceanbase
       uint64_t  new_gen_qid_;
       uint64_t  new_gen_eid_;
       int64_t   new_gen_wid_;   // when number
+      
+      // add by lxb on 2017/02/16 for logical optimizer
+      int64_t new_gen_aid_; // generate alias table
     };
   }
 }

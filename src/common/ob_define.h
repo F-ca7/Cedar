@@ -425,6 +425,9 @@ namespace oceanbase
     const int OB_GET_RANGES = -5603;
     const int OB_GET_NOTHING = -5604;
     //add e
+    
+    // add by lxb on 2017/02/15
+    const int OB_SQL_CAN_NOT_PULL_UP = -5605;
 
     //add huangjianwei [secondary index debug] 20170314:b
     const int OB_ERROR_DROP_COLUMN_WITH_INDEX = -5605;

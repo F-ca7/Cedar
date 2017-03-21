@@ -77,6 +77,40 @@ int ObRowDesc::add_column_desc(const uint64_t table_id, const uint64_t column_id
   return ret;
 }
 
+/*
+ * Remove elements with specific value 
+ * add by lxb on 2016/12/27
+ */
+int ObRowDesc::remove_column_desc(const uint64_t table_id, const uint64_t column_id)
+{
+  int ret = OB_SUCCESS;
+  if (cells_desc_count_ >= MAX_COLUMNS_COUNT)
+  {
+    TBSYS_LOG(ERROR, "too many column for a row, tid=%lu cid=%lu",
+              table_id, column_id);
+    ret = OB_BUF_NOT_ENOUGH;
+  }
+  else
+  {
+    for (int64_t i = 0; i < cells_desc_count_; ++i) 
+    {
+      if (cells_desc_[i].table_id_==table_id && cells_desc_[i].column_id_==column_id) 
+      {
+        if(OB_SUCCESS != (ret = hash_remove(table_id, column_id)))
+        {
+          TBSYS_LOG(WARN, "failed to remove column desc, err=%d", ret);
+        }
+        else 
+        {
+          --cells_desc_count_;
+        }
+        break;
+      }
+    }
+  }
+  return ret;
+}
+
 void ObRowDesc::reset()
 {
   cells_desc_count_ = 0;
@@ -139,6 +173,24 @@ int ObRowDesc::hash_insert(const uint64_t table_id, const uint64_t column_id, co
   return ret;
 }
 
+/*
+ * Remove elements with specific value 
+ * add by lxb on 2016/12/27
+ */
+int ObRowDesc::hash_remove(const uint64_t table_id, const uint64_t column_id)
+{
+  int ret = OB_SUCCESS;
+  Desc desc;
+  desc.table_id_ = table_id;
+  desc.column_id_ = column_id;
+  ret = hash_map_.remove(desc);
+  if(OB_ENTRY_NOT_EXIST == ret)
+  {
+    TBSYS_LOG(WARN, "entry desc not find, tid=%lu cid=%lu",
+              table_id, column_id);
+  }
+  return ret;
+}
 
 ObRowDesc & ObRowDesc::operator = (const ObRowDesc & r)
 {
