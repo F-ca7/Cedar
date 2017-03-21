@@ -170,7 +170,7 @@ namespace oceanbase
       ret = search_(key, pos);
       if (OB_SUCCESS == ret) // modify by lxb on 2017/03/21 for logical optimizer
       {
-        flags_.del_member(pos);
+        flags_.del_member(static_cast<int32_t>(pos)); // modify by lxb on 2017/03/21 for logical optimizer
       }
       return ret;
     }
