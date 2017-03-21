@@ -417,6 +417,9 @@ namespace oceanbase
     const int OB_GET_RANGES = -5603;
     const int OB_GET_NOTHING = -5604;
     //add e
+    
+    // add by lxb on 2017/02/15
+    const int OB_SQL_CAN_NOT_PULL_UP = -5605;
 
     const int OB_ERR_SQL_END = -5999;
 

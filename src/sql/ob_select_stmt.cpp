@@ -325,6 +325,11 @@ void ObSelectStmt::print(FILE* fp, int32_t level, int32_t index)
 
   print_indentation(fp, level);
   fprintf(fp, "ObSelectStmt %d Begin\n", index);
+  
+  // print query id, add by lxb on 2016/12/24
+  print_indentation(fp, level);
+  fprintf(fp, "QueryId ::= %lu \n", ObBasicStmt::get_query_id());
+  
   ObStmt::print(fp, level);
 
   if (set_op_ == NONE)
@@ -340,8 +345,9 @@ void ObSelectStmt::print(FILE* fp, int32_t level, int32_t index)
         fprintf(fp, ", ");
       SelectItem& item = select_items_[i];
       if (item.alias_name_.length() > 0)
-        fprintf(fp, "<%lu, %.*s>", item.expr_id_,
-          item.alias_name_.length(), item.alias_name_.ptr());
+        fprintf(fp, "<%lu, %.*s, %.*s>", item.expr_id_,
+          item.alias_name_.length(), item.alias_name_.ptr(),
+          item.expr_name_.length(), item.expr_name_.ptr()); // add by lxb on 2016/12/24
       else
         fprintf(fp, "<%ld>", item.expr_id_);
     }

@@ -195,6 +195,8 @@ operators_sources=                                                       \
   ob_sort_helper.h                                                       \
   ob_cursor_helper.h                                                     \
   ob_sql.h                           ob_sql.cpp                          \
+  ob_optimizer.h                     ob_optimizer.cpp                    \
+  ob_optimizer_logical.h             ob_optimizer_logical.cpp            \
   ob_sql_context.h                                                       \
   ob_sql_expression.h                ob_sql_expression.cpp               \
   ob_sql_read_param.h                ob_sql_read_param.cpp               \
