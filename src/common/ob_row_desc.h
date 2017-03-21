@@ -168,7 +168,7 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       uint64_t pos = 0;
       ret = search_(key, pos);
-      if (OB_SUCCESS = ret)
+      if (OB_SUCCESS == ret) // modify by lxb on 2017/03/21 for logical optimizer
       {
         flags_.del_member(pos);
       }
