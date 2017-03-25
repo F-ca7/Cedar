@@ -1377,14 +1377,7 @@ DEFINE_DESERIALIZE(ObObj)
                             }
                             if(ret==OB_SUCCESS)
                             {
-                                if(l == sizeof(ObDecimal) && 60 <= o_ptr(0) && o_ptr(0) <=71)
-                                    value_.dec = reinterpret_cast<ObDecimal *>(o_ptr);
-
-                                else       //否则不是decimal结构
-                                {
-                                    value_.dec->from(o_ptr);
-                                }
-
+                                value_.dec = reinterpret_cast<ObDecimal *>(o_ptr);
                             }
                             //modify e
                               break;
