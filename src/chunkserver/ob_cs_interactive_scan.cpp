@@ -36,7 +36,6 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       //@(longfei):need to set local_idx_scan_finish_
-      //TBSYS_LOG(INFO, "local_idx_scan_finish_ is %s", STR_BOOL(local_idx_scan_finish_)); //add 2017-3-10
       if (!local_idx_scan_finish_)
       {
         if (OB_SUCCESS != (ret = (left_op_->get_next_row(row))))

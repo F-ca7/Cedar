@@ -124,6 +124,12 @@ int ObConstRawExpr::set_value_and_type(const common::ObObj& val)
       this->set_expr_type(T_BOOL);
       this->set_result_type(ObBoolType);
       break;
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    case ObDecimalType:
+      this->set_expr_type(T_DECIMAL);
+      this->set_result_type(ObDecimalType);
+      break;
+      //add:e
     default:
       ret = OB_NOT_SUPPORTED;
       TBSYS_LOG(WARN, "obj type not support, type=%d", val.get_type());
@@ -241,7 +247,14 @@ int ObConstRawExpr::fill_sql_expression(
       item.value_.double_ = d;
       break;
     case T_DECIMAL:
-      ret = value_.get_varchar(item.string_);
+      //modify xsl ECNU_DECIMAL 2016_12
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //ret = value_.get_varchar(item.string_);
+        ret = value_.get_decimal(item.dec);
+        //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(value_));  //test xsl
+        //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(item.dec));  //test xsl
+      //modify:e
+      //modify:e
       break;
     case T_INT:
       ret = value_.get_int(item.value_.int_);

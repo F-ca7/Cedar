@@ -120,7 +120,6 @@ namespace oceanbase
     int ObGlobalIndexHandler::write_global_index()
     {
       int ret = OB_SUCCESS;
-      TBSYS_LOG(INFO, "write_global_index, table_id=%ld", table_id_);//add 2017-3-10
       const ObRow *row = NULL;
       ObRowDesc desc;
       ObCsInteractiveScan cs2cs_scan;
@@ -152,8 +151,6 @@ namespace oceanbase
       {
         TBSYS_LOG(WARN, "failed to construct index row desc[%d]", ret);
       }
-      TBSYS_LOG(INFO, "row desc is %s, index row desc is %s",
-                to_cstring(desc), to_cstring(index_desc)); // add 2017-3-10
 
       /*construct operator local_scan*/
       if (OB_SUCCESS == ret)
@@ -190,7 +187,6 @@ namespace oceanbase
                       i, ret);
             break;
           }
-          //按照索引表主键排序
           else if (OB_SUCCESS != (ret = sort_.add_sort_column(tid, cid, true)))
           {
             TBSYS_LOG(WARN, "set sort column failed,tid[%ld], cid[%ld],ret[%d]",
@@ -418,8 +414,7 @@ namespace oceanbase
         }
         else
         {
-          TBSYS_LOG(INFO, "create global index sstable success,table[%ld], disk_no[%d]",
-                    get_new_range().table_id_, disk_no);
+          TBSYS_LOG(INFO, "create global index sstable success,table[%ld]",get_new_range().table_id_);
           set_disk_no(disk_no);
         }
       }

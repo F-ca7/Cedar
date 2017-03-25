@@ -8256,7 +8256,10 @@ int ObTransformer::gen_phy_show_columns(ObPhysicalPlan *physical_plan, ErrStat& 
           type_len = snprintf(type_str, type_len, "bool");
           break;
         case ObDecimalType:
-          type_len = snprintf(type_str, type_len, "decimal");
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          //type_len = snprintf(type_str, type_len, "decimal");      //old code
+          type_len = snprintf(type_str, type_len, "decimal(%d,%d)",columns[i].get_precision(), columns[i].get_scale());
+          //modify:e
           break;
         default:
           type_len = snprintf(type_str, type_len, "unknown");
@@ -9460,6 +9463,35 @@ int ObTransformer::gen_phy_static_data_scan(ObLogicalPlan *logical_plan, ObPhysi
           {
             TRANS_LOG("Failed to fill expr, err=%d", ret);
           }
+          //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          else
+          {
+            ObObjType cond_val_type;
+            uint32_t cond_val_precision;
+            uint32_t cond_val_scale;
+
+            //ObObj static_obj;
+            if(OB_SUCCESS!=sql_context_->schema_manager_->get_cond_val_info(tid,column_id,cond_val_type,cond_val_precision,cond_val_scale))
+            {
+
+            }
+            else if(ObDecimalType == cond_val_type)
+            {
+              ObPostfixExpression& ops=rows_filter->get_decoded_expression_v2();
+              ObObj& obj=ops.get_expr();
+              if(ObDecimalType==obj.get_type())
+              {
+                 ops.fix_varchar_and_decimal(cond_val_precision,cond_val_scale);
+              }
+              else if(ObVarcharType==obj.get_type())
+              {
+                 ops.fix_varchar_and_decimal(cond_val_precision,cond_val_scale);
+              }
+
+            }
+
+          }
+            //add:e
         }
       } // end for
       if (OB_LIKELY(ret == OB_SUCCESS))
@@ -10252,6 +10284,9 @@ int ObTransformer::gen_phy_table_for_update(ObLogicalPlan *logical_plan, ObPhysi
     ObPostfixExpression::ObPostExprNodeType val_type = ObPostfixExpression::BEGIN_TYPE;
     int64_t rowkey_idx = OB_INVALID_INDEX;
     ObRowkeyColumn rowkey_col;
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    uint64_t tid= table_schema->get_table_id();
+    //add e
     for (int32_t i = 0; i < num; i++)
     {
       ObSqlRawExpr *cnd_expr = logical_plan->get_expr(stmt->get_condition_id(i));
@@ -10289,14 +10324,40 @@ int ObTransformer::gen_phy_table_for_update(ObLogicalPlan *logical_plan, ObPhysi
           ret = OB_ERR_UNEXPECTED;
           break;
         }
-        else if (OB_SUCCESS != (ret = ob_write_obj(rowkey_alloc, cond_val, rowkey_objs[rowkey_idx]))) // deep copy
-        {
-          TRANS_LOG("failed to copy cell, err=%d", ret);
-        }
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         else
         {
-          type_objs[rowkey_idx] = val_type;
-          TBSYS_LOG(DEBUG, "rowkey obj, i=%ld val=%s", rowkey_idx, to_cstring(cond_val));
+
+            ObObjType cond_val_type;
+            uint32_t cond_val_precision;
+            uint32_t cond_val_scale;
+            ObObj static_obj;
+            if(OB_SUCCESS!=sql_context_->schema_manager_->get_cond_val_info(tid,cid,cond_val_type,cond_val_precision,cond_val_scale))
+            {
+
+            }
+            else
+            {
+                tmp_table->add_rowkey_array(tid,cid,cond_val_type,cond_val_precision,cond_val_scale);
+                if(ObDecimalType==cond_val_type){
+                    static_obj.set_precision(cond_val_precision);
+                    static_obj.set_scale(cond_val_scale);
+                    static_obj.set_type(cond_val_type);
+                }
+            }
+            //add e
+            //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            //else if (OB_SUCCESS != (ret = ob_write_obj(rowkey_alloc, cond_val, rowkey_objs[rowkey_idx]))) // deep copy
+            if (OB_SUCCESS != (ret = ob_write_obj_for_delete(rowkey_alloc, cond_val, rowkey_objs[rowkey_idx],static_obj))) // deep copy
+                //modify e
+            {
+                TRANS_LOG("failed to copy cell, err=%d", ret);
+            }
+            else
+            {
+                type_objs[rowkey_idx] = val_type;
+                TBSYS_LOG(DEBUG, "rowkey obj, i=%ld val=%s", rowkey_idx, to_cstring(cond_val));
+            }
         }
       }
       else
@@ -10394,6 +10455,12 @@ int ObTransformer::gen_phy_table_for_update(ObLogicalPlan *logical_plan, ObPhysi
           TRANS_LOG("Failed to add cell into get param, err=%d", ret);
           break;
         }
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        else
+        {
+            get_param_values->set_del_upd();
+        }
+        //add e
       }
     } // end for
   }
@@ -10429,6 +10496,9 @@ int ObTransformer::gen_phy_table_for_update(ObLogicalPlan *logical_plan, ObPhysi
     {
       table_op = fuse_op;
     }
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    tmp_table->set_fix_obvalues();
+    //add e
   }
   return ret;
 }
@@ -11693,6 +11763,10 @@ int ObTransformer::cons_row_desc(const uint64_t table_id,
     row_desc_map.reserve(column_num);
     ObObj data_type;
     // construct rowkey columns first
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    // construct rowkey's precision and scale
+    const ObColumnSchemaV2* column_schema_for_rowkey = NULL;
+    //add:e
     for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_col_num; ++i) // for each primary key
     {
       const ObRowkeyColumn *rowkey_column = rowkey_info->get_column(i);
@@ -11715,6 +11789,17 @@ int ObTransformer::cons_row_desc(const uint64_t table_id,
           }
           else
           {
+              //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+              if (NULL == (column_schema_for_rowkey = sql_context_->schema_manager_->get_column_schema(
+                               column_item->table_id_, column_item->column_id_)))
+              {
+                  ret = OB_ERR_COLUMN_NOT_FOUND;
+                  TRANS_LOG("Get column item failed");
+                  break;
+              }
+              data_type.set_precision(column_schema_for_rowkey->get_precision());
+              data_type.set_scale(column_schema_for_rowkey->get_scale());
+              //add e
             data_type.set_type(rowkey_column->type_);
             if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
             {
@@ -11751,6 +11836,10 @@ int ObTransformer::cons_row_desc(const uint64_t table_id,
         else
         {
           data_type.set_type(column_schema->get_type());
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          data_type.set_precision(column_schema->get_precision());
+          data_type.set_scale(column_schema->get_scale());
+          //add:e
           if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
           {
             TRANS_LOG("failed to add row desc, err=%d", ret);
@@ -14248,7 +14337,94 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
   }
   return ret;
 }
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+ int ObTransformer::ob_write_obj_for_delete(ModuleArena &allocator, const ObObj &src, ObObj &dst,ObObj type){
+        //TBSYS_LOG(INFO,"xushilei,test update!");
+        int ret,ret2=OB_SUCCESS;
+        if(type.get_type() != ObDecimalType)
+        {
+            ret2=ob_write_obj(allocator,src,dst);
+        }
+        else{
+            const ObObj *ob1=NULL;
+            ob1=&src;
+            ObObj casted_cell;
+            //modify xsl ECNU_DECIMAL 2017_2
+            ObDecimal dec;
+            /*
+            char buff[MAX_PRINTABLE_SIZE];
+            memset(buff,0,MAX_PRINTABLE_SIZE);
+            ObString os2;
+            os2.assign_ptr(buff,MAX_PRINTABLE_SIZE);
+            casted_cell.set_varchar(os2);
+            */
+            casted_cell.set_decimal(dec);
+            if(OB_SUCCESS!=(ret=obj_cast(*ob1,type,casted_cell,ob1)))
+            {
 
+            }
+            else
+            {
+                //modify xsl ECNU_DECIMAL 2017_2
+                ObDecimal od;
+                ObDecimal *dst_dec = NULL;
+                ob1->get_decimal(od);
+                /*
+                ObString str;
+                ObString str_clone;
+                ob1->get_decimal(str);
+                ObDecimal od,od_cmp;
+                if(OB_SUCCESS!=(ret=od.from(str.ptr(),str.length())))
+                {
+                    TBSYS_LOG(DEBUG, "faild to do from(),str=%.*s", str.length(),str.ptr());
+                }
+                else{
+                    od_cmp=od;
+                }
+                */
+              if(OB_SUCCESS==ret)
+              {
+
+                if(OB_SUCCESS!=(ret=od.modify_value(ob1->get_precision(),ob1->get_scale())))
+                {
+                    //TBSYS_LOG(ERROR, "faild to do modify_value(),od.p=%d,od.s=%d,od.v=%d,src.p=%d,src.s=%d..od=%.*s", od.get_precision(),od.get_scale(),od.get_vscale(),src.get_precision(),src.get_scale(),str.length(),str.ptr());
+                }
+                //modify xsl ECNU_DECIMAL 2017_2
+                /*
+                else if(od_cmp!=od){
+                    ret=OB_ERROR;
+                }
+                */
+                else
+                {
+                    if (OB_SUCCESS == (ret = ob_write_decimal(allocator,od,dst_dec)))
+                    {
+                        dst.set_decimal(dst_dec,ob1->get_precision(),ob1->get_scale(),ob1->get_scale());
+                    }
+                            /*
+                      char buf[MAX_PRINTABLE_SIZE];
+                      memset(buf, 0, MAX_PRINTABLE_SIZE);
+                      ObString os;
+                      int64_t length=od.to_string(buf,MAX_PRINTABLE_SIZE);
+                      os.assign_ptr(buf,(int)length);
+
+                    if (OB_SUCCESS == (ret = ob_write_string(allocator, os, str_clone)))
+                    {
+                        dst.set_decimal(str_clone,ob1->get_precision(),ob1->get_scale(),ob1->get_scale());
+                    }
+                            */
+                }
+              }
+            }
+
+            if(OB_SUCCESS != ret){
+                ret2=ob_write_obj(allocator,src,dst);
+            }
+        }
+        return ret2;
+
+    }
+//add e
 int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t table_id, ObRowDesc &desc, ObRowDescExt &desc_ext)
 {
   int ret = OB_SUCCESS;

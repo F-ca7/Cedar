@@ -78,7 +78,12 @@ namespace
   const char* STR_COLUMN_TYPE_SEQ = "seq";
   const char* STR_COLUMN_TYPE_C_TIME = "create_time";
   const char* STR_COLUMN_TYPE_M_TIME = "modify_time";
-
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  /*
+    *for rs_admin check_schema,add decimal type
+    */
+  const char* STR_COLUMN_TYPE_DECIMAL="decimal";
+  //add e
   const char* STR_SECTION_APP_NAME = "app_name";
   const char* STR_KEY_APP_NAME = "name";
   const char* STR_MAX_TABLE_ID = "max_table_id";
@@ -406,7 +411,27 @@ namespace oceanbase
     {
       return table_id_;
     }
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        uint32_t ObColumnSchemaV2::get_precision() const {
+            return ob_decimal_helper_.dec_precision_;
+        }
 
+        uint32_t ObColumnSchemaV2::get_scale() const {
+            return ob_decimal_helper_.dec_scale_;
+        }
+
+        void ObColumnSchemaV2::set_precision(uint32_t pre) {
+            ob_decimal_helper_.dec_precision_ = static_cast<uint8_t>(pre)
+                    & META_PREC_MASK;
+        }
+
+        void ObColumnSchemaV2::set_scale(uint32_t scale) {
+            ob_decimal_helper_.dec_scale_ = static_cast<uint8_t>(scale)
+                    & META_SCALE_MASK;
+            ;
+        }
+
+        //add:e
     bool  ObColumnSchemaV2::is_maintained() const
     {
       return maintained_;
@@ -560,6 +585,12 @@ namespace oceanbase
       {
         type = ObModifyTimeType;
       }
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      else if (strcmp(str, STR_COLUMN_TYPE_DECIMAL) == 0)
+      {
+        type = ObDecimalType;
+      }
+      //add e
       else
       {
         TBSYS_LOG(ERROR, "column type %s not be supported", str);
@@ -631,7 +662,16 @@ namespace oceanbase
       {
         ret = default_value_.serialize(buf, buf_len, tmp_pos);
       }
-
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      if(OB_SUCCESS == ret&&ObDecimalType==type_)
+      {
+          ret = serialization::encode_i8(buf, buf_len, tmp_pos,ob_decimal_helper_.dec_precision_);
+      }
+      if(OB_SUCCESS == ret&&ObDecimalType==type_)
+      {
+          ret = serialization::encode_i8(buf, buf_len, tmp_pos,ob_decimal_helper_.dec_scale_);
+      }
+      //add:e
       if (OB_SUCCESS == ret)
       {
         ret = serialization::encode_vi64(buf, buf_len, tmp_pos,static_cast<int64_t>(join_info_.join_table_));
@@ -800,7 +840,27 @@ namespace oceanbase
       {
         ret = default_value_.deserialize(buf, data_len, tmp_pos);
       }
+      //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            if(ObDecimalType==type_){
 
+              int8_t p= 0;
+              int8_t s = 0;
+
+              if (OB_SUCCESS == ret) {
+
+                  ret = serialization::decode_i8(buf, data_len,tmp_pos,
+                          &p);
+                  ob_decimal_helper_.dec_precision_=static_cast<uint8_t>(p) & META_PREC_MASK;;
+              }
+
+              if (OB_SUCCESS == ret) {
+
+                  ret = serialization::decode_i8(buf, data_len,tmp_pos,
+                          &s);
+                  ob_decimal_helper_.dec_scale_=static_cast<uint8_t>(s) & META_SCALE_MASK;
+              }
+            }
+              //add :e
       if (OB_SUCCESS == ret)
       {
         ret = serialization::decode_vi64(buf, data_len, tmp_pos, reinterpret_cast<int64_t *>(&join_info_.join_table_));
@@ -845,6 +905,13 @@ namespace oceanbase
       len += serialization::encoded_length_vi32(type_);
       len += serialization::encoded_length_vstr(name_);
       len += default_value_.get_serialize_size();
+      //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      if(ObDecimalType==type_)
+      len += 2;
+      /*
+      *1 byte for precision,and 1 byte for scale
+      */
+      //add:e
       len += serialization::encoded_length_vi64(join_info_.join_table_);
       len += serialization::encoded_length_vi64(join_info_.correlated_column_);
       len += serialization::encoded_length_vi64(join_info_.left_column_count_);
@@ -3929,6 +3996,12 @@ namespace oceanbase
       {
         return STR_COLUMN_TYPE_M_TIME;
       }
+      //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      else if (type==ObDecimalType)
+      {
+        return STR_COLUMN_TYPE_DECIMAL;
+      }
+      //add e
       else
       {
         TBSYS_LOG(ERROR,"column type %d not be supported", type);
@@ -4720,6 +4793,14 @@ namespace oceanbase
             ObColumnSchemaV2 old_tcolumn;
             const ColumnSchema &tcolumn = tschema->columns_.at(i);
             old_tcolumn.set_table_id(tschema->table_id_);
+            //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            if (tcolumn.data_type_ == ObDecimalType) {
+                old_tcolumn.set_precision(
+                    static_cast<uint32_t>(tcolumn.data_precision_));
+                old_tcolumn.set_scale(
+                    static_cast<uint32_t>(tcolumn.data_scale_));
+            }
+              //add:e
             old_tcolumn.set_column_id(tcolumn.column_id_);
             old_tcolumn.set_column_name(tcolumn.column_name_);
             old_tcolumn.set_column_type(tcolumn.data_type_);
@@ -5181,7 +5262,51 @@ namespace oceanbase
       }
       return ret;
     }
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    int ObSchemaManagerV2::get_cond_val_info(uint64_t table_id,uint64_t column_id,ObObjType &type,uint32_t &p,uint32_t &s, int32_t* idx /*=NULL*/)const{
+            int ret=OB_SUCCESS;
+            const ObColumnSchemaV2 *column = NULL;
 
+            if (OB_INVALID_ID != table_id && OB_INVALID_ID != column_id)
+            {
+              ObColumnIdKey k;
+              ObColumnInfo v;
+              int err = OB_SUCCESS;
+
+              k.table_id_ = table_id;
+              k.column_id_ = column_id;
+
+              err = id_hash_map_.get(k,v);
+              if ( -1 == err || hash::HASH_NOT_EXIST == err)
+              {
+              }
+              else if (v.head_ != NULL)
+              {
+                column = v.head_;
+                if (idx != NULL)
+                {
+                  *idx = static_cast<int32_t>(column - column_begin() - v.table_begin_index_);
+                }
+              }
+              else
+              {
+                TBSYS_LOG(ERROR,"found column but v.head_ is NULL");
+                ret=OB_ERROR;
+              }
+            }
+            else {
+                ret=OB_ERROR;
+            }
+
+            if(ret==OB_SUCCESS){
+                type=column->get_type();
+                p=column->get_precision();
+                s=column->get_scale();
+            }
+            return ret;
+
+       }
+    //add e
     //add longfei [create index]
     const hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>*  ObSchemaManagerV2::get_id_index_hash() const
     {
@@ -5767,37 +5892,5 @@ namespace oceanbase
       return ret;
     }
     //add e
-
-    //add dragon [Bugfix#11] 2017-3-10 b
-    int ObSchemaManagerV2::get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const
-    {
-      int ret = OB_SUCCESS;
-      uint64_t idx_id = OB_INVALID_ID;
-      const ObTableSchema *index_table_schema = NULL;
-      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
-      for (;iter != id_index_hash_map_.end(); ++iter)
-      {
-        IndexList tmp_list=iter->second;
-        for(int64_t i = 0; i< tmp_list.get_count(); i++)
-        {
-          tmp_list.get_idx_id(i,idx_id);
-          if (NULL == (index_table_schema = get_table_schema(idx_id)))
-          {
-            ret = OB_SCHEMA_ERROR;
-            TBSYS_LOG(WARN,"fail to get table schema for index table[%lu]", idx_id);
-          }
-          else
-          {
-            if(index_table_schema->get_index_status() == INDEX_INIT)
-            {
-              index_id_list.push_back(idx_id);
-            }
-          }
-        }
-      }
-      return ret;
-    }
-    //add dragon [Bugfix#11] 2017-3-10 3
-
   } // end namespace common
 }   // end namespace oceanbase

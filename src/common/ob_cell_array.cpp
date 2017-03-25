@@ -130,6 +130,43 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
       }
     }
   }
+  //modify xsl ECNU_DECIMAL 2017_1
+  else if(src.get_type() == ObDecimalType){
+    ObDecimal src_value;
+    ObDecimal *dst_value=NULL;
+    //ObDecimal dst_value2;
+    err = src.get_decimal(src_value);
+    if (OB_SUCCESS == err)
+    {
+        if (src_value.get_words() != NULL)
+        {
+            dst_value =reinterpret_cast<ObDecimal*>(page_arena_.alloc(sizeof(ObDecimal)));
+            if (NULL == dst_value)
+            {
+                TBSYS_LOG(WARN, "%s", "fail to malloc buffer for decimal value");
+                err = OB_ALLOCATE_MEMORY_FAILED;
+            }
+            else
+            {
+                allocated_memory_size_+=sizeof(ObDecimal);//分配空间，赋值
+                memcpy(dst_value->get_words(), src_value.get_words(), sizeof(TTInt));
+                dst_value->set_precision(src_value.get_precision());
+                dst_value->set_scale(src_value.get_scale());
+                dst_value->set_vscale(src_value.get_vscale());
+                dst.set_decimal(dst_value);
+            }
+        }
+        //modify xsl ECNU_DECIMAL 2017_2
+        /*else
+        {
+            dst.set_decimal(dst_value2);
+            TBSYS_LOG(WARN,"WARNING,str buf length is smaller than zero!");
+        }
+        */
+        //modify e
+    }
+  }
+ //modify e
   return err;
 }
 
@@ -171,7 +208,10 @@ int ObCellArray::copy_cell_(ObInnerCellInfo &dst, const ObCellInfo &src, const i
   }
   if (OB_SUCCESS == err)
   {
-    if (src.value_.get_type() != ObVarcharType)
+    //if (src.value_.get_type() != ObVarcharType)
+    //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    if (src.value_.get_type() != ObVarcharType && src.value_.get_type() != ObDecimalType)
+    //modify :e
     {
       dst.value_ = src.value_;
     }
@@ -217,7 +257,10 @@ inline int ObCellArray::copy_cell_fast(ObInnerCellInfo &dst, const ObCellInfo &s
     }
   }
 
-  if (src.value_.get_type() != ObVarcharType)
+  //if (src.value_.get_type() != ObVarcharType)
+  //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  if (src.value_.get_type() != ObVarcharType && src.value_.get_type() != ObDecimalType)
+  //modify :e
   {
     dst.value_ = src.value_;
   }
@@ -393,8 +436,11 @@ int ObCellArray::apply(const ObCellInfo &src_cell, ObInnerCellInfo *& affected_c
   else
   {
     ObObj real_obj;
-    /// copy vchar value
-    if (src_cell.value_.get_type() != ObVarcharType)
+    // copy vchar value
+    //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    //if (src_cell.value_.get_type() != ObVarcharType)
+    if (src_cell.value_.get_type() != ObVarcharType&&src_cell.value_.get_type() != ObDecimalType)
+    //modify:e
     {
       real_obj = src_cell.value_;
     }

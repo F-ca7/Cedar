@@ -694,8 +694,15 @@ func_expr:
     {
       if (strcasecmp($1->str_value_, "cast") == 0)
       {
-        $5->value_ = $5->type_;
-        $5->type_ = T_INT;
+        /*modify fanqiushi DECIMAL OceanBase_BankCommV0.2 2014_6_16:b*/
+        /*$5->value_ = $5->type_;
+        $5->type_ = T_INT;*/
+        if($5->type_!=T_TYPE_DECIMAL)
+        {
+            $5->value_ = $5->type_;
+            $5->type_ = T_INT;
+        }
+        /*modify:e*/
         ParseNode *params = NULL;
         malloc_non_terminal_node(params, result->malloc_pool_, T_EXPR_LIST, 2, $3, $5);
         malloc_non_terminal_node($$, result->malloc_pool_, T_FUN_SYS, 2, $1, params);
@@ -1286,8 +1293,11 @@ data_type:
         malloc_terminal_node($$, result->malloc_pool_, T_TYPE_DECIMAL);
       else
         merge_nodes($$, result->malloc_pool_, T_TYPE_DECIMAL, $2);
+      /* modify xsl ECNU_DECIMAL 2017_2
       yyerror(&@1, result, "DECIMAL type is not supported");
       YYABORT;
+      */
+      //modify e
     }
   | NUMERIC opt_decimal
     {

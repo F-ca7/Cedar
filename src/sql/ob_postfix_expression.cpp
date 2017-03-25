@@ -71,7 +71,74 @@ namespace oceanbase
       return expr_.at(index);
     }
     //add:e
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+     ObObj& ObPostfixExpression::get_expr(){
+        int64_t index;
+        if(expr_.count()>0){
+            index=expr_.count()-1;
+        }
+        else index=0;
+        return expr_.at(index);
+     }
 
+     int ObPostfixExpression::fix_varchar_and_decimal(uint32_t p,uint32_t s)
+     {
+        //TBSYS_LOG(INFO,"xushilei,fix_varchar_deciaml error.");   //test xsl
+        int ret=OB_SUCCESS;
+        ObObj& obj=get_expr();
+        ObObjType type=obj.get_type();
+        if(type==ObDecimalType)
+        {
+                //ObString os;
+                ObDecimal od;
+                obj.get_decimal(od);
+                //if(OB_SUCCESS!=(ret=od.from(os.ptr(),os.length())))
+                //{}
+                //else
+                if(od.get_scale()>s)
+                {
+                    if(OB_SUCCESS != (ret=od.modify_value(p,s)))
+                    {
+                        TBSYS_LOG(INFO,"fix_varchar_deciaml error,err=[%d]",ret);  //modify xsl
+                    }
+                    else
+                    {
+                        ObObj obj2;
+                        obj2.set_decimal(od);
+                        str_buf_.write_obj(obj2, &obj);
+                    }
+                }
+        }
+        else if(type==ObVarcharType)
+        {
+                ObString os;
+                ObDecimal od;
+                obj.get_varchar(os);
+
+                if(OB_SUCCESS!=(ret=od.from(os.ptr(),os.length())))
+                {}
+                else if(od.get_scale()>s)
+                {
+                    if(OB_SUCCESS!=(ret=od.modify_value(p,s)))
+                    {
+                        TBSYS_LOG(INFO,"fix_varchar_deciaml error,err=[%d]",ret);   //modify xsl
+                    }
+                    else{
+                        char buf[MAX_PRINTABLE_SIZE];
+                        memset(buf, 0, MAX_PRINTABLE_SIZE);
+                        int64_t length=0;
+                        length=od.to_string(buf, MAX_PRINTABLE_SIZE);
+                        ObString os2;
+                        os2.assign_ptr(buf,static_cast<int32_t>(length));
+                        ObObj obj2;
+                        obj2.set_varchar(os2);
+                        str_buf_.write_obj(obj2, &obj);
+                    }
+                }
+        }
+        return ret;
+     }
+        //add e
     bool ObPostfixExpression::ExprUtil::is_column_idx(const ObObj &obj)
     {
       int64_t val = 0;
@@ -168,7 +235,20 @@ namespace oceanbase
           obj.get_bool(value_.bool_);
           break;
         case ObDecimalType:
-          ret = OB_NOT_SUPPORTED;
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          /*
+           *该函数是将参数Obj里面的值存到ExprItem里面
+           *参数obj是中缀表达式里面的值，ExprItem里面的值最后会写到后缀表达式里面
+           *因为中缀表达式里我把decimal的值按照varchar存的，所以在这里存到ExprItem里面的值也是按照varcahr存的
+           *get_varchar_d函数是我们自己写的，主要功能跟ObObj的get_varchar函数相同。不同之处是get_varchar必须是type为
+           *ObVarcharType的obj才能调用。而调用get_varchar_d函数的ObObj可以是其他类型
+           */
+          //ret = OB_NOT_SUPPORTED;      //old code
+          type_ = T_DECIMAL;
+          //modify xsl ECNU_DECIMAL 2017_2
+           //obj.get_varchar_d(string_);
+           obj.get_decimal(dec);    //将obj中的值传到ExprItem中
+          //modify:e
           break;
         default:
           ret = OB_ERR_UNEXPECTED;
@@ -258,7 +338,10 @@ namespace oceanbase
     {
       1,
       TWO_OR_THREE,
-      2,
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //2,   //old code
+      TWO_OR_FOUR,
+     //modify:e
       0,
       3,/*trim*/
       1,
@@ -315,6 +398,27 @@ namespace oceanbase
               TBSYS_LOG(WARN, "failed to add item, err=%d", ret);
             }
           }
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          else if(ObDecimalType==other.expr_[i].get_type())
+          {
+            if(OB_SUCCESS != (ret = str_buf_.write_obj_varchar_to_decimal(other.expr_[i], &obj)))
+            {
+              TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
+            }
+            else
+            {
+
+                obj.set_precision(other.expr_[i].get_precision());
+                obj.set_scale(other.expr_[i].get_scale());
+
+                if (OB_SUCCESS != (ret = expr_.push_back(obj)))
+                {
+                    TBSYS_LOG(WARN, "failed to add item, err=%d", ret);
+                }
+            }
+
+          }
+          //add:e
           else
           {
             if (OB_SUCCESS != (ret = expr_.push_back(other.expr_[i])))
@@ -426,9 +530,29 @@ namespace oceanbase
           {}
           break;
         case T_DECIMAL:
-          TBSYS_LOG(WARN, "literal as decimal not support yet");
-          ret = OB_NOT_SUPPORTED;
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          /*
+          *     生成后缀表达式，将值存到obj2里面，再把obj2放到后缀表达式的数组expr_中
+          *     这里obj2的类型是ObDecimalType.
+          */
+          item_type.set_int(CONST_OBJ);
+          obj.set_decimal(item.dec);   //add xsl ECNU_DECIMAL
+          //obj.set_decimal(item.dec);   //转换成功
+          //obj.set_varchar(item.string_);
+          if (OB_SUCCESS != (ret = str_buf_.write_obj_varchar_to_decimal(obj, &obj2)))
+          {
+            TBSYS_LOG(WARN, "fail to write object to string buffer. err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = expr_.push_back(item_type)))
+          {
+              TBSYS_LOG(WARN, "fail to push item.type. err=%d", ret);
+          }
+          else if (OB_SUCCESS != (ret = expr_.push_back(obj2)))
+          {
+              TBSYS_LOG(WARN, "fail to push object. err=%d", ret);
+          }
           break;
+          //modify e
         case T_INT:
           item_type.set_int(CONST_OBJ);
           obj.set_int(item.value_.int_);
@@ -838,13 +962,38 @@ namespace oceanbase
             TBSYS_LOG(WARN, "calculation stack must be empty. check the code for bugs. idx_i=%d", idx_i);
             ret = OB_ERR_UNEXPECTED;
           }
-          else if (OB_SUCCESS != (ret = stack_[--idx_i].to(result_)))
+          else //idx_i==1?
           {
-            TBSYS_LOG(WARN, "failed to convert exprobj to obj, err=%d", ret);
-          }
-          else
-          {
-            composite_val = &result_;
+              //modify xsl ECNU_DECIMAL 2016.12
+              //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+              ObExprObj E_obj=stack_[idx_i-1];
+              if(E_obj.get_type()==ObDecimalType)
+              {
+                  ObDecimal od=E_obj.get_decimal();
+                  ObObj obj;
+                  ret=obj.set_decimal(od);
+                  if(OB_SUCCESS != (ret =str_buf_.write_obj(obj, &result_)))   //自己申请一块内存存放着
+                  {
+                      TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
+
+                  }
+                  composite_val = &result_;
+                  idx_i--;
+              }
+              //modify e
+              else         //not decimal
+              {
+                  if (OB_SUCCESS != (ret = stack_[--idx_i].to(result_)))    //Exprobj->obj
+                  {
+                      TBSYS_LOG(WARN, "failed to convert exprobj to obj, err=%d", ret);
+                  }
+
+                  else
+                  {
+                      composite_val = &result_;
+                  }
+              }
+              //modify:e
           }
           break;
         }
@@ -2094,6 +2243,26 @@ namespace oceanbase
                 TBSYS_LOG(WARN, "failed to add item, err=%d", ret);
               }
             }
+            //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            else if(ObDecimalType==obj.get_type())
+            {
+                if (OB_SUCCESS != (ret = str_buf_.write_obj_varchar_to_decimal(obj, &obj2)))
+                {
+                    TBSYS_LOG(WARN, "fail to write object to string buffer. ret=%d", ret);
+                }
+                else
+                {
+                    // TBSYS_LOG(WARN, "test::fan2=,,,,,p=%d,,,s=%d",obj.get_precision() ,obj.get_scale());
+                    obj2.set_precision(obj.get_precision());
+                    obj2.set_scale(obj.get_scale());
+                    if (OB_SUCCESS != (ret = expr_.push_back(obj2)))
+                    {
+                        TBSYS_LOG(WARN, "failed to add item, err=%d", ret);
+                    }
+                }
+                //TBSYS_LOG(ERROR,"DEFINE_DESERIALIZE");
+            }
+            //add e
             else
             {
               if (OB_SUCCESS != (ret = expr_.push_back(obj)))
@@ -3030,40 +3199,104 @@ namespace oceanbase
 
     inline int ObPostfixExpression::sys_func_cast(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params)
     {
-      int err = OB_SUCCESS;
-      if (OB_UNLIKELY(NULL == stack_i || NULL == params.str_buf_))
-      {
-        TBSYS_LOG(WARN, "stack_i=%p, str_buf_=%p.", stack_i, params.str_buf_);
-        err = OB_INVALID_ARGUMENT;
-      }
-      else if (OB_UNLIKELY(idx_i < 2))
-      {
-        TBSYS_LOG(WARN, "no enough operand in the stack. current size:%d", idx_i);
-        err = OB_INVALID_ARGUMENT;
-      }
-      else
-      {
-        int64_t literal_type = 0;
-        int32_t dest_type = 0;
-        if (OB_SUCCESS != (err = stack_i[idx_i-1].get_int(literal_type)))
+        //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*int err = OB_SUCCESS;
+        if (OB_UNLIKELY(NULL == stack_i || NULL == params.str_buf_))
         {
-          TBSYS_LOG(WARN, "fail to get int value. actual type = %d. err=%d", stack_i[idx_i-1].get_type(), err);
+          TBSYS_LOG(WARN, "stack_i=%p, str_buf_=%p.", stack_i, params.str_buf_);
+          err = OB_INVALID_ARGUMENT;
+        }
+        else if (OB_UNLIKELY(idx_i < 2))
+        {
+          TBSYS_LOG(WARN, "no enough operand in the stack. current size:%d", idx_i);
+          err = OB_INVALID_ARGUMENT;
         }
         else
         {
-          // convert literal data type to inner data type
-          dest_type = convert_item_type_to_obj_type(static_cast<ObItemType>(literal_type));
-          if (OB_SUCCESS == err)
+          int64_t literal_type = 0;
+          int32_t dest_type = 0;
+          if (OB_SUCCESS != (err = stack_i[idx_i-1].get_int(literal_type)))
           {
-            if (OB_SUCCESS != (err = stack_i[idx_i-2].cast_to(dest_type, result, *params.str_buf_)))
+            TBSYS_LOG(WARN, "fail to get int value. actual type = %d. err=%d", stack_i[idx_i-1].get_type(), err);
+          }
+          else
+          {
+            // convert literal data type to inner data type
+            dest_type = convert_item_type_to_obj_type(static_cast<ObItemType>(literal_type));
+            if (OB_SUCCESS == err)
             {
-              TBSYS_LOG(WARN, "fail to cast data from type %d to type %d. err=%d", stack_i[idx_i-2].get_type(), dest_type, err);
+              if (OB_SUCCESS != (err = stack_i[idx_i-2].cast_to(dest_type, result, *params.str_buf_)))
+              {
+                TBSYS_LOG(WARN, "fail to cast data from type %d to type %d. err=%d", stack_i[idx_i-2].get_type(), dest_type, err);
+              }
             }
           }
+          idx_i -= 2;
         }
-        idx_i -= 2;
-      }
-      return err;
+        return err;*/          //old code
+        int err = OB_SUCCESS;
+        if (OB_UNLIKELY(NULL == stack_i || NULL == params.str_buf_))
+        {
+          TBSYS_LOG(WARN, "stack_i=%p, str_buf_=%p.", stack_i, params.str_buf_);
+          err = OB_INVALID_ARGUMENT;
+        }
+        else if (OB_UNLIKELY(idx_i < 2))
+        {
+          TBSYS_LOG(WARN, "no enough operand in the stack. current size:%d", idx_i);
+          err = OB_INVALID_ARGUMENT;
+        }
+        else
+        {
+          int64_t literal_type = 0;
+          int32_t dest_type = 0;
+          if(params.operand_count_==4)
+          {
+              if (OB_SUCCESS != (err = stack_i[idx_i-3].get_int(literal_type)))
+              {
+              TBSYS_LOG(WARN, "fail to get int value. actual type = %d. err=%d", stack_i[idx_i-3].get_type(), err);
+              }
+              else
+              {
+                  // convert literal data type to inner data type
+                  dest_type = convert_item_type_to_obj_type(static_cast<ObItemType>(literal_type));
+                  int64_t pre=0;
+                  int64_t scale=0;
+                  stack_i[idx_i-2].get_int(pre);
+                  stack_i[idx_i-1].get_int(scale);
+                  if (OB_SUCCESS == err)
+                  {
+                          if (OB_SUCCESS != (err = stack_i[idx_i-4].cast_toV2(dest_type, result, *params.str_buf_,(uint32_t)(pre),(uint32_t)(scale))))
+                          {
+                              TBSYS_LOG(WARN, "fail to cast data from type %d to type %d. err=%d", stack_i[idx_i-4].get_type(), dest_type, err);
+                          }
+                  }
+              }
+              idx_i -= 4;
+          }
+          else
+          {
+
+              if (OB_SUCCESS != (err = stack_i[idx_i-1].get_int(literal_type)))
+              {
+              TBSYS_LOG(WARN, "fail to get int value. actual type = %d. err=%d", stack_i[idx_i-1].get_type(), err);
+              }
+              else
+              {
+            // convert literal data type to inner data type
+              dest_type = convert_item_type_to_obj_type(static_cast<ObItemType>(literal_type));
+              if (OB_SUCCESS == err)
+              {
+                  if (OB_SUCCESS != (err = stack_i[idx_i-2].cast_to(dest_type, result, *params.str_buf_)))
+                  {
+                TBSYS_LOG(WARN, "fail to cast data from type %d to type %d. err=%d", stack_i[idx_i-2].get_type(), dest_type, err);
+                  }
+              }
+              }
+              idx_i -= 2;
+          }
+        }
+        return err;
+        //modify:e
     }
 
     inline int ObPostfixExpression::sys_func_current_timestamp(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params)

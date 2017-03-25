@@ -1356,6 +1356,9 @@ namespace oceanbase
           ErrStat& err_stat,
           const uint64_t& query_id,
           int32_t* index);
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        int ob_write_obj_for_delete(ModuleArena &allocator, const ObObj &src, ObObj &dst,ObObj type);
+        //add e
 
       private:
         common::ObIAllocator *mem_pool_;

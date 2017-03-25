@@ -87,7 +87,9 @@ namespace oceanbase
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
-
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        void set_del_upd();
+        //add e
         //add by zt 20160119:b
         /**
          * @brief serialize_template
@@ -144,6 +146,9 @@ namespace oceanbase
         //add huangjianwei [secondary index maintain] 20161108:b
         bool replace_check_rowkey_duplicat_;
         //add:e
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        bool is_del_update;
+        //add e
     };
   } // end namespace sql
 } // end namespace oceanbase

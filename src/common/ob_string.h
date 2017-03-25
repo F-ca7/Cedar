@@ -485,6 +485,27 @@ namespace oceanbase
       }
       return ret;
     }
+    //add xsl ECNU_DECIMAL 2017_1
+    template <typename AllocatorT>
+    int ob_write_decimal(AllocatorT &allocator,ObDecimal& src,ObDecimal*& dst)
+    {
+      int ret=OB_SUCCESS;
+      void * ptr = NULL;
+      if (NULL == (ptr = allocator.alloc(sizeof(ObDecimal))))
+      {
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+      }
+      else
+      {
+          dst=reinterpret_cast<ObDecimal *>(ptr);
+          dst->set_precision(src.get_precision());
+          dst->set_scale(src.get_scale());
+          dst->set_vscale(src.get_vscale());
+          dst->set_word(src.get_words());
+      }
+      return ret;
+    }
+    //add e
   }
 }
 #endif

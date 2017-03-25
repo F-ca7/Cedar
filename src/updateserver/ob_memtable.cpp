@@ -268,6 +268,7 @@ namespace oceanbase
           }
           else
           {
+            //TBSYS_LOG(INFO,"xushilei,test ob_memtable_value=[%s]",to_cstring(cell_info.value_));
             ret = ccw.append(cell_info.column_id_, cell_info.value_);
             uci.uc_cell_info_size = static_cast<int16_t>(uci.uc_cell_info_size + get_varchar_length_kb_(cell_info.value_));
           }

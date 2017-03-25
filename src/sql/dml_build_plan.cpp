@@ -495,25 +495,26 @@ int resolve_expr(
       expr = c_expr;
       break;
     }
-    case T_DECIMAL: // set as string
-    {
-      ObString str;
-      if (OB_SUCCESS != (ret = ob_write_string(*name_pool, ObString::make_string(node->str_value_), str)))
-      {
-        TBSYS_LOG(WARN, "out of memory");
-        break;
-      }
-      ObObj val;
-      val.set_varchar(str);
-      ObConstRawExpr *c_expr = NULL;
-      if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL)
-        break;
-      c_expr->set_expr_type(T_DECIMAL);
-      c_expr->set_result_type(ObDecimalType);
-      c_expr->set_value(val);
-      expr = c_expr;
-      break;
-    }
+      //modify xsl ECNU_DECIMAL 2016_12
+     case T_DECIMAL:
+     {
+       ObString str;
+       ObDecimal src,*dst=NULL;
+       str=ObString::make_string(node->str_value_);
+       ObObj val;
+       src.from(str.ptr(),str.length());
+       ob_write_decimal(*name_pool,src,dst);
+       val.set_decimal(dst);
+       ObConstRawExpr *c_expr = NULL;
+       if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL) //从result_plan中给c_expr分配了一块空间。
+         break;
+       c_expr->set_expr_type(T_DECIMAL);
+       c_expr->set_result_type(ObDecimalType);
+       c_expr->set_value(val);  //指针也拷贝过来了，要用到指针指向的空间
+       expr = c_expr;
+       break;
+     }
+       //modify e
     case T_INT:
     {
       ObObj val;
@@ -835,7 +836,14 @@ int resolve_expr(
       else if (node->type_ == T_OP_NEG && sub_expr->is_const()
         && (sub_expr->get_expr_type() == T_INT
         || sub_expr->get_expr_type() == T_FLOAT
-        || sub_expr->get_expr_type() == T_DOUBLE))
+        || sub_expr->get_expr_type() == T_DOUBLE
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+          *对decimal值为负的情况进行处理
+        */
+        || sub_expr->get_expr_type() == T_DECIMAL
+        //add:e
+            ))
       {
         ObConstRawExpr *const_expr = dynamic_cast<ObConstRawExpr*>(sub_expr);
         if (const_expr == NULL)
@@ -880,6 +888,44 @@ int resolve_expr(
             }
             break;
           }
+            //modify xsl ECNU_DECIMAL 2017_2
+            //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            /*
+            *由于在这里decimal的值是按照varcahr存的，所以这里的处理就是在varcahr的最前面加上一个负号
+            */
+            case T_DECIMAL:
+            {
+                ObString tmp_str;
+                ObDecimal ori_dec;
+                ObDecimal *res_dec = NULL;
+                ObDecimal tmp_dec;
+                char neg_char[1] = { '-' };
+                char end_char[1] = { '\0' };
+                if ((ret = const_expr->get_value().get_decimal(ori_dec))== OB_SUCCESS)
+                {
+                    int length=ori_dec.get_precision()+1;
+                    char buf[length];
+                    ori_dec.to_string(buf,length);
+                    char buffer[length + 2];
+                    ObObj new_val;
+                    memcpy(buffer, neg_char, 1);
+                    memcpy(buffer + 1, buf, length);
+                    memcpy(buffer + 1 + length, end_char, 1);
+                    const char * middle_val = buffer;
+                    tmp_str = ObString::make_string(middle_val);
+                    tmp_dec.from(tmp_str.ptr(),tmp_str.length());
+                    if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tmp_dec, res_dec)))
+                    {
+                        TBSYS_LOG(WARN, "out of memory");
+                        break;
+                    }
+                    new_val.set_decimal(res_dec);
+                    const_expr->set_value(new_val);
+                }
+                break;
+            }
+              //add:e
+            //modify:e
           default:
           {
             /* won't be here */
@@ -966,23 +1012,31 @@ int resolve_expr(
       in_type2.set_type(sub_expr2->get_result_type());
       if (node->type_ == T_OP_ADD)
       {
-        b_expr->set_result_type(ObExprObj::type_add(in_type1, in_type2).get_type());
+          //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          //b_expr->set_result_type(ObExprObj::type_add(in_type1, in_type2).get_type()); old code
+          b_expr->set_result_type(ObExprObj::type_add_v2(in_type1, in_type2).get_type());
+
       }
       else if (node->type_ == T_OP_MINUS)
       {
-        b_expr->set_result_type(ObExprObj::type_sub(in_type1, in_type2).get_type());
+          //b_expr->set_result_type(ObExprObj::type_sub(in_type1, in_type2).get_type());
+          b_expr->set_result_type(ObExprObj::type_sub_v2(in_type1, in_type2).get_type());
       }
       else if (node->type_ == T_OP_MUL)
       {
-        b_expr->set_result_type(ObExprObj::type_mul(in_type1, in_type2).get_type());
+          // b_expr->set_result_type(ObExprObj::type_mul(in_type1, in_type2).get_type());
+          b_expr->set_result_type(ObExprObj::type_mul_v2(in_type1, in_type2).get_type());
       }
       else if (node->type_ == T_OP_DIV)
       {
-        if (in_type1.get_type() == ObDoubleType || in_type2.get_type() == ObDoubleType)
-          b_expr->set_result_type(ObExprObj::type_div(in_type1, in_type2, true).get_type());
-        else
-          b_expr->set_result_type(ObExprObj::type_div(in_type1, in_type2, false).get_type());
+          if (in_type1.get_type() == ObDoubleType || in_type2.get_type() == ObDoubleType)
+              //b_expr->set_result_type(ObExprObj::type_div(in_type1, in_type2, true).get_type());
+              b_expr->set_result_type(ObExprObj::type_div_v2(in_type1, in_type2, true).get_type());
+          else
+              //b_expr->set_result_type(ObExprObj::type_div(in_type1, in_type2, false).get_type());
+              b_expr->set_result_type(ObExprObj::type_div_v2(in_type1, in_type2, false).get_type());
       }
+      //modify e
       else if (node->type_ == T_OP_REM || node->type_ == T_OP_MOD)
       {
         b_expr->set_result_type(ObExprObj::type_mod(in_type1, in_type2).get_type());
@@ -1402,6 +1456,34 @@ int resolve_expr(
       }
       break;
     }
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+        *  for cast函数
+        */
+    case T_TYPE_DECIMAL:
+        {
+          ObObj val;
+          val.set_int(T_TYPE_DECIMAL);
+          if(node->num_child_==2)
+          {
+          val.set_precision(static_cast<uint32_t>(node->children_[0]->value_));
+          val.set_scale(static_cast<uint32_t>(node->children_[1]->value_));
+          }
+          else
+          {
+                val.set_precision(38);
+                val.set_scale(0);
+          }
+          ObConstRawExpr *c_expr = NULL;
+          if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL)
+            break;
+          c_expr->set_expr_type(T_INT);
+          c_expr->set_result_type(ObIntType);
+          c_expr->set_value(val);
+          expr = c_expr;
+          break;
+        }
+        //add:e
     case T_FUN_COUNT:
     case T_FUN_MAX:
     case T_FUN_MIN:
@@ -1471,6 +1553,39 @@ int resolve_expr(
             break;
           if (OB_SUCCESS != (ret = func_expr->add_param_expr(para_expr)))
             break;
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          /*
+          *      for cast函数
+          */
+
+        if(node->children_[1]->children_[i]->type_==T_TYPE_DECIMAL)
+          {
+            int32_t num_child=node->children_[1]->children_[i]->num_child_;
+            for (int32_t j=0; ret==OB_SUCCESS&&j<num_child ;j++)
+            {
+                ret = resolve_expr(
+                  result_plan,
+                  stmt,
+                  node->children_[1]->children_[i]->children_[j],
+                  sql_expr,
+                  para_expr);
+                  if (ret != OB_SUCCESS)
+                      break;
+                  if (OB_SUCCESS != (ret = func_expr->add_param_expr(para_expr)))
+                      break;
+            }
+            if(num_child==2)
+            {
+                int64_t pre=node->children_[1]->children_[i]->children_[0]->value_;
+                int64_t scale=node->children_[1]->children_[i]->children_[1]->value_;
+                if(pre>MAX_DECIMAL_DIGIT||scale>MAX_DECIMAL_SCALE||pre<scale)
+                  {
+                  ret = OB_INVALID_ARGUMENT;
+                  TBSYS_LOG(WARN, "invalid argument of decimal. precision = %ld,  scale = %ld. ret=%d", pre, scale,ret);
+                  }
+            }
+          }
+          //add:e
         }
       }
       if (ret == OB_SUCCESS)
@@ -1516,6 +1631,21 @@ int resolve_expr(
               }
               break;
             }
+              //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+                /*
+                *  for cast函数
+                */
+                case TWO_OR_FOUR:
+                {
+                  if (func_expr->get_param_size() != 2&&func_expr->get_param_size() != 4)
+                  {
+                    ret = OB_ERR_PARAM_SIZE;
+                    snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                       "Param num of function '%.*s' can not be empty, ret=%d", func_name.length(), func_name.ptr(), ret);
+                  }
+                  break;
+                }
+                //add:e
             default:
             {
               if (func_expr->get_param_size() != param_num)

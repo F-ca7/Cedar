@@ -2906,7 +2906,7 @@ YY_RULE_SETUP
 {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE,  0); */
   ParseNode* node = NULL;
-  malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE/* should be T_DECIMAL,*/, 0);
+  malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_DECIMAL/*modify xsl ECNU_DECIMAL 2017_2 should be T_DECIMAL,*/, 0);
   yylval->node = node;
   node->str_value_ = parse_strdup(yytext, ((ParseResult*)yyextra)->malloc_pool_);
   check_value(node->str_value_);

@@ -58,6 +58,13 @@ namespace oceanbase
       public:
         int cast_cell(const int64_t idx, ObObj &cell) const;
         int cast_rowkey_cell(const int64_t idx, ObObj &cell) const;
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+         *声明自己写的两个函数
+         */
+        uint32_t get_precision(const int64_t idx);
+        uint32_t get_scale(const int64_t idx);
+        //add:e
       private:
         static ObString get_tsi_buffer_();
         static ObString get_tsi_buffer_(const int64_t idx);

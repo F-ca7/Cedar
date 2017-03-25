@@ -112,7 +112,10 @@ namespace oceanbase
 
       protected:
         virtual int write_varchar(const ObObj &value, ObObj *clone_value);
-        int write_decimal(const ObObj &decimal);
+        //int write_decimal(const ObObj &decimal);
+        //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        int write_decimal(const ObObj &decimal, ObObj *clone_value);
+        //modify:e
 
       protected:
         ObBufferWriter buf_writer_;

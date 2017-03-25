@@ -521,6 +521,19 @@ int resolve_column_definition(
 			col_def.precision_ = type_node->children_[0]->value_;
 		if (type_node->num_child_ >= 2 && type_node->children_[1] != NULL)
 			col_def.scale_ = type_node->children_[1]->value_;
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+         *建表的时候要对用户输入的decimal的参数做正确性检查
+         * report wrong info when input precision<scale
+         * */
+        if (col_def.precision_ < col_def.scale_||col_def.precision_>MAX_DECIMAL_DIGIT||col_def.scale_>MAX_DECIMAL_SCALE||col_def.precision_<=0||type_node->num_child_==0)
+        {
+            ret = OB_ERR_WRONG_DYNAMIC_PARAM;
+            snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                     "You have an error in your SQL syntax; check the param of decimal! precision = %ld,scale=%ld",
+                     col_def.precision_, col_def.scale_);
+        }
+        //add:e
 		break;
 	case T_TYPE_BOOLEAN:
 		col_def.data_type_ = ObBoolType;

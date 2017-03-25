@@ -168,7 +168,6 @@ namespace oceanbase
       StmtType get_stmt_type() const;
       uint64_t get_query_id() const;
       bool is_show_stmt() const;
-      bool is_dml_type() const; //add dragon [Bugfix#12] 2017-3-8
 
       virtual void print(FILE* fp, int32_t level, int32_t index) = 0;
     protected:
@@ -209,19 +208,6 @@ namespace oceanbase
     {
       return (stmt_type_ >= T_SHOW_TABLES and stmt_type_ <= T_SHOW_SERVER_STATUS);
     }
-
-    //add dragon [Bugfix#12] 2017-3-8 b
-    inline bool ObBasicStmt::is_dml_type() const
-    {
-      if(stmt_type_ == T_INSERT
-         || stmt_type_ == T_DELETE
-         || stmt_type_ == T_REPLACE
-         || stmt_type_ == T_UPDATE )
-        return true;
-      else
-        return false;
-    }
-    //add dragon e
   }
 }
 

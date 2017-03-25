@@ -78,7 +78,10 @@ namespace oceanbase
     const int64_t OB_SCHEMA_VERSION_FOUR = 4;
     const int64_t OB_SCHEMA_VERSION_FOUR_FIRST = 401;
     const int64_t OB_SCHEMA_VERSION_FOUR_SECOND = 402;
-
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        static const uint8_t META_PREC_MASK = 0x7F;
+        static const uint8_t META_SCALE_MASK = 0x3F;
+        //add:e
 
     //add wenghaixing [secondary index]
     struct IndexList
@@ -249,7 +252,14 @@ namespace oceanbase
     class ObColumnSchemaV2
     {
       public:
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+            struct ObDecimalHelper {
 
+                uint32_t dec_precision_ :7;
+                uint32_t dec_scale_ :6;
+//                uint32_t reserved:19;
+            };
+            //add:e
         struct ObJoinInfo
         {
           ObJoinInfo() : join_table_(OB_INVALID_ID),left_column_count_(0) {}
@@ -280,7 +290,13 @@ namespace oceanbase
         bool        is_maintained()       const;
         uint64_t    get_column_group_id() const;
         bool        is_join_column() const;
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        uint32_t get_precision() const;
+        uint32_t get_scale() const;
+        void set_precision(uint32_t pre);
+        void set_scale(uint32_t scale);
 
+        //add:e
         void set_table_id(const uint64_t id);
         void set_column_id(const uint64_t id);
         void set_column_name(const char *name);
@@ -330,7 +346,10 @@ namespace oceanbase
         ObObj default_value_;
         //join info
         ObJoinInfo join_info_;
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
 
+        ObDecimalHelper ob_decimal_helper_;
+        //add:e
         //in mem
         ObColumnSchemaV2* column_group_next_;
     };
@@ -543,7 +562,9 @@ namespace oceanbase
         const ObColumnSchemaV2* column_end() const;
         const char* get_app_name() const;
         int set_app_name(const char* app_name);
-
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        int get_cond_val_info(uint64_t tid,uint64_t cid,ObObjType &type,uint32_t &p,uint32_t &s,int32_t* idx = NULL) const;
+        //add e
         int64_t get_column_count() const;
         int64_t get_table_count() const;
 
@@ -761,14 +782,6 @@ namespace oceanbase
          * @return error code
          */
         int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
-        //add dragon [Bugfix#11] 2017-3-10 b
-        /**
-         * @brief get_all_init_index_tid
-         * @param [out] index_id_list
-         * @return error code
-         */
-        int get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const;
-        //add dragon [Bugfix#11] 2017-3-10 b
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);

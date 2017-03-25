@@ -52,8 +52,31 @@ void ObExprObj::assign(const ObObj &obj)
       obj.get_bool(v_.bool_);
       break;
     case ObDecimalType:
-      obj.get_decimal(num_);
-      break;
+      //modfify xsl ECNU_DECIMAL 2016_12_13
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //obj.get_decimal(num_);
+      //break;
+      //old code
+      {
+          //ObDecimal od;
+          int ret=OB_SUCCESS;
+          ret=obj.get_decimal(decimal_);
+          //test xsl  影响MS启动
+          //TBSYS_LOG(INFO,"xushilei,test,od=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(decimal_),decimal_.get_precision(),decimal_.get_scale(),decimal_.get_vscale()); //test xsl
+          /*if(OB_SUCCESS!=(ret=decimal_.modify_value(obj.get_precision(),obj.get_scale())))
+          {
+              TBSYS_LOG(ERROR,"failed to modify_value in ObExprObj::assign");
+               //TBSYS_LOG(ERROR, "failed to do modify_value in ObExprObj::assign, od=%.*s,p=%d,s=%d",varchar_.length(),varchar_.ptr() ,obj.get_precision(),obj.get_scale());
+          }
+          */
+          //test e
+          if(OB_SUCCESS != ret)
+          {
+              TBSYS_LOG(ERROR, "failed to do from in ObExprObj::assign, err=%d", ret);
+          }
+          break;
+       }
+      //modify e
     case ObFloatType:
       obj.get_float(v_.float_);
       break;
@@ -99,8 +122,15 @@ int ObExprObj::to(ObObj &obj) const
       obj.set_bool(v_.bool_);
       break;
     case ObDecimalType:
-      ret = obj.set_decimal(num_);
+      //modify xsl ECNU_DECIMAL　2016_12
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    {
+      ret =obj.set_decimal(decimal_);
+      if(ret!=OB_SUCCESS)
+          TBSYS_LOG(ERROR, "failed to do set_decimal,err=[%d]",ret);
       break;
+    }
+      //modify:e
     case ObFloatType:
       obj.set_float(v_.float_);
       break;
@@ -193,8 +223,15 @@ int ObExprObj::compare_same_type(const ObExprObj &other) const
       }
       break;
     case ObDecimalType:
-      cmp = this->num_.compare(other.num_);
-      break;
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      {
+          ObDecimal cmp1,cmp2;
+          cmp1=get_decimal();
+          cmp2=other.get_decimal();
+          cmp =cmp1.compare(cmp2);
+          break;
+      }
+      //modify e
     case ObVarcharType:
       cmp = this->varchar_.compare(other.varchar_);
       break;
@@ -712,8 +749,11 @@ int ObExprObj::get_bool(bool &value) const
       value = (v_.int_ != 0);
       break;
     case ObDecimalType:
-      value = !num_.is_zero();
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      value = !decimal_.is_zero();
       break;
+      //modify:e
     case ObFloatType:
       value = (fabsf(v_.float_) > FLOAT_EPSINON);
       break;
@@ -1042,8 +1082,11 @@ inline int ObExprObj::add_same_type(const ObExprObj &other, ObExprObj &res) cons
       res.v_.double_ = this->v_.double_ + other.v_.double_;
       break;
     case ObDecimalType:
-      ret = this->num_.add(other.num_, res.num_);
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      ret = this->decimal_.add(other.decimal_, res.decimal_);
       break;
+      //modify:e
     default:
       ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(ERROR, "unexpected branch");
@@ -1052,15 +1095,24 @@ inline int ObExprObj::add_same_type(const ObExprObj &other, ObExprObj &res) cons
   return ret;
 }
 
+//modify xsl ECNU_DECIMAL 2016_12
 int ObExprObj::add(ObExprObj &other, ObExprObj &res)
 {
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
+  //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  ObObj tmp_obj;
+  promoted1.assign(tmp_obj);
+  ObObj tmp_obj2;
+  promoted2.assign(tmp_obj2);
+  //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
+  //int64_t start= tbsys::CTimeUtil::getTime();
   if (OB_SUCCESS != (ret = arith_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
   {
+
     if (OB_RESULT_UNKNOWN == ret)
     {
       ret = OB_SUCCESS;
@@ -1069,11 +1121,17 @@ int ObExprObj::add(ObExprObj &other, ObExprObj &res)
   }
   else
   {
+    //int64_t end= tbsys::CTimeUtil::getTime();
+    //TBSYS_LOG(INFO,"xushilei,test type_promotion:%ld",end-start);
+    //start= tbsys::CTimeUtil::getTime();
     ret = p_this->add_same_type(*p_other, res);
+    //end= tbsys::CTimeUtil::getTime();
+    //TBSYS_LOG(INFO,"xushilei,test add:%ld",end-start);
   }
-  return ret;
-}
+   return ret;
 
+}
+//modify e
 inline int ObExprObj::sub_same_type(const ObExprObj &other, ObExprObj &res) const
 {
   int ret = OB_SUCCESS;
@@ -1092,8 +1150,11 @@ inline int ObExprObj::sub_same_type(const ObExprObj &other, ObExprObj &res) cons
       res.v_.double_ = this->v_.double_ - other.v_.double_;
       break;
     case ObDecimalType:
-      ret = this->num_.sub(other.num_, res.num_);
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      ret = this->decimal_.sub(other.decimal_, res.decimal_);
       break;
+      //modify:e
     default:
       ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(ERROR, "unexpected branch");
@@ -1101,12 +1162,19 @@ inline int ObExprObj::sub_same_type(const ObExprObj &other, ObExprObj &res) cons
   }
   return ret;
 }
-
+//modify xsl ECNU_DECIMAL 2016_12
 int ObExprObj::sub(ObExprObj &other, ObExprObj &res)
 {
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
+  //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  ObObj tmp_obj;
+  promoted1.assign(tmp_obj);
+  ObObj tmp_obj2;
+  //tmp_obj2.set_varchar(os2);
+  promoted2.assign(tmp_obj2);
+  //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
   if (OB_SUCCESS != (ret = arith_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
@@ -1119,11 +1187,11 @@ int ObExprObj::sub(ObExprObj &other, ObExprObj &res)
   }
   else
   {
-    ret = p_this->sub_same_type(*p_other, res);
+      ret = p_this->sub_same_type(*p_other, res);
   }
   return ret;
 }
-
+//modify e
 inline int ObExprObj::mul_same_type(const ObExprObj &other, ObExprObj &res) const
 {
   int ret = OB_SUCCESS;
@@ -1142,8 +1210,11 @@ inline int ObExprObj::mul_same_type(const ObExprObj &other, ObExprObj &res) cons
       res.v_.double_ = this->v_.double_ * other.v_.double_;
       break;
     case ObDecimalType:
-      ret = this->num_.mul(other.num_, res.num_);
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      ret = this->decimal_.mul(other.decimal_, res.decimal_);
       break;
+      //modify:e
     default:
       ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(ERROR, "unexpected branch");
@@ -1152,13 +1223,22 @@ inline int ObExprObj::mul_same_type(const ObExprObj &other, ObExprObj &res) cons
   return ret;
 }
 
+//modify xsl ECNU_DECIMAL 2016_12
 int ObExprObj::mul(ObExprObj &other, ObExprObj &res)
 {
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
+ //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+ ObObj tmp_obj;
+ promoted1.assign(tmp_obj);
+ ObObj tmp_obj2;
+ promoted2.assign(tmp_obj2);
+
+ //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
+  //int64_t start= tbsys::CTimeUtil::getTime();
   if (OB_SUCCESS != (ret = arith_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
   {
     if (OB_RESULT_UNKNOWN == ret)
@@ -1169,10 +1249,16 @@ int ObExprObj::mul(ObExprObj &other, ObExprObj &res)
   }
   else
   {
+    //int64_t end= tbsys::CTimeUtil::getTime();
+    //TBSYS_LOG(INFO,"xushilei,test type_promotion:%ld",end-start);
+    //start= tbsys::CTimeUtil::getTime();
     ret = p_this->mul_same_type(*p_other, res);
+    //end= tbsys::CTimeUtil::getTime();
+    //TBSYS_LOG(INFO,"xushilei,mul:%ld",end-start);
   }
   return ret;
 }
+//modify e
 
 // @return ObMaxType when not supporting
 // int div int result in double
@@ -1189,7 +1275,7 @@ static ObObjType DIV_TYPE_PROMOTION[ObMaxType][ObMaxType] =
   ,
   {
     /*Int div XXX*/
-    ObNullType/*Null*/, ObDoubleType/*Int*/, ObFloatType,
+    ObNullType/*Null*/, ObIntType/*Int*//*modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b*/, ObFloatType,
     ObDoubleType, ObDoubleType, ObDoubleType,
     ObDoubleType, ObMaxType/*Seq, not_support*/, ObDoubleType,
     ObDoubleType, ObMaxType/*Extend*/, ObDoubleType,
@@ -1381,6 +1467,44 @@ inline int ObExprObj::cast_to_varchar(ObString &varchar, ObStringBuf &mem_buf) c
   return ret;
 }
 
+//add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+inline int ObExprObj::cast_to_decimal(ObString &varchar, ObStringBuf &mem_buf) const   //can't be decimal
+{
+  int ret = OB_SUCCESS;
+  ObExprObj casted_obj;
+  char max_tmp_buf[128]; // other type to varchar won't takes too much space, assume 128, should be enough
+  ObString tmp_str(128, 128, max_tmp_buf);
+
+  if (OB_UNLIKELY(this->get_type() == ObNullType))
+  {
+    //TBSYS_LOG(WARN, "should not be null");
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else if (OB_LIKELY(this->get_type() != ObDecimalType))
+  {
+    casted_obj.set_varchar(tmp_str);    //设置varchar空间
+    ObObjCastParams params;  //参数p,s,is_modify
+    if (OB_SUCCESS != (ret = OB_OBJ_CAST[this->get_type()][ObDecimalType](params, *this, casted_obj)))    //转换成decimal,并且得到了值
+    {
+      // don't report WARN when type NOT_SUPPORT
+      /*
+      TBSYS_LOG(WARN, "failed to cast object, err=%d from_type=%d to_type=%d",
+          ret, this->get_type(), ObVarcharType);
+      */
+    }
+    else if (OB_SUCCESS != (ret = mem_buf.write_string(casted_obj.get_varchar(), &varchar)))   //如果不是decimal,值从casted_obj写到varchar，使用varchar
+    {
+      TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+    }
+  }
+  else if (OB_UNLIKELY(OB_SUCCESS != (ret = mem_buf.write_string(this->get_varchar(), &varchar))))   //直接从this.varchar写到varchar中,不可能是decimal数据类型
+  {
+    TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+  }
+  return ret;
+}
+//add:e
+
 int ObExprObj::cast_to(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf) const
 {
   int err = OB_SUCCESS;
@@ -1412,6 +1536,168 @@ int ObExprObj::cast_to(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_bu
   return err;
 }
 
+//add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf,uint32_t precision,uint32_t scale)
+{
+ int err = OB_SUCCESS;
+ ObObjCastParams params;
+ params.precision=precision;
+ params.scale=scale;
+ params.is_modify=true;
+ ObString varchar;
+ if (dest_type == ObVarcharType)
+ {
+   if (OB_SUCCESS != this->cast_to_varchar(varchar, mem_buf))
+   {
+     result.set_null();
+   }
+   else
+   {
+     result.set_varchar(varchar);
+   }
+ }
+ else if (dest_type > ObMinType && dest_type < ObMaxType)
+ {
+   if(this->get_type()==ObDecimalType && dest_type==ObDecimalType)
+   {
+       ObDecimal od;
+       od=this->get_decimal();
+       ObDecimal od_v2;
+       char buf_v2[MAX_PRINTABLE_SIZE];
+       memset(buf_v2, 0, MAX_PRINTABLE_SIZE);
+       ObString os_v2;
+       int64_t length=od.to_string(buf_v2,MAX_PRINTABLE_SIZE);
+       os_v2.assign_ptr(buf_v2,(int)length);
+       od_v2.from(os_v2.ptr(),os_v2.length());
+       if((precision-scale)<(od_v2.get_precision()-od_v2.get_vscale()))
+       {
+             err=OB_DECIMAL_UNLEGAL_ERROR;
+             TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
+       }
+       else
+       {
+           od.set_precision(precision);
+           od.set_scale(scale);
+           this->set_decimal(od);
+           result=*this;
+       }
+   }
+   else
+   {
+       if(dest_type == ObDecimalType)
+       {
+           if(this->get_type()==ObVarcharType)
+           {
+               ObString os_v=this->get_varchar();
+               if(os_v.ptr()==NULL||(int)(os_v.length())==0)
+               {
+                   ObDecimal od2;
+                   ObExprObj E_obj;
+                   char buf2[MAX_PRINTABLE_SIZE];
+                   memset(buf2, 0, MAX_PRINTABLE_SIZE);
+                   int64_t length=0;
+                   length=od2.to_string(buf2, MAX_PRINTABLE_SIZE);
+                   ObString os2;
+                   os2.assign_ptr(buf2,static_cast<int32_t>(length));
+                   E_obj.set_varchar(os2);
+                   if (OB_SUCCESS != E_obj.cast_to_decimal(varchar, mem_buf) )
+                   {
+                       result.set_null();
+                   }
+                   else
+                   {
+                       result.set_varchar(varchar);
+                       ObDecimal od;
+                       if (OB_SUCCESS != (err =od.from(varchar.ptr(),varchar.length())))
+                       {
+                           TBSYS_LOG(ERROR, "fail to do from in ObExprObj::cast_toV2 ret=%d", err);
+                       }
+                       else
+                       {
+                           od.set_precision(precision);
+                           od.set_scale(scale);
+                           result.set_decimal(od);
+                       }
+                   }
+               }
+               else
+               {
+                   if (OB_SUCCESS != this->cast_to_decimal(varchar, mem_buf))
+                   {
+                       result.set_null();
+                   }
+                   else
+                   {
+                       result.set_varchar(varchar);
+                       ObDecimal od;
+                       if (OB_SUCCESS != (err =od.from(varchar.ptr(),varchar.length())))
+                       {
+                           TBSYS_LOG(ERROR, "fail to do from in ObExprObj::cast_toV2 ret=%d", err);
+                       }
+                       else
+                       {
+                           if((precision-scale) < (od.get_precision()-od.get_vscale()))
+                           {
+                               err=OB_DECIMAL_UNLEGAL_ERROR;
+                               TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
+                           }
+                           else
+                           {
+                               od.set_precision(precision);
+                               od.set_scale(scale);
+                               result.set_decimal(od);
+                           }
+                       }
+                   }
+               }
+           }
+           else   //this != ObVarcharType && this != ObDecimalType
+           {
+                if (OB_SUCCESS != this->cast_to_decimal(varchar, mem_buf))
+                {
+                    result.set_null();
+                }
+                else
+                {
+                    result.set_varchar(varchar);
+                    ObDecimal od;
+                    if (OB_SUCCESS != (err =od.from(varchar.ptr(),varchar.length())))
+                    {
+                            TBSYS_LOG(ERROR, "fail to do from in ObExprObj::cast_toV2 ret=%d", err);
+                    }
+                    else
+                    {
+            if((precision-scale)<(od.get_precision()-od.get_vscale()))
+                     {
+                              err=OB_DECIMAL_UNLEGAL_ERROR;
+                              TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
+                     }
+            else
+            {
+                             od.set_precision(precision);
+                             od.set_scale(scale);
+                             result.set_decimal(od);
+            }
+                    }
+                }
+            }
+       }
+       else if (OB_SUCCESS != (err = OB_OBJ_CAST[this->get_type()][dest_type](params, *this, result)))   //this,dst all !=ObDecimalType
+       {
+           err = OB_SUCCESS;
+           result.set_null();
+       }
+   }
+ }
+ else
+ {
+   err = OB_INVALID_ARGUMENT;
+ }
+ return err;
+}
+//add:e
+
+
 inline int ObExprObj::div_type_promotion(const ObExprObj &this_obj, const ObExprObj &other,
                                          ObExprObj &promoted_obj1, ObExprObj &promoted_obj2,
                                          const ObExprObj *&p_this, const ObExprObj *&p_other,
@@ -1438,6 +1724,11 @@ inline int ObExprObj::div_same_type(const ObExprObj &other, ObExprObj &res) cons
   res.type_ = get_type();
   switch(get_type())
   {
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    case ObIntType:
+      res.v_.int_=this->v_.int_/other.v_.int_;
+      break;
+      //add e
     case ObFloatType:
       res.v_.float_ = this->v_.float_ / other.v_.float_;
       break;
@@ -1445,8 +1736,11 @@ inline int ObExprObj::div_same_type(const ObExprObj &other, ObExprObj &res) cons
       res.v_.double_ = this->v_.double_ / other.v_.double_;
       break;
     case ObDecimalType:
-      ret = this->num_.div(other.num_, res.num_);
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      ret = this->decimal_.div(other.decimal_, res.decimal_);
       break;
+      //modify:e
     default:
       ret = OB_ERR_UNEXPECTED;
       TBSYS_LOG(ERROR, "unexpected branch, type=%d", get_type());
@@ -1467,24 +1761,49 @@ int ObExprObj::div(ObExprObj &other, ObExprObj &res, bool int_div_as_double)
   {
     ObExprObj promoted_value1;
     ObExprObj promoted_value2;
+    //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    /*char buf[MAX_PRINTABLE_SIZE];
+    memset(buf, 0, MAX_PRINTABLE_SIZE);
+    ObString os;
+    os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+    */
+    ObObj tmp_obj;
+    //tmp_obj.set_varchar(os);
+    promoted_value1.assign(tmp_obj);
+    /*char buf2[MAX_PRINTABLE_SIZE];
+    memset(buf2, 0, MAX_PRINTABLE_SIZE);
+    ObString os2;
+    os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+    */
+    ObObj tmp_obj2;
+    //tmp_obj2.set_varchar(os2);
+    promoted_value2.assign(tmp_obj2);
+    //add:e
     const ObExprObj *p_this = NULL;
     const ObExprObj *p_other = NULL;
+    //int64_t start= tbsys::CTimeUtil::getTime();
     if (OB_SUCCESS != (ret = div_type_promotion(*this, other, promoted_value1,
                                                 promoted_value2, p_this, p_other, int_div_as_double)))
     {
-      if (OB_RESULT_UNKNOWN == ret)
-      {
-        ret = OB_SUCCESS;
-      }
-      res.set_null();
+        if (OB_RESULT_UNKNOWN == ret)
+        {
+            ret = OB_SUCCESS;
+        }
+        res.set_null();
     }
     else
     {
-      ret = p_this->div_same_type(*p_other, res);
+        //int64_t end= tbsys::CTimeUtil::getTime();
+        //TBSYS_LOG(INFO,"xushilei,test type_promotion:%ld",end-start);
+        //start= tbsys::CTimeUtil::getTime();
+        ret = p_this->div_same_type(*p_other, res);
+        //end= tbsys::CTimeUtil::getTime();
+        //TBSYS_LOG(INFO,"xushilei,test div:%ld",end-start);
     }
   }
   return ret;
 }
+//modify e
 
 inline int ObExprObj::mod_type_promotion(const ObExprObj &this_obj, const ObExprObj &other,
                                          ObExprObj &promoted_obj1, ObExprObj &promoted_obj2,
@@ -1582,8 +1901,11 @@ int ObExprObj::negate(ObExprObj &res) const
       res.v_.double_ = -this->v_.double_;
       break;
     case ObDecimalType:
-      ret = this->num_.negate(res.num_);
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      ret = this->decimal_.negate(res.decimal_);
       break;
+      //modify:e
     default:
       res.set_null();
       ret = OB_INVALID_ARGUMENT;
@@ -1990,26 +2312,41 @@ int ObExprObj::not_like(const ObExprObj &pattern, ObExprObj &result) const
   return err;
 }
 
-int ObExprObj::set_decimal(const char* dec_str)
+int ObExprObj::set_decimal(const char* dec_str)  //not see use
 {
-  int ret = OB_SUCCESS;
-  ObObj obj;
-  ObNumber num;
-  static const int8_t TEST_PREC = 38;
-  static const int8_t TEST_SCALE = 4;
-  if (OB_SUCCESS != (ret = num.from(dec_str)))
-  {
-    TBSYS_LOG(WARN, "failed to construct decimal from string, err=%d str=%s", ret, dec_str);
-  }
-  else if (OB_SUCCESS != (ret = obj.set_decimal(num, TEST_PREC, TEST_SCALE)))
-  {
-    TBSYS_LOG(WARN, "obj failed to set decimal, err=%d", ret);
-  }
-  else
-  {
-    this->assign(obj);
-  }
-  return ret;
+    int ret = OB_SUCCESS;
+    ObObj obj;
+    //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    // ObNumber num;
+    ObDecimal num;
+    //modify e
+    static const int8_t TEST_PREC = 38;
+    static const int8_t TEST_SCALE = 4;
+    if (OB_SUCCESS != (ret = num.from(dec_str)))
+    {
+      TBSYS_LOG(WARN, "failed to construct decimal from string, err=%d str=%s", ret, dec_str);
+    }
+    else
+    {
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        char buff[MAX_PRINTABLE_SIZE];
+        memset(buff,0,MAX_PRINTABLE_SIZE);
+        int length=(int)num.to_string(buff,MAX_PRINTABLE_SIZE);
+        ObString os;
+        os.assign_ptr(buff,length);
+        //add e
+        if (OB_SUCCESS != (ret = obj.set_decimal(os, TEST_PREC, TEST_SCALE,TEST_SCALE)))
+        {
+            TBSYS_LOG(WARN, "obj failed to set decimal, err=%d", ret);
+        }
+        else
+        {
+            this->assign(obj);
+        }
+    }
+
+
+    return ret;
 }
 
 void ObExprObj::set_varchar(const char* value)
@@ -2120,7 +2457,10 @@ int ObExprObj::get_decimal(char * buf, const int64_t buf_len) const
   }
   else
   {
-    num_.to_string(buf, buf_len);
+      //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //change num_ to decimal_
+      decimal_.to_string(buf, buf_len);
+      //modify:e
   }
   return ret;
 }
@@ -2380,6 +2720,23 @@ ObObj ObExprObj::type_arithmetic(const ObObj& t1, const ObObj& t2)
   v2.type_ = t2.get_type();
   ObExprObj promoted1;
   ObExprObj promoted2;
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  char buf[MAX_PRINTABLE_SIZE];
+  memset(buf, 0, MAX_PRINTABLE_SIZE);
+  ObString os;
+  os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj;
+  tmp_obj.set_varchar(os);
+  promoted1.assign(tmp_obj);
+
+  char buf2[MAX_PRINTABLE_SIZE];
+  memset(buf2, 0, MAX_PRINTABLE_SIZE);
+  ObString os2;
+  os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj2;
+  tmp_obj2.set_varchar(os2);
+  promoted2.assign(tmp_obj2);
+  //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
   if (OB_SUCCESS != (err = arith_type_promotion(v1, v2, promoted1, promoted2, p_this, p_other)))
@@ -2396,7 +2753,53 @@ ObObj ObExprObj::type_arithmetic(const ObObj& t1, const ObObj& t2)
   }
   return ret;
 }
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+ObObj ObExprObj::type_add_v2(const ObObj& t1, const ObObj& t2){
 
+   ObObj ret;
+   ObObjType type1,type2;
+   type1=t1.get_type();
+   type2=t2.get_type();
+   ret.set_type(ARITHMETIC_TYPE_PROMOTION[type1][type2]);
+
+   return ret;
+
+}
+ObObj ObExprObj::type_sub_v2(const ObObj& t1, const ObObj& t2){
+
+   ObObj ret;
+   ObObjType type1,type2;
+   type1=t1.get_type();
+   type2=t2.get_type();
+   ret.set_type(ARITHMETIC_TYPE_PROMOTION[type1][type2]);
+
+   return ret;
+
+}
+ObObj ObExprObj::type_mul_v2(const ObObj& t1, const ObObj& t2){
+
+   ObObj ret;
+   ObObjType type1,type2;
+   type1=t1.get_type();
+   type2=t2.get_type();
+   ret.set_type(ARITHMETIC_TYPE_PROMOTION[type1][type2]);
+
+   return ret;
+
+}
+
+ObObj ObExprObj::type_div_v2(const ObObj& t1, const ObObj& t2, bool int_div_as_double){
+   UNUSED(int_div_as_double);
+   ObObj ret;
+   ObObjType type1,type2;
+   type1=t1.get_type();
+   type2=t2.get_type();
+   ret.set_type(DIV_TYPE_PROMOTION[type1][type2]);
+
+   return ret;
+
+}
+//add e
 ObObj ObExprObj::type_add(const ObObj& t1, const ObObj& t2)
 {
   return type_arithmetic(t1, t2);
@@ -2423,6 +2826,23 @@ ObObj ObExprObj::type_div(const ObObj& t1, const ObObj& t2, bool int_div_as_doub
   v2.type_ = t2.get_type();
   ObExprObj promoted_value1;
   ObExprObj promoted_value2;
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  char buf[MAX_PRINTABLE_SIZE];
+  memset(buf, 0, MAX_PRINTABLE_SIZE);
+  ObString os;
+  os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj;
+  tmp_obj.set_varchar(os);
+  promoted_value1.assign(tmp_obj);
+
+  char buf2[MAX_PRINTABLE_SIZE];
+  memset(buf2, 0, MAX_PRINTABLE_SIZE);
+  ObString os2;
+  os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj2;
+  tmp_obj2.set_varchar(os2);
+  promoted_value2.assign(tmp_obj2);
+  //add e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
   if (OB_SUCCESS != (err = div_type_promotion(v1, v2, promoted_value1, promoted_value2,

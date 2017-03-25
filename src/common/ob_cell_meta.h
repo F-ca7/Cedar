@@ -71,7 +71,12 @@ namespace oceanbase
     {
       uint16_t dec_precision_:7;
       uint16_t dec_scale_:6;
-      uint16_t dec_nwords_:3;
+      //delete fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+       //uint16_t dec_nwords_:3;
+       //delete e
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      uint16_t dec_vscale_:6;
+      //add e
     };
   }
 }

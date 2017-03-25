@@ -45,13 +45,22 @@ ObExprValues::ObExprValues()
    from_deserialize_(false),
    check_rowkey_duplicat_(false),
    do_eval_when_serialize_(false),
-   group_exec_(false)
+   group_exec_(false),
+   //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+   is_del_update(false)
+   //add e
 {
 }
 
 ObExprValues::~ObExprValues()
 {
 }
+
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+void ObExprValues::set_del_upd(){
+    is_del_update=true;
+}
+//add e
 
 void ObExprValues::reset()
 {
@@ -63,6 +72,9 @@ void ObExprValues::reset()
   from_deserialize_ = false;
   check_rowkey_duplicat_ = false;
   do_eval_when_serialize_ = false;
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  is_del_update=false;
+  //add e
 }
 
 void ObExprValues::reuse()
@@ -75,6 +87,9 @@ void ObExprValues::reuse()
   from_deserialize_ = false;
   check_rowkey_duplicat_ = false;
   do_eval_when_serialize_ = false;
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  is_del_update=false;
+  //add e
 }
 
 int ObExprValues::set_row_desc(const common::ObRowDesc &row_desc, const common::ObRowDescExt &row_desc_ext)
@@ -205,8 +220,11 @@ int ObExprValues::eval()
   OB_ASSERT(0 == (values_.count() % row_desc_.get_column_num()));
   ModuleArena buf(OB_MALLOC_BLOCK_SIZE, ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
   char* varchar_buff = NULL;
-  if (NULL == (varchar_buff = buf.alloc(OB_MAX_VARCHAR_LENGTH)))
+  //modify xsl ECNU_DECIMAL 2016.12
+  //if (NULL == (varchar_buff = buf.alloc(OB_MAX_VARCHAR_LENGTH)))
+  if (NULL == (varchar_buff = buf.alloc(sizeof(ObDecimal)))) //分配一块内存
   {
+  //modify e
     ret = OB_ALLOCATE_MEMORY_FAILED;
     TBSYS_LOG(WARN, "No memory");
   }
@@ -247,12 +265,17 @@ int ObExprValues::eval()
       {
         ObRow val_row;
         val_row.set_row_desc(row_desc_);
-        ObString varchar;
+        //modify xsl ECNU_DECIMAL 2016_12
+        //ObString varchar;
+        ObDecimal *dec=NULL;
         ObObj casted_cell;
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
-          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          dec=reinterpret_cast<ObDecimal *>(varchar_buff);  //改变指针指向的内存
+          //casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          casted_cell.set_decimal(dec);    //??使得obobj的decimal指针有空间
+          //modify e
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
           uint64_t column_id = OB_INVALID_ID;
@@ -268,11 +291,48 @@ int ObExprValues::eval()
             ret = OB_ERR_UNEXPECTED;
             TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
           }
-          else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+          /*
+          else if (0 < row_desc_.get_rowkey_cell_count()
+                   && j < row_desc_.get_rowkey_cell_count()
+                   && single_value->is_null())
+          {
+            TBSYS_LOG(USER_ERROR, "primary key can not be null");
+            ret = OB_ERR_INSERT_NULL_ROWKEY;
+          }
+          */
+           //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          else
+          {
+
+              if(is_del_update)
+              {
+                  if (OB_SUCCESS != obj_cast(*single_value, data_type, casted_cell, single_value))
+                  {
+                      TBSYS_LOG(DEBUG, "failed to cast obj, err=%d", ret);
+                  }
+              }
+              else
+              {
+                  if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+                  {
+                          TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
+                  }
+              }
+
+          }
+
+          //else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value))) old code
+                  //old code
+          /*
+             else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
           {
             TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
           }
-          else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value)))
+          */
+          if(OB_SUCCESS!=ret){
+          }
+          else if (OB_SUCCESS != (ret = ob_write_obj_v2(buf, *single_value, tmp_value)))  //??
+              //modify:e
           {
             TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
           }
@@ -282,6 +342,7 @@ int ObExprValues::eval()
           }
           else
           {
+
             //TBSYS_LOG(DEBUG, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));
           }
         } // end for
@@ -321,12 +382,17 @@ int ObExprValues::eval()
       {
         ObRow val_row;
         val_row.set_row_desc(row_desc_);
-        ObString varchar;
+        //modify xsl ECNU_DECIMAL 2016_12
+        //ObString varchar;
+        ObDecimal *dec=NULL;
         ObObj casted_cell;
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
-          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          dec=reinterpret_cast<ObDecimal *>(varchar_buff);  //改变指针指向的内存
+          //casted_cell.set_varchar(varchar); // reuse the varchar buffer
+          casted_cell.set_decimal(dec);    //??使得obobj的decimal指针有空间
+          //modify e
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
           uint64_t column_id = OB_INVALID_ID;
@@ -351,12 +417,39 @@ int ObExprValues::eval()
           ret = OB_ERR_INSERT_NULL_ROWKEY;
         }
         */
-          else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
-          {
-            TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
-          }
-          else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value)))
-          {
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+         else
+         {
+             if(is_del_update)
+             {
+                 if (OB_SUCCESS != obj_cast(*single_value, data_type, casted_cell, single_value))
+                 {
+                     TBSYS_LOG(DEBUG, "failed to cast obj, err=%d", ret);
+                 }
+             }
+             else
+             {
+                 if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+                 {
+                         TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
+                 }
+             }
+
+         }
+
+         //else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value))) old code
+                 //old code
+         /*
+            else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+         {
+           TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
+         }
+         */
+         if(OB_SUCCESS!=ret){
+         }
+         else if (OB_SUCCESS != (ret = ob_write_obj_v2(buf, *single_value, tmp_value)))  //??
+             //modify:e
+         {
             TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
           }
           else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
@@ -438,6 +531,7 @@ PHY_OPERATOR_ASSIGN(ObExprValues)
   * > For phy_plan execution, exprValues can be calcuted, since there's
   *   no precede plans
   *****************************************************************/
+
 DEFINE_SERIALIZE(ObExprValues)
 {
   int ret = OB_SUCCESS;

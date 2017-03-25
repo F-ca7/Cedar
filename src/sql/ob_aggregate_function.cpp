@@ -682,9 +682,10 @@ int ObAggregateFunction::get_result(const ObRow *&row)
           {
             res_cell->set_null();
           }
+
           else
           {
-            ret = aggr_cell->to(*res_cell);
+                ret = aggr_cell->to(*res_cell);
           }
           break;
         case T_FUN_AVG:
@@ -697,7 +698,7 @@ int ObAggregateFunction::get_result(const ObRow *&row)
             ret = aggr_cell->div(*aux_cell, result, did_int_div_as_double_);
             if (OB_SUCCESS == ret)
             {
-              ret = result.to(*res_cell);
+                    ret = result.to(*res_cell);
             }
           }
           break;

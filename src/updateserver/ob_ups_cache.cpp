@@ -155,6 +155,17 @@ namespace oceanbase
                 value.value.get_varchar(str_value);
                 buffer_handle.buffer_ = const_cast<char*>( str_value.ptr());
               }
+              //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+              else if(common::ObDecimalType == value.value.get_type())
+              {
+                  //modify xsl ECNU_DECIMAL 2016_12
+                  //ObString str_value;
+                  ObDecimal *str_value = NULL;
+                  value.value.get_decimal_v2(str_value);
+                  buffer_handle.buffer_ = reinterpret_cast<char*>(str_value);
+                  //modify e
+              }
+              //add:e
               else
               {
                 buffer_handle.buffer_ = NULL;

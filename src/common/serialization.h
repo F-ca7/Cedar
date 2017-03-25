@@ -20,6 +20,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "ob_define.h"
+//add xsl ECNU_DECIMAL 2016_12
+#include "Ob_Decimal.h"
+//add e
 #include "tbsys.h"
 namespace oceanbase
 {
@@ -1748,7 +1751,226 @@ namespace oceanbase
         }
         return ret;
       }
+      //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      inline int encode_TTInt(char* buf, int64_t buf_len, int64_t &pos,
+                              int64_t single_word) {
 
+          int ret = OB_SUCCESS;
+          //int64_t uint_size = (int64_t)(sizeof(unsigned int));
+          //int64_t val_size = buf_len / uint_size; //Here,it is 4;
+          //val_size = 4;
+          uint64_t tmp = 0;
+          //TODO implement serialization for TTInt
+
+          //In this decimal case,the buf_len is always 32;
+          ret = (NULL != buf
+                  && ((buf_len - pos) >= static_cast<int64_t>(sizeof(single_word)))) ?
+                      OB_SUCCESS : OB_ERROR;
+          //for (int i = 0; i < val_size; i++) {
+          tmp = single_word;
+          if (OB_SUCCESS == ret) {
+
+              *(buf + pos++) = static_cast<char>(((tmp) >> 56) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 48) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 40) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 32) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 24) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 16) & 0xff);
+              *(buf + pos++) = static_cast<char>(((tmp) >> 8) & 0xff);
+              *(buf + pos++) = static_cast<char>((tmp) & 0xff);
+
+          }
+          //}
+          return ret;
+      }
+
+      /*
+                   This function is used to deseriliazation for uint64 of TTInt;
+                   we encode every char into 8digit binary,and join them together,
+                   finally explain them as a uint64_t
+                 */
+      inline int decode_TTInt(const char * buf, const int64_t data_len, int64_t& pos,
+                              int64_t* val) {
+          int ret = (NULL != buf && data_len - pos >= 8) ? OB_SUCCESS : OB_ERROR;
+          if (OB_SUCCESS == ret) {
+              *val = ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 56;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 48;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 40;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 32;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 24;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 16;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff)) << 8;
+              *val |= ((static_cast<int64_t>((*(buf + pos++))) & 0xff));
+
+          }
+          return ret;
+      }
+      //modify xsl ECNU_DECIMAL 2016_12
+      inline int encode_ttint_buf(char *buf,const int64_t buf_len,int64_t& pos,ObDecimal *vbuf/*const char *vbuf*/,int32_t len)
+      {
+          int ret = OB_SUCCESS;
+          UNUSED(buf_len);
+          if(buf==NULL){
+              ret=OB_ERROR;
+              TBSYS_LOG(WARN,"the input buf pointer is NULL!");
+          }
+          if(buf_len-pos<len){
+              ret=OB_BUF_NOT_ENOUGH;
+              TBSYS_LOG(WARN,"the buf is not enough");
+          }
+          if (OB_SUCCESS == ret && (NULL != vbuf) && (len > 0))
+          {
+              memcpy(buf + pos,vbuf,len);
+              pos += len;
+          }
+          else ret=OB_ERROR;
+          return ret;
+      }
+      //modify e
+
+      inline  char * decode_ttint_buf(const char *buf,const int64_t data_len,int64_t& pos,int32_t& lenp){
+          const char *str = NULL;
+          //int OB_DECIMAL_VALUE_SIZE=16;
+          if ((NULL == buf) || data_len < 0)
+          {
+              str = NULL;
+          }
+          else
+          {
+              if ((data_len - pos >= lenp))
+              {
+                  str = buf + pos;
+                  pos += lenp;
+                  //lenp = static_cast<int32_t>(OB_DECIMAL_VALUE_SIZE);
+              }
+              else
+              {
+                  lenp = -1;
+                  str = NULL;
+                  TBSYS_LOG(ERROR,"failed to decode_ttint_buf");
+              }
+
+          }
+          return const_cast<char*>(str);
+      }
+      //modify xsl ECNU_DECIMAL 2016_12
+      inline int encode_comm_decimal(char* buf, const int64_t buf_len,
+                                     int64_t &pos, bool is_add, int8_t precision, int8_t scale,
+                                     int8_t vscale,ObDecimal* word/*const char* word*/,int32_t len) {
+          //modify e
+          int ret = OB_SUCCESS;
+          //@TO DO Serialization
+          //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          //if (NULL == buf || buf_len <= 0 || pos >= buf_len || NULL == word) {
+          if (NULL == buf || buf_len <= 0 || pos >= buf_len) {
+              //modify e
+              ret = OB_ERROR;
+              TBSYS_LOG(WARN,"string buffer for decimal is null!");
+          }
+          int8_t first_byte = OB_DECIMAL_TYPE;    //it is -1 when convert into int
+          if (OB_SUCCESS == ret) {
+
+              ret = encode_i8(buf, buf_len, pos, first_byte);
+          }
+          if (OB_SUCCESS == ret) {
+              int8_t op = is_add ? 1 : 0;
+              ret = encode_i8(buf, buf_len, pos, op);
+          }
+          if (OB_SUCCESS == ret) {
+              ret = encode_i8(buf, buf_len, pos, precision);
+          }
+
+          if (OB_SUCCESS == ret) {
+              ret = encode_i8(buf, buf_len, pos, scale);
+          }
+
+          if (OB_SUCCESS == ret) {
+
+              ret = encode_i8(buf, buf_len, pos, vscale);
+          }
+          if (OB_SUCCESS == ret) {
+
+              ret = encode_i32(buf, buf_len, pos, len);
+          }
+          //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          //  if (OB_SUCCESS == ret && NULL != word) {
+          //  ret=encode_TTInt(buf,buf_len,pos,word);
+          //  @TODO implement serialization
+          //ret=encode_TTInt(buf,buf_len,pos,word->get_words());
+          ret=encode_ttint_buf(buf, buf_len, pos, word,len);   //序列化了一个TTInt,add xsl ECNU_DECIMAL modify 12.7
+          //modify e
+          // }
+          return ret;
+      }
+      //modify e
+
+      //modify xsl ECNU_DECIMAL 2016_12
+      inline int decode_comm_decimal(const char* buf, const int64_t buf_len,
+                                     int64_t &pos, bool &is_add, int8_t &precision, int8_t &scale,
+                                     int8_t &vscale, /*ObDecimal *&word*/char *&word,int32_t &len) {
+
+          int ret = OB_SUCCESS;
+          //TODO Here is implemention for de-serialization for new decimal
+          if (NULL == buf || buf_len < 0 || pos >= buf_len ) {
+              ret = OB_ERROR;
+          }
+          else
+          {
+              int8_t op = 0;
+
+              if (OB_SUCCESS == (ret = decode_i8(buf, buf_len, pos, &op)))
+              {
+                  is_add = op;
+              }
+              if (OB_SUCCESS == ret) {
+                  ret = decode_i8(buf, buf_len, pos, &precision);
+              }
+              if (OB_SUCCESS == ret) {
+                  ret = decode_i8(buf, buf_len, pos, &scale);
+              }
+              if (OB_SUCCESS == ret) {
+                  ret = decode_i8(buf, buf_len, pos, &vscale);
+              }
+              if (OB_SUCCESS == ret) {
+                  ret = decode_i32(buf, buf_len, pos, &len);
+              }
+
+              if (OB_SUCCESS == ret) {
+                  word = decode_ttint_buf(buf,buf_len,pos,len);
+              }
+              if(OB_SUCCESS != ret){
+                  ret=OB_ERR_UNEXPECTED;
+                  TBSYS_LOG(WARN,"deserilization decimal error!null pointer");
+              }
+              if (OB_SUCCESS != ret) {
+                  //TODO WARNING FOR
+                  TBSYS_LOG(WARN,"deserilization decimal error!");
+              }
+
+          }
+          return ret;
+      }
+      //modify e
+
+      inline int64_t encoded_length_decimal_comm(int32_t val_len){
+
+          /*to caculate size of seriliazation decimalType ObObject
+                         except TTInt,we seriliazation that:
+                         first byte:1byte the flag of object type
+                         is_add:1 byte bool is_add
+                         precision:1 byte,precision of decimal
+                         scale:1 byte,scale of decimal
+                         vscale: 1 byte,scale of decimal
+                   */
+          UNUSED(val_len);
+          int64_t ret=0;
+          ret+=val_len;
+          ret+=sizeof(int32_t);
+          ret+=5;
+          return ret;
+
+      }
+      //add e
     } /* serialization */
   } /* common */
 } /* oceanbase*/

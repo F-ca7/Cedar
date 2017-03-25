@@ -42,8 +42,6 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       if (OB_SUCCESS == (ret = build_sst_scan_param()))
       {
-        TBSYS_LOG(INFO, "Dragon> build_sst_scan_param succ! sst_scan_param_ is %s",
-                  to_cstring(sst_scan_param_)); // add 2017-3-10
         ret = scan();
       }
       cur_row_.set_row_desc(row_desc_);
@@ -85,7 +83,6 @@ namespace oceanbase
       ObNewRange fake_range;
       sst_scan_.close();
       sst_scan_.reset();
-      //找到属于本机上的range
       if(OB_SUCCESS != (ret = get_next_local_range(fake_range)))
       {
         if (ret != OB_ITER_END)
@@ -95,7 +92,6 @@ namespace oceanbase
       }
       if (OB_SUCCESS == ret)
       {
-        TBSYS_LOG(INFO, "find range[%s]'s index is %ld", to_cstring(fake_range), hash_index_); //add 2017-3-10
         ret = sst_scan_.open_scan_context_local_idx(sst_scan_param_, sc_, fake_range);
       }
       if (OB_SUCCESS == ret)
@@ -185,7 +181,6 @@ namespace oceanbase
           else
           {
             list = itr->second;
-            //本机
             if (list[0].server_.chunkserver_.get_ipv4() == self_.get_ipv4()
                 && list[0].server_.chunkserver_.get_port() == self_.get_port())
             {
@@ -223,13 +218,6 @@ namespace oceanbase
           row = tmp_row;
         }
       }
-      //add dragon [Debug] 2017-3-10 b
-      //当一台CS上没有任何tablet的第一副本时，直接返回iter_end
-      else
-      {
-        ret = OB_ITER_END;
-      }
-      //add dragon [Debug] 2017-3-10 e
       return ret;
     }
 

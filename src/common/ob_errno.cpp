@@ -176,8 +176,6 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_WAITING_COMMIT, "Waiting commit error");
     ADD_ERROR_STR(OB_STMT_EXPIRED, "Expired statement");
 
-     ADD_ERROR_STR(OB_OPERATION_NOT_ALLOWED, "Operation is not allowed"); // 操作不允许 add dragon [Bugfix#12] 2017-3-8
-
     //error code for chunk server -1001 ---- -2000
     ADD_ERROR_STR(OB_CS_CACHE_NOT_HIT, "Cache not hit");   // 缓存没有命中
     ADD_ERROR_STR(OB_CS_TIMEOUT, "ChunkServer timeout");         // 超时

@@ -92,6 +92,7 @@ namespace oceanbase
       }value_;
       // due to compile restriction, cant put string_ into union.
       // reason: ObString default constructor has parameters
+      ObDecimal dec;   //add xsl ECNU_DECIMAL 2016_12
       ObString  string_;        // const varchar obj or system function name
       public:
         int assign(const common::ObObj &obj);
@@ -122,6 +123,12 @@ namespace oceanbase
       TWO_OR_THREE = -3,
       OCCUR_AS_PAIR = -2,
       MORE_THAN_ZERO = -1,
+      //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      /*
+        * for castº¯Êý
+      */
+      TWO_OR_FOUR=-4,
+      //add:e
     };
 
     struct ObInRowOperator
@@ -514,6 +521,10 @@ namespace oceanbase
         static int32_t SYS_FUNCS_ARGS_NUM[SYS_FUNC_NUM];
       public:
         typedef ObSEArray<ObObj, BASIC_SYMBOL_COUNT> ExprArray;
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+         ObObj& get_expr() ;
+         int fix_varchar_and_decimal(uint32_t p,uint32_t s);
+        //add e
       public:
         // add longfei [secondary index select] 20151031 :b
         // to my opinion, sometimes we need to know what the actually expr_ is, so i add this interface

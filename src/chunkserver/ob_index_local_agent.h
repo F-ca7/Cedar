@@ -36,8 +36,6 @@ namespace oceanbase
     typedef hash::ObHashMap<ObNewRange, ObTabletLocationList,
     hash::NoPthreadDefendMode> RangeServerHash;
     typedef hash::ObHashMap<ObNewRange, ObTabletLocationList,
-    hash::NoPthreadDefendMode>::iterator RangeLocationIterator;
-    typedef hash::ObHashMap<ObNewRange, ObTabletLocationList,
     hash::NoPthreadDefendMode>::const_iterator HashIterator;
 
     /**

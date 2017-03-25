@@ -547,6 +547,20 @@ namespace oceanbase
             length = length / CELL_INFO_SIZE_UNIT;
             ret = (int16_t)length;
           }
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          else if(ObDecimalType == value.get_type())
+          {
+              //modify xsl  ECNU_DECIMAL 2016_12
+              //ObString vc;
+              ObDecimal vc;
+              value.get_decimal(vc);
+              int64_t length = sizeof(ObDecimal);
+              //modify e
+              length = (length + CELL_INFO_SIZE_UNIT - 1) & ~(CELL_INFO_SIZE_UNIT- 1);
+              length = length / CELL_INFO_SIZE_UNIT;
+              ret = (int16_t)length;
+          }
+          //add:e
           return ret;
         };
         inline static bool is_row_not_exist_(const common::ObObj &value)

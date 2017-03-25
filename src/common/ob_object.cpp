@@ -9,6 +9,9 @@
 #include "utility.h"
 #include "ob_crc64.h"
 #include "murmur_hash.h"
+//add   fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+#include "Ob_Decimal.h"
+//add e
 
 using namespace oceanbase;
 using namespace oceanbase::common;
@@ -33,13 +36,27 @@ bool ObObj::is_true() const
       break;
     case ObDecimalType:
       {
-        ObNumber dec;
-        bool is_add = false;
-        if (OB_SUCCESS == get_decimal(dec, is_add))
-        {
-          ret = !dec.is_zero();
-        }
-        break;
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      // ObNumber dec;
+   //    ObDecimal dec;
+       ObDecimal od;
+       ret=get_decimal(od);
+       //bool is_add = false;
+       if (OB_SUCCESS == ret)
+       {
+           TBSYS_LOG(ERROR,"failed in covert decimal from buf");
+       }
+       /*  else if(OB_SUCCESS!=(ret=od.modify_value(get_precision(),get_scale()))){
+
+           TBSYS_LOG(ERROR,"failed in modify decimal value");
+         }
+         */
+         else
+       {
+         ret = !od.is_zero();
+       }
+       //modify e
+       break;
       }
     case ObFloatType:
       ret = (fabsf(value_.float_val) > FLOAT_EPSINON);
@@ -90,8 +107,8 @@ int ObObj::get_decimal(ObNumber &num) const
   bool is_add;
   return get_decimal(num, is_add);
 }
-
-int ObObj::set_decimal(const ObNumber &num, int8_t precision, int8_t scale, bool is_add /*= false*/)
+/*delete xsl ECNU_DECIMAL 2017_2
+int ObObj:: set_decimal(const ObNumber &num, int8_t precision, int8_t scale, bool is_add )//= false
 {
   int ret = OB_SUCCESS;
   set_flag(is_add);
@@ -118,7 +135,182 @@ int ObObj::set_decimal(const ObNumber &num, int8_t precision, int8_t scale, bool
   }
   return ret;
 }
+*/
+//add   fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+/*modify xsl ECNU_DECIMAL 2016_12
+int ObObj::get_decimal(ObString& value) const{
 
+   int res = OB_OBJ_TYPE_ERROR;
+   if(meta_.type_==ObDecimalType){
+
+    value.assign_ptr(reinterpret_cast<char *>(value_.dec->get_words()),value_.dec->get_precision());
+    res = OB_SUCCESS;
+   }
+
+   return res;
+}*/
+//delete e
+
+int ObObj::get_decimal(ObString& value) const{
+
+   int res = OB_OBJ_TYPE_ERROR;
+   if(meta_.type_==ObDecimalType){
+
+    value.assign_ptr(const_cast<char *>(value_.word), val_len_);
+    res = OB_SUCCESS;
+
+   }
+
+   return res;
+}
+//modify e
+int ObObj::set_decimal(const ObString& value){
+    int ret=OB_SUCCESS;
+    ObDecimal od;
+    if(OB_SUCCESS!=(ret=od.from(value.ptr(),value.length())))
+    {
+        TBSYS_LOG(ERROR, "invalid buffer for string to decimal,buffer =%.*s,",value.length(),value.ptr());
+    }
+    else
+    {
+        uint32_t p,s,v;
+        p=od.get_precision();
+        s=od.get_scale();
+        v=od.get_vscale();
+        meta_.type_ = ObDecimalType;
+        meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+        meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+        meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+        meta_.op_flag_ = INVALID_OP_FLAG;
+        value_.word = value.ptr();
+        val_len_ = value.length();
+    }
+    return ret;
+}
+
+int ObObj::set_decimal(const char* value){
+    int ret=OB_SUCCESS;
+    ObDecimal od;
+    if(OB_SUCCESS!=(ret=od.from(value))){
+
+        TBSYS_LOG(ERROR, "invalid buffer for string to decimal,buffer =%.*s,",static_cast<int32_t>(strlen(value)),value);
+    }
+    else
+        {
+        uint32_t p,s,v;
+        p=od.get_precision();
+        s=od.get_scale();
+        v=od.get_vscale();
+        meta_.type_ = ObDecimalType;
+        meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+        meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+        meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+        meta_.op_flag_ = INVALID_OP_FLAG;
+        value_.word = value;
+        val_len_ = static_cast<int32_t>(strlen(value));
+    }
+    return ret;
+}
+
+int ObObj::set_decimal(const ObString& value,uint32_t p,uint32_t s,uint32_t v){
+    int ret=OB_SUCCESS;
+    meta_.type_ = ObDecimalType;
+    value_.word = value.ptr();
+    val_len_ = value.length();
+    meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+    meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+    meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+    meta_.op_flag_ = INVALID_OP_FLAG;
+
+    return ret;
+}
+//add xsl ECNU_DECIMAL 2016_12
+int ObObj::get_decimal(ObDecimal& value) const   //实际的赋值
+{
+   int res = OB_OBJ_TYPE_ERROR;
+    if(meta_.type_==ObDecimalType){
+       value.set_word(value_.dec->get_words());
+       value.set_precision(value_.dec->get_precision());
+       value.set_scale(value_.dec->get_scale());
+       value.set_vscale(value_.dec->get_vscale());
+      res = OB_SUCCESS;
+    }
+    return res;
+}
+int ObObj::get_decimal_v2(ObDecimal*& value) const   //指针赋值,关联到这块内存上
+{
+   int res = OB_OBJ_TYPE_ERROR;
+    if(meta_.type_==ObDecimalType){
+      value=value_.dec;
+      res = OB_SUCCESS;
+    }
+    return res;
+}
+int ObObj::set_decimal(const ObDecimal& od)   //obj的decimal指针指向这个od,并且是给meta中的参数赋值
+{
+    int ret=OB_SUCCESS;
+    uint32_t p,s,v;
+    p=od.get_precision();
+    s=od.get_scale();
+    v=od.get_vscale();
+    meta_.type_ = ObDecimalType;
+    meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+    meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+    meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+    meta_.op_flag_ = INVALID_OP_FLAG;
+    value_.dec=const_cast<ObDecimal *>(&od);   //dec指针赋值
+    //val_len_=meta_.dec_precision_;
+    return ret;
+}
+int ObObj::set_decimal(const ObDecimal* od)
+{
+    int ret=OB_SUCCESS;
+    uint32_t p,s,v;
+    p=od->get_precision();
+    s=od->get_scale();
+    v=od->get_vscale();
+    meta_.type_ = ObDecimalType;
+    meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+    meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+    meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+    meta_.op_flag_ = INVALID_OP_FLAG;
+    value_.dec=const_cast<ObDecimal *>(od);   //dec指针的赋值
+    return ret;
+}
+int ObObj::set_decimal_v2(ObDecimal* od,uint32_t p,uint32_t s,uint32_t v)   //obj的decimal指针指向这个od,并且是给meta中的参数赋值
+{
+    int ret=OB_SUCCESS;
+    meta_.type_ = ObDecimalType;
+    meta_.op_flag_ = INVALID_OP_FLAG;
+    value_.dec->set_precision(p);
+    value_.dec->set_scale(s);
+    value_.dec->set_vscale(v);
+    value_.dec->set_word(od->get_words());
+    //value_.dec=od;   //modify xsl ECNU_DECIMAL 2017
+    return ret;
+}
+
+int ObObj::set_decimal(const ObDecimal* od,uint32_t p,uint32_t s,uint32_t v)
+{
+    int ret=OB_SUCCESS;
+    meta_.type_ = ObDecimalType;
+    meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+    meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+    meta_.dec_vscale_ = static_cast<uint8_t>(v) & META_VSCALE_MASK;
+    meta_.op_flag_ = INVALID_OP_FLAG;
+    value_.dec=const_cast<ObDecimal *>(od);   //dec指针的赋值
+    return ret;
+}
+
+int ObObj::set_ttint(const TTInt* ttint)
+{
+    int ret=OB_SUCCESS;
+    TTInt *t1=value_.dec->get_words();
+    t1=const_cast<TTInt *>(ttint);
+    return ret;
+}
+//add e
+//add e
 int ObObj::compare_same_type(const ObObj &other) const
 {
   int cmp = 0;
@@ -140,11 +332,45 @@ int ObObj::compare_same_type(const ObObj &other) const
       break;
     case ObDecimalType:
       {
-        ObNumber n1, n2;
-        get_decimal(n1);
-        other.get_decimal(n2);
-        cmp = n1.compare(n2);
-        break;
+      /*
+       ObNumber n1, n2;
+       get_decimal(n1);
+       other.get_decimal(n2);
+       cmp = n1.compare(n2);
+      */
+      //modify xsl ECNU_DECIMAL 2016_12
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //ObString str1,str2;
+      ObDecimal od1, od2;
+      get_decimal(od1);
+      other.get_decimal(od2);
+      /*
+      int ret=OB_SUCCESS;
+      if(OB_SUCCESS!=(ret=od1.from(str1.ptr(),str1.length()))){
+          TBSYS_LOG(WARN,"failed to covert buff to decimal buf=%.*s",str1.length(),str1.ptr());
+      }
+      else if(OB_SUCCESS!=(ret=od2.from(str2.ptr(),str2.length()))){
+          TBSYS_LOG(WARN,"failed to covert buff to decimal buf=%.*s",str2.length(),str2.ptr());
+      }
+      */
+      /*
+       if(OB_SUCCESS!= (ret = od1.modify_value(get_precision(),get_scale()))){
+          char err1[MAX_PRINTABLE_SIZE];
+          memset(err1,0,MAX_PRINTABLE_SIZE);
+          od1.to_string(err1,MAX_PRINTABLE_SIZE);
+          TBSYS_LOG(WARN,"failed to modify value decimal=%s",err1);
+      }
+      else if(OB_SUCCESS!=(ret=od2.modify_value(other.get_precision(),other.get_scale())))
+      {
+          char err2[MAX_PRINTABLE_SIZE];
+          memset(err2,0,MAX_PRINTABLE_SIZE);
+          od2.to_string(err2,MAX_PRINTABLE_SIZE);
+          TBSYS_LOG(WARN,"failed to modify value decimal=%s",err2);
+      }
+      */
+      cmp = od1.compare(od2);
+      break;
+      //modify e
       }
     case ObVarcharType:
       {
@@ -564,35 +790,51 @@ int ObObj::apply(const ObObj &mutation)
         break;
       case ObDecimalType:
         {
-          ObNumber num, mutation_num, res;
-          if (ext_val_can_change || org_is_nop)
+        /*ObNumber num, mutation_num, res;
+        if (ext_val_can_change || org_is_nop)
+        {
+          num.set_zero();
+        }
+        else
+        {
+          err = get_decimal(num, org_is_add);
+        }
+        if (OB_SUCCESS == err)
+        {
+          err = mutation.get_decimal(mutation_num, is_add);
+        }
+        if (OB_SUCCESS == err)
+        {
+          if (is_add)
           {
-            num.set_zero();
+            err = num.add(mutation_num, res);
           }
           else
           {
-            err = get_decimal(num, org_is_add);
+            res = mutation_num;
           }
-          if (OB_SUCCESS == err)
-          {
-            err = mutation.get_decimal(mutation_num, is_add);
-          }
-          if (OB_SUCCESS == err)
-          {
-            if (is_add)
-            {
-              err = num.add(mutation_num, res);
-            }
-            else
-            {
-              res = mutation_num;
-            }
-          }
-          if (OB_SUCCESS == err)
-          {
-            set_decimal(res, meta_.dec_precision_, meta_.dec_scale_, (org_is_add || org_is_nop) && is_add);
-          }
+        }
+        if (OB_SUCCESS == err)
+        {
+          set_decimal(res, meta_.dec_precision_, meta_.dec_scale_, (org_is_add || org_is_nop) && is_add);
+        }
+        */
+        //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        //modify xsl ECNU_DECIMAL 2016_12
+        ObDecimal *dec1=NULL;
+        err=mutation.get_decimal_v2(dec1);
+        if(OB_SUCCESS != err)
+        {
+          TBSYS_LOG(ERROR,"get_decimal failed,err=%d", err);
+        }
+        err = set_decimal(dec1);
+        if(OB_SUCCESS != err)
+        {
+          TBSYS_LOG(ERROR,"set_decimal failed,err=%d", err);
+        }
+        //*this=mutation;
           break;
+        //modify e
         }
       default:
         /* case ObSeqType: */
@@ -618,7 +860,13 @@ void ObObj::dump(const int32_t log_level /*=TBSYS_LOG_LEVEL_DEBUG*/) const
   float float_val = 0.0f;
   double double_val = 0.0f;
   ObString str_val;
-  ObNumber num;
+  //modify xsl ECNU_DECIMAL 2016_12
+  //ObNumber num;
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  //ObString bstring;
+   ObDecimal od;
+  //add e
+  //modify e
   char num_buf[ObNumber::MAX_PRINTABLE_SIZE];
   switch (get_type())
   {
@@ -680,8 +928,21 @@ void ObObj::dump(const int32_t log_level /*=TBSYS_LOG_LEVEL_DEBUG*/) const
           "[%ld] type:ObExt, val:%ld",pthread_self(),int_val);
       break;
     case ObDecimalType:
-      get_decimal(num, is_add);
+      //modify xsl ECNU_DECIMAL 2016_12
+       /*get_decimal(num, is_add);
       num.to_string(num_buf, ObNumber::MAX_PRINTABLE_SIZE);
+      */
+       //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      if(OB_SUCCESS!=get_decimal(od))
+      {
+          TBSYS_LOG(ERROR,"failed to convert decimal from buff!");
+      }
+      else{
+      od.set_precision(get_precision());
+      od.set_scale(get_scale());
+      od.to_string(num_buf, MAX_PRINTABLE_SIZE);
+      }
+      //modify e
       TBSYS_LOGGER.logMessage(TBSYS_LOG_NUM_LEVEL(log_level),
           "[%ld] type:ObDecimalType, val:%s, is_add:%s",
           pthread_self(), num_buf, is_add ? "true" : "false");
@@ -735,11 +996,17 @@ void ObObj::print_value(FILE* fd)
       break;
     case ObDecimalType:
       {
-        char num_buf[ObNumber::MAX_PRINTABLE_SIZE];
-        ObNumber num;
-        get_decimal(num);
-        num.to_string(num_buf, ObNumber::MAX_PRINTABLE_SIZE);
-        fprintf(fd, "%s", num_buf);
+      /*char num_buf[ObNumber::MAX_PRINTABLE_SIZE];
+      ObNumber num;
+      get_decimal(num);
+      num.to_string(num_buf, ObNumber::MAX_PRINTABLE_SIZE);
+      fprintf(fd, "%s", num_buf);
+      */
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      ObDecimal num;
+      get_decimal(num);
+      fprintf(fd, "%s",to_cstring(num));  //??
+      //modify e
         break;
       }
     default:
@@ -874,11 +1141,36 @@ int64_t ObObj::to_string(char* buffer, const int64_t length) const
         break;
       case ObDecimalType:
       {
-        char num_buf[ObNumber::MAX_PRINTABLE_SIZE];
+        /*char num_buf[ObNumber::MAX_PRINTABLE_SIZE];
         ObNumber num;
         get_decimal(num);
         num.to_string(num_buf, ObNumber::MAX_PRINTABLE_SIZE);
         databuff_printf(buffer, length, pos, "%s", num_buf);
+        */
+        //modify xsl ECNU_DECIMAL 2016_12
+        //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        //ObString num;
+        ObDecimal od;
+        int ret=get_decimal(od);
+        char res[MAX_PRINTABLE_SIZE];
+        memset(res,0,MAX_PRINTABLE_SIZE);
+        if(OB_SUCCESS!=ret){
+            TBSYS_LOG(WARN,"failed to convert decimal from buf");
+        }
+        //test xsl  影响恢复
+
+        /*else if (OB_SUCCESS!=od.modify_value(get_precision(),get_scale())){
+            TBSYS_LOG(WARN,"failed to modify decimal");
+        }
+        */
+        //test e
+        //modify xsl ECNU_DECIMAL 2017_1
+        else
+        {
+            od.to_string(res,MAX_PRINTABLE_SIZE);
+        }
+        databuff_printf(buffer, length, pos, "%s",res);
+        //modify e
         break;
       }
       default:
@@ -936,6 +1228,7 @@ DEFINE_SERIALIZE(ObObj)
         ret = serialization::encode_bool_type(buf, buf_len, tmp_pos, value_.bool_val);
         break;
       case ObDecimalType:
+        /*
         if (meta_.dec_nwords_ + 1 <= 3)
         {
           ret = serialization::encode_decimal_type(buf, buf_len, tmp_pos, obj_op_flag == ADD, meta_.dec_precision_,
@@ -949,6 +1242,14 @@ DEFINE_SERIALIZE(ObObj)
               meta_.dec_scale_, meta_.dec_vscale_, static_cast<int8_t>(meta_.dec_nwords_ + 1),
               value_.dec_words_);
         }
+        //old code
+        */
+        //modify xsl ECNU_DECIMAL 2016_12
+        //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        // TBSYS_LOG(INFO, "xushilei,serialize decimal=[%s]", to_cstring(*value_.dec));
+        ret=serialization::encode_comm_decimal(buf,buf_len,tmp_pos,obj_op_flag == ADD,meta_.dec_precision_,
+            meta_.dec_scale_, meta_.dec_vscale_,value_.dec,sizeof(ObDecimal));
+        //modify e
         break;
       default:
         TBSYS_LOG(ERROR, "invalid obj_type=%d", type);
@@ -1054,29 +1355,38 @@ DEFINE_DESERIALIZE(ObObj)
                             break;
                           case 3: //obdecimaltype
                             {
-                              meta_.type_ = ObDecimalType;
-                              uint32_t words[ObNumber::MAX_NWORDS];
-                              int8_t p = 0;
-                              int8_t s = 0;
-                              int8_t vs = 0;
-                              int8_t n = 0;
-                              ret = serialization::decode_decimal_type(buf, data_len, tmp_pos, is_add, p, s, vs, n, words);
-                              if(OB_SUCCESS == ret)
-                              {
-                                meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
-                                meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
-                                meta_.dec_vscale_ = static_cast<uint8_t>(vs) & META_VSCALE_MASK;
-                                meta_.dec_nwords_ = static_cast<uint8_t>(n - 1) & META_NWORDS_MASK;
-                                if (n <= 3)
+                            //modify xsl ECNU_DECIMAL 2016_12
+                            //modify wenghaixing DECIMAL OceanBase_BankCommV0.3 2014_7_10:b
+                            meta_.type_ = ObDecimalType;
+                            char *o_ptr=NULL;
+                           // char *o_ptr=NULL;
+                            int8_t p = 0;
+                            int8_t s = 0;
+                            int8_t vs = 0;
+                            int32_t l=0;
+                            //TBSYS_LOG(INFO,"xushilei,deserialize!");  //add xsl
+                            ret=serialization::decode_comm_decimal(buf,data_len,tmp_pos,is_add,p,s,vs,o_ptr,l);
+                            meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
+                            meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
+                            meta_.dec_vscale_ = static_cast<uint8_t>(vs) & META_VSCALE_MASK;
+                            val_len_=l;
+                            if(NULL==o_ptr)
+                            {
+                              ret=OB_ERROR;
+                              TBSYS_LOG(ERROR,"decode_comm_decimal error, the ob_string for decimal is NULL!");
+                            }
+                            if(ret==OB_SUCCESS)
+                            {
+                                if(l == sizeof(ObDecimal) && 60 <= o_ptr(0) && o_ptr(0) <=71)
+                                    value_.dec = reinterpret_cast<ObDecimal *>(o_ptr);
+
+                                else       //否则不是decimal结构
                                 {
-                                  memcpy(reinterpret_cast<char*>(&val_len_), words, n * sizeof(uint32_t));
+                                    value_.dec->from(o_ptr);
                                 }
-                                else
-                                {
-                                  //@todo
-                                  ret = OB_NOT_IMPLEMENT;
-                                }
-                              }
+
+                            }
+                            //modify e
                               break;
                             }
                           default:
@@ -1120,7 +1430,116 @@ DEFINE_DESERIALIZE(ObObj)
   }
   return ret;
 }
+/**Name:from_hash
+*input: buf,buf_len
+*function:This function is only for obj hash,which used by row_key index hash for get method
+**/
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+int ObObj::from_hash(TTCInt &tc,const char* buff, int64_t buf_len)const{
+    int ret = OB_SUCCESS;
+    char int_buf[MAX_PRINTABLE_SIZE];
+    char frac_buf[MAX_PRINTABLE_SIZE];
+    memset(int_buf, 0, MAX_PRINTABLE_SIZE);
+    memset(frac_buf, 0, MAX_PRINTABLE_SIZE);
+    const char* s;
+    int got_dot = 0;
+    int got_digit = 0;
+    int got_frac = 0;
+    int got_num=0;
+    int i = 0;
+    int op = 0;
+    int length = 0;
+    bool is_valid=false;
+    short int sign;
+    if(buff==NULL){
+        ret=OB_ERR_UNEXPECTED;
+        TBSYS_LOG(ERROR, "failed to convert decimal to string buff,err=NULL buff ptr!");
+    }
+    if(buf_len>(int)MAX_PRINTABLE_SIZE)
+    {
+        ret=OB_ERR_UNEXPECTED;
+        TBSYS_LOG(ERROR,"failed to convert decimal from string buff for hash,since buf_len is too long ");
+    }
+    if(OB_SUCCESS==ret)
+    {
+        s = buff;
+        sign = *s == '-' ? 1 : 0;
+        if(buf_len==1&&!isdigit(*s)){
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(ERROR, "failed to convert char to decimal,invalid num=%c", *s);
+        }
+        else if(buf_len==2&&((*s == '-' || *s == '+')&&!isdigit(*(s+1)))){
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(ERROR, "failed to convert char to decimal,invalid num=%c", *s);
+        };
+        if(OB_SUCCESS==ret){
+            if (*s == '-' || *s == '+') {
+                op = 1;
+                i++;
+                ++s;
+            }
 
+            for (;; ++s) {
+
+                if (i == buf_len)
+                    break;
+
+                if (isdigit(*s)) {
+                    if(*s!='0'||got_dot)is_valid=true;
+                    if(is_valid)got_digit++;
+                    got_num++;
+                    if (got_dot)
+                        got_frac++;
+                } else {
+                    if (!got_dot && *s == '.')
+                        got_dot = 1;
+                    else if (*s != '\0') {
+
+                        ret = OB_ERR_UNEXPECTED;
+                        TBSYS_LOG(ERROR, "failed to convert char to decimal,invalid num=%c", *s);
+                    }
+                }
+                i++;
+
+            }
+        }
+    }
+    if (got_digit > MAX_DECIMAL_DIGIT || got_frac > MAX_DECIMAL_SCALE) {
+        ret = OB_DECIMAL_UNLEGAL_ERROR;
+        TBSYS_LOG(ERROR, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
+    }
+    if(OB_SUCCESS==ret){
+        TTCInt whole;
+        length = got_num + got_dot + op;
+        if (!got_dot) {
+
+            whole.FromString(int_buf);
+            whole = whole * kMaxScaleFactor;
+            //word[0] = whole;
+        } else {
+            int point_pos = length - got_frac;
+            memcpy(int_buf, buff, point_pos);
+            // TTCInt whole;
+            whole.FromString(int_buf);
+            whole = whole * kMaxScaleFactor;
+            memcpy(frac_buf, buff + (point_pos), got_frac);
+            TTCInt p(MAX_DECIMAL_SCALE-got_frac);
+            TTCInt BASE(10);
+            TTCInt part_frac;
+            part_frac.FromString(frac_buf);
+            BASE.Pow(p);
+            part_frac=part_frac*BASE;
+            whole=whole+part_frac;
+
+        }
+        tc=whole;
+
+    }
+
+    return ret;
+
+}
+//add e
 DEFINE_GET_SERIALIZE_SIZE(ObObj)
 {
   ObObjType type = get_type();
@@ -1165,7 +1584,7 @@ DEFINE_GET_SERIALIZE_SIZE(ObObj)
       len += serialization::encoded_length_bool_type(value_.bool_val);
       break;
     case ObDecimalType:
-      if (meta_.dec_nwords_+1 <= 3)
+      /* if (meta_.dec_nwords_+1 <= 3)
       {
         len += serialization::encoded_length_decimal_type(meta_.dec_nwords_, reinterpret_cast<const uint32_t*>(&val_len_));
       }
@@ -1173,6 +1592,19 @@ DEFINE_GET_SERIALIZE_SIZE(ObObj)
       {
         len += serialization::encoded_length_decimal_type(static_cast<int8_t>(meta_.dec_nwords_+1), value_.dec_words_);
       }
+      */
+      //modify xsl ECNU_DECIMAL 2016_12
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      /*to caculate size of seriliazation decimalType ObObject
+              except TTInt,we seriliazation that:
+              first byte:1byte the flag of object type
+              is_add:1 byte bool is_add
+              precision:1 byte,precision of decimal
+              scale:1 byte,scale of decimal
+              vscale: 1 byte,scale of decimal
+        */
+      len += serialization::encoded_length_decimal_comm(sizeof(ObDecimal));
+      //modify:e
       break;
     default:
       TBSYS_LOG(ERROR,"unexpected obj type [obj.type:%d]", type);
@@ -1231,15 +1663,24 @@ uint32_t ObObj::murmurhash2(const uint32_t hash) const
       break;
     case ObDecimalType:
       {
-        int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_+1);
-        if (nwords <= 3)
-        {
-          result = ::murmurhash2(reinterpret_cast<const uint32_t*>(&val_len_), static_cast<int32_t>(sizeof(uint32_t)*nwords), result);
-        }
-        else
-        {
-          result = ::murmurhash2(value_.dec_words_, static_cast<int32_t>(sizeof(uint32_t)*nwords), result);
-        }
+      //modify xsl ECNU_DECIMAL 2016_12
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      TTCInt ct;
+      ObDecimal* od=NULL;
+      get_decimal_v2(od);
+      const char *s=to_cstring(*od);
+      int len=(int)strlen(s);
+      if(OB_SUCCESS!=from_hash(ct,s,len))
+      {
+          TBSYS_LOG(ERROR,"failed calculate ttint for hash!");
+          result=0;
+      }
+      else
+      {
+          int length=32;
+          result = ::murmurhash2(&ct,length,result);
+      }
+      //modify e
         break;
       }
     default:
@@ -1298,15 +1739,25 @@ uint64_t ObObj::murmurhash64A(const uint64_t hash) const
       break;
     case ObDecimalType:
       {
-        int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_ + 1);
-        if (nwords <= 3)
-        {
-          result = ::murmurhash64A(reinterpret_cast<const uint64_t*>(&val_len_), static_cast<int32_t>(sizeof(uint32_t) * nwords), result);
-        }
-        else
-        {
-          result = ::murmurhash64A(value_.dec_words_, static_cast<int32_t>(sizeof(uint32_t) * nwords), result);
-        }
+      //modify xsl  ECNU_DECIMAL 2016_12
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      TTCInt ct;
+      ObDecimal* os=NULL;
+      get_decimal_v2(os);
+      const char *s=to_cstring(*os);
+      int len=(int)strlen(s);
+      if(OB_SUCCESS!=from_hash(ct,s,len))
+      {
+          TBSYS_LOG(ERROR,"failed calculate ttint for hash!");
+          result=0;
+      }
+      else
+      {
+          int length=32;
+          result = ::murmurhash64A(&ct,length,result);
+      }
+          //modify e
+    //modify e
         break;
       }
     default:
@@ -1366,15 +1817,22 @@ int64_t ObObj::checksum(const int64_t current) const
       break;
     case ObDecimalType:
       {
-        int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_+1);
-        if (nwords <= 3)
-        {
-          ret = ob_crc64(ret, reinterpret_cast<const uint32_t*>(&val_len_), sizeof(uint32_t)*nwords);
-        }
-        else
-        {
-          ret = ob_crc64(ret, value_.dec_words_, sizeof(uint32_t)*nwords);
-        }
+      /*int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_+1);
+      if (nwords <= 3)
+      {
+        ret = ob_crc64(ret, reinterpret_cast<const uint32_t*>(&val_len_), sizeof(uint32_t)*nwords);
+      }
+      else
+      {
+        ret = ob_crc64(ret, value_.dec_words_, sizeof(uint32_t)*nwords);
+      }
+      */
+      //modify ECNU_DECIMAL xsl 2016_12
+      //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+      //ret = ob_crc64(ret, value_.word, val_len_);
+      ret = ob_crc64(ret, value_.dec, sizeof(ObDecimal));
+      //modify e
+      //modify e
         break;
       }
     default:
@@ -1433,15 +1891,22 @@ void ObObj::checksum(ObBatchChecksum &bc) const
       break;
     case ObDecimalType:
       {
-        int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_+1);
-        if (nwords <= 3)
-        {
-          bc.fill(reinterpret_cast<const uint32_t*>(&val_len_), sizeof(uint32_t)*nwords);
-        }
-        else
-        {
-          bc.fill(value_.dec_words_, sizeof(uint32_t)*nwords);
-        }
+      /*int8_t nwords = static_cast<int8_t>(meta_.dec_nwords_+1);
+      if (nwords <= 3)
+      {
+        bc.fill(reinterpret_cast<const uint32_t*>(&val_len_), sizeof(uint32_t)*nwords);
+      }
+      else
+      {
+        bc.fill(value_.dec_words_, sizeof(uint32_t)*nwords);
+      }
+      */
+
+        //modify xsl ECNU_DECIMAL 2016_12
+        //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        bc.fill(value_.dec, sizeof(ObDecimal));
+        //modify e
+        //modify e
         break;
       }
     default:
