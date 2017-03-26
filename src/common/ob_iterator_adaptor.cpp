@@ -349,7 +349,7 @@ namespace oceanbase
                    ret=OB_DECIMAL_UNLEGAL_ERROR;
                    TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,p=%d,s=%d,od.get_precision()=%d,od.get_vscale()=%d",p,s,od->get_precision(),od->get_vscale());
                }
-               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal_v2(od,p,s,od->get_vscale()))))
+               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal_v2(od,od->get_precision(),s,od->get_vscale()))))
                {
                    TBSYS_LOG(ERROR, "failed to set_decimal in ObCellAdaptor::next_cell");
                }

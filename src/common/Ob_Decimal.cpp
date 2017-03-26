@@ -506,7 +506,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {
 	}
       if(OB_SUCCESS==ret){
 		scale_ = s;
-		precision_ = p;
+        precision_ = point_pos + s;   //add xsl ECNU_DECIMAL 2017_3
       }
 	return ret;
 }
