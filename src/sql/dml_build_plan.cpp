@@ -891,10 +891,12 @@ int resolve_expr(
             //modify xsl ECNU_DECIMAL 2017_2
             //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
             /*
-            *由于在这里decimal的值是按照varcahr存的，所以这里的处理就是在varcahr的最前面加上一个负号
+            *由于在这里decimal的值是按照varchar存的，所以这里的处理就是在varchar的最前面加上一个负号
             */
             case T_DECIMAL:
             {
+                //delete xsl ECNU_DECIMAL 2017_3
+                /*
                 ObString tmp_str;
                 ObDecimal ori_dec;
                 ObDecimal *res_dec = NULL;
@@ -923,8 +925,25 @@ int resolve_expr(
                     const_expr->set_value(new_val);
                 }
                 break;
+                */
+                ObDecimal ori_dec;
+                ObDecimal tmp_dec;
+                ObDecimal *dst_dec = NULL;
+                if ((ret = const_expr->get_value().get_decimal(ori_dec))== OB_SUCCESS)
+                {
+                    ori_dec.negate(tmp_dec);
+                    if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tmp_dec, dst_dec)))
+                    {
+                        TBSYS_LOG(WARN, "out of memory");
+                        break;
+                    }
+                    ObObj new_val;
+                    new_val.set_decimal(dst_dec);
+                    const_expr->set_value(new_val);
+                }
+                break;
             }
-              //add:e
+            //add:e
             //modify:e
           default:
           {

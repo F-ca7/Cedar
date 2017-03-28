@@ -151,10 +151,10 @@ public:
 
 private:
 
-    uint32_t vscale_;
+    TTInt word[NWORDS];
     uint32_t precision_;
+    uint32_t vscale_;
     uint32_t scale_;
-	TTInt word[NWORDS];
 //	char* val_ptr;
 
 };

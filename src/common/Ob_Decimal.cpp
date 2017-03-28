@@ -141,7 +141,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
     }
 	if(OB_SUCCESS==ret){
         s = buff;
-        sign = *s == '-' ? 1 : 0;
+        sign = *s == '-' ? 1 : 0;   //sign mark
         if(buf_len==1&&!isdigit(*s)){
             ret = OB_ERR_UNEXPECTED;
             TBSYS_LOG(WARN, "failed to convert char to decimal,invalid num=%c", *s);
@@ -150,90 +150,98 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             ret = OB_ERR_UNEXPECTED;
             TBSYS_LOG(WARN, "failed to convert char to decimal,invalid num=%c", *s);
         };
-        if(OB_SUCCESS==ret){
-        if (*s == '-' || *s == '+') {
-		op = 1;
-		i++;
-		++s;
-        }
+        if(OB_SUCCESS==ret)
+        {
+            if (*s == '-' || *s == '+')
+            {
+                op = 1;   //sign count
+                i++;
+                ++s;
+            }
+            for (;; ++s)
+            {
+                if (i == buf_len)
+                    break;
+                if (isdigit(*s))
+                {
+                    if(*s!='0'||got_dot)
+                        is_valid=true;  //zero before point and point don't count
+                    if(is_valid)
+                        got_digit++;   //valid num
+                    got_num++;      //all num
+                    if (got_dot)
+                        got_frac++;
+                }
+                else
+                {
+                    if (!got_dot && *s == '.')
+                        got_dot = 1;
+                    else if (*s != '\0') {
 
-        for (;; ++s) {
-
-		if (i == buf_len)
-			break;
-
-		if (isdigit(*s)) {
-            if(*s!='0'||got_dot)is_valid=true;
-			if(is_valid)got_digit++;
-			got_num++;
-			if (got_dot)
-				got_frac++;
-		} else {
-			if (!got_dot && *s == '.')
-				got_dot = 1;
-			else if (*s != '\0') {
-
-				ret = OB_ERR_UNEXPECTED;
-				TBSYS_LOG(ERROR, "failed to convert char to decimal,invalid num=%c", *s);
-			}
-		}
-		i++;
+                        ret = OB_ERR_UNEXPECTED;
+                        TBSYS_LOG(ERROR, "failed to convert char to decimal,invalid num=%c", *s);
+                    }
+                }
+                i++;
 
             }
         }
 	}
-    if (got_digit > MAX_DECIMAL_DIGIT || got_frac > MAX_DECIMAL_SCALE) {
-//		   ret = OB_DECIMAL_UNLEGAL_ERROR;
-       TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
-	}
+    if (got_digit > MAX_DECIMAL_DIGIT || got_frac > MAX_DECIMAL_SCALE)
+    {
+        ret = OB_DECIMAL_UNLEGAL_ERROR;
+        TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
+    }
     if(got_digit > MAX_DECIMAL_DIGIT)
-      got_digit = MAX_DECIMAL_DIGIT;
+        got_digit = MAX_DECIMAL_DIGIT;
     if(got_frac > MAX_DECIMAL_SCALE)
-      got_frac = MAX_DECIMAL_SCALE;     
-	if(OB_SUCCESS==ret){
-
+        got_frac = MAX_DECIMAL_SCALE;
+    if(OB_SUCCESS==ret)
+    {
         length = got_num + got_dot + op;
-	  if (!got_dot) {
-    //wwd added
-//    char buff1[] = ".0";
+        if (!got_dot) {
+            //wwd added
+            //    char buff1[] = ".0";
+            memcpy(int_buf, buff, length);
+            //    memcpy(int_buf+length,buff1,strlen(buff1));
+            //    got_digit ++;
+            //    got_frac = 1;
+            //    got_dot = 1;
+            //    got_num ++;
+            //    length += 2;
+            //    TBSYS_LOG(INFO,"add .0 to the end of the number!");
+            TTInt whole;
+            whole.FromString(int_buf);
+            word[0] = whole;
+        }
+        else
+        {
+            int point_pos = length - got_frac;
+            memcpy(int_buf, buff, point_pos);
+            TTInt whole;
+            whole.FromString(int_buf);
 
-    memcpy(int_buf, buff, length);
+            TTInt p(got_frac);
+            TTInt BASE(10);
+            BASE.Pow(p);
+            whole = whole * BASE;
 
-//    memcpy(int_buf+length,buff1,strlen(buff1));
-//    got_digit ++;
-//    got_frac = 1;
-//    got_dot = 1;
-//    got_num ++;
-//    length += 2;
-//    TBSYS_LOG(INFO,"add .0 to the end of the number!");
-		TTInt whole;
-		whole.FromString(int_buf);
-        word[0] = whole;
-	  } else {
-		int point_pos = length - got_frac;
-		memcpy(int_buf, buff, point_pos);
-		TTInt whole;
-		TTInt p(got_frac);
-		TTInt BASE(10);
-		whole.FromString(int_buf);
-		BASE.Pow(p);
-		whole = whole * BASE;
-		memcpy(frac_buf, buff + (point_pos), got_frac);
-		TTInt part_float;
-		part_float.FromString(frac_buf);
-		if (sign)
-			part_float.SetSign();
-		whole += part_float;
-        word[0] = whole;
-	  }
-	  	/*
-		 *4.3 set it into word[0]
-		 */
+            memcpy(frac_buf, buff + (point_pos), got_frac);
+            TTInt part_float;
+            part_float.FromString(frac_buf);
 
-		vscale_ = got_frac;
-		scale_=vscale_;
-		precision_=got_digit;
-		if(precision_==scale_)precision_++;
+            if (sign)
+                part_float.SetSign();
+            whole += part_float;
+            word[0] = whole;
+        }
+        /*
+         *4.3 set it into word[0]
+         */
+        vscale_ = got_frac;
+        scale_=vscale_;      //all equal got_frac
+        precision_=got_digit;
+        if(precision_==scale_)precision_++;
 	  }
 	return ret;
 //return ret;
@@ -247,7 +255,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
  *         the main process is in function body
  **/
 int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const {
-
+    TBSYS_LOG(INFO,"xushilei,len=[%d]",(uint32_t)sizeof(ObDecimal)); //test xsl ECNU_DECIMAL 2017_3
 	int pos = 0;
 	int start = 0;
 	int real_scale = 0;
@@ -450,65 +458,71 @@ void ObDecimal::reset() {
            eg:decimal(5,3) 3.1415->3.141
 
 */
-int ObDecimal::modify_value(uint32_t p, uint32_t s) {
-	int ret = OB_SUCCESS;
-	char buf[MAX_PRINTABLE_SIZE];
-	char out[MAX_PRINTABLE_SIZE];
-	memset(buf, 0, MAX_PRINTABLE_SIZE);
-	memset(out, 0, MAX_PRINTABLE_SIZE);
-	scale_=vscale_;
-	to_string(buf, MAX_PRINTABLE_SIZE);
-	int point_pos = 0;
-	int len = 0;
-	int is_neg = 0;
-	if (buf[0] == '-')
-		is_neg = 1;
-	while (buf[point_pos] != '\0') {
-
-		if (buf[point_pos] == '.')
-			break;
-		else
-			point_pos++;
-	}
-	//确定整数部分位数
-	if (point_pos > (int) p - (int) s + is_neg) {
-		ret = OB_DECIMAL_UNLEGAL_ERROR;
-		TBSYS_LOG(ERROR,
-				"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
-				point_pos, p, s, buf);
-		//return ret;
-	}
-	if (OB_SUCCESS==ret&&s < vscale_) {
-		   if (0 == s) {
-			len = point_pos;
-			buf[len] = '\0';
-			strcpy(out, buf);
-		 } else {
-
-			len = s + point_pos + 1;
-
-			if ((int) strlen(buf) < len) {
-				ret = OB_ERR_UNEXPECTED;
-				TBSYS_LOG(ERROR, "failed to assigned str buff=%s",buf);
-
-			} else {
-				buf[len++] = '\0';
-				strncpy(out, buf, len);
-			}
-
-		}
-     if(OB_SUCCESS!=ret){
+int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
+    int ret = OB_SUCCESS;
+    int point_pos = 0;
+    int len = 0;
+    int is_neg = 0;
+    char buf[MAX_PRINTABLE_SIZE];
+    char out[MAX_PRINTABLE_SIZE];
+    memset(buf, 0, MAX_PRINTABLE_SIZE);
+    memset(out, 0, MAX_PRINTABLE_SIZE);
+    scale_=vscale_;
+    to_string(buf, MAX_PRINTABLE_SIZE);
+    if (buf[0] == '-')
+        is_neg = 1;
+    while (buf[point_pos] != '\0')   //get point position
+    {
+        if (buf[point_pos] == '.')
+            break;
+        else
+            point_pos++;
+    }
+    //确定整数部分位数
+    if (point_pos - is_neg > (int) p - (int) s )
+    {
+        ret = OB_DECIMAL_UNLEGAL_ERROR;
+        TBSYS_LOG(ERROR,"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
+                  point_pos, p, s, buf);
+        //return ret;
+    }
+    if (OB_SUCCESS==ret && s < vscale_)
+    {
+        if (0 == s)
+        {
+            len = point_pos;
+            buf[len] = '\0';
+            strcpy(out, buf);
+        }
+        else
+        {
+            len = s + point_pos + 1;
+            if ((int) strlen(buf) < len)
+            {
+                ret = OB_ERR_UNEXPECTED;
+                TBSYS_LOG(ERROR, "failed to assigned str buff=%s",buf);
+            }
+            else
+            {
+                buf[len++] = '\0';
+                strncpy(out, buf, len);
+            }
+        }
+        if(OB_SUCCESS != ret)
+        {
             TBSYS_LOG(ERROR,"failed to modify value");
-     }
-		else if (OB_SUCCESS != (ret = this->from(out))) {
-			TBSYS_LOG(ERROR, "failed convert str to decimal!");
-		}
-	}
-      if(OB_SUCCESS==ret){
-		scale_ = s;
-        precision_ = point_pos + s;   //add xsl ECNU_DECIMAL 2017_3
-      }
-	return ret;
+        }
+        else if (OB_SUCCESS != (ret = this->from(out)))
+        {
+            TBSYS_LOG(ERROR, "failed convert str to decimal!");
+        }
+    }
+    if(OB_SUCCESS==ret)
+    {
+        scale_ = s;
+        precision_ = point_pos + s - is_neg;   //add xsl ECNU_DECIMAL 2017_3
+    }
+    return ret;
 }
 
 /**

@@ -1827,7 +1827,7 @@ namespace oceanbase
                 if((pre - vscale) > (schema_p - schema_s))
                 {
                     ret=OB_DECIMAL_UNLEGAL_ERROR;
-                    TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,schema_p=%d,schema_s=%d,casted_cell.get_precision()=%d,casted_cell.get_vscale()=%d",schema_p,schema_s,casted_cell.get_precision(),casted_cell.get_scale());
+                    TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,schema_p=%d,schema_s=%d,casted_cell.get_precision()=%d,casted_cell.get_vscale()=%d",schema_p,schema_s,casted_cell.get_precision(),casted_cell.get_vscale());
                 }
                 else
                 {
