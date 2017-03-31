@@ -346,7 +346,11 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_PROTOCOL_NOT_RECOGNIZE, "Incorrect protocol");
     ADD_ERROR_STR(OB_ERR_WRITE_AUTH_ERROR, "Write auth packet error");
     ADD_ERROR_STR(OB_INDEX_NOT_EXIST, "This table don't have index");//add longfei [drop table with index timeout] 151202:b
-
+    //add huangjianwei [secondary index debug] 20170314:b
+    ADD_ERROR_STR(OB_ERROR_DROP_COLUMN_WITH_INDEX, "This column has idnex");
+    ADD_ERROR_STR(OB_ERROR_INDEX_ALREADY_FULL, "This table only has 5 indexs");
+    ADD_ERROR_STR(OB_ERROR_ALTER_INDEX_TABLE, "Can not alter an index table");
+    //add:e
     //add by zt 20160713:b
     //error string for stored procedure
     ADD_ERROR_STR(OB_PROCEDURE_DECLARE_ERROR, "procedure cannot have declare stmt in the middle");//add by wdh 20160705

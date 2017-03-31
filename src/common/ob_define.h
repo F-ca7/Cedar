@@ -418,6 +418,12 @@ namespace oceanbase
     const int OB_GET_NOTHING = -5604;
     //add e
 
+    //add huangjianwei [secondary index debug] 20170314:b
+    const int OB_ERROR_DROP_COLUMN_WITH_INDEX = -5605;
+    const int OB_ERROR_INDEX_ALREADY_FULL = -5606;
+    const int OB_ERROR_ALTER_INDEX_TABLE = -5607;
+    //add:e
+
     const int OB_ERR_SQL_END = -5999;
 
     //add by zt 20160713:b

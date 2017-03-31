@@ -1224,6 +1224,26 @@ namespace oceanbase
             ObExprValues& value_op);
         //add e
 
+        //add maoxx [replace bug fix] 20170317
+        int get_row_desc_intersect(
+            ObRowDesc row_desc,
+            ObRowDesc row_desc_index,
+            ObRowDescExt row_desc_ext_index,
+            ObRowDesc &row_desc_intersect,
+            ObRowDescExt &row_desc_ext_intersect);
+
+        int gen_phy_values_index(ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const ObInsertStmt *insert_stmt,
+            ObRowDesc& row_desc,
+            ObRowDescExt &row_desc_ext,
+            const ObRowDesc& row_desc_index,
+            const ObRowDescExt& row_desc_ext_index,
+            const ObSEArray<int64_t, 64> *row_desc_map,
+            ObExprValues& value_op);
+        //add e
+
         //add wangjiahao [dev_update_more] 20151204 :b
         /**
          * @brief gen_phy_table_for_update_more is a new method

@@ -1527,8 +1527,11 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
         }
         if (OB_SUCCESS == ret && OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
         {
-          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                   "failed to do add_table_name_id");
+          //mod huangjianwei [secondary index debug] 20140314:b
+          //snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                   //"failed to do add_table_name_id");
+          break;
+          //mod:e
         }
       }
     }

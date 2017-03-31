@@ -1245,7 +1245,10 @@ namespace oceanbase
               else if (OB_SUCCESS != (ret = session_ctx.get_ups_mutator().get_mutator().update(cell_info->table_id_,
                                                                                               cell_info->row_key_,
                                                                                               cell_info->column_id_,
-                                                                                              cell_info->value_)))
+                                                                                              cell_info->value_,
+                                                                                              //add huangjianwei [secondary index debug] 20170313:b
+                                                                                              is_row_changed)))
+                                                                                              //add:e
               {
                 TBSYS_LOG(WARN, "add cell info to mutator fail, ret=%d", ret);
               }

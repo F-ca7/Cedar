@@ -194,7 +194,21 @@ namespace oceanbase
                   cia.set_row_iter(pre_row_store, row_desc->get_rowkey_cell_count(), sm, *row_desc);
                 }
               }
-              else if(INSERT == sql_type || UPDATE == sql_type || REPLACE == sql_type)
+              //add huangjianwei [secondary index debug] 20170314:b
+              else if(UPDATE == sql_type)
+              {
+                const ObRowDesc *update_row_desc = NULL;
+                sql::ObProject *project = NULL;
+                project = static_cast<sql::ObProject*>(tmp_index_trigger->get_child(0));
+                project->get_row_desc(update_row_desc);
+                tmp_index_trigger->get_post_data_row_store(post_row_store);
+                cia.set_row_iter(post_row_store, rki->get_size(), sm, *update_row_desc);
+               }
+              //add:e
+              //mod huangjianwei [secondary index debug] 20170314:b
+              //else if(INSERT == sql_type || UPDATE == sql_type || REPLACE == sql_type)
+              else if(INSERT == sql_type|| REPLACE == sql_type)
+              //mod:e
               {
                 tmp_index_trigger->get_post_data_row_desc(row_desc);
                 tmp_index_trigger->get_post_data_row_store(post_row_store);
