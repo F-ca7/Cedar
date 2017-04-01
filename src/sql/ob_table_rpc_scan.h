@@ -129,7 +129,7 @@ namespace oceanbase
          * @brief set_main_rowkey_info
          * @param rowkey_info
          */
-        void set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        void set_main_rowkey_info(const ObRowkeyInfo &rowkey_info);
         /**
          * @brief cons_second_row_desc
          * @param row_desc

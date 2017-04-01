@@ -778,7 +778,10 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       int32_t server_count = 0;
       tbsys::CThreadGuard hist_mutex_gard(&mutex);
-      ObTabletInfoList* p_info_list[server_count];
+      //mod　longfei 2016-06-21 [Bug 145] 22:01:13
+      ObTabletInfoList **p_info_list;
+//      ObTabletInfoList* p_info_list[server_count];
+      //mod e
       if(NULL == root_server_)
       {
         TBSYS_LOG(WARN, "root server cannot be null");
@@ -787,6 +790,9 @@ namespace oceanbase
       else
       {
         server_count = static_cast<int32_t>(root_server_->get_server_manager().size());
+        //add longfei 2016-06-21 [Bug 145] 22:14:57
+        p_info_list = static_cast<ObTabletInfoList**>(ob_malloc(sizeof(ObTabletInfoList*) * server_count, ObModIds::OB_BUFFER));
+        //add e
         for (int32_t i = 0; i< server_count; i++)
         {
           p_info_list[i] = NULL;
@@ -835,6 +841,7 @@ namespace oceanbase
         {
           OB_DELETE(ObTabletInfoList, ObModIds::OB_BUFFER, p_info_list[i]);
         }
+        ob_free(p_info_list, ObModIds::OB_BUFFER); //add longfei 2016-06-21 [Bug 145] 22:37:57
       }
       return ret;
     }

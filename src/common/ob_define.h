@@ -201,6 +201,7 @@ namespace oceanbase
     const int OB_DISCARD_PACKET = -150;
 
     const int OB_SP_EXIT = -151;//add by wdh 20160624
+    const int OB_OPERATION_NOT_ALLOWED = -152; //add dragon [Bugfix#12] 2017-3-8
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
@@ -418,6 +419,12 @@ namespace oceanbase
     const int OB_GET_RANGES = -5603;
     const int OB_GET_NOTHING = -5604;
     //add e
+
+    //add huangjianwei [secondary index debug] 20170314:b
+    const int OB_ERROR_DROP_COLUMN_WITH_INDEX = -5605;
+    const int OB_ERROR_INDEX_ALREADY_FULL = -5606;
+    const int OB_ERROR_ALTER_INDEX_TABLE = -5607;
+    //add:e
 
     const int OB_ERR_SQL_END = -5999;
 
@@ -710,6 +717,11 @@ namespace oceanbase
 //#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
 #define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
     //mod e
+
+    //add dragon [Bugfix#12] 2017-3-8 b
+#define IS_COLUMN_CHECKSUM(tid) ((tid) == OB_ALL_COLUMN_CHECKSUM_INFO_TID)
+    //add e
+
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////
@@ -806,6 +818,17 @@ namespace oceanbase
       GLOBAL_INDEX_STAGE     ///< 全局索引创建阶段
     };
     // add e
+
+    //add huangjianwei [secondary index maintain] 20160909:b
+    enum SQLTYPE
+    {
+      INSERT = 0,
+      DELETE, // 1
+      UPDATE, // 2
+      REPLACE //3
+    };
+    //add:e
+
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \

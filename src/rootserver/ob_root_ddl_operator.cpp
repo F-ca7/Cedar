@@ -100,6 +100,7 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
           table_schema.table_name_, table_schema.table_id_);
     }
   }
+  /*
   //add hushuang[scalable commit]20160710
   if(OB_SUCCESS == ret)
   {
@@ -125,7 +126,7 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
     }
   }
   //add e
-
+  */
   return ret;
 }
 

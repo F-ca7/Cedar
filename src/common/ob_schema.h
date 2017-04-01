@@ -167,6 +167,39 @@ namespace oceanbase
         return size_;
       }
 
+      //add longfei [assign] 2016-04-22 10:38:48
+      int assign(const ObRowkeyInfo& other)
+      {
+        int ret = OB_SUCCESS;
+        reset();
+        if(this == &other)
+        {
+          TBSYS_LOG(INFO, "same rowkeyinfo");
+        }
+        else
+        {
+          TBSYS_LOG(DEBUG, "in %s, other size is %ld", __FUNCTION__, other.get_size());
+          for(int64_t i = 0; i < other.get_size(); i++)
+          {
+            ret = this->set_column(i, *other.get_column(i));
+            if (OB_SUCCESS != ret)
+            {
+              TBSYS_LOG(WARN, "in %s, assign failed", __FUNCTION__);
+              break;
+            }
+          }
+        }
+        return ret;
+      }
+      //add e
+
+      //add longfei [reset] 2016-04-23 10:44:22
+      void reset()
+      {
+        size_ = 0;
+      }
+      //add e
+
       /**
        * get sum of every column's length.
        */
@@ -728,6 +761,14 @@ namespace oceanbase
          * @return error code
          */
         int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
+        /**
+         * @brief get_all_init_index_tid
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);

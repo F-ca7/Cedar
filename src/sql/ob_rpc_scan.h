@@ -112,7 +112,7 @@ namespace oceanbase
          * @param rowkey_info
          * @return err code
          */
-        int set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        int set_main_rowkey_info(const ObRowkeyInfo& rowkey_info);
         /**
          * @brief add_main_output_column: 第二次get原表时的输出列
          * @param expr
@@ -274,7 +274,7 @@ namespace oceanbase
         bool is_use_index_;         ///< 是否使用回表的索引
         bool is_use_index_for_storing_;  ///< 是否使用不回表的索引
         uint64_t main_table_id_;    ///< 主表的tid
-        int64_t get_next_row_count_;    ///< 判断是否是第一次调用get_new_row
+        int64_t get_next_row_count_;    ///< 判断是否是第一次调用get_next_row
         ObProject main_project;     ///< 第二次get原表时的输出列
         ObFilter main_filter_;      ///< where条件中如果有不在索引表中的列的表达式，就把它存到这里，第二次get原表时用做过滤。
         common::ObRowkeyInfo main_rowkey_info_;    ///< 主表的主键信息

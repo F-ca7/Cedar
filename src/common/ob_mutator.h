@@ -155,6 +155,10 @@ namespace oceanbase
             const ObString& column_name, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
         int update(const uint64_t table_id, const ObRowkey& row_key,
             const uint64_t column_id, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
+        //add huangjianwei [secondary index debug] 20170313:b
+        int update(const uint64_t table_id, const ObRowkey& row_key,
+            const uint64_t column_id, const ObObj& value, bool is_row_changed,const int return_flag = RETURN_NO_RESULT );
+        //add :e
         // Adds insert mutation to list
         int insert(const ObString& table_name, const ObRowkey& row_key,
             const ObString& column_name, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
@@ -178,6 +182,9 @@ namespace oceanbase
         int add_row_barrier();
         int set_dml_type(const ObDmlType dml_type);
         int add_cell(const ObMutatorCellInfo& cell);
+        //add huangjianwei [secondary index debug] 20170313:b
+        int add_cell(const ObMutatorCellInfo& cell, bool is_row_changed);
+        //add :e
         const ObString & get_first_table_name(void) const;
         int64_t size(void) const;
       public:

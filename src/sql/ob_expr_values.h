@@ -66,6 +66,9 @@ namespace oceanbase
         void reserve_values(int64_t num) {values_.reserve(num);}
         void set_check_rowkey_duplicate(bool flag) { check_rowkey_duplicat_ = flag; }
         void set_do_eval_when_serialize(bool v) { do_eval_when_serialize_ = v;}
+        //add huangjianwei [secondary index maintain] 20161108:b
+        void set_replace_check_rowkey_duplicate(bool flag) { replace_check_rowkey_duplicat_ = flag;}
+        //add:e
         ObExpressionArray &get_values() {return values_;}
         virtual int open();
         virtual int close();
@@ -138,6 +141,9 @@ namespace oceanbase
         bool do_eval_when_serialize_;
         bool group_exec_;
         int64_t expr_idx_;
+        //add huangjianwei [secondary index maintain] 20161108:b
+        bool replace_check_rowkey_duplicat_;
+        //add:e
     };
   } // end namespace sql
 } // end namespace oceanbase

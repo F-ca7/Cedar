@@ -3977,7 +3977,7 @@ int ObTransformer::gen_phy_table_not_back(
   else
   {
     source_tid = table_item->ref_id_;
-    TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+    TBSYS_LOG(DEBUG,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
               (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
     if (table_item->type_ == TableItem::ALIAS_TABLE)
     {
@@ -3989,7 +3989,7 @@ int ObTransformer::gen_phy_table_not_back(
     }
   }
 
-  TBSYS_LOG(INFO,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
+  TBSYS_LOG(DEBUG,"ref_tid = %d, table_id = %ld, type = %d, table name = %.*s",
             (int)source_tid, table_item->table_id_, (int)table_item->type_, table_item->table_name_.length(), table_item->table_name_.ptr());
   if (ret == OB_SUCCESS)
   {
@@ -4412,8 +4412,7 @@ int ObTransformer::gen_phy_table_back(ObLogicalPlan *logical_plan, ObPhysicalPla
   return ret;
 }
 
-bool ObTransformer::
-handle_index_for_one_table(
+bool ObTransformer::handle_index_for_one_table(
     ObLogicalPlan *logical_plan,
     ObPhysicalPlan *physical_plan,
     ErrStat& err_stat,
@@ -4424,6 +4423,10 @@ handle_index_for_one_table(
     bool* limit_pushed_down)
 {
   Expr_Array filter_array;
+  //add longfei 2016-04-05 19:42:00
+  //BUGFIX[memory]:pointer to filter,for release filter;
+  common::ObArray<sql::ObSqlExpression*> p_filter;
+  //add e
   Expr_Array project_array;
   ObArray<uint64_t> alias_exprs;
   int& ret = err_stat.err_code_ = OB_SUCCESS;
@@ -4491,14 +4494,20 @@ handle_index_for_one_table(
           //TBSYS_LOG(WARN,"test::longfei>>>filter[%d] is %s", i, to_cstring(*filter));
           if(OB_SUCCESS != (ret = filter_array.push_back(*filter)))
           {
+            //add longfei 2016-04-05 19:44:12
+            ObSqlExpression::free(filter);
+            //add e
             TBSYS_LOG(ERROR, "OBArray push back failed");
             ret = OB_ERROR;
           }
-          //add longfei 2016-03-23 15:24:28:b
-          //fixbug 释放filter指针指向的内存空间
-          //TBSYS_LOG(WARN, "debug::longfei>>>free filter memory, count[%ld], filter[%s]", filter_array.count(), to_cstring(*filter));
-          ObSqlExpression::free(filter);
-          //adde
+          //add longfei 2016-04-05 19:47:25
+          else if(OB_SUCCESS != (ret = p_filter.push_back(filter)))
+          {
+            TBSYS_LOG(ERROR, "p_filter push back failed");
+            ObSqlExpression::free(filter);
+            ret = OB_ERROR;
+          }
+          //add e
         }
       }
     }
@@ -4635,10 +4644,12 @@ handle_index_for_one_table(
                 is_use_index_without_storing = true;
                 break;
               }
-              else
-              {
-                break;
-              }
+              //del huangjianwei [secondary index maintain] 20170116:b
+//              else
+//              {
+//                break;
+//              }
+              //del:e
             }
           }
         }
@@ -4723,6 +4734,21 @@ handle_index_for_one_table(
         }
       }
     }
+  }
+  //add longfei 2016-04-05 19:52:02
+  //BUGFIX[memory]
+  for(int64_t i = 0; i < p_filter.count(); i++)
+  {
+    ObSqlExpression *filter = NULL;
+    if(OB_SUCCESS != (ret = p_filter.pop_back(filter)))
+    {
+      if(ret != OB_ENTRY_NOT_EXIST)
+      {
+        TBSYS_LOG(ERROR, "p_filter pop back failed");
+      }
+    }
+    if(filter != NULL)
+      ObSqlExpression::free(filter);
   }
   //add BUG
   if (OB_SUCCESS != ret && is_gen_table == true)
@@ -5393,6 +5419,141 @@ int ObTransformer::gen_phy_values_for_replace(
           table_id,
           column_id,
           &col_expr);
+        ObSqlExpression output_expr;
+        if ((ret = col_raw_expr.fill_sql_expression(
+               output_expr,
+               this,
+               logical_plan,
+               physical_plan)) != OB_SUCCESS)
+        {
+          TRANS_LOG("Add table output columns failed");
+          break;
+        }
+        else if (OB_SUCCESS != (ret = value_op.add_value(output_expr)))
+        {
+          TRANS_LOG("Failed to add cell into get param, err=%d", ret);
+          break;
+        }
+      }
+    }
+  } // end for
+  return ret;
+}
+//add e
+
+//add maoxx [replace bug fix] 20170317
+int ObTransformer::get_row_desc_intersect(ObRowDesc row_desc,
+                                          ObRowDesc row_desc_index,
+                                          ObRowDescExt row_desc_ext_index,
+                                          ObRowDesc &row_desc_intersect,
+                                          ObRowDescExt &row_desc_ext_intersect)
+{
+  int ret = OB_SUCCESS;
+  uint64_t tid = OB_INVALID_ID;
+  uint64_t cid = OB_INVALID_ID;
+  for (int64_t i = 0; i < row_desc_index.get_column_num(); i++)
+  {
+    if(OB_SUCCESS != (ret = row_desc_index.get_tid_cid(i, tid, cid)))
+    {
+      TBSYS_LOG(WARN, "get table id and column id failed,ret = %d, idx = %ld", ret, i);
+      break;
+    }
+    else if(OB_INVALID_INDEX == row_desc.get_idx(tid, cid))
+    {
+      ObObj data_type;
+      uint64_t tmp_tid = OB_INVALID_ID;
+      uint64_t tmp_cid = OB_INVALID_ID;
+      if(OB_SUCCESS != (ret = row_desc_ext_index.get_by_idx(i, tmp_tid, tmp_cid, data_type)))
+      {
+        TBSYS_LOG(WARN, "get data_type from row_desc_ext failed!ret = %d, idx = %ld", ret, i);
+        break;
+      }
+      else
+      {
+        if(OB_SUCCESS != (ret = row_desc_intersect.add_column_desc(tid, cid)))
+        {
+          TBSYS_LOG(WARN, "add column desc failed ,tid[%ld], cid[%ld],ret[%d]",tid, cid,ret);
+          break;
+        }
+        else if(OB_SUCCESS != (ret = row_desc_ext_intersect.add_column_desc(tid, cid, data_type)))
+        {
+          TBSYS_LOG(WARN, "add column desc failed ,tid[%ld], cid[%ld],ret[%d]",tid, cid,ret);
+          break;
+        }
+      }
+    }
+  }//end for
+  return ret;
+}
+
+int ObTransformer::gen_phy_values_index(ObLogicalPlan *logical_plan,
+                                      ObPhysicalPlan *physical_plan,
+                                      ErrStat &err_stat,
+                                      const ObInsertStmt *insert_stmt,
+                                      ObRowDesc &row_desc,
+                                      ObRowDescExt &row_desc_ext,
+                                      const ObRowDesc &row_desc_index,
+                                      const ObRowDescExt &row_desc_ext_index,
+                                      const ObSEArray<int64_t, 64> *row_desc_map,
+                                      ObExprValues &value_op)
+{
+  int& ret = err_stat.err_code_ = OB_SUCCESS;
+  OB_ASSERT(logical_plan);
+  OB_ASSERT(insert_stmt);
+  ObRowDesc row_desc_intersect = row_desc;
+  ObRowDescExt row_desc_intersect_ext = row_desc_ext;
+  ret = get_row_desc_intersect(row_desc, row_desc_index, row_desc_ext_index, row_desc_intersect, row_desc_intersect_ext);
+  value_op.set_row_desc(row_desc_intersect, row_desc_intersect_ext);
+  int64_t num = insert_stmt->get_value_row_size();
+  for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
+  {
+    const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
+    if (OB_UNLIKELY(0 == i))
+    {
+      value_op.reserve_values(num * value_row.count());
+      FILL_TRACE_LOG("expr_values_count=%ld", num * value_row.count());
+    }
+    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+    {
+      ObSqlExpression val_expr;
+      int64_t expr_idx = OB_INVALID_INDEX;
+      if (NULL != row_desc_map)
+      {
+        OB_ASSERT(value_row.count() == row_desc_map->count());
+        expr_idx = value_row.at(row_desc_map->at(j));
+      }
+      else
+      {
+        expr_idx = value_row.at(j);
+      }
+      ObSqlRawExpr *value_expr = logical_plan->get_expr(expr_idx);
+      OB_ASSERT(NULL != value_expr);
+      if (OB_SUCCESS != (ret = value_expr->fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
+      {
+        TRANS_LOG("Failed to fill expr, err=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
+      {
+        TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
+      }
+    } // end for
+    for(int64_t j = value_row.count(); j < row_desc_intersect.get_column_num(); j++)
+    {
+      uint64_t table_id = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      if(OB_SUCCESS != (ret = row_desc_intersect.get_tid_cid(j, table_id, column_id)))
+      {
+        TBSYS_LOG(WARN, "get tid cid falied!ret = %d, idx = %ld", ret, j);
+        break;
+      }
+      else
+      {
+        ObBinaryRefRawExpr col_expr(table_id, column_id, T_REF_COLUMN);
+        ObSqlRawExpr col_raw_expr(
+              common::OB_INVALID_ID,
+              table_id,
+              column_id,
+              &col_expr);
         ObSqlExpression output_expr;
         if ((ret = col_raw_expr.fill_sql_expression(
                output_expr,
@@ -7430,6 +7591,13 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
       ret = OB_ERR_NO_PRIVILEGE;
       TBSYS_LOG(USER_ERROR, "invalid table name to create, table_name=%.*s", table_name.length(), table_name.ptr());
     }
+    //add zhuyanchao secondary index
+    else if(table_name.length()>OB_MAX_TABLE_NAME_LENGTH)
+    {
+        ret = OB_ERR_INVALID_TABLE_NAME;
+        TBSYS_LOG(WARN, "invalid table name to create, too long, table_name=%.*s", table_name.length(), table_name.ptr());
+    }
+    //add e
   }
 
   /* generate operator */
@@ -7756,8 +7924,11 @@ int ObTransformer::gen_physical_alter_table(ObLogicalPlan *logical_plan, ObPhysi
         }
         else if(column_hit_index_flag)
         {
-          TRANS_LOG("column [%ld] cannot be deleted,there is a index use it!", alt_col.column_.column_id_);
-          ret = OB_ERROR;
+          //mod huangjianwei [secondary index debug] 20170314:b
+          //TRANS_LOG("column [%ld] cannot be deleted,there is a index use it!", alt_col.column_.column_id_);
+          TRANS_LOG("%s cannot be droped,there is a index use it!",alt_col.column_.column_name_);
+          //mod:e
+          ret = OB_ERROR_DROP_COLUMN_WITH_INDEX;
         }
         //add e
       }
@@ -7810,7 +7981,10 @@ int ObTransformer::gen_physical_alter_table(ObLogicalPlan *logical_plan, ObPhysi
   else if(OB_INVALID_ID != table_schema->get_original_table_id())
   {
     TRANS_LOG("can not alter an index table[%ld]", alt_tab_stmt->get_table_id());
-    ret = OB_ERROR;
+    //mod huangjianwei [secondary index debug] 20140314:b
+    //ret = OB_ERROR;
+    ret = OB_ERROR_ALTER_INDEX_TABLE;
+    //mod:e
   }
   //add e
   return ret;
@@ -9576,7 +9750,10 @@ int ObTransformer::gen_phy_static_data_scan_for_replace(
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
     int64_t row_num = insert_stmt->get_value_row_size();
-    for (int64_t i = 0; ret == OB_SUCCESS && i < row_num; i++) // for each row
+    //mod huangjianwei [secondary index maintain] 20161201:b
+    //for (int64_t i = 0; ret == OB_SUCCESS && i < row_num; i++)// for each row
+    for (int64_t i = row_num-1; ret == OB_SUCCESS && i >= 0; i--)// for each row,From the back forward scan row to match inc_data
+    //mod:e
     {
       const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
       OB_ASSERT(value_row.count() == row_desc_map.count());
@@ -9967,7 +10144,10 @@ int ObTransformer::gen_physical_insert_new(ObLogicalPlan *logical_plan, ObPhysic
           }
           else if (NULL != index_trigger)
           {
-            int sql_type = 0;
+            //mod huangjianwei [secondary index maintain] 20160909:b
+            //int sql_type = 0;
+            SQLTYPE sql_type = INSERT;
+            //mod:e
             index_trigger->set_sql_type(sql_type);
             index_trigger->set_data_tid(insert_stmt->get_table_id());
             index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
@@ -12022,7 +12202,10 @@ int ObTransformer::gen_physical_update_new(
       }
       else if (NULL != index_trigger)
       {
-        int sql_type = 2;
+        //mod huangjianwei [secondary index maintain] 20160909:b
+        //int sql_type = 2;
+        SQLTYPE sql_type = UPDATE;
+        //mod:e
         index_trigger->set_sql_type(sql_type);
         index_trigger->set_data_tid(update_stmt->get_update_table_id());
         index_trigger->set_need_modify_index_num(hit_index_list.get_count());
@@ -12390,7 +12573,10 @@ int ObTransformer::gen_physical_delete_new(
       }
       else if (NULL != index_trigger)
       {
-        int sql_type = 1;
+        //mod huangjianwei [secondary index maintain] 20160909:b
+        //int sql_type = 1;
+        SQLTYPE sql_type = DELETE;
+        //mod:e
         index_trigger->set_sql_type(sql_type);
         index_trigger->set_data_tid(delete_stmt->get_delete_table_id());
         index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
@@ -12766,6 +12952,9 @@ int ObTransformer::gen_physical_replace_new(
         }
       }
       ObExprValues *input_values = NULL;
+      //add maoxx [replace bug fix] 20170317
+      ObExprValues *input_index_values = NULL;
+      //add e
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
         CREATE_PHY_OPERRATOR(input_values, ObExprValues, inner_plan, err_stat);
@@ -12776,20 +12965,55 @@ int ObTransformer::gen_physical_replace_new(
         {
           TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
         }
-        else if ((ret = input_values->set_row_desc(row_desc_for_static_data, row_desc_ext_for_static_data)) != OB_SUCCESS)
+        //modify maoxx [replace bug fix] 20170313
+//        else if ((ret = input_values->set_row_desc(row_desc_for_static_data, row_desc_ext_for_static_data)) != OB_SUCCESS)
+        else if ((ret = input_values->set_row_desc(row_desc, row_desc_ext)) != OB_SUCCESS)
+        //modify e
         {
           TRANS_LOG("Set descriptor of value operator failed, err=%d", ret);
         }
+        //modify maoxx [replace bug fix] 20170313
+//        else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
+//                                                                 row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
         else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                                 row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
+                                                                 row_desc, row_desc_ext, &row_desc_map, *input_values)))
+        //modify e
         {
           TRANS_LOG("Failed to generate values, err=%d", ret);
         }
         else
         {
           input_values->set_check_rowkey_duplicate(true);
+          //add huangjianwei [secondary index maintain] 20161108:b
+          input_values->set_replace_check_rowkey_duplicate(true);
+          //mod:e
         }
       }
+      //add maoxx [replace bug fix] 20170317
+      if (OB_LIKELY(OB_SUCCESS == ret))
+      {
+        CREATE_PHY_OPERRATOR(input_index_values, ObExprValues, inner_plan, err_stat);
+        if (OB_UNLIKELY(OB_SUCCESS != ret))
+        {
+        }
+        else if (OB_SUCCESS != (ret = inner_plan->add_phy_query(input_index_values)))
+        {
+          TBSYS_LOG(WARN, "fail to add phy query, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = gen_phy_values_index(logical_plan, inner_plan, err_stat, insert_stmt,
+                                                         row_desc, row_desc_ext, row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_index_values)))
+        {
+          TRANS_LOG("fail to generate values, err=%d", ret);
+        }
+        else
+        {
+          input_index_values->set_check_rowkey_duplicate(true);
+          //add maoxx test
+          TBSYS_LOG(ERROR, "test::maoxx row_desc=%s, row_desc_for_static_data=%s, input_index_values=%s", to_cstring(row_desc), to_cstring(row_desc_for_static_data), to_cstring(*input_index_values));
+          //add e
+        }
+      }
+      //add e
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
         if (NULL == CREATE_PHY_OPERRATOR(index_trigger, ObIndexTrigger, inner_plan, err_stat))
@@ -12803,22 +13027,36 @@ int ObTransformer::gen_physical_replace_new(
         }
         else if (NULL != index_trigger)
         {
-          int sql_type = 3;
+          //mod huangjianwei [secondary index maintain] 20160909:b
+          //int sql_type = 3;
+          SQLTYPE sql_type = REPLACE;
+          //mod:e
           index_trigger->set_sql_type(sql_type);
           index_trigger->set_data_tid(insert_stmt->get_table_id());
           index_trigger->set_need_modify_index_num(modifiable_index_list.get_count());
           index_trigger->set_pre_data_row_desc(row_desc_for_static_data);
-          index_trigger->set_post_data_row_desc(row_desc_for_static_data);
+          //modify maoxx [replace bug fix] 20170313
+//          index_trigger->set_post_data_row_desc(row_desc_for_static_data);
+          index_trigger->set_post_data_row_desc(row_desc);
+          //modify e
           //index_trigger->set_replace_values_id(input_values->get_id());
-          inc_scan->set_values(input_values->get_id(), false);
-          input_values->open();
+          //modify maoxx [replace bug fix] 20170317
+//          inc_scan->set_values(input_values->get_id(), false);
+          inc_scan->set_values(input_index_values->get_id(), false);
+          //modify e
+          //del huangjianwei [secondary index maintain] 20160909:b
+          /*input_values->open();
           const ObRow *row;
           while(OB_SUCCESS == (ret = input_values->get_next_row(row)))
           {
             index_trigger->add_post_data_row(*row);
           }
           if(OB_ITER_END == ret)
-            ret = OB_SUCCESS;
+            ret = OB_SUCCESS;*/
+          //del:e
+          //add huangjianwei [secondary index maintain] 20160909:b
+          index_trigger->set_input_values(input_values->get_id());
+          //add:e
           for(int64_t i = 0; i < modifiable_index_list.get_count(); i++)
           {
             const ObTableSchema* index_schema = NULL;
