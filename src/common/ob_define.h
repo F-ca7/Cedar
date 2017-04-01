@@ -398,7 +398,9 @@ namespace oceanbase
     const int OB_ERR_PROTOCOL_NOT_RECOGNIZE = -5068;
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 来自监控的连接会立马断开
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
-
+    //add zhuyanchao[secondary index table name]
+    const int OB_ERR_INVALID_TABLE_NAME = -5071;
+    //add e
     //add longfei [drop table with index timeout] 151202:b
     const int OB_INDEX_NOT_EXIST = -5075;
     //add e
