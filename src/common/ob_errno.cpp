@@ -352,7 +352,7 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERROR_ALTER_INDEX_TABLE, "Can not alter an index table");
     //add:e
     //add zhuyanchao[secondary index table name]
-     ADD_ERROR_STR( OB_ERR_INVALID_TABLE_NAME, "Table name too long");
+     ADD_ERROR_STR( OB_ERR_INVALID_TABLE_NAME, "Table name or index name is too long, max is 128");
 
     //add e
     //add by zt 20160713:b

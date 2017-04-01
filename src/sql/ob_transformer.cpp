@@ -7091,15 +7091,20 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
     const ObTableSchema* idxed_tab_schema = NULL;
     const ObString& index_name = crt_idx_stmt->get_table_name();
     // buf_len = sizeof(table_schema.table_name_);
-    if (index_name.length() < OB_MAX_TABLE_NAME_LENGTH)
+	//add zhuyanchao[secondary index bug]
+    if (index_name.length() < OB_MAX_COLUMN_NAME_LENGTH)
     {
       len = index_name.length();
     }
     else
     {
-      len = OB_MAX_TABLE_NAME_LENGTH - 1;
-      TRANS_LOG("Index Table Name is truncated to '%.*s'", len, index_name.ptr());
+      //len = OB_MAX_TABLE_NAME_LENGTH - 1;
+      //TRANS_LOG("Index Table Name is truncated to '%.*s'", len, index_name.ptr());
+      TBSYS_LOG(WARN,"index name too long, max index length is 128");
+      ret = OB_ERR_INVALID_TABLE_NAME;
+      return ret;
     }
+	//add e
     memcpy(table_schema.table_name_, index_name.ptr(), len);
     table_schema.table_name_[len] = '\0';
     if (OB_INVALID_ID != crt_idx_stmt->get_table_id())
@@ -7592,10 +7597,10 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
       TBSYS_LOG(USER_ERROR, "invalid table name to create, table_name=%.*s", table_name.length(), table_name.ptr());
     }
     //add zhuyanchao secondary index
-    else if(table_name.length()>OB_MAX_TABLE_NAME_LENGTH)
+    else if(table_name.length()>OB_MAX_COLUMN_NAME_LENGTH)
     {
         ret = OB_ERR_INVALID_TABLE_NAME;
-        TBSYS_LOG(WARN, "invalid table name to create, too long, table_name=%.*s", table_name.length(), table_name.ptr());
+        TBSYS_LOG(WARN, "invalid table name to create, too long,max length is 128, table_name=%.*s", table_name.length(), table_name.ptr());
     }
     //add e
   }
