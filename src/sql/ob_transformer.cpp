@@ -7591,6 +7591,13 @@ int ObTransformer::gen_physical_create_table(ObLogicalPlan *logical_plan, ObPhys
       ret = OB_ERR_NO_PRIVILEGE;
       TBSYS_LOG(USER_ERROR, "invalid table name to create, table_name=%.*s", table_name.length(), table_name.ptr());
     }
+    //add zhuyanchao secondary index
+    else if(table_name.length()>OB_MAX_TABLE_NAME_LENGTH)
+    {
+        ret = OB_ERR_INVALID_TABLE_NAME;
+        TBSYS_LOG(WARN, "invalid table name to create, too long, table_name=%.*s", table_name.length(), table_name.ptr());
+    }
+    //add e
   }
 
   /* generate operator */
