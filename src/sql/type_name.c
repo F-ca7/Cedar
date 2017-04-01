@@ -1,25 +1,3 @@
-/**
- * Copyright (C) 2013-2016 ECNU_DaSE.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * @file type_name.c
- * @brief get type name
- *
- * modified by longfei：add some case
- * modified by maoxiaoxiao: add some case
- * modified by zhutao: add T_ARRAY type
- * modified by qx: add long transcation type to fix memery alloctor problem
- *
- * @version CEDAR 0.2
- * @author longfei <longfei@stu.ecnu.edu.cn>
- * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_07_27
- * @author zhutao <zhutao@stu.ecnu.edu.cn>
- * @date 2016_07_30
- */
 #include "ob_item_type.h"
 const char* get_type_name(int type)
 {
@@ -242,7 +220,7 @@ const char* get_type_name(int type)
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
-  case T_LONG_TRANS : return "T_LONG_TRANS"; //add by qx 21070317 add long transcation type to fix memery alloctor problem
+	case T_LONG_TRANS : return "T_LONG_TRANS"; //add by qx 21070317
 	case T_NO_GROUP : return "T_NO_GROUP";//add by wdh 20160716
 	case T_USE_INDEX : return "T_USE_INDEX";// add longfei
 	case T_UNKOWN_HINT : return "T_UNKOWN_HINT";// add longfei
