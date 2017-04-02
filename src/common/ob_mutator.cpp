@@ -524,13 +524,6 @@ namespace oceanbase
     }
     //add :e
 
-    //add by qx 20170210
-    int ObMutator::add_cell(const ObMutatorCellInfo& cell, bool is_row_changed)
-    {
-      return add_cell(cell,is_row_changed? CHANGED:NOCHANGED, NO_BARRIER, OB_DML_UNKNOW);
-    }
-    //add :e
-
     int ObMutator :: add_cell(const ObMutatorCellInfo& cell,
                               const RowChangedStat row_changed_stat,
                               const BarrierFlag barrier_flag,
