@@ -127,6 +127,10 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
   }
   //add e
   */
+  //add zhuyanchao
+  sleep(1);
+  //add e
+
   return ret;
 }
 
@@ -280,6 +284,9 @@ int ObRootDDLOperator::update_max_table_id(const uint64_t table_id)
     }
     else
     {
+      //add zhuyanchao
+      sleep(1);
+      //add e
       uint64_t new_max_id = 0;
       ret = schema_client_->get_max_used_table_id(new_max_id);
       if (ret != OB_SUCCESS)
