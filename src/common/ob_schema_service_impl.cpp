@@ -1967,7 +1967,7 @@ bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
-  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_TABLE_NAME_LENGTH);
   /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
   if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
   {
