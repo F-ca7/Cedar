@@ -62,11 +62,13 @@ namespace oceanbase
         ret = ObOptimizerLogical::pull_up_subqueries(logical_plan, result, result_plan);
         
         /* write by lxb for test on 2016/12/25 */
+        /*
         FILE* fp = NULL; 
         fp = fopen("/home/lxb/logic_end.txt", "wt");
         logical_plan->print(fp, 0);
         fclose(fp);
         TBSYS_LOG(WARN, "*****lxb|logical plan end*****");
+        */
 
       }
       
