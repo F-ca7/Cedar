@@ -7060,7 +7060,7 @@ bool ObTransformer::parse_join_info(const ObString &join_info_str, TableSchema &
 int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhysicalPlan *physical_plan, ErrStat& err_stat, const uint64_t& query_id, int32_t* index)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  int max_index_name = OB_MAX_COLUMN_NAME_LENGTH-5;
+  int max_index_name = OB_MAX_COLUMN_NAME_LENGTH-1;
   ObCreateIndexStmt *crt_idx_stmt = NULL;
   ObCreateTable *crt_tab_op = NULL;
   // uint64_t magic_cid=OB_APP_MIN_COLUMN_ID;
@@ -7106,8 +7106,9 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
     // buf_len = sizeof(table_schema.table_name_);
     //add zhuyanchao[secondary index bug fix]
    
-    if ((index_name.length() - crt_idx_stmt->get_original_table_name().length()) >= max_index_name)
+    if ((index_name.length() - crt_idx_stmt->get_original_table_name().length()) >max_index_name)
     {
+       TBSYS_LOG(WARN, "invalid index to create, too long,max length is 123, index_name length =%ld, table_name length =%ld", (int64_t)index_name.length(), (int64_t)(crt_idx_stmt->get_original_table_name().length()));
       TBSYS_LOG(WARN, "invalid index to create, too long,max length is 123, index_name=%.*s", index_name.length(), index_name.ptr());
       ret = OB_ERR_INVALID_INDEX_NAME;
       return ret;
