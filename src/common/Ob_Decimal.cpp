@@ -115,7 +115,7 @@ int ObDecimal::from(const char* str) {
 * date:2014/6/12
 **/
 int ObDecimal::from(const char* buff, int64_t buf_len) {
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s]",buff);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s]",buff);   //add xsl
     int ret = OB_SUCCESS;
 	char int_buf[MAX_PRINTABLE_SIZE];
 	char frac_buf[MAX_PRINTABLE_SIZE];
@@ -199,8 +199,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         }
     }
     */
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],"
-                   "got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(got_digit - got_frac > MAX_DECIMAL_DIGIT)     //max integer num
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
@@ -234,8 +233,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         got_frac = got_frac -(got_digit - MAX_DECIMAL_DIGIT);
         got_digit = MAX_DECIMAL_DIGIT;
     }
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],"
-                   "got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(OB_SUCCESS==ret)
     {
         length = got_num + got_dot + op;
@@ -283,7 +281,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         precision_=got_digit;
         //if(precision_==scale_)precision_;    //modify xsl 2017_4
 	  }
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
 	return ret;
 //return ret;
 }
@@ -571,13 +569,13 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             TBSYS_LOG(ERROR, "failed convert str to decimal!");
         }
     }
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
         precision_ = point_pos + s - is_neg;   //add xsl ECNU_DECIMAL 2017_3
     }
-    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     return ret;
 }
 
