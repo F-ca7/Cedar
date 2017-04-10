@@ -206,23 +206,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
     }
     //modify e
-    /*if (got_digit > MAX_DECIMAL_DIGIT)
-    {
-        if(buff[got_digit] != '0')
-        {
-            ret = OB_DECIMAL_UNLEGAL_ERROR;
-            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
-        }
-    }
-    if(got_frac > MAX_DECIMAL_SCALE)
-    {
-        if(got_digit != got_frac)
-        {
-            ret = OB_DECIMAL_UNLEGAL_ERROR;
-            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
-        }
-    }
-    */
+    int tmp_frac = got_frac;
     if(got_frac > MAX_DECIMAL_SCALE)    //37
     {
         got_digit = got_digit - (got_frac - MAX_DECIMAL_SCALE);
@@ -254,7 +238,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         }
         else
         {
-            int point_pos = length - got_frac - got_dot;  //modify xsl
+            int point_pos = length - tmp_frac - got_dot;  //modify xsl
             memcpy(int_buf, buff, point_pos);
             TTInt whole;
             whole.FromString(int_buf);

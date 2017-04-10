@@ -502,7 +502,7 @@ int resolve_expr(
        ObDecimal src,*dst=NULL;
        str=ObString::make_string(node->str_value_);
        ObObj val;
-       src.from(str.ptr(),str.length());
+       ret = src.from(str.ptr(),str.length());
        ob_write_decimal(*name_pool,src,dst);
        val.set_decimal(dst);
        ObConstRawExpr *c_expr = NULL;
