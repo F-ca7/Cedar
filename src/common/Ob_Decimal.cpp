@@ -115,7 +115,8 @@ int ObDecimal::from(const char* str) {
 * date:2014/6/12
 **/
 int ObDecimal::from(const char* buff, int64_t buf_len) {
-	int ret = OB_SUCCESS;
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s]",buff);   //add xsl
+    int ret = OB_SUCCESS;
 	char int_buf[MAX_PRINTABLE_SIZE];
 	char frac_buf[MAX_PRINTABLE_SIZE];
 	memset(int_buf, 0, MAX_PRINTABLE_SIZE);
@@ -129,7 +130,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
 	int op = 0;
 	int length = 0;
 	bool is_valid=false;
-  short int sign = 0;
+    short int sign = 0;
 	if(buff==NULL){
         ret=OB_ERR_UNEXPECTED;
         TBSYS_LOG(WARN, "failed to convert decimal from string buff,err=NULL buff ptr!");
@@ -164,7 +165,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
                     break;
                 if (isdigit(*s))
                 {
-                    if(*s!='0'||got_dot)
+                    if(*s!='0' || got_dot)
                         is_valid=true;  //zero before point and point don't count
                     if(is_valid)
                         got_digit++;   //valid num
@@ -187,19 +188,58 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             }
         }
 	}
+    //modify xsl ECNU_DECIMAL 2017_4
+    /*
     if (got_digit > MAX_DECIMAL_DIGIT || got_frac > MAX_DECIMAL_SCALE)
+    {
+        if(got_digit - got_frac > MAX_DECIMAL_DIGIT)
+        {
+            ret = OB_DECIMAL_UNLEGAL_ERROR;
+            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
+        }
+    }
+    */
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],"
+                   "got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
+    if(got_digit - got_frac > MAX_DECIMAL_DIGIT)     //max integer num
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
         TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
     }
-    if(got_digit > MAX_DECIMAL_DIGIT)
-        got_digit = MAX_DECIMAL_DIGIT;
+    //modify e
+    /*if (got_digit > MAX_DECIMAL_DIGIT)
+    {
+        if(buff[got_digit] != '0')
+        {
+            ret = OB_DECIMAL_UNLEGAL_ERROR;
+            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
+        }
+    }
     if(got_frac > MAX_DECIMAL_SCALE)
+    {
+        if(got_digit != got_frac)
+        {
+            ret = OB_DECIMAL_UNLEGAL_ERROR;
+            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
+        }
+    }
+    */
+    if(got_frac > MAX_DECIMAL_SCALE)    //37
+    {
+        got_digit = got_digit - (got_frac - MAX_DECIMAL_SCALE);
         got_frac = MAX_DECIMAL_SCALE;
+    }
+    if(got_digit > MAX_DECIMAL_DIGIT)
+    {
+        got_frac = got_frac -(got_digit - MAX_DECIMAL_DIGIT);
+        got_digit = MAX_DECIMAL_DIGIT;
+    }
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],"
+                   "got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(OB_SUCCESS==ret)
     {
         length = got_num + got_dot + op;
-        if (!got_dot) {
+        if (!got_dot) {    //no num after point
             //wwd added
             //    char buff1[] = ".0";
             memcpy(int_buf, buff, length);
@@ -216,7 +256,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         }
         else
         {
-            int point_pos = length - got_frac;
+            int point_pos = length - got_frac - got_dot;  //modify xsl
             memcpy(int_buf, buff, point_pos);
             TTInt whole;
             whole.FromString(int_buf);
@@ -226,7 +266,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             BASE.Pow(p);
             whole = whole * BASE;
 
-            memcpy(frac_buf, buff + (point_pos), got_frac);
+            memcpy(frac_buf, buff + (point_pos + got_dot), got_frac);
             TTInt part_float;
             part_float.FromString(frac_buf);
 
@@ -241,8 +281,9 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         vscale_ = got_frac;
         scale_=vscale_;      //all equal got_frac
         precision_=got_digit;
-        if(precision_==scale_)precision_++;
+        //if(precision_==scale_)precision_;    //modify xsl 2017_4
 	  }
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
 	return ret;
 //return ret;
 }
@@ -255,7 +296,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
  *         the main process is in function body
  **/
 int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const {
-    TBSYS_LOG(INFO,"xushilei,len=[%d]",(uint32_t)sizeof(ObDecimal)); //test xsl ECNU_DECIMAL 2017_3
+    //TBSYS_LOG(INFO,"xushilei,len=[%d]",(uint32_t)sizeof(ObDecimal)); //test xsl ECNU_DECIMAL 2017_3
 	int pos = 0;
 	int start = 0;
 	int real_scale = 0;
@@ -471,14 +512,26 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     to_string(buf, MAX_PRINTABLE_SIZE);
     if (buf[0] == '-')
         is_neg = 1;
+    /*
     while (buf[point_pos] != '\0')   //get point position
     {
         if (buf[point_pos] == '.')
             break;
         else
-            point_pos++;
+            point_pos++;          //num before point
     }
+    */
+    point_pos = precision_ - scale_ + is_neg;
     //确定整数部分位数
+    /*
+    if(precision_ - vscale_ > p - s)
+    {
+        ret = OB_DECIMAL_UNLEGAL_ERROR;
+        TBSYS_LOG(ERROR,"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
+                  point_pos, p, s, buf);
+        //return ret;
+    }
+    */
     if (point_pos - is_neg > (int) p - (int) s )
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
@@ -486,6 +539,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
                   point_pos, p, s, buf);
         //return ret;
     }
+
     if (OB_SUCCESS==ret && s < vscale_)
     {
         if (0 == s)
@@ -517,11 +571,13 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             TBSYS_LOG(ERROR, "failed convert str to decimal!");
         }
     }
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
         precision_ = point_pos + s - is_neg;   //add xsl ECNU_DECIMAL 2017_3
     }
+    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     return ret;
 }
 
