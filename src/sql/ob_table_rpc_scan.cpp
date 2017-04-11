@@ -427,6 +427,14 @@ namespace oceanbase
       ret=rpc_scan_.set_second_rowdesc(row_desc);
       return ret;
     }
+    
+    // add by lxb [hash join single] 20170411
+    int ObTableRpcScan::get_is_index_without_storing(bool &is_use, uint64_t &tid)
+    {
+      is_use = is_use_index_without_storing_for_tostring_;
+      tid = index_tid_without_storing_for_tostring_;
+      return OB_SUCCESS;
+    }
 
     int ObTableRpcScan::add_main_output_column(const ObSqlExpression& expr)
     {

@@ -723,12 +723,13 @@ int ObHashJoinSingle::curr_row_is_qualified(bool &is_qualified)
   int ret = OB_SUCCESS;
   is_qualified = true;
   const ObObj *res = NULL;
-  int hash_mape_index = 0;//add tianz [SubQuery_for_Instmt] [JHOBv0.1] 20140610
+  // int hash_mape_index = 0;//add tianz [SubQuery_for_Instmt] [JHOBv0.1] 20140610
   for (int64_t i = 0; i < other_join_conds_.count(); ++i)
   {
     ObSqlExpression &expr = other_join_conds_.at(i);
     //mod peiouya [IN_TYPEBUG_FIX] 20151225:b
     //add tianz [SubQuery_for_Instmt] [JHOBv0.1] 20140610:b
+    /*
     bool use_hash_map = false;
     bool is_hashmap_contain_null = false;  //add peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518
     common::hash::ObHashMap<common::ObRowkey,common::ObRowkey,common::hash::NoPthreadDefendMode>* p = NULL;
@@ -742,14 +743,15 @@ int ObHashJoinSingle::curr_row_is_qualified(bool &is_qualified)
       hash_mape_index = hash_mape_index + (int)expr.get_sub_query_num();
     }
     //add 20140610:e
-
+    */
+    
     //mod peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518:b
     ////mod tianz [SubQuery_for_Instmt] [JHOBv0.1] 20140610:b
-    ////if (OB_SUCCESS != (ret = expr.calc(curr_row_, res)))
+    if (OB_SUCCESS != (ret = expr.calc(curr_row_, res)))
     ////if (OB_SUCCESS != (ret = expr.calc(curr_row_, res, p, use_hash_map)))
     ////mod 20140610:e
     //if (OB_SUCCESS != (ret = expr.calc(curr_row_, res, p, p_data_type_desc, use_hash_map)))
-    if (OB_SUCCESS != (ret = expr.calc(curr_row_, res, p, is_hashmap_contain_null,p_data_type_desc, use_hash_map)))
+    // if (OB_SUCCESS != (ret = expr.calc(curr_row_, res, p, is_hashmap_contain_null,p_data_type_desc, use_hash_map)))
     //mod 20151225:e
     //mod peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518:e
     {
