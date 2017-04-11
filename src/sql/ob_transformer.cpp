@@ -221,6 +221,8 @@
 //add:e
 /*add maoxx [bloomfilter_join] 20160406*/
 #include "ob_bloomfilter_join.h"
+//add maoxx [hash join single] 20170110
+#include "ob_hash_join_single.h"
 /*add e*/
 //add wangjiahao [table lock] 20160616 :b
 #include "ob_lock_table_stmt.h"
@@ -3144,16 +3146,30 @@ int ObTransformer::gen_phy_joins(
     /*add maoxx [bloomfilter_join] 20160415*/
     ObBloomFilterJoin *bloomfilter_join_op = NULL;
     bool use_bloomfilter_join_op = false;
+    
+    //add maoxx [hash join single] 20170110
+    ObHashJoinSingle *hash_join_single_op = NULL;
+    bool use_hash_join_single_op = false;
+    
     if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
     {
       ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
       if(tmp.join_op_type_ == T_BLOOMFILTER_JOIN && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN))
         use_bloomfilter_join_op = true;
+      // add by lxb [hash join single] 20170410
+      else if (tmp.join_op_type_ == T_HASH_JOIN_SINGLE && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN || join_type == ObJoin::RIGHT_OUTER_JOIN || join_type == ObJoin::FULL_OUTER_JOIN)) 
+        use_hash_join_single_op = true;
     }
     if(use_bloomfilter_join_op)
     {
       CREATE_PHY_OPERRATOR(bloomfilter_join_op, ObBloomFilterJoin, physical_plan, err_stat);
       bloomfilter_join_op->set_join_type(join_type);
+    }
+    //add maoxx [hash join single] 20170110
+    else if (use_hash_join_single_op) 
+    {
+      CREATE_PHY_OPERRATOR(hash_join_single_op, ObHashJoinSingle, physical_plan, err_stat);
+      hash_join_single_op->set_join_type(join_type);
     }
     else
     {
@@ -3281,6 +3297,15 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
@@ -3343,6 +3368,15 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
@@ -3374,6 +3408,15 @@ int ObTransformer::gen_phy_joins(
         if(use_bloomfilter_join_op)
         {
           if ((ret = bloomfilter_join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
           {
             TRANS_LOG("Add condition of join plan faild");
             break;
@@ -3428,6 +3471,20 @@ int ObTransformer::gen_phy_joins(
             break;
           }
           if ((ret = bloomfilter_join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->set_child(0, *left_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(1, *right_sort)) != OB_SUCCESS)
           {
             TRANS_LOG("Add child of join plan faild");
             break;
@@ -3497,6 +3554,30 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(0, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(1, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
@@ -3550,6 +3631,15 @@ int ObTransformer::gen_phy_joins(
         if(use_bloomfilter_join_op)
         {
           if ((ret = bloomfilter_join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
           {
             TRANS_LOG("Add condition of join plan faild");
             break;
@@ -3614,6 +3704,15 @@ int ObTransformer::gen_phy_joins(
               break;
             }
           }
+          //add maoxx [hash join single] 20170110
+          else if (use_hash_join_single_op) 
+          {
+            if ((ret = project_op->set_child(0, *hash_join_single_op)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate project operator on join plan faild");
+              break;
+            }
+          }
           else
           {
             if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
@@ -3653,6 +3752,9 @@ int ObTransformer::gen_phy_joins(
       {
         if(use_bloomfilter_join_op)
           result_op = bloomfilter_join_op;
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op)
+          result_op = hash_join_single_op;
         else
           result_op = join_op;
       }

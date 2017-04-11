@@ -113,6 +113,7 @@ namespace oceanbase
       /*add maoxx [bloomfilter_join] 20160408*/
       PHY_BLOOMFILTER_JOIN,
       /*add e*/
+      PHY_HASH_JOIN_SINGLE,//add maoxx [hash join single] 20170110
 
       PHY_INDEX_TRIGGER, //add maoxx
       PHY_DROP_INDEX, //add longfei [secondary index drop index]

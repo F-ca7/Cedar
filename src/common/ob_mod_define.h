@@ -176,6 +176,7 @@ namespace oceanbase
         OB_STATIC_INDEX_HISTOGRAM,
         OB_TABLET_HISTOGRAM_REPORT, ///<module for reporting table histogram information
         //add e
+        OB_MS_SUB_QUERY, // add lxb [hash join single] 20170408 
 
         // updateserver modules
         OB_UPS_ENGINE,
