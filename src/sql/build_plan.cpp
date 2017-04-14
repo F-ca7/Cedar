@@ -1252,6 +1252,12 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
           (char*)(node->children_[2]->str_value_),
         static_cast<int32_t>(strlen(node->children_[2]->str_value_))
         );
+		 //add zhuyanchao[secondary index bug]
+    if(index_table_name_.length()>=max_index_name)
+    {
+        ret = OB_ERR_INVALID_INDEX_NAME;
+        return ret;
+    }
     if((ret = create_index_stmt->generate_inner_index_table_name(index_table_name_, original_table_name_, str, str_len)) != OB_SUCCESS)
     {
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
