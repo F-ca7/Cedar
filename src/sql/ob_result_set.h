@@ -321,10 +321,9 @@ namespace oceanbase
        ps_trans_allocator_(NULL),
        query_string_id_(0),
        cur_time_(NULL),
-       proc_(NULL) //add zt 20151202
-       cur_time_(NULL)
+       proc_(NULL), //add zt 20151202
        //add lbzhong [auto_increment] 20161218:b
-       , auto_increment_(false), auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+        auto_increment_(false), auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
        //add:e
     {
       message_[0] = '\0';

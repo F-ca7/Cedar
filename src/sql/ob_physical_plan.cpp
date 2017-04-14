@@ -69,11 +69,10 @@ ObPhysicalPlan::ObPhysicalPlan()
    group_exec_mode_(false),
    //add zt 20151109 :e
    //add by qx 21070317 :b
-   long_trans_exec_mode_(false)
+   long_trans_exec_mode_(false),
    //add :e
-   next_phy_operator_id_(0)
    //add lbzhong [auto_increment] 20161218:b
-   , auto_increment_(false)
+   auto_increment_(false)
    //add:e
 {
 }
