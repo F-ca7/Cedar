@@ -277,109 +277,112 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
  *         if num>kMAX,convert into 9999.9999,if num<kMin,convert into -9999.9999
  *         the main process is in function body
  **/
-int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const {
+int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
+{
     //TBSYS_LOG(INFO,"xushilei,len=[%d]",(uint32_t)sizeof(ObDecimal)); //test xsl ECNU_DECIMAL 2017_3
-	int pos = 0;
-	int start = 0;
-	int real_scale = 0;
-	int tail_zero_count = 0;
-	char e[1]={'\0'};
-	char tmp[MAX_PRINTABLE_SIZE];
-	memset(tmp, 0, MAX_PRINTABLE_SIZE);
-	TTInt whole, float_part;
-	TTInt BASE(10), p(vscale_);
-	BASE.Pow(p);
-	whole = word[0] / BASE;
-	float_part = word[0] % BASE;
-	if (precision_==0) {
-		if (word[0].IsSign()) {
-			tmp[pos] = '-';
-			pos++;
-		}
-
+    int pos = 0;
+    int start = 0;
+    int real_scale = 0;
+    int tail_zero_count = 0;
+    char e[1]={'\0'};
+    char tmp[MAX_PRINTABLE_SIZE];
+    memset(tmp, 0, MAX_PRINTABLE_SIZE);
+    TTInt whole, float_part;
+    TTInt BASE(10), p(vscale_);
+    BASE.Pow(p);
+    whole = word[0] / BASE;
+    float_part = word[0] % BASE;
+    if (precision_==0)
+    {
+        if (word[0].IsSign())
+        {
+            tmp[pos] = '-';
+            pos++;
+        }
         strcpy(tmp + pos, _str_kMaxScaleFactor_38);
         pos += MAX_DECIMAL_DIGIT;
-
-		strcpy(buf, tmp);
-
-	}
-	else{
-	  if (word[0].IsSign()) {
-		tmp[pos] = '-';
-		whole.ChangeSign();
-		float_part.ChangeSign();
-		start = 1;
-	  }
-
-      string str_for_word;
-      word[0].ToString(str_for_word);
-      string str_for_int;
-	  whole.ToString(str_for_int);
-	  string str_for_frac;
-      float_part.ToString(str_for_frac);
-
-	  int len_word = (int)str_for_word.length() - start;
-	  int len_float = (int) str_for_frac.length();
-	  pos = start;
-	  if (len_word < (int) vscale_) {
-		whole = 0;
-	  }
-
-	  const char* int_str = str_for_int.c_str();
-	  strcpy(tmp + pos, int_str);
-	  pos += (int) strlen(int_str);
-	  if (vscale_ > scale_)
-		real_scale = scale_;
-	  else {
-		real_scale = vscale_;
-		tail_zero_count = scale_ - vscale_;
-	  }
-	  if (scale_ != 0) {
-		tmp[pos] = '.';
-		pos++;
-	  }
-	  if (0 <= (int) vscale_ && scale_ != 0) {
-
-
-		 const char* float_str = str_for_frac.c_str();
-
-//		if (len_word < (int) vscale_ && 0 < vscale_) {
-//
-//			for (int i = 0; i < (int) vscale_ - len_word; i++) {
-//				tmp[pos] = '0';
-//				++pos;
-//			}
-//			strcpy(tmp + pos, float_str);
-//			pos += (int) strlen(float_str);
-//		} else
-			if (0 < vscale_) {
-			for (int i = 0; i < (int) vscale_ - len_float; i++) {
-				tmp[pos] = '0';
-				++pos;
-			}
-			strcpy(tmp + pos, float_str);
-			pos += (int) strlen(float_str);
-		}
-		for (int i = 0; i < tail_zero_count; i++) {
-
-			tmp[pos] = '0';
-			pos++;
-		}
-
-		tmp[pos] = '\0';
-		strncpy(buf, tmp, strlen(tmp) - (vscale_ - real_scale));
-		pos = (int) strlen(tmp) - (vscale_ - real_scale);
-	} else if (scale_ == 0) {
-		if (len_word < (int) vscale_)
-			strcpy(buf, tmp + start);
-		else
-			strcpy(buf, tmp);
-
-	}
-	}
-	strcat(buf,e);
-	OB_ASSERT(pos <= buf_len);
-	return pos;
+        strcpy(buf, tmp);
+    }
+    else                //p != 0
+    {
+        if (word[0].IsSign())
+        {
+            tmp[pos] = '-';
+            whole.ChangeSign();
+            float_part.ChangeSign();
+            start = 1;
+        }
+        string str_for_word;
+        word[0].ToString(str_for_word);
+        string str_for_int;
+        whole.ToString(str_for_int);
+        string str_for_frac;
+        float_part.ToString(str_for_frac);
+        int len_word = (int)str_for_word.length() - start;
+        int len_float = (int) str_for_frac.length();
+        pos = start;
+        if (len_word < (int) vscale_)
+        {
+            whole = 0;
+            TBSYS_LOG(INFO,"xushilei,len_word=[%d],vs=[%d],len_float=[%d]",len_word,vscale_,len_float); //test xsl ECNU_DECIMAL 2017_3
+        }
+        const char* int_str = str_for_int.c_str();
+        strcpy(tmp + pos, int_str);
+        pos += (int) strlen(int_str);
+        if (vscale_ > scale_)
+            real_scale = scale_;
+        else
+        {
+            real_scale = vscale_;
+            tail_zero_count = scale_ - vscale_;
+        }
+        if (scale_ != 0)
+        {
+            tmp[pos] = '.';
+            pos++;
+        }
+        if (0 <= (int) vscale_ && scale_ != 0)
+        {
+            const char* float_str = str_for_frac.c_str();
+            //		if (len_word < (int) vscale_ && 0 < vscale_) {
+            //
+            //			for (int i = 0; i < (int) vscale_ - len_word; i++) {
+            //				tmp[pos] = '0';
+            //				++pos;
+            //			}
+            //			strcpy(tmp + pos, float_str);
+            //			pos += (int) strlen(float_str);
+            //		} else
+            if (0 < vscale_)
+            {
+                for (int i = 0; i < (int) vscale_ - len_float; i++)
+                {
+                    tmp[pos] = '0';                           //pre 0
+                    ++pos;
+                }
+                strcpy(tmp + pos, float_str);
+                pos += (int) strlen(float_str);
+            }
+            for (int i = 0; i < tail_zero_count; i++)         //post 0
+            {
+                tmp[pos] = '0';
+                pos++;
+            }
+            tmp[pos] = '\0';
+            strncpy(buf, tmp, strlen(tmp) - (vscale_ - real_scale));
+            pos = (int) strlen(tmp) - (vscale_ - real_scale);
+        }
+        else if (scale_ == 0)
+        {
+            if (len_word < (int) vscale_)
+                strcpy(buf, tmp + start);
+            else
+                strcpy(buf, tmp);
+        }
+    }
+    strcat(buf,e);
+    OB_ASSERT(pos <= buf_len);
+    return pos;
 }
 
 //add by kindaich 2014/4/18
@@ -482,6 +485,7 @@ void ObDecimal::reset() {
 
 */
 int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
+    UNUSED(p);
     int ret = OB_SUCCESS;
     int point_pos = 0;
     int len = 0;
@@ -494,17 +498,21 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     to_string(buf, MAX_PRINTABLE_SIZE);
     if (buf[0] == '-')
         is_neg = 1;
-    /*
-    while (buf[point_pos] != '\0')   //get point position
-    {
-        if (buf[point_pos] == '.')
-            break;
-        else
-            point_pos++;          //num before point
-    }
-    */
-    point_pos = precision_ - scale_ + is_neg;
     //确定整数部分位数
+    if(vscale_ ==0)    //integer
+    {
+        while (buf[point_pos] != '\0')   //get point position
+        {
+            if (buf[point_pos] == '.')
+                break;
+            else
+                point_pos++;          //num before point
+        }
+    }
+    else            //decimal
+    {
+        point_pos = precision_ - scale_ + is_neg;
+    }
     /*
     if(precision_ - vscale_ > p - s)
     {

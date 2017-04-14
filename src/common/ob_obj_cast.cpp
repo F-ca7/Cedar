@@ -1811,8 +1811,8 @@ namespace oceanbase
         //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         if(orig_cell.get_type()==ObDecimalType && expected_type.get_type()==ObDecimalType)
         {
-            ObDecimal od;
-            orig_cell.get_decimal(od);      //输入的值参数
+            ObDecimal *od = NULL;
+            orig_cell.get_decimal_v2(od);      //输入的值参数
             if(OB_SUCCESS!=(ret=(casted_cell.set_decimal(od))))    //指针指向这个os
             {
                 TBSYS_LOG(WARN, "failed to do set_decimal in obj_cast()");
@@ -1827,13 +1827,15 @@ namespace oceanbase
                 if((pre - vscale) > (schema_p - schema_s))
                 {
                     ret=OB_DECIMAL_UNLEGAL_ERROR;
-                    TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,schema_p=%d,schema_s=%d,casted_cell.get_precision()=%d,casted_cell.get_vscale()=%d",schema_p,schema_s,casted_cell.get_precision(),casted_cell.get_vscale());
+                    TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,schema_p=%d,schema_s=%d,"
+                                    "casted_cell.get_precision()=%d,casted_cell.get_vscale()=%d"
+                              ,schema_p,schema_s,casted_cell.get_precision(),casted_cell.get_vscale());
                 }
                 else
                 {
                     casted_cell.set_precision(schema_p);  //转化成模式的参数样式
                     casted_cell.set_scale(schema_s);
-                    //casted_cell.set_vscale(orig_cell.get_vscale());
+                    //casted_cell.set_vscale(vscale);    //modify xsl ECNU_DECIMAL
                     res_cell = &casted_cell;
                 }
             }
@@ -1851,8 +1853,8 @@ namespace oceanbase
                 ObExprObj to;
                 if(orig_cell.get_type()==ObDecimalType)
                 {
-                    ObDecimal od;
-                    orig_cell.get_decimal(od);
+                    ObDecimal *od =NULL;
+                    orig_cell.get_decimal_v2(od);
                     if (OB_SUCCESS != (ret=obj_tmp.set_decimal(od)))
                     {
                         TBSYS_LOG(WARN, "failed to do set_decimal in obj_cast()");
