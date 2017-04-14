@@ -1248,6 +1248,7 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
     char str[OB_MAX_TABLE_NAME_LENGTH];
     memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
     int64_t str_len = 0;
+	int max_index_name = OB_MAX_COLUMN_NAME_LENGTH-4;
     index_table_name_.assign_ptr(
           (char*)(node->children_[2]->str_value_),
         static_cast<int32_t>(strlen(node->children_[2]->str_value_))
