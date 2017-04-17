@@ -188,18 +188,6 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             }
         }
 	}
-    //modify xsl ECNU_DECIMAL 2017_4
-    /*
-    if (got_digit > MAX_DECIMAL_DIGIT || got_frac > MAX_DECIMAL_SCALE)
-    {
-        if(got_digit - got_frac > MAX_DECIMAL_DIGIT)
-        {
-            ret = OB_DECIMAL_UNLEGAL_ERROR;
-            TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
-        }
-    }
-    */
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(got_digit - got_frac > MAX_DECIMAL_DIGIT)     //max integer num
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
@@ -499,30 +487,19 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     if (buf[0] == '-')
         is_neg = 1;
     //确定整数部分位数
-    if(vscale_ ==0)    //integer
+    while (buf[point_pos] != '\0')   //get point position
     {
-        while (buf[point_pos] != '\0')   //get point position
-        {
-            if (buf[point_pos] == '.')
-                break;
-            else
-                point_pos++;          //num before point
-        }
+        if (buf[point_pos] == '.')
+            break;
+        else
+            point_pos++;          //num before point
     }
-    else            //decimal
+    int pre=is_neg;
+    while(buf[pre] == '0')     //pre zero and -
     {
-        point_pos = precision_ - scale_ + is_neg;
+        pre++;
     }
-    /*
-    if(precision_ - vscale_ > p - s)
-    {
-        ret = OB_DECIMAL_UNLEGAL_ERROR;
-        TBSYS_LOG(ERROR,"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
-                  point_pos, p, s, buf);
-        //return ret;
-    }
-    */
-    if (point_pos - is_neg > (int) p - (int) s )
+    if (point_pos - pre> (int) p - (int) s )
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
         TBSYS_LOG(ERROR,"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
@@ -565,7 +542,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
-        precision_ = point_pos + s - is_neg;   //add xsl ECNU_DECIMAL 2017_3
+        precision_ = point_pos - pre + s;   //add xsl ECNU_DECIMAL 2017_3
     }
     //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     return ret;
