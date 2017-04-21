@@ -67,8 +67,9 @@ namespace oceanbase
         fp = fopen("/home/lxb/logic_end.txt", "wt");
         logical_plan->print(fp, 0);
         fclose(fp);
-        TBSYS_LOG(WARN, "*****lxb|logical plan end*****");
         */
+        
+        TBSYS_LOG(WARN, "*****lxb|logical plan end*****");
 
       }
       

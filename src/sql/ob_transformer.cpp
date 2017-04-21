@@ -3191,9 +3191,11 @@ int ObTransformer::gen_phy_joins(
     ObSort *right_sort = NULL;
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator cnd_it;
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator del_it;
+    ObPhyOperator *left_table_op = NULL;  //add lxb [hash join single] 20170421
+    ObPhyOperator *right_table_op = NULL;  //add lxb [hash join single] 20170421
     for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end();)
     {
-      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
+      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支，因为where里面的条件没有解析，故不会走下一个分支。而隐式连接，如果where有两个join条件，则同时走这个分支和下个分支
       {
         ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
         ObBinaryRefRawExpr *lexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
@@ -3223,8 +3225,8 @@ int ObTransformer::gen_phy_joins(
         oceanbase::common::ObList<ObPhyOperator*>::iterator del_table_it;
         oceanbase::common::ObList<ObBitSet<> >::iterator bitset_it = bitset_list.begin();
         oceanbase::common::ObList<ObBitSet<> >::iterator del_bitset_it;
-        ObPhyOperator *left_table_op = NULL;
-        ObPhyOperator *right_table_op = NULL;
+//        ObPhyOperator *left_table_op = NULL; //modify lxb [hash join single] 20170421
+//        ObPhyOperator *right_table_op = NULL; //modify lxb [hash join single] 20170421
         while (ret == OB_SUCCESS && (!left_table_op || !right_table_op) && table_it != phy_table_list.end() && bitset_it != bitset_list.end())
         {
           if (bitset_it->has_member(left_bit_idx))
@@ -3479,12 +3481,12 @@ int ObTransformer::gen_phy_joins(
         //add maoxx [hash join single] 20170110
         else if (use_hash_join_single_op) 
         {
-          if ((ret = hash_join_single_op->set_child(0, *left_sort)) != OB_SUCCESS)
+          if ((ret = hash_join_single_op->set_child(0, *left_table_op)) != OB_SUCCESS)
           {
             TRANS_LOG("Add child of join plan faild");
             break;
           }
-          if ((ret = hash_join_single_op->set_child(1, *right_sort)) != OB_SUCCESS)
+          if ((ret = hash_join_single_op->set_child(1, *right_table_op)) != OB_SUCCESS)
           {
             TRANS_LOG("Add child of join plan faild");
             break;
