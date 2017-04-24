@@ -66,10 +66,6 @@
 /*add maoxx [bloomfilter_join] 20160417*/
 #include "ob_join.h"
 /*add e*/
-//add lbzhong [auto_increment] 20161218:b
-#include "ob_auto_increment_filter.h"
-#include "ob_ups_modify.h"
-//add:e
 
 #include "sql/ob_procedure.h" //add by zhutao
 #include "ob_procedure_compilation_guard.h" //add by zhutao
@@ -1202,11 +1198,7 @@ namespace oceanbase
             const ObSEArray<int64_t, 64> &row_desc_map,
             const uint64_t table_id,
             const ObRowkeyInfo &rowkey_info,
-            ObTableRpcScan &table_scan
-            //add lbzhong [auto_increment] 20161217:b
-            , const uint64_t auto_column_id, const int64_t auto_value
-            //add:e
-            );
+            ObTableRpcScan &table_scan);
 
         /**
          * @brief gen_phy_values_for_replace
@@ -1229,20 +1221,15 @@ namespace oceanbase
             const ObRowDesc& row_desc,
             const ObRowDescExt& row_desc_ext,
             const ObSEArray<int64_t, 64> *row_desc_map,
-            ObExprValues& value_op
-            //add lbzhong [auto_increment] 20161217:b
-            , const uint64_t auto_column_id, const int64_t auto_value
-            //add:e
-            );
+            ObExprValues& value_op);
         //add e
 
         //add maoxx [replace bug fix] 20170317
         int get_row_desc_intersect(
-            ObRowDesc row_desc,
+            ObRowDesc &row_desc,
+            ObRowDescExt &row_desc_ext,
             ObRowDesc row_desc_index,
-            ObRowDescExt row_desc_ext_index,
-            ObRowDesc &row_desc_intersect,
-            ObRowDescExt &row_desc_ext_intersect);
+            ObRowDescExt row_desc_ext_index);
 
         int gen_phy_values_index(ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -1388,34 +1375,6 @@ namespace oceanbase
           ErrStat& err_stat,
           const uint64_t& query_id,
           int32_t* index);
-        //add lbzhong [auto_increment] 20161126:b
-        bool need_auto_increment(
-            ObLogicalPlan *logical_plan,
-            ErrStat& err_stat,
-            const uint64_t& query_id);
-        uint64_t get_auto_column_id(const uint64_t table_id);
-        int update_and_get_auto_value(const uint64_t table_id, const uint64_t column_id, const int64_t row_count, int64_t& auto_value);
-        int gen_phy_auto_increment(
-            ObLogicalPlan *logical_plan,
-            ObPhysicalPlan *physical_plan,
-            ErrStat& err_stat,
-            const uint64_t& query_id,
-            const uint64_t when_expr_size,
-            ObExprValues* value_op,
-            ObWhenFilter* when_filter,
-            ObAutoIncrementFilter*& auto_increment_filter);
-        int check_and_load_auto_value(const uint64_t auto_column_id,
-                                     const bool need_modify_index_flag,
-                                     ObInsertStmt *insert_stmt,
-                                     const int64_t row_count,
-                                     int64_t& auto_value,
-                                     ObUpsModifyWithDmlType *&ups_modify);
-        int add_auto_increment_op(ObPhysicalPlan *physical_plan,
-                                  ErrStat& err_stat,
-                                  ObAutoIncrementFilter*& auto_increment_filter_op,
-                                  ObPhyOperator* parent_op,
-                                  ObPhyOperator* child_op);
-        //add:e
 
       private:
         common::ObIAllocator *mem_pool_;
