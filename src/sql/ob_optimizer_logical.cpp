@@ -85,12 +85,13 @@ namespace oceanbase
           
           if(main_stmt == NULL){
             ret = OB_ERR_ILLEGAL_ID;
-            TBSYS_LOG(ERROR, "Get Stmt error");
-             
+            TBSYS_LOG(INFO, "Stmt is not select stmt");
           } 
           else if(OB_LIKELY(ret == OB_SUCCESS))
           {
+            TBSYS_LOG(INFO, "enter the logical optimizer");
             ret = pull_up_subquery_union(logical_plan, main_stmt, result_plan);
+            TBSYS_LOG(WARN, "leave the logical optimizer");
           }
         }
       }
@@ -1257,8 +1258,6 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       
-      TBSYS_LOG(WARN, "*****lxb|pull up simple subquery*****");
-       
       uint64_t table_id = table_item->table_id_; // if subquery, from_item's table_id equal table_item's table_id
       bool is_joined = from_item.is_joined_;
       uint64_t ref_id = table_item->ref_id_;

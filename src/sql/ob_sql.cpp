@@ -190,7 +190,11 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
         /* logical optimizer start, write by lxb start at 2016-12-14 */
         if(OB_SUCCESS == ret)
         {
-          ret = ObOptimizer::optimizer(result_plan, result);
+          ObStmt *ob_stmt = dynamic_cast<ObStmt*>(logic_plan->get_main_stmt());
+          if(ob_stmt->get_stmt_type()==ObBasicStmt::T_EXPLAIN || ob_stmt->get_stmt_type()==ObBasicStmt::T_SELECT)
+          {
+            ret = ObOptimizer::optimizer(result_plan, result);
+          }
         }
 
         if (OB_SUCCESS == ret)
