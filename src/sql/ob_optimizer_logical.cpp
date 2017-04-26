@@ -85,7 +85,7 @@ namespace oceanbase
           
           if(main_stmt == NULL){
             ret = OB_ERR_ILLEGAL_ID;
-            TBSYS_LOG(INFO, "Stmt is not select stmt");
+            TBSYS_LOG(INFO, "Stmt is not select stmt, so it will not enter the logical optimizer");
           } 
           else if(OB_LIKELY(ret == OB_SUCCESS))
           {
