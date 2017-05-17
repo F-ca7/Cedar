@@ -1951,7 +1951,7 @@ namespace oceanbase
           }
           else if (OB_SIZE_OVERFLOW == err)
           {
-            TBSYS_LOG(WARN, "find sstable reader by rowkey return more than"
+            TBSYS_LOG(WARN, "find sstable reader by rowkey return more than "
                       "one reader, tablet=%p", tablets[i]);
             err = OB_ERROR;
             break;

@@ -58,7 +58,7 @@ namespace oceanbase
     class ObLogWriter : public ObILogWriter
     {
     public:
-      static const int64_t LOG_BUFFER_SIZE = OB_MAX_LOG_BUFFER_SIZE;
+      //static int64_t LOG_BUFFER_SIZE = OB_MAX_LOG_BUFFER_SIZE;  // in fact,only uesed by test case
       static const int64_t LOG_FILE_ALIGN_BIT = 9;
       static const int64_t LOG_FILE_ALIGN_SIZE = 1 << LOG_FILE_ALIGN_BIT;
       static const int64_t LOG_FILE_ALIGN_MASK = LOG_FILE_ALIGN_SIZE - 1;

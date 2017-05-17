@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_common_stat.cpp
+ * @brief ob common state definition file
+ *
+ * modified by zhutao:add some definition
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 /*
  * (C) 2007-2012 Taobao Inc.
  *
@@ -51,6 +69,10 @@ const char *ObStatSingleton::ups_map[] = {
   "scan_time",
   "trans_time",
   "trans_wtime",
+  //add by zt 20151211:b
+//  "trans_wtime_rec_thread",
+//  "trans_wtime_thread_handle",
+  //add by zt 20151211:e
   "trans_htime",
   "trans_stime",
   "trans_gtime",
@@ -145,11 +167,30 @@ const char *ObStatSingleton::ups_map[] = {
   "hl_trans_time",
 
   "lock_wait_time",
+  "lock_succ_count",
+  "lock_fail_count",
 
   "dml_replace_count",
   "dml_insert_count",
   "dml_update_count",
   "dml_delete_count",
+
+  //add zt by 20151214:b
+  "ups_proc_count",
+  "ups_proc_time",
+  "ups_proc_expr_time",
+  "ups_proc_delta_time",
+  "ups_proc_delta_into_time",
+  "ups_proc_if_time",
+  "ups_proc_loop_time",
+  "ups_plan_deserialize_time",
+
+  "gen_inc_scan",
+  "gen_mem_sstable",
+  "exec_inc_scan",
+  "exec_mem_sstable",
+  "exec_merge"
+  //add by zt 20151214:e
 };
 
 const char *ObStatSingleton::cs_map[] = {
@@ -220,6 +261,11 @@ const char *ObStatSingleton::ms_map[] = {
   "scan_event_time",
   "ups_execute_count",
   "ups_execute_time",
+
+  //procedure ups execute
+  "procedure_ups_execute_count",
+  "procedure_ups_execute_time",
+
   // memory
   "ms_memory_limit",
   "ms_memory_total",
@@ -293,6 +339,8 @@ const char *ObStatSingleton::obmysql_map[] = {
   "sql_update_time",
   "sql_delete_count",
   "sql_delete_time",
+  "sql_proc_count",
+  "sql_proc_time",
 
   "sql_query_bytes",
 
@@ -308,6 +356,7 @@ const char *ObStatSingleton::obmysql_map[] = {
 //  "multi_stmt_trans_time",
 //  "multi_stmt_trans_stmt_interval",
   "multi_stmt_trans_stmt_count",
+
 };
 
 

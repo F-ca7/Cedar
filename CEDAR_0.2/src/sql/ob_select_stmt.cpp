@@ -340,8 +340,11 @@ void ObSelectStmt::print(FILE* fp, int32_t level, int32_t index)
         fprintf(fp, ", ");
       SelectItem& item = select_items_[i];
       if (item.alias_name_.length() > 0)
-        fprintf(fp, "<%lu, %.*s>", item.expr_id_,
-          item.alias_name_.length(), item.alias_name_.ptr());
+        fprintf(fp, "<expr_id_:%lu, is_real_alias_:%s, alias_name_:%.*s, expr_name_:%.*s, type_:%d>", 
+          item.expr_id_, item.is_real_alias_?"True":"False",
+          item.alias_name_.length(), item.alias_name_.ptr(),
+          item.expr_name_.length(), item.expr_name_.ptr(),
+          int(item.type_));
       else
         fprintf(fp, "<%ld>", item.expr_id_);
     }

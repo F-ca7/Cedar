@@ -47,7 +47,11 @@ namespace oceanbase
       class AppendBuffer
       {
         public:
-          static const int64_t DEFAULT_BUF_SIZE = 1<<22;
+          //delete by qx 20161024 :b
+          //use oceanbase::common::OB_FLUSH_DISK_BUFFER_SIZE instead of it
+          //static const int64_t DEFAULT_BUF_SIZE = 1<<22;
+          //delete :e
+
           AppendBuffer();
           ~AppendBuffer();
           int write(const char* buf, int64_t len, int64_t pos);

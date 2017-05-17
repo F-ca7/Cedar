@@ -514,7 +514,6 @@ common/ob_libeasy_mem_pool.cpp
 common/ob_libeasy_mem_pool.h
 common/ob_lighty_queue.cpp
 common/ob_lighty_queue.h
-src/
 common/ob_link.h
 common/ob_list.h
 common/ob_log_cursor.cpp
@@ -527,12 +526,6 @@ common/ob_log_entry.cpp
 common/ob_log_entry.h
 common/ob_log_generator.cpp
 common/ob_log_generator.h
-common/ob_log_generator2.cpp
-common/ob_log_generator2.h
-common/ob_commit_queue.cpp
-common/ob_commit_queue.h
-common/group_queue_thread.h
-common/group_queue_thread.cpp
 common/ob_log_reader.cpp
 common/ob_log_reader.h
 common/ob_log_replay_runnable.cpp
@@ -541,8 +534,6 @@ common/ob_log_writer.cpp
 common/ob_log_writer.h
 common/ob_log_writer2.cpp
 common/ob_log_writer2.h
-common/ob_log_writer3.cpp
-common/ob_log_writer3.h
 common/ob_login_mgr.cpp
 common/ob_login_mgr.h
 common/ob_lrucache.h

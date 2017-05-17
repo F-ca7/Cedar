@@ -9,7 +9,14 @@ namespace oceanbase
       head_ = NULL;
       tail_ = NULL;
       size_ = 0;
-      thread_buffer_ = new ThreadSpecificBuffer(THREAD_BUFFER_SIZE);
+      thread_buffer_ = new ThreadSpecificBuffer(static_cast<int32_t>(THREAD_BUFFER_SIZE));
+    }
+    ObPacketQueue::ObPacketQueue(const int64_t thread_buffer_size)
+    {
+      head_ = NULL;
+      tail_ = NULL;
+      size_ = 0;
+      thread_buffer_ = new ThreadSpecificBuffer(static_cast<int32_t>(sizeof(ObPacket) + thread_buffer_size));
     }
 
     ObPacketQueue::~ObPacketQueue()

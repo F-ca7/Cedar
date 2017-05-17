@@ -37,6 +37,10 @@ namespace oceanbase
       static int create_table(common::ObTriggerEvent & trigger, const uint64_t table_id = 0);
       static int alter_table(common::ObTriggerEvent & trigger);
       static int drop_tables(common::ObTriggerEvent & trigger, const uint64_t table_id);
+      //add by wdh 20160730 :b
+      static int create_procedure(ObTriggerEvent & trigger);
+      static int drop_procedure(ObTriggerEvent & trigger);
+      //add :e
     };
   } // end namespace rootserver
 }

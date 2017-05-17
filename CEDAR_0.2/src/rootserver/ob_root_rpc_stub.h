@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,13 +12,16 @@
  * modified by guojinwei:add some remote process control function to the ObRootRpcStub class.
  *                       ObRootRpcStub support multiple clusters for HA by adding or modifying
  *                       some functions, member variables
+ * modified by wangdonghui:add update and delete procedure cache functions
  *
  * @version CEDAR 0.2 
  * @author wenghaixing <wenghaixing@ecnu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd <zhangcd_ecnu@ecnu.cn>
- * @date  2016_01_24
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date  2016_07_30
  */
 
 #ifndef OCEANBASE_ROOT_RPC_STUB_H_
@@ -41,6 +44,7 @@
 #include "sql/ob_sql_scan_param.h"
 #include "ob_daily_merge_checker.h"
 #include "common/ob_schema_service.h"
+#include "common/ob_name_code_map.h"
 
 namespace oceanbase
 {
@@ -62,6 +66,14 @@ namespace oceanbase
         // add:e
         virtual int set_obi_role(const common::ObServer& ups, const common::ObiRole& role, const int64_t timeout_us);
         virtual int switch_schema(const common::ObServer& server, const common::ObSchemaManagerV2& schema_manager, const int64_t timeout_us);
+
+        //add by wangdonghui 20160122 :b
+        virtual int update_cache(const common::ObServer& server, const common::ObString & proc_name, const common::ObString & proc_source_code, const int64_t local_version, const int64_t timeout_us);
+        virtual int delete_cache(const common::ObServer& server, const common::ObString & proc_name, const int64_t local_version, const int64_t timeout_us);
+        virtual int update_whole_cache(const common::ObServer& server, common::ObNameCodeMap* name_code_map, const int64_t timeout_us);
+
+        //add :e
+
         virtual int migrate_tablet(const common::ObServer& src_cs, const common::ObDataSourceDesc& desc, const int64_t timeout_us);
         virtual int create_tablet(const common::ObServer& cs, const common::ObNewRange& range, const int64_t mem_version, const int64_t timeout_us);
         virtual int delete_tablets(const common::ObServer& cs, const common::ObTabletReportInfoList &tablets, const int64_t timeout_us);
@@ -120,7 +132,9 @@ namespace oceanbase
                                     const int64_t schema_version,
                                     const common::ObiRole &role,
                                     const int64_t privilege_version,
-                                    const int64_t config_version);
+                                    const int64_t config_version,
+                                    const int64_t procedure_version,
+                                    const bool all_ups_state);
 
         virtual int grant_lease_to_ups(const common::ObServer& ups,
                                        common::ObMsgUpsHeartbeat &msg);

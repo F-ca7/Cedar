@@ -270,8 +270,8 @@ namespace oceanbase
         //TBSYS_LOG(ERROR, "test::zhouhuan cal size = %ld,real size = %ld", end_pos - data_pos, data.get_serialize_size());
         //TBSYS_LOG(ERROR, "generate_log pos=[%ld] != cur_pos.rel_offset[%d]", end_pos, cur_pos.rel_offset_);
       }
-      //TBSYS_LOG(ERROR,"test::zhouhuan log_id = [%ld] rel_id = [%d]", log_id, cur_pos.rel_id_);
-      //TBSYS_LOG(ERROR,"test::zhouhuan log_id = [%ld] seq = [%ld]", (log_id + (int64_t)cur_pos.rel_id_), entry.seq_);
+      //TBSYS_LOG(INFO,"test::zhouhuan log_id = [%ld] rel_id = [%d]", log_id, cur_pos.rel_id_);
+      //TBSYS_LOG(INFO,"test::zhouhuan log_id = [%ld] seq = [%ld] len=%ld", (log_id + (int64_t)cur_pos.rel_id_), entry.seq_,new_pos);
       return err;
 
     }

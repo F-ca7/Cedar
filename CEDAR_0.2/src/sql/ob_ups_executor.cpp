@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2015 ECNU_DaSE.
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,12 +8,13 @@
  * @file ob_ups_executor.cpp
  * @brief send physical plan to ups
  * modified by wangjiahao: No data to update, About it, for update_more
- * modified by zhujun：add a variable into session
+ * modified by zhujun: add a variable into session
+ * modified by zhutao:add a get_next_row_for_sp function
  *
  * @version __DaSE_VERSION
  * @author wangjiahao <51151500051@ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2015_12_30
+ * @date 2016_07_30
  */
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -93,7 +94,6 @@ int ObUpsExecutor::open()
     outer_result_set = my_result_set->get_session()->get_current_result_set();
     my_result_set->set_session(outer_result_set->get_session()); // be careful!
     session = my_phy_plan_->get_result_set()->get_session();
-
     inner_plan_->set_result_set(my_result_set);
 //add wangjiahao [dev_update_more] 20160119 :b
     //set inner_plan timeout_timestamp in order to terminate the long running in subquery.
@@ -136,6 +136,19 @@ int ObUpsExecutor::open()
   {
     start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
     inner_plan_->set_start_trans(start_new_trans);
+    //add by qx 210170317 :b
+    //TBSYS_LOG(ERROR,"outer result set[%p] = %d  no group =%d my rs[%p] =%d no group = %d",
+    //          outer_result_set,outer_result_set->get_long_trans(),outer_result_set->get_no_group(), my_result_set,my_result_set->get_long_trans(), my_result_set->get_no_group());
+    inner_plan_->set_long_trans_exec(my_result_set->get_long_trans());
+    if (inner_plan_->is_long_trans_exec())
+    {
+      inner_plan_->get_trans_req().type_ = LONG_READ_WRITE_TRANS;
+    }
+    else
+    {
+      inner_plan_->get_trans_req().type_ = READ_WRITE_TRANS;
+    }
+    //add :e
     if (start_new_trans
         && (OB_SUCCESS != (ret = set_trans_params(session, inner_plan_->get_trans_req()))))
     {
@@ -181,6 +194,7 @@ int ObUpsExecutor::open()
       OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_COUNT);
       OB_STAT_INC(MERGESERVER, SQL_UPS_EXECUTE_TIME, elapsed_us);
       ret = local_result_.get_error_code();
+//      TBSYS_LOG(INFO, "test transid, start_trans[%d], trans_id[%s]", start_new_trans, to_cstring(local_result_.get_trans_id()));
       if (start_new_trans && local_result_.get_trans_id().is_valid())
       {
         FILL_TRACE_LOG("ups_err=%d ret_trans_id=%s", ret, to_cstring(local_result_.get_trans_id()));
@@ -217,44 +231,6 @@ int ObUpsExecutor::open()
             TBSYS_LOG(WARN, "updateserver warning: %s", warn_msg);
           }
         }
-
-
-        //add by zz 2015/2/3:b
-		//在session中存一个变量维护一个影响行数
-		ObString affect=ObString::make_string("affect_row_num");
-		if(session->variable_exists(affect))
-		{
-            ObObj old_val;
-            int64_t old_value=0;
-            ObObj new_val;
-            if ((ret = session->get_variable_value(affect, old_val)) != OB_SUCCESS)//取出旧值
-            {
-                 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
-            }
-            else if((ret=old_val.get_int(old_value))!=OB_SUCCESS)
-            {
-                TBSYS_LOG(WARN, "old_val get_int ERROR");
-            }
-            new_val.set_int(old_value+local_result_.get_affected_rows());
-            if((ret=session->replace_variable(affect,new_val))!=OB_SUCCESS)
-            {
-                TBSYS_LOG(WARN, "replace_variable affect ERROR");
-            }
-		}
-		else
-		{
-			ObObj new_value_obj;
-			new_value_obj.set_int(local_result_.get_affected_rows());
-			if((ret=session->replace_variable(affect,new_value_obj))!=OB_SUCCESS)
-			{
-				TBSYS_LOG(WARN, "init replace_variable affect ERROR");
-			}
-			else
-			{
-                TBSYS_LOG(DEBUG, "init set affect_row success var_name=%s",affect.ptr());
-			}
-		}
-		//add:e
       }
     }
   }
@@ -350,6 +326,31 @@ int ObUpsExecutor::get_next_row(const common::ObRow *&row)
   }
   return ret;
 }
+
+//add zt 20151107:b
+int ObUpsExecutor::get_next_row_for_sp(const common::ObRow *&row, const ObRowDesc &fake_row_desc)
+{
+  int ret = OB_SUCCESS;
+  //  OB_ASSERT(my_phy_plan_);
+  // for session stored physical plan, my_phy_plan_->get_result_set() is the result_set who stored the plan,
+  // since the two commands are in the same session, so we can get the real result_set from session.
+  // for global stored physical plan, new coppied plan has itsown my_phy_plan_, so both my_phy_plan_->get_result_set()
+  // and my_phy_plan_->get_result_set()->get_session()->get_current_result_set() are correct
+  //  ObResultSet *my_result_set = my_phy_plan_->get_result_set()->get_session()->get_current_result_set();
+  //  if (OB_UNLIKELY(!my_result_set->is_with_rows()))
+  //  {
+  //    ret = OB_NOT_SUPPORTED;
+  //  }
+  curr_row_.set_row_desc(fake_row_desc);
+  if (ret == OB_SUCCESS
+    && (ret = local_result_.get_scanner().get_next_row(curr_row_)) == OB_SUCCESS)
+  {
+    row = &curr_row_;
+  }
+  return ret;
+}
+//add zt 20151107:e
+
 
 int ObUpsExecutor::make_fake_desc(const int64_t column_num)
 {

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,14 +16,18 @@
  * 1. add the packet_code OB_RS_GET_ALL_CLUSTERS_INFO, used in set majority_count
  * 2. add the packet_code OB_RS_SET_AUTO_ELECT_FLAG, used in set auto_elect_flag
  *
- * @version CEDAR 0.2 
+ * modified by wangdonghui:add some constant value for procedure
+ *
+ * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  *         liubozhong <51141500077@ecnu.cn>
  *         chujiajia <52151500014@ecnu.cn>
  *         zhangcd<zhangcd_ecnu@ecnu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_29
  */
 
 #ifndef OCEANBASE_PACKET_H_
@@ -166,6 +170,10 @@ namespace oceanbase
       OB_CS_SHOW_DISK = 247,
       OB_CS_SHOW_DISK_RESPONSE = 248,
 
+      //add by wangdonghui 20160304 :b
+      OB_FETCH_PROCEDURE = 249,
+      OB_FETCH_PROCEDURE_RESPONSE = 250,
+      //add :e
       OB_CS_GET_MIGRATE_DEST_LOC = 260,
       OB_CS_GET_MIGRATE_DEST_LOC_RESPONSE = 261,
       OB_CS_DUMP_TABLET_IMAGE = 262,
@@ -294,6 +302,25 @@ namespace oceanbase
       OB_ALTER_TABLE = 504,
       OB_ALTER_TABLE_RESPONSE = 505,
 
+      //add by wangdonghui 20160121 :b
+      OB_CREATE_PROCEDURE = 506,
+      OB_CREATE_PROCEDURE_RESPONSE = 507,
+      OB_UPDATE_CACHE = 508,
+      OB_UPDATE_CACHE_RESPONSE = 509,
+      //add :e
+
+      //add by wangdonghui 20160225 [drop procedure] :b
+      OB_DROP_PROCEDURE = 510,
+      OB_DROP_PROCEDURE_RESPONSE = 511,
+      OB_DELETE_CACHE = 512,
+      OB_DELETE_CACHE_RESPONSE = 513,
+      //add :e
+      //add by wdh 20160730 :b
+      OB_UPDATE_ALL_PROCEDURE = 514, //slave rs to send all procedure to ms
+      OB_UPDATE_ALL_PROCEDURE_RESPONSE = 515,
+      //add :e
+
+
       // add by guojinwei [log timestamp][multi_cluster] 20150820:b
       /// get log timestamp from ups to rs
       OB_RS_GET_MAX_LOG_TIMESTAMP = 550,
@@ -320,6 +347,8 @@ namespace oceanbase
       //longfei [drop index]
       OB_DROP_INDEX = 562,
       OB_DROP_INDEX_RESPONSE = 563,      // trigger event
+
+      // trigger event
       OB_HANDLE_TRIGGER_EVENT = 600,
       OB_HANDLE_TRIGGER_EVENT_RESPONSE = 601,
 

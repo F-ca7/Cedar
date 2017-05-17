@@ -97,12 +97,14 @@ namespace oceanbase
     TransExecutor::TransExecutor(ObUtilInterface &ui) : TransHandlePool(),
                                                         TransCommitThread(),
                                                         ui_(ui),
+                                                        my_thread_buffer_(static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE)),  // enable handle log pkt
                                                         allocator_(),
                                                         session_ctx_factory_(),
                                                         session_mgr_(),
                                                         lock_mgr_(),
                                                         uncommited_session_list_(),
                                                         ups_result_buffer_(ups_result_memory_, OB_MAX_PACKET_LENGTH)
+
     {
       allocator_.set_mod_id(ObModIds::OB_UPS_TRANS_EXECUTOR_TASK);
       memset(ups_result_memory_, 0, OB_MAX_PACKET_LENGTH);
@@ -180,11 +182,11 @@ namespace oceanbase
       // add:e
       TransHandlePool::set_cpu_affinity(trans_thread_start_cpu, trans_thread_end_cpu);
       TransCommitThread::set_cpu_affinity(commit_thread_cpu);
-      if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE)))
+      if (OB_SUCCESS != (ret = allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, OB_LOG_BUFFER_MAX_SIZE)))
       {
         TBSYS_LOG(WARN, "init allocator fail ret=%d", ret);
       }
-      else if (OB_SUCCESS != (ret = session_mgr_.init(MAX_RO_NUM, MAX_RP_NUM, MAX_RW_NUM, &session_ctx_factory_)))
+      else if (OB_SUCCESS != (ret = session_mgr_.init(MAX_RO_NUM, MAX_RP_NUM, MAX_RW_NUM, MAX_LRW_NUM, &session_ctx_factory_)))  // add a parameter by qx 20170314 for long transcation
       {
         TBSYS_LOG(WARN, "init session mgr fail ret=%d", ret);
       }
@@ -538,8 +540,8 @@ namespace oceanbase
                 OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_FTIME, cur_time - session_ctx->get_last_proc_time());
                 session_ctx->set_last_proc_time(cur_time);
                 //add e
-                //TBSYS_LOG(ERROR, "test::zhouhuan common write task to fill log!!!! group[%ld].start_log_id=[%ld] ts_seq=[%ld], rel_id[%d], ref_cnt[%ld]",
-                  //      cur_pos.group_id_, cur_group->start_log_id_, cur_group->ts_seq_, cur_pos.rel_id_, ref_cnt);
+                //TBSYS_LOG(INFO, "test::zhouhuan common write task to fill log!!!! group[%ld].start_log_id=[%ld] ts_seq=[%ld], rel_id[%d], ref_cnt[%ld]",
+                //        cur_pos.group_id_, cur_group->start_log_id_, cur_group->ts_seq_, cur_pos.rel_id_, ref_cnt);
                 if (OB_SUCCESS == err)
                 {
                   //if(task.pkt.get_packet_code() == OB_WRITE)TBSYS_LOG(ERROR, "test::zhouhuan push private task 301,log_id = %ld", task.log_id_);
@@ -1221,6 +1223,9 @@ namespace oceanbase
       else
       {
         phy_plan.get_trans_req().start_time_ = task.pkt.get_receive_ts();
+        //add qx test
+        //TBSYS_LOG(ERROR,"req type =%d",phy_plan.get_trans_req().type_);
+        //ob_print_mod_memory_usage();
         if (OB_SUCCESS != (ret = session_guard.start_session(phy_plan.get_trans_req(), task.sid, session_ctx)))
         {
           if (OB_BEGIN_TRANS_LOCKED == ret)
@@ -1253,6 +1258,9 @@ namespace oceanbase
       {}
       else
       {
+        //test add by qx 20170313 :b
+        //TBSYS_LOG(ERROR,"no group = %d long_trans = %d", phy_plan.is_group_exec(), phy_plan.is_long_trans_exec());
+        //add :e
         int64_t cur_time = tbsys::CTimeUtil::getTime();
         OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_WTIME, cur_time - task.pkt.get_receive_ts());
         session_ctx->set_last_proc_time(cur_time);
@@ -1280,6 +1288,11 @@ namespace oceanbase
         }
         else
         {
+          //test add by qx 20170313 :b
+          //TBSYS_LOG(ERROR,"no group = %d long_trans = %d", phy_plan.is_group_exec(), phy_plan.is_long_trans_exec());
+          //TBSYS_LOG(ERROR,"phyplan allocator used=%ld total=%ld",allocator.used(), allocator.total());
+          //add :e
+
           FILL_TRACE_BUF(session_ctx->get_tlog_buffer(), "phyplan allocator used=%ld total=%ld",
                         allocator.used(), allocator.total());
         }

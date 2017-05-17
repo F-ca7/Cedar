@@ -1237,12 +1237,6 @@ namespace oceanbase
         const ObSqlScanParam *sql_scan_param_ptr = dynamic_cast<const ObSqlScanParam *>(sql_read_param_ptr);
         is_scan = (NULL != sql_scan_param_ptr);
         table_id = sql_read_param_ptr->get_table_id();
-        //add whx test
-        if(table_id == 6)
-        {
-          TBSYS_LOG(ERROR, "test::whx scal all user table");
-        }
-        //add e
         FILL_TRACE_LOG("deserialize_param_done, is_scan=%d,table_id=%ld", is_scan, table_id);
         if (table_id == OB_ALL_SERVER_STAT_TID)
         {

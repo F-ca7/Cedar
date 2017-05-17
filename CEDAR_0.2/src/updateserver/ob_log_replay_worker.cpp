@@ -44,9 +44,9 @@ namespace oceanbase
       {
         err = OB_INIT_TWICE;
       }
-      else if (OB_SUCCESS != (err = allocator_.init(log_buf_limit + 1, log_buf_limit, OB_MAX_PACKET_LENGTH)))
+      else if (OB_SUCCESS != (err = allocator_.init(log_buf_limit + 1, log_buf_limit, 2*OB_LOG_BUFFER_MAX_SIZE)))
       {
-        TBSYS_LOG(ERROR, "allocator.init(limit=%ld, page_size=%ld)=>%d", log_buf_limit, OB_MAX_PACKET_LENGTH, err);
+        TBSYS_LOG(ERROR, "allocator.init(limit=%ld, page_size=%ld)=>%d", log_buf_limit, 2*OB_LOG_BUFFER_MAX_SIZE, err);
       }
       else if (OB_SUCCESS != (err = apply_worker_.init(n_worker, queue_len/n_worker, queue_rebalance, dynamic_rebalance)))
       {

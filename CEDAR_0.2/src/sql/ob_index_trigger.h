@@ -107,13 +107,13 @@ namespace oceanbase
        * @brief set_sql_type
        * @param type sql type to set
        */
-      void set_sql_type(int type);
+      void set_sql_type(const SQLTYPE type);
 
       /**
        * @brief get_sql_type
        * @param type sql type to get
        */
-      void get_sql_type(int& type);
+      void get_sql_type(SQLTYPE& type);
 
       /**
        * @brief set_data_tid
@@ -263,11 +263,17 @@ namespace oceanbase
        */
       int handle_one_index_table(int64_t index_idx, const ObSchemaManagerV2 *schema_mgr, updateserver::ObIUpsTableMgr *host, updateserver::RWSessionCtx &session_ctx);
 
+      //add huangjianwei [secondary index maintain] 20160909:b
+       void set_input_values(uint64_t subquery) { replace_values_id_ = subquery; }
+       //add:e
       DECLARE_PHY_OPERATOR_ASSIGN;
       NEED_SERIALIZE_AND_DESERIALIZE;
 
     private:
-      int sql_type_; ///<type of sql query statement, including 0 for insert, 1 for delete, 2 for update, 3 for replace
+      //mod huangjianwei [secondary index maintain] 20160909:b
+      //int sql_type_; ///<type of sql query statement, including 0 for insert, 1 for delete, 2 for update, 3 for replace
+      SQLTYPE sql_type_;
+      //mod:e
       int64_t data_tid_; ///<data table id
 
       //common::ObRow data_row_;
@@ -293,8 +299,10 @@ namespace oceanbase
       bool delete_flag_for_update_; ///<true if the update sql query statement need delete rows from index table
       bool delete_flag_for_replace_; ///<true if the replace sql query statement need delete rows from index table
 
-      //uint64_t replace_values_id_;
-      //ObExprValues replace_values_;
+      //add huangjianwei [secondary index maintain] 20160909:b
+      uint64_t replace_values_id_;
+      ObExprValues replace_values_;
+      //add:e
     };
   }
 }

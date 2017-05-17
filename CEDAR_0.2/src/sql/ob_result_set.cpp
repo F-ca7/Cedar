@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -9,10 +9,12 @@
  * @brief build logic plan
  *
  * modified by zhujun：support procedure
+ * modified by zhutao: delete a function
  *
  * @version CEDAR 0.2 
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2015_12_30
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @date 2016_07_29
  */
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -221,6 +223,10 @@ int ObResultSet::reset()
   cur_time_ = NULL;
   errcode_ = 0;
   // don't set stmt_type_ = ObBasicStmt::T_NONE;
+  //add by qx 20170318 :b
+  no_group_ = true;
+  long_trans_ = false;
+  //add :e
   return ret;
 }
 
@@ -263,6 +269,13 @@ int ObResultSet::pre_assign_params_room(const int64_t& size, common::ObIAllocato
             param_columns_.count(), param_columns_.get_data_size());
   return ret;
 }
+
+//add zt 201151121:b
+//int ObResultSet::pre_assign_cur_time_room(common::ObObj *place_holder)
+//{
+//  cur_time_ = place_holder;
+//}
+//add zt 20151121:e
 
 int ObResultSet::pre_assign_cur_time_room(common::ObIAllocator &alloc)
 {
@@ -397,7 +410,10 @@ int ObResultSet::to_prepare(ObResultSet& other)
   other.my_session_ = my_session_;
   other.ps_trans_allocator_ = ps_trans_allocator_;
   other.query_string_id_ = query_string_id_;
-
+  other.stmt_hash_code_ = stmt_hash_code_; //add by zhutao
+  other.no_group_ = no_group_;  //add  by zhutao
+  other.long_trans_ = long_trans_; //add by qx 20170318
+  other.cur_schema_version_ = cur_schema_version_; //add by wdh 20160822
   this->statement_name_.reset();
   this->physical_plan_ = NULL;
   this->own_physical_plan_ = false;

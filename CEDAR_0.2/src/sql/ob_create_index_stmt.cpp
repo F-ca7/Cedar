@@ -103,9 +103,12 @@ int ObCreateIndexStmt::set_original_table_name(ResultPlan& result_plan, const Ob
       }
       else if(is_index_full)
       {
-        ret = OB_ERROR;
+        //mod huangjianwei [secondary index debug] 20170314:b
+        //ret = OB_ERROR;
+        ret = OB_ERROR_INDEX_ALREADY_FULL;
         snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
-                 "the table  '%.*s' index number is full!", original_table_name.length(), original_table_name.ptr());
+                 "table %.*s index number is full!", original_table_name.length(), original_table_name.ptr());
+        //mod:e
       }
     }
   }

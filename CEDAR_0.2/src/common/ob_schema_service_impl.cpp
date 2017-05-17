@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,7 +15,8 @@
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_26
  */
  
 #include "ob_schema_service_impl.h"
@@ -337,6 +338,25 @@ int ObSchemaServiceImpl::create_table_mutator(const TableSchema& table_schema, O
   return ret;
 }
 
+//add by wangdonghui 20160125 :b
+int ObSchemaServiceImpl::create_procedure_mutator(const common::ObString& proc_name, const common::ObString& proc_source_code, ObMutator* mutator)
+{
+  int ret = OB_SUCCESS;
+  ObObj procedure_name_value;
+  procedure_name_value.set_varchar(proc_name);
+
+  ObRowkey rowkey;
+  rowkey.assign(&procedure_name_value, 1);
+
+  //ADD_VARCHAR(procedure_table_name, rowkey, "proc_name", proc_name.ptr());
+  ADD_VARCHAR(procedure_table_name, rowkey, "source", proc_source_code.ptr());
+  ADD_VARCHAR(procedure_table_name, rowkey, "type","procedure");
+  ADD_VARCHAR(procedure_table_name, rowkey, "note", "");
+
+  return ret;
+}
+//add :e
+
 int ObSchemaServiceImpl::alter_table_mutator(const AlterTableSchema& table_schema, ObMutator* mutator, const int64_t old_schema_version)
 {
   int ret = OB_SUCCESS;
@@ -572,6 +592,57 @@ int ObSchemaServiceImpl::create_table(const TableSchema& table_schema)
   }
   return ret;
 }
+
+
+//add by wangdonghui 20160125 this is not a wise choice,
+//maybe we can build a new file which names ob_procedure_service :b
+int ObSchemaServiceImpl::create_procedure(const common::ObString& proc_name, const common::ObString& proc_source_code)
+{
+  int ret = OB_SUCCESS;
+
+  tbsys::CThreadGuard guard(&mutex_);
+
+  ObMutator* mutator = NULL;
+
+  if ( OB_SUCCESS == ret )
+  {
+    mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
+    if ( NULL == mutator )
+    {
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      TBSYS_LOG(WARN, "get thread specific Mutator fail");
+    }
+  }
+
+  if ( OB_SUCCESS == ret )
+  {
+    ret = mutator->reset();
+    if ( OB_SUCCESS != ret )
+    {
+      TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+    }
+  }
+
+  if ( OB_SUCCESS == ret )
+  {
+    ret = create_procedure_mutator(proc_name, proc_source_code, mutator);
+    if( OB_SUCCESS != ret )
+    {
+      TBSYS_LOG(WARN, "create procedures mutator fail:ret[%d]", ret);
+    }
+  }
+
+  if ( OB_SUCCESS == ret )
+  {
+    ret = client_proxy_->mutate(*mutator);
+    if ( OB_SUCCESS != ret )
+    {
+      TBSYS_LOG(WARN, "apply mutator fail:ret[%d]", ret);
+    }
+  }
+  return ret;
+}
+//add :e
 
 #define ASSIGN_INT_FROM_ROWKEY(column, rowkey_index, field, type) \
 if(OB_SUCCESS == ret) \
@@ -814,6 +885,37 @@ int ObSchemaServiceImpl::drop_table(const ObString& table_name)
   return ret;
 }
 
+//add by wangdonghui 20160225 [drop procedure] :b
+int ObSchemaServiceImpl::drop_procedure(const ObString& proc_name)
+{
+  int ret = OB_SUCCESS;
+
+  if (!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+
+  tbsys::CThreadGuard guard(&mutex_);
+
+  ObRowkey rowkey;
+  ObObj proc_name_obj;
+  proc_name_obj.set_varchar(proc_name);
+  rowkey.assign(&proc_name_obj, 1);
+
+  if (OB_SUCCESS == ret)
+  {
+    ret = nb_accessor_.delete_row(OB_ALL_PROCEDURE_TABLE_NAME, rowkey);
+    if (OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "delete row from __all_procedure fail:ret[%d]", ret);
+    }
+  }
+
+  return ret;
+}
+//add :e
+
 int ObSchemaServiceImpl::init_id_name_map()
 {
   int ret = OB_SUCCESS;
@@ -927,6 +1029,15 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
     {
       ret = hash::HASH_NOT_EXIST == err ? OB_ENTRY_NOT_EXIST : OB_ERROR;
       TBSYS_LOG(WARN, "id name map get fail:err[%d], table_id[%lu]", err, table_id);
+      //add by qx 20170225 :b for test
+//      hash::ObHashMap<uint64_t, ObString>::const_iterator iter1=id_name_map_.begin();
+//      for (;iter1!=id_name_map_.end();iter1++)
+//      {
+//        int64_t id = (uint64_t)(iter1->first);
+//        ObString name = iter1->second ;
+//        TBSYS_LOG(WARN, "reseting name hash map iter->first=%ld  second=%s", id, name.ptr());
+//      }
+      //add :e
     }
   }
   TBSYS_LOG(DEBUG, "get table_name=%.*s", table_name.length(), table_name.ptr());
@@ -997,7 +1108,10 @@ int ObSchemaServiceImpl::get_table_id(const ObString& table_name, uint64_t& tabl
 int ObSchemaServiceImpl::assemble_table(const TableRow* table_row, TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
-  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  //modify zhuyanchao[secondary index table name length bug]
+  //ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+   ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_TABLE_NAME_LENGTH);
+  //modify:e
   /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
   if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
   {
@@ -1132,6 +1246,38 @@ int ObSchemaServiceImpl::get_table_schema(const ObString& table_name, TableSchem
 
   return ret;
 }
+
+//add by wangdonghui 20160308 :b
+int ObSchemaServiceImpl::get_procedure_info(QueryRes *&res_)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(TRACE, "fetch procedure info begin");
+  if(!check_inner_stat())
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "check inner stat fail");
+  }
+  ObNewRange range;
+  range.border_flag_.unset_inclusive_start();
+  range.border_flag_.set_inclusive_end();
+  range.set_whole_range();
+  if (OB_SUCCESS != (ret = nb_accessor_.scan(res_, OB_ALL_PROCEDURE_TABLE_NAME, range, SC("proc_name")("source"))))
+  {
+    TBSYS_LOG(WARN, "nb accessor scan fail:ret[%d]", ret);
+  }
+  else
+  {
+    TBSYS_LOG(DEBUG, "scan OB_ALL_PROCEDURE_TABLE success. scanner row count =%ld", res_->get_scanner()->get_row_num());
+  }
+  if (NULL == &res_)
+  {
+    ret = OB_ERR_UNEXPECTED;
+    TBSYS_LOG(ERROR, "results is NULL");
+  }
+  return ret;
+}
+//add :e
+
 
 int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSchema& table_schema)
 {
@@ -1824,7 +1970,10 @@ bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
-  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  //modify zhuyanchao [secondary index table name length bug]
+  //ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_TABLE_NAME_LENGTH);
+  //modify:e
   /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
   if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
   {

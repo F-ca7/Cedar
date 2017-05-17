@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,7 +14,8 @@
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
  */
 
 /**
@@ -42,6 +43,10 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObBasicStmt class
+     * basic statement class of logical plan has commen data menber and function menber of sub-class
+     */
     class ObBasicStmt
     {
     public:
@@ -131,13 +136,15 @@ namespace oceanbase
         T_PROCEDURE_ASSGIN,
         T_PROCEDURE_WHILE,
         T_PROCEDURE_LOOP,
+        T_PROCEDURE_EXIT,//add by wangdonghui
         T_PROCEDURE_CASE,
         T_PROCEDURE_CASEWHEN,
         T_PROCEDURE_IF,
         T_PROCEDURE_ELSEIF,
         T_PROCEDURE_ELSE,
         T_PROCEDURE_EXEC,
-        T_PROCEDURE_SELECT_INTO
+        T_PROCEDURE_SELECT_INTO,
+        T_VARIABLE_SET_ARRAY_VALUE
         //code_coverage_zhujun
         //add:e
       };
@@ -161,14 +168,15 @@ namespace oceanbase
       StmtType get_stmt_type() const;
       uint64_t get_query_id() const;
       bool is_show_stmt() const;
+      bool is_dml_type() const; //add dragon [Bugfix#12] 2017-3-8
 
       virtual void print(FILE* fp, int32_t level, int32_t index) = 0;
     protected:
       void print_indentation(FILE* fp, int32_t level) const;
 
     private:
-      StmtType  stmt_type_;
-      uint64_t  query_id_;
+      StmtType  stmt_type_;  ///<  statement type
+      uint64_t  query_id_;  ///<  query id
     };
 
     inline void ObBasicStmt::set_stmt_type(StmtType stmt_type)
@@ -201,6 +209,19 @@ namespace oceanbase
     {
       return (stmt_type_ >= T_SHOW_TABLES and stmt_type_ <= T_SHOW_SERVER_STATUS);
     }
+
+    //add dragon [Bugfix#12] 2017-3-8 b
+    inline bool ObBasicStmt::is_dml_type() const
+    {
+      if(stmt_type_ == T_INSERT
+         || stmt_type_ == T_DELETE
+         || stmt_type_ == T_REPLACE
+         || stmt_type_ == T_UPDATE )
+        return true;
+      else
+        return false;
+    }
+    //add dragon e
   }
 }
 

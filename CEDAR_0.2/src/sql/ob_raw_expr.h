@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_raw_expr.h
+ * @brief raw expression relation class definition
+ *
+ * modified by zhutao:add some functions and a class for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 #ifndef OCEANBASE_SQL_RAWEXPR_H_
 #define OCEANBASE_SQL_RAWEXPR_H_
 #include "common/ob_bit_set.h"
@@ -38,6 +56,7 @@ namespace oceanbase
       bool is_range_filter() const;
       // Only format like "T1.c1 = T2.c1", not "T1.c1 - T2.c1 = 0"
       bool is_join_cond() const;
+      bool is_semi_join_cond() const; // wangyanzhao, pull up sublink 20170322
       bool is_aggr_fun() const;
       virtual int fill_sql_expression(
           ObSqlExpression& inter_expr,
@@ -45,7 +64,12 @@ namespace oceanbase
           ObLogicalPlan *logical_plan = NULL,
           ObPhysicalPlan *physical_plan = NULL) const = 0;
       virtual void print(FILE* fp, int32_t level) const = 0;
-
+      /**
+       * @brief get_raw_var
+       * push expressin to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr*> &exprs) const  {UNUSED(exprs);} //add zt for find variables
     private:
       ObItemType  type_;
       common::ObObjType result_type_;
@@ -72,9 +96,89 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        exprs.push_back(this);
+      }
     private:
       oceanbase::common::ObObj value_;
     };
+
+    //add zt 20151125:b
+    /**
+     * @brief The ObArrayRawExpr class
+     * added array expression definition
+     */
+    class ObArrayRawExpr : public ObRawExpr
+    {
+      public:
+        /**
+         * @brief ObArrayRawExpr constructor
+         */
+        ObArrayRawExpr() : ObRawExpr(T_ARRAY)
+        {
+        }
+        /**
+         * @brief set_array_name
+         * set array name
+         * @param array_name array name
+         */
+        void set_array_name(const ObString &array_name) { array_name_ = array_name; }
+        /**
+         * @brief set_idx_value
+         * set index value
+         * @param obj index value
+         */
+        void set_idx_value(const ObObj &obj) { idx_value_ = obj; }
+        /**
+         * @brief get_array_name
+         * get array name
+         * @return array name
+         */
+        const ObString& get_array_name() const { return array_name_; }
+        /**
+         * @brief get_idx_value
+         * get index value
+         * @return index value
+         */
+        const ObObj & get_idx_value() const { return idx_value_; }
+        /**
+         * @brief fill_sql_expression
+         * fill sql expression
+         * @param inter_expr sql expression
+         * @param transformer ObTransformer object pointer
+         * @param logical_plan logical plan
+         * @param physical_plan physical plan
+         * @return error code
+         */
+        virtual int fill_sql_expression(
+            ObSqlExpression& inter_expr,
+            ObTransformer *transformer = NULL,
+            ObLogicalPlan *logical_plan = NULL,
+            ObPhysicalPlan *physical_plan = NULL) const;
+        /**
+         * @brief print
+         * print array expression information
+         * @param fp
+         * @param level
+         */
+        void print(FILE* fp, int32_t level) const;
+        /**
+         * @brief get_raw_var
+         * push array expression to stack
+         * @param exprs expression stack
+         */
+        virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+        {
+          //remains problem, how to answer this questions
+          exprs.push_back(this);
+        }
+      private:
+        oceanbase::common::ObString array_name_;  ///<  array name
+        ObObj idx_value_;  ///< array index value
+        //      ObRawExpr *idx_expr_;
+    };
+    //add zt 20151125:e
 
     class ObCurTimeExpr : public ObRawExpr
     {
@@ -165,6 +269,17 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104
     private:
       ObRawExpr *expr_;
     };
@@ -191,6 +306,18 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        first_expr_->get_raw_var(exprs);
+        second_expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -225,6 +352,19 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        first_expr_->get_raw_var(exprs);
+        second_expr_->get_raw_var(exprs);
+        third_expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -254,6 +394,20 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        for(int32_t i = 0; i < exprs_.size(); ++i)
+        {
+          exprs_.at(i)->get_raw_var(exprs);
+        }
+      }
+      //add zt: 20151104 e
     private:
       oceanbase::common::ObVector<ObRawExpr*> exprs_;
     };
@@ -296,6 +450,28 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        arg_expr_->get_raw_var(exprs);
+        for(int32_t i = 0; i < when_exprs_.size(); ++i)
+        {
+          when_exprs_.at(i)->get_raw_var(exprs);
+        }
+        for(int32_t i = 0; i < then_exprs_.size(); ++i)
+        {
+          then_exprs_.at(i)->get_raw_var(exprs);
+        }
+        default_expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
+
     private:
       ObRawExpr *arg_expr_;
       oceanbase::common::ObVector<ObRawExpr*> when_exprs_;
@@ -327,6 +503,19 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        param_expr_->get_raw_var(exprs);
+      }
+      //add zt:e
+
     private:
       // NULL means '*'
       ObRawExpr* param_expr_;
@@ -356,6 +545,20 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
 
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      virtual void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+        for(int32_t i = 0; i < exprs_.size(); ++i)
+        {
+          exprs_.at(i)->get_raw_var(exprs);
+        }
+      }
+      //add zt: 20151104 e
     private:
       common::ObString func_name_;
       common::ObVector<ObRawExpr*> exprs_;
@@ -397,6 +600,18 @@ namespace oceanbase
           ObLogicalPlan *logical_plan = NULL,
           ObPhysicalPlan *physical_plan = NULL);
       void print(FILE* fp, int32_t level, int32_t index = 0) const;
+
+      //add zt: 20151104 b
+      /**
+       * @brief get_raw_var
+       * push expression to stack
+       * @param exprs expression stack
+       */
+      void get_raw_var(ObIArray<const ObRawExpr *> &exprs) const
+      {
+          expr_->get_raw_var(exprs);
+      }
+      //add zt: 20151104 e
 
     private:
       uint64_t  expr_id_;

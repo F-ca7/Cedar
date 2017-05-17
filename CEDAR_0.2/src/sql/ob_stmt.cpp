@@ -2,8 +2,12 @@
 #include "ob_select_stmt.h"
 #include "parse_malloc.h"
 #include "ob_logical_plan.h"
+#include "ob_multi_logic_plan.h"
 #include "ob_schema_checker.h"
 #include "common/utility.h"
+//add dragon [Bugfix#7] 2017-3-8 b
+#include "common/ob_schema_service.h"
+//add dragon [Bugfix#7] 2017-3-8 e
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
@@ -27,11 +31,26 @@ int ObStmt::add_table_item(
   const ObString& alias_name,
   uint64_t& table_id,
   const TableItem::TableType type,
-  const uint64_t ref_id)
+  const uint64_t ref_id,
+  bool is_optimizer /* if the item is added by logical optimizer */)
 {
   int& ret = result_plan.err_stat_.err_code_ = OB_SUCCESS;
   table_id = OB_INVALID_ID;
-  ObLogicalPlan* logical_plan = static_cast<ObLogicalPlan*>(result_plan.plan_tree_);
+  ObLogicalPlan* logical_plan;
+  
+  /* add by wangyanzhao 2017/1/18 */
+  if(!is_optimizer)
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan.plan_tree_);
+  }
+  else
+  {
+    ObMultiLogicPlan *multi_logic_plan = NULL;
+	multi_logic_plan = static_cast<ObMultiLogicPlan*>(result_plan.plan_tree_);
+    logical_plan = multi_logic_plan->at(0);
+  }
+  /* end by wangyanzhao */
+  
   if (logical_plan == NULL)
   {
     ret = OB_ERR_LOGICAL_PLAN_FAILD;
@@ -75,6 +94,30 @@ int ObStmt::add_table_item(
               "table '%.*s' does not exist", table_name.length(), table_name.ptr());
           break;
         }
+        //add dragon [Bugfix#12] 2017-3-8
+        //all DML operation except query to checksum system table is not allowed at present
+        if(is_dml_type() && IS_COLUMN_CHECKSUM(item.ref_id_))
+        {
+          ret = OB_OPERATION_NOT_ALLOWED;
+          snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
+              "all DML operation except query to table '%.*s' is not allowed",
+                   table_name.length(), table_name.ptr());
+          break;
+        }
+        //add e
+
+        //add dragon [Bugfix#7] 2017-3-8
+        //disallow DML operation directly to index table
+        if(is_dml_type() && TableSchema::is_secondary_index_table(table_name))
+        {
+          ret = OB_OPERATION_NOT_ALLOWED;
+          snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
+              "DML operation directly to index table '%.*s' is not allowed",
+                   table_name.length(), table_name.ptr());
+          break;
+        }
+        //add e
+
         if (type == TableItem::BASE_TABLE)
           item.table_id_ = item.ref_id_;
         else
@@ -548,7 +591,11 @@ void ObStmt::print(FILE* fp, int32_t level, int32_t index)
         fprintf(fp, "Type:ALIAS_TABLE, ");
       else if (item.type_ == TableItem::GENERATED_TABLE)
         fprintf(fp, "Type:GENERATED_TABLE, ");
-      fprintf(fp, "RefId: %lu}\n", item.ref_id_);
+      fprintf(fp, "RefId: %lu, ", item.ref_id_);
+	  if (item.has_scan_columns_)
+        fprintf(fp, "has_scan_columns_:True}\n");
+      else
+        fprintf(fp, "has_scan_columns_:False}\n");
     }
     print_indentation(fp, level);
     fprintf(fp, "<TableItemList End>\n");
@@ -562,9 +609,10 @@ void ObStmt::print(FILE* fp, int32_t level, int32_t index)
     {
       ColumnItem& item = column_items_[i];
       print_indentation(fp, level + 1);
-      fprintf(fp, "{Num %d, ColumnId:%lu, ColumnName:%.*s, TableRef:%lu}\n", i,
+      fprintf(fp, "{Num %d, ColumnId:%lu, ColumnName:%.*s, TableId:%lu, query_id_:%lu, is_name_unique_:%s, is_group_based_:%s, data_type_ = %d}\n", i,
         item.column_id_, item.column_name_.length(), item.column_name_.ptr(),
-        item.table_id_);
+        item.table_id_, item.query_id_, item.is_name_unique_? "True":"False",
+        item.is_group_based_? "True":"False", int(item.data_type_));
     }
     print_indentation(fp, level);
     fprintf(fp, "<ColumnItemList End>\n");

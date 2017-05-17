@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,11 +11,14 @@
  * modified by longfei：
  * add member variables and member function for using index in select
  * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
+ * modified by zhutao: add a get_row_desc_template function
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_30
  */
 
 /** * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -64,6 +67,14 @@ namespace oceanbase
         virtual int close();
         virtual int get_next_row(const common::ObRow *&row);
         virtual int get_row_desc(const common::ObRowDesc *&row_desc) const;
+        /**
+         * @brief get_row_desc_template
+         * get row descriptor
+         * @param row_desc returned row descriptor point
+         * @return error code
+         */
+        int get_row_desc_template(const common::ObRowDesc *&row_desc) const; //add by zt 20160114
+
         virtual ObPhyOperatorType get_type() const;
 
         int init(ObSqlContext *context, const common::ObRpcScanHint *hint = NULL);
@@ -118,7 +129,7 @@ namespace oceanbase
          * @brief set_main_rowkey_info
          * @param rowkey_info
          */
-        void set_main_rowkey_info(common::ObRowkeyInfo rowkey_info);
+        void set_main_rowkey_info(const ObRowkeyInfo &rowkey_info);
         /**
          * @brief cons_second_row_desc
          * @param row_desc
@@ -247,6 +258,13 @@ namespace oceanbase
     {
       return 0;
     }
+
+    //add by zt 20160114:b
+    inline int ObTableRpcScan::get_row_desc_template(const ObRowDesc *&row_desc) const
+    {
+      return rpc_scan_.get_row_desc(row_desc);
+    }
+    //add by zt 20160114:e
   } // end namespace sql
 } // end namespace oceanbase
 

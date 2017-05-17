@@ -102,8 +102,14 @@ namespace oceanbase
           //在本机上的数据就不需要去和其他CS interactive
           ret = OB_ITER_END;
         }
+        //当集群就一台cs时,下面的代码都不会执行到
         if (OB_SUCCESS == ret)
         {
+          //add dragon [print info] 2017-3-10 b
+          TBSYS_LOG(INFO, "scan other cs, i'm %s", to_cstring(interactive_cell_->get_self()));
+          iter->second.print_info();
+          TBSYS_LOG(INFO, "scan param is %s", to_cstring(scan_param));
+          //add dragon [print info] 2017-3-10 b
           if (OB_SUCCESS != (ret = interactive_cell_->scan(*scan_param_))
               && OB_ITER_END != ret)
           {
@@ -134,6 +140,7 @@ namespace oceanbase
        * @todo(longfei)现在的代码这儿的操作在write_total_index_v1之前就已经做了。
        * 请将代码转移的这儿来做
        */
+      TBSYS_LOG(INFO, "row_desc_ is %s", to_cstring(row_desc_)); // add 2017-3-10
       curr_row_.set_row_desc(row_desc_);
       return ret;
 

@@ -5767,5 +5767,37 @@ namespace oceanbase
       return ret;
     }
     //add e
+
+    //add dragon [Bugfix#11] 2017-3-10 b
+    int ObSchemaManagerV2::get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const
+    {
+      int ret = OB_SUCCESS;
+      uint64_t idx_id = OB_INVALID_ID;
+      const ObTableSchema *index_table_schema = NULL;
+      hash::ObHashMap<uint64_t,IndexList,hash::NoPthreadDefendMode>::const_iterator iter = id_index_hash_map_.begin();
+      for (;iter != id_index_hash_map_.end(); ++iter)
+      {
+        IndexList tmp_list=iter->second;
+        for(int64_t i = 0; i< tmp_list.get_count(); i++)
+        {
+          tmp_list.get_idx_id(i,idx_id);
+          if (NULL == (index_table_schema = get_table_schema(idx_id)))
+          {
+            ret = OB_SCHEMA_ERROR;
+            TBSYS_LOG(WARN,"fail to get table schema for index table[%lu]", idx_id);
+          }
+          else
+          {
+            if(index_table_schema->get_index_status() == INDEX_INIT)
+            {
+              index_id_list.push_back(idx_id);
+            }
+          }
+        }
+      }
+      return ret;
+    }
+    //add dragon [Bugfix#11] 2017-3-10 3
+
   } // end namespace common
 }   // end namespace oceanbase

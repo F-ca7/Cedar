@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,11 +10,14 @@
  *
  * modified by longfei：add drop index
  * modified by zhujun：add logic process procedure call
+ * mofied by zhutao:modified some functions
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_22
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_30
  */
 
 /**
@@ -75,44 +78,49 @@
 
 #include "sql/ob_lock_table_stmt.h" //add wangjiahao [table lock] 20160616
 
+#include "sql/pull_up_sublink.h" // add wangyanzhao 20170113
+
+#include "ob_procedure_drop_stmt.h"
+
+#include "ob_procedure_execute_stmt.h" //add zt 20151117
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 
 template <typename OperatorT>
 static int init_hook_env(ObSqlContext &context, ObPhysicalPlan *&phy_plan, OperatorT *&op)
 {
-  int ret = OB_SUCCESS;
-  phy_plan = NULL;
-  op = NULL;
-  StackAllocator& allocator = context.session_info_->get_transformer_mem_pool();
-  void *ptr1 = allocator.alloc(sizeof(ObPhysicalPlan));
-  void *ptr2 = allocator.alloc(sizeof(OperatorT));
-  if (NULL == ptr1 || NULL == ptr2)
-  {
-    ret = OB_ALLOCATE_MEMORY_FAILED;
-    TBSYS_LOG(WARN, "fail to malloc memory for ObValues, op=%p", op);
-  }
-  else
-  {
-    op = new(ptr2) OperatorT();
-    phy_plan = new(ptr1) ObPhysicalPlan();
-    if (OB_SUCCESS != (ret = phy_plan->store_phy_operator(op)))
+    int ret = OB_SUCCESS;
+    phy_plan = NULL;
+    op = NULL;
+    StackAllocator& allocator = context.session_info_->get_transformer_mem_pool();
+    void *ptr1 = allocator.alloc(sizeof(ObPhysicalPlan));
+    void *ptr2 = allocator.alloc(sizeof(OperatorT));
+    if (NULL == ptr1 || NULL == ptr2)
     {
-      TBSYS_LOG(WARN, "failed to add operator, err=%d", ret);
-      op->~OperatorT();
-      phy_plan->~ObPhysicalPlan();
-    }
-    else if (OB_SUCCESS != (ret = phy_plan->add_phy_query(op, NULL, true)))
-    {
-      TBSYS_LOG(WARN, "failed to add query, err=%d", ret);
-      phy_plan->~ObPhysicalPlan();
+        ret = OB_ALLOCATE_MEMORY_FAILED;
+        TBSYS_LOG(WARN, "fail to malloc memory for ObValues, op=%p", op);
     }
     else
     {
-      ob_inc_phy_operator_stat(op->get_type());
+        op = new(ptr2) OperatorT();
+        phy_plan = new(ptr1) ObPhysicalPlan();
+        if (OB_SUCCESS != (ret = phy_plan->store_phy_operator(op)))
+        {
+            TBSYS_LOG(WARN, "failed to add operator, err=%d", ret);
+            op->~OperatorT();
+            phy_plan->~ObPhysicalPlan();
+        }
+        else if (OB_SUCCESS != (ret = phy_plan->add_phy_query(op, NULL, true)))
+        {
+            TBSYS_LOG(WARN, "failed to add query, err=%d", ret);
+            phy_plan->~ObPhysicalPlan();
+        }
+        else
+        {
+            ob_inc_phy_operator_stat(op->get_type());
+        }
     }
-  }
-  return ret;
+    return ret;
 }
 
 int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObSqlContext &context)
@@ -142,6 +150,10 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
   else
   {
     ResultPlan result_plan;
+    //add by qx 20160802:b
+    // initlize result_plan.err_stat_.err_msg_ ,prohibit result_plan.err_stat_.err_msg_ have illegal content caused to show wrong error message
+    result_plan.err_stat_.err_msg_[0]  ='\0';
+    //add :e
     ObMultiPhyPlan multi_phy_plan;
     ObMultiLogicPlan *multi_logic_plan = NULL;
     ObLogicalPlan *logic_plan = NULL;
@@ -172,6 +184,23 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
             TBSYS_LOG(WARN, "no privilege,sql=%.*s ret=%d", stmt.length(), stmt.ptr(), ret);
           }
         }
+		
+		// yanzhao test begin
+		
+		FILE * p;
+		p = fopen("/home/wangyanzhao/plantree.text", "a");
+		logic_plan->print(p);
+		fclose(p);
+
+		// test pull up sublinks
+		pull_up_sublinks(&result_plan, logic_plan);
+
+		
+		p = fopen("/home/wangyanzhao/plantree.text", "a");
+		logic_plan->print(p);
+		fclose(p);
+		
+		// yanzhao test end
 
         if (OB_SUCCESS == ret)
         {
@@ -220,115 +249,116 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
 
 int ObSql::generate_logical_plan(const common::ObString &stmt, ObSqlContext & context, ResultPlan  &result_plan, ObResultSet & result)
 {
-  int ret = OB_SUCCESS;
-  common::ObStringBuf &parser_mem_pool = context.session_info_->get_parser_mem_pool();
-  ParseResult parse_result;
-  static const int MAX_ERROR_LENGTH = 80;
+    int ret = OB_SUCCESS;
+    common::ObStringBuf &parser_mem_pool = context.session_info_->get_parser_mem_pool();
+    ParseResult parse_result;
+    static const int MAX_ERROR_LENGTH = 80;
 
-  parse_result.malloc_pool_ = &parser_mem_pool;
-  if (0 != (ret = parse_init(&parse_result)))
-  {
-    TBSYS_LOG(WARN, "parser init err, err=%s", strerror(errno));
-    ret = OB_ERR_PARSER_INIT;
-  }
-  else
-  {
-    // generate syntax tree
-    PFILL_ITEM_START(sql_to_logicalplan);
-    FILL_TRACE_LOG("before_parse");
-    if (parse_sql(&parse_result, stmt.ptr(), static_cast<size_t>(stmt.length())) != 0
-      || NULL == parse_result.result_tree_)
+    parse_result.malloc_pool_ = &parser_mem_pool;
+    if (0 != (ret = parse_init(&parse_result)))
     {
-      TBSYS_LOG(WARN, "parse: %p, %p, %p, msg=[%s], start_col_=[%d], end_col_[%d], line_[%d], yycolumn[%d], yylineno_[%d]",
-          parse_result.yyscan_info_,
-          parse_result.result_tree_,
-          parse_result.malloc_pool_,
-          parse_result.error_msg_,
-          parse_result.start_col_,
-          parse_result.end_col_,
-          parse_result.line_,
-          parse_result.yycolumn_,
-          parse_result.yylineno_);
-
-      int64_t error_length = min(stmt.length() - (parse_result.start_col_ - 1), MAX_ERROR_LENGTH);
-      snprintf(parse_result.error_msg_, MAX_ERROR_MSG,
-          "You have an error in your SQL syntax; check the manual that corresponds to your OceanBase version for the right syntax to use near '%.*s' at line %d", static_cast<int32_t>(error_length), stmt.ptr() + parse_result.start_col_ - 1, parse_result.line_);
-      TBSYS_LOG(WARN, "failed to parse sql=%.*s err=%s", stmt.length(), stmt.ptr(), parse_result.error_msg_);
-      result.set_message(parse_result.error_msg_);
-      ret = OB_ERR_PARSE_SQL;
-    }
-    else if (NULL == context.schema_manager_)
-    {
-      TBSYS_LOG(WARN, "context.schema_manager_ is null");
-      ret = OB_ERR_UNEXPECTED;
+        TBSYS_LOG(WARN, "parser init err, err=%s", strerror(errno));
+        ret = OB_ERR_PARSER_INIT;
     }
     else
     {
-      FILL_TRACE_LOG("parse");
-      result_plan.name_pool_ = &parser_mem_pool;
-      ObSchemaChecker *schema_checker =  (ObSchemaChecker*)parse_malloc(sizeof(ObSchemaChecker), result_plan.name_pool_);
-      if (NULL == schema_checker)
-      {
-        TBSYS_LOG(WARN, "out of memory");
-        ret = OB_ERR_PARSER_MALLOC_FAILED;
-      }
-      else
-      {
-        schema_checker->set_schema(*context.schema_manager_);
-        result_plan.schema_checker_ = schema_checker;
-        result_plan.plan_tree_ = NULL;
-        //add by zhujun[2015-6-1]:b
-		std::string input=std::string(stmt.ptr());
-		std::string sub_input=input.substr(0,stmt.length());
-		result_plan.input_sql_=sub_input.c_str();
-        std::string sub_proc_input= "";
-        if(result.proc_sql_.length()>0)
+        // generate syntax tree
+        PFILL_ITEM_START(sql_to_logicalplan);
+        FILL_TRACE_LOG("before_parse");
+        TBSYS_LOG(TRACE, "before parse [%.*s]", stmt.length(), stmt.ptr());
+        if (parse_sql(&parse_result, stmt.ptr(), static_cast<size_t>(stmt.length())) != 0
+                || NULL == parse_result.result_tree_)
         {
-			std::string proc_input=std::string(result.proc_sql_.ptr());
-			sub_proc_input=proc_input.substr(0,proc_input.length()-1);
-			result_plan.source_sql_=sub_proc_input.c_str();
+            TBSYS_LOG(WARN, "parse: %p, %p, %p, msg=[%s], start_col_=[%d], end_col_[%d], line_[%d], yycolumn[%d], yylineno_[%d]",
+                      parse_result.yyscan_info_,
+                      parse_result.result_tree_,
+                      parse_result.malloc_pool_,
+                      parse_result.error_msg_,
+                      parse_result.start_col_,
+                      parse_result.end_col_,
+                      parse_result.line_,
+                      parse_result.yycolumn_,
+                      parse_result.yylineno_);
 
-			//TBSYS_LOG(INFO, "zz:result_plan.input_sql_ is %s",result_plan.input_sql_);
-			//TBSYS_LOG(INFO, "zz:result_plan.source_sql_ is %s",result_plan.source_sql_);
+            int64_t error_length = min(stmt.length() - (parse_result.start_col_ - 1), MAX_ERROR_LENGTH);
+            snprintf(parse_result.error_msg_, MAX_ERROR_MSG,
+                     "You have an error in your SQL syntax; check the manual that corresponds to your OceanBase version for the right syntax to use near '%.*s' at line %d", static_cast<int32_t>(error_length), stmt.ptr() + parse_result.start_col_ - 1, parse_result.line_);
+            TBSYS_LOG(WARN, "failed to parse sql=%.*s err=%s", stmt.length(), stmt.ptr(), parse_result.error_msg_);
+            result.set_message(parse_result.error_msg_);
+            ret = OB_ERR_PARSE_SQL;
         }
-        //add:e
-        // generate logical plan
-        ret = resolve(&result_plan, parse_result.result_tree_);
-        PFILL_ITEM_END(sql_to_logicalplan);
-        FILL_TRACE_LOG("resolve");
-        if (OB_SUCCESS != ret)
+        else if (NULL == context.schema_manager_)
         {
-          TBSYS_LOG(WARN, "failed to generate logical plan, err=%d sql=%.*s result_plan.err_stat_.err_msg_=[%s]",
-              ret, stmt.length(), stmt.ptr(), result_plan.err_stat_.err_msg_);
-          result.set_message(result_plan.err_stat_.err_msg_);
+            TBSYS_LOG(WARN, "context.schema_manager_ is null");
+            ret = OB_ERR_UNEXPECTED;
         }
         else
         {
-          ObMultiLogicPlan *multi_logic_plan = static_cast<ObMultiLogicPlan*>(result_plan.plan_tree_);
-          ////TODO 为了prepare stmtname from select from test a 也使用psstore 需要记录下绑定的语句
-          //ObLogicalPlan *logical_plan = NULL;
-          //for (int32_t i = 0; ret = OB_SUCCESS && i < multi_logic_plan.size(); ++i)
-          //{
-          //  if (T_PREPARE == login_plan->get_main_stmt()->get_stmt_type())
-          //  {
-          //    //TODO
-          //    //log sql to ob_prepare_stmt >>>> ob_prepare构造执行计划的时候可以去 ObPsStore里面找 在session上保存一个stmt_name->sql id的映射
-          //    //ob_prepare  ob_execute连个操作符号需要修改
-          //  }
-          //}
-          if (OB_UNLIKELY(TBSYS_LOGGER._level >= TBSYS_LOG_LEVEL_DEBUG))
-          {
-            multi_logic_plan->print();
-          }
+            FILL_TRACE_LOG("parse");
+            result_plan.name_pool_ = &parser_mem_pool;
+            ObSchemaChecker *schema_checker =  (ObSchemaChecker*)parse_malloc(sizeof(ObSchemaChecker), result_plan.name_pool_);
+            if (NULL == schema_checker)
+            {
+                TBSYS_LOG(WARN, "out of memory");
+                ret = OB_ERR_PARSER_MALLOC_FAILED;
+            }
+            else
+            {
+                schema_checker->set_schema(*context.schema_manager_);
+                result_plan.schema_checker_ = schema_checker;
+                result_plan.plan_tree_ = NULL;
+                //add by zhujun[2015-6-1]:b construct input_sql_ and sour_sql_ wtf!!
+                std::string input=std::string(stmt.ptr());
+                std::string sub_input=input.substr(0,stmt.length());
+                result_plan.input_sql_=sub_input.c_str(); //seems try to do some post-process, insert the source code into the catalog
+                //        std::string sub_proc_input= "";
+                //        if(result.proc_sql_.length()>0)
+                //        {
+                //			std::string proc_input=std::string(result.proc_sql_.ptr());
+                //			sub_proc_input=proc_input.substr(0,proc_input.length()-1);
+                //			result_plan.source_sql_=sub_proc_input.c_str();
+
+                //TBSYS_LOG(INFO, "zz:result_plan.input_sql_ is %s",result_plan.input_sql_);
+                //TBSYS_LOG(INFO, "zz:result_plan.source_sql_ is %s",result_plan.source_sql_);
+                //        }
+                //add:e
+                // generate logical plan
+                ret = resolve(&result_plan, parse_result.result_tree_);
+                PFILL_ITEM_END(sql_to_logicalplan);
+                FILL_TRACE_LOG("resolve");
+                if (OB_SUCCESS != ret)
+                {
+                    TBSYS_LOG(WARN, "failed to generate logical plan, err=%d sql=%.*s result_plan.err_stat_.err_msg_=[%s]",
+                              ret, stmt.length(), stmt.ptr(), result_plan.err_stat_.err_msg_);
+                    result.set_message(result_plan.err_stat_.err_msg_);
+                }
+                else
+                {
+                    ObMultiLogicPlan *multi_logic_plan = static_cast<ObMultiLogicPlan*>(result_plan.plan_tree_);
+                    ////TODO 为了prepare stmtname from select from test a 也使用psstore 需要记录下绑定的语句
+                    //ObLogicalPlan *logical_plan = NULL;
+                    //for (int32_t i = 0; ret = OB_SUCCESS && i < multi_logic_plan.size(); ++i)
+                    //{
+                    //  if (T_PREPARE == login_plan->get_main_stmt()->get_stmt_type())
+                    //  {
+                    //    //TODO
+                    //    //log sql to ob_prepare_stmt >>>> ob_prepare构造执行计划的时候可以去 ObPsStore里面找 在session上保存一个stmt_name->sql id的映射
+                    //    //ob_prepare  ob_execute连个操作符号需要修改
+                    //  }
+                    //}
+                    if (OB_UNLIKELY(TBSYS_LOGGER._level >= TBSYS_LOG_LEVEL_DEBUG))
+                    {
+                        multi_logic_plan->print();
+                    }
+                }
+            }
         }
-      }
     }
-  }
-  // destroy syntax tree
-  destroy_tree(parse_result.result_tree_);
-  parse_terminate(&parse_result);
-  result.set_errcode(ret);
-  return ret;
+    // destroy syntax tree
+    destroy_tree(parse_result.result_tree_);
+    parse_terminate(&parse_result);
+    result.set_errcode(ret);
+    return ret;
 }
 
 void ObSql::clean_result_plan(ResultPlan &result_plan)
@@ -343,6 +373,10 @@ int ObSql::generate_physical_plan(ObSqlContext & context, ResultPlan &result_pla
   int ret = OB_SUCCESS;
   ObTransformer trans(context);
   ErrStat err_stat;
+  //add by qx 20160802:b
+  // initlize err_stat.err_msg_ ,prohibit err_stat.err_msg_ have illegal content caused to show wrong error message
+  err_stat.err_msg_[0]='\0';
+  //add :e
   ObMultiLogicPlan *multi_logic_plan = static_cast<ObMultiLogicPlan*>(result_plan.plan_tree_);
   PFILL_ITEM_START(logicalplan_to_physicalplan);
   if (OB_SUCCESS != (ret = trans.generate_physical_plans(*multi_logic_plan, multi_phy_plan, err_stat)))
@@ -692,29 +726,44 @@ int ObSql::stmt_close(const uint64_t stmt_id, ObSqlContext &context)
 
 bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet &result, ObSqlContext &context)
 {
-  int ret = OB_SUCCESS;
-  const char *select_collation = (const char *)"SHOW COLLATION";
-  int64_t select_collation_len = strlen(select_collation);
-  const char *show_charset = (const char *)"SHOW CHARACTER SET";
-  int64_t show_charset_len = strlen(show_charset);
-  // SET NAMES latin1/gb2312/utf8/etc...
-  const char *set_names = (const char *)"SET NAMES ";
-  int64_t set_names_len = strlen(set_names);
-  //add by zz 2014-12-16 prepare call procedure:b
-  const char *call_procedure = (const char *)"CALL";
-  int64_t call_procedure_len = strlen(call_procedure);
-  //add:e
-  const char *set_session_transaction_isolation = (const char *)"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
-  int64_t set_session_transaction_isolation_len = strlen(set_session_transaction_isolation);
+    int ret = OB_SUCCESS;
+    const char *select_collation = (const char *)"SHOW COLLATION";
+    int64_t select_collation_len = strlen(select_collation);
+    const char *show_charset = (const char *)"SHOW CHARACTER SET";
+    int64_t show_charset_len = strlen(show_charset);
+    // SET NAMES latin1/gb2312/utf8/etc...
+    const char *set_names = (const char *)"SET NAMES ";
+    int64_t set_names_len = strlen(set_names);
+    //add by zz 2014-12-16 prepare call procedure:b
+    //  const char *call_procedure = (const char *)"CALL";
+    //  int64_t call_procedure_len = strlen(call_procedure);
+    //add:e
+    const char *set_session_transaction_isolation = (const char *)"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
+    int64_t set_session_transaction_isolation_len = strlen(set_session_transaction_isolation);
 
-  ObRow row;
-  ObRowDesc row_desc;
-  ObValues *op = NULL;
-  ObPhysicalPlan *phy_plan = NULL;
+    //add by wangdonghui 20151224 :b
+    const char *show_procedure = (const char *)"SHOW CREATE PROCEDURE ";
+    int64_t show_procedure_len = strlen(show_procedure);
+    const char *select_procedure = (const char *)"SELECT name, type, comment FROM mysql.proc";
+    int64_t select_procedure_len = strlen(select_procedure);
+    //add :e
 
-  if (stmt.length() >= select_collation_len && 0 == strncasecmp(stmt.ptr(), select_collation, select_collation_len))
-  {
-    /*
+    ObRow row;
+    ObRowDesc row_desc;
+    ObValues *op = NULL;
+    ObPhysicalPlan *phy_plan = NULL;
+
+    //add by qx 20160903 :b
+    // remove extra space in stmt string
+    char * bufstmt=(char *)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+    common::ObString t_stmt(stmt.length(),0,bufstmt);
+    t_stmt.clone(stmt);
+    deblank(t_stmt);
+    //add :e
+
+    if (stmt.length() >= select_collation_len && 0 == strncasecmp(stmt.ptr(), select_collation, select_collation_len))
+    {
+        /*
        mysql> SHOW COLLATION;
         +------------------------+----------+-----+---------+----------+---------+
         | Collation              | Charset  | Id  | Default | Compiled | Sortlen |
@@ -723,78 +772,78 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
         | ...                        | ...          |  ... |   ...      | ...            |       ... |
        +------------------------+----------+-----+---------+----------+---------+
        */
-    if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
-    {
-    }
-    else
-    {
-
-      // construct table header
-      ObResultSet::Field field;
-      ObString tname = ObString::make_string("tmp_table");
-      field.tname_ = tname;
-      field.org_tname_ = tname;
-      ObString cname[6];
-      cname[0] = ObString::make_string("Collation");
-      cname[1] = ObString::make_string("Charset");
-      cname[2] = ObString::make_string("Id");
-      cname[3] = ObString::make_string("Default");
-      cname[4] = ObString::make_string("Compiled");
-      cname[5] = ObString::make_string("Sortlen");
-      ObObjType type[6];
-      type[0] = ObVarcharType;
-      type[1] = ObVarcharType;
-      type[2] = ObIntType;
-      type[3] = ObVarcharType;
-      type[4] = ObVarcharType;
-      type[5] = ObIntType;
-      for (int i = 0; i < 6; i++)
-      {
-        field.cname_ = cname[i];
-        field.org_cname_ = cname[i];
-        field.type_.set_type(type[i]);
-        if (OB_SUCCESS != (ret = result.add_field_column(field)))
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
         {
-          TBSYS_LOG(WARN, "fail to add field column %d", i);
-          break;
         }
-      }
+        else
+        {
 
-      // construct table body
-      for (int i = 0; i < 6; ++i)
-      {
-        ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
-        OB_ASSERT(OB_SUCCESS == ret);
-      }
-      row.set_row_desc(row_desc);
-      OB_ASSERT(NULL != op);
-      op->set_row_desc(row_desc);
-      // | binary               | binary   |  63 | Yes     | Yes      |       1 |
-      ObObj cells[6];
-      ObString cell0 = ObString::make_string("binary");
-      cells[0].set_varchar(cell0);
-      ObString cell1 = ObString::make_string("binary");
-      cells[1].set_varchar(cell1);
-      cells[2].set_int(63);
-      ObString cell3 = ObString::make_string("Yes");
-      cells[3].set_varchar(cell3);
-      ObString cell4 = ObString::make_string("Yes");
-      cells[4].set_varchar(cell4);
-      cells[5].set_int(1);
-      ObRow one_row;
-      one_row.set_row_desc(row_desc);
-      for (int i = 0; i < 6; ++i)
-      {
-        ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
-        OB_ASSERT(OB_SUCCESS == ret);
-      }
-      ret = op->add_values(one_row);
-      OB_ASSERT(OB_SUCCESS == ret);
+            // construct table header
+            ObResultSet::Field field;
+            ObString tname = ObString::make_string("tmp_table");
+            field.tname_ = tname;
+            field.org_tname_ = tname;
+            ObString cname[6];
+            cname[0] = ObString::make_string("Collation");
+            cname[1] = ObString::make_string("Charset");
+            cname[2] = ObString::make_string("Id");
+            cname[3] = ObString::make_string("Default");
+            cname[4] = ObString::make_string("Compiled");
+            cname[5] = ObString::make_string("Sortlen");
+            ObObjType type[6];
+            type[0] = ObVarcharType;
+            type[1] = ObVarcharType;
+            type[2] = ObIntType;
+            type[3] = ObVarcharType;
+            type[4] = ObVarcharType;
+            type[5] = ObIntType;
+            for (int i = 0; i < 6; i++)
+            {
+                field.cname_ = cname[i];
+                field.org_cname_ = cname[i];
+                field.type_.set_type(type[i]);
+                if (OB_SUCCESS != (ret = result.add_field_column(field)))
+                {
+                    TBSYS_LOG(WARN, "fail to add field column %d", i);
+                    break;
+                }
+            }
+
+            // construct table body
+            for (int i = 0; i < 6; ++i)
+            {
+                ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
+                OB_ASSERT(OB_SUCCESS == ret);
+            }
+            row.set_row_desc(row_desc);
+            OB_ASSERT(NULL != op);
+            op->set_row_desc(row_desc);
+            // | binary               | binary   |  63 | Yes     | Yes      |       1 |
+            ObObj cells[6];
+            ObString cell0 = ObString::make_string("binary");
+            cells[0].set_varchar(cell0);
+            ObString cell1 = ObString::make_string("binary");
+            cells[1].set_varchar(cell1);
+            cells[2].set_int(63);
+            ObString cell3 = ObString::make_string("Yes");
+            cells[3].set_varchar(cell3);
+            ObString cell4 = ObString::make_string("Yes");
+            cells[4].set_varchar(cell4);
+            cells[5].set_int(1);
+            ObRow one_row;
+            one_row.set_row_desc(row_desc);
+            for (int i = 0; i < 6; ++i)
+            {
+                ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
+                OB_ASSERT(OB_SUCCESS == ret);
+            }
+            ret = op->add_values(one_row);
+            OB_ASSERT(OB_SUCCESS == ret);
+        }
     }
-  }
-  else if (stmt.length() >= show_charset_len && 0 == strncasecmp(stmt.ptr(), show_charset, show_charset_len))
-  {
-    /*
+    else if (stmt.length() >= show_charset_len && 0 == strncasecmp(stmt.ptr(), show_charset, show_charset_len))
+    {
+        /*
        mysql> SHOW CHARACTER SET
        +----------+-----------------------------+---------------------+--------+
        | Charset  | Description                 | Default collation   | Maxlen |
@@ -802,227 +851,261 @@ bool ObSql::process_special_stmt_hook(const common::ObString &stmt, ObResultSet 
        | binary   | Binary pseudo charset       | binary              |      1 |
        +----------+-----------------------------+---------------------+--------+
     */
-    if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
-    {
-    }
-    else
-    {
-
-      // construct table header
-      ObResultSet::Field field;
-      ObString tname = ObString::make_string("tmp_table");
-      field.tname_ = tname;
-      field.org_tname_ = tname;
-      ObString cname[4];
-      cname[0] = ObString::make_string("Charset");
-      cname[1] = ObString::make_string("Description");
-      cname[2] = ObString::make_string("Default collation");
-      cname[3] = ObString::make_string("Maxlen");
-      ObObjType type[4];
-      type[0] = ObVarcharType;
-      type[1] = ObVarcharType;
-      type[2] = ObVarcharType;
-      type[3] = ObIntType;
-      for (int i = 0; i < 4; i++)
-      {
-        field.cname_ = cname[i];
-        field.org_cname_ = cname[i];
-        field.type_.set_type(type[i]);
-        if (OB_SUCCESS != (ret = result.add_field_column(field)))
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
         {
-          TBSYS_LOG(WARN, "fail to add field column %d", i);
-          break;
         }
-      }
+        else
+        {
 
-      // construct table body
-      for (int i = 0; i < 4; ++i)
-      {
-        ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
-        OB_ASSERT(OB_SUCCESS == ret);
-      }
-      row.set_row_desc(row_desc);
-      OB_ASSERT(NULL != op);
-      op->set_row_desc(row_desc);
-      // | binary   | Binary pseudo charset       | binary              |      1 |
-      ObObj cells[4];
-      ObString cell0 = ObString::make_string("binary");
-      cells[0].set_varchar(cell0);
-      ObString cell1 = ObString::make_string("Binary pseudo charset");
-      cells[1].set_varchar(cell1);
-      ObString cell2 = ObString::make_string("binary");
-      cells[2].set_varchar(cell2);
-      cells[3].set_int(1);
-      ObRow one_row;
-      one_row.set_row_desc(row_desc);
-      for (int i = 0; i < 4; ++i)
-      {
-        ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
-        OB_ASSERT(OB_SUCCESS == ret);
-      }
-      ret = op->add_values(one_row);
-      OB_ASSERT(OB_SUCCESS == ret);
+            // construct table header
+            ObResultSet::Field field;
+            ObString tname = ObString::make_string("tmp_table");
+            field.tname_ = tname;
+            field.org_tname_ = tname;
+            ObString cname[4];
+            cname[0] = ObString::make_string("Charset");
+            cname[1] = ObString::make_string("Description");
+            cname[2] = ObString::make_string("Default collation");
+            cname[3] = ObString::make_string("Maxlen");
+            ObObjType type[4];
+            type[0] = ObVarcharType;
+            type[1] = ObVarcharType;
+            type[2] = ObVarcharType;
+            type[3] = ObIntType;
+            for (int i = 0; i < 4; i++)
+            {
+                field.cname_ = cname[i];
+                field.org_cname_ = cname[i];
+                field.type_.set_type(type[i]);
+                if (OB_SUCCESS != (ret = result.add_field_column(field)))
+                {
+                    TBSYS_LOG(WARN, "fail to add field column %d", i);
+                    break;
+                }
+            }
+
+            // construct table body
+            for (int i = 0; i < 4; ++i)
+            {
+                ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
+                OB_ASSERT(OB_SUCCESS == ret);
+            }
+            row.set_row_desc(row_desc);
+            OB_ASSERT(NULL != op);
+            op->set_row_desc(row_desc);
+            // | binary   | Binary pseudo charset       | binary              |      1 |
+            ObObj cells[4];
+            ObString cell0 = ObString::make_string("binary");
+            cells[0].set_varchar(cell0);
+            ObString cell1 = ObString::make_string("Binary pseudo charset");
+            cells[1].set_varchar(cell1);
+            ObString cell2 = ObString::make_string("binary");
+            cells[2].set_varchar(cell2);
+            cells[3].set_int(1);
+            ObRow one_row;
+            one_row.set_row_desc(row_desc);
+            for (int i = 0; i < 4; ++i)
+            {
+                ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
+                OB_ASSERT(OB_SUCCESS == ret);
+            }
+            ret = op->add_values(one_row);
+            OB_ASSERT(OB_SUCCESS == ret);
+        }
     }
-  }
-  else if (stmt.length() >= set_names_len && 0 == strncasecmp(stmt.ptr(), set_names, set_names_len))
-  {
-    if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+    else if (stmt.length() >= set_names_len && 0 == strncasecmp(stmt.ptr(), set_names, set_names_len))
     {
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+        {
+        }
+        else
+        {
+            // SET NAMES ...
+            OB_ASSERT(NULL != op);
+            op->set_row_desc(row_desc);
+        }
+    }
+    else if (stmt.length() >= set_session_transaction_isolation_len &&
+             0 == strncasecmp(stmt.ptr(), set_session_transaction_isolation, set_session_transaction_isolation_len))
+    {
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+        {
+        }
+        else
+        {
+            // SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+            OB_ASSERT(NULL != op);
+            op->set_row_desc(row_desc);
+        }
+    }
+    //add by wangdonghui 20151224 :b it's a sad thing to process show create procedure
+    else if(t_stmt.length() >= show_procedure_len && 0 == strncasecmp(t_stmt.ptr(), show_procedure, show_procedure_len))
+    {
+        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(t_stmt.length());
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+        {
+        }
+        else
+        {
+            TBSYS_LOG(TRACE, "special stmt: %.*s", t_stmt.length(), t_stmt.ptr());
+            int index=0;
+            bool flag=false;
+            for(size_t i = 0; i<(size_t)t_stmt.length()-1; i++)
+            {
+                if(flag)
+                {
+                    bufstr[index++] = t_stmt.ptr()[i];
+                }
+                if(t_stmt.ptr()[i] == '.')
+                {
+                    i++;
+                    flag=true;
+                }
+            }
+            if(!flag)
+            {
+                for(size_t i = show_procedure_len; i<(size_t)t_stmt.length(); i++)
+                {
+                  if(t_stmt.ptr()[i] !=' ' && t_stmt.ptr()[i] != ';')
+                    bufstr[index++] = t_stmt.ptr()[i];
+                  else
+                    break;
+                }
+            }
+            bufstr[index]='\0';
+            ObString proc_name = ObString::make_string(bufstr);
+            TBSYS_LOG(TRACE, "proc_name: %.*s", proc_name.length(), proc_name.ptr());
+            ObString proc_sour;
+            ObStringBuf name_pool;
+            if(OB_SUCCESS!=(ret = read_procedure_source(proc_name, proc_sour, context, &name_pool)))
+            {
+                TBSYS_LOG(WARN,"procedure doesn't exist!");
+            }
+            else
+            {
+                ObResultSet::Field field;
+                ObString tname = ObString::make_string("tmp_table");
+                field.tname_ = tname;
+                field.org_tname_ = tname;
+                ObString cname[6];
+                cname[0] = ObString::make_string("Procedure");
+                cname[1] = ObString::make_string("sql_mode");
+                cname[2] = ObString::make_string("Create Procedure");
+                cname[3] = ObString::make_string("character_set_client");
+                cname[4] = ObString::make_string("collation_connection");
+                cname[5] = ObString::make_string("Database Collation");
+
+                ObObjType type[6];
+                type[0] = ObVarcharType;
+                type[1] = ObVarcharType;
+                type[2] = ObVarcharType;
+                type[3] = ObVarcharType;
+                type[4] = ObVarcharType;
+                type[5] = ObVarcharType;
+
+                for (int i = 0; i < 6; i++)
+                {
+                    field.cname_ = cname[i];
+                    field.org_cname_ = cname[i];
+                    field.type_.set_type(type[i]);
+                    if(OB_SUCCESS != (ret = result.add_field_column(field)))
+                    {
+                        TBSYS_LOG(WARN, "fail to add field column %d", i);
+                        break;
+                    }
+                }
+                for(int i = 0;i < 6; i++)
+                {
+                    ret = row_desc.add_column_desc(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i);
+                    OB_ASSERT(OB_SUCCESS == ret);
+                }
+                row.set_row_desc(row_desc);
+                OB_ASSERT(NULL != op);
+                op->set_row_desc(row_desc);
+                ObObj cells[6];
+                cells[0].set_varchar(proc_name);
+
+                ObString cell1 = ObString::make_string("STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION");
+                cells[1].set_varchar(cell1);
+
+                cells[2].set_varchar(proc_sour);
+
+                ObString cell3 = ObString::make_string("utf8");
+                cells[3].set_varchar(cell3);
+
+                ObString cell4 = ObString::make_string("utf8_general_ci");
+                cells[4].set_varchar(cell4);
+
+                ObString cell5 = ObString::make_string("latin1_swedish_ci");
+                cells[5].set_varchar(cell5);
+
+                ObRow one_row;
+                one_row.set_row_desc(row_desc);
+                for(int i = 0; i < 6; i++)
+                {
+                    ret = one_row.set_cell(OB_INVALID_ID, OB_APP_MIN_COLUMN_ID+i, cells[i]);
+                }
+                ret = op->add_values(one_row);
+            }
+
+        }
+
+    }
+    //add :e
+
+    //add by wangdonghui 20151230 process select operation of JDBC call :b
+    else if(stmt.length() >= select_procedure_len && 0 == strncasecmp(stmt.ptr(), select_procedure, select_procedure_len))
+    {
+        TBSYS_LOG(TRACE, "special stmt: %.*s", stmt.length(), stmt.ptr());
+        const char *proc_template="SELECT proc_name, type, note FROM __all_procedure WHERE proc_name = ";
+        char *bufstr = (char*)context.session_info_->get_transformer_mem_pool().alloc(stmt.length());
+        strcpy(bufstr, proc_template);
+        if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
+        {
+        }
+        else
+        {
+            TBSYS_LOG(INFO,"process select operation of JDBC call");
+            bool flag=false;int64_t len = strlen(bufstr);
+            for(size_t i = 0; i < (size_t)stmt.length(); i++)
+            {
+                if(stmt.ptr()[i] == '\'' && flag == true) break;
+                if(stmt.ptr()[i] == '\'' && flag == false)
+                {
+                    flag = true;
+                }
+                if(flag)
+                {
+                    bufstr[len++] = stmt.ptr()[i];
+                }
+            }
+            bufstr[len] = '\'';
+            bufstr[len+1] = '\0';
+            TBSYS_LOG(INFO, "processed select procedure stmt is %s", bufstr);
+        }
+        ObString &mod_stmt = const_cast<ObString&>(stmt);
+        mod_stmt.reset();
+        mod_stmt = ObString::make_string(bufstr);
+        ret = -1;
+    }
+    //add :e
+    else
+    {
+        ret = OB_NOT_SUPPORTED;
+    }
+
+    if (OB_SUCCESS != ret)
+    {
+        if (NULL != phy_plan)
+        {
+            phy_plan->~ObPhysicalPlan(); // will destruct op automatically
+        }
     }
     else
     {
-      // SET NAMES ...
-      OB_ASSERT(NULL != op);
-      op->set_row_desc(row_desc);
+        result.set_physical_plan(phy_plan, true);
     }
-  }
-  else if (stmt.length() >= set_session_transaction_isolation_len &&
-      0 == strncasecmp(stmt.ptr(), set_session_transaction_isolation, set_session_transaction_isolation_len))
-  {
-    if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
-    {
-    }
-    else
-    {
-      // SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
-      OB_ASSERT(NULL != op);
-      op->set_row_desc(row_desc);
-    }
-  }
-  //add by zhujun[2015-6-1]:b
-  else if (stmt.length() >= call_procedure_len && 0 == strncasecmp(stmt.ptr(), call_procedure, call_procedure_len))
-  {
-	  TBSYS_LOG(INFO, "zz:process special procedure stmt");
-      if (OB_SUCCESS != init_hook_env(context, phy_plan, op))
-      {
-
-      }
-      else
-      {
-    	  //delete extra space
-    	  std::string proc_stmt=std::string(stmt.ptr());
-    	  size_t begin = 0,erro=-1;
-    	  begin=proc_stmt.find("",begin);
-    	  while(begin!=erro)
-    	  {
-    		  begin = proc_stmt.find(" ",begin);
-			  if(begin!=erro)
-			  {
-				  proc_stmt.replace(begin, 1, "");
-			  }
-    	  }
-    	  begin=0;
-		  while(begin!=erro)
-		  {
-			  begin = proc_stmt.find("\r",begin);
-			  if(begin!=erro)
-			  {
-				  proc_stmt.replace(begin, 1, "");
-			  }
-		  }
-		  begin=0;
-		  while(begin!=erro)
-		  {
-			  begin = proc_stmt.find("\n",begin);
-			  if(begin!=erro)
-			  {
-				  proc_stmt.replace(begin, 1, "");
-			  }
-		  }
-
-    	  size_t pos_end=0;
-    	  pos_end=proc_stmt.find("(",pos_end);
-    	  if(pos_end<=4)
-    	  {
-    		  TBSYS_LOG(INFO, "zz:get procedure name failed");
-    	  }
-    	  //substrcat the procedure name
-    	  std::string proc_name=proc_stmt.substr(4,pos_end-4);
-
-    	  std::string proc_sql="select source from __all_procedure where proc_name='{1}';";
-    	  size_t pos = proc_sql.find("{1}");
-    	  proc_sql.replace(pos,3,proc_name.c_str());
-
-    	  TBSYS_LOG(INFO, "select sql:%s",proc_sql.c_str());
-
-    	  //build sql to get procedure source sql
-    	  ObString get_proc_sql=ObString::make_string(proc_sql.c_str());
-    	  ObResultSet proc_result;
-    	 do{
-
-    	  if (OB_UNLIKELY(no_enough_memory()))
-    		  {
-    			  TBSYS_LOG(WARN, "no memory to get procedure source");
-    			  ret = OB_ALLOCATE_MEMORY_FAILED;
-    		  }
-    		  else if((ret=proc_result.init())!=OB_SUCCESS)
-			  {
-				  TBSYS_LOG(WARN, "ObResultSet init failed");
-			  }
-			  else if((ret=direct_execute(get_proc_sql,proc_result,context))!=OB_SUCCESS)//execute query
-			  {
-				  TBSYS_LOG(WARN, "direct_execute failed");
-			  }
-			  else if((ret=proc_result.open())!=OB_SUCCESS)
-			  {
-				  TBSYS_LOG(WARN, "result open failed ret=%d",ret);
-			  }
-
-			  else
-			  {
-				  uint64_t table_id = OB_INVALID_ID;
-				  uint64_t column_id = OB_INVALID_ID;
-				  const common::ObObj *proc_cell = NULL;
-				  const common::ObRow *row;
-				  ObString source_str;
-				  if(!proc_result.is_with_rows())
-				  {
-					  TBSYS_LOG(WARN, "result without row");
-				  }
-				  else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
-				  {
-					  TBSYS_LOG(WARN, "get_next_row failed");
-					  TBSYS_LOG(USER_ERROR, "Procedure %s doesn't exist", proc_name.c_str());
-
-				  }
-				  else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))
-				  {
-					  TBSYS_LOG(WARN, "raw_get_cell 0 failed");
-				  }
-				  else if(OB_SUCCESS !=(ret=proc_cell->get_varchar(source_str)))
-				  {
-					  TBSYS_LOG(WARN, "get_varchar failed");
-				  }
-				  else
-				  {
-					  result.proc_sql_=ObString::make_string(source_str.ptr());
-					  TBSYS_LOG(INFO, "zz:source is %s",source_str.ptr());
-					  proc_result.close();
-				  }
-			  }
-    	  }while(ret!=OB_SUCCESS&&ret!=OB_ALLOCATE_MEMORY_FAILED&&ret!=OB_ITER_END);
-    	  ret = OB_NOT_SUPPORTED;
-      }
-  }
-  //add:e
-  else
-  {
-    ret = OB_NOT_SUPPORTED;
-  }
-
-  if (OB_SUCCESS != ret)
-  {
-    if (NULL != phy_plan)
-    {
-      phy_plan->clear();
-      phy_plan->~ObPhysicalPlan(); // will destruct op automatically
-    }
-  }
-  else
-  {
-    result.set_physical_plan(phy_plan, true);
-  }
-  return (OB_SUCCESS == ret);
+    return (OB_SUCCESS == ret);
 }
 
 int ObSql::do_privilege_check(const ObString & username, const ObPrivilege **pp_privilege, ObLogicalPlan *plan)
@@ -1667,63 +1750,71 @@ int ObSql::copy_physical_plan(ObPhysicalPlan& new_plan, ObPhysicalPlan& old_plan
 
 int ObSql::set_execute_context(ObPhysicalPlan& plan, ObSqlContext& context)
 {
-  int ret = OB_SUCCESS;
-  for (int64_t i = 0; ret == OB_SUCCESS && i < plan.get_operator_size(); i++)
-  {
-    ObPhyOperator *op = plan.get_phy_operator(i);
-    TBSYS_LOG(DEBUG, "plan %ld op is type=%s %p", i, ob_phy_operator_type_str(op->get_type()), op);
-    if (!op)
+    int ret = OB_SUCCESS;
+    for (int64_t i = 0; ret == OB_SUCCESS && i < plan.get_operator_size(); i++)
     {
-      ret = OB_ERR_UNEXPECTED;
-      TBSYS_LOG(WARN, "Wrong physical plan, ret=%d, operator idx=%ld", ret, i);
-    }
-    switch (op->get_type())
-    {
-      case PHY_UPS_EXECUTOR:
-      {
-        ObUpsExecutor *exe_op = dynamic_cast<ObUpsExecutor*>(op);
-        ObPhysicalPlan *inner_plan = exe_op->get_inner_plan();
-        if (!inner_plan)
+        ObPhyOperator *op = plan.get_phy_operator(i);
+        TBSYS_LOG(DEBUG, "plan %ld op is type=%s %p", i, ob_phy_operator_type_str(op->get_type()), op);
+        if (!op)
         {
-          ret = OB_ERR_UNEXPECTED;
-          TBSYS_LOG(WARN, "Empty inner plan of ObUpsExecutor, ret=%d", ret);
+            ret = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(WARN, "Wrong physical plan, ret=%d, operator idx=%ld", ret, i);
         }
-        else
+        switch (op->get_type())
         {
-          exe_op->set_rpc_stub(context.merger_rpc_proxy_);
-          ret = ObSql::set_execute_context(*inner_plan, context);
+        case PHY_UPS_EXECUTOR:
+        {
+            ObUpsExecutor *exe_op = dynamic_cast<ObUpsExecutor*>(op);
+            ObPhysicalPlan *inner_plan = exe_op->get_inner_plan();
+            if (!inner_plan)
+            {
+                ret = OB_ERR_UNEXPECTED;
+                TBSYS_LOG(WARN, "Empty inner plan of ObUpsExecutor, ret=%d", ret);
+            }
+            else
+            {
+                exe_op->set_rpc_stub(context.merger_rpc_proxy_);
+                ret = ObSql::set_execute_context(*inner_plan, context);
+            }
+            break;
         }
-        break;
-      }
-      case PHY_START_TRANS:
-      {
-        ObStartTrans *start_op = dynamic_cast<ObStartTrans*>(op);
-        start_op->set_rpc_stub(context.merger_rpc_proxy_);
-        break;
-      }
-      case PHY_END_TRANS:
-      {
-        ObEndTrans *end_op = dynamic_cast<ObEndTrans*>(op);
-        end_op->set_rpc_stub(context.merger_rpc_proxy_);
-        break;
-      }
-      case PHY_TABLE_RPC_SCAN:
-      {
-        ObTableRpcScan *table_rpc_op = dynamic_cast<ObTableRpcScan*>(op);
-        table_rpc_op->init(&context);
-        break;
-      }
-      case PHY_CUR_TIME:
-      {
-        ObGetCurTimePhyOperator *get_cur_time_op = dynamic_cast<ObGetCurTimePhyOperator*>(op);
-        get_cur_time_op->set_rpc_stub(context.merger_rpc_proxy_);
-        break;
-      }
-      default:
-        break;
+        case PHY_START_TRANS:
+        {
+            ObStartTrans *start_op = dynamic_cast<ObStartTrans*>(op);
+            start_op->set_rpc_stub(context.merger_rpc_proxy_);
+            break;
+        }
+        case PHY_END_TRANS:
+        {
+            ObEndTrans *end_op = dynamic_cast<ObEndTrans*>(op);
+            end_op->set_rpc_stub(context.merger_rpc_proxy_);
+            break;
+        }
+        case PHY_TABLE_RPC_SCAN:
+        {
+            ObTableRpcScan *table_rpc_op = dynamic_cast<ObTableRpcScan*>(op);
+            table_rpc_op->init(&context);
+            break;
+        }
+        case PHY_CUR_TIME:
+        {
+            ObGetCurTimePhyOperator *get_cur_time_op = dynamic_cast<ObGetCurTimePhyOperator*>(op);
+            get_cur_time_op->set_rpc_stub(context.merger_rpc_proxy_);
+            break;
+        }
+            //add zt 20151119 :b
+        case PHY_PROCEDURE:
+        {
+            ObProcedure *procedure_op = dynamic_cast<ObProcedure*>(op);
+            procedure_op->set_rpc_stub(context.merger_rpc_proxy_);
+            break;
+        }
+            //add zt 20151119 :e
+        default:
+            break;
+        }
     }
-  }
-  return ret;
+    return ret;
 }
 
 bool ObSql::need_rebuild_plan(const common::ObSchemaManagerV2 *schema_manager, ObPsStoreItem *item)
@@ -1763,3 +1854,185 @@ bool ObSql::need_rebuild_plan(const common::ObSchemaManagerV2 *schema_manager, O
   }
   return ret;
 }
+
+
+//add zt 20151117:b
+
+int ObSql::make_procedure_cache_check(ObBasicStmt *stmt, ObSqlContext &context)
+{
+  int ret = OB_SUCCESS;
+  ObProcedureExecuteStmt *proc_exec_stmt = static_cast<ObProcedureExecuteStmt*>(stmt);
+  const ObString & proc_name = proc_exec_stmt->get_proc_name();
+
+  uint64_t stmt_id = OB_INVALID_ID;
+  if (context.session_info_->plan_exists(proc_name, &stmt_id) == false)
+  {
+    //    ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+    //try to rebuild plan here
+    ObStringBuf name_pool;
+    ObResultSet proc_result_plan;
+    ObString proc_sour;
+
+    if( OB_SUCCESS != (ret = read_procedure_source(proc_name, proc_sour, context, &name_pool) ))
+    {
+        TBSYS_LOG(WARN, "read procedure source fail");
+    }
+
+    //release the buffer used by a read to the catalog
+    context.session_info_->get_transformer_mem_pool().end_batch_alloc(true);
+
+    //realloc the buffer now
+    context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+
+    //compile the procedure source the plan has following query ops:
+    //ObProcedureCreate	the wrapper op,
+    //ObProcedure, the main execution plan,
+    //ObInsert, a op used to insert the proc_source into the catalog
+    //we only need the ObProcedure op
+    context.is_prepare_protocol_ = true;
+    if( OB_SUCCESS != ret )
+    {}
+    else if( OB_SUCCESS != (ret = direct_execute(proc_sour, proc_result_plan, context)) )
+    {
+        TBSYS_LOG(WARN, "prepare the procedure plan fail");
+        context.session_info_->get_transformer_mem_pool().end_batch_alloc(true); //fail, we rollback the memory point
+    }
+    else
+    {
+      TBSYS_LOG(TRACE, "successful generate proc phyplan:\n%s", to_cstring(*(proc_result_plan.get_physical_plan())));
+      //proc_result_plan.get_physical_plan()->set_main_query(proc_result_plan.get_physical_plan()->get_main_query()->get_child(0));
+      if ((ret = context.session_info_->store_plan(proc_name, proc_result_plan)) != OB_SUCCESS)
+      {
+          TBSYS_LOG(WARN, "Store current result failed.");
+      }
+      else if( context.session_info_->plan_exists(proc_name, &stmt_id) == false)
+      {
+          TBSYS_LOG(WARN, "Cache plan failed, unexpected error");
+          ret = OB_ERR_PREPARE_STMT_UNKNOWN;
+      }
+      else
+      {
+          proc_exec_stmt->set_proc_stmt_id(stmt_id);
+      }
+      context.session_info_->get_transformer_mem_pool().end_batch_alloc(false);
+      //keep the buffer here
+    }
+    context.is_prepare_protocol_ = false;
+    context.session_info_->get_transformer_mem_pool().start_batch_alloc();
+  }
+  else
+  {
+      proc_exec_stmt->set_proc_stmt_id(stmt_id);
+  }
+  return ret;
+}
+
+/**
+ * @brief ObSql::read_procedure_source
+ * 	a hack read, bad design
+ * @param proc_name the procedure name  in
+ * @param proc_sour the procedure source  out
+ * @param context  the execution context in
+ * @param name_pool the buffer of proc_sour in
+ * @return
+ */
+int ObSql::read_procedure_source(const ObString &proc_name, ObString &proc_sour, ObSqlContext &context, ObStringBuf* name_pool)
+{
+  int ret = OB_SUCCESS;
+  char bufstr[128];
+  int str_len = 0;
+  //modified by wangdonghui 20151223
+  TBSYS_LOG(TRACE, "read proc_name: %.*s", proc_name.length(), proc_name.ptr());
+  if( 123 <= (str_len = snprintf(bufstr, 128, "select source from __all_procedure where proc_name='%.*s'", proc_name.length(), proc_name.ptr())))
+  {
+      TBSYS_LOG(WARN, "buffer overflow, maybe too long proc_name,%ld %d %.*s", strlen("""select source from proc where proc_name=''"), proc_name.length(), proc_name.length(), proc_name.ptr());
+      ret = OB_ERROR;
+  }
+  else
+  {
+      ObResultSet proc_result;
+      TBSYS_LOG(TRACE, "bufstr: %s",bufstr);
+      ObString get_proc_sql = ObString::make_string(bufstr);
+      TBSYS_LOG(INFO, "read catalog: %.*s", get_proc_sql.length(), get_proc_sql.ptr());
+      if (OB_UNLIKELY(no_enough_memory()))
+      {
+          TBSYS_LOG(WARN, "no memory to get procedure source");
+          ret = OB_ALLOCATE_MEMORY_FAILED;
+      }
+      else if((ret = proc_result.init()) != OB_SUCCESS)
+      {
+          TBSYS_LOG(WARN, "ObResultSet init failed");
+      }
+      else if((ret = direct_execute(get_proc_sql,proc_result,context)) != OB_SUCCESS)
+      {
+          TBSYS_LOG(WARN, "direct_execute failed");
+      }
+      else if((ret = proc_result.open()) != OB_SUCCESS)
+      {
+          TBSYS_LOG(WARN, "result open failed");
+      }
+      else
+      {
+          uint64_t table_id = OB_INVALID_ID;
+          uint64_t column_id = OB_INVALID_ID;
+          const common::ObObj *proc_cell = NULL;
+          const common::ObRow *row;
+          ObString source_str;
+          if(!proc_result.is_with_rows())
+          {
+              TBSYS_LOG(WARN, "result without row");
+          }
+          else if (OB_SUCCESS != (ret = proc_result.get_next_row(row)))
+          {
+              TBSYS_LOG(USER_ERROR, "Procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
+          }
+          else if(OB_SUCCESS !=(ret=row->raw_get_cell(0, proc_cell, table_id, column_id)))
+          {
+              TBSYS_LOG(WARN, "raw_get_cell 0 failed");
+          }
+          else if(OB_SUCCESS !=(ret=proc_cell->get_varchar(source_str)))
+          {
+              TBSYS_LOG(WARN, "get_varchar failed");
+          }
+          else
+          {
+              ob_write_string(*name_pool, source_str, proc_sour);
+          }
+          proc_result.close();
+      }
+      TBSYS_LOG(INFO, "proc_source:\n%.*s", proc_sour.length(), proc_sour.ptr());
+  }
+  return ret;
+}
+//add zt 20151117:e
+
+//add by qx 20160903 :b
+void ObSql::deblank(ObString &string)
+{
+  char *p = string.ptr();
+  char *q = string.ptr();
+  int32_t len1 = 1;  // src string length pointer
+  while (len1 <= string.length() && *p ==' ')
+  {
+    p++;
+    len1++;
+  }
+  int32_t len2 = 0;  // dest string length pointer
+  while (len1<=string.length())
+  {
+    *q = *p++;
+    len1++;
+    len2++;
+    while (len1<=string.length() && *q==' ' && *p == ' ')
+    {
+      p++;
+      len1++;
+    }
+    q++;
+  }
+  if(*(q-1) == ' ')
+    len2--;
+  string.set_length(len2);
+}
+
+//add :e

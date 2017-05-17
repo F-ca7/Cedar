@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2013-2016 DaSE .
+* Copyright (C) 2013-2016 ECNU_DaSE.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -12,7 +12,8 @@
 *
 * @version CEDAR 0.2 
 * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
+* @author zhutao <zhutao@stu.ecnu.edu.cn>
+* @date 2016_07_27
 */
 
 /**
@@ -138,10 +139,20 @@ namespace oceanbase
         void set_hotspot(bool flag) { hotspot_ = flag; }
         int serialize(char* buf, const int64_t buf_len, int64_t& pos) const;
         int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
+        /**
+         * @brief serialize_template
+         * special serialize for group execution
+         * @param buf buffer
+         * @param buf_len buffer length
+         * @param pos point flag
+         * @return error code
+         */
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const; //add by zt 20160113
+
         int64_t get_serialize_size() const;
         void set_scan_type(const ScanType scan_type) { scan_type_ = scan_type; }
         void set_values(uint64_t subquery, bool with_only_rowkey) {values_subquery_id_ = subquery;
-          cons_get_param_with_rowkey_ = with_only_rowkey;};
+          cons_get_param_with_rowkey_ = with_only_rowkey;}
         common::ObGetParam* get_get_param();
         common::ObScanParam* get_scan_param();
         DECLARE_PHY_OPERATOR_ASSIGN;

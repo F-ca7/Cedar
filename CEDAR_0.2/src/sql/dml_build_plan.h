@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,9 +12,13 @@
  * 1.generate inner index table name
  * 2.resolve user's hint for using secondary index in select
  *
- * @version CEDAR 0.2 
+ * modified by zhutao: add a resolve_array_expr function
+ * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_24
  */
 
 /**
@@ -112,6 +116,14 @@ extern int generate_inner_index_table_name(
     char *out_buff,
     int64_t& str_len);
 // add e
+
+//add zt 20151207:b
+extern int resolve_array_expr(
+    ResultPlan * result_plan,
+    ParseNode* node,
+    ObString &array_name,
+    ObObj &idx_value);
+//add zt 20151207:e
 
 #endif //DML_BUILD_PLAN_H_
 

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file utility.h
+ * @brief some utility functions
+ *
+ * modified by zhutao: add function for error code message
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 /*
  *  (C) 2007-2010 Taobao Inc.
  *
@@ -460,6 +478,28 @@ namespace oceanbase
     {
       return sysconf(_SC_PAGE_SIZE) * sysconf(_SC_PHYS_PAGES);
     }
+
+    //add zt 20151211:b
+    /**
+     * @brief ob_set_err_msg
+     * set error code message
+     * @param format message format
+     */
+    inline void ob_set_err_msg(const char* format, ...)
+    {
+      va_list ap;
+      const int64_t buf_size = 1024;
+      char buf[buf_size];
+      va_start(ap, format);
+      vsnprintf(buf, buf_size, format, ap);
+      va_end(ap);
+      tbsys::WarningBuffer *wb = tbsys::get_tsi_warning_buffer();
+      if ( OB_LIKELY( NULL != wb))
+      {
+        wb->set_err_msg(buf);
+      }
+    }
+    //add zt 20151211:e
 
     inline void ob_reset_err_msg()
     {

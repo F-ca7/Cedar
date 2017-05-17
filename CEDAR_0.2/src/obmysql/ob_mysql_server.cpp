@@ -1042,7 +1042,7 @@ namespace oceanbase
           OB_STAT_INC(OBMYSQL, SQL_CMD_PROCESS_COUNT);
           int64_t wait_us = tbsys::CTimeUtil::getTime() - packet->get_receive_ts();
           FILL_TRACE_LOG("queue_wait_us=%ld", wait_us);
-          if (OB_LIKELY(0 < wait_us))
+          if( OB_LIKELY (0 < wait_us) )
           {
             OB_STAT_INC(OBMYSQL, SQL_CMD_WAIT_TIME_MS, wait_us/1000);
           }
@@ -1923,16 +1923,19 @@ namespace oceanbase
             {
               result->set_message("Unknown thread id");
             }
-			//zhounan unmark:b
+              /* delete by zhutao, bad hack for other input
+
+            //zhounan unmark:b
             else if (ret == OB_READ_NOTHING)
 	        {
 	         result->set_message("open error: cursor has been opened");
-	        }
+          }
             else if (ret == OB_NOT_INIT)
 	        {
 	         result->set_message("cursor error: can not find cursor plan");
 	        }
-			//add:e
+      //add:e
+           */
           }
 
           if (OB_SUCCESS != (err = send_error_packet(packet, result)))
@@ -1947,30 +1950,32 @@ namespace oceanbase
         }
         else
         {
-          //add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
-          ObObj val;
-          int64_t value=0;
-          ObString affect=ObString::make_string("affect_row_num");
-          if(session->variable_exists(affect))
-          {
-            if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)//取出值
-            {
-              TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
-            }
-            else if((ret=val.get_int(value))!=OB_SUCCESS)
-            {
-              TBSYS_LOG(WARN, "val get_int ERROR");
-            }
-            else
-            {
-              result->set_affected_rows(value);
-              TBSYS_LOG(DEBUG, "set_affected_rows num=%ld",value);
-            }
-            session->remove_variable(affect);
-          }
+            //delete by wangdonghui 20160128 :b
+//			//add by zhujun 2015/2/3 根据session中的影响行数重新设置改值:b
+//			ObObj val;
+//			int64_t value=0;
+//			ObString affect=ObString::make_string("affect_row_num");
+//			if(session->variable_exists(affect))
+//			{
+//				if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)//取出值
+//				{
+//					 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
+//				}
+//				else if((ret=val.get_int(value))!=OB_SUCCESS)
+//				{
+//					TBSYS_LOG(WARN, "val get_int ERROR");
+//				}
+//				else
+//				{
+//					result->set_affected_rows(value);
+//					TBSYS_LOG(INFO, "set_affected_rows num=%ld",value);
+//				}
+//				session->remove_variable(affect);
+//			}
 
-          TBSYS_LOG(DEBUG, "affect_row is %ld",result->get_affected_rows());
-          //add:e
+//		  TBSYS_LOG(INFO, "affect_row is %ld",result->get_affected_rows());
+//		  //add:e
+          //delete :e
           // the server status must be got after the plan opened
           uint16_t server_status = 0;
           if (session->get_autocommit())
@@ -2184,16 +2189,19 @@ namespace oceanbase
         onev_addr_e addr = get_onev_addr(req);
         ObString message = ob_get_err_msg();
         char msg_buf[64];
+        TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
         if (message.length() <= 0)
         {
           if (NULL != result && 0 < strlen(result->get_message()))
           {
             message = ObString::make_string(result->get_message());
+                    TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
           }
           else
           {
             snprintf(msg_buf, 64, "OB-%d: %s", -result->get_errcode(), ob_strerror(result->get_errcode()));
             message = ObString::make_string(msg_buf); // default error message
+                    TBSYS_LOG(INFO, "messgge: %.*s", message.length(), message.ptr());
           }
         }
         //给mysql客户端发送错误包
@@ -3260,6 +3268,11 @@ namespace oceanbase
             ++total_mutate_count;
             total_mutate_elapsed += consumed_time;
             break;
+          case ObBasicStmt::T_PROCEDURE:
+            OB_STAT_INC(OBMYSQL, SQL_PROC_COUNT);
+            OB_STAT_INC(OBMYSQL, SQL_PROC_TIME, consumed_time);
+//            ++total_mutate_count;
+//            total_mutate_elapsed += consumed_time;
           default:
             break;
         }

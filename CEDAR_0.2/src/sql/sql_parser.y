@@ -127,7 +127,7 @@ do \
 %left '.'
 
 /*add by zhujun*/
-%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL
+%token PROCEDURE DECLARE ELSEIF OUT INOUT WHILE LOOP EXIT CONTINUE DO CALL ARRAY REVERSE
 /*zhounan unmark*/
 %token CURSOR OPEN FETCH CLOSE NEXT PRIOR FIRST LAST ABSOLUTE RELATIVE 
 
@@ -151,7 +151,7 @@ do \
 %token OFFSET ON OR ORDER OPTION OUTER
 %token PARAMETERS PASSWORD PRECISION PREPARE PRIMARY
 %token READ_STATIC REAL RENAME REPLACE RESTRICT PRIVILEGES REVOKE RIGHT
-       ROLLBACK KILL READ_CONSISTENCY
+       ROLLBACK KILL READ_CONSISTENCY NO_GROUP LONG_TRANS //add by wdh 20160716 add by qx 20170318
 %token SCHEMA SCOPE SELECT SESSION SESSION_ALIAS
        SET SHOW SMALLINT SNAPSHOT SPFILE START STATIC SYSTEM STRONG SET_MASTER_CLUSTER SET_SLAVE_CLUSTER SLAVE
 %token TABLE TABLES THEN TIME TIMESTAMP TINYINT TRAILING TRANSACTION TO
@@ -182,6 +182,10 @@ do \
 %type <node> cursor_fetch_into_stmt cursor_fetch_next_into_stmt cursor_fetch_first_into_stmt cursor_fetch_last_into_stmt cursor_fetch_prior_into_stmt cursor_fetch_absolute_into_stmt cursor_fetch_relative_into_stmt
 
 
+//add zt 20151125:b
+%type <node> array_expr
+%type <node> array_vals_list array_val_list var_and_array_val
+//add zt 20151125:e
 %type <node> sql_stmt stmt_list stmt
 %type <node> select_stmt insert_stmt update_stmt delete_stmt
 %type <node> create_table_stmt opt_table_option_list table_option
@@ -278,7 +282,6 @@ stmt:
   | exec_procedure_stmt   { $$ = $1; }
   | show_procedure_stmt   { $$ = $1; }
   | drop_procedure_stmt   { $$ = $1; }
- 
   
   |cursor_declare_stmt       { $$ = $1; }
   |cursor_open_stmt          { $$ = $1; }
@@ -406,6 +409,10 @@ simple_expr:
   | EXISTS select_with_parens
     {
     	malloc_non_terminal_node($$, result->malloc_pool_, T_OP_EXISTS, 1, $2);
+    }
+  | array_expr
+    {
+      $$ = $1;
     }
   ;
 
@@ -551,6 +558,19 @@ case_default:
   	ELSE expr                { $$ = $2; }
   | /*EMPTY*/                { malloc_terminal_node($$, result->malloc_pool_, T_NULL); }
   ;
+
+//add zt 20151125:b
+array_expr:
+    TEMP_VARIABLE '(' INTNUM ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
+    }
+  | TEMP_VARIABLE '(' TEMP_VARIABLE ')'
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_ARRAY, 2, $1, $3);
+    }
+  ;
+//add zt 20151125:e
 
 func_expr:
     function_name '(' '*' ')'
@@ -1775,19 +1795,19 @@ select_clause:
 /*===========================================================
  *	Select Into sentence
  *===========================================================*/
-select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
+select_into_clause	:	SELECT opt_hint select_expr_list INTO argument_list FROM from_list opt_where opt_for_update
 						{
 						  ParseNode* project_list = NULL;
 						  ParseNode* from_list = NULL;
 						  ParseNode* select = NULL;
 						  ParseNode* args = NULL;
-						  merge_nodes(project_list, result->malloc_pool_, T_PROJECT_LIST, $2);
-						  merge_nodes(from_list, result->malloc_pool_, T_FROM_LIST, $6);
+              merge_nodes(project_list, result->malloc_pool_, T_PROJECT_LIST, $3);
+              merge_nodes(from_list, result->malloc_pool_, T_FROM_LIST, $7);
 						  malloc_non_terminal_node(select, result->malloc_pool_, T_SELECT, 16,
                               NULL,           /* 1. distinct */
                               project_list,   /* 2. select clause */
                               from_list,      /* 3. from clause */
-                              $7,             /* 4. where */
+                              $8,             /* 4. where */
                               NULL,           /* 5. group by */
                               NULL,           /* 6. having */
                               NULL,           /* 7. set operation */
@@ -1796,12 +1816,12 @@ select_into_clause	:	SELECT select_expr_list INTO argument_list FROM from_list o
                               NULL,           /* 10. later select stmt */
                               NULL,           /* 11. order by */
                               NULL,             /* 12. limit */
-                              $8,           /* 13. for update */
-                              NULL,             /* 14 hints */
+                              $9,           /* 13. for update */
+                              $2,             /* 14 hints */
                               NULL            /* 15 when clause */
                               ,NULL
                               );
-						  merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $4);
+              merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $5);
 						  malloc_non_terminal_node($$,result->malloc_pool_, T_SELECT_INTO, 2, args, select);
 						}
 					;
@@ -2035,6 +2055,14 @@ hint_option:
       merge_nodes($$, result->malloc_pool_, T_JOIN_OP_TYPE_LIST, $3);
     }
     /* add e */
+  | NO_GROUP //add by wdh 20160716
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_NO_GROUP);
+    }
+  | LONG_TRANS //add by qx 20170317
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_LONG_TRANS);
+    }
   ;
 
 opt_comma_list:
@@ -2975,6 +3003,7 @@ preparable_stmt:
 
 
 
+
 /*****************************************************************************
  *
  *	set grammar
@@ -2986,6 +3015,12 @@ variable_set_stmt:
       merge_nodes($$, result->malloc_pool_, T_VARIABLE_SET, $2);;
       $$->value_ = 2;
     }
+    //add zt 20151202:b
+    | SET SET var_and_array_val
+    {
+      $$ = $3;
+    }
+    //add zt 20151202:e
   ;
 
 var_and_val_list:
@@ -3047,7 +3082,26 @@ var_and_val:
       malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
       $$->value_ = 2;
     }
+    //add zt 20151126:b
+  | array_expr to_or_eq expr
+    {
+      (void)($2);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_VAL, 2, $1, $3);
+      $$->value_ = 2;
+    }
+    //add zt 20151126:e
   ;
+
+//add zt 20151202:b
+var_and_array_val:
+    TEMP_VARIABLE to_or_eq  array_vals_list
+    {
+      (void)($2);
+      malloc_non_terminal_node($$, result->malloc_pool_, T_VAR_ARRAY_VAL, 2, $1, $3);
+      $$->value_ = 2;
+    }
+    ;
+//add zt 20151202:e
 
 to_or_eq:
     TO      { $$ = NULL; }
@@ -3057,7 +3111,28 @@ to_or_eq:
 argument:
     TEMP_VARIABLE
     { $$ = $1; }
+  |
+    array_expr
+    { $$ = $1; }
   ;
+
+//add zt 20151202:b
+array_vals_list:
+    '(' array_val_list ')'
+    {
+      merge_nodes($$, result->malloc_pool_, T_ARRAY_VAL, $2);
+    }
+    ;
+
+array_val_list:
+    expr_const { $$ = $1; }
+  | array_val_list ',' expr_const
+    {
+      malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
+    }
+  ;
+//add zt 20151202:e
+
 
 
 /*****************************************************************************
@@ -3456,8 +3531,6 @@ proc_decl	:	CREATE PROCEDURE  NAME '(' proc_parameter_list ')'
 					ParseNode *params = NULL;
 					malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECL, 2, $3, params);
 				}
-               
-			
 			;
 proc_parameter_list	:	proc_parameter_list ',' proc_parameter
 					{
@@ -3470,20 +3543,48 @@ proc_parameter_list	:	proc_parameter_list ',' proc_parameter
 				;
 proc_parameter	:	TEMP_VARIABLE data_type
 					{
-      					malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 2, $1, $2);
+                malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 3, $1, $2, NULL);
 					}
 				|	IN TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 2, $2, $3);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 3, $2, $3, NULL);
 					}
 				|	OUT TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 2, $2, $3);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 3, $2, $3, NULL);
 					}
 				|   INOUT TEMP_VARIABLE data_type
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 2, $2, $3);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 3, $2, $3, NULL);
+          }
+        | TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_PARAM_DEFINITION, 3, $1, $2, array_flag);
+        }
+        | IN TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_IN_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
+        | OUT TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_OUT_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
+        | INOUT TEMP_VARIABLE data_type ARRAY
+        {
+          ParseNode *array_flag = NULL;
+          malloc_terminal_node(array_flag, result->malloc_pool_, T_BOOL);
+          array_flag->value_ = 1;
+          malloc_non_terminal_node($$, result->malloc_pool_, T_INOUT_PARAM_DEFINITION, 3, $2, $3, array_flag);
+        }
 				;
 proc_block	: 	BEGI proc_sect END
 				{ 
@@ -3561,7 +3662,10 @@ proc_stmt		: stmt_if
  *	Procedure's control body sentence didn't contain declare
  *===========================================================*/
 control_sect	:		
-				control_stmts	
+				{ 
+					$$=NULL;
+				}
+			| 	control_stmts	
 				{ 
         			merge_nodes($$, result->malloc_pool_, T_PROCEDURE_STMTS, $1);
 				}
@@ -3630,14 +3734,28 @@ stmt_declare	:	DECLARE argument_list data_type ';'
 					{
 						ParseNode *args = NULL;
 						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, NULL);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4, args, $3, NULL, NULL);
 					}
 				|	DECLARE argument_list data_type DEFAULT expr_const ';'
 					{
 						ParseNode *args = NULL;
 						merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 3, args, $3, $5);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4, args, $3, $5, NULL);
+          }
+        | DECLARE argument_list data_type ARRAY ';'
+          {
+            ParseNode *args = NULL;
+            ParseNode *arr = NULL;
+            malloc_terminal_node(arr, result->malloc_pool_, T_BOOL);
+            arr->value_ = 1;
+            merge_nodes(args, result->malloc_pool_, T_ARGUMENT_LIST, $2);
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_DECLARE, 4,
+                                     args,  //arguments
+                                     $3,    //data type
+                                     NULL, 	//default value
+                                     arr 		//is array
+                                     );
+          }
 				;
 
 				
@@ -3656,23 +3774,23 @@ stmt_assign		:	SET var_and_val_list ';'
 /*===========================================================
  *	Procedure's if sentence
  *===========================================================*/
-stmt_if			:	IF expr THEN control_sect stmt_elsifs stmt_else END IF ';'
+stmt_if			:	IF expr THEN control_sect stmt_elsifs stmt_else END IF ';'//add ; by wdh
 					{
 						ParseNode *elsifs = NULL;
 						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,$6);
 					}
-				|	IF expr THEN control_sect stmt_elsifs END IF ';'
+                |	IF expr THEN control_sect stmt_elsifs END IF ';'
 					{
 						ParseNode *elsifs = NULL;
 						merge_nodes(elsifs, result->malloc_pool_, T_PROCEDURE_ELSEIFS, $5);
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, elsifs ,NULL);
 					}
-				|	IF expr THEN control_sect stmt_else END IF ';'
+                |	IF expr THEN control_sect stmt_else END IF ';'
 					{
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,$5);
 					}
-				|	IF expr THEN control_sect END IF ';'
+                |	IF expr THEN control_sect END IF ';'
 					{
 						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_IF, 4, $2, $4, NULL ,NULL);
 					}
@@ -3741,8 +3859,34 @@ case_else		:
  *===========================================================*/
 stmt_loop		:	LOOP control_sect END LOOP ';'
 					{
-						malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 1, $2);
-					}
+            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     $2);
+          }
+        | FOR TEMP_VARIABLE IN arith_expr TO arith_expr LOOP control_sect END LOOP';'
+            {
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2,
+                                       NULL,
+                                       $4,
+                                       $6,
+                                       $8);
+            }
+        | FOR TEMP_VARIABLE IN REVERSE arith_expr TO arith_expr LOOP control_sect END LOOP';'
+            {
+              ParseNode *rev_flag = NULL;
+              malloc_terminal_node(rev_flag, result->malloc_pool_, T_BOOL);
+              rev_flag->value_ = 1;
+              malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_LOOP, 5,
+                                       $2, 				//loop counter
+                                       rev_flag,  //reverse loop
+                                       $5,        //lowest_number
+                                       $7,        //highest number
+                                       $9);       //loop body
+            }
 				;
 
 
@@ -3767,14 +3911,18 @@ stmt_null		: ';'
  *===========================================================*/
 stmt_exit		:	EXIT ';'
 					{
-						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT);
+                        malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT, 1, NULL);
 						$$->value_=1;
 					}
-				|	CONTINUE ';'
-					{
-						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CONTINUE);
-						$$->value_=0;
-					}
+//				|	CONTINUE ';'
+//					{
+//						malloc_terminal_node($$, result->malloc_pool_, T_PROCEDURE_CONTINUE);
+//						$$->value_=0;
+//					}
+                |   EXIT WHEN expr ';'
+                    {
+                        malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXIT, 1, $3);//when_expr
+                    }//add by wangdonghui 20160623
 				;
 
 /*****************************************************************************
@@ -3782,19 +3930,19 @@ stmt_exit		:	EXIT ';'
  *	execute  procedure  grammar
  *
  *****************************************************************************/
-exec_procedure_stmt	:	CALL NAME '(' expr_list ')'
+exec_procedure_stmt	:	CALL NAME '(' expr_list ')' opt_hint //add by wdh20160716
 						{
         					ParseNode *param_list = NULL;
             				merge_nodes(param_list, result->malloc_pool_, T_EXPR_LIST, $4);
         					
-							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, param_list);
+                            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 3, $2, param_list, $6);
 						}
 					|
-						CALL NAME '(' ')'
+                        CALL NAME '(' ')' opt_hint
 						{
 							ParseNode *params = NULL;
-							malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 2, $2, params);
-						}
+                            malloc_non_terminal_node($$, result->malloc_pool_, T_PROCEDURE_EXEC, 3, $2, params, $5);
+                        }
 					;
 
 

@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_logical_plan.h
+ * @brief logical plan class definition
+ *
+ * modified by zhutao:modified already delete
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_27
+ */
+
 #ifndef OCEANBASE_SQL_LOGICALPLAN_H_
 #define OCEANBASE_SQL_LOGICALPLAN_H_
 #include "parse_node.h"
@@ -78,6 +96,18 @@ namespace oceanbase
         return ret;
       }
 
+      //add zt 20151102:b
+//      int32_t get_raw_expr_count() const
+//      {
+//        return raw_exprs_store_.size();
+//      }
+
+//      const ObRawExpr* get_raw_expr(int32_t idx) const
+//      {
+//        return raw_exprs_store_.at(idx);
+//      }
+      //add zt 20151102:e
+
       int fill_result_set(ObResultSet& result_set, ObSQLSessionInfo *session_info, common::ObIAllocator &alloc);
 
       uint64_t generate_table_id()
@@ -154,6 +184,34 @@ namespace oceanbase
         return stmts_.at(index);
       }
       void print(FILE* fp = stderr, int32_t level = 0) const;
+
+      // added by wangyanzhao 2017/1/13
+	  int remove_expr(uint64_t expr_id)
+	  {
+	  	int ret = common::OB_ERROR;
+		int32_t num = exprs_.size();
+        for (int32_t i = 0; i < num; i++)
+        {
+          if (exprs_[i]->get_expr_id() == expr_id)
+          {
+            ret = exprs_.remove(i);
+            break;
+          }
+        }
+        return ret;
+	  }
+
+	  oceanbase::common::ObVector<ObSqlRawExpr*>& get_exprs()
+	  {
+        return exprs_;
+	  }
+
+	  oceanbase::common::ObVector<ObRawExpr*>& get_raw_exprs()
+	  {
+        return raw_exprs_store_;
+	  }
+	  // ended by wangyanzhao
+
 
     protected:
       oceanbase::common::ObStringBuf* name_pool_;

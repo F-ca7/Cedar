@@ -41,11 +41,31 @@ namespace oceanbase
         /* check if all config is validated */
         virtual int check_all() const;
         int add_extra_config(const char* config_str, bool check_name = false);
-
+        //add by qx 20161207 : b
+        /**
+         * @brief add_extra_config2
+         * remove log print statement compare with add_extra_config
+         * @param config_str
+         * @param check_name
+         * @return
+         */
+        int add_extra_config2(const char* config_str, bool check_name = false);
+        //add :e
         /* print all config to log file */
         void print() const;
 
         NEED_SERIALIZE_AND_DESERIALIZE;
+        //add by qx 20161207 :b
+        /**
+         * @brief deserialize2
+         * particular deserialize for read config
+         * @param buf
+         * @param data_len
+         * @param pos
+         * @return
+         */
+        int deserialize2(const char* buf, const int64_t data_len, int64_t& pos);
+        //add :e
       protected:
         /* return OB_CHUNKSERVER, OB_MERGESERVER, OB_ROOTSERFER,
          * OB_UPDATESERVER */

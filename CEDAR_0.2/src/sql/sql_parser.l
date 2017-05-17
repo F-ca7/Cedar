@@ -173,7 +173,8 @@ EXIT 				{ return EXIT; }
 CONTINUE			{ return CONTINUE; }
 DO					{ return DO; }
 CALL				{ return CALL; }
-
+ARRAY 	    { return ARRAY; }
+REVERSE     { return REVERSE; }
 
 CURSOR            { return CURSOR; }
 OPEN              { return OPEN; }
@@ -703,6 +704,9 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
 <hint>READ_STATIC  {
   return READ_STATIC;
 }
+<hint>NO_GROUP  {
+    return NO_GROUP;
+  }
 <hint>READ_CONSISTENCY  {
   return READ_CONSISTENCY;
 }
@@ -731,6 +735,10 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
     return MERGE_JOIN;
     /* add e */
 }
+<hint>LONG_TRANS  {
+    /* add by qx 20170317 */
+      return LONG_TRANS;
+    }
 <hint>WEAK  {
     return WEAK;
 }
@@ -772,7 +780,7 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
   return ret;
   // add :e
 }
-<hint>[0-9]+"."[0-9]*  {
+<hint>[0-9]*+"."[0-9\.]*  {  //mod longfei 2017-2-14
 //add wenghaixing [bugfix.index_datasource] 20160122
   return NAME;
   //add e

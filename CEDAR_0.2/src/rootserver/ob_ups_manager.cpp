@@ -72,6 +72,9 @@ ObUpsManager::ObUpsManager(ObRootRpcStub &rpc_stub, ObRootWorker *worker,
    , election_role_(election_role)
    // add:e
 {
+  //add by qx 20160830 :b
+  set_all_ups_state(true);
+  //add :e
 }
 
 ObUpsManager::~ObUpsManager()
@@ -570,6 +573,9 @@ void ObUpsManager::check_all_ups_offline()
     if (UPS_STAT_OFFLINE != ups_array_[i].stat_)
     {
       all_offline = false;
+      //add by qx 20160830 :b
+      set_all_ups_state(true);
+      //add :e
       break;
     }
   }
@@ -577,6 +583,10 @@ void ObUpsManager::check_all_ups_offline()
   {
     TBSYS_LOG(INFO, "all UPS offline");
     waiting_ups_finish_time_ = 0;
+
+    //add by qx 20160830 :b
+    set_all_ups_state(false);
+    //add :e
   }
 }
 
@@ -590,6 +600,10 @@ int ObUpsManager::check_lease()
     int64_t now = tbsys::CTimeUtil::getTime();
     if (UPS_STAT_OFFLINE != ups_array_[i].stat_)
     {
+      //add by qx 20162831 :b
+      // set ups_state_ is ture
+      set_all_ups_state(true);
+      //add :e
       if (now > ups_array_[i].lease_ + MAX_CLOCK_SKEW_US)
       {
         TBSYS_LOG(INFO, "ups is offline, ups=%s lease=%ld lease_duration=%ld now=%ld",

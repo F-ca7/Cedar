@@ -31,8 +31,9 @@ namespace oceanbase
      */
     class ObSecondaryIndexServiceImpl : public ObSecondaryIndexService
     {
+      //del:huangjianwei [secondary index maintain] 20161219:b
       // this type copy from "ob_postfix_expression.h"
-      enum ObPostExprNodeType {
+      /*enum ObPostExprNodeType {
         BEGIN_TYPE = 0,
         COLUMN_IDX,
         CONST_OBJ,
@@ -42,9 +43,10 @@ namespace oceanbase
         OP,
         CUR_TIME_OP,
         UPS_TIME_OP,
-        END, /* postfix expression terminator */
+        END,  postfix expression terminator
         END_TYPE
-      };
+      };*/
+      //del:e
     public:
       /**
        * @brief init

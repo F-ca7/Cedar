@@ -13,9 +13,13 @@
  *
  * modified by Qiushi FAN: add some functions to insert a new expression to scan operator.
  * 
- * @version CEDAR 0.2 
+ * modified by zhutao: add process in get_row_desc function
+ *
+ * @version __DaSE_VERSION
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author   Qiushi FAN <qsfan@ecnu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
  * @date 2016_01_22
  */
 
@@ -195,7 +199,7 @@ namespace oceanbase
         // rpc_scan_ is the leaf operator
         if (OB_SUCCESS == ret && has_rpc_)
         {
-          child_op_ = &rpc_scan_;
+          child_op_ = &rpc_scan_; //bind the child_op_ to the member field, rpc_scan_
           child_op_->set_phy_plan(my_phy_plan_);
           if (ObSqlReadStrategy::USE_GET == read_method_
             && is_skip_empty_row_)
@@ -324,6 +328,12 @@ namespace oceanbase
       if (OB_UNLIKELY(NULL == child_op_))
       {
         ret = OB_NOT_INIT;
+        //add by zt 20160115:b to get a template row desc before rpc execution
+        if( my_phy_plan_->is_group_exec() )
+        {
+          ret = rpc_scan_.get_row_desc(row_desc);
+        }
+        //add by zt 20160115:e
       }
       else
       {
@@ -387,7 +397,7 @@ namespace oceanbase
       rpc_scan_.set_is_use_index_for_storing(tid, row_desc);
     }
 
-    void ObTableRpcScan::set_main_rowkey_info(common::ObRowkeyInfo rowkey_info)
+    void ObTableRpcScan::set_main_rowkey_info(const common::ObRowkeyInfo &rowkey_info)
     {
       rpc_scan_.set_main_rowkey_info(rowkey_info);
     }
@@ -820,7 +830,24 @@ namespace oceanbase
         has_limit_ = o_ptr->has_limit_;
         is_skip_empty_row_ = o_ptr->is_skip_empty_row_;
         //add longfei
-        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+//        is_use_index_rpc_scan_=o_ptr->is_use_index_rpc_scan_;
+        //add e
+        //add longfei [prepare bug fix] 2016-04-22 10:10:23
+        is_use_index_rpc_scan_ = o_ptr->is_use_index_rpc_scan_;
+        is_use_index_for_storing_ = o_ptr->is_use_index_for_storing_;
+        main_tid_ = o_ptr->main_tid_;
+        index_tid_for_storing_for_tostring_ = o_ptr->index_tid_for_storing_for_tostring_;
+        index_tid_without_storing_for_tostring_ = o_ptr->index_tid_without_storing_for_tostring_;
+        main_filter_.set_phy_plan(my_phy_plan_);
+        main_project_.set_phy_plan(my_phy_plan_);
+        if(OB_SUCCESS == ret && OB_SUCCESS != (ret = main_filter_.assign(&o_ptr->main_filter_)))
+        {
+          TBSYS_LOG(WARN, "Assign main_filter for secondary index failed. ret=%d", ret);
+        }
+        else if(OB_SUCCESS != (ret = main_project_.assign(&o_ptr->main_project_)))
+        {
+          TBSYS_LOG(WARN, "Assign main_project for secondary index failed. ret=%d", ret);
+        }
         //add e
         read_method_ = o_ptr->read_method_;
       }

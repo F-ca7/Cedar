@@ -71,30 +71,30 @@ sql_parser_sources=                                    \
   ob_execute_stmt.h           ob_execute_stmt.cpp      \
   ob_procedure_stmt.h         ob_procedure_stmt.cpp   \
   ob_procedure.h              ob_procedure.cpp         \
+  ob_sp_procedure.h           ob_sp_procedure.cpp      \
+  ob_procedure_optimizer.h    ob_procedure_optimizer.cpp   \
+  ob_procedure_compilation_guard.h  ob_procedure_compilation_guard.cpp \
+  ob_procedure_static_data_mgr.h    ob_procedure_static_data_mgr.cpp  \
+  ob_procedure_variable_table.h     ob_procedure_variable_table.cpp  \
   ob_procedure_create_stmt.h  ob_procedure_create_stmt.cpp\
   ob_procedure_create.h       ob_procedure_create.cpp  \
   ob_procedure_drop_stmt.h    ob_procedure_drop_stmt.cpp \
   ob_procedure_drop.h         ob_procedure_drop.cpp \
   ob_procedure_case_stmt.h    ob_procedure_case_stmt.cpp\
-  ob_procedure_case.h         ob_procedure_case.cpp    \
   ob_procedure_casewhen_stmt.h ob_procedure_casewhen_stmt.cpp\
-  ob_procedure_casewhen.h     ob_procedure_casewhen.cpp\
   ob_procedure_declare_stmt.h ob_procedure_declare_stmt.cpp\
-  ob_procedure_declare.h      ob_procedure_declare.cpp \
   ob_procedure_assgin_stmt.h  ob_procedure_assgin_stmt.cpp\
-  ob_procedure_assgin.h       ob_procedure_assgin.cpp\
+  ob_procedure_loop_stmt.h    ob_procedure_loop_stmt.cpp\
   ob_procedure_while_stmt.h   ob_procedure_while_stmt.cpp\
-  ob_procedure_while.h        ob_procedure_while.cpp\
+  ob_procedure_exit_stmt.h    ob_procedure_exit_stmt.cpp\
   ob_procedure_if_stmt.h      ob_procedure_if_stmt.cpp \
-  ob_procedure_if.h           ob_procedure_if.cpp      \
   ob_procedure_elseif_stmt.h  ob_procedure_elseif_stmt.cpp\
-  ob_procedure_elseif.h       ob_procedure_elseif.cpp  \
   ob_procedure_else_stmt.h    ob_procedure_else_stmt.cpp\
-  ob_procedure_else.h         ob_procedure_else.cpp    \
   ob_procedure_execute_stmt.h ob_procedure_execute_stmt.cpp\
   ob_procedure_execute.h      ob_procedure_execute.cpp \
   ob_procedure_select_into_stmt.h  ob_procedure_select_into_stmt.cpp\
-  ob_procedure_select_into.h  ob_procedure_select_into.cpp\
+  ob_variable_set_array_value_stmt.h   ob_variable_set_array_value_stmt.cpp\
+  ob_variable_set_array_value.h   ob_variable_set_array_value.cpp\
   ob_explain_stmt.h           ob_explain_stmt.cpp      \
   ob_insert_stmt.h            ob_insert_stmt.cpp       \
   ob_item_type.h                                       \
@@ -102,6 +102,7 @@ sql_parser_sources=                                    \
   ob_logical_plan.h           ob_logical_plan.cpp      \
   ob_multi_logic_plan.h       ob_multi_logic_plan.cpp  \
   ob_multi_phy_plan.h         ob_multi_phy_plan.cpp    \
+  pull_up_sublink.h           pull_up_sublink.cpp      \
   ob_physical_plan.h          ob_physical_plan.cpp     \
   ob_prepare_stmt.h           ob_prepare_stmt.cpp      \
   ob_raw_expr.h               ob_raw_expr.cpp          \

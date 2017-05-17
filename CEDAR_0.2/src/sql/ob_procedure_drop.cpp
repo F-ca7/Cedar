@@ -1,29 +1,40 @@
 /**
-* Copyright (C) 2013-2016 DaSE .
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_procedure_drop.cpp
-* @brief this class  present a procedure "drop" physical plan in oceanbase
-*
-* Created by zhujun: support procedure
-*
-* @version CEDAR 0.2 
-* @author zhujun <51141500091@ecnu.edu.cn>
-* @date 2014_11_23
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_procedure_drop.cpp
+ * @brief the ObProcedureDrop class definition that warp procedure drop PhyOperator
+ *
+ * Created by zhutao
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ *
+ * @date 2016_07_28
+ */
+
 #include "ob_procedure_drop.h"
 #include "ob_result_set.h"
 #include "ob_physical_plan.h"
 #include "parse_malloc.h"
+
+//add by wangdonghui 20160225 [drop procedure] :b
+#include "mergeserver/ob_rs_rpc_proxy.h"
+//add :e
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
 ObProcedureDrop::ObProcedureDrop()
+  :if_exists_(false), rpc_(NULL)
 {
-	delete_op_=NULL;
+    //delete by wangdonghui 20160225 [drop procedure] :b
+    //delete_op_=NULL;
+    //delete :e
 }
 
 ObProcedureDrop::~ObProcedureDrop()
@@ -34,12 +45,13 @@ int ObProcedureDrop::set_proc_name(ObString &proc_name)
 	proc_name_=proc_name;
 	return OB_SUCCESS;
 }
-int ObProcedureDrop::set_delete_op(ObPhyOperator &delete_op)
-{
-	delete_op_=&delete_op;
-	return OB_SUCCESS;
-}
-
+//delete by wangdonghui 20160225 [drop procedure] :b
+//int ObProcedureDrop::set_delete_op(ObPhyOperator &delete_op)
+//{
+//	delete_op_=&delete_op;
+//	return OB_SUCCESS;
+//}
+//delete :e
 void ObProcedureDrop::set_if_exists(bool flag)
 {
 	if_exists_=flag;
@@ -52,11 +64,15 @@ bool ObProcedureDrop::if_exists()
 
 void ObProcedureDrop::reset()
 {
-
+    //add by wangdonghui 20160225 [drop procedure] :b
+    if_exists_ = false;
+    rpc_ = NULL;
+    //add :e
 }
 void ObProcedureDrop::reuse()
 {
-
+    if_exists_ = false;
+    rpc_ = NULL;
 }
 int ObProcedureDrop::close()
 {
@@ -94,57 +110,32 @@ int ObProcedureDrop::get_next_row(const common::ObRow *&row)
 
 int ObProcedureDrop::open()
 {
-    TBSYS_LOG(INFO, "ObProcedureDrop open()");
+	TBSYS_LOG(INFO, "zz:ObProcedureDrop::open()");
 	int ret = OB_SUCCESS;
-	if (NULL == delete_op_)
-	{
-		ret = OB_ERR_GEN_PLAN;
-		TBSYS_LOG(ERROR, "delete_op_ is NULL");
-	}
-	else
-	{
-		ret=delete_op_->open();
-        if(!if_exists_)
-		{
-			ObResultSet *result_set = my_phy_plan_->get_result_set();
-			ObSQLSessionInfo *session = result_set->get_session();
-			ObObj val;
-			int64_t value=0;
-			ObString affect=ObString::make_string("affect_row_num");
-			if(session->variable_exists(affect))
-			{
-                if ((ret = session->get_variable_value(affect, val)) != OB_SUCCESS)
-				{
-					 TBSYS_LOG(WARN, "Get variable %.*s faild. ret=%d", affect.length(), affect.ptr(),ret);
-				}
-				else if((ret=val.get_int(value))!=OB_SUCCESS)
-				{
-					TBSYS_LOG(WARN, "val get_int ERROR");
-				}
-				else
-				{
-                    if(ret==OB_SUCCESS&&1==value)
-					{
-						TBSYS_LOG(INFO, "procedure %.*s drop success",proc_name_.length(),proc_name_.ptr());
-					}
-                    else
-					{
-						ret=-5019;
-						TBSYS_LOG(USER_ERROR, "procedure %.*s doesn't exist",proc_name_.length(),proc_name_.ptr());
-					}
-				}
-
-			}
-			else
-			{
-				ret=-5019;
-				TBSYS_LOG(USER_ERROR, "procedure %.*s doesn't exist",proc_name_.length(),proc_name_.ptr());
-			}
-		}
-
-
-	}
-	return ret;
+    //add by wangdonghui 20160225 [drop procedure] :b
+    if(rpc_ == NULL)
+    {
+        ret = OB_NOT_INIT;
+        TBSYS_LOG(ERROR, "not init, rpc_=%p", rpc_);
+    }
+    else if(OB_SUCCESS != (ret = rpc_->drop_procedure(if_exists_, proc_name_)))
+    {
+        if(if_exists_)
+        {
+            ret = OB_SUCCESS;
+        }
+        else
+        {
+            TBSYS_LOG(WARN, "failed to drop procedure, err=%d", ret);
+        }
+    }
+    else
+    {
+        TBSYS_LOG(INFO, "drop procedure succ, proc_name=[%s] if_exists=%c",
+                      to_cstring(proc_name_), if_exists_?'Y':'N');
+    }
+    return ret;
+    //add :e
 }
 
 namespace oceanbase{

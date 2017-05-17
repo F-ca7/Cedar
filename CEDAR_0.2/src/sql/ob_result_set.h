@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_result_set.cpp
+ * @brief build logic plan
+ *
+ * modified by zhujun：support procedure
+ * modified by zhutao: delete and add some function for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhujun <51141500091@ecnu.edu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @date 2016_07_29
+ */
+
+/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -50,8 +69,8 @@ namespace oceanbase
           int64_t to_string(char *buffer, int64_t length) const;
           int deep_copy(Field &other, common::ObStringBuf *str_buf);
         };
-        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
-        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
+        //        common::ObString proc_sql_;//add by zz 2014-12-27, delete by zt 20151117, wtf
+        //        ObPhyOperator *ps_;//add by zz to store operator, delete by zt 20151117, wtf
       public:
         ObResultSet();
         ~ObResultSet();
@@ -109,6 +128,9 @@ namespace oceanbase
         int add_field_column(const Field & field);
         int add_param_column(const Field & field);
         int pre_assign_params_room(const int64_t& size, common::ObIAllocator &alloc);
+
+        //        int pre_assign_cur_time_room(common::ObObj *place_holder);  //add zt 20151121
+
         int pre_assign_cur_time_room(common::ObIAllocator &alloc);
         int fill_params(const common::ObIArray<obmysql::EMySQLFieldType>& types,
                         const common::ObIArray<common::ObObj>& values);
@@ -144,7 +166,67 @@ namespace oceanbase
         {
           plan_from_assign_ = flag;
         }
-        void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;};
+
+        void change_phy_plan(ObPhysicalPlan *plan, bool did_own);
+        void set_sql_id(int64_t sql_id) {sql_id_ = sql_id;}
+
+        //add zt 20151201:b
+        //for postfix_expr to get procedure obj, read array variables
+        /**
+         * @brief set_running_procedure
+         * set running procedure
+         * @param proc SpProcedure object pointer
+         */
+        void set_running_procedure(SpProcedure *proc) { proc_ = proc;}
+        /**
+         * @brief get_running_procedure
+         * get running procedure
+         * @return SpProcedure object pointer
+         */
+        const SpProcedure* get_running_procedure() const{ return proc_; }
+        /**
+         * @brief get_stmt_hash
+         * get statement hash code
+         * @return hash code
+         */
+        int64_t get_stmt_hash() const { return stmt_hash_code_; }
+        /**
+         * @brief set_stmt_hash
+         * set statement hash code
+         * @param hc hash code
+         */
+        void set_stmt_hash(int64_t hc) { stmt_hash_code_ = hc; }
+        /**
+         * @brief set_no_group
+         * set no group execution flag
+         * @param no_group bool value
+         */
+        void set_no_group(bool no_group) { no_group_ = no_group; }
+        /**
+         * @brief get_no_group
+         * get no group execution flag
+         * @return flag
+         */
+        bool get_no_group() const { return no_group_; }
+        //add by qx 20170317 :b
+        /**
+         * @brief set_long_trans
+         * set long transcation flag
+         * @param long_trans
+         */
+        void set_long_trans(bool long_trans) {long_trans_ = long_trans;}
+        /**
+         * @brief get_long_trans
+         * get long transcation flag
+         * @return
+         */
+        bool get_long_trans() const {return long_trans_;}
+        //add :e
+        //add zt 20151201:e
+        //add by wdh 20160822 :b
+        void set_cur_schema_version(int64_t cur_schema_version) {cur_schema_version_ = cur_schema_version;}
+        int64_t get_cur_schema_version() const {return cur_schema_version_;}
+        //add :e
       private:
         // types and constants
         static const int64_t MSG_SIZE = 512;
@@ -181,6 +263,21 @@ namespace oceanbase
         common::ObArenaAllocator *ps_trans_allocator_;
         int64_t query_string_id_;
         common::ObObj *cur_time_; // only used when the sql contains fun like current_time
+
+        /**
+         * The pointer to used to the located the running procedure, then I
+         * can read variables or array from that. This is important when doing postfix_exprssion
+         * calculation. However, if we only read variables or array from ObSqlSession, Such desgin
+         * is not necessary.
+         * @brief proc_
+         */
+        /// procedure physical plan
+        SpProcedure *proc_; //add zt: 20151201
+        int64_t stmt_hash_code_;  ///<  statement hash code_
+        bool no_group_;  ///< no group excution flag
+        int64_t cur_schema_version_; // add by wdh 20160822 [dev compile] used in cache manage
+        bool long_trans_;   ///< long transcation flag  add by qx 20170317
+
     };
 
     inline int64_t ObResultSet::Field::to_string(char *buffer, int64_t len) const
@@ -213,7 +310,8 @@ namespace oceanbase
        my_session_(NULL),
        ps_trans_allocator_(NULL),
        query_string_id_(0),
-       cur_time_(NULL)
+       cur_time_(NULL),
+       proc_(NULL) //add zt 20151202
     {
       message_[0] = '\0';
     }
@@ -398,6 +496,20 @@ namespace oceanbase
       physical_plan_ = physical_plan;
       own_physical_plan_ = did_own;
     }
+
+    //add zt 20151121:b
+    /**
+     * @brief ObResultSet::change_phy_plan
+     * change physical plan
+     * @param plan physical plan
+     * @param did_own own physical plan flag, bool value
+     */
+    inline void ObResultSet::change_phy_plan(ObPhysicalPlan *plan, bool did_own)
+    {
+      physical_plan_ = plan;
+      own_physical_plan_ = did_own;
+    }
+    //add zt 20151121:e
 
     inline void ObResultSet::fileds_clear()
     {

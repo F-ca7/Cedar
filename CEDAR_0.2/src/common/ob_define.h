@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,13 +13,16 @@
  * modified by guojinwei:support multiple clusters for HA by adding or modifying
  * some functions, member variables
  * modified by zhujun：add procedure related constant
+ * modified by zhutao: add procedure related constant
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
  * @author guojinwei <guojinwei@stu.ecnu.edu.cn>
  * @author zhujun <51141500091@ecnu.edu.cn>
- * @date 2016_01_21
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ *
+ * @date 2016_07_29
  */
 /*
  *   (C) 2007-2010 Taobao Inc.
@@ -44,6 +47,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <openssl/md5.h>
+
+#include "ob_buffer_size_define.h"
 
 namespace oceanbase
 {
@@ -195,6 +200,8 @@ namespace oceanbase
     const int OB_STMT_EXPIRED = -149;
     const int OB_DISCARD_PACKET = -150;
 
+    const int OB_SP_EXIT = -151;//add by wdh 20160624
+    const int OB_OPERATION_NOT_ALLOWED = -152; //add dragon [Bugfix#12] 2017-3-8
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
@@ -250,9 +257,13 @@ namespace oceanbase
     const int OB_FORCE_TIME_OUT = -2010;
     const int OB_BEGIN_TRANS_LOCKED = -2011;
     //add chujiajia [log synchronization][multi_cluster] 20160603:b
-	const int OB_NOT_EQUAL = -2012;
+    const int OB_NOT_EQUAL = -2012;
     const int OB_NOTIFY_EQUAL = -2013;
-	//add:e
+    //add:e
+    //add by qx 20170225 :b
+    const int OB_RS_OFFLINE = -2014;    ///<slave cluster rs offline need kill ups to prohibit replay log
+    //add :e
+
     //error code for root server -3001 ---- -4000
     const int OB_ERROR_TIME_STAMP = -3001;
     const int OB_ERROR_INTRESECT = -3002;
@@ -393,7 +404,9 @@ namespace oceanbase
     const int OB_ERR_PROTOCOL_NOT_RECOGNIZE = -5068;
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 来自监控的连接会立马断开
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
-
+    //add zhuyanchao[secondary index table name]
+    const int OB_ERR_INVALID_TABLE_NAME = -5071;
+    //add e
     //add longfei [drop table with index timeout] 151202:b
     const int OB_INDEX_NOT_EXIST = -5075;
     //add e
@@ -413,7 +426,43 @@ namespace oceanbase
     const int OB_GET_NOTHING = -5604;
     //add e
 
+    //add huangjianwei [secondary index debug] 20170314:b
+    const int OB_ERROR_DROP_COLUMN_WITH_INDEX = -5605;
+    const int OB_ERROR_INDEX_ALREADY_FULL = -5606;
+    const int OB_ERROR_ALTER_INDEX_TABLE = -5607;
+    //add:e
+
     const int OB_ERR_SQL_END = -5999;
+
+    //add by zt 20160713:b
+    const int OB_ERR_SP_DOES_NOT_EXIST = -6001;                     //42000
+    const int OB_ERR_SP_WRONG_NO_OF_ARGS = -6002;                   //HY000
+    const int OB_ERR_TOO_MANY_ROWS = -6003;                         //42000
+    const int OB_ERR_SP_DUP_PARAM = -6004;                          //42000
+    const int OB_ERR_SP_DUP_VAR = -6005;                            //42000
+    const int OB_ERR_SP_ALREADY_EXISTS = -6007;                     //42000
+    const int OB_ERR_SP_DROP_FAILED = -6008;                        //HY000
+    const int OB_ERR_SP_STORE_FAILED = -6009;                       //HY000
+    const int OB_ERR_SP_UNINIT_VAR = -6010;                         //01000
+    const int OB_ERR_SP_BADSELECT = -6011;                          //0A000
+    const int OB_ERR_SP_BADSTATEMENT = -6012;                       //0A000
+    const int OB_ERR_SP_UNDECLARED_VAR = -6013;                     //42000
+    const int OB_ERR_SP_CASE_NOT_FOUND = -6014;                     //HY000
+    const int OB_ERR_SP_NOT_VAR_ARGS = -6015;                       //42000
+    const int OB_ERR_UNKNOWN_PROCEDURE = -6017;                     //42000
+    const int OB_ERR_WRONG_PARAMCOUNT_TO_PROCEDURE = -6018;         //42000
+    const int OB_ERR_WRONG_PARAMETERS_TO_PROCEDURE = -6019;         //HY000
+    const int OB_ERR_SP_BAD_SQLSTAT = -6020;                        //42000
+    const int OB_ERR_SP_WRONG_NAME = -6021;                         //42000
+    const int OB_PROCEDURE_DECLARE_ERROR = -6022; //the same as OB_ERR_SP_BADSTATEMENT;
+
+    //add by zt 20160713:e
+
+    //add by qx 20160829:b
+    const int OB_PROCEDURE_PROHIBIT_CALL = -6023;
+    //add :e
+
+
 #define IS_SQL_ERR(e) ((OB_ERR_SQL_END <= e && OB_ERR_SQL_START >= e) \
                       || OB_ERR_EXCLUSIVE_LOCK_CONFLICT == e \
                       || OB_ERR_SHARED_LOCK_CONFLICT == e)
@@ -481,8 +530,10 @@ namespace oceanbase
     const int64_t OB_MAX_CIPHER_LENGTH = MD5_DIGEST_LENGTH * 2;
 
     const int64_t OB_MAX_RESULT_MESSAGE_LENGTH = 1024;
-    const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
-
+    //delete by qx 20161106 :b
+    //defined in ob_buffer_size_define.h now
+    //const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
+    //delete :e
     const int32_t OB_SAFE_COPY_COUNT = 3;
     const int32_t OB_DEC_AND_LOCK = 2626; /* used by remoe_plan in ObPsStore */
     // OceanBase Log Synchronization Type
@@ -613,6 +664,8 @@ namespace oceanbase
     const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
 
+
+    //modified by wangdonghui 20151223
     //add zhujun [2015-6-1]
     const char* const OB_ALL_PROCEDURE_TABLE_NAME = "__all_procedure";
     //add:e
@@ -670,6 +723,11 @@ namespace oceanbase
 //#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
 #define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
     //mod e
+
+    //add dragon [Bugfix#12] 2017-3-8 b
+#define IS_COLUMN_CHECKSUM(tid) ((tid) == OB_ALL_COLUMN_CHECKSUM_INFO_TID)
+    //add e
+
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////
@@ -730,6 +788,8 @@ namespace oceanbase
     static const int64_t OB_MAX_THREAD_NUM = 1024;
     static const int64_t OB_CHAR_SET_NAME_LENGTH = 16;
 
+    static const int64_t MAX_SQL_ERR_MSG_LENGTH = 256;
+
     enum ObDmlType
     {
       OB_DML_UNKNOW   = 0,
@@ -764,6 +824,17 @@ namespace oceanbase
       GLOBAL_INDEX_STAGE     ///< 全局索引创建阶段
     };
     // add e
+
+    //add huangjianwei [secondary index maintain] 20160909:b
+    enum SQLTYPE
+    {
+      INSERT = 0,
+      DELETE, // 1
+      UPDATE, // 2
+      REPLACE //3
+    };
+    //add:e
+
   } // end namespace common
 } // end namespace oceanbase
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \

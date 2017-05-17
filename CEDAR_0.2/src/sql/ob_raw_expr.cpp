@@ -1,3 +1,21 @@
+/**
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_raw_expr.cpp
+ * @brief raw expression relation class definition
+ *
+ * modified by zhutao:add some functions and a class for procedure
+ *
+ * @version __DaSE_VERSION
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
+ * @author wangdonghui <zjnuwangdonghui@163.com>
+ * @date 2016_07_29
+ */
+
 #include "ob_raw_expr.h"
 #include "ob_transformer.h"
 #include "type_name.c"
@@ -62,6 +80,20 @@ bool ObRawExpr::is_join_cond() const
   }
   return ret;
 }
+
+bool ObRawExpr::is_semi_join_cond() const
+{
+  bool ret = false;
+  if (type_ == T_OP_LEFT_SEMI || type_ == T_OP_LEFT_ANTI_SEMI)
+  {
+    ObBinaryOpRawExpr *binary_expr = dynamic_cast<ObBinaryOpRawExpr *>(const_cast<ObRawExpr *>(this));
+    if (binary_expr->get_first_op_expr()->get_expr_type() == T_REF_COLUMN
+      && binary_expr->get_second_op_expr()->get_expr_type() == T_REF_COLUMN)
+      ret = true;
+  }
+  return ret;
+}
+
 
 bool ObRawExpr::is_aggr_fun() const
 {
@@ -255,6 +287,70 @@ int ObConstRawExpr::fill_sql_expression(
   return ret;
 }
 
+//add zt 20151125:b
+int ObArrayRawExpr::fill_sql_expression(
+    ObSqlExpression &inter_expr,
+    ObTransformer *transformer,
+    ObLogicalPlan *logical_plan,
+    ObPhysicalPlan *physical_plan) const
+{
+  int ret = OB_SUCCESS;
+  ExprItem item, idx_item;
+  UNUSED(transformer);
+  UNUSED(logical_plan);
+  UNUSED(physical_plan);
+//  if( OB_SUCCESS != (ret = idx_expr_->fill_sql_expression(
+//                             inter_expr,
+//                             transformer,
+//                             logical_plan,
+//                             physical_plan)))
+//  {
+//    TBSYS_LOG(WARN, "fill expression for the array idx fail");
+//  }
+
+  item.type_ = get_expr_type();
+  item.data_type_ = get_result_type();
+  item.string_ = array_name_;
+
+  idx_item.data_type_ = ObIntType; //idx must be int value
+  if( ObIntType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_INT;
+    idx_value_.get_int(idx_item.value_.int_);
+  }
+  else if ( ObVarcharType == idx_value_.get_type() )
+  {
+    idx_item.type_ = T_TEMP_VARIABLE;
+    idx_value_.get_varchar(idx_item.string_);
+  }
+
+  if( OB_SUCCESS == ret )
+  {
+    //comment: it is more reasonable to push idx_item first, then item
+    //Thus, idx value would be calculated first, then the array value
+    //However, I want to control the serialization of array var,
+    //Maybe the array val could computed before serialization
+    if( OB_SUCCESS != (ret = inter_expr.add_expr_item(item)) )
+    {
+      TBSYS_LOG(WARN, "add idx item fail");
+    }
+    else
+    {
+      ret = inter_expr.add_expr_item(idx_item);
+    }
+  }
+  return ret;
+}
+
+void ObArrayRawExpr::print(FILE *fp, int32_t level) const
+{
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "%s : ", get_type_name(get_expr_type()));
+  fprintf(fp, "%.*s[%s]\n", array_name_.length(), array_name_.ptr(), to_cstring(idx_value_));
+//  idx_expr_->print(fp, level+1);
+}
+//add zt 20151125:e
+
 void ObCurTimeExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
@@ -283,7 +379,7 @@ int ObCurTimeExpr::fill_sql_expression(
 void ObUnaryRefRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "%s : %lu\n", get_type_name(get_expr_type()), id_);
+  fprintf(fp, "<ObUnaryRefRawExpr> %s : %lu </ObUnaryRefRawExpr>\n", get_type_name(get_expr_type()), id_);
 }
 
 int ObUnaryRefRawExpr::fill_sql_expression(
@@ -321,10 +417,10 @@ void ObBinaryRefRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   if (first_id_ == OB_INVALID_ID)
-    fprintf(fp, "%s : [table_id, column_id] = [NULL, %lu]\n",
+    fprintf(fp, "<ObBinaryRefRawExpr> %s : [table_id, column_id] = [NULL, %lu] </ObBinaryRefRawExpr>\n",
             get_type_name(get_expr_type()), second_id_);
   else
-    fprintf(fp, "%s : [table_id, column_id] = [%lu, %lu]\n",
+    fprintf(fp, "<ObBinaryRefRawExpr> %s : [table_id, column_id] = [%lu, %lu] </ObBinaryRefRawExpr>\n",
             get_type_name(get_expr_type()), first_id_, second_id_);
 }
 
@@ -360,8 +456,15 @@ int ObBinaryRefRawExpr::fill_sql_expression(
 void ObUnaryOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "<ObUnaryOpRawExpr>\n");
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
+  
   expr_->print(fp, level + 1);
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "</ObUnaryOpRawExpr>\n");
 }
 
 int ObUnaryOpRawExpr::fill_sql_expression(
@@ -385,9 +488,16 @@ int ObUnaryOpRawExpr::fill_sql_expression(
 void ObBinaryOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "<ObBinaryOpRawExpr>\n");
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
+  
   first_expr_->print(fp, level + 1);
   second_expr_->print(fp, level + 1);
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "</ObBinaryOpRawExpr>\n");
 }
 
 void ObBinaryOpRawExpr::set_op_exprs(ObRawExpr *first_expr, ObRawExpr *second_expr)
@@ -535,10 +645,16 @@ int ObBinaryOpRawExpr::fill_sql_expression(
 void ObTripleOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "<ObTripleOpRawExpr>\n");
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
   first_expr_->print(fp, level + 1);
   second_expr_->print(fp, level + 1);
   third_expr_->print(fp, level + 1);
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "</ObTripleOpRawExpr>\n");
 }
 
 void ObTripleOpRawExpr::set_op_exprs(
@@ -577,11 +693,17 @@ int ObTripleOpRawExpr::fill_sql_expression(
 void ObMultiOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "<ObMultiOpRawExpr>\n");
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
   for (int32_t i = 0; i < exprs_.size(); i++)
   {
     exprs_[i]->print(fp, level + 1);
   }
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "</ObMultiOpRawExpr>\n");
 }
 
 int ObMultiOpRawExpr::fill_sql_expression(
@@ -779,7 +901,22 @@ void ObSqlRawExpr::print(FILE* fp, int32_t level, int32_t index) const
     fprintf(fp, "(table_id : column_id) = (NULL : %lu)\n", column_id_);
   else
     fprintf(fp, "(table_id : column_id) = (%lu : %lu)\n", table_id_, column_id_);
-  expr_->print(fp, level);
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "is_apply_: %s, contain_aggr_: %s, contain_alias_: %s, is_columnlized_: %s\n", 
+  	is_apply_?"True":"False", contain_aggr_?"True":"False", contain_alias_?"True":"False", is_columnlized_?"True":"False");
+  
+  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
+  fprintf(fp, "tables_set_: [");
+  for(int32_t i = 0; i < 32 * 8; ++i)
+  {
+    if(tables_set_.has_member(i))
+    {
+      fprintf(fp, "%d, ", i);
+    }
+  }
+  fprintf(fp, "]\n");
+  
+  expr_->print(fp, level + 1);
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "<ObSqlRawExpr %d End>\n", index);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013-2016 DaSE .
+ * Copyright (C) 2013-2016 ECNU_DaSE.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,11 +11,14 @@
  * modified by longfei：add items for secondary index
  * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
  * modified by maoxiaoxiao: add items for bloomfilter join or merge join
+ * modified by zhutao:add ObItemType
+ * modified by wangyanzhao: add items for semi-join and anti-semi-join
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author yu shengjuan <51141500090@ecnu.cn>
  * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @author zhutao <zhutao@stu.ecnu.edu.cn>
  * @date 2016_07_27
  */
 #ifndef OCEANBASE_SQL_OB_ITEM_TYPE_H_
@@ -118,7 +121,9 @@ typedef enum ObItemType
   T_OP_AND,
   T_OP_OR,
   T_OP_IN,
+  T_OP_LEFT_SEMI, // add wangyanzhao [pull up sublink]  20170322:e
   T_OP_NOT_IN,
+  T_OP_LEFT_ANTI_SEMI, // add wangyanzhao [pull up sublink]  20170322:e
   T_OP_ARG_CASE,
   T_OP_CASE,
   T_OP_ROW,
@@ -281,6 +286,8 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
+  T_LONG_TRANS, //add by qx 21070317
+  T_NO_GROUP,//add by wdh 20160716
   T_USE_INDEX,// add longfei
   T_UNKOWN_HINT,// add longfei
   T_SEMI_JOIN,// add by yusj [SEMI_JOIN] 20150819
@@ -324,6 +331,12 @@ typedef enum ObItemType
   T_BLOOMFILTER_JOIN,
   T_MERGE_JOIN,
   /*add e*/
+
+  //add by zt 20151125:b
+  T_ARRAY,
+  T_VAR_ARRAY_VAL,
+  T_ARRAY_VAL
+  //add by zt 20151125:e
 
 } ObItemType;
 

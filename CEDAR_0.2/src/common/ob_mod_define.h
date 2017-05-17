@@ -271,6 +271,10 @@ namespace oceanbase
         OB_LOG_BINLOG_RECORD,
         OB_LOG_STMT,
 
+        //add by qx 20161024 :b
+        OB_SQL_EXPLAIN,  ///<  module for sql explain temp buffer
+        //add :e
+
         OB_MOD_END
       };
     };
@@ -451,6 +455,9 @@ namespace oceanbase
       ADD_MOD(OB_SQL_PS_STORE_OPERATORS);
       ADD_MOD(OB_SQL_PS_STORE_ITEM);
       ADD_MOD(OB_STATIC_INDEX);//add wenghaixing [secondary index.static_index]20151118
+
+      ADD_MOD(OB_SQL_EXPLAIN); //add by qx 20161024
+
       ADD_MOD(OB_MOD_END);
     }
     class ObModSet : public oceanbase::common::ObMemPoolModSet

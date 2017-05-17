@@ -383,7 +383,8 @@ namespace oceanbase
     {
       int err = OB_SUCCESS;
       char* buf = NULL;
-      int64_t len = ObLogWriter::LOG_BUFFER_SIZE;
+      //int64_t len = ObLogWriter::LOG_BUFFER_SIZE;
+      int64_t len = OB_MAX_LOG_BUFFER_SIZE;
       int64_t read_count = 0;
       int64_t end_id = 0;
       ObPosLogReader reader;

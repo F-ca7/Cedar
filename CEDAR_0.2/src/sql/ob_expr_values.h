@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2013-2016 DaSE .
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* version 2 as published by the Free Software Foundation.
-*
-* @file ob_expr_values.h
-* @brief for operations of expression value
-*
-* modified by maoxiaoxiao:add functions to reset iterator
-*
-* @version CEDAR 0.2 
-* @author maoxiaoxiao <51151500034@ecnu.edu.cn>
-* @date 2016_01_21
-*/
+ * Copyright (C) 2013-2016 ECNU_DaSE.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * @file ob_expr_values.h
+ * @brief for operations of expression value
+ *
+ * modified by maoxiaoxiao:add functions to reset iterator
+ * modified by zhutao:add define different serialize methods for procedure
+ * @version __DaSE_VERSION
+ * @author maoxiaoxiao <51151500034@ecnu.edu.cn>
+ * @date 2016_07_27
+ */
 
 /**
  * (C) 2010-2012 Alibaba Group Holding Limited.
@@ -41,6 +41,17 @@ namespace oceanbase
 {
   namespace sql
   {
+    /**
+     * @brief The ObExprValues class
+     * ObExprValues is used by ObIncScan and ObInsertDBSemFilter and ObUpsModify(Replace semantics)
+     * > ObIncScan, uses ObExprValues to get the rowkey info and store into the get_param.
+     *	When serialization, get_param (instead of the ObExprValues) would be serialize. Serialize get_param
+     *  is safe, since the rowkey info would not change over execution.
+     * > ObUpsModify, uses ObExprValues as a child, when serialization, ObExprValues would be direct serialized,
+     *   we should serialize the raw ObSqlExpression.
+     * > ObInsertDBSemFilter, uses ObExprValues as a subquery, when serialization, ObExprValues would be direct serialize,
+     *   we should serialize the raw ObSqlExpression
+     */
     class ObExprValues: public ObNoChildrenPhyOperator
     {
       public:
@@ -50,9 +61,14 @@ namespace oceanbase
         int set_row_desc(const common::ObRowDesc &row_desc, const common::ObRowDescExt &row_desc_ext);
         int add_value(const ObSqlExpression &v);
 
+        void clear_value() { values_.clear(); } //add by zhutao, debug range update
+
         void reserve_values(int64_t num) {values_.reserve(num);}
         void set_check_rowkey_duplicate(bool flag) { check_rowkey_duplicat_ = flag; }
         void set_do_eval_when_serialize(bool v) { do_eval_when_serialize_ = v;}
+        //add huangjianwei [secondary index maintain] 20161108:b
+        void set_replace_check_rowkey_duplicate(bool flag) { replace_check_rowkey_duplicat_ = flag;}
+        //add:e
         ObExpressionArray &get_values() {return values_;}
         virtual int open();
         virtual int close();
@@ -71,6 +87,40 @@ namespace oceanbase
 
         DECLARE_PHY_OPERATOR_ASSIGN;
         NEED_SERIALIZE_AND_DESERIALIZE;
+
+        //add by zt 20160119:b
+        /**
+         * @brief serialize_template
+         * serialize expression for procedure
+         * @param buf buffer
+         * @param buf_len buffer length
+         * @param pos location flag
+         * @return error code
+         */
+        int serialize_template(char *buf, const int64_t buf_len, int64_t &pos) const;
+        /**
+         * @brief deserialize_template
+         * serialize expression for procedure
+         * @param buf buffer
+         * @param data_len buffer length
+         * @param pos location flag
+         * @return error code
+         */
+        int deserialize_template(const char *buf, const int64_t data_len, int64_t& pos);
+        /**
+         * @brief prepare_data
+         * prepare set expression inx  0
+         * @return error code
+         */
+        int prepare_data();
+        /**
+         * @brief get_next_row_template
+         * get next row
+         * @param row return ObRow object point
+         * @return error code
+         */
+        int get_next_row_template(const common::ObRow *&row);
+        //add by zt 20160119:e
       private:
         // types and constants
       private:
@@ -89,6 +139,11 @@ namespace oceanbase
         bool from_deserialize_;
         bool check_rowkey_duplicat_;
         bool do_eval_when_serialize_;
+        bool group_exec_;
+        int64_t expr_idx_;
+        //add huangjianwei [secondary index maintain] 20161108:b
+        bool replace_check_rowkey_duplicat_;
+        //add:e
     };
   } // end namespace sql
 } // end namespace oceanbase

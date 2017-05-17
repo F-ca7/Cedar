@@ -95,3 +95,33 @@ int ObRootTriggerUtil::drop_tables(ObTriggerEvent & trigger, const uint64_t tabl
   return err;
 }
 
+//add by wdh 20160730 :b
+int ObRootTriggerUtil::create_procedure(ObTriggerEvent & trigger)
+{
+  int err = ObTriggerEventUtil::execute(CREATE_PROCEDURE_TRIGGER, DEFAULT_PARAM, trigger);
+  if (err != OB_SUCCESS)
+  {
+    TBSYS_LOG(ERROR, "fail to trigger create_procedure event. err[%d]", err);
+  }
+  else
+  {
+    TBSYS_LOG(TRACE, "trigger create_procedure event succ");
+  }
+  return err;
+}
+
+int ObRootTriggerUtil::drop_procedure(ObTriggerEvent &trigger)
+{
+    int err = ObTriggerEventUtil::execute(DROP_PROCEDURE_TRIGGER, DEFAULT_PARAM, trigger);
+    if (err != OB_SUCCESS)
+    {
+      TBSYS_LOG(ERROR, "fail to trigger drop_procedure event. err[%d]", err);
+    }
+    else
+    {
+      TBSYS_LOG(TRACE, "trigger drop_procedure event succ");
+    }
+    return err;
+}
+//add :e
+

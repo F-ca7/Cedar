@@ -1,3 +1,4 @@
+
 /**
  * Copyright (C) 2013-2016 DaSE .
  *
@@ -74,6 +75,8 @@ namespace oceanbase
       protected:
         common::ObRole get_server_type() const
         { return OB_UPDATESERVER; }
+
+        int load_config();
 
       private:
         DISALLOW_COPY_AND_ASSIGN(ObUpdateServerConfig);
@@ -208,10 +211,30 @@ namespace oceanbase
         DEF_INT(io_thread_end_cpu,   "-1", "end number of cpu, set affinity by io thread");
 
         DEF_INT(commit_bind_core_id, "-1", "commit thread will bind to this core(given configured core_id > 0)");
+
         //add by zhouhuan [scalable commit] 20160711:b
         DEF_INT(switch_bind_core_id, "-1", "switch group thread will bind to this core(given configured core_id > 0)");
         DEF_TIME(switch_group_period, "50us","switch group period");
         //add:e
+
+        //add by qx 20161115 :b
+        /* 2MB  restriction can improve to min(max_log_buffer_size,log_buff_max_size,max_thead_buffer_size,
+         * rpc_buffer_size,1<<block_bits), recommend make  max_log_buffer_size is min values, otherwise may cause some error
+         */
+        DEF_INT2(max_log_buffer_size,"1966080","max transcation log buffer size default 1.875MB")
+        DEF_INT2(log_buffer_max_size,"2097152","max SingleLog read buffer default 2MB")
+        DEF_INT2(block_bits,"22","ring buffer shift bits")
+        //delete by qx 20161222 :b
+        //remove redundancy configure
+        //DEF_INT2(max_thread_buffer_size,"2097152","max thread buffer size")
+        //DEF_INT2(rpc_buffer_size,"2097152","max rpc buffer size")
+        //delete :e
+        DEF_INT2(disk_default_buffer_size,"4194304","dault buffer size of disk")
+        //add :e
+        //add by qx 20170310 :b
+        DEF_INT2(allocator_total_limit,"16106127360","allocator total limit default 15GB")
+        DEF_INT2(allocator_hold_limit,"8589934592","allocator total limit default 8GB")
+        //add :e
     };
   }
 }

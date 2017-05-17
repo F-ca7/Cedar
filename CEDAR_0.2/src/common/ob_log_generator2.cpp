@@ -450,7 +450,7 @@ namespace oceanbase
       bool ret = (size > 0 && size + LOG_BUF_RESERVED_SIZE + entry.get_serialize_size() <= log_buf_len_);
       if (!ret)
       {
-        TBSYS_LOG(ERROR, "log_size[%ld] + reserved[%ld] + header[%ld] <= log_buf_len[%ld]",
+        TBSYS_LOG(ERROR, "log_size[%ld] + reserved[%ld] + header[%ld] > log_buf_len[%ld]",
                   size, LOG_BUF_RESERVED_SIZE, entry.get_serialize_size(), log_buf_len_);
       }
       return ret;
@@ -993,6 +993,8 @@ namespace oceanbase
         err = OB_ERROR;
         TBSYS_LOG(ERROR, "generate_log pos=[%ld] != cur_pos.rel_offset[%d]", pos, cur_pos.rel_offset_);
       }
+      //TBSYS_LOG(INFO,"test::zhouhuan log_id + cur_pos.rel_id_ =%ld  data_len=%ld buf_len=%ld log_id=%ld cur_pos.rel_id_=%d",
+      //          log_id + cur_pos.rel_id_,data_len,buf_len ,log_id,cur_pos.rel_id_);
       return err;
     }
 
@@ -1028,7 +1030,7 @@ namespace oceanbase
             {
              // TBSYS_LOG(ERROR, "test::zhouhuan:before atomic_inc cur_group->ref_cnt_=%ld, ref_cnt=%d", cur_group->ref_cnt_, ref_cnt);
               ref_cnt = ATOMIC_INC(&(cur_group->ref_cnt_));
-             //TBSYS_LOG(ERROR, "test::zhouhuan ref_cnt group_id=%ld, ref_cnt=%ld, rel_id=%d", cur_group->group_id_, ref_cnt, cur_pos.rel_id_);
+             //TBSYS_LOG(INFO, "test::zhouhuan ref_cnt group_id=%ld, ref_cnt=%ld, rel_id=%d", cur_group->group_id_, ref_cnt, cur_pos.rel_id_);
             }
             break;
           }

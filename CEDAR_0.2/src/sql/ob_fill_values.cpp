@@ -177,6 +177,7 @@ int ObFillValues::open()
 int ObFillValues::close()
 {
   int ret = OB_SUCCESS;
+  op_to_->clear_value(); //add by zhutao, fix bugs
   return ret;
 }
 int64_t ObFillValues::to_string(char* buf, const int64_t buf_len) const
