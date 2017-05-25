@@ -623,6 +623,15 @@ int ObAggregateFunction::calc_aggr_cell(const ObItemType aggr_fun, const ObObj &
           else
           {
             ret = res1.add(oprand_clone, result);
+            //add xsl ECNU_DECIMAL 2017_5
+            uint32_t len = 1;
+            if(const_cast<ObDecimal &>(result.get_decimal()).get_words()[0].table[1] != 0)
+            {
+                len =2;
+            }
+            result.set_len(len);
+            //add e
+//            TBSYS_LOG(INFO,"xushilei,result=[%s],result.len=[%d],len=[%d]",to_cstring(result.get_decimal()),result.get_len(),len);   //test xsl
             if (OB_SUCCESS == ret)
             {
               res1 = result;

@@ -499,12 +499,31 @@ int resolve_expr(
      case T_DECIMAL:
      {
        ObString str;
-       ObDecimal src,*dst=NULL;
+       ObDecimal src;
        str=ObString::make_string(node->str_value_);
        ObObj val;
        ret = src.from(str.ptr(),str.length());
-       ob_write_decimal(*name_pool,src,dst);
-       val.set_decimal(dst);
+
+       //TBSYS_LOG(INFO,"xushilei,test,dec=[%s]",to_cstring(src));    //test xsl
+
+       TTInt *t1 = NULL;
+       //TTInt *t2 = NULL;
+       t1 = src.get_words();
+       //add xsl ECNU_DECIMAL 2017_5 mem_op
+       uint32_t len = 0;
+       uint64_t *src_val = NULL;
+       uint64_t *dst_val = NULL;
+       if(t1->table[1] ==0)     //highest is or not exist value
+           len = 1;
+       else
+           len = 2;
+       src_val = t1->ToUInt_v2();
+       ob_write_decimal(*name_pool,src_val,len,dst_val);
+       val.set_decimal(dst_val,src.get_precision(),src.get_scale(),src.get_vscale(),len);
+//       TBSYS_LOG(INFO,"xushilei,test,len=[%d],dec=[%s]",len,to_cstring(val));    //test xsl
+       //add e
+       //ob_write_decimal(*name_pool,t1,t2);
+       //val.set_decimal(t2,src.get_precision(),src.get_scale(),src.get_vscale());
        ObConstRawExpr *c_expr = NULL;
        if (CREATE_RAW_EXPR(c_expr, ObConstRawExpr, result_plan) == NULL) //从result_plan中给c_expr分配了一块空间。
          break;
@@ -895,50 +914,43 @@ int resolve_expr(
             */
             case T_DECIMAL:
             {
-                //delete xsl ECNU_DECIMAL 2017_3
-                /*
-                ObString tmp_str;
-                ObDecimal ori_dec;
-                ObDecimal *res_dec = NULL;
-                ObDecimal tmp_dec;
-                char neg_char[1] = { '-' };
-                char end_char[1] = { '\0' };
-                if ((ret = const_expr->get_value().get_decimal(ori_dec))== OB_SUCCESS)
+                //modify xsl ECNU_DECIMAL 2017_3
+                uint64_t *t1 = NULL;
+                uint64_t *t2 = NULL;
+                TTInt tt;
+                ObObj src_obj = const_expr->get_value();
+//                TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(src_obj));   //test xsl
+                if ((t1 = src_obj.get_ttint()) != NULL)
                 {
-                    int length=ori_dec.get_precision()+1;
-                    char buf[length];
-                    ori_dec.to_string(buf,length);
-                    char buffer[length + 2];
-                    ObObj new_val;
-                    memcpy(buffer, neg_char, 1);
-                    memcpy(buffer + 1, buf, length);
-                    memcpy(buffer + 1 + length, end_char, 1);
-                    const char * middle_val = buffer;
-                    tmp_str = ObString::make_string(middle_val);
-                    tmp_dec.from(tmp_str.ptr(),tmp_str.length());
-                    if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tmp_dec, res_dec)))
+                    uint32_t len = src_obj.get_nwords();
+                    if(len == 2)    //value_size=2
                     {
-                        TBSYS_LOG(WARN, "out of memory");
-                        break;
+                        tt.FromUInt_v2(t1,src_obj.get_nwords());
+                        tt.ChangeSign();
+//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(tt.ToString().c_str()));   //test xsl
+                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))
+                        {
+                            TBSYS_LOG(WARN, "out of memory");
+                            break;
+                        }
                     }
-                    new_val.set_decimal(res_dec);
-                    const_expr->set_value(new_val);
-                }
-                break;
-                */
-                ObDecimal ori_dec;
-                ObDecimal tmp_dec;
-                ObDecimal *dst_dec = NULL;
-                if ((ret = const_expr->get_value().get_decimal(ori_dec))== OB_SUCCESS)
-                {
-                    ori_dec.negate(tmp_dec);
-                    if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tmp_dec, dst_dec)))
+                    else if(len == 1)
                     {
-                        TBSYS_LOG(WARN, "out of memory");
-                        break;
+                        uint64_t tmp= *t1;   //1123
+//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",*t1);   //test xsl
+//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",tmp);   //test xsl
+                        tmp = -tmp;         //-1123
+//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",tmp);   //test xsl
+                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,&tmp,len,t2)))
+                        {
+                            TBSYS_LOG(WARN, "out of memory");
+                            break;
+                        }
                     }
+//                    TBSYS_LOG(INFO,"xushilei,neg dec=[%lu],len=[%d]",*t2,len);   //test xsl   -1123
                     ObObj new_val;
-                    new_val.set_decimal(dst_dec);
+                    new_val.set_decimal(t2,src_obj.get_precision(),src_obj.get_scale(),src_obj.get_vscale(),len);
+//                    TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(new_val));   //test xsl
                     const_expr->set_value(new_val);
                 }
                 break;

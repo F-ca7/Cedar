@@ -287,44 +287,35 @@ int ObCompactCellWriter::init(char *buf, int64_t size, enum ObCompactStoreType s
 int ObCompactCellWriter::write_decimal(const ObObj &decimal, ObObj *clone_value)
 {
     int ret = OB_SUCCESS;
-
         ObDecimalMeta dec_meta;
-        //ObString str_deci;
-        //ObString str2;
-        ObDecimal src_deci;
-        ObDecimal *dec2=NULL;
-        decimal.get_decimal(src_deci);
+        uint64_t *src_val = NULL;
+        uint64_t *dst_val = NULL;
+        src_val = decimal.get_ttint();
         dec_meta.dec_precision_ = decimal.meta_.dec_precision_;
         dec_meta.dec_scale_ = decimal.meta_.dec_scale_;
-        dec_meta.dec_vscale_ = decimal.meta_.dec_vscale_;
-        /*if (OB_SUCCESS != (ret = buf_writer_.write < uint8_t > (decimal.meta_.dec_vscale_))) {
+        dec_meta.dec_nwords_=decimal.meta_.dec_nwords_;
+        if (OB_SUCCESS != (ret = buf_writer_.write < uint8_t > (decimal.meta_.dec_vscale_))) {
         TBSYS_LOG(WARN, "write dec vscale fail:ret[%d]", ret);
         }
-        else */
-        if (OB_SUCCESS != (ret = buf_writer_.write < ObDecimalMeta > (dec_meta))) {
-        TBSYS_LOG(WARN, "write dec_meta fail:ret[%d]", ret);
+        else if (OB_SUCCESS != (ret = buf_writer_.write<ObDecimalMeta>(dec_meta))) {
+            TBSYS_LOG(WARN, "write dec_meta fail:ret[%d]", ret);
         }
         else
         {
-            //if(OB_SUCCESS == ret)
-            //{
-            //  ret = buf_writer_.write<int32_t>((int32_t)(sizeof(ObDecimal))); //length
-            //}
             if(OB_SUCCESS == ret)
             {
-                ret = buf_writer_.write_Decimal(src_deci,dec2);  //调用bufferwriter的空间，使得值可以进行深拷贝
-                //ret = buf_writer_.write < TTInt > (str_deci.get_words()[0]);
-                // TBSYS_LOG(WARN, "write_decimal=%.*s", str2.length(),str2.ptr());
+                ret = buf_writer_.write_Decimal(src_val,dst_val,decimal.get_nwords());  //调用bufferwriter的空间，使得值可以进行深拷贝
             }
             if(OB_SUCCESS == ret && NULL != clone_value)
             {
-               if(OB_SUCCESS!=(ret=clone_value->set_decimal(dec2)))
+               if(OB_SUCCESS!=(ret=clone_value->set_decimal(dst_val,decimal.meta_.dec_precision_,decimal.meta_.dec_scale_,decimal.meta_.dec_vscale_,decimal.meta_.dec_nwords_)))
                {
                   TBSYS_LOG(ERROR,"write clone_value error!");
                }
             }
         }
-    return ret;
+//        TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*clone_value),clone_value->get_precision(),clone_value->get_scale(),clone_value->get_vscale());     //test xsl
+        return ret;
 
 }
 //modify e
@@ -437,7 +428,9 @@ int ObCompactCellWriter::append(uint64_t column_id, const ObObj &value, ObObj *c
       {
           //modify xsl
           //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          //TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(value),value.get_precision(),value.get_scale(),value.get_vscale());     //test xsl
           ret = write_decimal(value,clone_value);
+          //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*clone_value));     //test xsl
           //modify e
           //modify e
       }

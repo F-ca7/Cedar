@@ -325,6 +325,7 @@ DEFINE_DESERIALIZE(ObProject)
   ObObj obj;
   int64_t expr_count = 0, i = 0;
   //reset();
+//  TBSYS_LOG(INFO,"xushilei,test,project!");   //test xsl
   if (OB_SUCCESS != (ret = obj.deserialize(buf, data_len, pos)))
   {
     TBSYS_LOG(WARN, "fail to deserialize expr count. ret=%d", ret);
@@ -352,6 +353,8 @@ DEFINE_DESERIALIZE(ObProject)
     //    }
     //  }
     //}
+//      if(obj.get_type() ==ObDecimalType)
+//          TBSYS_LOG(INFO,"xushilei,test,project,dec=[%s]!",to_cstring(obj));   //test xsl
     ObSqlExpression expr;
     for (i = 0; i < expr_count; i++)
     {

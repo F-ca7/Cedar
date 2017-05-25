@@ -306,7 +306,7 @@ namespace oceanbase
           }
           else if(obj_ptr_[i].get_type() == ObDecimalType)
           {
-              total_len +=sizeof(ObDecimal);   //??
+              total_len +=sizeof(uint64_t)*obj_ptr_[i].get_nwords();   //??
           }
           //modify e
       }

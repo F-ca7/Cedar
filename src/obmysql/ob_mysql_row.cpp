@@ -230,7 +230,7 @@ namespace oceanbase {
     //modify xsl ECNU_DECIMAL 2016_12
      int ObMySQLRow::decimal_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
      {
-         ObDecimal *str =NULL;
+         uint64_t *t1 =NULL;
          int ret=OB_SUCCESS;
          int64_t pos_bk = pos;
          int64_t length = 0;
@@ -240,23 +240,22 @@ namespace oceanbase {
          }
          if (OB_SUCCESS == ret)
          {
-           ret = obj.get_decimal_v2(str);
+           t1 = obj.get_ttint();
          }
-         /*modify xsl ECNU_DECIMAL 2017_1
-         ret = str->modify_value(obj.get_precision(),obj.get_scale());
-         if(ret !=OB_SUCCESS)
-         {
-             TBSYS_LOG(INFO,"modify value error,err=[%d]",ret);
-         }
-
-         //char s[40];
-         //int length = str->to_string(s,40);
-         */
+         //modify xsl ECNU_DECIMAL 2017_1
+         int32_t value_len;
+         value_len=obj.get_nwords();
+//         if(value_len ==1)
+//             TBSYS_LOG(INFO,"xushilei,decimal,len =[%d],value=[%lu],value=[%ld]",value_len,t1[0],t1[0]);  //test xsl
+//         else
+//             TBSYS_LOG(INFO,"xushilei,decimal,len =[%d],value=[%lu],value2=[%lu]",value_len,t1[0],t1[2]);  //test xsl
          ObDecimal dec;
-         dec=*str;
-         //TBSYS_LOG(INFO,"xushilei,double,decimal,value=[%s],p=[%d],s=[%d]",to_cstring(dec),dec.get_precision(),dec.get_scale());  //test xsl
+         TTInt tt;
+         tt.FromUInt_v2(t1,value_len);
+         dec.from(obj.get_precision(),obj.get_scale(),obj.get_vscale(),tt);
+//         TBSYS_LOG(INFO,"xushilei,decimal,value=[%s],p=[%d],s=[%d]",to_cstring(dec),dec.get_precision(),dec.get_scale());  //test xsl
          //modify e
-         const char *s = to_cstring(*str);
+         const char *s = to_cstring(dec);
          length=static_cast<int64_t>(strlen(s));
          if(OB_SUCCESS == ret && length < len - pos)
          {
@@ -287,126 +286,6 @@ namespace oceanbase {
          return ret;
      }
      //add e
-     /*
-     int ObMySQLRow::decimal_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
-     {
-         //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-         //int ret = OB_SUCCESS;
-         //uint64_t length = 0;
-         //ObNumber num;
-
-         // if (OB_SUCCESS == (ret = obj.get_decimal(num)))
-         //{
-          // skip 1 byte to store length
-           //length = num.to_string(buf + pos + 1, len - pos - 1);
-           //ObMySQLUtil::store_length(buf, len, length, pos);
-           //pos += length;
-         //}
-         //return ret;         old code
-           ObString str;
-           ObString deci;
-           //ObDecimal str;
-           //ObDecimal deci;
-           int ret = OB_SUCCESS;
-           uint64_t length;
-           int64_t pos_bk = pos;
-
-           if (obj.get_type() != ObDecimalType)
-           {
-             ret = OB_OBJ_TYPE_ERROR;
-           }
-           if (OB_SUCCESS == ret)
-           {
-             ret = obj.get_decimal(str);
-            bool Is_real_decimal=false;
-             Is_real_decimal=check_decimal(str,obj.get_precision(),obj.get_scale());
-             if(Is_real_decimal)
-             {
-                 if (OB_SUCCESS == ret && str.length() < len - pos)
-                 {
-                     if (str.length() < 0)   // ensure no neg signed int to unsigned cast.
-                     return OB_ERROR;
-
-                     length = static_cast<uint64_t>(str.length());
-                     if ((ret = ObMySQLUtil::store_length(buf, len, length, pos)) == OB_SUCCESS)
-                     {
-                         if (len - pos >= str.length())
-                         {
-                             memcpy(buf + pos, str.ptr(), length);
-                             pos += length;
-                         }
-                         else
-                         {
-                             pos = pos_bk;
-                             ret = OB_SIZE_OVERFLOW;
-                         }
-                     }
-                     else
-                     {
-                         TBSYS_LOG(ERROR, "serialize data len failed len = %lu", length);
-                     }
-                 }
-                 else
-                 {
-                     ret = OB_SIZE_OVERFLOW;
-                 }
-             }
-             else
-             {
-                 uint64_t length_v2 = 0;
-                 ObDecimal od;
-                 if(OB_SUCCESS!=(ret=od.from(str.ptr(),str.length()))){
-                       TBSYS_LOG(ERROR, "faild to do from in ObMySQLRow::decimal_cell_str");
-                 }else{
-
-                     od.set_precision(obj.get_precision());
-                     od.set_scale(obj.get_scale());
-                     //od.set_vscale(obj.get_vscale());
-                     //od.modify_value(obj.get_precision(),obj.get_scale());
-                     //length_v2 = od.to_string(buf + pos + 1, len - pos - 1);
-                     //ObMySQLUtil::store_length(buf, len, length_v2, pos);
-                     //pos += length_v2;
-                     char buffer[MAX_PRINTABLE_SIZE];
-                     memset(buffer,0,MAX_PRINTABLE_SIZE);
-                     length_v2 = od.to_string(buffer, MAX_PRINTABLE_SIZE);
-                     deci.assign_ptr(buffer,(int)length_v2);
-
-                     if (OB_SUCCESS == ret && deci.length() < len - pos)
-                     {
-                           if (deci.length() < 0)   // ensure no neg signed int to unsigned cast
-                               return OB_ERROR;
-
-                           length = static_cast<uint64_t>(deci.length());
-                           if ((ret = ObMySQLUtil::store_length(buf, len, length, pos)) == OB_SUCCESS)
-                           {
-                               if (len - pos >= deci.length())
-                               {
-                                   memcpy(buf + pos, deci.ptr(), length);
-                                   pos += length;
-                               }
-                               else
-                               {
-                                   pos = pos_bk;
-                                   ret = OB_SIZE_OVERFLOW;
-                               }
-                           }
-                           else
-                           {
-                               TBSYS_LOG(ERROR, "serialize data len failed len = %lu", length);
-                           }
-                     }
-                     else
-                     {
-                           ret = OB_SIZE_OVERFLOW;
-                     }
-                 }
-
-             }
-           }
-           return ret;
-           //modify:e
-     }
-     */
 
     int ObMySQLRow::datetime_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
     {

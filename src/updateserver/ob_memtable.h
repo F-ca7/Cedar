@@ -552,9 +552,7 @@ namespace oceanbase
           {
               //modify xsl  ECNU_DECIMAL 2016_12
               //ObString vc;
-              ObDecimal vc;
-              value.get_decimal(vc);
-              int64_t length = sizeof(ObDecimal);
+              int64_t length = sizeof(uint64_t)*value.get_nwords();
               //modify e
               length = (length + CELL_INFO_SIZE_UNIT - 1) & ~(CELL_INFO_SIZE_UNIT- 1);
               length = length / CELL_INFO_SIZE_UNIT;

@@ -57,11 +57,12 @@ namespace oceanbase
         // Write a rowkey
         int write_string(const ObRowkey& rowkey, ObRowkey* stored_rowkey);
         //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-        int write_obj_varchar_to_decimal(const ObObj& obj, ObObj *stored_obj);
+        //int write_obj_varchar_to_decimal(const ObObj& obj, ObObj *stored_obj);
         //add:e
 
         //add xsl ECNU_DECIMAL 2016_12
-        int write_decimal(const ObDecimal& dec, ObDecimal *& stored_dec);
+        int write_decimal(const TTInt *dec, TTInt *&stored_dec);
+        int write_decimal(const uint64_t* dec, uint64_t*& stored_dec, uint32_t len);
         //add e
         inline int64_t used() const
         {

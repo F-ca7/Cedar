@@ -268,7 +268,9 @@ namespace oceanbase
           }
           else
           {
-            //TBSYS_LOG(INFO,"xushilei,test ob_memtable_value=[%s]",to_cstring(cell_info.value_));
+//            TBSYS_LOG(INFO,"xushilei,test ob_memtable_value=[%s]",to_cstring(cell_info.value_));   //test xsl
+//            TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(cell_info.value_),
+//                      cell_info.value_.get_precision(),cell_info.value_.get_scale(),cell_info.value_.get_vscale());     //test xsl
             ret = ccw.append(cell_info.column_id_, cell_info.value_);
             uci.uc_cell_info_size = static_cast<int16_t>(uci.uc_cell_info_size + get_varchar_length_kb_(cell_info.value_));
           }
@@ -2095,6 +2097,7 @@ namespace oceanbase
         }
 
         ret = cell_iter_.get_cell(ci_.column_id_, ci_.value_);
+
         if (OB_SUCCESS != ret)
         {
           break;

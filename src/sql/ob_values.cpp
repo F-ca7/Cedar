@@ -306,7 +306,7 @@ int ObValues::load_data()
           TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
         }
         */
-        //TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
+        TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
         if(is_need_fix_obvalues)
         {
           //TBSYS_LOG(INFO,"xushilei,is_need_fix_obvalues!");
@@ -344,9 +344,13 @@ int ObValues::load_data()
                           ObObj tmp_cell;
                           if(ObDecimalType==schema_type&&ori_cell->get_type()==ObDecimalType)
                           {
-                             ObDecimal od;  //xsl ECNU_DECIMAL 2016_12
-                             ori_cell->get_decimal(od);
-                             tmp_cell.set_decimal(od);   //xsl ECNU_DECIMAL 2016_12
+                             //modify xsl ECNU_DECIMAL 2016_12
+                             uint64_t *t1 = NULL;
+                             t1 = ori_cell->get_ttint();
+//                             TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(*ori_cell));   //test xsl
+                             tmp_cell.set_decimal(t1,schema_p,schema_s,ori_cell->get_vscale(),ori_cell->get_nwords());
+//                             TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(tmp_cell));   //test xsl
+                             //modify e
                              if(OB_SUCCESS!=(ret_v2=ob_write_obj_v2(row_alloc,tmp_cell,result_cell)))
                              {}
                              else if(OB_SUCCESS!=(ret_v2=row_v2.set_cell(table_id,column_id,result_cell)))

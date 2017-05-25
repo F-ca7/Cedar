@@ -934,6 +934,8 @@ int ObRpcScan::get_next_row(const common::ObRow *&row)
         row = &cur_row_;
       }
       //modify:e
+      //TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(*row));   //test xsl
+      //TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(cur_row_));   //test xsl
       if (ObMergeServerMain::get_instance()->get_merge_server().get_frozen_data_cache().get_in_use()
           && need_cache_frozen_data_ && (hint_.read_consistency_ == FROZEN) && OB_SUCCESS == ret)
       {

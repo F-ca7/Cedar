@@ -338,6 +338,7 @@ namespace oceanbase
       else
       {
         stack_i[idx_i-2].add(stack_i[idx_i-1], result);
+//        TBSYS_LOG(INFO,"xushilei,res=[%s]",to_cstring(result.get_decimal()));   //test xsl
         idx_i -= 2;
       }
       return err;

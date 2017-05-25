@@ -106,7 +106,7 @@ public:
 	//round_to is not to be used;
 	//int8_t get_vscale();
 
-	TTInt *get_words();
+    TTInt *get_words();
 	const TTInt * get_words_to_print() const;
 	uint32_t get_precision() const;
 	uint32_t get_scale() const;
@@ -114,8 +114,9 @@ public:
 	void set_scale(uint32_t t);
 	void set_precision(uint32_t t);
 	void set_vscale(uint32_t t);
-	void set_word(int i, uint64_t t);
+    void set_word(int i, uint64_t t);
     //add xsl ECNU_DECIMAL 2017_1
+    void set_word(uint64_t* t, uint32_t len);
     void set_word(TTInt* t);
     //add e
 	void reset();
@@ -184,7 +185,7 @@ inline uint32_t ObDecimal::get_vscale() const {
 	return vscale_;
 }
 
-inline TTInt *ObDecimal::get_words() {
+inline TTInt *ObDecimal::get_words(){
 
 	return word;
 }
@@ -230,11 +231,26 @@ inline bool ObDecimal::is_zero() const {
 }
 
 inline void ObDecimal::set_word(int i, uint64_t t) {
-
 	word[0].table[i] = t;
 }
 
+
 //add xsl ECNU_DECIMAL 2016_12
+inline void ObDecimal::set_word(uint64_t* t,uint32_t len) {
+    for(uint32_t i = 0;i<len;i++)
+        word[0].table[i] = t[i];
+    if(len == 1)
+    {
+//        if((t[0] & TTMATH_UINT_HIGHEST_BIT) == 0/* || (word[0].table[1] & TTMATH_UINT_HIGHEST_BIT != 0) */)   //>0
+            word[0].table[1] = 0;
+//        else                                        //<0
+//        {
+//            //word[0].table[0] = -word[0].table[0];   //1123
+//            word[0].table[1] = TTMATH_UINT_HIGHEST_BIT;    //test xsl
+//        }
+    }
+}
+
 inline void ObDecimal::set_word(TTInt* t) {
     word[0] = *t;
 }

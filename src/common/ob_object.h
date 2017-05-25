@@ -44,10 +44,11 @@ namespace oceanbase
     {
       uint32_t type_:8;
       uint32_t dec_vscale_:6;
-      uint32_t op_flag_:2;
       uint32_t dec_precision_:7;
       uint32_t dec_scale_:6;
+      uint32_t op_flag_:2;
       uint32_t dec_nwords_:3; // the actual nwords is dec_nwords_ + 1, so the range of nwords is [1, 8]
+      //uint32_t dec_neg:1;
     };
 
     union _ObjValue
@@ -157,15 +158,18 @@ namespace oceanbase
         int set_decimal(const ObString& value);
         int set_decimal(const char* value);
         int set_decimal(const ObString& value,uint32_t p,uint32_t s,uint32_t v);
-        //add xsl ECNU_DECIMAL 2016_12
-        int get_decimal(ObDecimal& value) const;
-        int get_decimal_v2(ObDecimal*& value) const;
-        int set_decimal(const ObDecimal &value);
-        int set_decimal(const ObDecimal *value);
-        int set_ttint(const TTInt* ttint);        //not in use
+        //add e
 
-        int set_decimal(const ObDecimal* od, uint32_t p, uint32_t s, uint32_t v);
-        int set_decimal_v2(ObDecimal *od, uint32_t p, uint32_t s, uint32_t v);
+        //add xsl ECNU_DECIMAL 2016_12
+        int set_ttint(const uint64_t *ttint);        //not in use
+        uint64_t* get_ttint() const;
+        int set_decimal(const uint64_t* od, uint32_t p, uint32_t s, uint32_t v, uint32_t len);
+        //int set_decimal(const TTInt* od,uint32_t p,uint32_t s,uint32_t v);
+        int set_decimal(const ObDecimal* od);
+        int set_decimal(const ObDecimal& od);
+        int set_decimal_v2(const ObDecimal& od, uint32_t len);
+        int get_decimal(ObDecimal& value) const;
+        int get_decimal_v2(ObDecimal& value) const;
         //add e
         uint32_t get_precision() const;
         uint32_t get_scale() const;
@@ -281,7 +285,9 @@ namespace oceanbase
         const char* word;
         //modify e
         //add xsl ECNU_DECIMAL 2016_12
-        ObDecimal *dec;
+        //ObDecimal *dec;
+        //TTInt *tt;
+        uint64_t *ii;
         //add e
       } value_;
     };
@@ -449,7 +455,7 @@ namespace oceanbase
         {
             return meta_.dec_nwords_;
         }
-        inline   void ObObj::set_nwords(uint32_t value)
+        inline void ObObj::set_nwords(uint32_t value)
         {
             meta_.dec_nwords_ = static_cast<uint8_t>(value) & META_NWORDS_MASK;
         }
@@ -776,13 +782,13 @@ namespace oceanbase
      {
        if(ObDecimalType == src.get_type())
        {
-           ObDecimal *str=NULL;
-           ObDecimal *str_clone=NULL;
-           //ret=src.get_decimal(str);
-           ret=src.get_decimal_v2(str);   //src的decimal指针赋给str
-           if (OB_SUCCESS == (ret = ob_write_decimal(allocator, *str, str_clone)))
+           uint64_t *t1 = NULL;
+           uint64_t *t2 = NULL;
+           uint32_t len = src.get_nwords();
+           t1 = src.get_ttint();
+           if (OB_SUCCESS == (ret = ob_write_decimal(allocator, t1,len, t2)))
            {
-               dst.set_decimal(str_clone);
+               dst.set_decimal(t2,src.get_precision(),src.get_scale(),src.get_vscale(),len);
            }
        }
        else
@@ -813,25 +819,38 @@ namespace oceanbase
        else
        {
            if(ObDecimalType == src.get_type())
-           {
-               ObDecimal *dec=NULL;
-               ObDecimal *dec_clone=NULL;
-               ret=src.get_decimal_v2(dec);   //src的decimal指针赋给str
-               ObDecimal dec2=*dec;
-               if(OB_SUCCESS!=ret)
+           {               
+               TTInt tt;
+               uint64_t *src_val = NULL;
+               uint64_t *dst_val = NULL;
+               uint32_t len = src.get_nwords();
+               src_val = src.get_ttint();
+//               if(len ==2)
+//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[1]=[%ld]",src_val[0],src_val[1]);  //test xsl
+//               else
+//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu]",src_val[0],src_val[0]);  //test xsl   -12312123
+               tt.FromUInt_v2(src_val,len);
+//               if(len ==2)
+//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%lu],table[1]=[%lu]",tt.ToUInt_v2()[0],tt.ToUInt_v2()[1]);  //test xsl
+//               else
+//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu],table[1]=[%ld],table[1]=[%lu]",
+//                             tt.ToUInt_v2()[0],src_val[0],tt.ToUInt_v2()[1],tt.ToUInt_v2()[1]);  //test xsl
+               ObDecimal dec2;
+               dec2.from(src.get_precision(),src.get_scale(),src.get_vscale(),tt); //p=schema_p,s=schema_s,vs=dec_vs
+//               TBSYS_LOG(INFO, "xushilei,p=[%d],s=[%d],vs=[%d]",src.get_precision(),src.get_scale(),src.get_vscale());  //test xsl
+               if(OB_SUCCESS != ret)
                {
                    TBSYS_LOG(WARN, "faild to do get_decimal()");
                }
-               else if(OB_SUCCESS != (ret=dec2.modify_value(src.get_precision(),src.get_scale())))
+               else if(OB_SUCCESS != (ret = dec2.modify_value(src.get_precision(),src.get_scale())))
                {
                    //TBSYS_LOG(WARN, "faild to do modify_value(),od.p=%d,od.s=%d,od.v=%d,src.p=%d,src.s=%d", str2.get_precision(),str2.get_scale(),str2.get_vscale(),src.get_precision(),src.get_scale());
                }
-
                else
                {
-                   if (OB_SUCCESS == (ret = ob_write_decimal(allocator, dec2, dec_clone)))   //深拷贝，在内存管理器中申请一块内存
+                   if (OB_SUCCESS == (ret = ob_write_decimal(allocator, dec2.get_words()->ToUInt_v2(),len,dst_val)))   //深拷贝，在内存管理器中申请一块内存
                    {
-                       dst.set_decimal(dec_clone);   //指针给了dst
+                       dst.set_decimal(dst_val,dec2.get_precision(),dec2.get_scale(),dec2.get_vscale(),len);   //指针给了dst
                    }
                }
            }

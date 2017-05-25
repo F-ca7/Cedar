@@ -60,15 +60,10 @@ void ObExprObj::assign(const ObObj &obj)
       {
           //ObDecimal od;
           int ret=OB_SUCCESS;
-          ret=obj.get_decimal(decimal_);
+          ret=obj.get_decimal_v2(decimal_);
+          len = obj.get_nwords();
+          //TBSYS_LOG(INFO,"xushilei,len=%d,decimal=[%s]",len,to_cstring(decimal_));   //test xsl
           //test xsl  影响MS启动
-          //TBSYS_LOG(INFO,"xushilei,test,od=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(decimal_),decimal_.get_precision(),decimal_.get_scale(),decimal_.get_vscale()); //test xsl
-          /*if(OB_SUCCESS!=(ret=decimal_.modify_value(obj.get_precision(),obj.get_scale())))
-          {
-              TBSYS_LOG(ERROR,"failed to modify_value in ObExprObj::assign");
-               //TBSYS_LOG(ERROR, "failed to do modify_value in ObExprObj::assign, od=%.*s,p=%d,s=%d",varchar_.length(),varchar_.ptr() ,obj.get_precision(),obj.get_scale());
-          }
-          */
           //test e
           if(OB_SUCCESS != ret)
           {
@@ -126,6 +121,8 @@ int ObExprObj::to(ObObj &obj) const
       //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
     {
       ret =obj.set_decimal(decimal_);
+      obj.set_nwords(len);
+//      TBSYS_LOG(INFO,"xushilei,len=%d,decimal=[%s]",len,to_cstring(decimal_));   //test xsl
       if(ret!=OB_SUCCESS)
           TBSYS_LOG(ERROR, "failed to do set_decimal,err=[%d]",ret);
       break;
@@ -1084,7 +1081,10 @@ inline int ObExprObj::add_same_type(const ObExprObj &other, ObExprObj &res) cons
     case ObDecimalType:
       //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
       //change num_ to decimal_
+//      uint32_t len = this->get_len() > other.get_len() ? this->get_len() :other.get_len();
+//      res.set_len(len);
       ret = this->decimal_.add(other.decimal_, res.decimal_);
+      //TBSYS_LOG(INFO,"xushilei,test this=[%s],other=[%s],res=[%s]",to_cstring(this->get_decimal()),to_cstring(other.get_decimal()),to_cstring((res.get_decimal())));//test xsl
       break;
       //modify:e
     default:
@@ -1098,6 +1098,7 @@ inline int ObExprObj::add_same_type(const ObExprObj &other, ObExprObj &res) cons
 //modify xsl ECNU_DECIMAL 2016_12
 int ObExprObj::add(ObExprObj &other, ObExprObj &res)
 {
+  //TBSYS_LOG(INFO,"xushilei,test this=[%s],other=[%s]",to_cstring(*this),to_cstring(other));   //test xsl
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
@@ -1124,7 +1125,9 @@ int ObExprObj::add(ObExprObj &other, ObExprObj &res)
     //int64_t end= tbsys::CTimeUtil::getTime();
     //TBSYS_LOG(INFO,"xushilei,test type_promotion:%ld",end-start);
     //start= tbsys::CTimeUtil::getTime();
+    //TBSYS_LOG(INFO,"xushilei,test this=[%s],other=[%s]",to_cstring(*p_this),to_cstring(*p_other));   //test xsl
     ret = p_this->add_same_type(*p_other, res);
+//    TBSYS_LOG(INFO,"xushilei,res=[%s]",to_cstring(res.get_decimal()));   //test xsl
     //end= tbsys::CTimeUtil::getTime();
     //TBSYS_LOG(INFO,"xushilei,test add:%ld",end-start);
   }
@@ -1249,12 +1252,10 @@ int ObExprObj::mul(ObExprObj &other, ObExprObj &res)
   }
   else
   {
-    //int64_t end= tbsys::CTimeUtil::getTime();
-    //TBSYS_LOG(INFO,"xushilei,test type_promotion:%ld",end-start);
-    //start= tbsys::CTimeUtil::getTime();
     ret = p_this->mul_same_type(*p_other, res);
-    //end= tbsys::CTimeUtil::getTime();
-    //TBSYS_LOG(INFO,"xushilei,mul:%ld",end-start);
+    //TBSYS_LOG(INFO,"xushilei,test this=[%s]",to_cstring(*p_this));   //test xsl
+    //TBSYS_LOG(INFO,"xushilei,test other=[%s]",to_cstring(*p_other));   //test xsl
+    //TBSYS_LOG(INFO,"xushilei,test res=[%s]",to_cstring(res));   //test xsl
   }
   return ret;
 }
@@ -1879,6 +1880,7 @@ int ObExprObj::mod(const ObExprObj &other, ObExprObj &res) const
     else
     {
       res.type_ = ObIntType;
+      TBSYS_LOG(INFO,"xushilei,test this=[%ld],pther=[%ld]",p_this->v_.int_,p_other->v_.int_); //add xsl
       res.v_.int_ = p_this->v_.int_ % p_other->v_.int_;
     }
   }

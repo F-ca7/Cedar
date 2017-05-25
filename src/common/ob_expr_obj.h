@@ -40,6 +40,7 @@ namespace oceanbase
         int cast_to(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf) const;
         //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         void set_decimal(const ObDecimal &value);
+        void set_len(uint32_t l) {len = l;}    //add xsl ECNU_DECIMAL 2017_5
         int cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf,uint32_t precision,uint32_t scale) ;
         //add:e
         // setters
@@ -70,6 +71,7 @@ namespace oceanbase
         //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         //const ObNumber& get_decimal() const {return num_;}      old code
         const ObDecimal& get_decimal() const {return decimal_;}
+        const uint32_t get_len() const {return len;}
         //modify:e
         const int64_t get_ext() const {return v_.ext_;}
         ObObjType get_type() const;
@@ -210,6 +212,7 @@ namespace oceanbase
         ObNumber num_;
         //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         ObDecimal decimal_;
+        uint32_t len;
         //add:e
         ObString varchar_;
         union
@@ -230,6 +233,7 @@ namespace oceanbase
       :type_(ObNullType)
     {
       v_.int_ = 0;
+      len = 0;
     }
 
     inline ObExprObj::~ObExprObj()

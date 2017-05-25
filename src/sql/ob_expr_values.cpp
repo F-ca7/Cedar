@@ -150,6 +150,7 @@ int ObExprValues::open()
       TBSYS_LOG(WARN, "failed to eval exprs, err=%d", ret);
     }
   }
+//  TBSYS_LOG(INFO,"xushilei,test xsl!");   //test xsl
   return ret;
 }
 
@@ -221,8 +222,8 @@ int ObExprValues::eval()
   ModuleArena buf(OB_MALLOC_BLOCK_SIZE, ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
   char* varchar_buff = NULL;
   //modify xsl ECNU_DECIMAL 2016.12
-  //if (NULL == (varchar_buff = buf.alloc(OB_MAX_VARCHAR_LENGTH)))
-  if (NULL == (varchar_buff = buf.alloc(sizeof(ObDecimal)))) //分配一块内存
+  if (NULL == (varchar_buff = buf.alloc(OB_MAX_VARCHAR_LENGTH)))
+  //if (NULL == (varchar_buff = buf.alloc(sizeof(uint64_t)*2))) //分配一块内存
   {
   //modify e
     ret = OB_ALLOCATE_MEMORY_FAILED;
@@ -267,14 +268,14 @@ int ObExprValues::eval()
         val_row.set_row_desc(row_desc_);
         //modify xsl ECNU_DECIMAL 2016_12
         //ObString varchar;
-        ObDecimal *dec=NULL;
+        uint64_t *t1=NULL;
         ObObj casted_cell;
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
           //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          dec=reinterpret_cast<ObDecimal *>(varchar_buff);  //改变指针指向的内存
+          t1=reinterpret_cast<uint64_t *>(varchar_buff);  //改变指针指向的内存
           //casted_cell.set_varchar(varchar); // reuse the varchar buffer
-          casted_cell.set_decimal(dec);    //??使得obobj的decimal指针有空间
+          casted_cell.set_ttint(t1);    //??使得obobj的decimal指针有空间
           //modify e
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
@@ -384,14 +385,17 @@ int ObExprValues::eval()
         val_row.set_row_desc(row_desc_);
         //modify xsl ECNU_DECIMAL 2016_12
         //ObString varchar;
-        ObDecimal *dec=NULL;
+        //ObDecimal *dec=NULL;
+        uint64_t *tt=NULL;
         ObObj casted_cell;
+        //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
+          //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
           //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          dec=reinterpret_cast<ObDecimal *>(varchar_buff);  //改变指针指向的内存
+          tt=reinterpret_cast<uint64_t *>(varchar_buff);  //改变指针指向的内存
           //casted_cell.set_varchar(varchar); // reuse the varchar buffer
-          casted_cell.set_decimal(dec);    //??使得obobj的decimal指针有空间
+          casted_cell.set_ttint(tt);    //??使得obobj的decimal指针有空间
           //modify e
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
@@ -408,18 +412,10 @@ int ObExprValues::eval()
             ret = OB_ERR_UNEXPECTED;
             TBSYS_LOG(WARN, "Failed to get column, err=%d", ret);
           }
-          /*
-        else if (0 < row_desc_.get_rowkey_cell_count()
-                 && j < row_desc_.get_rowkey_cell_count()
-                 && single_value->is_null())
-        {
-          TBSYS_LOG(USER_ERROR, "primary key can not be null");
-          ret = OB_ERR_INSERT_NULL_ROWKEY;
-        }
-        */
           //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
          else
          {
+             //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*single_value));   //test xsl
              if(is_del_update)
              {
                  if (OB_SUCCESS != obj_cast(*single_value, data_type, casted_cell, single_value))
@@ -436,30 +432,23 @@ int ObExprValues::eval()
              }
 
          }
-
-         //else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value))) old code
-                 //old code
-         /*
-            else if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+         //TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(*single_value),single_value->get_nwords());   //test xsl
+         if(OB_SUCCESS!=ret)
          {
-           TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
-         }
-         */
-         if(OB_SUCCESS!=ret){
          }
          else if (OB_SUCCESS != (ret = ob_write_obj_v2(buf, *single_value, tmp_value)))  //??
              //modify:e
          {
-            TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
-          }
-          else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
-          {
-            TBSYS_LOG(WARN, "Add value to ObRow failed");
-          }
-          else
-          {
-            //TBSYS_LOG(DEBUG, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));
-          }
+             TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
+         }
+         else if ((ret = val_row.set_cell(table_id, column_id, tmp_value)) != OB_SUCCESS)
+         {
+             TBSYS_LOG(WARN, "Add value to ObRow failed");
+         }
+         else
+         {
+//             TBSYS_LOG(INFO, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));    //test xsl
+         }
         } // end for
         if (OB_LIKELY(OB_SUCCESS == ret))
         {
@@ -486,8 +475,13 @@ int ObExprValues::eval()
             }
             TBSYS_LOG(INFO, "check rowkey isdup is %c rowkey=%s", is_dup?'Y':'N', to_cstring(*rowkey));
           }
+//          TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
         }
+//        TBSYS_LOG(INFO,"xushilei,test xsl dec=[%s]",to_cstring(stored_row->reserved_cells_[0]));  //add xsl
+//        TBSYS_LOG(INFO,"xushilei,test xsl stored_row->reserved_cells_count_=[%d]",stored_row->reserved_cells_count_);  //add xsl
+//        TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
       }// end for
+//      TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
     }
     if (indicator)
     {
@@ -588,6 +582,7 @@ DEFINE_SERIALIZE(ObExprValues)
 
 DEFINE_DESERIALIZE(ObExprValues)
 {
+//  TBSYS_LOG(INFO, "xushilei,deserialize,ObExprValues!");  //test xsl
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
   //add zt 20151109:b

@@ -250,8 +250,9 @@ int ObConstRawExpr::fill_sql_expression(
       //modify xsl ECNU_DECIMAL 2016_12
       //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
       //ret = value_.get_varchar(item.string_);
-        ret = value_.get_decimal(item.dec);
-        //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(value_));  //test xsl
+        ret = value_.get_decimal_v2(item.dec);
+        item.len = value_.get_nwords();
+        //TBSYS_LOG(INFO,"xushilei,dec=[%s],len1=[%d],len2=[%d]",to_cstring(value_),item.len,value_.get_nwords());  //test xsl
         //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(item.dec));  //test xsl
       //modify:e
       //modify:e

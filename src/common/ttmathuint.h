@@ -48,7 +48,6 @@
 
 #include "ttmathtypes.h"
 #include "ttmathmisc.h"
-
 #include "boost/functional/hash/hash.hpp"
 
 /*!
@@ -2303,6 +2302,18 @@ void FromUInt(uint value)
     TTMATH_LOG("UInt::FromUInt(uint)")
 }
 
+//add xsl ECNU_DECIMAL 2017_5
+void FromUInt_v2(uint64_t* value,uint32_t len)
+{
+    for(uint i=0; i<len; ++i)
+    {
+        table[i] = value[i];
+    }
+    TTMATH_LOG("UInt::FromUInt(uint)")
+}
+
+//add e
+
 /*!
  this operator converts an UInt<another_size> type to this class
 
@@ -2538,7 +2549,15 @@ uint ToUInt() const
 {
     return table[0];
 }
-
+/*!
+  return table pointer
+ */
+//add xsl ECNU_DECIMAL 2017_5
+uint* ToUInt_v2()
+{
+    return table;
+}
+//add e
 private:
 
 /*!

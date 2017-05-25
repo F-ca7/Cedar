@@ -336,20 +336,20 @@ namespace oceanbase
          {
            uint32_t p=och_.get_precision(cur_idx_);
            uint32_t s=och_.get_scale(cur_idx_);
-           ObDecimal *od =NULL;
+           uint64_t *t1 =NULL;
            //ObString os;
-           if(OB_SUCCESS!=(ret=cell_.value_.get_decimal_v2(od)))
+           if(NULL == (t1 = cell_.value_.get_ttint()))
            {
                 TBSYS_LOG(ERROR, "failed to do get_decimal() in ObCellAdaptor::next_cell");
            }
            else
            {
-               if((p-s) < (od->get_precision()- od->get_scale()))    //modify xsl ECNU_DECIMAL 2017_1
+               if((p-s) < (cell_.value_.get_precision()- cell_.value_.get_scale()))    //modify xsl ECNU_DECIMAL 2017_1
                {
                    ret=OB_DECIMAL_UNLEGAL_ERROR;
-                   TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,p=%d,s=%d,od.get_precision()=%d,od.get_vscale()=%d",p,s,od->get_precision(),od->get_vscale());
+                   TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,p=%d,s=%d,od.get_precision()=%d,od.get_vscale()=%d",p,s,cell_.value_.get_precision(),cell_.value_.get_precision());
                }
-               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal_v2(od,od->get_precision(),s,od->get_vscale()))))
+               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal(t1,cell_.value_.get_precision(),s,cell_.value_.get_vscale(),cell_.value_.get_nwords()))))
                {
                    TBSYS_LOG(ERROR, "failed to set_decimal in ObCellAdaptor::next_cell");
                }

@@ -136,11 +136,13 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
     ObDecimal *dst_value=NULL;
     //ObDecimal dst_value2;
     err = src.get_decimal(src_value);
+    uint64_t len;
     if (OB_SUCCESS == err)
     {
         if (src_value.get_words() != NULL)
         {
-            dst_value =reinterpret_cast<ObDecimal*>(page_arena_.alloc(sizeof(ObDecimal)));
+            len = sizeof(uint64_t)*src.get_nwords();
+            dst_value =reinterpret_cast<ObDecimal*>(page_arena_.alloc(len));
             if (NULL == dst_value)
             {
                 TBSYS_LOG(WARN, "%s", "fail to malloc buffer for decimal value");
@@ -148,12 +150,13 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
             }
             else
             {
-                allocated_memory_size_+=sizeof(ObDecimal);//分配空间，赋值
-                memcpy(dst_value->get_words(), src_value.get_words(), sizeof(TTInt));
+                allocated_memory_size_+=len;//分配空间，赋值
+                memcpy(dst_value->get_words()->ToUInt_v2(), src_value.get_words()->ToUInt_v2(), len);  //modify xsl
                 dst_value->set_precision(src_value.get_precision());
                 dst_value->set_scale(src_value.get_scale());
                 dst_value->set_vscale(src_value.get_vscale());
                 dst.set_decimal(dst_value);
+                dst.set_nwords(src.get_nwords());
             }
         }
         //modify xsl ECNU_DECIMAL 2017_2

@@ -93,6 +93,7 @@ namespace oceanbase
       // due to compile restriction, cant put string_ into union.
       // reason: ObString default constructor has parameters
       ObDecimal dec;   //add xsl ECNU_DECIMAL 2016_12
+      uint32_t len;        //add xsl
       ObString  string_;        // const varchar obj or system function name
       public:
         int assign(const common::ObObj &obj);

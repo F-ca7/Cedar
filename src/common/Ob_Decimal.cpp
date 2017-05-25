@@ -188,12 +188,12 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             }
         }
 	}
+    //modify xsl
     if(got_digit - got_frac > MAX_DECIMAL_DIGIT)     //max integer num
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
         TBSYS_LOG(WARN, "decimal overflow!got_digit=%d,got_frac=%d", got_digit,got_frac);
     }
-    //modify e
     int tmp_frac = got_frac;
     if(got_frac > MAX_DECIMAL_SCALE)    //37
     {
@@ -205,6 +205,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         got_frac = got_frac -(got_digit - MAX_DECIMAL_DIGIT);
         got_digit = MAX_DECIMAL_DIGIT;
     }
+    //modify e
     //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(OB_SUCCESS==ret)
     {
@@ -278,8 +279,8 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
     TTInt whole, float_part;
     TTInt BASE(10), p(vscale_);
     BASE.Pow(p);
-    whole = word[0] / BASE;
-    float_part = word[0] % BASE;
+//    whole = word[0] / BASE;    //delete xsl ECNU_DECIAML
+//    float_part = word[0] % BASE;  //delete xsl ECNU_DECIAML
     if (precision_==0)
     {
         if (word[0].IsSign())
@@ -293,12 +294,34 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
     }
     else                //p != 0
     {
-        if (word[0].IsSign())
+        //TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu],table[1]=[%ld],table[1]=[%lu]",
+          //        word[0].table[0],word[0].table[0],word[0].table[1],word[0].table[1]);  //test xsl
+        //TBSYS_LOG(INFO,"xushilei,word[0].uint=[%lu],word[0].int=[%ld]",word[0].ToUInt(),word[0].ToInt());
+        //TBSYS_LOG(INFO,"xushilei,word[0]=[%s]",word[0].ToString().c_str());
+        //add xsl ECNU_DECIMAL
+        if(word[0].table[1] == 0 && ( (word[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0)) // (table[0]<0)
         {
             tmp[pos] = '-';
+            uint64_t tmp0 = -word[0].table[0];   //can modify xsl
+            TTInt t0(tmp0);
+            whole = t0 / BASE;
+            float_part = t0 % BASE;
+            start = 1;
+        }
+        //add e
+        else if(word[0].IsSign())    //table[1]<0
+        {
+            tmp[pos] = '-';            
+            whole = word[0] / BASE;
+            float_part = word[0] % BASE;
             whole.ChangeSign();
             float_part.ChangeSign();
             start = 1;
+        }
+        else
+        {
+            whole = word[0] / BASE;
+            float_part = word[0] % BASE;
         }
         string str_for_word;
         word[0].ToString(str_for_word);
@@ -312,7 +335,7 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
         if (len_word < (int) vscale_)
         {
             whole = 0;
-            TBSYS_LOG(INFO,"xushilei,len_word=[%d],vs=[%d],len_float=[%d]",len_word,vscale_,len_float); //test xsl ECNU_DECIMAL 2017_3
+            //TBSYS_LOG(INFO,"xushilei,len_word=[%d],vs=[%d],len_float=[%d]",len_word,vscale_,len_float); //test xsl ECNU_DECIMAL 2017_3
         }
         const char* int_str = str_for_int.c_str();
         strcpy(tmp + pos, int_str);
@@ -369,6 +392,7 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
         }
     }
     strcat(buf,e);
+    //TBSYS_LOG(INFO,"xushilei,buf=[%s]",buf);   //test xsl
     OB_ASSERT(pos <= buf_len);
     return pos;
 }
@@ -506,8 +530,8 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
                   point_pos, p, s, buf);
         //return ret;
     }
-
-    if (OB_SUCCESS==ret && s < vscale_)
+//    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],point_pos=[%d],s=[%d],vs=[%d]",to_cstring(*this),point_pos,scale_,vscale_);   //test xsl
+    if (OB_SUCCESS==ret && s < vscale_)   //schema_s < decimal_s
     {
         if (0 == s)
         {
@@ -538,7 +562,37 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             TBSYS_LOG(ERROR, "failed convert str to decimal!");
         }
     }
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
+    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //test xsl
+    else if(ret ==OB_SUCCESS && s > vscale_ && vscale_ > 0)   //
+    {
+        if(point_pos < (int)precision_ && point_pos !=0)
+        {
+            len =point_pos + vscale_;
+            while (buf[len] == '0')   //post 0
+            {
+                len--;          //
+            }
+            len = len + 1;
+            if ((int) strlen(buf) < len)
+            {
+                ret = OB_ERR_UNEXPECTED;
+                TBSYS_LOG(ERROR, "failed to assigned str buff=%s",buf);
+            }
+            else
+            {
+                buf[len++] = '\0';
+                strncpy(out, buf, len);
+            }
+            if(OB_SUCCESS != ret)
+            {
+                TBSYS_LOG(ERROR,"failed to modify value");
+            }
+            else if (OB_SUCCESS != (ret = this->from(out)))
+            {
+                TBSYS_LOG(ERROR, "failed convert str to decimal!");
+            }
+        }
+    }
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
@@ -567,9 +621,27 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
     int ret = OB_SUCCESS;
 	ObDecimal n1 = *this;
 	ObDecimal n2 = other;
-	int p = 0;
-	TTLInt num1 = n1.get_words()[0];
-	TTLInt num2 = n2.get_words()[0];
+//    TBSYS_LOG(INFO,"xushilei,test n1=[%s],n2=[%s]",to_cstring(n1),to_cstring(n2));   //test xsl
+    int p = 0;
+    //modify xsl ECNU_DECIMAL 2017_5
+    TTLInt num1,num2;
+    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n1.get_words()[0].table[0];
+        num1 = tmp;
+    }
+    else
+        num1 = n1.get_words()[0];
+    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n2.get_words()[0].table[0] ;
+        num2 =tmp;
+    }
+    else
+        num2 = n2.get_words()[0];
+    //modify e
+//    TBSYS_LOG(INFO,"xushilei,test n1=[%s]",n1.get_words()->ToString().c_str());   //test xsl
+//    TBSYS_LOG(INFO,"xushilei,test n2=[%s]",n2.get_words()->ToString().c_str());   //test xsl
 	TTInt BASE(10);
 	if (n1.get_vscale() >= n2.get_vscale()) {
 		p = (n1.get_vscale() - n2.get_vscale());
@@ -583,8 +655,10 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
 		res.vscale_ = n2.get_vscale();
 	}
 	if (num1.Add(num2) == 0) {
+//        TBSYS_LOG(INFO,"xushilei,test n1=[%s]",num1.ToString().c_str());   //test xsl
         string str_for_word;
         num1.ToString(str_for_word);
+        //TBSYS_LOG(INFO,"xushilei,test n1=[%s]",str_for_word.c_str());   //test xsl
         int len_word=(int)strlen(str_for_word.c_str())-num1.IsSign();
         int len_int=len_word-res.vscale_;
         res.scale_=n1.scale_ >= n2.scale_?n1.scale_:n2.scale_;
@@ -608,9 +682,13 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
                 res.vscale_=res.vscale_-len_modify;
                 res.scale_=res.vscale_;
             }
-		}else if(ret==OB_SUCCESS){
+        }
+        else if(ret==OB_SUCCESS){
 		   res.word[0] = num1;
 		}
+//        TBSYS_LOG(INFO,"xushilei,test res=[%s],p=[%d],s=[%d],v=[%d]",res.word[0].ToString().c_str(),res.precision_,
+//                res.scale_,res.vscale_);   //test xsl
+//        TBSYS_LOG(INFO,"xushilei,test res=[%s]",to_cstring(res));   //test xsl
         if(ret!=OB_SUCCESS){
             char er1[MAX_PRINTABLE_SIZE];
             char er2[MAX_PRINTABLE_SIZE];
@@ -644,10 +722,28 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
     int ret = OB_SUCCESS;
     ObDecimal n1 = *this;
     ObDecimal n2 = other;
-    TTLInt num1 = n1.get_words()[0];
-    TTLInt num2 = n2.get_words()[0];
+    //modify xsl ECNU_DECIMAL 2017_5
+    TTLInt num1,num2;
+    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n1.get_words()[0].table[0];
+        num1 = tmp;
+    }
+    else
+        num1 = n1.get_words()[0];
+    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n2.get_words()[0].table[0] ;
+        num2 =tmp;
+    }
+    else
+        num2 = n2.get_words()[0];
+    //modify e
     TTLInt base_to_modify(10);
+//    TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
+//    TBSYS_LOG(INFO,"xushilei,num2=[%s]",num2.ToString().c_str());    //test xsl
     if (num1.Mul(num2) == 0) {
+//        TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
         int p=0;
         //v=n1.get_vscale()+n2.get_vscale();
         p=n1.get_precision()+n2.get_precision();
@@ -713,7 +809,8 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
             TBSYS_LOG(WARN,"ERROR to mul decimal,over flow,n1 =%s,ttint1=%s,n2=%s,ttint2=%s,res ttint=%s",er1,er3,er2,er4,er5);
         }
     }
-    else {
+    else
+    {
         ret = OB_ERROR;
         TBSYS_LOG(WARN, "failed to mul decimal");
     }
@@ -725,18 +822,33 @@ int ObDecimal::div(const ObDecimal &other, ObDecimal &res) const {
 	int ret = OB_SUCCESS;
 	ObDecimal n1 = *this;
 	ObDecimal n2 = other;
-	int p = 0;
-	TTLInt num1 = n1.get_words()[0];
-	TTLInt num2 = n2.get_words()[0];
+    int p = 0;
 	TTLInt int_part;
 	TTLInt BASE(10),base_to_modify(10);
 	res.precision_=MAX_DECIMAL_DIGIT;
+    //modify xsl ECNU_DECIMAL 2017_5
+    TTLInt num1,num2;
+    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n1.get_words()[0].table[0];
+        num1 = tmp;
+    }
+    else
+        num1 = n1.get_words()[0];
+    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n2.get_words()[0].table[0] ;
+        num2 =tmp;
+    }
+    else
+        num2 = n2.get_words()[0];
+
 	if (n1.get_vscale() >= n2.get_vscale()) {
 		p = (n1.get_vscale() - n2.get_vscale());
 		BASE.Pow(p);
 		num2 = num2 * BASE;
 
-
+    //modify e
 	} else {
 		p = (n2.get_vscale() - n1.get_vscale());
 		BASE.Pow(p);
@@ -829,11 +941,18 @@ int ObDecimal::negate(ObDecimal &res) const {
 	res.precision_ = n1.precision_;
 	res.scale_ = n1.scale_;
 	res.vscale_ = n1.vscale_;
-	TTInt num = n1.get_words()[0];
-
-	num.ChangeSign();
-	res.word[0] = num;
-
+    //modify xsl ECNU_DECIMAL 2017_5
+    TTInt num1;
+    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
+    {
+        int64_t tmp = n1.get_words()[0].table[0];
+        num1 = tmp;
+    }
+    else
+        num1 = n1.get_words()[0];
+    num1.ChangeSign();
+    res.word[0] = num1;
+    //modify e
 	return ret;
 }
 

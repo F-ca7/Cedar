@@ -1806,7 +1806,7 @@ namespace oceanbase
           return ret;
       }
       //modify xsl ECNU_DECIMAL 2016_12
-      inline int encode_ttint_buf(char *buf,const int64_t buf_len,int64_t& pos,ObDecimal *vbuf/*const char *vbuf*/,int32_t len)
+      inline int encode_ttint_buf(char *buf,const int64_t buf_len,int64_t& pos,uint64_t *vbuf/*const char *vbuf*/,int32_t len)
       {
           int ret = OB_SUCCESS;
           UNUSED(buf_len);
@@ -1856,7 +1856,7 @@ namespace oceanbase
       //modify xsl ECNU_DECIMAL 2016_12
       inline int encode_comm_decimal(char* buf, const int64_t buf_len,
                                      int64_t &pos, bool is_add, int8_t precision, int8_t scale,
-                                     int8_t vscale,ObDecimal* word/*const char* word*/,int32_t len) {
+                                     int8_t vscale,uint64_t* word/*const char* word*/,int32_t len) {
           //modify e
           int ret = OB_SUCCESS;
           //@TO DO Serialization
@@ -1894,9 +1894,7 @@ namespace oceanbase
           }
           //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
           //  if (OB_SUCCESS == ret && NULL != word) {
-          //  ret=encode_TTInt(buf,buf_len,pos,word);
           //  @TODO implement serialization
-          //ret=encode_TTInt(buf,buf_len,pos,word->get_words());
           ret=encode_ttint_buf(buf, buf_len, pos, word,len);   //序列化了一个TTInt,add xsl ECNU_DECIMAL modify 12.7
           //modify e
           // }
@@ -1967,7 +1965,7 @@ namespace oceanbase
           ret+=val_len;
           ret+=sizeof(int32_t);
           ret+=5;
-          return ret;
+          return ret;   //5+4+8
 
       }
       //add e

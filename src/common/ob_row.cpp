@@ -150,6 +150,7 @@ int ObRow::get_cell(const uint64_t table_id, const uint64_t column_id, common::O
 
 int ObRow::set_cell(const uint64_t table_id, const uint64_t column_id, const common::ObObj &cell)
 {
+  //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(cell));   //test xsl
   int ret = OB_SUCCESS;
   int64_t cell_idx = OB_INVALID_INDEX;
   if (NULL == row_desc_

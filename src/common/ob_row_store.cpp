@@ -596,6 +596,7 @@ int ObRowStore::add_row(const ObRow &row, const StoredRow *&stored_row)
 {
   int64_t cur_size_counter = 0; // value ignored
   return add_row(NULL, row, stored_row, cur_size_counter);
+  //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
 }
 
 int ObRowStore::add_row(const ObRow &row, int64_t &cur_size_counter)
@@ -709,6 +710,7 @@ int ObRowStore::add_row(const ObRowkey *rowkey, const ObRow &row, const StoredRo
         cur_size_counter = cur_size_counter_;
         break;                  // done
       }
+      //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
     } // end while
     if (3 <= retry)
     {

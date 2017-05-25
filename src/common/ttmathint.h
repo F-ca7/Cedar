@@ -117,7 +117,6 @@ public:
 
         return 0;
     }
-
     /*!
      this method sets the sign
 
@@ -599,6 +598,19 @@ public:
         return 0;
     }
 
+    //add xsl ECNU_DECIMAL 2017_5
+    uint FromInt(int64_t* value,uint32_t len) {
+        uint i;
+        for (i = 0; i < len; ++i)
+            UInt<value_size>::table[i] = value[i];
+
+        if (value_size == i && (value[i] & TTMATH_UINT_HIGHEST_BIT) != 0)
+            return 1;
+        // there'll never be a carry here
+        return 0;
+    }
+    //add e
+
     /*!
      this method converts UInt<another_size> into this class
      */
@@ -623,6 +635,36 @@ public:
 
         return 0;
     }
+
+    //add xsl ECNU_DECIMAL 2017_5
+    void FromUInt_v2(uint64_t* value,uint32_t len) {
+        uint i;
+        if(len < value_size)   //such as 1<2
+        {
+//            if((value[len- 1] & TTMATH_UINT_HIGHEST_BIT) == 0)   //>0
+//            {
+                for (i = 0; i < len; ++i)   //default len =1
+                    UInt<value_size>::table[i] = value[i];
+                for(i=len;i<value_size;i++)
+                    UInt<value_size>::table[i] = 0;
+//            }
+                /*
+            else                                        //<0
+            {
+                for (i = 0; i < len; ++i)   //default len =1
+                    UInt<value_size>::table[i] = -value[i];
+                for(i=len;i<value_size;i++)
+                    UInt<value_size>::table[i] = TTMATH_UINT_HIGHEST_BIT;    //test xsl
+            }*/
+        }
+        else
+        {
+            for (i = 0; i < value_size; ++i)
+                UInt<value_size>::table[i] = value[i];
+        }
+    }
+
+    //add e
 
     /*!
      the default assignment operator

@@ -486,22 +486,37 @@ namespace oceanbase
       return ret;
     }
     //add xsl ECNU_DECIMAL 2017_1
+//    template <typename AllocatorT>
+//    int ob_write_decimal(AllocatorT &allocator,TTInt* src,TTInt*& dst)
+//    {
+//      int ret=OB_SUCCESS;
+//      void * ptr = NULL;
+//      if (NULL == (ptr = allocator.alloc(sizeof(TTInt))))
+//      {
+//        ret = OB_ALLOCATE_MEMORY_FAILED;
+//      }
+//      else
+//      {
+//          dst = reinterpret_cast<TTInt *>(ptr);
+//          memcpy(dst,src,sizeof(TTInt));
+//      }
+//      return ret;
+//    }
+    //add e
+    //add xsl ECNU_DECIMAL 2017_1
     template <typename AllocatorT>
-    int ob_write_decimal(AllocatorT &allocator,ObDecimal& src,ObDecimal*& dst)
+    int ob_write_decimal(AllocatorT &allocator,uint64_t* src,int len,uint64_t*& dst)
     {
       int ret=OB_SUCCESS;
       void * ptr = NULL;
-      if (NULL == (ptr = allocator.alloc(sizeof(ObDecimal))))
+      if (NULL == (ptr = allocator.alloc(sizeof(uint64_t)*len)))
       {
         ret = OB_ALLOCATE_MEMORY_FAILED;
       }
       else
       {
-          dst=reinterpret_cast<ObDecimal *>(ptr);
-          dst->set_precision(src.get_precision());
-          dst->set_scale(src.get_scale());
-          dst->set_vscale(src.get_vscale());
-          dst->set_word(src.get_words());
+          dst = reinterpret_cast<uint64_t *>(ptr);
+          memcpy(dst,src,sizeof(uint64_t)*len);
       }
       return ret;
     }

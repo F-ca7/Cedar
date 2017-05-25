@@ -14345,7 +14345,8 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
         {
             ret2=ob_write_obj(allocator,src,dst);
         }
-        else{
+        else
+        {
             const ObObj *ob1=NULL;
             ob1=&src;
             ObObj casted_cell;
@@ -14367,21 +14368,9 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
             {
                 //modify xsl ECNU_DECIMAL 2017_2
                 ObDecimal od;
-                ObDecimal *dst_dec = NULL;
+                uint64_t *t2 =NULL;
                 ob1->get_decimal(od);
-                /*
-                ObString str;
-                ObString str_clone;
-                ob1->get_decimal(str);
-                ObDecimal od,od_cmp;
-                if(OB_SUCCESS!=(ret=od.from(str.ptr(),str.length())))
-                {
-                    TBSYS_LOG(DEBUG, "faild to do from(),str=%.*s", str.length(),str.ptr());
-                }
-                else{
-                    od_cmp=od;
-                }
-                */
+                uint32_t len =ob1->get_nwords();
               if(OB_SUCCESS==ret)
               {
 
@@ -14397,27 +14386,15 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
                 */
                 else
                 {
-                    if (OB_SUCCESS == (ret = ob_write_decimal(allocator,od,dst_dec)))
+                    if (OB_SUCCESS == (ret = ob_write_decimal(allocator,od.get_words()->ToUInt_v2(),len,t2)))
                     {
-                        dst.set_decimal(dst_dec,ob1->get_precision(),ob1->get_scale(),ob1->get_scale());
+                        dst.set_decimal(t2,ob1->get_precision(),ob1->get_scale(),ob1->get_scale(),len);
                     }
-                            /*
-                      char buf[MAX_PRINTABLE_SIZE];
-                      memset(buf, 0, MAX_PRINTABLE_SIZE);
-                      ObString os;
-                      int64_t length=od.to_string(buf,MAX_PRINTABLE_SIZE);
-                      os.assign_ptr(buf,(int)length);
-
-                    if (OB_SUCCESS == (ret = ob_write_string(allocator, os, str_clone)))
-                    {
-                        dst.set_decimal(str_clone,ob1->get_precision(),ob1->get_scale(),ob1->get_scale());
-                    }
-                            */
                 }
               }
             }
-
-            if(OB_SUCCESS != ret){
+            if(OB_SUCCESS != ret)
+            {
                 ret2=ob_write_obj(allocator,src,dst);
             }
         }
