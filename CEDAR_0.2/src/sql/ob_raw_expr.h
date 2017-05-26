@@ -56,7 +56,6 @@ namespace oceanbase
       bool is_range_filter() const;
       // Only format like "T1.c1 = T2.c1", not "T1.c1 - T2.c1 = 0"
       bool is_join_cond() const;
-      bool is_semi_join_cond() const; // wangyanzhao, pull up sublink 20170322
       bool is_aggr_fun() const;
       virtual int fill_sql_expression(
           ObSqlExpression& inter_expr,

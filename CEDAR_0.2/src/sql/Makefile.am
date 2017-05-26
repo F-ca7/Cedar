@@ -102,7 +102,6 @@ sql_parser_sources=                                    \
   ob_logical_plan.h           ob_logical_plan.cpp      \
   ob_multi_logic_plan.h       ob_multi_logic_plan.cpp  \
   ob_multi_phy_plan.h         ob_multi_phy_plan.cpp    \
-  pull_up_sublink.h           pull_up_sublink.cpp      \
   ob_physical_plan.h          ob_physical_plan.cpp     \
   ob_prepare_stmt.h           ob_prepare_stmt.cpp      \
   ob_raw_expr.h               ob_raw_expr.cpp          \

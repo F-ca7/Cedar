@@ -548,13 +548,6 @@ namespace oceanbase
         sql_expr->print(fp, level + 2, i);
       }
       fprintf(fp, "    </ExprList>\n");
-	  fprintf(fp, "    <RawExprList>\n");
-      for (i = 0; i < raw_exprs_store_.size(); i ++)
-      {
-        ObRawExpr* raw_expr = raw_exprs_store_[i];
-        raw_expr->print(fp, level + 2);
-      }
-      fprintf(fp, "    </RawExprList>\n");
       if (CUR_TIME == cur_time_fun_type_)
       {
         fprintf(fp, "    <CurrentTimeFun>MS</CurrentTimeFun>\n");

@@ -12,7 +12,6 @@
  * modified by yu shengjuan: ObItemType is an enum used to describe the type of item at oceanbase
  * modified by maoxiaoxiao: add items for bloomfilter join or merge join
  * modified by zhutao:add ObItemType
- * modified by wangyanzhao: add items for semi-join and anti-semi-join
  *
  * @version CEDAR 0.2 
  * @author longfei <longfei@stu.ecnu.edu.cn>
@@ -121,9 +120,7 @@ typedef enum ObItemType
   T_OP_AND,
   T_OP_OR,
   T_OP_IN,
-  T_OP_LEFT_SEMI, // add wangyanzhao [pull up sublink]  20170322:e
   T_OP_NOT_IN,
-  T_OP_LEFT_ANTI_SEMI, // add wangyanzhao [pull up sublink]  20170322:e
   T_OP_ARG_CASE,
   T_OP_CASE,
   T_OP_ROW,

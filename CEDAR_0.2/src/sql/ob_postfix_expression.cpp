@@ -559,8 +559,6 @@ namespace oceanbase
         case T_OP_CNN:
         case T_OP_IN:
         case T_OP_NOT_IN:
-        case T_OP_LEFT_SEMI: // added by wangyanzhao, pull up sublink, 20170322
-        case T_OP_LEFT_ANTI_SEMI: // added by wangyanzhao, pull up sublink, 20170322
         case T_OP_ARG_CASE:
         case T_OP_CASE:
         case T_OP_ROW:

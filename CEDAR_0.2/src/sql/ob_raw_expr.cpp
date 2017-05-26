@@ -81,20 +81,6 @@ bool ObRawExpr::is_join_cond() const
   return ret;
 }
 
-bool ObRawExpr::is_semi_join_cond() const
-{
-  bool ret = false;
-  if (type_ == T_OP_LEFT_SEMI || type_ == T_OP_LEFT_ANTI_SEMI)
-  {
-    ObBinaryOpRawExpr *binary_expr = dynamic_cast<ObBinaryOpRawExpr *>(const_cast<ObRawExpr *>(this));
-    if (binary_expr->get_first_op_expr()->get_expr_type() == T_REF_COLUMN
-      && binary_expr->get_second_op_expr()->get_expr_type() == T_REF_COLUMN)
-      ret = true;
-  }
-  return ret;
-}
-
-
 bool ObRawExpr::is_aggr_fun() const
 {
   bool ret = false;
@@ -379,7 +365,7 @@ int ObCurTimeExpr::fill_sql_expression(
 void ObUnaryRefRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "<ObUnaryRefRawExpr> %s : %lu </ObUnaryRefRawExpr>\n", get_type_name(get_expr_type()), id_);
+  fprintf(fp, "%s : %lu\n", get_type_name(get_expr_type()), id_);
 }
 
 int ObUnaryRefRawExpr::fill_sql_expression(
@@ -417,10 +403,10 @@ void ObBinaryRefRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   if (first_id_ == OB_INVALID_ID)
-    fprintf(fp, "<ObBinaryRefRawExpr> %s : [table_id, column_id] = [NULL, %lu] </ObBinaryRefRawExpr>\n",
+    fprintf(fp, "%s : [table_id, column_id] = [NULL, %lu]\n",
             get_type_name(get_expr_type()), second_id_);
   else
-    fprintf(fp, "<ObBinaryRefRawExpr> %s : [table_id, column_id] = [%lu, %lu] </ObBinaryRefRawExpr>\n",
+    fprintf(fp, "%s : [table_id, column_id] = [%lu, %lu]\n",
             get_type_name(get_expr_type()), first_id_, second_id_);
 }
 
@@ -456,15 +442,8 @@ int ObBinaryRefRawExpr::fill_sql_expression(
 void ObUnaryOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "<ObUnaryOpRawExpr>\n");
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
-  
   expr_->print(fp, level + 1);
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "</ObUnaryOpRawExpr>\n");
 }
 
 int ObUnaryOpRawExpr::fill_sql_expression(
@@ -488,16 +467,9 @@ int ObUnaryOpRawExpr::fill_sql_expression(
 void ObBinaryOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "<ObBinaryOpRawExpr>\n");
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
-  
   first_expr_->print(fp, level + 1);
   second_expr_->print(fp, level + 1);
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "</ObBinaryOpRawExpr>\n");
 }
 
 void ObBinaryOpRawExpr::set_op_exprs(ObRawExpr *first_expr, ObRawExpr *second_expr)
@@ -645,16 +617,10 @@ int ObBinaryOpRawExpr::fill_sql_expression(
 void ObTripleOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "<ObTripleOpRawExpr>\n");
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
   first_expr_->print(fp, level + 1);
   second_expr_->print(fp, level + 1);
   third_expr_->print(fp, level + 1);
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "</ObTripleOpRawExpr>\n");
 }
 
 void ObTripleOpRawExpr::set_op_exprs(
@@ -693,17 +659,11 @@ int ObTripleOpRawExpr::fill_sql_expression(
 void ObMultiOpRawExpr::print(FILE* fp, int32_t level) const
 {
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "<ObMultiOpRawExpr>\n");
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "%s\n", get_type_name(get_expr_type()));
   for (int32_t i = 0; i < exprs_.size(); i++)
   {
     exprs_[i]->print(fp, level + 1);
   }
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "</ObMultiOpRawExpr>\n");
 }
 
 int ObMultiOpRawExpr::fill_sql_expression(
@@ -901,22 +861,7 @@ void ObSqlRawExpr::print(FILE* fp, int32_t level, int32_t index) const
     fprintf(fp, "(table_id : column_id) = (NULL : %lu)\n", column_id_);
   else
     fprintf(fp, "(table_id : column_id) = (%lu : %lu)\n", table_id_, column_id_);
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "is_apply_: %s, contain_aggr_: %s, contain_alias_: %s, is_columnlized_: %s\n", 
-  	is_apply_?"True":"False", contain_aggr_?"True":"False", contain_alias_?"True":"False", is_columnlized_?"True":"False");
-  
-  for(int i = 0; i < level; ++i) fprintf(fp, "    ");
-  fprintf(fp, "tables_set_: [");
-  for(int32_t i = 0; i < 32 * 8; ++i)
-  {
-    if(tables_set_.has_member(i))
-    {
-      fprintf(fp, "%d, ", i);
-    }
-  }
-  fprintf(fp, "]\n");
-  
-  expr_->print(fp, level + 1);
+  expr_->print(fp, level);
   for(int i = 0; i < level; ++i) fprintf(fp, "    ");
   fprintf(fp, "<ObSqlRawExpr %d End>\n", index);
 }

@@ -3177,30 +3177,9 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator del_it;
     for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end();)
     {
-      if (((*cnd_it)->get_expr()->is_join_cond() || (*cnd_it)->get_expr()->is_semi_join_cond()) && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
+      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
       {
         ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
-        // added by wangyanzhao, pull up sublink, 20170322
-        if (join_cnd->is_semi_join_cond())
-        {
-          if (join_cnd->get_expr_type() == T_OP_LEFT_SEMI)
-          {
-            join_op->set_join_type(ObJoin::LEFT_SEMI_JOIN);
-            // set back to equal, ugly but simple for later process
-            join_cnd->set_expr_type(T_OP_EQ);
-          }
-          else if (join_cnd->get_expr_type() == T_OP_LEFT_ANTI_SEMI)
-          {
-            join_op->set_join_type(ObJoin::LEFT_ANTI_SEMI_JOIN);
-            // set back to equal, ugly but simple for later process
-            join_cnd->set_expr_type(T_OP_EQ);
-          }
-          else
-          {
-            break;
-          }
-        }
-        // ended by wangyanzhao
         ObBinaryRefRawExpr *lexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
         ObBinaryRefRawExpr *rexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_second_op_expr());
         int32_t left_bit_idx = select_stmt->get_table_bit_index(lexpr->get_first_ref_id());

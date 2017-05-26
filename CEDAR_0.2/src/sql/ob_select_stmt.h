@@ -287,33 +287,6 @@ namespace oceanbase
        */
       const ObIArray<const ObRawExpr *> & get_raw_var_expr() const { return var_expr_list_; }
 
-	  // added by wangyanzhao 2017/1/13
-	  int remove_from_item(uint64_t tid)
-      {
-        int ret = common::OB_ERROR;
-		int32_t num = from_items_.size();
-        for (int32_t i = 0; i < num; i++)
-        {
-          if (from_items_[i].table_id_ == tid)
-          {
-            ret = from_items_.remove(i);
-            break;
-          }
-        }
-        return ret;
-      }
-	  
-	  common::ObVector<TableItem>& get_table_items() 
-      {
-        return table_items_;
-      }
-
-      common::ObVector<ColumnItem>& get_column_items() 
-      {
-        return column_items_;
-      }
-	  // ended by wangyanzhao
-
     private:
       /* These fields are only used by normal select */
       bool    is_distinct_;

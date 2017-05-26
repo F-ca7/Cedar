@@ -271,8 +271,7 @@ namespace oceanbase
           const common::ObString& alias_name, 
           uint64_t& table_id,
           const TableItem::TableType type,
-          const uint64_t ref_id = common::OB_INVALID_ID,
-          bool is_optimizer = false /*add by wangyanzhao 2017/1/18*/);
+          const uint64_t ref_id = common::OB_INVALID_ID);
       int add_column_item(
           ResultPlan& result_plan,
           const oceanbase::common::ObString& column_name,

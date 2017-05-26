@@ -1741,52 +1741,41 @@ int ObMergeJoin::normal_get_next_row(const ObRow *&row)
 // LEFT_SEMI_JOIN
 int ObMergeJoin::left_semi_get_next_row(const ObRow *&row)
 {
-  int ret = OB_SUCCESS;
+  row = NULL;
+/*
+  // 省略边界条件
   const ObRow *left_row = NULL;
   const ObRow *right_row = NULL;
-  ret = left_op_->get_next_row(left_row);
-  if(OB_SUCCESS == ret)
+  left_op_->get_next_row(left_row);
+  if (last_right_row_有效)
   {
-  	if (NULL != last_right_row_)
-  	{
-  	  right_row = last_right_row_;
-  	  last_right_row_ = NULL;
-  	}
-  	else
-  	{
-  	  ret = right_op_->get_next_row(right_row);
-  	}
-  	while(OB_SUCCESS == ret)
-  	{
-  	  OB_ASSERT(left_row);
-  	  OB_ASSERT(right_row);
-  	  int cmp = 0;
-  	  if (OB_SUCCESS != (ret = compare_equijoin_cond(*left_row,     *right_row, cmp)))
-  	  {
-  	    TBSYS_LOG(WARN, "failed to compare, err=%d", ret);
-  	    break;
-  	  }
-  	  if (0 == cmp) // left_row == right_row
-  	  {
-  	    // output
-  	    row = left_row;
-  	    last_right_row_ = right_row;
-  	    break;
-  	  } // end 0 == cmp
-  	  else if (cmp < 0)
-  	  {
-  	    // left_row < right_row on equijoin conditions
-  	    ret = left_op_->get_next_row(left_row);
-  	  }
-  	  else
-  	  {
-  	    // left_row > right_row on euqijoin conditions
-  	    ret = right_op_->get_next_row(right_row);
-  	  }
-  	}
+    right_row = last_right_row_;
+    last_right_row_ = NULL;
   }
-  
-  return ret;
+  else
+  {
+    right_op_->get_next_row(right_row);
+  }
+  while(两个子运算符还有数据没有迭代完)
+  {
+    if (left_row和right_row在等值join条件上相等)
+    {
+      row = left_row;
+      last_right_row_ = right_row;
+      break;
+    }
+    else if(left_row在等值join条件上 < right_row)
+    {
+      left_op_->get_next_row(left_row);
+    }
+    else
+    {
+      // left_row在等值join条件上 > right_row
+      right_op_->get_next_row(right_row);
+    }
+  }
+*/
+  return OB_SUCCESS;
 
 }
 
@@ -1834,95 +1823,48 @@ int ObMergeJoin::right_semi_get_next_row(const ObRow *&row)
 // LEFT_ANTI_SEMI_JOIN
 int ObMergeJoin::left_anti_semi_get_next_row(const ObRow *&row)
 {
-  int ret = OB_SUCCESS;
+  row = NULL;
+/*
+  // 省略边界条件
   const ObRow *left_row = NULL;
   const ObRow *right_row = NULL;
-  ret = left_op_->get_next_row(left_row);
-  if(OB_SUCCESS == ret)
+  left_op_->get_next_row(left_row);
+  if (last_right_row_有效)
   {
-    // get next right row
-    if (NULL != last_right_row_)
+    right_row = last_right_row_;
+    last_right_row_ = NULL;
+  }
+  else
+  {
+    right_op_->get_next_row(right_row);
+  }
+  while(两个子运算符还有数据没有迭代完，既left_row和right_row都有效)
+  {
+    if (left_row和right_row在等值join条件上相等)
     {
-      right_row = last_right_row_;
-      last_right_row_ = NULL;
+      left_op_->get_next_row(left_row);
     }
-    else if (!is_right_iter_end_)
+    else if(left_row在等值join条件上 < right_row)
     {
-      ret = right_op_->get_next_row(right_row);
-      if (OB_SUCCESS != ret)
-      {
-        if (OB_ITER_END == ret)
-        {
-          is_right_iter_end_ = true;
-          ret = OB_SUCCESS;
-        }
-        else
-        {
-          TBSYS_LOG(WARN, "failed to get next row from right child, err=%d", ret);
-        }
-      }
+      row = left_row_;
+      last_right_row_ = right_row;
+      break;
     }
     else
     {
-      // no right row
-    }
-	
-    while(OB_SUCCESS == ret)
-    {
-      if (OB_UNLIKELY(is_right_iter_end_))
-      {
-        OB_ASSERT(left_row);
-        row = left_row;
-        break;
-      }
-      else
-      {
-        OB_ASSERT(left_row);
-        OB_ASSERT(right_row);
-        int cmp = 0;
-        if (OB_SUCCESS != (ret = compare_equijoin_cond(*left_row, *right_row, cmp)))
-        {
-          TBSYS_LOG(WARN, "failed to compare, err=%d", ret);
-          break;
-        }
-        if (0 == cmp) // left_row == right_row
-        {
-          ret = left_op_->get_next_row(left_row);
-        } // end 0 == cmp
-        else if (cmp < 0)
-        {
-          // left_row < right_row on equijoin conditions
-          // output
-          row = left_row;
-          last_right_row_ = right_row;
-          break;
-        }
-        else
-        {
-          // left_row > right_row on euqijoin conditions
-          ret = right_op_->get_next_row(right_row);
-      
-          if (OB_SUCCESS != ret)
-          {
-            if (OB_ITER_END == ret)
-            {
-              is_right_iter_end_ = true;
-              ret = OB_SUCCESS;
-            }
-            else
-            {
-              TBSYS_LOG(WARN, "failed to get next row from right child, err=%d", ret);
-            }
-          }
-        }
-      }
-      
+      // left_row在等值join条件上 > right_row
+      right_op_->get_next_row(right_row);
     }
   }
-  
-  return ret;
-}
+  if (没有找到行要输出
+      && left_row有效)
+  {
+    row = left_row;             // left_op_还有数据
+  }
+*/
+  return OB_SUCCESS;
 
+}
 
 // RIGHT_ANTI_SEMI_JOIN
 int ObMergeJoin::right_anti_semi_get_next_row(const ObRow *&row)

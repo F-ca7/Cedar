@@ -185,34 +185,6 @@ namespace oceanbase
       }
       void print(FILE* fp = stderr, int32_t level = 0) const;
 
-      // added by wangyanzhao 2017/1/13
-	  int remove_expr(uint64_t expr_id)
-	  {
-	  	int ret = common::OB_ERROR;
-		int32_t num = exprs_.size();
-        for (int32_t i = 0; i < num; i++)
-        {
-          if (exprs_[i]->get_expr_id() == expr_id)
-          {
-            ret = exprs_.remove(i);
-            break;
-          }
-        }
-        return ret;
-	  }
-
-	  oceanbase::common::ObVector<ObSqlRawExpr*>& get_exprs()
-	  {
-        return exprs_;
-	  }
-
-	  oceanbase::common::ObVector<ObRawExpr*>& get_raw_exprs()
-	  {
-        return raw_exprs_store_;
-	  }
-	  // ended by wangyanzhao
-
-
     protected:
       oceanbase::common::ObStringBuf* name_pool_;
 

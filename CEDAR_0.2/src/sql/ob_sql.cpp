@@ -78,8 +78,6 @@
 
 #include "sql/ob_lock_table_stmt.h" //add wangjiahao [table lock] 20160616
 
-#include "sql/pull_up_sublink.h" // add wangyanzhao 20170113
-
 #include "ob_procedure_drop_stmt.h"
 
 #include "ob_procedure_execute_stmt.h" //add zt 20151117
@@ -184,23 +182,6 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
             TBSYS_LOG(WARN, "no privilege,sql=%.*s ret=%d", stmt.length(), stmt.ptr(), ret);
           }
         }
-		
-		// yanzhao test begin
-		
-		FILE * p;
-		p = fopen("/home/wangyanzhao/plantree.text", "a");
-		logic_plan->print(p);
-		fclose(p);
-
-		// test pull up sublinks
-		pull_up_sublinks(&result_plan, logic_plan);
-
-		
-		p = fopen("/home/wangyanzhao/plantree.text", "a");
-		logic_plan->print(p);
-		fclose(p);
-		
-		// yanzhao test end
 
         if (OB_SUCCESS == ret)
         {
