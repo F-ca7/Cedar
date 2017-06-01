@@ -123,7 +123,7 @@ typedef enum ObItemType
   T_OP_NOT_IN,
   T_OP_ARG_CASE,
   T_OP_CASE,
-  T_OP_ROW,
+  T_OP_ROW,     //129
   T_OP_EXISTS,
 
   T_OP_CNN,  /* 3. String operators */

@@ -134,6 +134,35 @@ namespace oceanbase
     //add xsl ECNU_DECIMAL 2016_12
 
     template <typename PageAllocatorT, typename PageArenaT>
+    int ObStringBufT<PageAllocatorT, PageArenaT>::write_decimal(const ObDecimal& dec, ObDecimal *stored_dec,uint32_t len)  //在堆上分配一块内存，并且将值copy下来
+    {
+      int err = OB_SUCCESS;
+      if (OB_UNLIKELY(NULL == const_cast<ObDecimal&>(dec).get_words()))
+      {
+        if (NULL != stored_dec)
+        {
+          stored_dec=NULL;
+        }
+      }
+      else
+      {
+        uint64_t* str_clone = reinterpret_cast<uint64_t *>(arena_.alloc(sizeof(uint64_t)*len));
+        if (OB_UNLIKELY(NULL == str_clone))
+        {
+          err = OB_ALLOCATE_MEMORY_FAILED;
+          TBSYS_LOG(WARN, "failed to dup string");
+        }
+        memcpy(str_clone,const_cast<uint64_t *>(const_cast<ObDecimal&>(dec).get_words()->ToUInt_v2()),sizeof(uint64_t)*len);
+        stored_dec->set_precision(dec.get_precision());
+        stored_dec->set_scale(dec.get_scale());
+        stored_dec->set_vscale(dec.get_vscale());
+        stored_dec->set_word(str_clone,len);   //使得decimal指针指向这块内存
+        TBSYS_LOG(INFO,"xushilei,test cast_V2,dec=[%ld]",*str_clone);   //test xsl cast
+      }
+      return err;
+    }
+
+    template <typename PageAllocatorT, typename PageArenaT>
     int ObStringBufT<PageAllocatorT, PageArenaT>::write_decimal(const uint64_t* dec, uint64_t*& stored_dec,uint32_t len)  //在堆上分配一块内存，并且将值copy下来
     {
       int err = OB_SUCCESS;

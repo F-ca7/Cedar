@@ -164,6 +164,9 @@ namespace oceanbase
         //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         inline int cast_to_decimal(ObString &varchar, ObStringBuf &mem_buf) const;
         //add:e
+        //add xsl ECNU_DECIMAL 2017_5
+        inline int cast_to_decimal(ObDecimal &dec, ObStringBuf &mem_buf) const;
+        //add e
         int get_bool(bool &value) const;
         int get_timestamp(int64_t & timestamp) const;
         bool is_datetime() const;
@@ -212,6 +215,8 @@ namespace oceanbase
         ObNumber num_;
         //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         ObDecimal decimal_;
+        //add:e
+        //add xsl ECNU_DECIMAL
         uint32_t len;
         //add:e
         ObString varchar_;

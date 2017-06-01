@@ -61,7 +61,7 @@ namespace oceanbase
         //add:e
 
         //add xsl ECNU_DECIMAL 2016_12
-        int write_decimal(const TTInt *dec, TTInt *&stored_dec);
+        int write_decimal(const ObDecimal &dec, ObDecimal *stored_dec, uint32_t len);
         int write_decimal(const uint64_t* dec, uint64_t*& stored_dec, uint32_t len);
         //add e
         inline int64_t used() const

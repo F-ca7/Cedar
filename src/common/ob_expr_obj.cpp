@@ -1467,7 +1467,51 @@ inline int ObExprObj::cast_to_varchar(ObString &varchar, ObStringBuf &mem_buf) c
   }
   return ret;
 }
+//modify xsl ECNU_DECIAML 2017_5
+inline int ObExprObj::cast_to_decimal(ObDecimal &dec, ObStringBuf &mem_buf) const
+{
+  int ret = OB_SUCCESS;
+  ObExprObj casted_obj;
+  char max_tmp_buf[128]; // other type to varchar won't takes too much space, assume 128, should be enough
+  ObString tmp_str(128, 128, max_tmp_buf);
 
+  if (OB_UNLIKELY(this->get_type() == ObNullType))
+  {
+    //TBSYS_LOG(WARN, "should not be null");
+    ret = OB_INVALID_ARGUMENT;
+  }
+  else if (OB_LIKELY(this->get_type() != ObDecimalType))
+  {
+    casted_obj.set_varchar(tmp_str);    //设置varchar空间
+    ObObjCastParams params;  //参数p,s,is_modify
+    if (OB_SUCCESS != (ret = OB_OBJ_CAST[this->get_type()][ObDecimalType](params, *this, casted_obj)))    //转换成decimal,并且得到了值
+    {
+      // don't report WARN when type NOT_SUPPORT
+      /*
+      TBSYS_LOG(WARN, "failed to cast object, err=%d from_type=%d to_type=%d",
+          ret, this->get_type(), ObVarcharType);
+      */
+    }
+    else if (OB_SUCCESS != (ret = mem_buf.write_decimal(casted_obj.get_decimal(), &dec, casted_obj.get_len())))
+    {
+      TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+    }
+    /*
+    else if (OB_SUCCESS != (ret = mem_buf.write_string(casted_obj.get_varchar(), &varchar)))
+    {
+      TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+    }*/
+
+    TBSYS_LOG(INFO,"xushilei,test cast_V2,src_dec=[%s],len=[%d]",to_cstring(casted_obj.get_decimal()),casted_obj.get_len());   //test xsl cast
+    TBSYS_LOG(INFO,"xushilei,test cast_V2,dst_dec=[%s]",to_cstring(dec));   //test xsl cast
+  }
+  else if (OB_UNLIKELY(OB_SUCCESS != (ret = mem_buf.write_decimal(this->get_decimal(), &dec, this->get_len()))))   //直接从this.varchar写到varchar中,不可能是decimal数据类型
+  {
+    TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+  }
+  return ret;
+}
+//add:e
 //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
 inline int ObExprObj::cast_to_decimal(ObString &varchar, ObStringBuf &mem_buf) const   //can't be decimal
 {
@@ -1493,10 +1537,15 @@ inline int ObExprObj::cast_to_decimal(ObString &varchar, ObStringBuf &mem_buf) c
           ret, this->get_type(), ObVarcharType);
       */
     }
-    else if (OB_SUCCESS != (ret = mem_buf.write_string(casted_obj.get_varchar(), &varchar)))   //如果不是decimal,值从casted_obj写到varchar，使用varchar
+    else if (OB_SUCCESS != (ret = mem_buf.write_string(casted_obj.get_varchar(), &varchar)))
     {
       TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
     }
+    /*
+    else if (OB_SUCCESS != (ret = mem_buf.write_string(casted_obj.get_varchar(), &varchar)))
+    {
+      TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
+    }*/
   }
   else if (OB_UNLIKELY(OB_SUCCESS != (ret = mem_buf.write_string(this->get_varchar(), &varchar))))   //直接从this.varchar写到varchar中,不可能是decimal数据类型
   {
@@ -1504,7 +1553,7 @@ inline int ObExprObj::cast_to_decimal(ObString &varchar, ObStringBuf &mem_buf) c
   }
   return ret;
 }
-//add:e
+//add:e*/
 
 int ObExprObj::cast_to(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf) const
 {
@@ -1536,7 +1585,7 @@ int ObExprObj::cast_to(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_bu
   }
   return err;
 }
-
+//modify xsl ECNU_DECIMAL 2017_5
 //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
 int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_buf,uint32_t precision,uint32_t scale)
 {
@@ -1546,6 +1595,7 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
  params.scale=scale;
  params.is_modify=true;
  ObString varchar;
+ ObDecimal dec;
  if (dest_type == ObVarcharType)
  {
    if (OB_SUCCESS != this->cast_to_varchar(varchar, mem_buf))
@@ -1562,15 +1612,17 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
    if(this->get_type()==ObDecimalType && dest_type==ObDecimalType)
    {
        ObDecimal od;
+       //modify xsl ECNU_DECIAMAL 2017_5
        od=this->get_decimal();
+       /*
        ObDecimal od_v2;
        char buf_v2[MAX_PRINTABLE_SIZE];
        memset(buf_v2, 0, MAX_PRINTABLE_SIZE);
        ObString os_v2;
        int64_t length=od.to_string(buf_v2,MAX_PRINTABLE_SIZE);
        os_v2.assign_ptr(buf_v2,(int)length);
-       od_v2.from(os_v2.ptr(),os_v2.length());
-       if((precision-scale)<(od_v2.get_precision()-od_v2.get_vscale()))
+       od_v2.from(os_v2.ptr(),os_v2.length());*/
+       if((precision-scale)<(od.get_precision()-od.get_vscale()))
        {
              err=OB_DECIMAL_UNLEGAL_ERROR;
              TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
@@ -1582,6 +1634,7 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
            this->set_decimal(od);
            result=*this;
        }
+       //modify e
    }
    else
    {
@@ -1590,7 +1643,7 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
            if(this->get_type()==ObVarcharType)
            {
                ObString os_v=this->get_varchar();
-               if(os_v.ptr()==NULL||(int)(os_v.length())==0)
+               if(os_v.ptr()==NULL||(int)(os_v.length())==0)    //xsl NULL 或者为0 待修改
                {
                    ObDecimal od2;
                    ObExprObj E_obj;
@@ -1623,64 +1676,55 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
                }
                else
                {
-                   if (OB_SUCCESS != this->cast_to_decimal(varchar, mem_buf))
+                   if (OB_SUCCESS != this->cast_to_decimal(dec, mem_buf))
                    {
                        result.set_null();
                    }
                    else
                    {
-                       result.set_varchar(varchar);
-                       ObDecimal od;
-                       if (OB_SUCCESS != (err =od.from(varchar.ptr(),varchar.length())))
+                       if((precision-scale) < (dec.get_precision()-dec.get_vscale()))
                        {
-                           TBSYS_LOG(ERROR, "fail to do from in ObExprObj::cast_toV2 ret=%d", err);
+                           err=OB_DECIMAL_UNLEGAL_ERROR;
+                           TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",dec.get_precision(),dec.get_vscale());
                        }
                        else
                        {
-                           if((precision-scale) < (od.get_precision()-od.get_vscale()))
-                           {
-                               err=OB_DECIMAL_UNLEGAL_ERROR;
-                               TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
-                           }
-                           else
-                           {
-                               od.set_precision(precision);
-                               od.set_scale(scale);
-                               result.set_decimal(od);
-                           }
+                           dec.set_precision(precision);
+                           dec.set_scale(scale);
+                           result.set_decimal(dec);
+                           uint32_t tmp_len =1;
+                           if(dec.get_words()->table[1]!=0)
+                            tmp_len =2;
+                           result.set_len(tmp_len);
                        }
                    }
                }
            }
            else   //this != ObVarcharType && this != ObDecimalType
            {
-                if (OB_SUCCESS != this->cast_to_decimal(varchar, mem_buf))
-                {
-                    result.set_null();
-                }
-                else
-                {
-                    result.set_varchar(varchar);
-                    ObDecimal od;
-                    if (OB_SUCCESS != (err =od.from(varchar.ptr(),varchar.length())))
-                    {
-                            TBSYS_LOG(ERROR, "fail to do from in ObExprObj::cast_toV2 ret=%d", err);
-                    }
-                    else
-                    {
-            if((precision-scale)<(od.get_precision()-od.get_vscale()))
-                     {
-                              err=OB_DECIMAL_UNLEGAL_ERROR;
-                              TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",od.get_precision(),od.get_vscale());
-                     }
-            else
-            {
-                             od.set_precision(precision);
-                             od.set_scale(scale);
-                             result.set_decimal(od);
-            }
-                    }
-                }
+               if (OB_SUCCESS != this->cast_to_decimal(dec, mem_buf))
+               {
+                   result.set_null();
+               }
+               else
+               {
+                   TBSYS_LOG(INFO,"xushilei,test cast_V2,dst_dec=[%s]",to_cstring(dec));   //test xsl cast
+                   if((precision-scale) < (dec.get_precision()-dec.get_vscale()))
+                   {
+                       err=OB_DECIMAL_UNLEGAL_ERROR;
+                       TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d",dec.get_precision(),dec.get_vscale());
+                   }
+                   else
+                   {
+                       dec.set_precision(precision);
+                       dec.set_scale(scale);
+                       result.set_decimal(dec);
+                       uint32_t tmp_len =1;
+                       if(dec.get_words()->table[1]!=0)
+                        tmp_len =2;
+                       result.set_len(tmp_len);
+                   }
+               }
             }
        }
        else if (OB_SUCCESS != (err = OB_OBJ_CAST[this->get_type()][dest_type](params, *this, result)))   //this,dst all !=ObDecimalType
@@ -1697,7 +1741,7 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
  return err;
 }
 //add:e
-
+//modify e
 
 inline int ObExprObj::div_type_promotion(const ObExprObj &this_obj, const ObExprObj &other,
                                          ObExprObj &promoted_obj1, ObExprObj &promoted_obj2,

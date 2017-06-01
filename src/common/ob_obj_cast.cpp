@@ -114,6 +114,7 @@ namespace oceanbase
       }
       //TBSYS_LOG(INFO,"xushilei,int tmp=[%ld],num=[%d],t1=[%ld]",tmp,num,t1);    //test xsl
       ObDecimal od;
+      od.set_precision(num);
       od.set_word(&t1,len);   //default int len =1
 //      TBSYS_LOG(INFO,"xushilei,od=[%s]",to_cstring(od));    //test xsl
       char buf_v2[MAX_PRINTABLE_SIZE];
@@ -134,7 +135,6 @@ namespace oceanbase
               od.set_vscale(0);
           }
       }
-      //TBSYS_LOG(INFO,"xushilei,od value=[%s]",to_cstring(od));    //test xsl
       if(ret==OB_SUCCESS)
       {
           out.set_decimal(od);
@@ -285,6 +285,12 @@ namespace oceanbase
               {
                   //out.set_varchar(os);
                   out.set_decimal(od);
+                  uint32_t len = 1;
+                  if(od.get_words()[0].table[1] != 0)
+                  {
+                      len =2;
+                  }
+                  out.set_len(len);
               }
           }
       }
@@ -1042,7 +1048,7 @@ namespace oceanbase
                   len =1;
                   if(od.get_words()->table[1] !=0 )
                       len=2;
-                  //out.set_varchar(varchar);
+                  out.set_varchar(varchar);  //test xsl
                   out.set_decimal(od);   // @todo optimize
                   out.set_len(len);
               }
@@ -1359,7 +1365,9 @@ namespace oceanbase
         else
             t1=0;
         uint32_t len =1;
+        uint32_t pre =1;
         od.set_word(&t1,len);
+        od.set_precision(pre);
         /*ret = varchar_printf(out, "%ld", bool_int);
         if(ret==OB_SUCCESS)
         {
@@ -1391,6 +1399,7 @@ namespace oceanbase
                 {
                     //out.set_varchar(os);
                     out.set_decimal(od);
+                    out.set_len(1);
                 }
         //    }
         //}

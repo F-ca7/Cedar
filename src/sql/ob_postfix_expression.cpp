@@ -768,13 +768,13 @@ namespace oceanbase
           expr_.push_back(tmp3);
 
           ObObj tmp4,tmp5,tmp6,tmp7,tmp8,tmp9,tmp10;
-          tmp4.set_int(6);
-          tmp5.set_int(129);
-          tmp6.set_int(133);
-          tmp7.set_int(2);
+          tmp4.set_int(OP);
+          tmp5.set_int(T_OP_ROW);
+          tmp6.set_int(T_OP_LEFT_PARAM_END);
+          tmp7.set_int(CONST_OBJ);
           tmp8.set_int(tmp_set->count());
-          tmp9.set_int(125);
-          tmp10.set_int(9);
+          tmp9.set_int(T_OP_IN);
+          tmp10.set_int(END);
           expr_.push_back(tmp4);
           expr_.push_back(tmp5);
           expr_.push_back(tmp1);
@@ -872,13 +872,13 @@ namespace oceanbase
           }
 
           ObObj tmp11,tmp12,tmp13,tmp14;
-          tmp11.set_int(6);
+          tmp11.set_int(OP);
           expr_.push_back(tmp11);
           tmp12.set_int(118);
           expr_.push_back(tmp12);
           tmp13.set_int(3);
           expr_.push_back(tmp13);
-          tmp14.set_int(9);
+          tmp14.set_int(END);
           expr_.push_back(tmp14);
       }
       return ret;
@@ -950,7 +950,7 @@ namespace oceanbase
         // 鑾峰緱鏁版嵁绫诲瀷:鍒梚d銆佹暟瀛椼€佹搷浣滅銆佺粨鏉熸爣璁
         if (OB_SUCCESS != (ret = expr_[idx++].get_int(type)))
         {
-          TBSYS_LOG(WARN, "fail to get int value. unexpected! ret=%d idx=%d", ret, idx-1);
+          TBSYS_LOG(WARN, "fail to get int value. unexpected! ret=%d idx=%d,type=%ld", ret, idx-1,type);
           ret = OB_ERR_UNEXPECTED;
           break;
         }

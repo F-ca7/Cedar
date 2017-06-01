@@ -8,11 +8,11 @@
  * @file ob_postfix_expression.h
  * @brief postfix expression class definition
  *
- * modified by longfei锛歛dd interface: get_expr()
+ * modified by longfei：add interface: get_expr()
  * modified by Qiushi FAN: add some functions to craete a new expression
  * modified by maoxiaoxiao: add interface: get_expr_v2()
  *
- * @version CEDAR 0.2 
+ * @version CEDAR 0.2
  * @author longfei <longfei@stu.ecnu.edu.cn>
  * @author Qiushi FAN <qsfan@ecnu.cn>
  * @date 2016_07_28
@@ -33,7 +33,7 @@
  *
  * Authors:
  *   xiaochu <xiaochu.yh@taobao.com>
- *     - 鍚庣紑琛ㄨ揪寮忔眰鍊硷紝鍙敤浜庡鍚堝垪绛夐渶瑕佹敮鎸佸鏉傛眰鍊肩殑鍦哄悎
+ *     - 后缀表达式求值，可用于复合列等需要支持复杂求值的场合
  *
  */
 #ifndef OCEANBASE_SQL_OB_POSTFIX_EXPRESSION_H_
@@ -126,7 +126,7 @@ namespace oceanbase
       MORE_THAN_ZERO = -1,
       //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
       /*
-        * for cast函数
+        * for cast????
       */
       TWO_OR_FOUR=-4,
       //add:e
@@ -367,15 +367,15 @@ namespace oceanbase
         //add:e
         void reset(void);
 
-        /* 灏唕ow涓殑鍊间唬鍏ュ埌expr璁＄畻缁撴灉 */
+        /* 将row中的值代入到expr计算结果 */
         //mod weixing [impplementation of sub_query]20160116
         //int calc(const common::ObRow &row, const ObObj *&result);
         int calc(const common::ObRow &row, const ObObj *&result, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, bool second_check);
         //mod e
 
         /*
-         * 鍒ゆ柇琛ㄨ揪寮忕被鍨嬶細鏄惁鏄痗onst, column_index, etc
-         * 濡傛灉琛ㄨ揪寮忕被鍨嬩负column_index,鍒欒繑鍥瀒ndex鍊
+         * 判断表达式类型：是否是const, column_index, etc
+         * 如果表达式类型为column_index,则返回index??
          */
         int is_const_expr(bool &is_type) const;
         int is_column_index_expr(bool &is_type) const;
@@ -508,7 +508,7 @@ namespace oceanbase
         static int get_result(ObExprObj *stack_i, int &idx_i, ObExprObj &result, const ObPostExprExtraParams &params, common::ObBloomFilterV1* bloom_filter, hash::ObHashMap<common::ObRowkey, common::ObRowkey, common::hash::NoPthreadDefendMode>* hash_map, int &sub_query_idx, bool second_check);
         //add e
 
-        // 杈呭姪鍑芥暟锛屾鏌ヨ〃杈惧紡鏄惁琛ㄧずconst鎴栬�卌olumn index
+        // 辅助函数，检查表达式是否表示const或者column index
         int check_expr_type(const int64_t type_val, bool &is_type, const int64_t stack_len) const;
         int get_sys_func(const common::ObString &sys_func, ObSqlSysFunc &func_type) const;
         int get_var_obj(ObPostExprNodeType type, const ObObj& expr_node, const ObObj*& val) const;
