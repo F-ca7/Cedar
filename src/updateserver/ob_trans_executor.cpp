@@ -522,6 +522,7 @@ namespace oceanbase
               OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_GTIME, cur_time - session_ctx->get_last_proc_time());
               session_ctx->set_last_proc_time(cur_time);
               //add e
+              __sync_synchronize();
               session_ctx->set_trans_id(trans_id);
               session_ctx->get_checksum();
               session_ctx->get_ups_mutator().set_mutate_timestamp(trans_id);
@@ -2086,7 +2087,7 @@ namespace oceanbase
             gtask->count = group->count_;
             gtask->len = group->len_;
             __sync_synchronize();
-            if(OB_SUCCESS != (ret = flush_queue_.push(group->start_log_id_+group->count_, gtask)))
+            if(OB_SUCCESS != (ret = flush_queue_.push(group->start_log_id_ + group->count_ - 1, gtask)))
             {
               TBSYS_LOG(WARN, "push grtask in flush queue failed => %d", ret);
             }
