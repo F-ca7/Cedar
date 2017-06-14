@@ -5,9 +5,11 @@
 
 #include "stdint.h"
 
+//add by zhutao
+#define OB_DEFAULT_BUFFER_SIZE 1966080L
+//add :e
 namespace oceanbase {
   namespace common {
-
     extern int64_t OB_MAX_LOG_BUFFER_SIZE;
     extern int64_t OB_LOG_BUFFER_MAX_SIZE;
     extern int64_t OB_DEFAULT_BLOCK_BITS;
