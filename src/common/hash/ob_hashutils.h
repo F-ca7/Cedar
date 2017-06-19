@@ -62,6 +62,9 @@ namespace oceanbase
         HASH_OVERWRITE_SUCC,
         HASH_INSERT_SUCC,
         HASH_GET_TIMEOUT,
+        //add maoxx [hash join single] 20170614
+        HASH_MODIFY_SUCC,
+        //add e
       };
 
       class SpinLocker

@@ -360,7 +360,7 @@ namespace oceanbase
               int32_t bit_index = subquery_stmt->get_table_bit_index(sub_joined_table_ids.at(j));
               table_bitset.add_member(bit_index);
               
-              for (int32_t k = 0; k < subquery_stmt->get_condition_size(); ++k) 
+              for (int32_t k = 0; k < subquery_stmt->get_condition_size(); ++k)  // 过滤非连接条件
               {
                 uint64_t sub_where_exprs_id = subquery_stmt->get_condition_id(k);
                 ObSqlRawExpr* sql_raw_expr = logical_plan->get_expr(sub_where_exprs_id);
@@ -852,12 +852,12 @@ namespace oceanbase
               
               uint64_t real_table_id = 0;
               sql_raw_expr->optimize_sql_expression(main_stmt, 
-                  table_id_hashmap, column_id_hashmap, table_id, real_table_id, alias_table_hashmap, 2);
+                  table_id_hashmap, column_id_hashmap, table_id, real_table_id, alias_table_hashmap, 2); // 对join条件中表替换成取别名的表
             }
             
             uint64_t joined_tid = main_stmt->generate_joined_tid();
             
-            if(i == 0)
+            if(i == 0) // 子查询中第一个item直接替换父查询中对应的fromitem，后续的push到最后。
             {
               from_item.table_id_ = joined_tid;
               from_item.is_joined_ = sub_from_item.is_joined_;

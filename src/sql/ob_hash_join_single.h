@@ -25,6 +25,11 @@ namespace oceanbase
   {
     class ObHashJoinSingle: public ObJoin
     {
+        //add maoxx [hash join single] 20170614
+        typedef std::pair<const ObRowStore::StoredRow*, int8_t> HashTableRowPair;
+        typedef common::hash::ObHashTableNode<common::hash::HashMapTypes<uint64_t, HashTableRowPair*>::pair_type> hashnode;
+        typedef common::hash::ObHashMap<uint64_t, HashTableRowPair*> HashTableRowMap;
+        //add e
       public:
         ObHashJoinSingle();
         ~ObHashJoinSingle();
@@ -60,7 +65,10 @@ namespace oceanbase
         int left_row_compare_equijoin_cond(const ObRow& r1, const ObRow& r2, int &cmp) const;
         int right_row_compare_equijoin_cond(const ObRow& r1, const ObRow& r2, int &cmp) const;
 //        int compare_hash_equijoin(const ObRow *&r1, const ObRow& r2, int &cmp,bool left_hash_id_cache_valid,int &last_left_hash_id_);
-        int get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2);
+        //modify maoxx [hash join single] 20170614
+//        int get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2);
+        int get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2, uint64_t& bucket_hash_key, HashTableRowPair*& pair);
+        //modify e
         int get_next_leftouterjoin_left_row(const common::ObRow *&row);
         int curr_row_is_qualified(bool &is_qualified);
         int cons_row_desc(const ObRowDesc &rd1, const ObRowDesc &rd2);
@@ -79,10 +87,10 @@ namespace oceanbase
         ObSqlExpression *table_filter_expr_;
         common::ObRow curr_cached_left_row_;
         common::ObRowDesc row_desc_;
-        bool left_hash_id_cache_valid_;
-        int last_left_hash_id_;
+        bool left_hash_key_cache_valid_;
+        uint64_t last_left_hash_key_;
         bool use_bloomfilter_;
-        int left_hash_id_for_left_outer_join_;
+        int64_t left_bucket_pos_for_left_outer_join_;
         bool is_left_iter_end_;
 //        int process_sub_query();
 //        common::ObRow curr_cached_right_row_;
@@ -115,15 +123,21 @@ namespace oceanbase
         static const int64_t BLOOMFILTER_ELEMENT_NUM = 1000000;
         common::ObRow curr_row_;
 
-        struct hash_row_store
+        //modify maoxx [hash join single] 20170614
+        /*struct hash_row_store
         {
           common::ObRowStore row_store;
           int32_t id_no_;
           ObArray<int8_t> hash_iterators;
           hash_row_store():id_no_(0) {}
-        }hash_table_row_store[HASH_BUCKET_NUM];
+        }hash_table_row_store[HASH_BUCKET_NUM];*/
+        hashnode* bucket_node_;
+        common::ObRowStore row_store_;
+        HashTableRowMap hash_table_;
+        //modify e
+
         //add by steven.h.d  2015.6.4
-        int64_t con_length_;
+//        int64_t con_length_;
 //        int numi;
         int64_t left_row_count_;
     };

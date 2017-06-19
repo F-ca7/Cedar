@@ -26,14 +26,17 @@ ObHashJoinSingle::ObHashJoinSingle()
 //       is_right_iter_end_(false)
 {
   arena_.set_mod_id(ObModIds::OB_MS_SUB_QUERY);
-  left_hash_id_cache_valid_ = false;
-  left_hash_id_for_left_outer_join_ = -1;
+  left_hash_key_cache_valid_ = false;
+  left_bucket_pos_for_left_outer_join_ = -1;
   //mod peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518:b
   for(int i=0;i<MAX_SUB_QUERY_NUM;i++)
   {
     is_subquery_result_contain_null[i] = false;
   }
   //mod peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518:e
+  //add maoxx [hash join single] 20170614
+  bucket_node_ = NULL;
+  //add e
   left_row_count_ = 0;
 //  last_left_row_has_printed_ = false;
 //  last_right_row_has_printed_ = false;
@@ -62,6 +65,16 @@ ObHashJoinSingle::ObHashJoinSingle()
      sub_query_map_[i].destroy();
    }
    arena_.free();
+   //add maoxx [hash join single] 20170614
+   row_store_.clear();
+   for (HashTableRowMap::iterator iter = hash_table_.begin(); iter != hash_table_.end(); iter++)
+   {
+     delete iter->second;
+     iter->second = NULL;
+   }
+   hash_table_.destroy();
+   //add e
+   //add 20140610:e
 //   if(table_filter_expr_ != NULL)
 //   {
 //     ObSqlExpression::free (table_filter_expr_);
@@ -75,8 +88,8 @@ void ObHashJoinSingle::reset()
   last_left_row_ = NULL;
   last_right_row_ = NULL;
   row_desc_.reset();
-  left_hash_id_for_left_outer_join_ = -1;
-  left_hash_id_cache_valid_ = false;
+  left_bucket_pos_for_left_outer_join_ = -1;
+  left_hash_key_cache_valid_ = false;
   equal_join_conds_.clear();
   other_join_conds_.clear();
   left_op_ = NULL;
@@ -93,10 +106,15 @@ void ObHashJoinSingle::reset()
     is_subquery_result_contain_null[i] = false;  //add peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518
   }
   //add 20151225:e
-  for(int i = 0; i < HASH_BUCKET_NUM; i++)
+  //modify maoxx [hash join single] 20170614
+  /*for(int i = 0; i < HASH_BUCKET_NUM; i++)
   {
     hash_table_row_store[i].row_store.clear();
-  }
+  }*/
+  bucket_node_ = NULL;
+  hash_table_.clear();
+  row_store_.clear();
+  //modify e
   left_row_count_ = 0;
 //  char *store_buf = last_join_left_row_store_.ptr();
 //  if (NULL != store_buf)
@@ -133,8 +151,8 @@ void ObHashJoinSingle::reuse()
   last_left_row_ = NULL;
   last_right_row_ = NULL;
   row_desc_.reset();
-  left_hash_id_for_left_outer_join_ = -1;
-  left_hash_id_cache_valid_ = false;
+  left_bucket_pos_for_left_outer_join_ = -1;
+  left_hash_key_cache_valid_ = false;
   equal_join_conds_.clear();
   other_join_conds_.clear();
   left_op_ = NULL;
@@ -151,10 +169,15 @@ void ObHashJoinSingle::reuse()
     is_subquery_result_contain_null[i] = false;  //add peiouya [IN_AND NOT_IN_WITH_NULL_BUG_FIX] 20160518
   }
   //add 20151225:e
-  for(int i = 0; i < HASH_BUCKET_NUM; i++)
+  //modify maoxx [hash join single] 20170614
+  /*for(int i = 0; i < HASH_BUCKET_NUM; i++)
   {
     hash_table_row_store[i].row_store.reuse();
-  }
+  }*/
+  bucket_node_ = NULL;
+  hash_table_.clear();
+  row_store_.clear();
+  //modify e
   left_row_count_ = 0;
 //  char *store_buf = last_join_left_row_store_.ptr();
 //  if (NULL != store_buf)
@@ -209,7 +232,6 @@ int ObHashJoinSingle::set_join_type(const ObJoin::JoinType join_type)
       get_next_row_func_ = &ObHashJoinSingle::left_hash_outer_get_next_row;
       //hash part1
 //      get_next_row_func_ = &ObHashJoinSingle::left_outer_get_next_row;
-      //TBSYS_LOG(ERROR,"left_outer_get_next_row");
       use_bloomfilter_ = true;
       break;
     case RIGHT_OUTER_JOIN:
@@ -313,10 +335,10 @@ int ObHashJoinSingle::open()
   const ObRowDesc *right_row_desc = NULL;
 //  char *store_buf = NULL;
 //  char *right_store_buf = NULL;
-  con_length_ = equal_join_conds_.count();
-  if (con_length_ <= 0)
+  int64_t equal_join_conds_count = equal_join_conds_.count();
+  if (equal_join_conds_count <= 0)
   {
-    TBSYS_LOG(WARN, "bloom filter join can not work without equijoin conditions");
+    TBSYS_LOG(WARN, "hash join can not work without equijoin conditions");
     ret = OB_NOT_SUPPORTED;
     return ret;
   }
@@ -330,7 +352,14 @@ int ObHashJoinSingle::open()
   }
   if(OB_SUCCESS == ret)
   {
-    table_filter_expr_ = ObSqlExpression::alloc();
+    //delete maoxx [hash join single] 20170614
+    /*table_filter_expr_ = ObSqlExpression::alloc();
+    if (NULL == table_filter_expr_)
+    {
+      TBSYS_LOG(WARN, "no memory");
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      return ret;
+    }
 //    hashmap_num_ = 0;
 //    bloomfilter_map_[hashmap_num_].create(HASH_BUCKET_NUM);
     common::ObBloomFilterV1 *bloom_filter = NULL;
@@ -339,11 +368,12 @@ int ObHashJoinSingle::open()
     if(OB_SUCCESS != (ret = bloom_filter->init(BLOOMFILTER_ELEMENT_NUM)))
     {
       TBSYS_LOG(WARN, "Problem initialize bloom filter");
+      return ret;
     }
     ExprItem dem1,dem2,dem3,dem4,dem5;
     dem1.type_ = T_REF_COLUMN;
     //后缀表达式组建
-    for (int64_t i = 0; i < con_length_; ++i)
+    for (int64_t i = 0; i < equal_join_conds_count; ++i)
     {
       const ObSqlExpression &expr = equal_join_conds_.at(i);
       ExprItem::SqlCellInfo c1;
@@ -353,9 +383,9 @@ int ObHashJoinSingle::open()
         dem1.value_.cell_.tid = c2.tid;
         dem1.value_.cell_.cid = c2.cid;
         //add dragon [invalid_argument] 2016-12-22
-        ObTableRpcScan * right_rpc_scan;
+        ObTableRpcScan * right_rpc_scan = NULL;
         if(NULL == (right_rpc_scan = dynamic_cast<ObTableRpcScan *>(get_child(1)))){
-          /* Never Mind, it's OK*/
+          //Never Mind, it's OK
           TBSYS_LOG(WARN, "Now, we only support TableRpcScan operator!");
         }
         else
@@ -376,21 +406,21 @@ int ObHashJoinSingle::open()
           }
           else
           {
-            /*do nothing*/
+            //do nothing
           }
           TBSYS_LOG(DEBUG, "dem1 has been changed from %ld to %ld", c2.tid, dem1.value_.cell_.tid);
         }
 
         //c1是左表, c2是右表
         TBSYS_LOG(DEBUG, "Dragon says: %ld/%ld c1 is left table while c2 is right table c1[%lu, %lu] c2[%lu, %lu]",
-                  i, con_length_, c1.tid, c1.cid, c2.tid, c2.cid);
+                  i, equal_join_conds_count, c1.tid, c1.cid, c2.tid, c2.cid);
         //add dragon 2016-12-22 e
         table_filter_expr_->add_expr_item(dem1);
       }
     }
     dem2.type_ = T_OP_ROW;
     dem2.data_type_ = ObMinType;
-    dem2.value_.int_ = con_length_;
+    dem2.value_.int_ = equal_join_conds_count;
 
     dem3.type_ = T_OP_LEFT_PARAM_END;
     dem3.data_type_ = ObMinType;
@@ -407,26 +437,32 @@ int ObHashJoinSingle::open()
     table_filter_expr_->add_expr_item(dem3);
     table_filter_expr_->add_expr_item(dem4);
     table_filter_expr_->add_expr_item(dem5);
-    table_filter_expr_->add_expr_item_end();
+    table_filter_expr_->add_expr_item_end();*/
+    //delete e
 
     const ObRow *row = NULL;
     ret = left_op_->get_next_row(row);
+    //add maoxx [hash join single] 20170614
+    hash_table_.create(HASH_BUCKET_NUM);
+    //add e
     //迭代前表数据，构建Bloomfilter
     while (OB_SUCCESS == ret)
     {
       //TBSYS_LOG(ERROR, "load data from left table, row=%s", to_cstring(*row));
       left_row_count_++;
-      ObObj value[con_length_];
+      //delete maoxx [hash join single] 20170614
+//      ObObj value[equal_join_conds_count];
+      //delete e
       ObRow *curr_row = const_cast<ObRow *>(row);
-      uint64_t bucket_num = 0;
-      for (int64_t i = 0; i < con_length_; ++i)
+      uint64_t hash_key = 0;
+      for (int64_t i = 0; i < equal_join_conds_count; ++i)
       {
         const ObSqlExpression &expr = equal_join_conds_.at(i);
         ExprItem::SqlCellInfo c1;
         ExprItem::SqlCellInfo c2;
         if (expr.is_equijoin_cond(c1, c2))
         {
-          ObObj *temp;
+          ObObj *temp = NULL;
           if (OB_SUCCESS != (ret = curr_row->get_cell(c1.tid,c1.cid,temp)))
           {
             TBSYS_LOG(ERROR, "failed to get cell, err=%d tid=%lu cid=%lu", ret, c1.tid, c1.cid);
@@ -434,21 +470,26 @@ int ObHashJoinSingle::open()
           }
           else
           {
-            value[i] = *temp;
-            bucket_num = temp->murmurhash64A(bucket_num);
+            //delete maoxx [hash join single] 20170614
+//            value[i] = *temp;
+            //delete e
+            hash_key = temp->murmurhash64A(hash_key);
           }
         }
       }
-      ObRowkey columns;
-      columns.assign(value,con_length_);
+      //delete maoxx [hash join single] 20170614
+      /*ObRowkey columns;
+      columns.assign(value,equal_join_conds_count);
       ObRowkey columns2;
       if(OB_SUCCESS != (ret = columns.deep_copy(columns2,arena_)))
       {
         TBSYS_LOG(WARN, "fail to deep copy column");
         break;
       }
-      bloom_filter->insert(columns2);
-      const ObRowStore::StoredRow *stored_row = NULL;
+      bloom_filter->insert(columns2);*/
+      //delete e
+      //modify maoxx [hash join single] 20170614
+      /*const ObRowStore::StoredRow *stored_row = NULL;
       bucket_num = bucket_num % HASH_BUCKET_NUM;
       //TBSYS_LOG(ERROR,"DHC bucket_num=%d",(int)bucket_num);
       //sort--part1 维护前表数据
@@ -456,17 +497,25 @@ int ObHashJoinSingle::open()
 //      stored_row = NULL;
       //hash--part2 维护前表数据
       hash_table_row_store[(int)bucket_num].row_store.add_row(*row, stored_row);
-      hash_table_row_store[(int)bucket_num].hash_iterators.push_back(0);
+      hash_table_row_store[(int)bucket_num].hash_iterators.push_back(0);*/
+      const ObRowStore::StoredRow *stored_row = NULL;
+      row_store_.add_row(*row, stored_row);
+      HashTableRowPair* pair = new HashTableRowPair(stored_row, 0);
+      if(common::hash::HASH_INSERT_SUCC != hash_table_.set_multiple(hash_key, pair))
+      {
+        TBSYS_LOG(WARN, "fail to insert pair into hash map");
+        ret = OB_ERROR;
+        break;
+      }
+      //modify e
       ret = left_op_->get_next_row(row);
     }
 	//add wanglei [bloom filter fix] 20160524:b
     if(ret == OB_ITER_END)
       ret = OB_SUCCESS;
 	//add wanglei [bloom filter fix] 20160524:e
-    //add maoxx test
-    use_bloomfilter_ = false;
-    //add e
-    if(use_bloomfilter_ && (left_row_count_ > 0))
+    //delete maoxx [hash join single bug fix] 20170509
+    /*if(use_bloomfilter_ && (left_row_count_ > 0))
     {
       //sort--part1 后表运算符
 //      ObSingleChildPhyOperator *sort_query =  dynamic_cast<ObSingleChildPhyOperator *>(get_child(1));
@@ -482,12 +531,16 @@ int ObHashJoinSingle::open()
 //        main_query->add_filter(table_filter_expr_);
 //      }
       //hash--part2 后表运算符
-      ObTableRpcScan * main_query;
+      ObTableRpcScan * main_query = NULL;
 //      ObTableMemScan * main_query_in;
       if(NULL != (main_query = dynamic_cast<ObTableRpcScan *>(get_child(1))))
       {
         TBSYS_LOG(ERROR,"DHC Rpc_Scan");
-        main_query->add_filter(table_filter_expr_);
+        if(OB_SUCCESS != (ret = main_query->add_filter(table_filter_expr_)))
+        {
+          ObSqlExpression::free(table_filter_expr_);
+          TBSYS_LOG(WARN,"hash join add expression failed!");
+        }
       }
 //      else
 //      {
@@ -497,7 +550,7 @@ int ObHashJoinSingle::open()
 //          main_query_in->add_filter(table_filter_expr_);
 //        }
 //      }
-    }
+    }*/
     /*int64_t max_size = 0; //测试hash是否分布均匀
     int64_t second_size = 0;
     for(int64_t i = 0; i < HASH_BUCKET_NUM; i++)
@@ -506,52 +559,102 @@ int ObHashJoinSingle::open()
         second_size = hash_table_row_store[(int)i].hash_iterators.count()< max_size ? (hash_table_row_store[(int)i].hash_iterators.count() > second_size ? hash_table_row_store[(int)i].hash_iterators.count() : second_size) : second_size;
     }
     TBSYS_LOG(ERROR,"max_size=%d second_size=%d",(int)max_size,(int)second_size);*/
+    //delete e
   }
   if(OB_SUCCESS == ret)
   {
-      if (OB_SUCCESS != (ret = right_op_->open()))
+    if (OB_SUCCESS != (ret = right_op_->open()))
+    {
+      TBSYS_LOG(WARN, "failed to open right_op_ operator(s), err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = right_op_->get_row_desc(right_row_desc)))
+    {
+      TBSYS_LOG(WARN, "failed to get right_op_ row desc, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = cons_row_desc(*left_row_desc, *right_row_desc)))
+    {
+      TBSYS_LOG(WARN, "failed to cons row desc, err=%d", ret);
+    }
+//    else if (NULL == (store_buf = static_cast<char*>(ob_malloc(MAX_SINGLE_ROW_SIZE, ObModIds::OB_SQL_MERGE_JOIN))))
+//    {
+//      TBSYS_LOG(ERROR, "no memory");
+//      ret = OB_ALLOCATE_MEMORY_FAILED;
+//    }
+//    else if (NULL == (right_store_buf = static_cast<char*>(ob_malloc(MAX_SINGLE_ROW_SIZE, ObModIds::OB_SQL_MERGE_JOIN))))
+//    {
+//      TBSYS_LOG(ERROR, "no memory");
+//      ret = OB_ALLOCATE_MEMORY_FAILED;
+//    }
+    else
+    {
+      OB_ASSERT(left_row_desc);
+      OB_ASSERT(right_row_desc);
+      curr_row_.set_row_desc(row_desc_);
+      last_left_row_ = NULL;
+      last_right_row_ = NULL;
+      curr_cached_left_row_.set_row_desc(*left_row_desc);
+      left_hash_key_cache_valid_ = false;
+      left_bucket_pos_for_left_outer_join_ = -1 ;
+//      curr_cached_right_row_.set_row_desc(*right_row_desc);
+//      right_cache_is_valid_ = false;
+//      is_right_iter_end_ = false;
+//      last_left_row_has_printed_ = false;
+//      last_right_row_has_printed_ = false;
+//      left_cache_is_valid_ = false;
+//      is_left_iter_end_ = false;
+//      cur_hashmap_num_ = 0;
+//      last_join_right_row_store_.assign_buffer(right_store_buf,MAX_SINGLE_ROW_SIZE);
+//      last_join_left_row_store_.assign_buffer(store_buf, MAX_SINGLE_ROW_SIZE);
+
+      //add maoxx [hash join single bug fix] 20170509
+      //delete maoxx [hash join single] 20170614
+      /*if(use_bloomfilter_ && (left_row_count_ > 0))
       {
-        TBSYS_LOG(WARN, "failed to open right_op_ operator(s), err=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = right_op_->get_row_desc(right_row_desc)))
-      {
-        TBSYS_LOG(WARN, "failed to get right_op_ row desc, err=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = cons_row_desc(*left_row_desc, *right_row_desc)))
-      {
-        TBSYS_LOG(WARN, "failed to cons row desc, err=%d", ret);
-      }
-//      else if (NULL == (store_buf = static_cast<char*>(ob_malloc(MAX_SINGLE_ROW_SIZE, ObModIds::OB_SQL_MERGE_JOIN))))
-//      {
-//        TBSYS_LOG(ERROR, "no memory");
-//        ret = OB_ALLOCATE_MEMORY_FAILED;
-//      }
-//      else if (NULL == (right_store_buf = static_cast<char*>(ob_malloc(MAX_SINGLE_ROW_SIZE, ObModIds::OB_SQL_MERGE_JOIN))))
-//      {
-//        TBSYS_LOG(ERROR, "no memory");
-//        ret = OB_ALLOCATE_MEMORY_FAILED;
-//      }
-      else
-      {
-        OB_ASSERT(left_row_desc);
-        OB_ASSERT(right_row_desc);
-        curr_row_.set_row_desc(row_desc_);
-        last_left_row_ = NULL;
-        last_right_row_ = NULL;
-        curr_cached_left_row_.set_row_desc(*left_row_desc);
-        left_hash_id_cache_valid_ = false;
-        left_hash_id_for_left_outer_join_ = -1 ;
-//        curr_cached_right_row_.set_row_desc(*right_row_desc);
-//        right_cache_is_valid_ = false;
-//        is_right_iter_end_ = false;
-//        last_left_row_has_printed_ = false;
-//        last_right_row_has_printed_ = false;
-//        left_cache_is_valid_ = false;
-//        is_left_iter_end_ = false;
-//        cur_hashmap_num_ = 0;
-//        last_join_right_row_store_.assign_buffer(right_store_buf,MAX_SINGLE_ROW_SIZE);
-//        last_join_left_row_store_.assign_buffer(store_buf, MAX_SINGLE_ROW_SIZE);
-      }
+        //sort--part1 后表运算符
+//        ObSingleChildPhyOperator *sort_query =  dynamic_cast<ObSingleChildPhyOperator *>(get_child(1));
+//        ObTableRpcScan * main_query;
+//        if(NULL==(main_query= dynamic_cast<ObTableRpcScan *>(sort_query->get_child(0)))){
+//          ObTableMemScan * main_query_in;
+//          main_query_in= dynamic_cast<ObTableMemScan *>(sort_query->get_child(0));
+//          //main_query_in->set_expr(table_filter_expr_);
+//        }
+//        else
+//        {
+//          hashmap_num_ ++;
+//          main_query->add_filter(table_filter_expr_);
+//        }
+        //hash--part2 后表运算符
+        ObTableRpcScan * main_query = NULL;
+//        ObTableMemScan * main_query_in;
+        if(NULL != (main_query = dynamic_cast<ObTableRpcScan *>(get_child(1))))
+        {
+          TBSYS_LOG(ERROR,"DHC Rpc_Scan");
+          if(OB_SUCCESS != (ret = main_query->add_filter(table_filter_expr_)))
+          {
+            ObSqlExpression::free(table_filter_expr_);
+            TBSYS_LOG(WARN,"hash join add expression failed!");
+          }
+        }
+//        else
+//        {
+//          if(NULL != (main_query_in = dynamic_cast<ObTableMemScan *>(get_child(1))))
+//          {
+//            TBSYS_LOG(ERROR,"DHC MemScan");
+//            main_query_in->add_filter(table_filter_expr_);
+//          }
+//        }
+      }*/
+      //delete e
+      /*int64_t max_size = 0; //测试hash是否分布均匀
+        int64_t second_size = 0;
+        for(int64_t i = 0; i < HASH_BUCKET_NUM; i++)
+        {
+            max_size = max_size < hash_table_row_store[(int)i].hash_iterators.count()? hash_table_row_store[(int)i].hash_iterators.count() : max_size;
+            second_size = hash_table_row_store[(int)i].hash_iterators.count()< max_size ? (hash_table_row_store[(int)i].hash_iterators.count() > second_size ? hash_table_row_store[(int)i].hash_iterators.count() : second_size) : second_size;
+        }
+        TBSYS_LOG(ERROR,"max_size=%d second_size=%d",(int)max_size,(int)second_size);*/
+      //add e
+    }
   }
   return ret;
 }
@@ -560,14 +663,13 @@ int ObHashJoinSingle::open()
 //判断等值连接条件是否满足
 int ObHashJoinSingle::compare_equijoin_cond(const ObRow& r1, const ObRow& r2, int &cmp) const
 {
-  //TBSYS_LOG(ERROR, "dhc ObHashJoinSingle::compare_equijoin_cond()");
   int ret = OB_SUCCESS;
   cmp = 0;
   const ObObj *res1 = NULL;
   const ObObj *res2 = NULL;
   ObExprObj obj1;
   ObExprObj obj2;
-  for (int64_t i = 0; i < con_length_; ++i)
+  for (int64_t i = 0; i < equal_join_conds_.count(); ++i)
   {
     const ObSqlExpression &expr = equal_join_conds_.at(i);
     ExprItem::SqlCellInfo c1;
@@ -616,16 +718,15 @@ int ObHashJoinSingle::compare_equijoin_cond(const ObRow& r1, const ObRow& r2, in
   return ret;
 }
 
-int ObHashJoinSingle::left_row_compare_equijoin_cond(const ObRow& r1, const ObRow& r2, int &cmp) const
+/*int ObHashJoinSingle::left_row_compare_equijoin_cond(const ObRow& r1, const ObRow& r2, int &cmp) const
 {
-  //TBSYS_LOG(ERROR, "dhc ObHashJoinSingle::left_row_compare_equijoin_cond()");
   int ret = OB_SUCCESS;
   cmp = 0;
   const ObObj *res1 = NULL;
   const ObObj *res2 = NULL;
   ObExprObj obj1;
   ObExprObj obj2;
-  for (int64_t i = 0; i < con_length_; ++i)
+  for (int64_t i = 0; i < equal_join_conds_.count(); ++i)
   {
     const ObSqlExpression &expr = equal_join_conds_.at(i);
     ExprItem::SqlCellInfo c1;
@@ -676,7 +777,7 @@ int ObHashJoinSingle::right_row_compare_equijoin_cond(const ObRow& r1, const ObR
   const ObObj *res2 = NULL;
   ObExprObj obj1;
   ObExprObj obj2;
-  for (int64_t i = 0; i < con_length_; ++i)
+  for (int64_t i = 0; i < equal_join_conds_.count(); ++i)
   {
     const ObSqlExpression &expr = equal_join_conds_.at(i);
     ExprItem::SqlCellInfo c1;
@@ -716,7 +817,7 @@ int ObHashJoinSingle::right_row_compare_equijoin_cond(const ObRow& r1, const ObR
     }
   }
   return ret;
-}
+}*/
 
 int ObHashJoinSingle::curr_row_is_qualified(bool &is_qualified)
 {
@@ -791,12 +892,10 @@ int ObHashJoinSingle::cons_row_desc(const ObRowDesc &rd1, const ObRowDesc &rd2)
     {
       TBSYS_LOG(ERROR, "unexpected branch");
       ret = OB_ERR_UNEXPECTED;
-      break;
     }
     else if (OB_SUCCESS != (ret = row_desc_.add_column_desc(tid, cid)))
     {
       TBSYS_LOG(WARN, "failed to add column desc, err=%d", ret);
-      break;
     }
   }
   return ret;
@@ -829,12 +928,10 @@ int ObHashJoinSingle::join_rows(const ObRow& r1, const ObRow& r2)
     {
       TBSYS_LOG(ERROR, "unexpected branch, err=%d", ret);
       ret = OB_ERR_UNEXPECTED;
-      break;
     }
     else if (OB_SUCCESS != (ret = curr_row_.raw_set_cell(i+j, *cell)))
     {
       TBSYS_LOG(WARN, "failed to set cell, err=%d j=%ld", ret, j);
-      break;
     }
   }
   return ret;
@@ -869,7 +966,6 @@ int ObHashJoinSingle::left_join_rows(const ObRow& r1)
     if (OB_SUCCESS != (ret = curr_row_.raw_set_cell(i+j, null_cell)))
     {
       TBSYS_LOG(WARN, "failed to set cell, err=%d j=%ld", ret, j);
-      break;
     }
   }
   return ret;
@@ -898,12 +994,10 @@ int ObHashJoinSingle::right_join_rows(const ObRow& r2)
     {
       TBSYS_LOG(ERROR, "unexpected branch, err=%d", ret);
       ret = OB_ERR_UNEXPECTED;
-      break;
     }
     else if (OB_SUCCESS != (ret = curr_row_.raw_set_cell(left_row_column_num+j, *cell)))
     {
       TBSYS_LOG(WARN, "failed to set cell, err=%d j=%ld", ret, j);
-      break;
     }
   }
   return ret;
@@ -1995,7 +2089,8 @@ int ObHashJoinSingle::right_join_rows(const ObRow& r2)
 //  return ret;
 //}
 
-int ObHashJoinSingle::get_next_leftouterjoin_left_row(const common::ObRow *&row)
+//modify maoxx [hash join single] 20170614
+/*int ObHashJoinSingle::get_next_leftouterjoin_left_row(const common::ObRow *&row)
 {
   int ret = OB_SUCCESS;
   for(; left_hash_id_for_left_outer_join_ < HASH_BUCKET_NUM; )
@@ -2030,7 +2125,53 @@ int ObHashJoinSingle::get_next_leftouterjoin_left_row(const common::ObRow *&row)
     ret = OB_ITER_END;
   }
   return ret;
+}*/
+int ObHashJoinSingle::get_next_leftouterjoin_left_row(const common::ObRow *&row)
+{
+  int ret = OB_SUCCESS;
+  int64_t hash_table_bucket_num = hash::cal_next_prime(HASH_BUCKET_NUM);
+  HashTableRowPair* pair = NULL;
+  for(; left_bucket_pos_for_left_outer_join_ < hash_table_bucket_num; )
+  {
+    if(common::hash::HASH_EXIST != (ret = hash_table_.get_all(left_bucket_pos_for_left_outer_join_, bucket_node_, 0, pair)))
+    {
+      if (common::hash::HASH_NOT_EXIST != ret)
+      {
+        TBSYS_LOG(WARN, "failed to get next row from hash_table, err=%d", ret);
+        ret = OB_ERROR;
+      }
+      else
+      {
+        left_bucket_pos_for_left_outer_join_++;
+        bucket_node_ = NULL;
+        ret = OB_ITER_END;
+        continue;
+      }
+    }
+    else
+    {
+      if(1 == pair->second)
+      {
+        continue;
+      }
+      if(OB_SUCCESS != (ret = ObRowUtil::convert(pair->first->get_compact_row(), curr_cached_left_row_)))
+      {
+        TBSYS_LOG(WARN, "fail to convert compact row to ObRow:ret[%d]", ret);
+      }
+      else
+      {
+        row = &curr_cached_left_row_;
+      }
+      break;
+    }
+  }
+  if(left_bucket_pos_for_left_outer_join_ >= hash_table_bucket_num)
+  {
+    ret = OB_ITER_END;
+  }
+  return ret;
 }
+//modify e
 
 //int ObHashJoinSingle::compare_hash_equijoin(const ObRow *&r1, const ObRow& r2, int &cmp, bool left_hash_id_cache_valid_, int &last_left_hash_id_)
 //{
@@ -2135,18 +2276,19 @@ int ObHashJoinSingle::get_next_leftouterjoin_left_row(const common::ObRow *&row)
 //  return ret;
 //}
 
-int ObHashJoinSingle::get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2)
+//modify maoxx [hash join single] 20170614
+/*int ObHashJoinSingle::get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2)
 {
   int ret = OB_SUCCESS;
   uint64_t bucket_num = 0;
   if(!left_hash_id_cache_valid_)
   {
-    for (int64_t i = 0; i < con_length_; ++i)
+    for (int64_t i = 0; i < equal_join_conds_.count(); ++i)
     {
       const ObSqlExpression &expr = equal_join_conds_.at(i);
       ExprItem::SqlCellInfo c1;
       ExprItem::SqlCellInfo c2;
-      const ObObj *temp;
+      const ObObj *temp = NULL;
       if (expr.is_equijoin_cond(c1, c2))
       {
         if (OB_SUCCESS != (ret = r2.get_cell(c2.tid, c2.cid, temp)))
@@ -2197,7 +2339,80 @@ int ObHashJoinSingle::get_next_equijoin_left_row(const ObRow *&r1, const ObRow& 
     }
   }
   return ret;
+}*/
+int ObHashJoinSingle::get_next_equijoin_left_row(const ObRow *&r1, const ObRow& r2, uint64_t& bucket_hash_key, HashTableRowPair*& pair)
+{
+  int ret = OB_SUCCESS;
+  uint64_t hash_key = 0;
+  if(!left_hash_key_cache_valid_)
+  {
+    for (int64_t i = 0; i < equal_join_conds_.count(); ++i)
+    {
+      const ObSqlExpression &expr = equal_join_conds_.at(i);
+      ExprItem::SqlCellInfo c1;
+      ExprItem::SqlCellInfo c2;
+      const ObObj *temp = NULL;
+      if (expr.is_equijoin_cond(c1, c2))
+      {
+        if (OB_SUCCESS != (ret = r2.get_cell(c2.tid, c2.cid, temp)))
+        {
+          TBSYS_LOG(ERROR, "failed to get cell, err=%d tid=%lu cid=%lu", ret, c2.tid, c2.cid);
+          break;
+        }
+        else
+        {
+          hash_key = temp->murmurhash64A(hash_key);
+        }
+      }
+    }
+    last_left_hash_key_ = hash_key;
+  }
+  else
+  {
+    hash_key = last_left_hash_key_;
+  }
+  bucket_hash_key = hash_key;
+  while(OB_SUCCESS == ret)
+  {
+    if(common::hash::HASH_EXIST != (ret = hash_table_.get_multiple(bucket_node_, hash_key, pair)))
+    {
+      if (common::hash::HASH_NOT_EXIST != ret)
+      {
+        TBSYS_LOG(WARN, "failed to get next row from hash_table, err=%d", ret);
+        ret = OB_ERROR;
+      }
+      else
+      {
+        ret = OB_ITER_END;
+      }
+      left_hash_key_cache_valid_ = false;
+      break;
+    }
+    else
+    {
+      if(OB_SUCCESS != (ret = ObRowUtil::convert(pair->first->get_compact_row(), curr_cached_left_row_)))
+      {
+        TBSYS_LOG(WARN, "fail to convert compact row to ObRow:ret[%d]", ret);
+      }
+      else
+      {
+        int cmp = 0;
+        if (OB_SUCCESS != (ret = compare_equijoin_cond(curr_cached_left_row_, r2, cmp)))
+        {
+          TBSYS_LOG(WARN, "failed to compare, err=%d", ret);
+          break;
+        }
+        if(cmp == 0)
+        {
+          r1 = &curr_cached_left_row_;
+          break;
+        }
+      }
+    }
+  }
+  return ret;
 }
+//modify e
 
 //int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
 //{
@@ -2305,17 +2520,27 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
   const ObRow *right_row = NULL;
   const ObRow *left_row = NULL;
 
+  //add maoxx [hash join single] 20170614
+  HashTableRowPair* pair = NULL;
+  uint64_t bucket_hash_key = 0;
+  //add e
+
   while(OB_SUCCESS == ret)
   {
-    if (left_hash_id_cache_valid_)
+    if (left_hash_key_cache_valid_)
     {
-      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_)))
+      //modify maoxx [hash join single] 20170614
+//      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_)))
+      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_, bucket_hash_key, pair)))
+      //modify e
       {
         if(OB_ITER_END == ret)
         {
-          left_hash_id_cache_valid_ = false;
+          //add maoxx [hash join single] 20170614
+          bucket_node_ = NULL;
+          //add e
+          left_hash_key_cache_valid_ = false;
           ret = OB_SUCCESS;
-          continue;
         }
       }
       else
@@ -2333,7 +2558,17 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
-          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          //modify maoxx [hash join single] 20170614
+//          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
+          delete pair;
+          pair = NULL;
+          if(common::hash::HASH_MODIFY_SUCC != hash_table_.modify_multiple(bucket_node_, bucket_hash_key, new_pair))
+          {
+            TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
+            ret = OB_ERROR;
+          }
+          //modify e
           break;
         }
       }
@@ -2363,18 +2598,25 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
         }
       }
       OB_ASSERT(right_row);
-      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row)))
+      //modify maoxx [hash join single] 20170614
+//      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row)))
+      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row, bucket_hash_key, pair)))
+      //modify e
       {
         if(OB_ITER_END == ret)
         {
-          left_hash_id_cache_valid_ = false;
+          //add maoxx [hash join single] 20170614
+          bucket_node_ = NULL;
+          //add e
+          left_hash_key_cache_valid_ = false;
           ret = OB_SUCCESS;
-          continue;
         }
       }
       else
       {
-        left_hash_id_cache_valid_ = true;
+        //modify maoxx  [hash join single bug fix] 20170428
+//        left_hash_id_cache_valid_ = true;
+        //modify e
         bool is_qualified = false;
         if (OB_SUCCESS != (ret = join_rows(*left_row, *right_row)))
         {
@@ -2388,8 +2630,21 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
+          //add maoxx  [hash join single bug fix] 20170428
+          left_hash_key_cache_valid_ = true;
+          //add e
           last_right_row_ = right_row;
-          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          //modify maoxx [hash join single] 20170614
+//          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
+          delete pair;
+          pair = NULL;
+          if(common::hash::HASH_MODIFY_SUCC != hash_table_.modify_multiple(bucket_node_, bucket_hash_key, new_pair))
+          {
+            TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
+            ret = OB_ERROR;
+          }
+          //modify e
           break;
         }
       }
@@ -2455,7 +2710,7 @@ int ObHashJoinSingle::left_hash_outer_get_next_row(const common::ObRow *&row)
   const ObRow *left_row = NULL;
   const ObRow *inner_hash_row = NULL;
 
-  if(left_hash_id_for_left_outer_join_ == -1)
+  if(left_bucket_pos_for_left_outer_join_ == -1)
   {
     if (OB_SUCCESS != (ret = inner_hash_get_next_row(inner_hash_row)))
     {
@@ -2465,9 +2720,11 @@ int ObHashJoinSingle::left_hash_outer_get_next_row(const common::ObRow *&row)
       }
       else
       {
-        left_hash_id_for_left_outer_join_ = 0;
-        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].id_no_ = 0;
-        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].row_store.reset_iterator();
+        left_bucket_pos_for_left_outer_join_ = 0;
+        //delete maoxx [hash join single] 20170614
+//        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].id_no_ = 0;
+//        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].row_store.reset_iterator();
+        //delete e
       }
     }
     else
@@ -2475,7 +2732,7 @@ int ObHashJoinSingle::left_hash_outer_get_next_row(const common::ObRow *&row)
       row = inner_hash_row;
     }
   }
-  if(left_hash_id_for_left_outer_join_ != -1)
+  if(left_bucket_pos_for_left_outer_join_ != -1)
   {
     if (OB_SUCCESS != (ret = get_next_leftouterjoin_left_row(left_row)))
     {
@@ -2505,17 +2762,27 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
   const ObRow *right_row = NULL;
   const ObRow *left_row = NULL;
 
+  //add maoxx [hash join single] 20170614
+  HashTableRowPair* pair = NULL;
+  uint64_t bucket_hash_key = 0;
+  //add e
+
   while(OB_SUCCESS == ret)
   {
-    if (left_hash_id_cache_valid_)
+    if (left_hash_key_cache_valid_)
     {
-      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_)))
+      //modify maoxx [hash join single] 20170614
+//      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_)))
+      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *last_right_row_, bucket_hash_key, pair)))
+      //modify e
       {
         if(OB_ITER_END == ret)
         {
-          left_hash_id_cache_valid_ = false;
+          //add maoxx [hash join single] 20170614
+          bucket_node_ = NULL;
+          //add e
+          left_hash_key_cache_valid_ = false;
           ret = OB_SUCCESS;
-          continue;
         }
       }
       else
@@ -2533,7 +2800,17 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
-          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          //modify maoxx [hash join single] 20170614
+//          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
+          delete pair;
+          pair = NULL;
+          if(common::hash::HASH_MODIFY_SUCC != hash_table_.modify_multiple(bucket_node_, bucket_hash_key, new_pair))
+          {
+            TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
+            ret = OB_ERROR;
+          }
+          //modify e
           break;
         }
       }
@@ -2556,11 +2833,17 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         }
       }
       OB_ASSERT(right_row);
-      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row)))
+      //modify maoxx [hash join single] 20170614
+//      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row)))
+      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row, bucket_hash_key, pair)))
+      //modify e
       {
         if(OB_ITER_END == ret)
         {
-          left_hash_id_cache_valid_ = false;
+          //add maoxx [hash join single] 20170614
+          bucket_node_ = NULL;
+          //add e
+          left_hash_key_cache_valid_ = false;
           if (OB_SUCCESS != (ret = right_join_rows(*right_row)))
           {
             TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
@@ -2576,7 +2859,9 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
       }
       else
       {
-        left_hash_id_cache_valid_ = true;
+        //modify maoxx  [hash join single bug fix] 20170428
+//        left_hash_id_cache_valid_ = true;
+        //modify e
         bool is_qualified = false;
         if (OB_SUCCESS != (ret = join_rows(*left_row, *right_row)))
         {
@@ -2590,8 +2875,21 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
+          //add maoxx  [hash join single bug fix] 20170428
+          left_hash_key_cache_valid_ = true;
+          //add e
           last_right_row_ = right_row;
-          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          //modify maoxx [hash join single] 20170614
+//          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
+          HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
+          delete pair;
+          pair = NULL;
+          if(common::hash::HASH_MODIFY_SUCC != hash_table_.modify_multiple(bucket_node_, bucket_hash_key, new_pair))
+          {
+            TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
+            ret = OB_ERROR;
+          }
+          //modify e
           break;
         }
       }
@@ -2605,7 +2903,7 @@ int ObHashJoinSingle::full_hash_outer_get_next_row(const common::ObRow *&row)
   int ret = OB_SUCCESS;
   const ObRow *left_row = NULL;
   const ObRow *right_hash_row = NULL;
-  if(left_hash_id_for_left_outer_join_ == -1)
+  if(left_bucket_pos_for_left_outer_join_ == -1)
   {
     if (OB_SUCCESS != (ret = right_hash_outer_get_next_row(right_hash_row)))
     {
@@ -2615,9 +2913,11 @@ int ObHashJoinSingle::full_hash_outer_get_next_row(const common::ObRow *&row)
       }
       else
       {
-        left_hash_id_for_left_outer_join_ = 0;
-        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].id_no_ = 0;
-        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].row_store.reset_iterator();
+        left_bucket_pos_for_left_outer_join_ = 0;
+        //delete maoxx [hash join single] 20170614
+//        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].id_no_ = 0;
+//        hash_table_row_store[(int)left_hash_id_for_left_outer_join_].row_store.reset_iterator();
+        //delete e
       }
     }
     else
@@ -2625,7 +2925,7 @@ int ObHashJoinSingle::full_hash_outer_get_next_row(const common::ObRow *&row)
       row = right_hash_row;
     }
   }
-  if(left_hash_id_for_left_outer_join_ != -1)
+  if(left_bucket_pos_for_left_outer_join_ != -1)
   {
     if (OB_SUCCESS != (ret = get_next_leftouterjoin_left_row(left_row)))
     {
