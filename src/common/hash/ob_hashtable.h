@@ -476,6 +476,92 @@ namespace oceanbase
 
             return ret;
           }
+          //add maoxx [hash join single] 20170614
+          inline int internal_get_multiple(const hashbucket &bucket, hashnode*& bucket_node, const _key_type &key,
+                           _value_type &value, bool &is_fake) const
+          {
+            int ret = HASH_NOT_EXIST;
+            hashnode *node = ((bucket_node != NULL) ? bucket_node->next : bucket.node);
+            is_fake = false;
+
+            while (NULL != node)
+            {
+              if (equal_(getkey_(node->data), key))
+              {
+                value = node->data;
+                is_fake = node->is_fake;
+                bucket_node = node;
+                ret = HASH_EXIST;
+                break;
+              }
+              else
+              {
+                node = node->next;
+              }
+            }
+
+            return ret;
+          }
+          inline int internal_get_multiple(const hashbucket &bucket, hashnode*& bucket_node, const _key_type &key,
+                           const _value_type *&value, bool &is_fake) const
+          {
+            int ret = HASH_NOT_EXIST;
+            hashnode *node = ((bucket_node != NULL) ? bucket_node->next : bucket.node);
+            is_fake = false;
+
+            while (NULL != node)
+            {
+              if (equal_(getkey_(node->data), key))
+              {
+                value = &(node->data);
+                is_fake = node->is_fake;
+                bucket_node = node;
+                ret = HASH_EXIST;
+                break;
+              }
+              else
+              {
+                node = node->next;
+              }
+            }
+
+            return ret;
+          }
+          inline int internal_get_all(const hashbucket &bucket, hashnode*& bucket_node,
+                           _value_type &value, bool &is_fake) const
+          {
+            int ret = HASH_NOT_EXIST;
+            hashnode *node = ((bucket_node != NULL) ? bucket_node->next : bucket.node);
+            is_fake = false;
+
+            if(NULL != node)
+            {
+              value = node->data;
+              is_fake = node->is_fake;
+              bucket_node = node;
+              ret = HASH_EXIST;
+            }
+
+            return ret;
+          }
+          inline int internal_get_all(const hashbucket &bucket, hashnode*& bucket_node,
+                           const _value_type *&value, bool &is_fake) const
+          {
+            int ret = HASH_NOT_EXIST;
+            hashnode *node = ((bucket_node != NULL) ? bucket_node->next : bucket.node);
+            is_fake = false;
+
+            if(NULL != node)
+            {
+              value = node->data;
+              is_fake = node->is_fake;
+              bucket_node = node;
+              ret = HASH_EXIST;
+            }
+
+            return ret;
+          }
+          //add e
           inline int internal_set(hashbucket &bucket, const _value_type &value, const bool is_fake)
           {
             int ret = HASH_INSERT_SUCC;
@@ -497,6 +583,24 @@ namespace oceanbase
 
             return ret;
           }
+          //add maoxx [hash join single] 20170614
+          inline int internal_modify_multiple(hashnode* bucket_node, const _value_type &value, const bool is_fake)
+          {
+            int ret = HASH_MODIFY_SUCC;
+
+            if (NULL == bucket_node)
+            {
+              ret = -1;
+            }
+            else
+            {
+              bucket_node->data = value;
+              bucket_node->is_fake = is_fake;
+            }
+
+            return ret;
+          }
+          //add e
         public:
           // 以下四个函数提供多线程安全保证
           // 成功返回HASH_EXIST
@@ -630,6 +734,106 @@ namespace oceanbase
             }
             return ret;
           };
+
+          //add maoxx [hash join single] 20170614
+          int get_multiple(hashnode*& bucket_node, const _key_type &key, _value_type &value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              uint64_t hash_value = hashfunc_(key);
+              int64_t bucket_pos = hash_value % bucket_num_;
+              hashbucket &bucket = buckets_[bucket_pos];
+              bool is_fake = false;
+              readlocker locker(bucket.lock);
+              ret = internal_get_multiple(bucket, bucket_node, key, value, is_fake);
+
+              if (HASH_EXIST == ret && is_fake)
+              {
+                ret = HASH_NOT_EXIST;
+              }
+            }
+            return ret;
+          };
+          int get_multiple(hashnode*& bucket_node, const _key_type &key, const _value_type *&value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              uint64_t hash_value = hashfunc_(key);
+              int64_t bucket_pos = hash_value % bucket_num_;
+              hashbucket &bucket = buckets_[bucket_pos];
+              bool is_fake = false;
+              readlocker locker(bucket.lock);
+              ret = internal_get_multiple(bucket, bucket_node, key, value, is_fake);
+
+              if (HASH_EXIST == ret && is_fake)
+              {
+                ret = HASH_NOT_EXIST;
+              }
+            }
+            return ret;
+          };
+          int get_all(int64_t& bucket_pos, hashnode*& bucket_node, _value_type &value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              hashbucket &bucket = buckets_[bucket_pos];
+              bool is_fake = false;
+              readlocker locker(bucket.lock);
+              ret = internal_get_all(bucket, bucket_node, value, is_fake);
+
+              if (HASH_EXIST == ret && is_fake)
+              {
+                ret = HASH_NOT_EXIST;
+              }
+            }
+            return ret;
+          };
+          int get_all(int64_t& bucket_pos, hashnode*& bucket_node,const _value_type *&value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              hashbucket &bucket = buckets_[bucket_pos];
+              bool is_fake = false;
+              readlocker locker(bucket.lock);
+              ret = internal_get_all(bucket, bucket_node, value, is_fake);
+
+              if (HASH_EXIST == ret && is_fake)
+              {
+                ret = HASH_NOT_EXIST;
+              }
+            }
+            return ret;
+          };
+          //add e
+
           // 返回  -1  表示set调用出错, (无法分配新结点等)
           // 其他均表示插入成功：插入成功分下面三个状态
           // 返回  HASH_OVERWRITE_SUCC  表示覆盖旧结点成功(在flag非0的时候返回）
@@ -691,6 +895,50 @@ namespace oceanbase
             }
             return ret;
           };
+
+          //add maoxx [hash join single] 20170614
+          int set_multiple(const _key_type &key, const _value_type &value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              uint64_t hash_value = hashfunc_(key);
+              int64_t bucket_pos = hash_value % bucket_num_;
+              hashbucket &bucket = buckets_[bucket_pos];
+              writelocker locker(bucket.lock);
+
+              ret = internal_set(bucket, value, false);
+            }
+            return ret;
+          };
+          int modify_multiple(hashnode* bucket_node, const _key_type &key, const _value_type &value)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              uint64_t hash_value = hashfunc_(key);
+              int64_t bucket_pos = hash_value % bucket_num_;
+              hashbucket &bucket = buckets_[bucket_pos];
+              writelocker locker(bucket.lock);
+
+              ret = internal_modify_multiple(bucket_node, value, false);
+            }
+            return ret;
+          };
+          //add e
+
           template <class _callback>
           // 注意 atomic用于原子性的更新一个value,在bucket粒度的锁中执行
           // 所以callback仿函数中严禁调用hashtable的任何方法

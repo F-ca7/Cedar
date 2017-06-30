@@ -12,10 +12,7 @@ namespace oceanbase
      */
     int ObOptimizer::optimizer(ResultPlan &result_plan, ObResultSet &result)
     {
-      
       int ret = OB_SUCCESS;
-      
-      TBSYS_LOG(WARN, "*****lxb*****, enter the optimizer success");
       
       if(true)
       {
@@ -67,9 +64,8 @@ namespace oceanbase
         fp = fopen("/home/lxb/logic_end.txt", "wt");
         logical_plan->print(fp, 0);
         fclose(fp);
-        TBSYS_LOG(WARN, "*****lxb|logical plan end*****");
         */
-
+        
       }
       
       return ret;

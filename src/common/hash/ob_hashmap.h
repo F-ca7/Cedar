@@ -146,6 +146,51 @@ namespace oceanbase
           }
           return ret;
         };
+        //add maoxx [hash join single] 20170614
+        inline int get_multiple(ObHashTableNode<pair_type>*& bucket_node, const _key_type &key, _value_type &value) const
+        {
+          int ret = 0;
+          pair_type pair(key, value);
+          if (HASH_EXIST == (ret = const_cast<hashtable&>(ht_).get_multiple(bucket_node, key, pair)))
+          {
+            value = pair.second;
+          }
+          return ret;
+        };
+        inline const _value_type *get_multiple(ObHashTableNode<pair_type>*& bucket_node, const _key_type &key) const
+        {
+          const _value_type *ret = NULL;
+          const pair_type *pair = NULL;
+          if (HASH_EXIST == const_cast<hashtable&>(ht_).get_multiple(bucket_node, key, pair)
+              && NULL != pair)
+          {
+            ret = &(pair->second);
+          }
+          return ret;
+        };
+        inline int get_all(int64_t& bucket_pos, ObHashTableNode<pair_type>*& bucket_node, const _key_type &key, _value_type &value) const
+        {
+          int ret = 0;
+          pair_type pair(key, value);
+          if (HASH_EXIST == (ret = const_cast<hashtable&>(ht_).get_all(bucket_pos, bucket_node, pair)))
+          {
+            value = pair.second;
+          }
+          return ret;
+        };
+        inline const _value_type *get_all(int64_t& bucket_pos, ObHashTableNode<pair_type>*& bucket_node, const _key_type &key) const
+        {
+          const _value_type *ret = NULL;
+          const pair_type *pair = NULL;
+          UNUSED(key);
+          if (HASH_EXIST == const_cast<hashtable&>(ht_).get_all(bucket_pos, bucket_node, pair)
+              && NULL != pair)
+          {
+            ret = &(pair->second);
+          }
+          return ret;
+        };
+        //add e
         // flag默认为0表示不覆盖已有元素 非0表示覆盖已有元素
         // 返回  -1  表示set调用出错, (无法分配新结点等)
         // 其他均表示插入成功：插入成功分下面三个状态
@@ -158,6 +203,18 @@ namespace oceanbase
           pair_type pair(key, value);
           return ht_.set(key, pair, flag, broadcast, overwrite_key);
         };
+        //add maoxx [hash join single] 20170614
+        inline int set_multiple(const _key_type &key, const _value_type &value)
+        {
+          pair_type pair(key, value);
+          return ht_.set_multiple(key, pair);
+        };
+        inline int modify_multiple(ObHashTableNode<pair_type>* bucket_node, const _key_type &key, const _value_type &value)
+        {
+          pair_type pair(key, value);
+          return ht_.modify_multiple(bucket_node, key, pair);
+        };
+        //add e
         template <class _callback>
         // 返回  -1表示有错误发生
         // 返回  HASH_EXIST表示结点存在
