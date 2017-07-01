@@ -506,18 +506,18 @@ int resolve_expr(
 
        //TBSYS_LOG(INFO,"xushilei,test,dec=[%s]",to_cstring(src));    //test xsl
 
-       TTInt *t1 = NULL;
+       TTInt t1;
        //TTInt *t2 = NULL;
-       t1 = src.get_words();
+       t1 = src.get_words()[0];
        //add xsl ECNU_DECIMAL 2017_5 mem_op
        uint32_t len = 0;
        uint64_t *src_val = NULL;
        uint64_t *dst_val = NULL;
-       if(t1->table[1] ==0)     //highest is or not exist value
+       if(t1.table[1] == 0)     //highest is or not exist value
            len = 1;
        else
            len = 2;
-       src_val = t1->ToUInt_v2();
+       src_val = t1.ToUInt_v2();
        ob_write_decimal(*name_pool,src_val,len,dst_val);
        val.set_decimal(dst_val,src.get_precision(),src.get_scale(),src.get_vscale(),len);
 //       TBSYS_LOG(INFO,"xushilei,test,len=[%d],dec=[%s]",len,to_cstring(val));    //test xsl
@@ -937,11 +937,11 @@ int resolve_expr(
                     else if(len == 1)
                     {
                         uint64_t tmp= *t1;   //1123
-//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",*t1);   //test xsl
+                        TTInt tt = tmp;
+                        tt.ChangeSign();
+                        len = 2;
 //                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",tmp);   //test xsl
-                        tmp = -tmp;         //-1123
-//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",tmp);   //test xsl
-                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,&tmp,len,t2)))
+                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))  //modify xsl
                         {
                             TBSYS_LOG(WARN, "out of memory");
                             break;

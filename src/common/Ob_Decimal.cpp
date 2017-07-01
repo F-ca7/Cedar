@@ -252,7 +252,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         vscale_ = got_frac;
         scale_=vscale_;      //all equal got_frac
         precision_=got_digit;
-        //if(precision_==scale_)precision_;    //modify xsl 2017_4
+        if(precision_==scale_)precision_++;    //modify xsl 2017_4
 	  }
     //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
 	return ret;
@@ -299,7 +299,7 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
         //TBSYS_LOG(INFO,"xushilei,word[0].uint=[%lu],word[0].int=[%ld]",word[0].ToUInt(),word[0].ToInt());
         //TBSYS_LOG(INFO,"xushilei,word[0]=[%s]",word[0].ToString().c_str());
         //add xsl ECNU_DECIMAL
-        if(word[0].table[1] == 0 && ( (word[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0)) // (table[0]<0)
+        /*if(word[0].table[1] == 0 && ( (word[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0)) // (table[0]<0)
         {
             tmp[pos] = '-';
             uint64_t tmp0 = -word[0].table[0];   //can modify xsl
@@ -309,7 +309,8 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
             start = 1;
         }
         //add e
-        else if(word[0].IsSign())    //table[1]<0
+        else */
+        if(word[0].IsSign())    //table[1]<0
         {
             tmp[pos] = '-';            
             whole = word[0] / BASE;
@@ -518,12 +519,14 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
         else
             point_pos++;          //num before point
     }
+    /*
     int pre=is_neg;
     while(buf[pre] == '0')     //pre zero and -
     {
         pre++;
     }
-    if (point_pos - pre> (int) p - (int) s )
+    */
+    if (point_pos - is_neg/*pre*/> (int) p - (int) s )
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
         TBSYS_LOG(ERROR,"OB_DECIMAL_UNLEGAL_ERROR !,point_pos=%d,p= %d,s=%d buf=%s",
@@ -596,7 +599,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
-        precision_ = point_pos - pre + s;   //add xsl ECNU_DECIMAL 2017_3
+        precision_ = point_pos - is_neg + s;   //add xsl ECNU_DECIMAL 2017_3
     }
     //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     return ret;
@@ -623,25 +626,8 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
 	ObDecimal n2 = other;
 //    TBSYS_LOG(INFO,"xushilei,test n1=[%s],n2=[%s]",to_cstring(n1),to_cstring(n2));   //test xsl
     int p = 0;
-    //modify xsl ECNU_DECIMAL 2017_5
-    TTLInt num1,num2;
-    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n1.get_words()[0].table[0];
-        num1 = tmp;
-    }
-    else
-        num1 = n1.get_words()[0];
-    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n2.get_words()[0].table[0] ;
-        num2 =tmp;
-    }
-    else
-        num2 = n2.get_words()[0];
-    //modify e
-//    TBSYS_LOG(INFO,"xushilei,test n1=[%s]",n1.get_words()->ToString().c_str());   //test xsl
-//    TBSYS_LOG(INFO,"xushilei,test n2=[%s]",n2.get_words()->ToString().c_str());   //test xsl
+    TTLInt num1 = n1.get_words()[0];
+    TTLInt num2 = n2.get_words()[0];
 	TTInt BASE(10);
 	if (n1.get_vscale() >= n2.get_vscale()) {
 		p = (n1.get_vscale() - n2.get_vscale());
@@ -722,23 +708,8 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
     int ret = OB_SUCCESS;
     ObDecimal n1 = *this;
     ObDecimal n2 = other;
-    //modify xsl ECNU_DECIMAL 2017_5
-    TTLInt num1,num2;
-    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n1.get_words()[0].table[0];
-        num1 = tmp;
-    }
-    else
-        num1 = n1.get_words()[0];
-    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n2.get_words()[0].table[0] ;
-        num2 =tmp;
-    }
-    else
-        num2 = n2.get_words()[0];
-    //modify e
+    TTLInt num1 = n1.get_words()[0];
+    TTLInt num2 = n2.get_words()[0];
     TTLInt base_to_modify(10);
 //    TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
 //    TBSYS_LOG(INFO,"xushilei,num2=[%s]",num2.ToString().c_str());    //test xsl
@@ -823,32 +794,19 @@ int ObDecimal::div(const ObDecimal &other, ObDecimal &res) const {
 	ObDecimal n1 = *this;
 	ObDecimal n2 = other;
     int p = 0;
-	TTLInt int_part;
+    TTLInt num1 = n1.get_words()[0];
+    TTLInt num2 = n2.get_words()[0];
+
+    TTLInt int_part;
 	TTLInt BASE(10),base_to_modify(10);
 	res.precision_=MAX_DECIMAL_DIGIT;
-    //modify xsl ECNU_DECIMAL 2017_5
-    TTLInt num1,num2;
-    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n1.get_words()[0].table[0];
-        num1 = tmp;
-    }
-    else
-        num1 = n1.get_words()[0];
-    if(n2.get_words()[0].table[1] == 0 && ( (n2.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n2.get_words()[0].table[0] ;
-        num2 =tmp;
-    }
-    else
-        num2 = n2.get_words()[0];
+
 
 	if (n1.get_vscale() >= n2.get_vscale()) {
 		p = (n1.get_vscale() - n2.get_vscale());
 		BASE.Pow(p);
 		num2 = num2 * BASE;
 
-    //modify e
 	} else {
 		p = (n2.get_vscale() - n1.get_vscale());
 		BASE.Pow(p);
@@ -941,18 +899,10 @@ int ObDecimal::negate(ObDecimal &res) const {
 	res.precision_ = n1.precision_;
 	res.scale_ = n1.scale_;
 	res.vscale_ = n1.vscale_;
-    //modify xsl ECNU_DECIMAL 2017_5
-    TTInt num1;
-    if(n1.get_words()[0].table[1] == 0 && ( (n1.get_words()[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0))
-    {
-        int64_t tmp = n1.get_words()[0].table[0];
-        num1 = tmp;
-    }
-    else
-        num1 = n1.get_words()[0];
-    num1.ChangeSign();
-    res.word[0] = num1;
-    //modify e
+    TTInt num = n1.get_words()[0];
+
+    num.ChangeSign();
+    res.word[0] = num;
 	return ret;
 }
 

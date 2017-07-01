@@ -526,7 +526,7 @@ int resolve_column_definition(
          *建表的时候要对用户输入的decimal的参数做正确性检查
          * report wrong info when input precision<scale
          * */
-        if (col_def.precision_ < col_def.scale_||col_def.precision_>MAX_DECIMAL_DIGIT||col_def.scale_>MAX_DECIMAL_SCALE||col_def.precision_<=0||type_node->num_child_==0)
+        if (col_def.precision_ <= col_def.scale_||col_def.precision_>MAX_DECIMAL_DIGIT||col_def.scale_>MAX_DECIMAL_SCALE||col_def.precision_<=0||type_node->num_child_==0)
         {
             ret = OB_ERR_WRONG_DYNAMIC_PARAM;
             snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
