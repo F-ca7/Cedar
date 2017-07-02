@@ -60,13 +60,7 @@ namespace oceanbase
         ObTriggerCallback * get_trigger_callback();
       private:
         int next_value_      (ObUpsMutator &mutator, int64_t &value) const;
-        //modify by qx 20170305 :b
-        // I think 1s maybe too short duration, timeout will cause ups kill self,
-        // generate many false positives
-        // so change it 5s
-        //static const int64_t RPC_TIMEOUT = 1 * 1000 * 1000; // 1s
-        static const int64_t RPC_TIMEOUT = 5 * 1000 * 1000; // 5s
-        //modify :e
+        static const int64_t RPC_TIMEOUT = 1 * 1000 * 1000; // 1s
         ObTriggerCallback    callback_;
         common::ObServer     rootserver_;
         ObUpsRpcStub *       rpc_stub_;

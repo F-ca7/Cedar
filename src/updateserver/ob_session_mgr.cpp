@@ -75,17 +75,6 @@ namespace oceanbase
             TBSYS_LOG(WARN, "invoke callback fail ret=%d cb=%p data=%p", tmp_ret, iter->callback, iter->data);
             ret = (OB_SUCCESS == ret) ? tmp_ret : ret;
           }
-          //add by qx 20170225 :b
-          // we have temporary no way replay trigger event when trigger log replayed
-          // thus, in order to avoid lost event, only kill ups when rs offline
-          // even I know the solution is very ugly.
-          // Sorry, ups. I apologize to you in the name of God.
-          if (tmp_ret == OB_RS_OFFLINE)
-          {
-            ret = tmp_ret;
-            break;
-          }
-          //add :e
         }
         iter = iter->next;
       }
@@ -641,10 +630,7 @@ namespace oceanbase
             OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_RTIME, cur_time - ctx->get_last_proc_time());
             ctx->set_last_proc_time(cur_time);
           }
-          //modify by qx 20170225 :b
-          //ctx->on_free();
-          ret = ctx->on_free();
-          //mdoidy :e
+          ctx->on_free();
           FILL_TRACE_BUF(ctx->get_tlog_buffer(), "type=%d sd=%u ctx=%p trans_id=%ld trans_timeu=%ld",
                         ctx->get_type(), session_descriptor, ctx, ctx->get_trans_id(),
                         tbsys::CTimeUtil::getTime() - ctx->get_session_start_time());
