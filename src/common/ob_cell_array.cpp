@@ -133,7 +133,8 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
   //modify xsl ECNU_DECIMAL 2017_1
   else if(src.get_type() == ObDecimalType){
     ObDecimal src_value;
-    ObDecimal *dst_value=NULL;
+    uint64_t *dst_value=NULL;
+    //ObDecimal *dst_value=NULL;
     //ObDecimal dst_value2;
     err = src.get_decimal(src_value);
     uint64_t len;
@@ -142,7 +143,8 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
         if (src_value.get_words() != NULL)
         {
             len = sizeof(uint64_t)*src.get_nwords();
-            dst_value =reinterpret_cast<ObDecimal*>(page_arena_.alloc(len));
+            //dst_value =reinterpret_cast<ObDecimal*>(page_arena_.alloc(len));
+            dst_value = reinterpret_cast<uint64_t*>(page_arena_.alloc(len));
             if (NULL == dst_value)
             {
                 TBSYS_LOG(WARN, "%s", "fail to malloc buffer for decimal value");
@@ -150,12 +152,12 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
             }
             else
             {
-                allocated_memory_size_+=len;//分配空间，赋值
-                memcpy(dst_value->get_words()->ToUInt_v2(), src_value.get_words()->ToUInt_v2(), len);  //modify xsl
+                allocated_memory_size_ += len;//分配空间，赋值
+                memcpy(dst_value, src_value.get_words()->ToUInt_v2(), len);  //modify xsl
                 dst_value->set_precision(src_value.get_precision());
                 dst_value->set_scale(src_value.get_scale());
                 dst_value->set_vscale(src_value.get_vscale());
-                dst.set_decimal(dst_value);
+                dst.set_ttint(dst_value);
                 dst.set_nwords(src.get_nwords());
             }
         }
