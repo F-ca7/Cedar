@@ -1251,7 +1251,11 @@ namespace oceanbase
             const ObRowDesc& row_desc_index,
             const ObRowDescExt& row_desc_ext_index,
             const ObSEArray<int64_t, 64> *row_desc_map,
-            ObExprValues& value_op);
+            ObExprValues& value_op
+            //add huangjianwei [auto_increment] 20170703:b
+            , const uint64_t auto_column_id, const int64_t auto_value
+            //add:e
+            );
         //add e
 
         //add wangjiahao [dev_update_more] 20151204 :b
@@ -1285,6 +1289,13 @@ namespace oceanbase
             ObPhyOperator*& table_op);
        //add :e
 
+        //add huangjianwei [auto_increment] 20170703:b
+        int cons_auto_increment_row_desc(const uint64_t table_id,
+            const ObStmt *stmt,
+            ObRowDescExt &row_desc_ext,
+            ObRowDesc &row_desc,
+            ErrStat& err_stat);
+        //add:b
         int gen_physical_update_new(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan*& physical_plan,

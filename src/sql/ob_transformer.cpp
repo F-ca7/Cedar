@@ -5583,7 +5583,11 @@ int ObTransformer::gen_phy_values_index(ObLogicalPlan *logical_plan,
                                       const ObRowDesc &row_desc_index,
                                       const ObRowDescExt &row_desc_ext_index,
                                       const ObSEArray<int64_t, 64> *row_desc_map,
-                                      ObExprValues &value_op)
+                                      ObExprValues &value_op
+                                      //add huangjianwei [auto_increment] 20170703:b
+                                      , const uint64_t auto_column_id, const int64_t auto_value
+                                       //add:e
+                                      )
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;
   OB_ASSERT(logical_plan);
@@ -5593,6 +5597,9 @@ int ObTransformer::gen_phy_values_index(ObLogicalPlan *logical_plan,
   ret = get_row_desc_intersect(row_desc, row_desc_ext, row_desc_index, row_desc_ext_index);
   value_op.set_row_desc(row_desc, row_desc_ext);
   int64_t num = insert_stmt->get_value_row_size();
+  //add huangjianwei [auto_increment] 20170703:b
+  int64_t tmp_auto_value = auto_value;
+  //add:e
   for (int64_t i = 0; ret == OB_SUCCESS && i < num; i++) // for each row
   {
     const ObArray<uint64_t>& value_row = insert_stmt->get_value_row(i);
@@ -5601,31 +5608,85 @@ int ObTransformer::gen_phy_values_index(ObLogicalPlan *logical_plan,
       value_op.reserve_values(num * value_row.count());
       FILL_TRACE_LOG("expr_values_count=%ld", num * value_row.count());
     }
-    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+    //add huangjianwei [auto_increment] 20170703:b
+    bool is_insert = false;
+    int64_t offset = 0;
+    //add:e
+    //modify huangjianwei [auto_increment] 20170703:b
+    //for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count(); j++)
+    for (int64_t j = 0; ret == OB_SUCCESS && j < value_row.count() + (is_insert ? 1 : 0); j++)
+    //modify:e
     {
-      ObSqlExpression val_expr;
-      int64_t expr_idx = OB_INVALID_INDEX;
-      if (NULL != row_desc_map)
+      //add huangjianwei [auto_increment] 20170703:b
+      uint64_t tid = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+          !is_insert && auto_column_id != OB_INVALID_ID &&
+          OB_SUCCESS != (ret = row_desc.get_tid_cid(j, tid, column_id)))
       {
-        OB_ASSERT(value_row.count() == row_desc_map->count());
-        expr_idx = value_row.at(row_desc_map->at(j));
+        TRANS_LOG("Failed to get tid cid, err=%d", ret);
+        break;
+      }
+      else if (auto_value > OB_INVALID_AUTO_INCREMENT_VALUE &&
+               !is_insert && auto_column_id != OB_INVALID_ID && auto_column_id == column_id)
+      {
+        ObSqlExpression val_expr;
+        ObObj val_obj;
+        val_obj.set_int(++tmp_auto_value);
+        ObConstRawExpr value(val_obj, T_INT);
+        ObSqlRawExpr auto_expr(OB_INVALID_ID, OB_INVALID_ID, OB_INVALID_ID, &value);
+        if (OB_SUCCESS != (ret = auto_expr.fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
+        {
+          TRANS_LOG("Failed to fill expr, err=%d", ret);
+          break;
+        }
+        else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
+        {
+          TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
+          break;
+        }
+        else
+        {
+          is_insert = true;
+          offset = -1;
+        }
       }
       else
       {
-        expr_idx = value_row.at(j);
-      }
-      ObSqlRawExpr *value_expr = logical_plan->get_expr(expr_idx);
-      OB_ASSERT(NULL != value_expr);
-      if (OB_SUCCESS != (ret = value_expr->fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
-      {
-        TRANS_LOG("Failed to fill expr, err=%d", ret);
-      }
-      else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
-      {
-        TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
-      }
+      //add:e
+        ObSqlExpression val_expr;
+        int64_t expr_idx = OB_INVALID_INDEX;
+        if (NULL != row_desc_map)
+        {
+          OB_ASSERT(value_row.count() == row_desc_map->count());
+          //modify huangjianwei [auto_increment] 20170703:b
+          //expr_idx = value_row.at(row_desc_map->at(j));
+          expr_idx = value_row.at(row_desc_map->at(j+ offset));
+          //modify:e
+        }
+        else
+        {
+          //modify huangjianwei [auto_increment] 20170703:b
+          //expr_idx = value_row.at(j);
+          expr_idx = value_row.at(j+ offset);
+          //modify:e
+        }
+        ObSqlRawExpr *value_expr = logical_plan->get_expr(expr_idx);
+        OB_ASSERT(NULL != value_expr);
+        if (OB_SUCCESS != (ret = value_expr->fill_sql_expression(val_expr, this, logical_plan, physical_plan)))
+        {
+          TRANS_LOG("Failed to fill expr, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = value_op.add_value(val_expr)))
+        {
+          TRANS_LOG("Failed to add value into expr_values, err=%d", ret);
+        }
+      } //add huangjianwei [auto_increment] 20170703:b:e
     } // end for
-    for(int64_t j = value_row.count(); j < row_desc.get_column_num(); j++)
+    //modify huangjianwei [auto_increment] 20170703:b
+    //for(int64_t j = value_row.count(); j < row_desc.get_column_num(); j++)
+    for(int64_t j = value_row.count() + (is_insert ? 1 : 0); j < row_desc.get_column_num(); j++)
+    //modify:e
     {
       uint64_t table_id = OB_INVALID_ID;
       uint64_t column_id = OB_INVALID_ID;
@@ -12985,6 +13046,10 @@ int ObTransformer::gen_physical_replace_new(
   uint64_t auto_column_id = OB_INVALID_ID;
   int64_t auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
   //add:e
+  //add huangjianwei [auto_increment] 20170307:b
+  ObRowDesc auto_increment_row_desc;
+  ObRowDescExt auto_increment_row_desc_ext;
+  //add:e
   if (OB_SUCCESS != (ret = wrap_ups_executor(physical_plan, query_id, inner_plan, index, err_stat)))
   {
     TBSYS_LOG(WARN, "err=%d", ret);
@@ -13101,6 +13166,12 @@ int ObTransformer::gen_physical_replace_new(
         if (OB_UNLIKELY(OB_SUCCESS != ret))
         {
         }
+        //add huangjianwei [auto_increment] 20170703:b
+        else if (OB_SUCCESS != (ret = cons_auto_increment_row_desc(insert_stmt->get_table_id(), insert_stmt, auto_increment_row_desc_ext, auto_increment_row_desc, err_stat)))
+        {
+          TRANS_LOG("fail to cons auto increment row desc, err=%d", ret);
+        }
+        //add:e
         else if(OB_SUCCESS != (ret = cons_whole_row_desc_for_replace(insert_stmt, insert_stmt->get_table_id(), row_desc_for_static_data, row_desc_ext_for_static_data)))
         {
           TRANS_LOG("fail to cons row desc for static data, err=%d", ret);
@@ -13200,9 +13271,6 @@ int ObTransformer::gen_physical_replace_new(
       //add maoxx [replace bug fix] 20170317
       ObExprValues *input_index_values = NULL;
       //add e
-      //add maoxx [replace bug fix] 20170324
-      ObRowDesc post_row_desc = row_desc;
-      //add e
       if (OB_LIKELY(OB_SUCCESS == ret))
       {
         CREATE_PHY_OPERRATOR(input_values, ObExprValues, inner_plan, err_stat);
@@ -13213,18 +13281,17 @@ int ObTransformer::gen_physical_replace_new(
         {
           TBSYS_LOG(WARN, "failed to add phy query, err=%d", ret);
         }
-        //modify maoxx [replace bug fix] 20170313
-//        else if ((ret = input_values->set_row_desc(row_desc_for_static_data, row_desc_ext_for_static_data)) != OB_SUCCESS)
-        else if ((ret = input_values->set_row_desc(row_desc, row_desc_ext)) != OB_SUCCESS)
-        //modify e
+        //modify huangjianwei [auto_incremrnt] 20170703:b
+        //else if ((ret = input_values->set_row_desc(row_desc, row_desc_ext)) != OB_SUCCESS)
+        else if ((ret = input_values->set_row_desc(auto_increment_row_desc, auto_increment_row_desc_ext)) != OB_SUCCESS)
         {
           TRANS_LOG("Set descriptor of value operator failed, err=%d", ret);
         }
-        //modify maoxx [replace bug fix] 20170313
-//        else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
-//                                                                 row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_values)))
+        //modify huangjianwei [auto_increment] 20170703:b
         else if (OB_SUCCESS != (ret = gen_phy_values_for_replace(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                                 row_desc, row_desc_ext, &row_desc_map, *input_values
+                                                                 //row_desc, row_desc_ext, &row_desc_map, *input_values
+                                                                 auto_increment_row_desc, auto_increment_row_desc_ext, &row_desc_map, *input_values
+                                                                 //modify:e
                                                                  //add lbzhong [auto_increment] 20161217:b
                                                                  , auto_column_id, auto_value
                                                                  //add:e
@@ -13253,7 +13320,13 @@ int ObTransformer::gen_physical_replace_new(
           TBSYS_LOG(WARN, "fail to add phy query, err=%d", ret);
         }
         else if (OB_SUCCESS != (ret = gen_phy_values_index(logical_plan, inner_plan, err_stat, insert_stmt,
-                                                         row_desc, row_desc_ext, row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_index_values)))
+                                                           //modify huangjianwei [auto_increment] 20170703:b
+                                                           //row_desc, row_desc_ext, row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_index_values
+                                                           auto_increment_row_desc, auto_increment_row_desc_ext, row_desc_for_static_data, row_desc_ext_for_static_data, &row_desc_map, *input_index_values
+                                                           //add huangjianwei [auto_increment] 20170703:b
+                                                           , auto_column_id, auto_value
+                                                           //add:e
+                                                           )))
         {
           TRANS_LOG("fail to generate values, err=%d", ret);
         }
@@ -13262,7 +13335,7 @@ int ObTransformer::gen_physical_replace_new(
           input_index_values->set_check_rowkey_duplicate(true);
           input_index_values->set_replace_check_rowkey_duplicate(true);
           //add maoxx test
-          TBSYS_LOG(ERROR, "test::maoxx row_desc=%s, row_desc_for_static_data=%s, input_index_values=%s", to_cstring(row_desc), to_cstring(row_desc_for_static_data), to_cstring(*input_index_values));
+          TBSYS_LOG(ERROR, "test::maoxx row_desc=%s, row_desc_for_static_data=%s, input_index_values=%s", to_cstring(auto_increment_row_desc), to_cstring(row_desc_for_static_data), to_cstring(*input_index_values));
           //add e
         }
       }
@@ -13290,7 +13363,7 @@ int ObTransformer::gen_physical_replace_new(
           index_trigger->set_pre_data_row_desc(row_desc_for_static_data);
           //modify maoxx [replace bug fix] 20170317
 //          index_trigger->set_post_data_row_desc(row_desc_for_static_data);
-          index_trigger->set_post_data_row_desc(post_row_desc);
+          index_trigger->set_post_data_row_desc(auto_increment_row_desc);
           //modify e
           //index_trigger->set_replace_values_id(input_values->get_id());
           //modify maoxx [replace bug fix] 20170317
@@ -15055,4 +15128,116 @@ int ObTransformer::add_auto_increment_op(ObPhysicalPlan *physical_plan,
   return ret;
 }
 
+//add:e
+
+//add huangjianwei [auto_increment] 20170703:b
+int ObTransformer::cons_auto_increment_row_desc(const uint64_t table_id,
+                                 const ObStmt *stmt,
+                                 ObRowDescExt &row_desc_ext,
+                                 ObRowDesc &row_desc,
+                                 ErrStat& err_stat)
+{
+  OB_ASSERT(sql_context_);
+  OB_ASSERT(sql_context_->schema_manager_);
+  int& ret = err_stat.err_code_ = OB_SUCCESS;
+  ObRowkeyInfo rowkey_info;
+  const ObTableSchema *table_schema = NULL;
+  if (NULL == (table_schema = sql_context_->schema_manager_->get_table_schema(table_id)))
+  {
+    ret = OB_ERR_ILLEGAL_ID;
+    TRANS_LOG("fail to get table schema for table[%ld]", table_id);
+  }
+  else
+  {
+    rowkey_info = table_schema->get_rowkey_info();
+    int64_t rowkey_col_num = rowkey_info.get_size();
+    row_desc.set_rowkey_cell_count(rowkey_col_num);
+
+    int32_t column_num = stmt->get_column_size();
+    const ColumnItem* column_item = NULL;
+    ObObj data_type;
+    // construct rowkey columns first
+    for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_col_num; ++i) // for each primary key
+    {
+      const ObRowkeyColumn *rowkey_column = rowkey_info.get_column(i);
+      OB_ASSERT(rowkey_column);
+      //add huangjianwei [auto_increment]: add the auto column
+      uint64_t auto_column_id = get_auto_column_id(table_id);
+      if (OB_INVALID_ID != auto_column_id && rowkey_column->column_id_ == auto_column_id)
+      {
+        if (OB_SUCCESS != (ret = row_desc.add_column_desc(table_id, auto_column_id)))
+        {
+          TRANS_LOG("failed to add row desc, err=%d", ret);
+        }
+        else
+        {
+          data_type.set_type(rowkey_column->type_);
+          if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(table_id, auto_column_id, data_type)))
+          {
+            TRANS_LOG("failed to add row desc, err=%d", ret);
+          }
+        }
+      }
+      //add:e
+      // find it's index in the input columns
+      for (int32_t j = 0; ret == OB_SUCCESS && j < column_num; ++j)
+      {
+        column_item = stmt->get_column_item(j);
+        OB_ASSERT(column_item);
+        OB_ASSERT(table_id == column_item->table_id_);
+        if (rowkey_column->column_id_ == column_item->column_id_ && column_item->column_id_ != auto_column_id)
+        {
+          if (OB_SUCCESS != (ret = row_desc.add_column_desc(column_item->table_id_, column_item->column_id_)))
+          {
+            TRANS_LOG("failed to add row desc, err=%d", ret);
+          }
+          else
+          {
+            data_type.set_type(rowkey_column->type_);
+            if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
+            {
+              TRANS_LOG("failed to add row desc, err=%d", ret);
+            }
+          }
+          break;
+        }
+      } // end for
+    }   // end for
+    // then construct other columns
+    const ObColumnSchemaV2* column_schema = NULL;
+    for (int32_t i = 0; ret == OB_SUCCESS && i < column_num; ++i)
+    {
+      column_item = stmt->get_column_item(i);
+      OB_ASSERT(column_item);
+      OB_ASSERT(table_id == column_item->table_id_);
+      if (!rowkey_info.is_rowkey_column(column_item->column_id_))
+      {
+        if (NULL == (column_schema = sql_context_->schema_manager_->get_column_schema(column_item->table_id_, column_item->column_id_)))
+        {
+          ret = OB_ERR_COLUMN_NOT_FOUND;
+          TRANS_LOG("Get column item failed");
+          break;
+        }
+        else if (OB_SUCCESS != (ret = row_desc.add_column_desc(column_item->table_id_, column_item->column_id_)))
+        {
+          TRANS_LOG("failed to add row desc, err=%d", ret);
+        }
+        else
+        {
+          data_type.set_type(column_schema->get_type());
+          if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
+          {
+            TRANS_LOG("failed to add row desc, err=%d", ret);
+          }
+        }
+      } // end if not rowkey column
+    }   // end for
+    if (OB_LIKELY(OB_SUCCESS == ret))
+    {
+      TBSYS_LOG(INFO, "row_desc=%s", to_cstring(row_desc));
+      TBSYS_LOG(DEBUG, "row_desc=%s", to_cstring(row_desc));
+    }
+  }
+  return ret;
+}
 //add:e
