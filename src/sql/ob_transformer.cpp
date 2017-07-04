@@ -3150,7 +3150,7 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
     oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias){
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1
+  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1（这是显式连接的情况）
   {
     ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
     ObMergeJoin *join_op = NULL;
@@ -3781,10 +3781,11 @@ int ObTransformer::gen_phy_joins(
       }
       join_table_bitset.clear();
     }
+    
+    /*add maoxx [bloomfilter_join] 20160417*/
+    select_stmt->get_query_hint().join_op_type_array_.remove(0);
+    /*add e*/
   }
-  /*add maoxx [bloomfilter_join] 20160417*/
-  select_stmt->get_query_hint().join_op_type_array_.remove(0);
-  /*add e*/
 
   return ret;
 }
