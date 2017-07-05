@@ -3164,8 +3164,7 @@ int ObTransformer::gen_phy_joins(
     ObHashJoinSingle *hash_join_single_op = NULL;
     bool use_hash_join_single_op = false;
     
-    TBSYS_LOG(WARN, "lxbtest, gen_phy_joins, hint_idx:[%d],[%d]", hint_idx, select_stmt->get_query_hint().join_op_type_array_.size());
-    
+    // 注意通过下标获取向量的值之前需要判断下标有没有越界
     // if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
     if(select_stmt->get_query_hint().join_op_type_array_.size() > hint_idx) // modify by lxb on 20170704 for hint resolve
     {
@@ -3993,9 +3992,6 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
         }
         else
         {
-           
-           TBSYS_LOG(WARN, "lxbtest, gen_phy_tables, hint_idx:[%d],[%d]", i, hint_idx);
-           
             if ((ret = gen_phy_joins(
                             logical_plan,
                             physical_plan,

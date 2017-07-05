@@ -97,7 +97,8 @@ namespace oceanbase
 
           inline value_type & at(const int32_t index) const 
           { 
-            assert(index >= 0 && index < size()); 
+            // assert(index >= 0 && index < size()); 
+            OB_ASSERT(index >= 0 && index < size()); // modify by lxb on 20170705 for hint resolve
             return *(mem_begin_ + index); 
           }
           inline value_type & operator[](const int32_t index) const 
