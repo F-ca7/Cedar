@@ -783,7 +783,8 @@ namespace oceanbase
             oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
             oceanbase::common::ObList<ObBitSet<> >& bitset_list,
             oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
-            oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias);
+            oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias,
+            int32_t hint_idx = 0);
         //add fanqiushi [semi_join] [0.1] 20150826:b
         /**
         * @brief create a physical plan of semijoin.

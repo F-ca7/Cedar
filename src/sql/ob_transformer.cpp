@@ -3148,9 +3148,11 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
     oceanbase::common::ObList<ObBitSet<> >& bitset_list,
     oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
-    oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias){
+    oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias,
+    int32_t hint_idx)
+{
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1（这是显式连接的情况）
+  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2. while内的代码执行完之后，phy_table_list.size()为1（这是显式连接的情况）
   {
     ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
     ObMergeJoin *join_op = NULL;
@@ -3162,9 +3164,13 @@ int ObTransformer::gen_phy_joins(
     ObHashJoinSingle *hash_join_single_op = NULL;
     bool use_hash_join_single_op = false;
     
-    if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
+    TBSYS_LOG(WARN, "lxbtest, gen_phy_joins, hint_idx:[%d],[%d]", hint_idx, select_stmt->get_query_hint().join_op_type_array_.size());
+    
+    // if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
+    if(select_stmt->get_query_hint().join_op_type_array_.size() > hint_idx) // modify by lxb on 20170704 for hint resolve
     {
-      ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
+      // ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
+      ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(hint_idx); // modify by lxb on 20170704 for hint resolve
       if(tmp.join_op_type_ == T_BLOOMFILTER_JOIN && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN))
         use_bloomfilter_join_op = true;
       // add by lxb [hash join single] 20170410
@@ -3783,7 +3789,11 @@ int ObTransformer::gen_phy_joins(
     }
     
     /*add maoxx [bloomfilter_join] 20160417*/
-    select_stmt->get_query_hint().join_op_type_array_.remove(0);
+    // select_stmt->get_query_hint().join_op_type_array_.remove(0); 
+    if (select_stmt->get_query_hint().join_op_type_array_.size() > hint_idx) 
+    {
+      select_stmt->get_query_hint().join_op_type_array_.remove(hint_idx);  // modify by lxb on 20170704 for hint resolve
+    }
     /*add e*/
   }
 
@@ -3820,6 +3830,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
     }
   }
 
+  int32_t hint_idx = -1; // add by lxb on 20170704 for hint resolve
+  
   int32_t num_table = select_stmt->get_from_item_size();
   // no from clause of from DUAL
   if (ret == OB_SUCCESS && num_table <= 0)
@@ -3845,6 +3857,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
     const FromItem& from_item = select_stmt->get_from_item(i);
     if (from_item.is_joined_ == false)
     {
+      hint_idx++; // add by lxb on 20170704 for hint resolve
+      
       /* base-table or temporary table */
       if ((ret = gen_phy_table(logical_plan, physical_plan, err_stat, select_stmt, from_item.table_id_, table_op, &group_agg_pushed_down, &limit_pushed_down)) != OB_SUCCESS)
         break;
@@ -3864,6 +3878,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
       OB_ASSERT(joined_table->table_ids_.count() - 1 == joined_table->join_types_.count());
       OB_ASSERT(joined_table->join_types_.count() == joined_table->expr_ids_.count());
 
+      hint_idx++; // add by lxb on 20170704 for hint resolve
+      
       if ((ret = gen_phy_table(logical_plan, physical_plan, err_stat, select_stmt, joined_table->table_ids_.at(0), table_op)) != OB_SUCCESS)
       {
         break;
@@ -3977,6 +3993,9 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
         }
         else
         {
+           
+           TBSYS_LOG(WARN, "lxbtest, gen_phy_tables, hint_idx:[%d],[%d]", i, hint_idx);
+           
             if ((ret = gen_phy_joins(
                             logical_plan,
                             physical_plan,
@@ -3988,7 +4007,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
                             outer_join_tabs,
                             outer_join_bitsets,
                             outer_join_cnds,
-                            none_columnlize_alias)) != OB_SUCCESS)
+                            none_columnlize_alias,
+                            hint_idx)) != OB_SUCCESS)
             {
               break;
             }
