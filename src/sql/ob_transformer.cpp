@@ -3218,6 +3218,22 @@ int ObTransformer::gen_phy_joins(
         ObBinaryRefRawExpr *rexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_second_op_expr());
         int32_t left_bit_idx = select_stmt->get_table_bit_index(lexpr->get_first_ref_id());
         int32_t right_bit_idx = select_stmt->get_table_bit_index(rexpr->get_first_ref_id());
+        
+        // add by lxb on 20170711 for [hash join single] start
+        common::ObObjType l_obj_type = lexpr->get_result_type();
+        common::ObObjType r_obj_type = rexpr->get_result_type();
+        if (use_hash_join_single_op && l_obj_type != r_obj_type) 
+        {
+          TRANS_LOG("Column type of hash join tables is not same, left_table_id=%lu, right_table_id=%lu", 
+                    lexpr->get_first_ref_id(), rexpr->get_first_ref_id());
+          use_hash_join_single_op = false;
+          hash_join_single_op = NULL;
+          
+          CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
+          join_op->set_join_type(join_type);
+        }
+        // e
+        
         CREATE_PHY_OPERRATOR(left_sort, ObSort, physical_plan, err_stat);
         if (ret != OB_SUCCESS)
           break;
