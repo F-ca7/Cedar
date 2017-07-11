@@ -99,6 +99,46 @@ namespace oceanbase
     //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
     static int int_decimal(const ObObjCastParams &params, const ObExprObj &in, ObExprObj &out)
     {
+        int ret = OB_SUCCESS;
+        OB_ASSERT(in.get_type() == ObIntType);
+        ret = varchar_printf(out, "%ld", in.get_int());
+        if(ret==OB_SUCCESS)
+        {
+            ObString os;
+            out.get_varchar(os);
+            ObDecimal od;
+            if(OB_SUCCESS!=(ret=od.from(os.ptr(),os.length())))
+            {
+                  TBSYS_LOG(WARN, "failed to do from in int_decimal,os=%.*s", os.length(),os.ptr());
+            }
+            else
+            {
+               // TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,,,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());
+                if(params.is_modify)
+                {
+                    if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
+                    {
+                                ret=OB_DECIMAL_UNLEGAL_ERROR;
+                                TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
+                    }
+                    else
+                    {
+                        od.set_precision(params.precision);
+                        od.set_scale(params.scale);
+                        od.set_vscale(0);  //add xsl ECNU_DECIMAL
+                    }
+
+                }
+                if(ret==OB_SUCCESS)
+                {
+                    out.set_varchar(os);
+                    out.set_decimal(od);
+                    out.set_len(1);  //add xsl ECNU_DECIMAL
+                }
+            }
+        }
+        return ret;
+        /*
       int ret = OB_SUCCESS;
       OB_ASSERT(in.get_type() == ObIntType);
       int64_t tmp = in.get_int();    //-1
@@ -142,6 +182,7 @@ namespace oceanbase
       }
 //      TBSYS_LOG(INFO,"xushilei,od value=[%s]",to_cstring(out.get_decimal()));    //test xsl
       return ret;
+      */
     }
     //add:e
     static int int_ctime(const ObObjCastParams &params, const ObExprObj &in, ObExprObj &out)
@@ -392,10 +433,6 @@ namespace oceanbase
           }
           else
           {
-             //TBSYS_LOG(INFO,"xushilei,od=[%s]",to_cstring(od));   //test xsl
-             //TBSYS_LOG(INFO,"xushilei,test double,p=[%d],s=[%d],vs=[%d]",od.get_precision(),od.get_scale(),od.get_vscale()); //test xsl   20 6 6
-             //TBSYS_LOG(INFO,"xushilei,test double,p=[%d],s=[%d]",params.precision,params.scale); //test xsl   38 0
-             //TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,,,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());
               /*if(params.is_modify)
               {
                   if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
@@ -554,6 +591,7 @@ namespace oceanbase
               {
                   out.set_varchar(os);
                   out.set_decimal(od);
+                  out.set_len(1);   //add xsl ECNU_DECIMAL
               }
           }
       }
@@ -670,6 +708,8 @@ namespace oceanbase
               {
                   out.set_varchar(os);
                   out.set_decimal(od);
+                  out.set_len(1);   //add xsl ECNU_DECIMAL
+
               }
           }
       }
@@ -1017,6 +1057,7 @@ namespace oceanbase
         {
             //out.set_varchar(os);
             out.set_decimal(od);
+            out.set_len(1);  //add xsl ECNU_DECIMAL
         }
       }
       else
@@ -1131,39 +1172,25 @@ namespace oceanbase
       t1 = (uint64_t)c_time_int;
       uint32_t len=1;
       od.set_word(&t1,len);
-      /*ret = varchar_printf(out, "%ld", c_time_int);
-      if(ret==OB_SUCCESS)
+      if(params.is_modify)
       {
-          ObString os;
-          out.get_varchar(os);
-          ObDecimal od;
-          if(OB_SUCCESS!=(ret=od.from(os.ptr(),os.length())))
+          if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
           {
-                TBSYS_LOG(WARN, "failed to do from in ctime_decimal,os=%.*s", os.length(),os.ptr());
+              ret=OB_DECIMAL_UNLEGAL_ERROR;
+              TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
           }
           else
           {
-             // TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,,,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());
-         */   if(params.is_modify)
-              {
-                  if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
-                  {
-                              ret=OB_DECIMAL_UNLEGAL_ERROR;
-                              TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
-                  }
-                  else
-                  {
-                      od.set_precision(params.precision);
-                      od.set_scale(params.scale);
-                  }
+              od.set_precision(params.precision);
+              od.set_scale(params.scale);
+          }
 
-              }
-              if(ret==OB_SUCCESS)
-              {
-                  //out.set_varchar(os);
-                  out.set_decimal(od);
-           //   }
-          //}
+      }
+      if(ret==OB_SUCCESS)
+      {
+          //out.set_varchar(os);
+          out.set_decimal(od);
+          out.set_len(1);   //add xsl ECNU_DECIMAL
       }
       return ret;
 
@@ -1242,40 +1269,27 @@ namespace oceanbase
       t1 = (uint64_t)m_time_int;     //18446744073709551615
       uint32_t len=1;        //default int len =1
       od.set_word(&t1,len);
-      /*ret = varchar_printf(out, "%ld", m_time_int);
-      if(ret==OB_SUCCESS)
+      if(params.is_modify)
       {
-          ObString os;
-          out.get_varchar(os);
-          ObDecimal od;
-          if(OB_SUCCESS!=(ret=od.from(os.ptr(),os.length())))
+          if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
           {
-                TBSYS_LOG(WARN, "failed to do from in mtime_decimal,os=%.*s", os.length(),os.ptr());
+              ret=OB_DECIMAL_UNLEGAL_ERROR;
+              TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
           }
           else
           {
-             // TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,,,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());
-          */  if(params.is_modify)
-              {
-                  if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
-                  {
-                              ret=OB_DECIMAL_UNLEGAL_ERROR;
-                              TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
-                  }
-                  else
-                  {
-                      od.set_precision(params.precision);
-                      od.set_scale(params.scale);
-                  }
+              od.set_precision(params.precision);
+              od.set_scale(params.scale);
+          }
 
-              }
-              if(ret==OB_SUCCESS)
-              {
-                  //out.set_varchar(os);
-                  out.set_decimal(od);
-              }
-        // }
-     // }
+      }
+      if(ret==OB_SUCCESS)
+      {
+          //out.set_varchar(os);
+          out.set_decimal(od);
+          out.set_len(1);   //add xsl ECNU_DECIMAL
+
+      }
       return ret;
     }
     //modify e
@@ -1399,7 +1413,7 @@ namespace oceanbase
                 {
                     //out.set_varchar(os);
                     out.set_decimal(od);
-                    out.set_len(1);
+                    out.set_len(1);   //add xsl ECNU_DECIMAL
                 }
         //    }
         //}
@@ -1869,7 +1883,7 @@ namespace oceanbase
                 }
                 else
                 {
-                    casted_cell.set_precision(schema_p);  //p转化成模式的参数样式
+                    casted_cell.set_precision(schema_p);  //p转化成模式的参数样式??
                     casted_cell.set_scale(schema_s);
                     casted_cell.set_vscale(vscale);    //modify xsl ECNU_DECIMAL
                     casted_cell.set_nwords(orig_cell.get_nwords());    //add xsl ECNU_DECIMAL 2017_5
@@ -1946,7 +1960,7 @@ namespace oceanbase
     {
         int ret = OB_SUCCESS;
         ObObj obj_tmp;
-
+        TBSYS_LOG(INFO, "xushilei,test::obj_cast::orig=[%s]", to_cstring(orig_cell)); //test xsl
         if (orig_cell.get_type() != expected_type.get_type())
         {
             // type cast
@@ -1998,7 +2012,8 @@ namespace oceanbase
         {
             res_cell = &orig_cell;
         }
-        // TBSYS_LOG(WARN, "test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
+        TBSYS_LOG(INFO, "xushilei,test::obj_cast::res=[%s]", to_cstring(*res_cell)); //test xsl
+        TBSYS_LOG(WARN, "xushilei,test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
         return ret;
     }
     //add e

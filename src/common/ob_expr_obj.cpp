@@ -514,6 +514,23 @@ int ObExprObj::compare(const ObExprObj &other, int &cmp) const
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
+  //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  char buf[MAX_PRINTABLE_SIZE];
+  memset(buf, 0, MAX_PRINTABLE_SIZE);
+  ObString os;
+  os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj;
+  tmp_obj.set_varchar(os);
+  promoted1.assign(tmp_obj);
+
+  char buf2[MAX_PRINTABLE_SIZE];
+  memset(buf2, 0, MAX_PRINTABLE_SIZE);
+  ObString os2;
+  os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj2;
+  tmp_obj2.set_varchar(os2);
+  promoted2.assign(tmp_obj2);
+  //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
   if (OB_SUCCESS != (ret = compare_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
@@ -1103,10 +1120,22 @@ int ObExprObj::add(ObExprObj &other, ObExprObj &res)
   ObExprObj promoted1;
   ObExprObj promoted2;
   //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  char buf[MAX_PRINTABLE_SIZE];
+  memset(buf, 0, MAX_PRINTABLE_SIZE);
+  ObString os;
+  os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
   ObObj tmp_obj;
+  tmp_obj.set_varchar(os);
   promoted1.assign(tmp_obj);
+
+  char buf2[MAX_PRINTABLE_SIZE];
+  memset(buf2, 0, MAX_PRINTABLE_SIZE);
+  ObString os2;
+  os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
   ObObj tmp_obj2;
+  tmp_obj2.set_varchar(os2);
   promoted2.assign(tmp_obj2);
+
   //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
@@ -1172,12 +1201,23 @@ int ObExprObj::sub(ObExprObj &other, ObExprObj &res)
   ObExprObj promoted1;
   ObExprObj promoted2;
   //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-  ObObj tmp_obj;
-  promoted1.assign(tmp_obj);
-  ObObj tmp_obj2;
-  //tmp_obj2.set_varchar(os2);
-  promoted2.assign(tmp_obj2);
-  //add:e
+   char buf[MAX_PRINTABLE_SIZE];
+   memset(buf, 0, MAX_PRINTABLE_SIZE);
+   ObString os;
+   os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+   ObObj tmp_obj;
+   tmp_obj.set_varchar(os);
+   promoted1.assign(tmp_obj);
+
+   char buf2[MAX_PRINTABLE_SIZE];
+   memset(buf2, 0, MAX_PRINTABLE_SIZE);
+   ObString os2;
+   os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+   ObObj tmp_obj2;
+   tmp_obj2.set_varchar(os2);
+   promoted2.assign(tmp_obj2);
+
+   //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
   if (OB_SUCCESS != (ret = arith_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
@@ -1216,6 +1256,7 @@ inline int ObExprObj::mul_same_type(const ObExprObj &other, ObExprObj &res) cons
       //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
       //change num_ to decimal_
       ret = this->decimal_.mul(other.decimal_, res.decimal_);
+      //TBSYS_LOG(INFO,"xushilei,res=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(res.decimal_),res.decimal_.get_precision(),res.decimal_.get_scale(),res.decimal_.get_vscale());    //test xsl DECIMAL
       break;
       //modify:e
     default:
@@ -1232,16 +1273,26 @@ int ObExprObj::mul(ObExprObj &other, ObExprObj &res)
   int ret = OB_SUCCESS;
   ObExprObj promoted1;
   ObExprObj promoted2;
- //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
- ObObj tmp_obj;
- promoted1.assign(tmp_obj);
- ObObj tmp_obj2;
- promoted2.assign(tmp_obj2);
+  //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  char buf[MAX_PRINTABLE_SIZE];
+  memset(buf, 0, MAX_PRINTABLE_SIZE);
+  ObString os;
+  os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj;
+  tmp_obj.set_varchar(os);
+  promoted1.assign(tmp_obj);
 
- //add:e
+  char buf2[MAX_PRINTABLE_SIZE];
+  memset(buf2, 0, MAX_PRINTABLE_SIZE);
+  ObString os2;
+  os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+  ObObj tmp_obj2;
+  tmp_obj2.set_varchar(os2);
+  promoted2.assign(tmp_obj2);
+
+  //add:e
   const ObExprObj *p_this = NULL;
   const ObExprObj *p_other = NULL;
-  //int64_t start= tbsys::CTimeUtil::getTime();
   if (OB_SUCCESS != (ret = arith_type_promotion(*this, other, promoted1, promoted2, p_this, p_other)))
   {
     if (OB_RESULT_UNKNOWN == ret)
@@ -1253,9 +1304,6 @@ int ObExprObj::mul(ObExprObj &other, ObExprObj &res)
   else
   {
     ret = p_this->mul_same_type(*p_other, res);
-    //TBSYS_LOG(INFO,"xushilei,test this=[%s]",to_cstring(*p_this));   //test xsl
-    //TBSYS_LOG(INFO,"xushilei,test other=[%s]",to_cstring(*p_other));   //test xsl
-    //TBSYS_LOG(INFO,"xushilei,test res=[%s]",to_cstring(res));   //test xsl
   }
   return ret;
 }
@@ -1807,22 +1855,22 @@ int ObExprObj::div(ObExprObj &other, ObExprObj &res, bool int_div_as_double)
     ObExprObj promoted_value1;
     ObExprObj promoted_value2;
     //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-    /*char buf[MAX_PRINTABLE_SIZE];
-    memset(buf, 0, MAX_PRINTABLE_SIZE);
-    ObString os;
-    os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
-    */
-    ObObj tmp_obj;
-    //tmp_obj.set_varchar(os);
-    promoted_value1.assign(tmp_obj);
-    /*char buf2[MAX_PRINTABLE_SIZE];
-    memset(buf2, 0, MAX_PRINTABLE_SIZE);
-    ObString os2;
-    os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
-    */
-    ObObj tmp_obj2;
-    //tmp_obj2.set_varchar(os2);
-    promoted_value2.assign(tmp_obj2);
+     char buf[MAX_PRINTABLE_SIZE];
+     memset(buf, 0, MAX_PRINTABLE_SIZE);
+     ObString os;
+     os.assign_ptr(buf,MAX_PRINTABLE_SIZE);
+     ObObj tmp_obj;
+     tmp_obj.set_varchar(os);
+     promoted_value1.assign(tmp_obj);
+
+     char buf2[MAX_PRINTABLE_SIZE];
+     memset(buf2, 0, MAX_PRINTABLE_SIZE);
+     ObString os2;
+     os2.assign_ptr(buf2,MAX_PRINTABLE_SIZE);
+     ObObj tmp_obj2;
+     tmp_obj2.set_varchar(os2);
+     promoted_value2.assign(tmp_obj2);
+
     //add:e
     const ObExprObj *p_this = NULL;
     const ObExprObj *p_other = NULL;

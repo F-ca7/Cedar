@@ -566,6 +566,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
         }
     }
     //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //test xsl
+    //add xsl ECNU_DECIMAL
     else if(ret ==OB_SUCCESS && s > vscale_ && vscale_ > 0)   //
     {
         if(point_pos < (int)precision_ && point_pos !=0)
@@ -596,6 +597,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             }
         }
     }
+    //add e
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
@@ -711,10 +713,12 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
     TTLInt num1 = n1.get_words()[0];
     TTLInt num2 = n2.get_words()[0];
     TTLInt base_to_modify(10);
-//    TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
-//    TBSYS_LOG(INFO,"xushilei,num2=[%s]",num2.ToString().c_str());    //test xsl
+    //TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
+    //TBSYS_LOG(INFO,"xushilei,num2=[%s]",num2.ToString().c_str());    //test xsl
+    //TBSYS_LOG(INFO,"xushilei,n1=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(n1),n1.get_precision(),n1.get_scale(),n1.get_vscale());    //test xsl
+    //TBSYS_LOG(INFO,"xushilei,n2=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(n2),n2.get_precision(),n2.get_scale(),n2.get_vscale());    //test xsl
     if (num1.Mul(num2) == 0) {
-//        TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
+        TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
         int p=0;
         //v=n1.get_vscale()+n2.get_vscale();
         p=n1.get_precision()+n2.get_precision();
@@ -723,7 +727,7 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
         num1.ToString(str_for_word);
         int len_word=(int)strlen(str_for_word.c_str())-num1.IsSign();
         int len_int=len_word-n1.vscale_-n2.vscale_;
-        res.precision_=p;
+        //res.precision_=p;        //delete xsl ECNU_DECIMAL
         if ( len_int> MAX_DECIMAL_DIGIT) {
              res.word[0]=num1.IsSign()?kMin:kMAX;
              res.precision_=0;
@@ -743,11 +747,10 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
                 base_to_modify.Pow(len_modify);
                 res.word[0]=num1/base_to_modify;
             }
-            else
-
-           res.word[0]=num1;
-
+            else  //==0
+                res.word[0]=num1;
            res.scale_=res.vscale_;
+           res.precision_ = len_int + res.scale_; //add xsl ECNU_DECIMAL
          }
          else
           {
@@ -758,6 +761,7 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
            {
                res.scale_=MAX_DECIMAL_DIGIT-len_int;
            }
+           res.precision_ = len_int + res.scale_; //add xsl ECNU_DECIMAL
           }
 
         }
@@ -785,6 +789,7 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
         ret = OB_ERROR;
         TBSYS_LOG(WARN, "failed to mul decimal");
     }
+    //TBSYS_LOG(INFO,"xushilei,res=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(res),res.get_precision(),res.get_scale(),res.get_vscale());    //test xsl DECIMAL
     return ret;
 }
 

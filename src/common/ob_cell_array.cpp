@@ -154,9 +154,9 @@ inline int ObCellArray::copy_obj_(ObObj &dst, const ObObj &src)
             {
                 allocated_memory_size_ += len;//分配空间，赋值
                 memcpy(dst_value, src_value.get_words()->ToUInt_v2(), len);  //modify xsl
-                dst_value->set_precision(src_value.get_precision());
-                dst_value->set_scale(src_value.get_scale());
-                dst_value->set_vscale(src_value.get_vscale());
+                dst.set_precision(src_value.get_precision());
+                dst.set_scale(src_value.get_scale());
+                dst.set_vscale(src_value.get_vscale());
                 dst.set_ttint(dst_value);
                 dst.set_nwords(src.get_nwords());
             }

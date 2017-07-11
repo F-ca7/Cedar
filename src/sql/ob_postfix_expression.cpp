@@ -983,7 +983,7 @@ namespace oceanbase
                   //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*od));  //test xsl
                   ObObj obj;
                   ret=obj.set_decimal_v2(*od,len);
-//                  TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(obj),len);  //test xsl
+                  //TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(obj),len);  //test xsl
                   if(OB_SUCCESS != (ret =str_buf_.write_obj(obj, &result_)))   //自己申请一块内存存放着
                   {
                       TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
@@ -991,7 +991,6 @@ namespace oceanbase
                   }
                   composite_val = &result_;
                   idx_i--;
-//                  TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*composite_val));  //test xsl
               }
               //modify e
               else         //not decimal
@@ -1194,7 +1193,7 @@ namespace oceanbase
                         result.set_len(len);
                         stack_[idx_i++] = result;
                         //add e
-//                        TBSYS_LOG(INFO,"xushilei,result=[%s],result.len=[%d],len=[%d]",to_cstring(result.get_decimal()),result.get_len(),len);   //test xsl
+                        //TBSYS_LOG(INFO,"xushilei,result=[%s],result.len=[%d],len=[%d]",to_cstring(result.get_decimal()),result.get_len(),len);   //test xsl
                     }
                     else if (OB_NO_RESULT == ret)
                     {

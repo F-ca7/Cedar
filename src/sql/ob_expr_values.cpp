@@ -221,11 +221,8 @@ int ObExprValues::eval()
   OB_ASSERT(0 == (values_.count() % row_desc_.get_column_num()));
   ModuleArena buf(OB_MALLOC_BLOCK_SIZE, ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
   char* varchar_buff = NULL;
-  //modify xsl ECNU_DECIMAL 2016.12
   if (NULL == (varchar_buff = buf.alloc(OB_MAX_VARCHAR_LENGTH)))
-  //if (NULL == (varchar_buff = buf.alloc(sizeof(uint64_t)*2))) //分配一块内存
   {
-  //modify e
     ret = OB_ALLOCATE_MEMORY_FAILED;
     TBSYS_LOG(WARN, "No memory");
   }
@@ -266,17 +263,12 @@ int ObExprValues::eval()
       {
         ObRow val_row;
         val_row.set_row_desc(row_desc_);
-        //modify xsl ECNU_DECIMAL 2016_12
-        //ObString varchar;
-        uint64_t *t1=NULL;
+        ObString varchar;
         ObObj casted_cell;
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
-          //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          t1=reinterpret_cast<uint64_t *>(varchar_buff);  //改变指针指向的内存
-          //casted_cell.set_varchar(varchar); // reuse the varchar buffer
-          casted_cell.set_ttint(t1);    //??使得obobj的decimal指针有空间
-          //modify e
+          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          casted_cell.set_varchar(varchar); // reuse the varchar buffer
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
           uint64_t column_id = OB_INVALID_ID;
@@ -383,20 +375,12 @@ int ObExprValues::eval()
       {
         ObRow val_row;
         val_row.set_row_desc(row_desc_);
-        //modify xsl ECNU_DECIMAL 2016_12
-        //ObString varchar;
-        //ObDecimal *dec=NULL;
-        uint64_t *tt=NULL;
+        ObString varchar;
         ObObj casted_cell;
-        //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
         for (int64_t j = 0; OB_SUCCESS == ret && j < col_num; ++j)
         {
-          //TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
-          //varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
-          tt=reinterpret_cast<uint64_t *>(varchar_buff);  //改变指针指向的内存
-          //casted_cell.set_varchar(varchar); // reuse the varchar buffer
-          casted_cell.set_ttint(tt);    //??使得obobj的decimal指针有空间
-          //modify e
+          varchar.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
+          casted_cell.set_varchar(varchar); // reuse the varchar buffer
           const ObObj *single_value = NULL;
           uint64_t table_id = OB_INVALID_ID;
           uint64_t column_id = OB_INVALID_ID;
@@ -415,7 +399,6 @@ int ObExprValues::eval()
           //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
          else
          {
-             //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*single_value));   //test xsl
              if(is_del_update)
              {
                  if (OB_SUCCESS != obj_cast(*single_value, data_type, casted_cell, single_value))
@@ -432,11 +415,10 @@ int ObExprValues::eval()
              }
 
          }
-         //TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(*single_value),single_value->get_nwords());   //test xsl
          if(OB_SUCCESS!=ret)
          {
          }
-         else if (OB_SUCCESS != (ret = ob_write_obj_v2(buf, *single_value, tmp_value)))  //??
+         else if (OB_SUCCESS != (ret = ob_write_obj_v2(buf, *single_value, tmp_value)))
              //modify:e
          {
              TBSYS_LOG(WARN, "str buf write obj fail:ret[%d]", ret);
@@ -475,13 +457,8 @@ int ObExprValues::eval()
             }
             TBSYS_LOG(INFO, "check rowkey isdup is %c rowkey=%s", is_dup?'Y':'N', to_cstring(*rowkey));
           }
-//          TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
         }
-//        TBSYS_LOG(INFO,"xushilei,test xsl dec=[%s]",to_cstring(stored_row->reserved_cells_[0]));  //add xsl
-//        TBSYS_LOG(INFO,"xushilei,test xsl stored_row->reserved_cells_count_=[%d]",stored_row->reserved_cells_count_);  //add xsl
-//        TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
       }// end for
-//      TBSYS_LOG(INFO,"xushilei,test xsl");  //add xsl
     }
     if (indicator)
     {
