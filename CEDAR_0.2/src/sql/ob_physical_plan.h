@@ -132,6 +132,10 @@ namespace oceanbase
         int64_t get_operator_size() const { return operators_store_.count(); }
         ObPhyOperator* get_phy_operator(int64_t index) const;
         int assign(const ObPhysicalPlan& other);
+        //add lbzhong [auto_increment] 20161218:b
+        void set_auto_increment(const bool auto_increment) { auto_increment_ = auto_increment; }
+        bool is_auto_increment() const { return auto_increment_; }
+        //add:e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
 
@@ -202,7 +206,9 @@ namespace oceanbase
         //add by qx 20170313 :b
         bool long_trans_exec_mode_;  ///< long time execute transaction
         //add :e
-
+        //add lbzhong [auto_increment] 20161218:b
+        bool auto_increment_;
+        //add:e
     };
 
     inline int ObPhysicalPlan::set_operator_factory(ObPhyOperatorFactory* factory)

@@ -45,6 +45,12 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
       }
       //add :e
+      //add lbzhong [auto_increment] 20161215:b
+      else if (OB_SUCCESS != (err = serialization::encode_i64(buf, buf_len, new_pos, auto_value_)))
+      {
+        TBSYS_LOG(ERROR, "serialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, buf_len, err);
+      }
+      //add :e
       else
       {
         pos = new_pos;
@@ -65,6 +71,12 @@ namespace oceanbase
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
       }
+      //add lbzhong [auto_increment] 20161215:b
+      else if (OB_SUCCESS != (err = serialization::decode_i64(buf, data_len, new_pos, (int64_t*)&auto_value_)))
+      {
+        TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
+      }
+      //add:e
       else
       {
         pos = new_pos;
@@ -74,7 +86,11 @@ namespace oceanbase
 
     int64_t ObUpsModifyWithDmlType::get_serialize_size(void) const
     {
-      return serialization::encoded_length_i32(dml_type_);
+      return serialization::encoded_length_i32(dml_type_)
+          //add lbzhong [auto_increment] 20161215:b
+          + serialization::encoded_length_i64(auto_value_)
+          //add:e
+          ;
     }
 
     REGISTER_PHY_OPERATOR(ObUpsModify, PHY_UPS_MODIFY);

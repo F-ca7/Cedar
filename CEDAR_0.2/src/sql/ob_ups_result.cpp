@@ -32,6 +32,9 @@ namespace oceanbase
                                  scanner_(),
                                  scanner_sel_buffer_(NULL),
                                  scanner_sel_length_(0)
+                                 //add lbzhong [auto_increment] 20161218:b
+                                 , auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+                                 //add:e
     {
     }
 
@@ -164,6 +167,9 @@ namespace oceanbase
       scanner_sel_buffer_ = 0;
       scanner_sel_length_ = 0;
       trans_id_.reset();
+      //add lbzhong [auto_increment] 20161218:b
+      auto_value_ = OB_INVALID_AUTO_INCREMENT_VALUE;
+      //add:e
     }
 
     int ObUpsResult::serialize_warning_list_(char* buf, const int64_t buf_len, int64_t& pos) const
@@ -360,6 +366,25 @@ namespace oceanbase
         }
         //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serializeBBBBBBB tmp_pos = %ld",tmp_pos);
 
+        //add lbzhong [auto_increment] 20161218:b
+        // serialize auto value flag
+        if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_AUTO_VALUE)))
+        {
+          TBSYS_LOG(WARN, "serialize F_AUTO_VALUE fail, ret=%d buf=%p buf_len=%ld pos=%ld",
+                    ret, buf, buf_len, tmp_pos);
+          break;
+        }
+        //TBSYS_LOG(ERROR,"test::zhouhuan UpsResult serialize444444 tmp_pos = %ld",tmp_pos);
+
+        // serialize auto value value
+        if (OB_SUCCESS != (ret = encode_i64(buf, buf_len, tmp_pos, auto_value_)))
+        {
+          TBSYS_LOG(WARN, "serialize auto_value_ fail, ret=%d buf=%p buf_len=%ld pos=%ld",
+                    ret, buf, buf_len, tmp_pos);
+          break;
+        }
+        //add:e
+
         // serialize end flag
         if (OB_SUCCESS != (ret = encode_i8(buf, buf_len, tmp_pos, F_UPS_RESULT_END)))
         {
@@ -450,6 +475,15 @@ namespace oceanbase
                       ret, buf, data_len, tmp_pos);
           }
           break;
+        //add lbzhong [auto_increment] 20161218:b
+        case F_AUTO_VALUE:
+          if (OB_SUCCESS != (ret = decode_i64(buf, data_len, tmp_pos, &auto_value_)))
+          {
+            TBSYS_LOG(WARN, "deserialize auto_value_ fail, ret=%d buf=%p data_len=%ld pos=%ld",
+                      ret, buf, data_len, tmp_pos);
+          }
+          break;
+        //add:e
         default:
           // unknow flag
           break;
@@ -491,6 +525,11 @@ namespace oceanbase
 
       ret += encoded_length_i8(F_TRANS_ID);
       ret += trans_id_.get_serialize_size();
+
+      //add lbzhong [auto_increment] 20161218:b
+      ret += encoded_length_i8(F_AUTO_VALUE);
+      ret += encoded_length_i64(auto_value_);
+      //add:e
 
       ret += encoded_length_i8(F_UPS_RESULT_END);
       return ret;

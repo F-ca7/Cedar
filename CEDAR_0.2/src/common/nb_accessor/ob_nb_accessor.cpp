@@ -558,6 +558,7 @@ int ObNbAccessor::delete_row(const char* table_name, const SC& rowkey_columns, c
   return ret;
 }
 
+
 int ObNbAccessor::update(const char* table_name, const ObRowkey& rowkey, const KV& kv)
 {
   return insert(table_name, rowkey, kv);
@@ -741,5 +742,141 @@ int ObNbAccessor::batch_end(BatchHandle& handle)
   }
   return ret;
 }
+//add lbzhong [auto_increment] 20161201:b
+int ObNbAccessor::delete_auto_increment_row(const char* table_name, const SC& rowkey_columns, const ScanConds& scan_conds)
+{
+  int ret = OB_SUCCESS;
 
+  if(NULL == table_name)
+  {
+    ret = OB_INVALID_ARGUMENT;
+    TBSYS_LOG(WARN, "table_name is null");
+  }
+
+  ObString ob_table_name;
+  ob_table_name.assign_ptr(const_cast<char*>(table_name), static_cast<int32_t>(strlen(table_name)));
+
+  ObNewRange range;
+  range.set_whole_range();
+
+  ObMutator* mutator = NULL;
+  if(OB_SUCCESS == ret)
+  {
+    mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
+    if(NULL == mutator)
+    {
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      TBSYS_LOG(WARN, "get thread specific ObMutator fail");
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = mutator->reset();
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+    }
+  }
+
+  QueryRes* res = NULL;
+  if(OB_SUCCESS == ret)
+  {
+    ret = this->scan(res, table_name, range, rowkey_columns, scan_conds);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "scan fail:ret[%d]", ret);
+    }
+  }
+
+  ObObj* rowkey_obj = NULL;
+  if(OB_SUCCESS == ret)
+  {
+    rowkey_obj = (ObObj*)ob_malloc(rowkey_columns.count() * sizeof(ObObj), ObModIds::OB_NB_ACCESSOR);
+    if(NULL == rowkey_obj)
+    {
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      TBSYS_LOG(WARN, "allocate memory for rowkey fail:ret[%d]", ret);
+    }
+  }
+
+  ObRowkey rowkey;
+  if(OB_SUCCESS == ret)
+  {
+    rowkey.assign(rowkey_obj, rowkey_columns.count());
+  }
+
+  TableRow* row = NULL;
+  ObCellInfo* cell_info = NULL;
+
+  while(OB_SUCCESS == ret &&
+        //add lbzhong [auto_increment] 20161201
+        OB_SUCCESS ==
+        //add:e
+        (ret = res->next_row()))
+  {
+    if(OB_SUCCESS == ret)
+    {
+      ret = res->get_row(&row);
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "get row fail:ret[%d]", ret);
+      }
+      else if(row->count() != rowkey_columns.count())
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "unexpected error:row->count[%ld], rowkey_columns.count[%ld]", row->count(), rowkey_columns.count());
+      }
+    }
+
+    for(int32_t i=0;(OB_SUCCESS == ret) && (i<row->count());i++)
+    {
+      cell_info = row->get_cell_info(i);
+      if(NULL != cell_info)
+      {
+        rowkey_obj[i] = cell_info->value_;
+      }
+      else
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "get cell info fail");
+      }
+    }
+
+    if(OB_SUCCESS == ret)
+    {
+      ret = mutator->del_row(ob_table_name, rowkey);
+      if(OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(WARN, "add del row info to mutator fail:ret[%d]", ret);
+      }
+    }
+  } /* end while */
+
+  if(OB_ITER_END == ret)
+  {
+    ret = OB_SUCCESS;
+  }
+
+  if(NULL != rowkey_obj)
+  {
+    ob_free(rowkey_obj, ObModIds::OB_NB_ACCESSOR);
+    rowkey_obj = NULL;
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    ret = client_proxy_->mutate(*mutator);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "apply mutator to update server fail:ret[%d]", ret);
+    }
+  }
+
+  //需要最后释放，mutator里面的字符串都存储在res结构中
+  release_query_res(res);
+
+  return ret;
+}
+//add:e
 

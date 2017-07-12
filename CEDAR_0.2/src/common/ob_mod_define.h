@@ -266,6 +266,9 @@ namespace oceanbase
         OB_SQL_PS_STORE_PHYSICALPLAN,
         OB_SQL_PS_STORE_OPERATORS,
         OB_SQL_PS_STORE_ITEM,
+        //add lbzhong [auto_increment] 20161129:b
+        OB_SQL_AUTO_INCREMENT,
+        //add:e
         OB_STATIC_INDEX,//add wenghaixing [secondary index.static_index]20151118
         // liboblog
         OB_LOG_BINLOG_RECORD,
@@ -454,6 +457,10 @@ namespace oceanbase
       ADD_MOD(OB_SQL_PS_STORE_PHYSICALPLAN);
       ADD_MOD(OB_SQL_PS_STORE_OPERATORS);
       ADD_MOD(OB_SQL_PS_STORE_ITEM);
+      //add lbzhong [auto_increment] 20161129:b
+      ADD_MOD(OB_SQL_AUTO_INCREMENT);
+      //add:e
+
       ADD_MOD(OB_STATIC_INDEX);//add wenghaixing [secondary index.static_index]20151118
 
       ADD_MOD(OB_SQL_EXPLAIN); //add by qx 20161024

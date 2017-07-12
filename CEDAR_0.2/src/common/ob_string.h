@@ -381,6 +381,15 @@ namespace oceanbase
           ObString ret(0, static_cast<obstr_size_t>(strlen(cstr)), const_cast<char*>(cstr));
           return ret;
         }
+        
+        // add by lxb on 2016/02/16 for logical optimizer
+        static ObString link_string(const char* lstr, const int64_t rint)
+        {
+          char str[common::OB_MAX_TABLE_NAME_LENGTH];
+          snprintf(str, sizeof(str), "%s%ld", lstr, rint);
+          ObString ret(0, static_cast<obstr_size_t>(strlen(str)), str);
+          return ret;
+        }
 
         int64_t to_string(char *buff, const int64_t len) const
         {

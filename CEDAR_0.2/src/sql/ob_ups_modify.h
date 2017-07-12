@@ -43,14 +43,25 @@ namespace oceanbase
         ObDmlType get_dml_type() const {return OB_DML_REPLACE;};
         int64_t get_table_id() const {return table_id_;}
         void set_table_id(int64_t table_id) {table_id_ = table_id;}
+        //add lbzhong [auto_increment] 20161215:b
+        int64_t get_auto_value() const {return auto_value_;}
+        void set_auto_value(int64_t auto_value) {auto_value_ = auto_value;}
+        //add:e
       private:
         int64_t table_id_;
+        //add lbzhong [auto_increment] 20161215:b
+        int64_t auto_value_;
+        //add:e
     };
 
     class ObUpsModifyWithDmlType: public ObHuskFilter<PHY_UPS_MODIFY_WITH_DML_TYPE>
     {
       public:
-        ObUpsModifyWithDmlType(): dml_type_(OB_DML_REPLACE), table_id_(OB_INVALID_ID) {} //modify wangjiahao [table lock] 20160616
+        ObUpsModifyWithDmlType(): dml_type_(OB_DML_REPLACE), table_id_(OB_INVALID_ID)
+        //add lbzhong [auto_increment] 20161215:b
+        , auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+        //add:e
+        {} //modify wangjiahao [table lock] 20160616
         virtual ~ObUpsModifyWithDmlType() {}
       public:
         ObDmlType get_dml_type() const {return dml_type_;};
@@ -59,6 +70,10 @@ namespace oceanbase
         int64_t get_table_id() const {return table_id_;}
         void set_table_id(int64_t table_id) {table_id_ = table_id;}
         //add :e
+        //add lbzhong [auto_increment] 20161215:b
+        int64_t get_auto_value() const {return auto_value_;}
+        void set_auto_value(int64_t auto_value) {auto_value_ = auto_value;}
+        //add:e
         int64_t to_string(char* buf, const int64_t buf_len) const;
         int serialize(char* buf, const int64_t buf_len, int64_t& pos) const;
         int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
@@ -81,6 +96,9 @@ namespace oceanbase
       private:
         ObDmlType dml_type_;
         int64_t table_id_; //add wangjiahao [table lock] 20160616
+        //add lbzhong [auto_increment] 20161215:b
+        int64_t auto_value_;
+        //add:e
     };
   } // end namespace sql
 } // end namespace oceanbase

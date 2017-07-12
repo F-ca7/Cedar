@@ -221,7 +221,6 @@ namespace oceanbase
         const uint64_t column_id, const ObObj& value, const int return_flag)
     {
       int err = OB_SUCCESS;
-
       ObMutatorCellInfo mutation;
 
       mutation.cell_info.table_id_ = table_id;

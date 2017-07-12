@@ -345,6 +345,10 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERR_UNKNOWN_SESSION_ID, "Unknown session ID");
     ADD_ERROR_STR(OB_ERR_PROTOCOL_NOT_RECOGNIZE, "Incorrect protocol");
     ADD_ERROR_STR(OB_ERR_WRITE_AUTH_ERROR, "Write auth packet error");
+    //add lbzhong [auto_increment] 20161201:b
+    ADD_ERROR_STR(OB_ERR_AUTO_COLUMN_DEFINITION, "Incorrect table definition; there can be only one auto column and it must be defined as a key");
+    ADD_ERROR_STR(OB_ERR_AUTO_VALUE_NOT_SERVE, "Auto value is not serve, please try again");
+    //add:e
     ADD_ERROR_STR(OB_INDEX_NOT_EXIST, "This table don't have index");//add longfei [drop table with index timeout] 151202:b
     //add huangjianwei [secondary index debug] 20170314:b
     ADD_ERROR_STR(OB_ERROR_DROP_COLUMN_WITH_INDEX, "This column has idnex");
@@ -352,8 +356,8 @@ static struct ObStrErrorInit
     ADD_ERROR_STR(OB_ERROR_ALTER_INDEX_TABLE, "Can not alter an index table");
     //add:e
     //add zhuyanchao[secondary index table name]
-     ADD_ERROR_STR( OB_ERR_INVALID_TABLE_NAME, "Table name or index name is too long, max is 128");
-
+     ADD_ERROR_STR( OB_ERR_INVALID_TABLE_NAME, "Table name is too long, max is 127");
+     ADD_ERROR_STR( OB_ERR_INVALID_INDEX_NAME, "Index name is too long, max is 123");
     //add e
     //add by zt 20160713:b
     //error string for stored procedure

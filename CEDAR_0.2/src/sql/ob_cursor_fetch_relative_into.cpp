@@ -146,7 +146,7 @@ int ObCursorFetchRelativeInto::open()
 
 namespace oceanbase{
   namespace sql{
-    REGISTER_PHY_OPERATOR(ObCursorFetchRelativeInto, PHY_CURSOR_FETCH_ABS_INTO);
+    REGISTER_PHY_OPERATOR(ObCursorFetchRelativeInto, PHY_CURSOR_FETCH_RELATIVE_INTO);
   }
 }
 

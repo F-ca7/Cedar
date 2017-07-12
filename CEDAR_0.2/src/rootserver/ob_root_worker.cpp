@@ -6181,11 +6181,6 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
           TBSYS_LOG(INFO, "[TRIGGER][slave_create_procedure] done.");
           break;
         //add :e
-        //add by qx 20170225 :b
-        case CHECK_RS_ONLINE_TRIGGER:
-          TBSYS_LOG(INFO, "[TRIGGER][ups check rs online] done.");
-          break;
-        //add :e
         default:
           {
             TBSYS_LOG(WARN, "get unknown trigger event msg:type[%ld]", msg.type);

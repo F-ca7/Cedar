@@ -404,13 +404,18 @@ namespace oceanbase
         common::ObRow post_data_row;
         const ObObj *obj = NULL;
         ObObj obj_dml, obj_virtual;
-        if(OB_SUCCESS == ret && (DELETE == sql_type_ || (UPDATE == sql_type_ ) || (REPLACE == sql_type_ )))
+        //modify maoxx [replace bug fix] 20170324
+//        if(OB_SUCCESS == ret && (DELETE == sql_type_ || (UPDATE == sql_type_ ) || (REPLACE == sql_type_ )))
+        if(OB_SUCCESS == ret && DELETE == sql_type_)
+        //modify e
         {
           pre_data_row.set_row_desc(pre_data_row_desc_);
           pre_data_row_store_.reset_iterator();
           while(OB_SUCCESS == (ret = (pre_data_row_store_.get_next_row(pre_data_row))))
           {
-            if((DELETE == sql_type_) || (UPDATE == sql_type_ && delete_flag_for_update_) || (REPLACE == sql_type_ && delete_flag_for_replace_))
+            //modify maoxx [replace bug fix] 20170324
+//            if((DELETE == sql_type_) || (UPDATE == sql_type_ && delete_flag_for_update_) || (REPLACE == sql_type_ && delete_flag_for_replace_))
+            //modify e
             {
               row_to_store_del.set_row_desc(index_row_desc_del_[index_idx]);
               for(int index_cid_idx = 0; index_cid_idx < index_row_desc_del_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
@@ -465,6 +470,7 @@ namespace oceanbase
           if(OB_ITER_END == ret)
             ret = OB_SUCCESS;
         }
+
         //add maoxx [insert bug fix] 20170313
         if(OB_SUCCESS == ret && INSERT == sql_type_)
         {
@@ -533,25 +539,104 @@ namespace oceanbase
             ret = OB_SUCCESS;
         }
         //add e
-        //modify maoxx [insert bug fix] 20170313
+
+        //modify maoxx [update bug fix] 20170313
 //        if(OB_SUCCESS == ret && (INSERT == sql_type_ || UPDATE == sql_type_ || REPLACE == sql_type_))
-        if(OB_SUCCESS == ret && (UPDATE == sql_type_))
+        if(OB_SUCCESS == ret && UPDATE == sql_type_)
         //modify e
         {
+          //mod huangjianwei [secondary index debug]:b
           const ObRowDesc *row_desc_after_cal = NULL;
-          ObProject *project = NULL;
-          project = static_cast<sql::ObProject*>(child_op_);
-          project->get_row_desc(row_desc_after_cal);
-          post_data_row.set_row_desc(*row_desc_after_cal);
-          post_data_row_store_.reset_iterator();
+          ObProject *project_op = dynamic_cast<ObProject*>(get_child(0));
+          if(OB_SUCCESS != (ret = project_op->get_row_desc(row_desc_after_cal)))
+          {
+            TBSYS_LOG(ERROR, "failed in get post data row desc,ret[%d]", ret);
+          }
+          else
+          {
+            post_data_row_desc_ = *row_desc_after_cal;
+            pre_data_row.set_row_desc(pre_data_row_desc_);
+            pre_data_row_store_.reset_iterator();
+            post_data_row.set_row_desc(post_data_row_desc_);
+            post_data_row_store_.reset_iterator();
+          }
+          //mod:e
 
+          //modify maoxx [update bug fix] 20170324
           //mod huangjianwei [secondary index debug]:b
           //post_data_row.set_row_desc(post_data_row_desc_);
           //post_data_row_store_.reset_iterator();
-          while(OB_SUCCESS == (ret = (post_data_row_store_.get_next_row(post_data_row))))
+          int pre_ret = OB_SUCCESS;
+          int post_ret = OB_SUCCESS;
+          while(OB_SUCCESS == ret)
           //mod:e
           //while(OB_SUCCESS == (ret = (pre_data_row_store_.get_next_row(post_data_row))))
           {
+            pre_ret = pre_data_row_store_.get_next_row(pre_data_row);
+            post_ret = post_data_row_store_.get_next_row(post_data_row);
+            if(OB_SUCCESS != pre_ret || OB_SUCCESS != post_ret)
+            {
+              break;
+            }
+          //modify e
+
+            //add maoxx test
+            TBSYS_LOG(ERROR,"test::maoxx pre_data_row=%s", to_cstring(pre_data_row));
+            TBSYS_LOG(ERROR,"test::maoxx post_data_row=%s", to_cstring(post_data_row));
+            //add e
+
+            if(delete_flag_for_update_)
+            {
+              row_to_store_del.set_row_desc(index_row_desc_del_[index_idx]);
+              for(int index_cid_idx = 0; index_cid_idx < index_row_desc_del_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
+              {
+                if(OB_SUCCESS != (ret = index_row_desc_del_[index_idx].get_tid_cid(index_cid_idx, index_tid, index_cid)))
+                {
+                  TBSYS_LOG(ERROR,"failed in get tid_cid from row desc,ret[%d]", ret);
+                  break;
+                }
+                else if(OB_ACTION_FLAG_COLUMN_ID == index_cid)
+                {
+                  obj_dml.set_int(ObActionFlag::OP_DEL_ROW);
+                  if(OB_SUCCESS != (ret = row_to_store_del.set_cell(index_tid, index_cid, obj_dml)))
+                  {
+                    TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                    break;
+                  }
+                }
+                else if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
+                {
+                  TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
+                  break;
+                }
+                else
+                {
+                  if(NULL == obj)
+                  {
+                    TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
+                    ret = OB_INVALID_ARGUMENT;
+                    break;
+                  }
+                  else if(OB_SUCCESS != (ret = row_to_store_del.set_cell(index_tid, index_cid, *obj)))
+                  {
+                    TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                    break;
+                  }
+                }
+              }//end for
+              if(OB_SUCCESS == ret)
+              {
+                if(OB_SUCCESS != (ret = (index_row_del.add_row(row_to_store_del, stored_row))))
+                {
+                  TBSYS_LOG(ERROR, "failed to do row_store_del.add_row faile,ret=%d,row=%s", ret, to_cstring(row_to_store_del));
+                }
+                else
+                {
+                  row_to_store_del.clear();
+                }
+              }
+            }
+
             row_to_store_ins.set_row_desc(index_row_desc_ins_[index_idx]);
             for(int index_cid_idx = 0; index_cid_idx < index_row_desc_ins_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
             {
@@ -571,7 +656,7 @@ namespace oceanbase
               }
               else
               {
-                if(OB_INVALID_INDEX == row_desc_after_cal->get_idx(data_tid_, index_cid))
+                if(OB_INVALID_INDEX == post_data_row_desc_.get_idx(data_tid_, index_cid))
                 {
                   if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
                   {
@@ -579,24 +664,24 @@ namespace oceanbase
                     break;
                   }
                 }
-                else if(OB_INDEX_VIRTUAL_COLUMN_ID != index_cid && OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
+                else if(OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
                 {
                   TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
                   break;
                 }
-                if(OB_SUCCESS == ret)
+              }
+              if(OB_SUCCESS == ret)
+              {
+                if(NULL == obj)
                 {
-                  if(NULL == obj)
-                  {
-                    TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
-                    ret = OB_INVALID_ARGUMENT;
-                    break;
-                  }
-                  else if(OB_SUCCESS != (ret = row_to_store_ins.set_cell(index_tid, index_cid, *obj)))
-                  {
-                    TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
-                    break;
-                  }
+                  TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
+                  ret = OB_INVALID_ARGUMENT;
+                  break;
+                }
+                else if(OB_SUCCESS != (ret = row_to_store_ins.set_cell(index_tid, index_cid, *obj)))
+                {
+                  TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                  break;
                 }
               }
             }//end for
@@ -612,79 +697,221 @@ namespace oceanbase
               }
             }
           }
-          if(OB_ITER_END == ret)
+          //modify maoxx [update bug fix] 20170324
+//          if(OB_ITER_END == ret)
+//            ret = OB_SUCCESS;
+          if(OB_ITER_END == pre_ret && OB_ITER_END == post_ret)
+          {
             ret = OB_SUCCESS;
+          }
+          else
+          {
+            TBSYS_LOG(ERROR, "failed to get next pre row and post row,pre_ret=%d,post_ret=%d", pre_ret, post_ret);
+            ret = OB_ERROR;
+          }
+          //modify e
         }
-        //add huangjianwei [secondary index debug] 20170316:b
-        if(OB_SUCCESS == ret && (REPLACE == sql_type_))
+
+        //add maoxx [replace bug fix] 20170324
+        if(OB_SUCCESS == ret && REPLACE == sql_type_)
         {
+          pre_data_row.set_row_desc(pre_data_row_desc_);
+          pre_data_row_store_.reset_iterator();
           post_data_row.set_row_desc(post_data_row_desc_);
           post_data_row_store_.reset_iterator();
-          while(OB_SUCCESS == (ret = (post_data_row_store_.get_next_row(post_data_row))))
+          bool is_row_empty = false;
+          bool pre_break = false;
+          while(OB_SUCCESS == ret)
           {
-            row_to_store_ins.set_row_desc(index_row_desc_ins_[index_idx]);
-            for(int index_cid_idx = 0; index_cid_idx < index_row_desc_ins_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
+            if(OB_SUCCESS != (ret = pre_data_row_store_.get_next_row(pre_data_row)))
             {
-              if(OB_SUCCESS != (ret = index_row_desc_ins_[index_idx].get_tid_cid(index_cid_idx, index_tid, index_cid)))
+              if(OB_ITER_END == ret)
               {
-                TBSYS_LOG(ERROR,"failed in get tid_cid from row desc,ret[%d]", ret);
-                break;
-              }
-              else if(OB_ACTION_FLAG_COLUMN_ID == index_cid)
-              {
-              }
-              else if(OB_INDEX_VIRTUAL_COLUMN_ID == index_cid)
-              {
-                obj_virtual.set_null();
-                obj = &obj_virtual;
+                ret = OB_SUCCESS;
+                pre_break = true;
               }
               else
               {
-                if((OB_INVALID_INDEX == post_data_row_desc_.get_idx(data_tid_, index_cid)))
+                TBSYS_LOG(WARN, "get next pre data row failed! ret = %d", ret);
+                break;
+              }
+            }
+            if(OB_SUCCESS == ret && !pre_break)
+            {
+              //add maoxx test
+              TBSYS_LOG(ERROR,"test::maoxx pre_data_row=%s", to_cstring(pre_data_row));
+              //add e
+              if (OB_SUCCESS != (ret = pre_data_row.get_is_row_empty(is_row_empty)))
+              {
+                TBSYS_LOG(WARN, "fail to get is row empty, err=%d", ret);
+              }
+              else if(!is_row_empty)
+              {
+                row_to_store_del.set_row_desc(index_row_desc_del_[index_idx]);
+                for(int index_cid_idx = 0; index_cid_idx < index_row_desc_del_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
                 {
-                  if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
+                  if(OB_SUCCESS != (ret = index_row_desc_del_[index_idx].get_tid_cid(index_cid_idx, index_tid, index_cid)))
+                  {
+                    TBSYS_LOG(ERROR,"failed in get tid_cid from row desc,ret[%d]", ret);
+                    break;
+                  }
+                  else if(OB_ACTION_FLAG_COLUMN_ID == index_cid)
+                  {
+                    obj_dml.set_int(ObActionFlag::OP_DEL_ROW);
+                    if(OB_SUCCESS != (ret = row_to_store_del.set_cell(index_tid, index_cid, obj_dml)))
+                    {
+                      TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                      break;
+                    }
+                  }
+                  else if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
                   {
                     TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
                     break;
                   }
-                }
-                else if(OB_INDEX_VIRTUAL_COLUMN_ID != index_cid && OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
-                {
-                  TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
-                  break;
-                }
+                  else
+                  {
+                    if(NULL == obj)
+                    {
+                      TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
+                      ret = OB_INVALID_ARGUMENT;
+                      break;
+                    }
+                    else if(OB_SUCCESS != (ret = row_to_store_del.set_cell(index_tid, index_cid, *obj)))
+                    {
+                      TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                      break;
+                    }
+                  }
+                }//end for
                 if(OB_SUCCESS == ret)
                 {
-                  if(NULL == obj)
+                  if(OB_SUCCESS != (ret = (index_row_del.add_row(row_to_store_del, stored_row))))
                   {
-                    TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
-                    ret = OB_INVALID_ARGUMENT;
-                    break;
+                    TBSYS_LOG(ERROR, "failed to do row_store_del.add_row faile,ret=%d,row=%s", ret, to_cstring(row_to_store_del));
                   }
-                  else if(OB_SUCCESS != (ret = row_to_store_ins.set_cell(index_tid, index_cid, *obj)))
+                  else
                   {
-                    TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
-                    break;
+                    //add maoxx test
+                    TBSYS_LOG(ERROR,"test::maoxx row_to_store_del=%s", to_cstring(row_to_store_del));
+                    //add e
+                    row_to_store_del.clear();
                   }
                 }
               }
-            }//end for
-            if(OB_SUCCESS == ret)
-            {
-              if(OB_SUCCESS != (ret = (index_row_ins.add_row(row_to_store_ins, stored_row))))
-              {
-                TBSYS_LOG(ERROR, "failed to do row_store.add_row faile,ret=%d,row=%s", ret, to_cstring(row_to_store_ins));
-              }
-              else
-              {
-                row_to_store_ins.clear();
-              }
             }
-          }
-          if(OB_ITER_END == ret)
-            ret = OB_SUCCESS;
+            bool post_break = false;
+            bool rowkey_equal = false;
+            const ObRowkey* pre_key = NULL;
+            const ObRowkey* post_key = NULL;
+            while(OB_SUCCESS == ret)
+            {
+              if(OB_SUCCESS != (ret = post_data_row_store_.get_next_row(post_data_row)))
+              {
+                if(OB_ITER_END == ret)
+                {
+                  ret = OB_SUCCESS;
+                  post_break = true;
+                }
+                else
+                {
+                  TBSYS_LOG(WARN, "get next post data row failed! ret = %d", ret);
+                  break;
+                }
+              }
+              if(OB_SUCCESS == ret && !post_break)
+              {
+                //add maoxx test
+                TBSYS_LOG(ERROR,"test::maoxx post_data_row=%s", to_cstring(post_data_row));
+                //add e
+                if(OB_SUCCESS != (ret = pre_data_row.get_rowkey(pre_key)) || OB_SUCCESS != (ret = post_data_row.get_rowkey(post_key)))
+                {
+                  TBSYS_LOG(WARN, "get row key failed,ret = %d", ret);
+                }
+                else if(0 == pre_key->compare(*post_key))
+                {
+                  post_break = true;
+                  rowkey_equal = true;
+                }
+                row_to_store_ins.set_row_desc(index_row_desc_ins_[index_idx]);
+                for(int index_cid_idx = 0; index_cid_idx < index_row_desc_ins_[index_idx].get_column_num() && OB_SUCCESS == ret; index_cid_idx++)
+                {
+                  if(OB_SUCCESS != (ret = index_row_desc_ins_[index_idx].get_tid_cid(index_cid_idx, index_tid, index_cid)))
+                  {
+                    TBSYS_LOG(ERROR,"failed in get tid_cid from row desc,ret[%d]", ret);
+                    break;
+                  }
+                  else if(OB_ACTION_FLAG_COLUMN_ID == index_cid)
+                  {
+                  }
+                  else if(OB_INDEX_VIRTUAL_COLUMN_ID == index_cid)
+                  {
+                    obj_virtual.set_null();
+                    obj = &obj_virtual;
+                  }
+                  else
+                  {
+                    if((OB_INVALID_INDEX == post_data_row_desc_.get_idx(data_tid_, index_cid)))
+                    {
+                      if(!rowkey_equal)
+                      {
+                        obj_virtual.set_null();
+                        obj = &obj_virtual;
+                      }
+                      else if(OB_SUCCESS != (ret = pre_data_row.get_cell(data_tid_, index_cid, obj)))
+                      {
+                        TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
+                        break;
+                      }
+                    }
+                    else if(OB_SUCCESS != (ret = post_data_row.get_cell(data_tid_, index_cid, obj)))
+                    {
+                      TBSYS_LOG(ERROR,"failed in get cell from data_row,ret[%d],tid[%ld],cid[%ld]", ret, data_tid_, index_cid);
+                      break;
+                    }
+                  }
+                  if(OB_SUCCESS == ret)
+                  {
+                    if(NULL == obj)
+                    {
+                      TBSYS_LOG(ERROR,"obj's pointer can not be NULL!");
+                      ret = OB_INVALID_ARGUMENT;
+                      break;
+                    }
+                    else if(OB_SUCCESS != (ret = row_to_store_ins.set_cell(index_tid, index_cid, *obj)))
+                    {
+                      TBSYS_LOG(ERROR,"set cell failed,ret=%d", ret);
+                      break;
+                    }
+                  }
+                }//end for
+                if(OB_SUCCESS == ret)
+                {
+                  if(OB_SUCCESS != (ret = (index_row_ins.add_row(row_to_store_ins, stored_row))))
+                  {
+                    TBSYS_LOG(ERROR, "failed to do row_store.add_row faile,ret=%d,row=%s", ret, to_cstring(row_to_store_ins));
+                  }
+                  else
+                  {
+                    //add maoxx test
+                    TBSYS_LOG(ERROR,"test::maoxx row_to_store_ins=%s", to_cstring(row_to_store_ins));
+                    //add e
+                    row_to_store_ins.clear();
+                  }
+                }
+              }
+              if(post_break)
+              {
+                break;
+              }
+            }//end while
+            if(pre_break)
+            {
+              break;
+            }
+          }//end while
         }
-      //add:e
+      //modify e
       }
       if(NULL != child_op_)
       {

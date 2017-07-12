@@ -1248,10 +1248,17 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
     char str[OB_MAX_TABLE_NAME_LENGTH];
     memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
     int64_t str_len = 0;
+	int max_index_name = OB_MAX_COLUMN_NAME_LENGTH-4;
     index_table_name_.assign_ptr(
           (char*)(node->children_[2]->str_value_),
         static_cast<int32_t>(strlen(node->children_[2]->str_value_))
         );
+		 //add zhuyanchao[secondary index bug]
+    if(index_table_name_.length()>=max_index_name)
+    {
+        ret = OB_ERR_INVALID_INDEX_NAME;
+        return ret;
+    }
     if((ret = create_index_stmt->generate_inner_index_table_name(index_table_name_, original_table_name_, str, str_len)) != OB_SUCCESS)
     {
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,

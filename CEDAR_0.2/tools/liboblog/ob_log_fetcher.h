@@ -28,7 +28,7 @@
 #include "ob_log_filter.h"
 #include "ob_log_server_selector.h"
 #include "ob_log_rpc_stub.h"
-
+#include "ob_buffer_size_define.h" //add by zhutao
 namespace oceanbase
 {
   namespace liboblog
@@ -56,7 +56,7 @@ namespace oceanbase
     {
       static const int64_t MAX_MUTATOR_NUM = 2048;
       static const int64_t ALLOCATOR_PAGE_SIZE = 16L * 1024L * 1024L;
-      static const int64_t FETCH_BUFFER_SIZE = common::OB_MAX_LOG_BUFFER_SIZE;
+      static const int64_t FETCH_BUFFER_SIZE = OB_DEFAULT_BUFFER_SIZE; //modify by zhutao
       static const int64_t FETCH_LOG_TIMEOUT = 10L * 1000000L;
       static const int64_t WAIT_VLIST_TIMEOUT = 1L * 1000000L;
       static const int64_t UPS_ADDR_REFRESH_INTERVAL = 10L * 1000000L;

@@ -113,6 +113,9 @@ namespace oceanbase
       /*add maoxx [bloomfilter_join] 20160408*/
       PHY_BLOOMFILTER_JOIN,
       /*add e*/
+      //add lbzhong [auto_increment] 20161218:b
+      PHY_AUTO_INCREMENT_FILTER,
+      //add:e
 
       PHY_INDEX_TRIGGER, //add maoxx
       PHY_DROP_INDEX, //add longfei [secondary index drop index]
