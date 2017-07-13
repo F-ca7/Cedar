@@ -314,7 +314,6 @@ int ObCompactCellWriter::write_decimal(const ObObj &decimal, ObObj *clone_value)
                }
             }
         }
-//        TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*clone_value),clone_value->get_precision(),clone_value->get_scale(),clone_value->get_vscale());     //test xsl
         return ret;
 
 }
@@ -428,9 +427,7 @@ int ObCompactCellWriter::append(uint64_t column_id, const ObObj &value, ObObj *c
       {
           //modify xsl
           //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-          //TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(value),value.get_precision(),value.get_scale(),value.get_vscale());     //test xsl
           ret = write_decimal(value,clone_value);
-          //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*clone_value));     //test xsl
           //modify e
           //modify e
       }

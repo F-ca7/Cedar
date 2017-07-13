@@ -311,9 +311,8 @@ int ObExprValues::eval()
                           TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
                   }
               }
-
           }
-
+            //here can't add other code
           //else if (OB_SUCCESS != (ret = ob_write_obj(buf, *single_value, tmp_value))) old code
                   //old code
           /*
@@ -408,7 +407,7 @@ int ObExprValues::eval()
              }
              else
              {
-                 if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))
+                 if (OB_SUCCESS != (ret = obj_cast(*single_value, data_type, casted_cell, single_value)))   //??
                  {
                          TBSYS_LOG(WARN, "failed to cast obj, err=%d", ret);
                  }

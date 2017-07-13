@@ -115,7 +115,6 @@ int ObDecimal::from(const char* str) {
 * date:2014/6/12
 **/
 int ObDecimal::from(const char* buff, int64_t buf_len) {
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s]",buff);   //add xsl
     int ret = OB_SUCCESS;
 	char int_buf[MAX_PRINTABLE_SIZE];
 	char frac_buf[MAX_PRINTABLE_SIZE];
@@ -206,9 +205,9 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         got_digit = MAX_DECIMAL_DIGIT;
     }
     //modify e
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],got_digit=[%d],got_frac=[%d],got_num=[%d],got_dot=[%d],op=[%d]",buff,got_digit,got_frac,got_num,got_dot,op);   //add xsl
     if(OB_SUCCESS==ret)
     {
+        int tmp_frac2 = 0;  //add xsl DECIMAL 2017_7
         length = got_num + got_dot + op;
         if (!got_dot) {    //no num after point
             //wwd added
@@ -231,13 +230,22 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             memcpy(int_buf, buff, point_pos);
             TTInt whole;
             whole.FromString(int_buf);
-
-            TTInt p(got_frac);
+            //modify xsl DECIMAL 2017_7
+            tmp_frac2 = got_frac - 1;
+            while(buff[point_pos + got_dot + tmp_frac2] == '0')
+            {
+                tmp_frac2--;
+            }
+            tmp_frac2++;
+            TTInt p(tmp_frac2);
+            //TTInt p(got_frac);
+            //modify e
             TTInt BASE(10);
             BASE.Pow(p);
             whole = whole * BASE;
-
-            memcpy(frac_buf, buff + (point_pos + got_dot), got_frac);
+            memcpy(frac_buf, buff + (point_pos + got_dot), tmp_frac2);
+            //memcpy(frac_buf, buff + (point_pos + got_dot), got_frac);
+            //modify e
             TTInt part_float;
             part_float.FromString(frac_buf);
 
@@ -249,12 +257,13 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         /*
          *4.3 set it into word[0]
          */
-        vscale_ = got_frac;
+        vscale_ = tmp_frac2;     //add xsl DECIMAL
+        precision_ = got_digit - got_frac + tmp_frac2; //add xsl DECIMAL
+        //vscale_ = got_frac;    //delete xsl DECIMAL
         scale_=vscale_;      //all equal got_frac
-        precision_=got_digit;
+        //precision_=got_digit;   //delete xsl DECIMAL
         if(precision_==scale_)precision_++;    //modify xsl 2017_4
 	  }
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
 	return ret;
 //return ret;
 }
@@ -266,9 +275,8 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
  *         if num>kMAX,convert into 9999.9999,if num<kMin,convert into -9999.9999
  *         the main process is in function body
  **/
-int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
-{
-    //TBSYS_LOG(INFO,"xushilei,len=[%d]",(uint32_t)sizeof(ObDecimal)); //test xsl ECNU_DECIMAL 2017_3
+int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const {
+
     int pos = 0;
     int start = 0;
     int real_scale = 0;
@@ -279,121 +287,95 @@ int64_t ObDecimal::to_string(char* buf, const int64_t buf_len) const
     TTInt whole, float_part;
     TTInt BASE(10), p(vscale_);
     BASE.Pow(p);
-//    whole = word[0] / BASE;    //delete xsl ECNU_DECIAML
-//    float_part = word[0] % BASE;  //delete xsl ECNU_DECIAML
-    if (precision_==0)
-    {
-        if (word[0].IsSign())
-        {
+    whole = word[0] / BASE;
+    float_part = word[0] % BASE;
+    if (precision_==0) {
+        if (word[0].IsSign()) {
             tmp[pos] = '-';
             pos++;
         }
+
         strcpy(tmp + pos, _str_kMaxScaleFactor_38);
         pos += MAX_DECIMAL_DIGIT;
+
         strcpy(buf, tmp);
+
     }
-    else                //p != 0
-    {
-        //TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu],table[1]=[%ld],table[1]=[%lu]",
-          //        word[0].table[0],word[0].table[0],word[0].table[1],word[0].table[1]);  //test xsl
-        //TBSYS_LOG(INFO,"xushilei,word[0].uint=[%lu],word[0].int=[%ld]",word[0].ToUInt(),word[0].ToInt());
-        //TBSYS_LOG(INFO,"xushilei,word[0]=[%s]",word[0].ToString().c_str());
-        //add xsl ECNU_DECIMAL
-        /*if(word[0].table[1] == 0 && ( (word[0].table[0] & TTMATH_UINT_HIGHEST_BIT) !=0)) // (table[0]<0)
-        {
-            tmp[pos] = '-';
-            uint64_t tmp0 = -word[0].table[0];   //can modify xsl
-            TTInt t0(tmp0);
-            whole = t0 / BASE;
-            float_part = t0 % BASE;
-            start = 1;
+    else{
+      if (word[0].IsSign()) {
+        tmp[pos] = '-';
+        whole.ChangeSign();
+        float_part.ChangeSign();
+        start = 1;
+      }
+
+      string str_for_word;
+      word[0].ToString(str_for_word);
+      string str_for_int;
+      whole.ToString(str_for_int);
+      string str_for_frac;
+      float_part.ToString(str_for_frac);
+
+      int len_word = (int)str_for_word.length() - start;
+      int len_float = (int) str_for_frac.length();
+      pos = start;
+      if (len_word < (int) vscale_) {
+        whole = 0;
+      }
+
+      const char* int_str = str_for_int.c_str();
+      strcpy(tmp + pos, int_str);
+      pos += (int) strlen(int_str);
+      if (vscale_ > scale_)
+        real_scale = scale_;
+      else {
+        real_scale = vscale_;
+        tail_zero_count = scale_ - vscale_;
+      }
+      if (scale_ != 0) {
+        tmp[pos] = '.';
+        pos++;
+      }
+      if (0 <= (int) vscale_ && scale_ != 0) {
+
+
+         const char* float_str = str_for_frac.c_str();
+
+//		if (len_word < (int) vscale_ && 0 < vscale_) {
+//
+//			for (int i = 0; i < (int) vscale_ - len_word; i++) {
+//				tmp[pos] = '0';
+//				++pos;
+//			}
+//			strcpy(tmp + pos, float_str);
+//			pos += (int) strlen(float_str);
+//		} else
+            if (0 < vscale_) {
+            for (int i = 0; i < (int) vscale_ - len_float; i++) {
+                tmp[pos] = '0';
+                ++pos;
+            }
+            strcpy(tmp + pos, float_str);
+            pos += (int) strlen(float_str);
         }
-        //add e
-        else */
-        if(word[0].IsSign())    //table[1]<0
-        {
-            tmp[pos] = '-';            
-            whole = word[0] / BASE;
-            float_part = word[0] % BASE;
-            whole.ChangeSign();
-            float_part.ChangeSign();
-            start = 1;
-        }
-        else
-        {
-            whole = word[0] / BASE;
-            float_part = word[0] % BASE;
-        }
-        string str_for_word;
-        word[0].ToString(str_for_word);
-        string str_for_int;
-        whole.ToString(str_for_int);
-        string str_for_frac;
-        float_part.ToString(str_for_frac);
-        int len_word = (int)str_for_word.length() - start;
-        int len_float = (int) str_for_frac.length();
-        pos = start;
-        if (len_word < (int) vscale_)
-        {
-            whole = 0;
-            //TBSYS_LOG(INFO,"xushilei,len_word=[%d],vs=[%d],len_float=[%d]",len_word,vscale_,len_float); //test xsl ECNU_DECIMAL 2017_3
-        }
-        const char* int_str = str_for_int.c_str();
-        strcpy(tmp + pos, int_str);
-        pos += (int) strlen(int_str);
-        if (vscale_ > scale_)
-            real_scale = scale_;
-        else
-        {
-            real_scale = vscale_;
-            tail_zero_count = scale_ - vscale_;
-        }
-        if (scale_ != 0)
-        {
-            tmp[pos] = '.';
+        for (int i = 0; i < tail_zero_count; i++) {
+
+            tmp[pos] = '0';
             pos++;
         }
-        if (0 <= (int) vscale_ && scale_ != 0)
-        {
-            const char* float_str = str_for_frac.c_str();
-            //		if (len_word < (int) vscale_ && 0 < vscale_) {
-            //
-            //			for (int i = 0; i < (int) vscale_ - len_word; i++) {
-            //				tmp[pos] = '0';
-            //				++pos;
-            //			}
-            //			strcpy(tmp + pos, float_str);
-            //			pos += (int) strlen(float_str);
-            //		} else
-            if (0 < vscale_)
-            {
-                for (int i = 0; i < (int) vscale_ - len_float; i++)
-                {
-                    tmp[pos] = '0';                           //pre 0
-                    ++pos;
-                }
-                strcpy(tmp + pos, float_str);
-                pos += (int) strlen(float_str);
-            }
-            for (int i = 0; i < tail_zero_count; i++)         //post 0
-            {
-                tmp[pos] = '0';
-                pos++;
-            }
-            tmp[pos] = '\0';
-            strncpy(buf, tmp, strlen(tmp) - (vscale_ - real_scale));
-            pos = (int) strlen(tmp) - (vscale_ - real_scale);
-        }
-        else if (scale_ == 0)
-        {
-            if (len_word < (int) vscale_)
-                strcpy(buf, tmp + start);
-            else
-                strcpy(buf, tmp);
-        }
+
+        tmp[pos] = '\0';
+        strncpy(buf, tmp, strlen(tmp) - (vscale_ - real_scale));
+        pos = (int) strlen(tmp) - (vscale_ - real_scale);
+    } else if (scale_ == 0) {
+        if (len_word < (int) vscale_)
+            strcpy(buf, tmp + start);
+        else
+            strcpy(buf, tmp);
+
+    }
     }
     strcat(buf,e);
-    //TBSYS_LOG(INFO,"xushilei,buf=[%s]",buf);   //test xsl
     OB_ASSERT(pos <= buf_len);
     return pos;
 }
@@ -533,7 +515,6 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
                   point_pos, p, s, buf);
         //return ret;
     }
-//    TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],point_pos=[%d],s=[%d],vs=[%d]",to_cstring(*this),point_pos,scale_,vscale_);   //test xsl
     if (OB_SUCCESS==ret && s < vscale_)   //schema_s < decimal_s
     {
         if (0 == s)
@@ -565,7 +546,6 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             TBSYS_LOG(ERROR, "failed convert str to decimal!");
         }
     }
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //test xsl
     //add xsl ECNU_DECIMAL
     else if(ret ==OB_SUCCESS && s > vscale_ && vscale_ > 0)   //
     {
@@ -603,7 +583,6 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
         scale_ = s;
         precision_ = point_pos - is_neg + s;   //add xsl ECNU_DECIMAL 2017_3
     }
-    //TBSYS_LOG(INFO,"xushilei,test,decimal=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(*this),precision_,scale_,vscale_);   //add xsl
     return ret;
 }
 
@@ -626,7 +605,6 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
     int ret = OB_SUCCESS;
 	ObDecimal n1 = *this;
 	ObDecimal n2 = other;
-//    TBSYS_LOG(INFO,"xushilei,test n1=[%s],n2=[%s]",to_cstring(n1),to_cstring(n2));   //test xsl
     int p = 0;
     TTLInt num1 = n1.get_words()[0];
     TTLInt num2 = n2.get_words()[0];
@@ -643,13 +621,11 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
 		res.vscale_ = n2.get_vscale();
 	}
 	if (num1.Add(num2) == 0) {
-//        TBSYS_LOG(INFO,"xushilei,test n1=[%s]",num1.ToString().c_str());   //test xsl
         string str_for_word;
         num1.ToString(str_for_word);
-        //TBSYS_LOG(INFO,"xushilei,test n1=[%s]",str_for_word.c_str());   //test xsl
         int len_word=(int)strlen(str_for_word.c_str())-num1.IsSign();
         int len_int=len_word-res.vscale_;
-        res.scale_=n1.scale_ >= n2.scale_?n1.scale_:n2.scale_;
+        res.scale_=n1.scale_ >= n2.scale_? n1.scale_:n2.scale_;
         res.precision_=len_int+ res.scale_;
         if(res.precision_<=res.scale_)res.precision_=res.scale_+1;
 		if (res.precision_ > (unsigned int) MAX_DECIMAL_DIGIT) {
@@ -674,9 +650,6 @@ int ObDecimal::add(const ObDecimal &other, ObDecimal &res) const {
         else if(ret==OB_SUCCESS){
 		   res.word[0] = num1;
 		}
-//        TBSYS_LOG(INFO,"xushilei,test res=[%s],p=[%d],s=[%d],v=[%d]",res.word[0].ToString().c_str(),res.precision_,
-//                res.scale_,res.vscale_);   //test xsl
-//        TBSYS_LOG(INFO,"xushilei,test res=[%s]",to_cstring(res));   //test xsl
         if(ret!=OB_SUCCESS){
             char er1[MAX_PRINTABLE_SIZE];
             char er2[MAX_PRINTABLE_SIZE];
@@ -713,12 +686,7 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
     TTLInt num1 = n1.get_words()[0];
     TTLInt num2 = n2.get_words()[0];
     TTLInt base_to_modify(10);
-    //TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
-    //TBSYS_LOG(INFO,"xushilei,num2=[%s]",num2.ToString().c_str());    //test xsl
-    //TBSYS_LOG(INFO,"xushilei,n1=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(n1),n1.get_precision(),n1.get_scale(),n1.get_vscale());    //test xsl
-    //TBSYS_LOG(INFO,"xushilei,n2=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(n2),n2.get_precision(),n2.get_scale(),n2.get_vscale());    //test xsl
     if (num1.Mul(num2) == 0) {
-        TBSYS_LOG(INFO,"xushilei,num1=[%s]",num1.ToString().c_str());    //test xsl
         int p=0;
         //v=n1.get_vscale()+n2.get_vscale();
         p=n1.get_precision()+n2.get_precision();
@@ -789,7 +757,6 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
         ret = OB_ERROR;
         TBSYS_LOG(WARN, "failed to mul decimal");
     }
-    //TBSYS_LOG(INFO,"xushilei,res=[%s],p=[%d],s=[%d],vs=[%d]",to_cstring(res),res.get_precision(),res.get_scale(),res.get_vscale());    //test xsl DECIMAL
     return ret;
 }
 

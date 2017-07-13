@@ -113,12 +113,12 @@ namespace oceanbase
             }
             else
             {
-               // TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,,,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());
+                TBSYS_LOG(WARN, "test::f2 ,,(p==%d,,s==%d,,,,od.p=%d,s=%d", params.precision,params.scale,od.get_precision(),od.get_vscale());  //test xsl
                 if(params.is_modify)
                 {
-                    if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
+                    if((params.precision-params.scale) < (od.get_precision()-od.get_vscale()))
                     {
-                                ret=OB_DECIMAL_UNLEGAL_ERROR;
+                                ret=OB_DECIMAL_UNLEGAL_ERROR;      //schema:10 5 true:1 0
                                 TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
                     }
                     else
@@ -1883,7 +1883,8 @@ namespace oceanbase
                 }
                 else
                 {
-                    casted_cell.set_precision(schema_p);  //p转化成模式的参数样式??
+                    casted_cell.set_precision(pre - vscale + schema_s);   //add xsl ECNU_DECIMAL
+                    //casted_cell.set_precision(schema_p);  //delete xsl ECNU_DECIMAL p转化成模式的参数样式
                     casted_cell.set_scale(schema_s);
                     casted_cell.set_vscale(vscale);    //modify xsl ECNU_DECIMAL
                     casted_cell.set_nwords(orig_cell.get_nwords());    //add xsl ECNU_DECIMAL 2017_5
@@ -1905,10 +1906,6 @@ namespace oceanbase
                 ObExprObj to;
                 if(orig_cell.get_type()==ObDecimalType)
                 {
-                    /*
-                    ObDecimal *od =NULL;
-                    orig_cell.get_decimal_v2(od);
-                    */
                     uint64_t *tt = NULL;
                     tt = orig_cell.get_ttint();
                     if (OB_SUCCESS != (ret=obj_tmp.set_decimal(tt,orig_cell.get_precision(),orig_cell.get_scale(),orig_cell.get_vscale(),orig_cell.get_nwords())))
@@ -1940,7 +1937,6 @@ namespace oceanbase
                     {
                         res_cell = &casted_cell;
                     }
-                    //TBSYS_LOG(INFO,"xushilei,casted_cell value=[%s]",to_cstring(casted_cell));    //test xsl
                     //TBSYS_LOG(INFO,"xushilei,casted_cell value=[%s]",to_cstring(*res_cell));    //test xsl
                 }
             }
@@ -1949,7 +1945,7 @@ namespace oceanbase
                 res_cell = &orig_cell;
             }
         }
-        // TBSYS_LOG(WARN, "test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
+        //TBSYS_LOG(WARN, "test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
         return ret;
     }
     //modify e
@@ -2020,53 +2016,76 @@ namespace oceanbase
 
     int obj_cast(ObObj &cell, const ObObjType expected_type, char* buf, int64_t buf_size, int64_t &used_buf_len)
     {
-      int ret = OB_SUCCESS;
-      used_buf_len = 0;
-      if (cell.get_type() != expected_type)
-      {
-        ObObjCastParams params;
-        ObExprObj from;
-        ObExprObj to;
+        int ret = OB_SUCCESS;
+        used_buf_len = 0;
+        if (cell.get_type() != expected_type)
+        {
+            ObObjCastParams params;
+            ObExprObj from;
+            ObExprObj to;
 
-        from.assign(cell);
-        if (ObVarcharType == expected_type)
-        {
-          ObString buffer;
-          buffer.assign_ptr(buf, static_cast<ObString::obstr_size_t>(buf_size));
-          ObObj varchar_cell;
-          varchar_cell.set_varchar(buffer);
-          to.assign(varchar_cell);
+            from.assign(cell);
+            if (ObVarcharType == expected_type)
+            {
+                ObString buffer;
+                buffer.assign_ptr(buf, static_cast<ObString::obstr_size_t>(buf_size));
+                ObObj varchar_cell;
+                varchar_cell.set_varchar(buffer);
+                to.assign(varchar_cell);
+            }
+            //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b   ??
+            if(ObDecimalType == expected_type)
+            {
+                ObString buffer;
+                buffer.assign_ptr(buf, static_cast<ObString::obstr_size_t>(buf_size));
+                ObObj varchar_cell;
+                varchar_cell.set_varchar(buffer);
+                to.assign(varchar_cell);
+            }
+            //add:e
+            TBSYS_LOG(INFO,"xushilei,test cell.type=[%d],expected_type=[%d]",cell.get_type(),expected_type);  //test xsl
+            TBSYS_LOG(INFO,"xushilei,test cell=[%s]",to_cstring(cell));  //test xsl
+            if (OB_SUCCESS != (ret = OB_OBJ_CAST[cell.get_type()][expected_type](params, from, to)))  //cell=12,
+            {
+                TBSYS_LOG(WARN, "failed to type cast obj, err=%d", ret);
+            }
+            else if (OB_SUCCESS != (ret = to.to(cell)))
+            {
+                TBSYS_LOG(WARN, "failed to convert expr_obj to obj, err=%d", ret);
+            }
+            else
+            {
+                if (ObVarcharType == expected_type)
+                {
+                    ObString varchar;
+                    cell.get_varchar(varchar);
+                    used_buf_len = varchar.length(); // used buffer length for casting to varchar type
+                }
+                /*
+                //add xsl ECNU_DECIMAL
+                else if(ObDecimalType == expected_type)
+                {
+                    uint64_t *tt = reinterpret_cast<uint64_t *>(buf);
+                    int len = (int)sizeof(uint64_t)*cell.get_nwords();
+                    memcpy(tt,cell.get_ttint(),len);
+                    cell.set_ttint(tt);
+                    used_buf_len = len;
+                }
+                */
+                //add e
+                    /*
+                  //add xsl ECNU_DECIMAL
+                  else if(ObDecimalType == expected_type)
+                  {
+                      ObString varchar;
+                      cell.get_decimal(varchar);
+                      used_buf_len = varchar.length(); // used buffer length for casting to varchar type
+                  }
+                  //add e
+                  */
+            }
         }
-        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b   ??
-        if(ObDecimalType == expected_type)
-        {
-          ObString buffer;
-          buffer.assign_ptr(buf, static_cast<ObString::obstr_size_t>(buf_size));
-          ObObj varchar_cell;
-          varchar_cell.set_varchar(buffer);
-          to.assign(varchar_cell);
-        }
-        //add:e
-        //TBSYS_LOG(INFO,"xushilei,test update"); //test xsl
-        if (OB_SUCCESS != (ret = OB_OBJ_CAST[cell.get_type()][expected_type](params, from, to)))
-        {
-          TBSYS_LOG(WARN, "failed to type cast obj, err=%d", ret);
-        }
-        else if (OB_SUCCESS != (ret = to.to(cell)))
-        {
-          TBSYS_LOG(WARN, "failed to convert expr_obj to obj, err=%d", ret);
-        }
-        else
-        {
-          if (ObVarcharType == expected_type)
-          {
-            ObString varchar;
-            cell.get_varchar(varchar);
-            used_buf_len = varchar.length(); // used buffer length for casting to varchar type
-          }
-        }
-      }
-      return ret;
+        return ret;
     }
 
     int obj_cast(ObObj &cell, const ObObjType expected_type, ObString &cast_buffer)

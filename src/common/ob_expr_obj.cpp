@@ -1550,8 +1550,6 @@ inline int ObExprObj::cast_to_decimal(ObDecimal &dec, ObStringBuf &mem_buf) cons
       TBSYS_LOG(WARN, "fail to allocate memory for string. ret=%d", ret);
     }*/
 
-    TBSYS_LOG(INFO,"xushilei,test cast_V2,src_dec=[%s],len=[%d]",to_cstring(casted_obj.get_decimal()),casted_obj.get_len());   //test xsl cast
-    TBSYS_LOG(INFO,"xushilei,test cast_V2,dst_dec=[%s]",to_cstring(dec));   //test xsl cast
   }
   else if (OB_UNLIKELY(OB_SUCCESS != (ret = mem_buf.write_decimal(this->get_decimal(), &dec, this->get_len()))))   //直接从this.varchar写到varchar中,不可能是decimal数据类型
   {
@@ -1756,7 +1754,6 @@ int ObExprObj::cast_toV2(int32_t dest_type, ObExprObj &result, ObStringBuf &mem_
                }
                else
                {
-                   TBSYS_LOG(INFO,"xushilei,test cast_V2,dst_dec=[%s]",to_cstring(dec));   //test xsl cast
                    if((precision-scale) < (dec.get_precision()-dec.get_vscale()))
                    {
                        err=OB_DECIMAL_UNLEGAL_ERROR;
@@ -1972,7 +1969,6 @@ int ObExprObj::mod(const ObExprObj &other, ObExprObj &res) const
     else
     {
       res.type_ = ObIntType;
-      TBSYS_LOG(INFO,"xushilei,test this=[%ld],pther=[%ld]",p_this->v_.int_,p_other->v_.int_); //add xsl
       res.v_.int_ = p_this->v_.int_ % p_other->v_.int_;
     }
   }

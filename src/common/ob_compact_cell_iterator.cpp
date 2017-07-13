@@ -627,14 +627,11 @@ int ObCompactCellIterator::parse_decimal(ObBufferReader &buf_reader, ObObj &valu
      {
          str_value=reinterpret_cast<uint64_t *>(const_cast<char *>(buf_reader.cur_ptr()));
          value.meta_.dec_nwords_ = dec_meta->dec_nwords_;
-         //TBSYS_LOG(INFO,"xushilei,test,p=[%d],s=[%d],v=[%d],words=[%d]",dec_meta->dec_precision_,
-         //      dec_meta->dec_scale_,static_cast<uint32_t>(*vscale),dec_meta->dec_nwords_); //test xsl
          buf_reader.skip(sizeof(uint64_t)*dec_meta->dec_nwords_);
          ret=value.set_ttint(str_value);
          value.meta_.dec_vscale_ = *vscale & ObObj::META_VSCALE_MASK;
          value.meta_.dec_precision_ = dec_meta->dec_precision_;
          value.meta_.dec_scale_ = dec_meta->dec_scale_;
-         //TBSYS_LOG(INFO,"xushilei,test,value=[%s]",to_cstring(value));   //test xsl
          //modify e
      }
 

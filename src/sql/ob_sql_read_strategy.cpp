@@ -124,8 +124,10 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
         expected_type.set_type(target_type);
         ObString string;
         char *varchar_buff = NULL;
-        if (target_type == ObVarcharType && source_type != ObVarcharType)
+        //modify xsl DECIMAL
+        if ((target_type == ObVarcharType && source_type != ObVarcharType) || (target_type == ObDecimalType))
         {
+            //modify e
           if (NULL == (varchar_buff = (char*)ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_READ_STRATEGY)))
           {
             ret = OB_ALLOCATE_MEMORY_FAILED;
@@ -135,7 +137,19 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
           {
             string.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
             promoted_obj.set_varchar(string);
-            if (OB_SUCCESS != (ret = obj_cast(cond_val, expected_type, promoted_obj, p_promoted_obj)))
+            //add xsl DECIMAL
+            if(target_type == ObDecimalType)
+            {
+                ret = obj_cast_for_rowkey(cond_val, expected_type, promoted_obj, p_promoted_obj);
+            }
+            else
+            {
+                ret = obj_cast(cond_val, expected_type, promoted_obj, p_promoted_obj);
+            }
+            //add e
+            //modify xsl DECIMAL
+            if (OB_SUCCESS != ret/*(ret = obj_cast(cond_val, expected_type, promoted_obj, p_promoted_obj))*/)
+            //modify e
             {
                 TBSYS_LOG(WARN, "failed to cast object, ret=%d, from_type=%d to_type=%d", ret, source_type, target_type);
                 ob_free(varchar_buff);
@@ -253,8 +267,9 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
             }
           }
         }
+        /*
         //add xsl ECNU_DECIMAL 2017_3
-                else if (target_type == ObDecimalType || source_type == ObDecimalType)
+        else if (target_type == ObDecimalType || source_type == ObDecimalType)
                 {
                     //p_promoted_obj = (ObObj*)ob_malloc(sizeof(ObDecimal), ObModIds::OB_SQL_READ_STRATEGY);
                     p_promoted_obj = &cond_val;
@@ -342,7 +357,9 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
                         break;
                     }
                 }
+
         //add e
+        */
         else
         {
           if (OB_SUCCESS != (ret = obj_cast(cond_val, expected_type, promoted_obj, p_promoted_obj)))
@@ -468,7 +485,9 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
           const ObObj *p_end_promoted_obj = NULL;
           ObObjType start_source_type = cond_start.get_type();
           ObObjType end_source_type = cond_end.get_type();
-          if (target_type == ObVarcharType && start_source_type != ObVarcharType)
+          //modify xsl DECIMAL
+          if ((target_type == ObVarcharType && start_source_type != ObVarcharType) || (target_type == ObDecimalType))
+          //modify e
           {
             if (NULL == (varchar_buff = (char*)ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_READ_STRATEGY)))
             {
@@ -479,7 +498,19 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
             {
               start_string.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
               start_promoted_obj.set_varchar(start_string);
-              if (OB_SUCCESS != (ret = obj_cast(cond_start, expected_type, start_promoted_obj, p_start_promoted_obj)))
+              //add xsl DECIMAL
+              if(target_type == ObDecimalType)
+              {
+                  ret = obj_cast_for_rowkey(cond_start, expected_type, start_promoted_obj, p_start_promoted_obj);
+              }
+              else
+              {
+                  ret = obj_cast(cond_start, expected_type, start_promoted_obj, p_start_promoted_obj);
+              }
+              //add e
+              //modify xsl DECIMAL
+              if (OB_SUCCESS != ret/*(ret = obj_cast(cond_start, expected_type, start_promoted_obj, p_start_promoted_obj))*/)
+              //modify e
               {
                 TBSYS_LOG(WARN, "failed to cast object, ret=%d, from_type=%d to_type=%d", ret, start_source_type, target_type);
                 ob_free(varchar_buff);
@@ -545,7 +576,9 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
           varchar_buff = NULL;
           if (OB_SUCCESS == ret)
           {
-            if (target_type == ObVarcharType && end_source_type != ObVarcharType)
+              //modify xsl DECIMAL
+              if ((target_type == ObVarcharType && end_source_type != ObVarcharType) || (target_type == ObDecimalType))
+              //modify e
             {
               if (NULL == (varchar_buff = (char*)ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_READ_STRATEGY)))
               {
@@ -557,7 +590,17 @@ int ObSqlReadStrategy::find_closed_column_range(bool real_val, int64_t idx, uint
                 end_key_mem_hold_[idx] = varchar_buff;
                 end_string.assign_ptr(varchar_buff, OB_MAX_VARCHAR_LENGTH);
                 end_promoted_obj.set_varchar(end_string);
-                if (OB_SUCCESS != (ret = obj_cast(cond_end, expected_type, end_promoted_obj, p_end_promoted_obj)))
+                //add xsl DECIMAL
+                if(target_type == ObDecimalType)
+                {
+                    ret = obj_cast_for_rowkey(cond_end, expected_type, end_promoted_obj, p_end_promoted_obj);
+                }
+                else
+                {
+                    ret = obj_cast(cond_end, expected_type, end_promoted_obj, p_end_promoted_obj);
+                }
+                //add e
+                if (OB_SUCCESS != ret/*(ret = obj_cast(cond_end, expected_type, end_promoted_obj, p_end_promoted_obj))*/)
                 {
                   TBSYS_LOG(WARN, "failed to cast object, ret=%d, from_type=%d to_type=%d", ret, end_source_type, target_type);
                   ob_free(varchar_buff);

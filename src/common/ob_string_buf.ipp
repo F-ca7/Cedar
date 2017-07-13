@@ -216,7 +216,6 @@ namespace oceanbase
       {
         uint64_t *src_val = NULL;
         uint64_t *dst_val = NULL;
-//        TBSYS_LOG(INFO,"xushilei test dec[%s]",to_cstring(obj)); //test xsl
         src_val = obj.get_ttint();
         err = write_decimal(src_val, dst_val,obj.get_nwords());     //在内存分配器中分配一块内存并赋值，使得decimal指针指向它.
         if (OB_SUCCESS == err)
@@ -224,7 +223,6 @@ namespace oceanbase
           if (NULL != stored_obj &&  dst_val !=NULL)
           {
             stored_obj->set_decimal(dst_val,obj.get_precision(),obj.get_scale(),obj.get_vscale(),obj.get_nwords());   //modify xsl ECNU_DECIMAL 2017_2
-//            TBSYS_LOG(INFO,"xushilei test dec=[%s]",to_cstring(*stored_obj));   //test xsl
           }
         }
       }
@@ -232,55 +230,7 @@ namespace oceanbase
       //modify e
       return err;
     }
-//    //add fanqiushi DECIMAL OceanBase_BankCommV0.3 2014_7_19:b
-//    template <typename PageAllocatorT, typename PageArenaT>
-//    int ObStringBufT<PageAllocatorT, PageArenaT>::write_obj_varchar_to_decimal(const ObObj& obj, ObObj* stored_obj)
-//    {
-//      int err = OB_SUCCESS;
-//      if (NULL != stored_obj)
-//      {
-//        *stored_obj = obj;
-//      }
-//      ObObjType type = obj.get_type();
-//      if (ObVarcharType == type)
-//      {
-//        ObString value;
-//        ObString new_value;
-//        obj.get_varchar(value);
-//        err = write_string(value, &new_value);
-//        if (OB_SUCCESS == err)
-//        {
-//          if (NULL != stored_obj)
-//          {
-//            stored_obj->set_varchar(new_value);   //让stored_obj的varchar指针只想new_value的内存
-//            //{
-//            //   TBSYS_LOG(WARN, "Faild to do set decimal in write_obj_varchar_to_decimal");
-//            //}
-//          }
-//        }
-//      }
-//      //modify xsl ECNU_DECIMAL 2016_12
-//      else if (ObDecimalType == type)
-//      {
-//        uint64_t *src_val = NULL;
-//        uint64_t *dst_val = NULL;
-//        src_val = obj.get_ttint();
-//        err = write_decimal(src_val, dst_val,obj.get_nwords());  //分配内存，赋值
-//        if (OB_SUCCESS == err)
-//        {
-//          if (NULL != stored_obj)
-//          {
-//            if(OB_SUCCESS != (err = stored_obj->set_decimal(dst_val,obj.get_precision(),obj.get_scale(),obj.get_vscale(),obj.get_nwords())))  //modify xsl ECNU_DECIMAL 2017_2
-//            {
-//                TBSYS_LOG(WARN, "Faild to do set decimal in write_obj_varchar_to_decimal");
-//            }
-//          }
-//        }
-//      }
-//      //modify e
-//      return err;
-//    }
-//    //add:e
+
 
   }
 }

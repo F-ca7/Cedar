@@ -80,36 +80,34 @@ namespace oceanbase
         else index=0;
         return expr_.at(index);
      }
-
+     //modify xsl ECNU_DECIMAL
      int ObPostfixExpression::fix_varchar_and_decimal(uint32_t p,uint32_t s)
      {
-//        TBSYS_LOG(INFO,"xushilei,fix_varchar_deciaml error.p=[%d],s=[%d]",p,s);   //test xsl
         int ret=OB_SUCCESS;
         ObObj& obj=get_expr();
         ObObjType type=obj.get_type();
         if(type==ObDecimalType)
         {
-                //ObString os;
-                ObDecimal od;
-                uint64_t *t1 = NULL;
-                TTInt tt;
-                t1 = obj.get_ttint();
-                tt.FromUInt_v2(t1,obj.get_nwords());
-                od.from(obj.get_precision(),obj.get_scale(),obj.get_vscale(),tt);
-//                TBSYS_LOG(INFO,"xushilei,fix_varchar_deciaml error,od.p=[%d],od.s=[%d],vs=[%d]",od.get_precision(),od.get_scale(),od.get_vscale());   //test xsl
-                if(od.get_scale()>s)
+            //ObString os;
+            ObDecimal od;
+            uint64_t *t1 = NULL;
+            TTInt tt;
+            t1 = obj.get_ttint();
+            tt.FromUInt_v2(t1,obj.get_nwords());
+            od.from(obj.get_precision(),obj.get_scale(),obj.get_vscale(),tt);
+            if(od.get_scale()>s)
+            {
+                if(OB_SUCCESS != (ret=od.modify_value(p,s)))
                 {
-                    if(OB_SUCCESS != (ret=od.modify_value(p,s)))
-                    {
-                        TBSYS_LOG(INFO,"fix_varchar_deciaml error,err=[%d]",ret);  //modify xsl
-                    }
-                    else
-                    {
-                        ObObj obj2;
-                        obj2.set_decimal(od);
-                        str_buf_.write_obj(obj2, &obj);
-                    }
+                    TBSYS_LOG(INFO,"fix_varchar_deciaml error,err=[%d]",ret);  //modify xsl
                 }
+                else
+                {
+                    ObObj obj2;
+                    obj2.set_decimal_v2(od,obj.get_nwords());
+                    str_buf_.write_obj(obj2, &obj);
+                }
+            }
         }
         else if(type==ObVarcharType)
         {
@@ -140,7 +138,8 @@ namespace oceanbase
         }
         return ret;
      }
-        //add e
+     //add e
+     //modify e
     bool ObPostfixExpression::ExprUtil::is_column_idx(const ObObj &obj)
     {
       int64_t val = 0;
@@ -251,7 +250,7 @@ namespace oceanbase
            //obj.get_varchar_d(string_);
            obj.get_decimal_v2(dec);    //将obj中的值传到ExprItem中
            len = obj.get_nwords();
-          TBSYS_LOG(INFO,"xushilei,test assign dec=[%s]",to_cstring(dec));//add xsl
+          //TBSYS_LOG(INFO,"xushilei,test assign dec=[%s]",to_cstring(dec));//add xsl
            //modify:e
           break;
         default:

@@ -825,19 +825,10 @@ namespace oceanbase
                uint64_t *dst_val = NULL;
                uint32_t len = src.get_nwords();
                src_val = src.get_ttint();
-//               if(len ==2)
-//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[1]=[%ld]",src_val[0],src_val[1]);  //test xsl
-//               else
-//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu]",src_val[0],src_val[0]);  //test xsl   -12312123
                tt.FromUInt_v2(src_val,len);
-//               if(len ==2)
-//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%lu],table[1]=[%lu]",tt.ToUInt_v2()[0],tt.ToUInt_v2()[1]);  //test xsl
-//               else
-//                   TBSYS_LOG(INFO, "xushilei,table[0]=[%ld],table[0]=[%lu],table[1]=[%ld],table[1]=[%lu]",
-//                             tt.ToUInt_v2()[0],src_val[0],tt.ToUInt_v2()[1],tt.ToUInt_v2()[1]);  //test xsl
                ObDecimal dec2;
                dec2.from(src.get_precision(),src.get_scale(),src.get_vscale(),tt); //p=schema_p,s=schema_s,vs=dec_vs
-//               TBSYS_LOG(INFO, "xushilei,p=[%d],s=[%d],vs=[%d]",src.get_precision(),src.get_scale(),src.get_vscale());  //test xsl
+               //TBSYS_LOG(INFO, "xushilei,p=[%d],s=[%d],vs=[%d]",src.get_precision(),src.get_scale(),src.get_vscale());  //test xsl
                if(OB_SUCCESS != ret)
                {
                    TBSYS_LOG(WARN, "faild to do get_decimal()");

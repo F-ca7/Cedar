@@ -530,7 +530,7 @@ int resolve_column_definition(
         {
             ret = OB_ERR_WRONG_DYNAMIC_PARAM;
             snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                     "You have an error in your SQL syntax; check the param of decimal! precision = %ld,scale=%ld",
+                     "You have an error in your SQL syntax; check the param of decimal! precision = %ld, scale = %ld!",
                      col_def.precision_, col_def.scale_);
         }
         //add:e
