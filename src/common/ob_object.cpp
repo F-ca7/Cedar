@@ -1165,6 +1165,8 @@ int64_t ObObj::to_string(char* buffer, const int64_t length) const
         {
             od.to_string(res,MAX_PRINTABLE_SIZE);
         }
+        databuff_printf(buffer, length, pos, "precision=%d", od.get_precision());
+        databuff_printf(buffer, length, pos, "scale=%d", od.get_scale());
         databuff_printf(buffer, length, pos, "%s",res);
         //modify e
         break;

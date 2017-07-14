@@ -1898,6 +1898,7 @@ namespace oceanbase
             if (orig_cell.get_type() != expected_type.get_type())
             {
                 // type cast
+                TBSYS_LOG(INFO, "orig_cell is %s,expected_type is %s ",to_cstring(orig_cell), to_cstring(expected_type));// add xsl
                 ObObjCastParams params;
                 params.is_modify=true;
                 params.precision=expected_type.get_precision();
@@ -1956,7 +1957,6 @@ namespace oceanbase
     {
         int ret = OB_SUCCESS;
         ObObj obj_tmp;
-        TBSYS_LOG(INFO, "xushilei,test::obj_cast::orig=[%s]", to_cstring(orig_cell)); //test xsl
         if (orig_cell.get_type() != expected_type.get_type())
         {
             // type cast
@@ -2008,8 +2008,7 @@ namespace oceanbase
         {
             res_cell = &orig_cell;
         }
-        TBSYS_LOG(INFO, "xushilei,test::obj_cast::res=[%s]", to_cstring(*res_cell)); //test xsl
-        TBSYS_LOG(WARN, "xushilei,test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
+        //TBSYS_LOG(WARN, "xushilei,test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
         return ret;
     }
     //add e
@@ -2043,8 +2042,8 @@ namespace oceanbase
                 to.assign(varchar_cell);
             }
             //add:e
-            TBSYS_LOG(INFO,"xushilei,test cell.type=[%d],expected_type=[%d]",cell.get_type(),expected_type);  //test xsl
-            TBSYS_LOG(INFO,"xushilei,test cell=[%s]",to_cstring(cell));  //test xsl
+            //TBSYS_LOG(INFO,"xushilei,test cell.type=[%d],expected_type=[%d]",cell.get_type(),expected_type);  //test xsl
+            //TBSYS_LOG(INFO,"xushilei,test cell=[%s]",to_cstring(cell));  //test xsl
             if (OB_SUCCESS != (ret = OB_OBJ_CAST[cell.get_type()][expected_type](params, from, to)))  //cell=12,
             {
                 TBSYS_LOG(WARN, "failed to type cast obj, err=%d", ret);

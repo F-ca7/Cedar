@@ -7174,6 +7174,13 @@ int ObTransformer::gen_physical_create_index(ObLogicalPlan *logical_plan, ObPhys
           {
             col.data_length_ = OB_MAX_VARCHAR_LENGTH;
           }
+          //add xsl ECNU_DECIMAL
+          if(col.data_type_ == ObDecimalType)
+          {
+           col.data_precision_ = ocs2->get_precision();
+           col.data_scale_ = ocs2->get_scale();
+          }
+          //add e
           col.length_in_rowkey_ = ocs2->get_default_value().get_val_len();
           col.nullable_ = ocs2->is_nullable();
           col.rowkey_id_ = rowkey_id;
@@ -12786,6 +12793,7 @@ int ObTransformer::gen_physical_replace_new(
   }
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
+    TBSYS_LOG(INFO, "need_modify_index_flag is %s", STR_BOOL(need_modify_index_flag)); //add xushilei
     if (need_modify_index_flag)   //replace table with index
     {
       ObTableRpcScan *table_scan = NULL;
@@ -14454,6 +14462,15 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
           else
           {
             obj_type.set_type(ocs->get_type());
+            //add xushilei 2017-7-13 b
+            TBSYS_LOG(INFO, "xushilei type=%d, tid=%ld, cid=%ld", ocs->get_type(), table_id, cid);
+            if(ocs->get_type() == ObDecimalType)
+            {
+                TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+                obj_type.set_precision(ocs->get_precision());
+                obj_type.set_scale(ocs->get_scale());
+            }
+            //add e
             if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, cid, obj_type)))
             {
               TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
@@ -14499,6 +14516,14 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
         else
         {
           obj_type.set_type(ocs->get_type());
+          //add xushilei 2017-7-13 b
+          if(ocs->get_type() == ObDecimalType)
+          {
+              TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              obj_type.set_precision(ocs->get_precision());
+              obj_type.set_scale(ocs->get_scale());
+          }
+          //add e
           if (OB_SUCCESS != (ret = desc_ext.add_column_desc(table_id, j, obj_type)))
           {
             TBSYS_LOG(WARN,"failed to add row desc_ext, err=%d", ret);
