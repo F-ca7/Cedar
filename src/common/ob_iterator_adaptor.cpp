@@ -508,6 +508,9 @@ namespace oceanbase
                                              single_row_iter_(),
                                              is_iter_end_(false),
                                              set_row_iter_ret_(OB_SUCCESS)
+                                             //add lbzhong [auto_increment] 20161127:b
+                                             , updated_auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+                                             //add:e
     {
     }
 
@@ -597,7 +600,11 @@ namespace oceanbase
       return ret;
     }
 
-    void ObCellIterAdaptor::set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr)
+    void ObCellIterAdaptor::set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr
+                                         //add lbzhong [auto_increment] 20161127:b
+                                         , const bool is_update_auto_value /* = false */
+                                         //add:e
+                                         )
     {
       row_iter_ = NULL;
       rk_size_ = 0;
@@ -642,6 +649,12 @@ namespace oceanbase
             }
             else
             {
+              //add lbzhong [auto_increment] 20161124:b
+              if (is_update_auto_value)
+              {
+                tmp_ret = set_updated_auto_value(row);
+              }
+              //add:e
               single_row_iter_.set_row(row, rk_size);
             }
           }
@@ -656,7 +669,36 @@ namespace oceanbase
       rk_size_ = 0;
       single_row_iter_.reset();
       is_iter_end_ = false;
+      //add lbzhong [auto_increment] 20161127:b
+      updated_auto_value_ = OB_INVALID_AUTO_INCREMENT_VALUE;
+      //add:e
     }
+
+    //add lbzhong [auto_increment] 20161127:b
+    int ObCellIterAdaptor::set_updated_auto_value(const ObRow *&row)
+    {
+      int ret = OB_SUCCESS;
+      const ObObj *value = NULL;
+      uint64_t table_id = OB_INVALID_ID;
+      uint64_t column_id = OB_INVALID_ID;
+      if (OB_SUCCESS != (ret = row->raw_get_cell(2, value, table_id, column_id))
+          || NULL == value)
+      {
+        TBSYS_LOG(WARN, "fail to get updated auto value, ret=%d", ret);
+      }
+      else
+      {
+        value->get_int(updated_auto_value_);
+      }
+      return ret;
+    }
+
+    int64_t ObCellIterAdaptor::get_updated_auto_value()
+    {
+      return updated_auto_value_;
+    }
+
+    //add:e
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -819,6 +861,9 @@ namespace oceanbase
                                                    single_row_iter_(),
                                                    is_iter_end_(false),
                                                    set_row_iter_ret_(OB_SUCCESS)
+                                                   //add lbzhong [auto_increment] 20161217:b
+                                                   , auto_column_id_(OB_INVALID_ID), max_auto_value_(OB_INVALID_AUTO_INCREMENT_VALUE)
+                                                   //add:e
     {
     }
 
@@ -852,6 +897,12 @@ namespace oceanbase
           {
             ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
           }
+          //add lbzhong [auto_increment] 20161217:b
+          else if (OB_INVALID_ID != auto_column_id_ && OB_SUCCESS != (ret = update_max_auto_value()))
+          {
+            //do nothing
+          }
+          //add:e
           else
           {
             single_row_iter_.set_row(&index_row_tmp_, rk_size_);
@@ -941,6 +992,12 @@ namespace oceanbase
               {
                 is_iter_end_ = true;
               }
+              //add lbzhong [auto_increment] 20161217:b
+              else if (OB_INVALID_ID != auto_column_id_ && OB_SUCCESS != (tmp_ret = update_max_auto_value()))
+              {
+                //do nothing
+              }
+              //add:e
               else
               {
                 single_row_iter_.set_row(&index_row_tmp_, rk_size);
@@ -958,7 +1015,334 @@ namespace oceanbase
       rk_size_ = 0;
       single_row_iter_.reset();
       is_iter_end_ = false;
+      //add lbzhong [auto_increment] 20161217:b
+      auto_column_id_ = OB_INVALID_ID;
+      max_auto_value_ = OB_INVALID_AUTO_INCREMENT_VALUE;
+      //add:e
     }
     //add e
+
+    //add lbzhong [auto_increment] 20161127:b
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    void ObRowCellIterAdaptor::set_auto_column_id(const uint64_t auto_column_id)
+    {
+      auto_column_id_ = auto_column_id;
+    }
+
+    int64_t ObRowCellIterAdaptor::get_max_auto_value() const
+    {
+      return max_auto_value_;
+    }
+
+    int ObRowCellIterAdaptor::update_max_auto_value()
+    {
+      int ret = OB_SUCCESS;
+      const ObObj *cell = NULL;
+      ObObj tmp_value;
+      uint64_t tid = OB_INVALID_ID;
+      uint64_t cid = OB_INVALID_ID; //UNUSED
+      ObString cast_buffer;
+      char buffer[OB_MAX_VARCHAR_LENGTH];
+      cast_buffer.assign_ptr(buffer, OB_MAX_VARCHAR_LENGTH);
+      if (OB_SUCCESS != (ret = row_desc_.get_tid_cid(0, tid, cid)))
+      {
+        TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+      }
+      else if (OB_SUCCESS != (ret = index_row_tmp_.get_cell(tid, auto_column_id_, cell)))
+      {
+        TBSYS_LOG(WARN, "fail to get_cell, ret=%d", ret);
+      }
+      else
+      {
+        tmp_value = *cell;
+        if (OB_SUCCESS != (ret = obj_cast(tmp_value, ObIntType, cast_buffer)))
+        {
+          TBSYS_LOG(WARN, "fail to obj_cast, ret=%d", ret);
+        }
+        else
+        {
+          int64_t tmp_int = 0;
+          tmp_value.get_int(tmp_int);
+          if (tmp_int > max_auto_value_)
+          {
+            max_auto_value_ = tmp_int;
+          }
+        }
+      }
+      return ret;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ObAutoIncrementCellAdaptor::ObAutoIncrementCellAdaptor() : row_(NULL),
+                                     rk_size_(0),
+                                     cur_idx_(0),
+                                     is_iter_end_(false),
+                                     cell_(),
+                                     need_nop_cell_(false)
+    {
+    }
+
+    ObAutoIncrementCellAdaptor::~ObAutoIncrementCellAdaptor()
+    {
+    }
+
+    int ObAutoIncrementCellAdaptor::next_cell()
+    {
+      int ret = OB_SUCCESS;
+      const ObObj *value = NULL;
+      if (NULL == row_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else if (cur_idx_ >= row_->get_column_num())
+      {
+        if (!need_nop_cell_)
+        {
+          ret = OB_ITER_END;
+        }
+        else
+        {
+          need_nop_cell_ = false;
+          cell_.column_id_ = OB_INVALID_ID;
+          cell_.value_.set_ext(ObActionFlag::OP_NOP);
+        }
+      }
+      else if (OB_SUCCESS != (ret = row_->raw_get_cell(cur_idx_, value, cell_.table_id_, cell_.column_id_))
+              || NULL == value)
+      {
+        ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
+      }
+      else
+      {
+        TBSYS_LOG(DEBUG, "CELL_ADAPTOR idx=%ld %s", cur_idx_, print_cellinfo(&cell_));
+        cell_.value_ = *value;
+        if (OB_ACTION_FLAG_COLUMN_ID == cell_.column_id_)
+        {
+          cell_.value_.set_ext(ObActionFlag::OP_DEL_ROW);
+        }
+        if (ObExtendType == cell_.value_.get_type())
+        {
+          cell_.column_id_ = OB_INVALID_ID;
+        }
+        if (OB_SUCCESS == ret)
+        {
+          cur_idx_ += 1;
+        }
+      }
+      is_iter_end_ = (OB_SUCCESS != ret);
+      return ret;
+    }
+
+    int ObAutoIncrementCellAdaptor::get_cell(ObCellInfo** cell)
+    {
+      return get_cell(cell, NULL);
+    }
+
+    int ObAutoIncrementCellAdaptor::get_cell(ObCellInfo** cell, bool* is_row_changed)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == row_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else if (NULL == cell)
+      {
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        *cell = &cell_;
+        if (NULL != is_row_changed)
+        {
+          *is_row_changed = (cur_idx_ <= (rk_size_ + 1));
+        }
+      }
+      return ret;
+    }
+
+    int ObAutoIncrementCellAdaptor::is_row_finished(bool* is_row_finished)
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == row_)
+      {
+        ret = OB_NOT_INIT;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else
+      {
+        if (NULL != is_row_finished)
+        {
+          if (cur_idx_ == row_->get_column_num()
+              && !need_nop_cell_)
+          {
+            *is_row_finished = true;
+          }
+          else
+          {
+            *is_row_finished = false;
+          }
+        }
+      }
+      return ret;
+    }
+
+    void ObAutoIncrementCellAdaptor::set_row(const ObRow *row, const int64_t rk_size)
+    {
+      row_ = NULL;
+      rk_size_ = 0;
+      cur_idx_ = 0;
+      is_iter_end_ = false;
+      cell_.reset();
+      need_nop_cell_ = false;
+      if (NULL != row
+          && 0 < rk_size)
+      {
+        const ObObj *rk_values = NULL;
+        uint64_t table_id = OB_INVALID_ID;
+        uint64_t column_id = OB_INVALID_ID;
+        if (rk_size <= row->get_column_num()
+            && OB_SUCCESS == row->raw_get_cell(0, rk_values, table_id, column_id)
+            && NULL != rk_values)
+        {
+          TBSYS_LOG(DEBUG, "set_row succ rk_size=%ld col_num=%ld", rk_size, row->get_column_num());
+          row_ = row;
+          rk_size_ = rk_size;
+          cur_idx_ = rk_size;
+          cell_.row_key_.assign(const_cast<ObObj*>(rk_values), rk_size);
+          cell_.table_id_ = table_id;
+          cell_.column_id_ = column_id;
+          need_nop_cell_ = (rk_size == row->get_column_num());
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "set_row fail rk_size=%ld col_num=%ld", rk_size, row->get_column_num());
+        }
+      }
+    }
+
+    void ObAutoIncrementCellAdaptor::reset()
+    {
+      row_ = NULL;
+      rk_size_ = 0;
+      cur_idx_ = 0;
+      is_iter_end_ = false;
+      cell_.reset();
+      need_nop_cell_ = false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ObAutoIncrementCellIterAdaptor::ObAutoIncrementCellIterAdaptor() : single_row_iter_(),
+                                             is_iter_end_(false),
+                                             set_row_iter_ret_(OB_SUCCESS)
+    {
+    }
+
+    ObAutoIncrementCellIterAdaptor::~ObAutoIncrementCellIterAdaptor()
+    {
+    }
+
+    int ObAutoIncrementCellIterAdaptor::next_cell()
+    {
+      int ret = OB_SUCCESS;
+      if (OB_SUCCESS != set_row_iter_ret_)
+      {
+        ret = set_row_iter_ret_;
+      }
+      else if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else
+      {
+        ret = single_row_iter_.next_cell();
+      }
+      is_iter_end_ = (OB_SUCCESS != ret);
+      return ret;
+    }
+
+    int ObAutoIncrementCellIterAdaptor::get_cell(ObCellInfo** cell)
+    {
+      return get_cell(cell, NULL);
+    }
+
+    int ObAutoIncrementCellIterAdaptor::get_cell(ObCellInfo** cell, bool* is_row_changed)
+    {
+      int ret = OB_SUCCESS;
+      if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else if (NULL == cell)
+      {
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        ret = single_row_iter_.get_cell(cell, is_row_changed);
+      }
+      return ret;
+    }
+
+    int ObAutoIncrementCellIterAdaptor::is_row_finished(bool* is_row_finished)
+    {
+      int ret = OB_SUCCESS;
+      if (is_iter_end_)
+      {
+        ret = OB_ITER_END;
+      }
+      else
+      {
+        ret = single_row_iter_.is_row_finished(is_row_finished);
+      }
+      return ret;
+    }
+
+    void ObAutoIncrementCellIterAdaptor::set_row_iter(const uint64_t table_id, const uint64_t column_id, const int64_t auto_value)
+    {
+      single_row_iter_.reset();
+      is_iter_end_ = false;
+      int tmp_ret = OB_SUCCESS;
+      row_desc_.set_rowkey_cell_count(2);
+      for (int32_t i = 0; OB_SUCCESS == tmp_ret && i < 3; i++)
+      {
+        if (OB_SUCCESS != (tmp_ret = row_desc_.add_column_desc(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + i)))
+        {
+          TBSYS_LOG(WARN, "fail to add column desc, ret=%d", tmp_ret);
+        }
+      }
+      if (OB_SUCCESS == tmp_ret)
+      {
+        row_.set_row_desc(row_desc_);
+        ObObj cell;
+        cell.set_int(table_id);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID, cell);
+        cell.set_int(column_id);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 1, cell);
+        cell.set_int(auto_value);
+        row_.set_cell(OB_ALL_AUTO_INCREMENT_TID, OB_APP_MIN_COLUMN_ID + 2, cell);
+
+        single_row_iter_.set_row(&row_, 2);
+      }
+      set_row_iter_ret_ = tmp_ret;
+    }
+
+    void ObAutoIncrementCellIterAdaptor::reset()
+    {
+      single_row_iter_.reset();
+      is_iter_end_ = false;
+    }
+    //add:e
   }
 }

@@ -198,6 +198,63 @@ int ObServerConfig::add_extra_config(const char* config_str, bool check_name /* 
   return ret;
 }
 
+int ObServerConfig::add_extra_config2(const char* config_str, bool check_name /* = false */)
+{
+  int ret = OB_SUCCESS;
+  char *saveptr = NULL;
+  char *token = NULL;
+  char buf[OB_MAX_EXTRA_CONFIG_LENGTH] = {0};
+
+  if (strlen(config_str) > sizeof (buf) - 1)
+  {
+    TBSYS_LOG(ERROR, "Extra config is too long!");
+    ret = OB_BUF_NOT_ENOUGH;
+  }
+  else
+  {
+    snprintf(buf, sizeof (buf), "%s", config_str);
+  }
+
+  token = strtok_r(buf, ",\n", &saveptr);
+  while (NULL != token && OB_SUCCESS == ret)
+  {
+    char *saveptr_one = NULL;
+    char *name = NULL;
+    char *value = NULL;
+    ObConfigItem * const *pp_item = NULL;
+    if (NULL == (name = strtok_r(token, "=", &saveptr_one)))
+    {
+      TBSYS_LOG(ERROR, "Invalid config string: [%s]", config_str);
+      ret = OB_INVALID_CONFIG;
+    }
+    else if (NULL == (value = strtok_r(NULL, "=", &saveptr_one)))
+    {
+      TBSYS_LOG(ERROR, "Invalid config string: [%s]", config_str);
+      ret = OB_INVALID_CONFIG;
+    }
+    else if (NULL != strtok_r(NULL, "=", &saveptr_one))
+    {
+      /* another equal sign */
+      TBSYS_LOG(ERROR, "Invalid config string: [%s]", config_str);
+      ret = OB_INVALID_CONFIG;
+    }
+    else if (NULL == (pp_item = container_.get(name)))
+    {
+      TBSYS_LOG(WARN, "Invalid config string, no such config item!"
+                "name: [%s] value: [%s]", name, value);
+      /* make compatible with previous configuration */
+      ret = check_name ? OB_INVALID_CONFIG : OB_SUCCESS;
+    }
+    else
+    {
+      (*pp_item)->set_value(value);
+    }
+    token = strtok_r(NULL, ",\n", &saveptr);
+  }
+
+  return ret;
+}
+
 DEFINE_SERIALIZE(ObServerConfig)
 {
   static const int HEADER_LENGTH = sizeof (uint32_t) + sizeof (uint64_t);
@@ -258,6 +315,43 @@ DEFINE_DESERIALIZE(ObServerConfig)
       ret = OB_DESERIALIZE_ERROR;
     }
     else if (OB_SUCCESS != (ret = add_extra_config(buf + pos)))
+    {
+      TBSYS_LOG(ERROR, "Read server config failed!");
+    }
+    else
+    {
+      pos += length;
+    }
+  }
+  return ret;
+}
+int ObServerConfig::deserialize2(const char* buf, const int64_t data_len, int64_t& pos)
+{
+  int ret = OB_SUCCESS;
+  if (data_len - pos < 12)
+  {
+    ret = OB_BUF_NOT_ENOUGH;
+  }
+  else
+  {
+    uint32_t hash_r = *reinterpret_cast<const uint32_t*>(buf + pos);
+    pos += sizeof (uint32_t);
+    uint64_t length = *reinterpret_cast<const uint64_t*>(buf + pos);
+    const int32_t lengthed_content_len = static_cast<int32_t>(data_len - pos);
+    uint32_t hash = murmurhash2(buf + pos, lengthed_content_len, 0);
+    pos += sizeof (uint64_t);
+
+    if (hash_r != hash)
+    {
+      TBSYS_LOG(ERROR, "Config file broken, deserialize server config error!");
+      ret = OB_DESERIALIZE_ERROR;
+    }
+    else if (length != strlen(buf + pos))
+    {
+      TBSYS_LOG(ERROR, "Config file broken, deserialize server config error!");
+      ret = OB_DESERIALIZE_ERROR;
+    }
+    else if (OB_SUCCESS != (ret = add_extra_config2(buf + pos)))
     {
       TBSYS_LOG(ERROR, "Read server config failed!");
     }

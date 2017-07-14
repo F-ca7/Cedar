@@ -42,11 +42,11 @@ namespace oceanbase
 {
   namespace common
   {
-    const int64_t DEFAULT_LOG_SIZE = 2 * 1024 * 1024;
+    const int64_t DEFAULT_LOG_SIZE = 2 * 1024 * 1024;  //not uesed
     class ObSingleLogReader
     {
     public:
-      static const int64_t LOG_BUFFER_MAX_LENGTH;
+      //static const int64_t LOG_BUFFER_MAX_LENGTH;
     public:
       ObSingleLogReader();
       virtual ~ObSingleLogReader();

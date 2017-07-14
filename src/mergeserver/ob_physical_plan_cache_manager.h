@@ -115,18 +115,20 @@ namespace oceanbase
          * @param context sql context
          * @param stmt_id physical id
          * @param no_group no group execution flag
+         * @param long_trans long transcation flag
          * @return error code
          */
-        int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group);
+        int get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group, bool long_trans); //modify by qx 20170317 add long transcation
         /**
          * @brief is_consisitent
          * check consistency
          * @param proc_name procedure name
          * @param cache_rs cache result set
          * @param no_group no group execution flag
+         * @param long_trans long transcation execution flag
          * @return bool value
          */
-        bool is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group) const;
+        bool is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group ,bool long_trans) const; //modify by qx 20170317 add long transcation
 
         //      int serialize(char* buf, const int64_t data_len, int64_t& pos) const;
         //      int deserialize(const char* buf, const int64_t data_len, int64_t& pos);
@@ -177,7 +179,7 @@ namespace oceanbase
          * @param no_group  no group execution flag
          * @return error code
          */
-        int compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group = false);
+        int compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group = false, bool long_trans = false);
         /**
          * @brief malloc_result_set
          * malloc memery for  plan result set

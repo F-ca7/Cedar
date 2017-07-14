@@ -150,13 +150,13 @@ namespace oceanbase
         TBSYS_LOG(DEBUG, "handle packet command=%.*s", packet->get_command().length(), packet->get_command().ptr());
         packet->set_request(r);
         onev_pool_set_lock(r->ms->pool);
-        if (packet->get_command_length() + static_cast<int32_t>(sizeof(ObMySQLCommandPacket)) > ThreadSpecificBuffer::MAX_THREAD_BUFFER_SIZE)
+        if (packet->get_command_length() + static_cast<int32_t>(sizeof(ObMySQLCommandPacket)) > common::OB_MAX_THREAD_BUFFER_SIZE)
         {
           //由于post_packet在工作线程中也会用到，这里只能先加引用计数
           r->ms->c->pool->ref++;
           onev_atomic_inc(&r->ms->pool->ref);
           TBSYS_LOG(ERROR, "packet is too large, greater than %d, size of request packet=%d, ret=%d",
-                  ThreadSpecificBuffer::MAX_THREAD_BUFFER_SIZE,
+                  common::OB_MAX_THREAD_BUFFER_SIZE,
                   packet->get_command_length() + static_cast<int32_t>(sizeof(ObMySQLCommandPacket)),
                   OB_SIZE_OVERFLOW);
           uint8_t number = packet->get_packet_header().seq_;

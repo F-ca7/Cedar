@@ -221,7 +221,6 @@ namespace oceanbase
         const uint64_t column_id, const ObObj& value, const int return_flag)
     {
       int err = OB_SUCCESS;
-
       ObMutatorCellInfo mutation;
 
       mutation.cell_info.table_id_ = table_id;
@@ -244,6 +243,34 @@ namespace oceanbase
 
       return err;
     }
+    //add by qx 20170210 :b
+    int ObMutator :: update(const uint64_t table_id, const ObRowkey& row_key,
+        const uint64_t column_id, const ObObj& value, bool is_row_changed, const int return_flag)
+    {
+      int err = OB_SUCCESS;
+
+      ObMutatorCellInfo mutation;
+
+      mutation.cell_info.table_id_ = table_id;
+      mutation.cell_info.row_key_ = row_key;
+      mutation.cell_info.column_id_ = column_id;
+
+      int64_t ext_value = ObActionFlag::OP_UPDATE;
+      if (RETURN_UPDATE_RESULT == return_flag)
+      {
+        ext_value |= ObActionFlag::OP_RETURN_UPDATE_RESULT;
+      }
+      mutation.op_type.set_ext(ext_value);
+      mutation.cell_info.value_ = value;
+
+      err = add_cell(mutation,is_row_changed);
+      if (OB_SUCCESS != err)
+      {
+        TBSYS_LOG(WARN, "failed to add mutation, err=%d", err);
+      }
+      return err;
+    }
+    //add :e
 
     int ObMutator :: insert(const ObString& table_name, const ObRowkey& row_key,
         const ObString& column_name, const ObObj& value, const int return_flag)
@@ -489,6 +516,12 @@ namespace oceanbase
     {
       return add_cell(cell, CHANGED_UNKNOW, NO_BARRIER, OB_DML_UNKNOW);
     }
+    //add by qx 20170210
+    int ObMutator::add_cell(const ObMutatorCellInfo& cell, bool is_row_changed)
+    {
+      return add_cell(cell,is_row_changed? CHANGED:NOCHANGED, NO_BARRIER, OB_DML_UNKNOW);
+    }
+    //add :e
 
     int ObMutator :: add_cell(const ObMutatorCellInfo& cell,
                               const RowChangedStat row_changed_stat,

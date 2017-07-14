@@ -17,7 +17,12 @@
 #include "ob_log_generator2.h"
 using namespace oceanbase::common;
 
-const int64_t ObSingleLogReader::LOG_BUFFER_MAX_LENGTH = 1 << 21;
+//delete by qx 20161106 :e
+//use OB_LOG_BUFFER_MAX_SIZE replace LOG_BUFFER_MAX_LENGTH
+//const int64_t ObSingleLogReader::LOG_BUFFER_MAX_LENGTH = 1 << 21;
+//there is a strange phenomenon that LOG_BUFFER_MAX_LENGTH is undefined if we comment below this line by qx
+//int64_t ObSingleLogReader::LOG_BUFFER_MAX_LENGTH = 1 << 21;
+//delete :e
 
 ObSingleLogReader::ObSingleLogReader()
 {
@@ -73,7 +78,7 @@ int ObSingleLogReader::init(const char* log_dir)
   {
     if (NULL == log_buffer_.get_data())
     {
-      char* buf = static_cast<char*>(ob_malloc(LOG_BUFFER_MAX_LENGTH, ObModIds::OB_SINGLE_LOG_READER));
+      char* buf = static_cast<char*>(ob_malloc(OB_LOG_BUFFER_MAX_SIZE, ObModIds::OB_SINGLE_LOG_READER));
       if (NULL == buf)
       {
         TBSYS_LOG(ERROR, "ob_malloc for log_buffer_ failed");
@@ -81,7 +86,7 @@ int ObSingleLogReader::init(const char* log_dir)
       }
       else
       {
-        log_buffer_.set_data(buf, LOG_BUFFER_MAX_LENGTH);
+        log_buffer_.set_data(buf, OB_LOG_BUFFER_MAX_SIZE);
       }
     }
   }

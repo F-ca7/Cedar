@@ -195,6 +195,8 @@ operators_sources=                                                       \
   ob_sort_helper.h                                                       \
   ob_cursor_helper.h                                                     \
   ob_sql.h                           ob_sql.cpp                          \
+  ob_optimizer.h                     ob_optimizer.cpp                    \
+  ob_optimizer_logical.h             ob_optimizer_logical.cpp            \
   ob_sql_context.h                                                       \
   ob_sql_expression.h                ob_sql_expression.cpp               \
   ob_sql_read_param.h                ob_sql_read_param.cpp               \
@@ -247,6 +249,7 @@ operators_sources=                                                       \
   ob_multiple_scan_merge.h           ob_multiple_scan_merge.cpp \
   ob_multiple_get_merge.h            ob_multiple_get_merge.cpp \
   ob_empty_row_filter.h              ob_empty_row_filter.cpp \
+  ob_auto_increment_filter.h         ob_auto_increment_filter.cpp \
   ob_sql_read_strategy.h             ob_sql_read_strategy.cpp \
   ob_tablet_join_cache.h             ob_tablet_join_cache.cpp \
   ob_direct_trigger_event_util.h     ob_direct_trigger_event_util.cpp \

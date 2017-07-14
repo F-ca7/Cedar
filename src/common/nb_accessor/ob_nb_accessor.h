@@ -55,6 +55,9 @@ namespace common
 
       //按照条件删除给定表单中的列，目前不能保证一致性
       int delete_row(const char* table_name, const SC& rowkey_columns, const ScanConds& scan_conds);
+      //add lbzhong [auto_increment] 20161201:b
+      int delete_auto_increment_row(const char* table_name, const SC& rowkey_columns, const ScanConds& scan_conds);
+      //add:e
 
       int scan(QueryRes*& res, const char* table_name, const ObNewRange& range, const SC& select_columns, const ScanConds& scan_conds);
       int scan(QueryRes*& res, const char* table_name, const ObNewRange& range, const SC& select_columns);

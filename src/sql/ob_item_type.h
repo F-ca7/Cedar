@@ -283,6 +283,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
+  T_LONG_TRANS, //add by qx 21070317
   T_NO_GROUP,//add by wdh 20160716
   T_USE_INDEX,// add longfei
   T_UNKOWN_HINT,// add longfei

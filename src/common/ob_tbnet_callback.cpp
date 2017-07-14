@@ -57,7 +57,7 @@ namespace oceanbase
           packetlen = bswap_32(*((uint32_t *)(m->input->pos + 12)));
 
           //check tbnet flag and packet len
-          if (OB_TBNET_PACKET_FLAG != flag || packetlen <= 0 || packetlen > 0x4000000)
+          if (OB_TBNET_PACKET_FLAG != flag || packetlen <= 0 || packetlen > 0x7fffffff)  //modify by qx 20161229: 64MB -> (2GB-1)
           {
             TBSYS_LOG(ERROR, "tbnet flag:%x<>%x, datalen:%d, peer is %s", flag, OB_TBNET_PACKET_FLAG,
                       packetlen, inet_ntoa_r(m->c->addr));

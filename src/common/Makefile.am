@@ -322,7 +322,10 @@ Ob_Decimal.h	Ob_Decimal.cpp\
   ob_log_writer3.h	ob_log_writer3.cpp\
   ob_commit_queue.h	ob_commit_queue.cpp\
   group_queue_thread.h	group_queue_thread.cpp\
-  ob_name_code_map.h     ob_name_code_map.cpp
+  ob_name_code_map.h     ob_name_code_map.cpp  \
+  ob_buffer_size_define.h  ob_buffer_size_define.cpp
+
+
 
 
 location_sources=                                                                             \

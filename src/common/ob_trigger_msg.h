@@ -35,6 +35,7 @@ namespace oceanbase
     const static int64_t DROP_PROCEDURE_TRIGGER = 8;
     //add :e
 
+
     class ObTriggerMsg{
      public:
        ObTriggerMsg(){}

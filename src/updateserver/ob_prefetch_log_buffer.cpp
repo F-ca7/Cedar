@@ -94,7 +94,7 @@ namespace oceanbase
                || end_id < start_id || len + ObDataBlock::BLOCK_RESERVED_BYTES > get_block_size())
       {
         err = OB_INVALID_ARGUMENT;
-        TBSYS_LOG(ERROR, "append(buf=%p[%ld], log=[%ld,%ld]): invalid argument", buf, len, start_id, end_id);
+        TBSYS_LOG(ERROR, "append(buf=%p[%ld], log=[%ld,%ld]): block_size = %ld invalid argument", buf, len, start_id, end_id,get_block_size());
       }
       // 检查是否会覆盖未读的日志
       else if (get_remain() < (1<<block_size_shift_))

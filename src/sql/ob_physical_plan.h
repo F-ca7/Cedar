@@ -132,6 +132,10 @@ namespace oceanbase
         int64_t get_operator_size() const { return operators_store_.count(); }
         ObPhyOperator* get_phy_operator(int64_t index) const;
         int assign(const ObPhysicalPlan& other);
+        //add lbzhong [auto_increment] 20161218:b
+        void set_auto_increment(const bool auto_increment) { auto_increment_ = auto_increment; }
+        bool is_auto_increment() const { return auto_increment_; }
+        //add:e
 
         NEED_SERIALIZE_AND_DESERIALIZE;
 
@@ -156,6 +160,12 @@ namespace oceanbase
          */
         void set_group_exec(bool exec_flag) { group_exec_mode_ = exec_flag; }
         //add zt 20151109 :e
+
+        //add by qx 20170317 :b
+        bool is_long_trans_exec() {return long_trans_exec_mode_;}
+        void set_long_trans_exec(bool long_trans_exec_mode) {long_trans_exec_mode_ = long_trans_exec_mode;}
+        //add :e
+
       private:
         static const int64_t COMMON_OP_NUM = 16;
         static const int64_t COMMON_SUB_QUERY_NUM = 6;
@@ -193,6 +203,12 @@ namespace oceanbase
         //add zt 20151109 :b
         bool group_exec_mode_;  ///< group execute flag
         //add zt 20151109 :e
+        //add by qx 20170313 :b
+        bool long_trans_exec_mode_;  ///< long time execute transaction
+        //add :e
+        //add lbzhong [auto_increment] 20161218:b
+        bool auto_increment_;
+        //add:e
     };
 
     inline int ObPhysicalPlan::set_operator_factory(ObPhyOperatorFactory* factory)
@@ -263,6 +279,9 @@ namespace oceanbase
       //add zt 20151119
       group_exec_mode_ = false;
       //add zt 20151119
+      //add by qx 20170318 :b
+      long_trans_exec_mode_ = false;
+      //add :e
     }
 
     inline const common::ObTransID& ObPhysicalPlan::get_trans_id() const

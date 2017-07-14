@@ -106,10 +106,14 @@ namespace oceanbase
       publish_callback_list_.callback(rollback, *this);
     }
 
-    void RWSessionCtx::on_free()
+    int RWSessionCtx::on_free()
     {
       bool rollback = false;
-      free_callback_list_.callback(rollback, *this);
+      // modify by qx 20170225 :b
+      // free_callback_list_.callback(rollback, *this);
+      int ret = free_callback_list_.callback(rollback, *this);
+      return ret;
+      //modify :e
     }
 
     int RWSessionCtx::add_publish_callback(ISessionCallback *callback, void *data)
@@ -274,9 +278,14 @@ namespace oceanbase
 
     SessionCtxFactory::SessionCtxFactory() : mod_(ObModIds::OB_UPS_SESSION_CTX),
                                              allocator_(ALLOCATOR_PAGE_SIZE, mod_),
-                                             ctx_allocator_()
+                                             ctx_allocator_(),
+                                             long_trans_ctx_allocator_() //add by qx 20170314
     {
+      // modify by qx 20170310 :b
+
       if (OB_SUCCESS != ctx_allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE))
+      //if (OB_SUCCESS != ctx_allocator_.init(OB_ALLOCATOR_TOTAL_LIMIT, OB_ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE))
+      // modify :e
       {
         TBSYS_LOG(ERROR, "init allocator fail");
       }
@@ -284,6 +293,16 @@ namespace oceanbase
       {
         ctx_allocator_.set_mod_id(ObModIds::OB_UPS_SESSION_CTX);
       }
+      //add by qx 20170314 :b
+      if (OB_SUCCESS != long_trans_ctx_allocator_.init(ALLOCATOR_TOTAL_LIMIT, ALLOCATOR_HOLD_LIMIT, ALLOCATOR_PAGE_SIZE))
+      {
+        TBSYS_LOG(ERROR, "init long_trans_ctx_allocator_ allocator fail");
+      }
+      else
+      {
+        ctx_allocator_.set_mod_id(ObModIds::OB_UPS_SESSION_CTX);
+      }
+      //add :e
     }
 
     SessionCtxFactory::~SessionCtxFactory()
@@ -315,6 +334,13 @@ namespace oceanbase
         if (NULL != buffer)
         {
           ret = new(buffer) RWSessionCtx(type, host, ctx_allocator_);
+        }
+        break;
+      case ST_LONG_READ_WRITE:
+        buffer = allocator_.alloc(sizeof(RWSessionCtx));
+        if (NULL != buffer)
+        {
+          ret = new(buffer) RWSessionCtx(type, host, long_trans_ctx_allocator_);
         }
         break;
       default:

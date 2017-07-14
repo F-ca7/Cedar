@@ -535,7 +535,7 @@ namespace oceanbase
         tc->host->thread_index() = tc->index;
         void *pdata = tc->host->on_begin();
         bool last_rebalance_got = false;
-        TBSYS_LOG(INFO,"test::zhouhuan1 trans_pool tid = [%ld]", syscall(SYS_gettid));
+        //TBSYS_LOG(INFO,"test::zhouhuan1 trans_pool tid = [%ld]", syscall(SYS_gettid));
         while (tc->run_flag
               || 0 != tc->high_prio_task_queue.get_total()
               || 0 != tc->spec_task_queue.get_total()

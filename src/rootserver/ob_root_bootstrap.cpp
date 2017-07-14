@@ -407,6 +407,20 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create table for __all_client, err=%d", ret);
     }
   }
+  //add lbzhong [auto_increment] 20161126:b
+  // create table __all_auto_increment
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_auto_increment_schema(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of __all_auto_increment, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for __all_client, err=%d", ret);
+    }
+  }
+  //add:e
   // create table __all_server_stat
   if (OB_SUCCESS == ret)
   {

@@ -75,6 +75,8 @@
 
 #define DEF_INT(args...)                        \
   _DEF_CONFIG_RANGE_EASY(Int,args)
+#define DEF_INT2(args...)                        \
+  _DEF_CONFIG_RANGE_EASY(Int2,args)
 #define DEF_CAP(args...)                        \
   _DEF_CONFIG_RANGE_EASY(Capacity,args)
 #define DEF_TIME(args...)                       \

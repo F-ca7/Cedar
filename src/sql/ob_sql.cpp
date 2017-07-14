@@ -81,6 +81,10 @@
 #include "ob_procedure_drop_stmt.h"
 
 #include "ob_procedure_execute_stmt.h" //add zt 20151117
+
+// add by lxb for optimizer
+#include "sql/ob_optimizer.h"
+
 using namespace oceanbase::common;
 using namespace oceanbase::sql;
 
@@ -181,6 +185,12 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
             result.set_message("no privilege");
             TBSYS_LOG(WARN, "no privilege,sql=%.*s ret=%d", stmt.length(), stmt.ptr(), ret);
           }
+        }
+        
+        /* logical optimizer start, write by lxb start at 2016-12-14 */
+        if(OB_SUCCESS == ret)
+        {
+          ret = ObOptimizer::optimizer(result_plan, result);
         }
 
         if (OB_SUCCESS == ret)

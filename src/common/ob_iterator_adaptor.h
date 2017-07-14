@@ -118,14 +118,25 @@ namespace oceanbase
         int get_cell(ObCellInfo** cell, bool* is_row_changed);
         int is_row_finished(bool* is_row_finished);
       public:
-        void set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr);
+        void set_row_iter(sql::ObPhyOperator *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr
+                          //add lbzhong [auto_increment] 20161127:b
+                          , const bool is_update_auto_value = false
+                          //add:e
+                          );
         void reset();
+        //add lbzhong [auto_increment] 20161127:b
+        int set_updated_auto_value(const ObRow *&row);
+        int64_t get_updated_auto_value();
+        //add:e
       private:
         sql::ObPhyOperator *row_iter_;
         int64_t rk_size_;
         ObCellAdaptor single_row_iter_;
         bool is_iter_end_;
         int set_row_iter_ret_;
+        //add lbzhong [auto_increment] 20161127:b
+        int64_t updated_auto_value_;
+        //add:e
     };
 
     class ObRowIterAdaptor : public sql::ObRowkeyPhyOperator
@@ -178,6 +189,11 @@ namespace oceanbase
       public:
         void set_row_iter(ObRowStore *row_iter, const int64_t rk_size, const ObSchemaManagerV2 *schema_mgr, ObRowDesc row_desc);
         void reset();
+        //add lbzhong [auto_increment] 20161217:b
+        void set_auto_column_id(const uint64_t auto_column_id);
+        int64_t get_max_auto_value() const;
+        int update_max_auto_value();
+        //add:e
       private:
         ObRowStore *row_iter_;
         ObRowDesc row_desc_;
@@ -186,8 +202,57 @@ namespace oceanbase
         ObCellAdaptor single_row_iter_;
         bool is_iter_end_;
         int set_row_iter_ret_;
+        //add lbzhong [auto_increment] 20161217:b
+        uint64_t auto_column_id_;
+        int64_t max_auto_value_;
+        //add:e
     };
     //add e
+    //add lbzhong [auto_increment] 20161127:b
+    class ObAutoIncrementCellAdaptor : public ObIterator
+    {
+      public:
+        ObAutoIncrementCellAdaptor();
+        ~ObAutoIncrementCellAdaptor();
+      public:
+        int next_cell();
+        int get_cell(ObCellInfo** cell);
+        int get_cell(ObCellInfo** cell, bool* is_row_changed);
+        int is_row_finished(bool* is_row_finished);
+      public:
+        void set_row(const ObRow *row, const int64_t rk_size);
+        void reset();
+      private:
+        const ObRow *row_;
+        int64_t rk_size_;
+        int64_t cur_idx_;
+        bool is_iter_end_;
+        ObCellInfo cell_;
+        bool need_nop_cell_;
+    };
+
+    class ObAutoIncrementCellIterAdaptor : public ObIterator
+    {
+      public:
+        ObAutoIncrementCellIterAdaptor();
+        ~ObAutoIncrementCellIterAdaptor();
+      public:
+        int next_cell();
+        int get_cell(ObCellInfo** cell);
+        int get_cell(ObCellInfo** cell, bool* is_row_changed);
+        int is_row_finished(bool* is_row_finished);
+        int get_type() const { return ITERATOR_AUTO_INCREMENT; }
+      public:
+        void set_row_iter(const uint64_t table_id, const uint64_t column_id, const int64_t auto_value);
+        void reset();
+      private:
+        ObRow row_;
+        ObRowDesc row_desc_;
+        ObAutoIncrementCellAdaptor single_row_iter_;
+        bool is_iter_end_;
+        int set_row_iter_ret_;
+    };
+    //add:e
   }
 }
 

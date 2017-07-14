@@ -186,6 +186,11 @@ DEFINE_SERIALIZE(ColumnSchema)
   else if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, nullable_)))
   {
   }
+  //add lbzhong [auto_increment] 20161123:b
+  else if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, auto_increment_)))
+  {
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = serialization::encode_vi64(buf, buf_len, pos, length_in_rowkey_)))
   {
   }
@@ -237,6 +242,11 @@ DEFINE_DESERIALIZE(ColumnSchema)
   else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &nullable_)))
   {
   }
+  //add lbzhong [auto_increment] 20161123:b
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &auto_increment_)))
+  {
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = serialization::decode_vi64(buf, data_len, pos, &length_in_rowkey_)))
   {
   }

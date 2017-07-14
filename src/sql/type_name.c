@@ -220,6 +220,7 @@ const char* get_type_name(int type)
 	case T_READ_STATIC : return "T_READ_STATIC";
 	case T_HOTSPOT : return "T_HOTSPOT";
 	case T_READ_CONSISTENCY : return "T_READ_CONSISTENCY";
+	case T_LONG_TRANS : return "T_LONG_TRANS"; //add by qx 21070317
 	case T_NO_GROUP : return "T_NO_GROUP";//add by wdh 20160716
 	case T_USE_INDEX : return "T_USE_INDEX";// add longfei
 	case T_UNKOWN_HINT : return "T_UNKOWN_HINT";// add longfei

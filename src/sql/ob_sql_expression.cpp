@@ -438,48 +438,52 @@ static volatile uint64_t ALLOC_TIMES = 0;
 static volatile uint64_t FREE_TIMES = 0;
 
 //add by zt, b
-#include <sys/syscall.h>
-long int gettid()
-{
-  return syscall(SYS_gettid);
-}
-//add by zt, e
-
-ObSqlExpression* ObSqlExpression::alloc()
-{
-  //add by zt, b
-  int64_t tid = (gettid() & 0xf); //redistribute to different alloc
-  ObSqlExpression *ret = SQL_EXPR_ALLOC[tid].alloc();
+namespace oceanbase{
+  namespace sql{
+  #include <sys/syscall.h>
+  long int gettid()
+  {
+    return syscall(SYS_gettid);
+  }
   //add by zt, e
-  //  ObSqlExpression *ret = SQL_EXPR_ALLOC.alloc(); //delete by zt
-  if (OB_UNLIKELY(NULL == ret))
-  {
-    TBSYS_LOG(ERROR, "failed to allocate expression object");
-  }
-  else
-  {
-    atomic_inc(&ALLOC_TIMES);
-  }
-  if (ALLOC_TIMES % 1000000 == 0)
-  {
-    TBSYS_LOG(INFO, "[EXPR] alloc %p, times=%ld cached=%d alloc_num=%d",
-              ret, ALLOC_TIMES, SQL_EXPR_ALLOC[tid].get_cached_count(), SQL_EXPR_ALLOC[tid].get_allocated_count());
-    ob_print_phy_operator_stat();
-  }
-  return ret;
-}
 
-void ObSqlExpression::free(ObSqlExpression* ptr)
-{
-  //add by zt, b
-  int64_t tid = (gettid() & 0xf);
-  SQL_EXPR_ALLOC[tid].free(ptr);
-  //add by zt, e
-  //  SQL_EXPR_ALLOC.free(ptr); //delete by zt
-  atomic_inc(&FREE_TIMES);
-  if (FREE_TIMES % 1000000 == 0)
+  ObSqlExpression* ObSqlExpression::alloc()
   {
-    TBSYS_LOG(INFO, "[EXPR] free %p, times=%ld cached=%d alloc_num=%d",
-              ptr, FREE_TIMES, SQL_EXPR_ALLOC[tid].get_cached_count(), SQL_EXPR_ALLOC[tid].get_allocated_count());
+    //add by zt, b
+    int64_t tid = (gettid() & 0xf); //redistribute to different alloc
+    ObSqlExpression *ret = SQL_EXPR_ALLOC[tid].alloc();
+    //add by zt, e
+    //  ObSqlExpression *ret = SQL_EXPR_ALLOC.alloc(); //delete by zt
+    if (OB_UNLIKELY(NULL == ret))
+    {
+      TBSYS_LOG(ERROR, "failed to allocate expression object");
+    }
+    else
+    {
+      atomic_inc(&ALLOC_TIMES);
+    }
+    if (ALLOC_TIMES % 1000000 == 0)
+    {
+      TBSYS_LOG(INFO, "[EXPR] alloc %p, times=%ld cached=%d alloc_num=%d",
+                ret, ALLOC_TIMES, SQL_EXPR_ALLOC[tid].get_cached_count(), SQL_EXPR_ALLOC[tid].get_allocated_count());
+      ob_print_phy_operator_stat();
+    }
+    return ret;
   }
+
+  void ObSqlExpression::free(ObSqlExpression* ptr)
+  {
+    //add by zt, b
+    int64_t tid = (gettid() & 0xf);
+    SQL_EXPR_ALLOC[tid].free(ptr);
+    //add by zt, e
+    //  SQL_EXPR_ALLOC.free(ptr); //delete by zt
+    atomic_inc(&FREE_TIMES);
+    if (FREE_TIMES % 1000000 == 0)
+    {
+      TBSYS_LOG(INFO, "[EXPR] free %p, times=%ld cached=%d alloc_num=%d",
+                ptr, FREE_TIMES, SQL_EXPR_ALLOC[tid].get_cached_count(), SQL_EXPR_ALLOC[tid].get_allocated_count());
+    }
+  }
+}
 }

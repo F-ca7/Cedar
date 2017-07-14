@@ -81,6 +81,18 @@ namespace oceanbase
     {
         return no_group_;
     }
+    //add by qx 20170317 :b
+    int ObProcedureExecuteStmt::set_long_trans(bool long_trans)
+    {
+      long_trans_ = long_trans;
+      return OB_SUCCESS;
+    }
+    bool ObProcedureExecuteStmt::get_long_trans()
+    {
+     return long_trans_;
+    }
+    //add :e
+
 
   }
 }

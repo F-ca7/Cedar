@@ -61,6 +61,9 @@
 //add:e
 
 #include "ob_ups_lock_table.h" //add wangjiahao [table lock] 20160616
+//add lbzhong [auto_increment] 20161218:b
+#include "ob_auto_increment_filter.h"
+//add:e
 
 using namespace oceanbase;
 using namespace sql;
@@ -132,6 +135,11 @@ ObPhyOperator *ObPhyOperatorFactory::get_one(ObPhyOperatorType phy_operator_type
       ret = tc_rp_alloc(ObIndexTrigger);
       break;
     //add e
+    //add lbzhong [auto_increment] 20161218:b
+    case PHY_AUTO_INCREMENT_FILTER:
+      ret = tc_rp_alloc(ObAutoIncrementFilter);
+      break;
+    //add:e
     //CASE_CLAUSE(PHY_PROJECT, ObProject);
     CASE_CLAUSE(PHY_LIMIT, ObLimit);
     //CASE_CLAUSE(PHY_FILTER, ObFilter);
@@ -215,6 +223,11 @@ void ObPhyOperatorFactory::release_one(ObPhyOperator *opt)
         tc_rp_free(dynamic_cast<ObIndexTrigger*>(opt));
         break;
       //add e
+      //add lbzhong [auto_increment] 20161218:b
+      case PHY_AUTO_INCREMENT_FILTER:
+        tc_rp_free(dynamic_cast<ObAutoIncrementFilter*>(opt));
+        break;
+      //add:e
       default:
         opt->~ObPhyOperator();
         break;
