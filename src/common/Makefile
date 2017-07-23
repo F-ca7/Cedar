@@ -206,7 +206,8 @@ am__objects_1 = base_main.$(OBJEXT) \
 	ob_tablet_histogram_report_info.$(OBJEXT) \
 	ob_tablet_histogram.$(OBJEXT) ob_log_generator2.$(OBJEXT) \
 	ob_log_writer3.$(OBJEXT) ob_commit_queue.$(OBJEXT) \
-	group_queue_thread.$(OBJEXT) ob_name_code_map.$(OBJEXT)
+	group_queue_thread.$(OBJEXT) ob_name_code_map.$(OBJEXT) \
+	ob_buffer_size_define.$(OBJEXT)
 am__objects_2 = ob_tablet_location_list.$(OBJEXT) \
 	ob_tablet_location_cache_proxy.$(OBJEXT) \
 	ob_tablet_location_range_iterator.$(OBJEXT) \
@@ -407,7 +408,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LD = /usr/local/bin/ld -m elf_x86_64
+LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
 LIBS = 
@@ -418,7 +419,7 @@ LTLIBOBJS =
 MAKEINFO = ${SHELL} /home/xsl/decimal_optimize/missing makeinfo
 MANIFEST_TOOL = :
 MKDIR_P = /bin/mkdir -p
-NM = /usr/local/bin/nm -B
+NM = /usr/bin/nm -B
 NMEDIT = 
 OBJDUMP = objdump
 OBJEXT = o
@@ -815,7 +816,8 @@ Ob_Decimal.h	Ob_Decimal.cpp\
   ob_log_writer3.h	ob_log_writer3.cpp\
   ob_commit_queue.h	ob_commit_queue.cpp\
   group_queue_thread.h	group_queue_thread.cpp\
-  ob_name_code_map.h     ob_name_code_map.cpp
+  ob_name_code_map.h     ob_name_code_map.cpp  \
+  ob_buffer_size_define.h  ob_buffer_size_define.cpp
 
 location_sources = \
   location/ob_ms_cache_table.h    location/ob_btree_map.h                                     \
@@ -900,6 +902,7 @@ include ./$(DEPDIR)/ob_array_lock.Po
 include ./$(DEPDIR)/ob_balance_filter.Po
 include ./$(DEPDIR)/ob_base_client.Po
 include ./$(DEPDIR)/ob_base_server.Po
+include ./$(DEPDIR)/ob_buffer_size_define.Po
 include ./$(DEPDIR)/ob_bypass_task_info.Po
 include ./$(DEPDIR)/ob_cache.Po
 include ./$(DEPDIR)/ob_cell_array.Po

@@ -208,7 +208,8 @@ am__objects_2 = ob_cursor_fetch.$(OBJEXT) \
 	ob_rpc_scan.$(OBJEXT) ob_run_file.$(OBJEXT) \
 	ob_scalar_aggregate.$(OBJEXT) ob_set_operator.$(OBJEXT) \
 	ob_single_child_phy_operator.$(OBJEXT) ob_sort.$(OBJEXT) \
-	ob_sql.$(OBJEXT) ob_sql_expression.$(OBJEXT) \
+	ob_sql.$(OBJEXT) ob_optimizer.$(OBJEXT) \
+	ob_optimizer_logical.$(OBJEXT) ob_sql_expression.$(OBJEXT) \
 	ob_sql_read_param.$(OBJEXT) ob_sql_scan_param.$(OBJEXT) \
 	ob_sql_get_param.$(OBJEXT) ob_sql_session_info.$(OBJEXT) \
 	ob_sql_session_mgr.$(OBJEXT) \
@@ -233,6 +234,7 @@ am__objects_2 = ob_cursor_fetch.$(OBJEXT) \
 	ob_tablet_get.$(OBJEXT) ob_sql_read_param.$(OBJEXT) \
 	ob_multiple_scan_merge.$(OBJEXT) \
 	ob_multiple_get_merge.$(OBJEXT) ob_empty_row_filter.$(OBJEXT) \
+	ob_auto_increment_filter.$(OBJEXT) \
 	ob_sql_read_strategy.$(OBJEXT) ob_tablet_join_cache.$(OBJEXT) \
 	ob_direct_trigger_event_util.$(OBJEXT) \
 	ob_multi_children_phy_operator.$(OBJEXT) \
@@ -372,7 +374,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LD = /usr/local/bin/ld -m elf_x86_64
+LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
 LIBS = 
@@ -383,7 +385,7 @@ LTLIBOBJS =
 MAKEINFO = ${SHELL} /home/xsl/decimal_optimize/missing makeinfo
 MANIFEST_TOOL = :
 MKDIR_P = /bin/mkdir -p
-NM = /usr/local/bin/nm -B
+NM = /usr/bin/nm -B
 NMEDIT = 
 OBJDUMP = objdump
 OBJEXT = o
@@ -654,6 +656,8 @@ operators_sources = \
   ob_sort_helper.h                                                       \
   ob_cursor_helper.h                                                     \
   ob_sql.h                           ob_sql.cpp                          \
+  ob_optimizer.h                     ob_optimizer.cpp                    \
+  ob_optimizer_logical.h             ob_optimizer_logical.cpp            \
   ob_sql_context.h                                                       \
   ob_sql_expression.h                ob_sql_expression.cpp               \
   ob_sql_read_param.h                ob_sql_read_param.cpp               \
@@ -706,6 +710,7 @@ operators_sources = \
   ob_multiple_scan_merge.h           ob_multiple_scan_merge.cpp \
   ob_multiple_get_merge.h            ob_multiple_get_merge.cpp \
   ob_empty_row_filter.h              ob_empty_row_filter.cpp \
+  ob_auto_increment_filter.h         ob_auto_increment_filter.cpp \
   ob_sql_read_strategy.h             ob_sql_read_strategy.cpp \
   ob_tablet_join_cache.h             ob_tablet_join_cache.cpp \
   ob_direct_trigger_event_util.h     ob_direct_trigger_event_util.cpp \
@@ -798,6 +803,7 @@ include ./$(DEPDIR)/ob_alter_sys_cnf.Po
 include ./$(DEPDIR)/ob_alter_sys_cnf_stmt.Po
 include ./$(DEPDIR)/ob_alter_table.Po
 include ./$(DEPDIR)/ob_alter_table_stmt.Po
+include ./$(DEPDIR)/ob_auto_increment_filter.Po
 include ./$(DEPDIR)/ob_bloomfilter_join.Po
 include ./$(DEPDIR)/ob_change_obi.Po
 include ./$(DEPDIR)/ob_change_obi_stmt.Po
@@ -896,6 +902,8 @@ include ./$(DEPDIR)/ob_multiple_get_merge.Po
 include ./$(DEPDIR)/ob_multiple_merge.Po
 include ./$(DEPDIR)/ob_multiple_scan_merge.Po
 include ./$(DEPDIR)/ob_non_reserved_keywords.Po
+include ./$(DEPDIR)/ob_optimizer.Po
+include ./$(DEPDIR)/ob_optimizer_logical.Po
 include ./$(DEPDIR)/ob_phy_operator.Po
 include ./$(DEPDIR)/ob_phy_operator_factory.Po
 include ./$(DEPDIR)/ob_phy_operator_type.Po

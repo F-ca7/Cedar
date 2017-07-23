@@ -2567,6 +2567,10 @@ namespace oceanbase
           TBSYS_LOG(WARN, "parse timestamp value from client failed ret is %d", ret);
         }
         break;
+      //add xsl ECNU_DECIMAL 20170717
+      case MYSQL_TYPE_DECIMAL:
+      case MYSQL_TYPE_NEWDECIMAL:
+      //add e
       case MYSQL_TYPE_STRING:
       case MYSQL_TYPE_VARCHAR:
       case MYSQL_TYPE_VAR_STRING:

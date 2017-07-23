@@ -552,6 +552,11 @@ namespace oceanbase
         case MYSQL_TYPE_DECIMAL:
           ob_type = ObDecimalType;
           break;
+          //add xsl ECNU_DECIMAL 20170717
+        case MYSQL_TYPE_NEWDECIMAL:
+          ob_type = ObDecimalType;
+          break;
+          //add e
         default:
           TBSYS_LOG(WARN, "unsupport MySQL type %d", mysql_type);
           ret = OB_OBJ_TYPE_ERROR;

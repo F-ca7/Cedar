@@ -125,15 +125,24 @@ namespace oceanbase
                     {
                         od.set_precision(params.precision);
                         od.set_scale(params.scale);
-                        od.set_vscale(0);  //add xsl ECNU_DECIMAL
+                        //add xsl ECNU_DECIMAL 20170717
+                        uint32_t len = 1;
+                        if(od.get_words()->table[1] != 0)
+                            len = 2;
+                        out.set_len(len);  //add xsl ECNU_DECIMAL
                     }
 
                 }
                 if(ret==OB_SUCCESS)
                 {
+
                     out.set_varchar(os);
                     out.set_decimal(od);
-                    out.set_len(1);  //add xsl ECNU_DECIMAL
+                    //add xsl ECNU_DECIMAL 20170717
+                    uint32_t len = 1;
+                    if(od.get_words()->table[1] != 0)
+                        len = 2;
+                    out.set_len(len);  //add xsl ECNU_DECIMAL
                 }
             }
         }
@@ -1019,12 +1028,9 @@ namespace oceanbase
       uint32_t len =1;
       OB_ASSERT(in.get_type() == ObVarcharType);
       const ObString &varchar = in.get_varchar();
-      if(varchar.ptr()==NULL || (int)(varchar.length())==0)
+      if(varchar.ptr()==NULL||(int)(varchar.length())==0)
       {
-        ObDecimal od;
-        uint64_t t1 = 0;
-        od.set_word(&t1,len);
-        /*int64_t int_result;
+        int64_t int_result;
         int_result=0;
         ret = varchar_printf(out, "%ld", int_result);
         if(ret==OB_SUCCESS)
@@ -1038,26 +1044,29 @@ namespace oceanbase
              }
              else
              {
-              */
-        if(params.is_modify)
-        {
-            if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
-            {
-                ret=OB_DECIMAL_UNLEGAL_ERROR;
-                TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
-            }
-            else
-            {
-                od.set_precision(params.precision);
-                od.set_scale(params.scale);
-            }
+                     if(params.is_modify)
+                     {
+                         if((params.precision-params.scale)<(od.get_precision()-od.get_vscale()))
+                         {
+                                    ret=OB_DECIMAL_UNLEGAL_ERROR;
+                                    TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,od.get_precision()=%d,od.get_vscale()=%d", od.get_precision(),od.get_vscale());
+                        }
+                        else
+                         {
+                                 od.set_precision(params.precision);
+                                 od.set_scale(params.scale);
+                         }
 
-        }
-        if(ret==OB_SUCCESS)
-        {
-            //out.set_varchar(os);
-            out.set_decimal(od);
-            out.set_len(1);  //add xsl ECNU_DECIMAL
+                     }
+                     if(ret==OB_SUCCESS)
+                     {
+                         //add xsl ECNU_DECIMAL
+                         out.set_len(1);
+                         //add e
+                         out.set_varchar(os);
+                         out.set_decimal(od);
+                     }
+             }
         }
       }
       else

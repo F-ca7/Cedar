@@ -206,7 +206,8 @@ am__objects_1 = base_main.$(OBJEXT) \
 	ob_tablet_histogram_report_info.$(OBJEXT) \
 	ob_tablet_histogram.$(OBJEXT) ob_log_generator2.$(OBJEXT) \
 	ob_log_writer3.$(OBJEXT) ob_commit_queue.$(OBJEXT) \
-	group_queue_thread.$(OBJEXT) ob_name_code_map.$(OBJEXT)
+	group_queue_thread.$(OBJEXT) ob_name_code_map.$(OBJEXT) \
+	ob_buffer_size_define.$(OBJEXT)
 am__objects_2 = ob_tablet_location_list.$(OBJEXT) \
 	ob_tablet_location_cache_proxy.$(OBJEXT) \
 	ob_tablet_location_range_iterator.$(OBJEXT) \
@@ -815,7 +816,8 @@ Ob_Decimal.h	Ob_Decimal.cpp\
   ob_log_writer3.h	ob_log_writer3.cpp\
   ob_commit_queue.h	ob_commit_queue.cpp\
   group_queue_thread.h	group_queue_thread.cpp\
-  ob_name_code_map.h     ob_name_code_map.cpp
+  ob_name_code_map.h     ob_name_code_map.cpp  \
+  ob_buffer_size_define.h  ob_buffer_size_define.cpp
 
 location_sources = \
   location/ob_ms_cache_table.h    location/ob_btree_map.h                                     \
@@ -900,6 +902,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_balance_filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_base_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_base_server.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_buffer_size_define.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_bypass_task_info.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ob_cell_array.Po@am__quote@
