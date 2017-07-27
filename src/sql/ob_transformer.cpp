@@ -13247,7 +13247,7 @@ int ObTransformer::gen_physical_replace_new(
   //add:e
   if (OB_LIKELY(OB_SUCCESS == ret))
   {
-    TBSYS_LOG(INFO, "need_modify_index_flag is %s", STR_BOOL(need_modify_index_flag)); //add xushilei
+    //TBSYS_LOG(INFO, "need_modify_index_flag is %s", STR_BOOL(need_modify_index_flag)); //add xushilei
     if (need_modify_index_flag)   //replace table with index
     {
       ObTableRpcScan *table_scan = NULL;
@@ -15014,10 +15014,10 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
           {
             obj_type.set_type(ocs->get_type());
             //add xushilei 2017-7-13 b
-            TBSYS_LOG(INFO, "xushilei type=%d, tid=%ld, cid=%ld", ocs->get_type(), table_id, cid);
+            //TBSYS_LOG(INFO, "xushilei type=%d, tid=%ld, cid=%ld", ocs->get_type(), table_id, cid);
             if(ocs->get_type() == ObDecimalType)
             {
-                TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+                //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
                 obj_type.set_precision(ocs->get_precision());
                 obj_type.set_scale(ocs->get_scale());
             }
@@ -15070,7 +15070,7 @@ int ObTransformer::cons_whole_row_desc_for_replace(const ObStmt *stmt, uint64_t 
           //add xushilei 2017-7-13 b
           if(ocs->get_type() == ObDecimalType)
           {
-              TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
               obj_type.set_precision(ocs->get_precision());
               obj_type.set_scale(ocs->get_scale());
           }

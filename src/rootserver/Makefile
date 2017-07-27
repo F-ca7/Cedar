@@ -348,12 +348,12 @@ am__DIST_COMMON = $(srcdir)/Flymake.mk $(srcdir)/Makefile.in \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} /home/xsl/decimal_optimize/missing aclocal-1.15
 AMTAR = $${TAR-tar}
-AM_CFLAGS = -g -D_OB_VERSION=400 -DCOMPATIBLE -D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64	-D_LARGE_FILE -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -Werror -Wall
-AM_CXXFLAGS = -D__STDC_LIMIT_MACROS -D_OB_VERSION=400 -D__STDC_CONSTANT_MACROS -D_NO_EXCEPTION 	-Wall -Werror -Wextra -Wunused-parameter 	-Wformat -Wconversion -Wno-deprecated -fno-strict-aliasing -g -Wno-ignored-qualifiers
+AM_CFLAGS = -g -O2 -D_OB_VERSION=400 -DCOMPATIBLE -D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64	-D_LARGE_FILE -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -DNDEBUG	-finline-functions -fno-strict-aliasing -Werror -Wall
+AM_CXXFLAGS = -g -O2 -D_OB_VERSION=400 -D_NO_EXCEPTION -finline-functions 	-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DNDEBUG	-Wall -Werror -Wextra -Wunused-parameter -Wformat -fno-strict-aliasing 	-Wconversion -Wno-deprecated -D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 	-D_LARGE_FILE -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -Wno-ignored-qualifiers
 AM_DEFAULT_VERBOSITY = 1
 AM_LDFLAGS = -lpthread -lc -lm -lrt -lssl -laio $(am__append_2)
 AR = ar
-AUTOCONF = autoconf
+AUTOCONF = ${SHELL} /home/xsl/decimal_optimize/missing autoconf
 AUTOHEADER = ${SHELL} /home/xsl/decimal_optimize/missing autoheader
 AUTOMAKE = ${SHELL} /home/xsl/decimal_optimize/missing automake-1.15
 AWK = gawk
@@ -464,7 +464,7 @@ mysvnversion = cat $(top_srcdir)/svn_dist_version
 obapi_version = 1.0.0
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /usr/local
+prefix = /home/xsl/oceanbase_chengxu
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin

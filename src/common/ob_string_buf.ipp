@@ -157,7 +157,7 @@ namespace oceanbase
         stored_dec->set_scale(dec.get_scale());
         stored_dec->set_vscale(dec.get_vscale());
         stored_dec->set_word(str_clone,len);   //使得decimal指针指向这块内存
-        TBSYS_LOG(INFO,"xushilei,test cast_V2,dec=[%ld]",*str_clone);   //test xsl cast
+        //TBSYS_LOG(INFO,"xushilei,test cast_V2,dec=[%ld]",*str_clone);   //test xsl cast
       }
       return err;
     }

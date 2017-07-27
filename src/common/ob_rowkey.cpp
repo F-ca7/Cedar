@@ -374,7 +374,7 @@ namespace oceanbase
         {
           ObObj &cell = const_cast<ObObj&>(rowkey.get_obj_ptr()[i]);
           ObObjType to_type = rowkey_info.get_column(i)->type_;
-          TBSYS_LOG(INFO,"xushilei,test ob_rowkey,cell=[%s]!",to_cstring(cell));  //test xsl
+          //TBSYS_LOG(INFO,"xushilei,test ob_rowkey,cell=[%s]!",to_cstring(cell));  //test xsl
           if (OB_SUCCESS != (ret = obj_cast(cell, to_type, buf+used_buf_len, buf_size-used_buf_len, used_len)))
           {
             TBSYS_LOG(WARN, "failed to cast obj, i=%ld", i);
