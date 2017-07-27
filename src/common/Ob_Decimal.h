@@ -241,13 +241,7 @@ inline void ObDecimal::set_word(uint64_t* t,uint32_t len) {
         word[0].table[i] = t[i];
     if(len == 1)
     {
-//        if((t[0] & TTMATH_UINT_HIGHEST_BIT) == 0/* || (word[0].table[1] & TTMATH_UINT_HIGHEST_BIT != 0) */)   //>0
-            word[0].table[1] = 0;
-//        else                                        //<0
-//        {
-//            //word[0].table[0] = -word[0].table[0];   //1123
-//            word[0].table[1] = TTMATH_UINT_HIGHEST_BIT;    //test xsl
-//        }
+        word[0].table[1] = 0;
     }
 }
 
