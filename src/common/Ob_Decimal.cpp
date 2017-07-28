@@ -730,6 +730,7 @@ int ObDecimal::mul(const ObDecimal &other, ObDecimal &res) const {
                res.scale_=MAX_DECIMAL_DIGIT-len_int;
            }
            res.precision_ = len_int + res.scale_; //add xsl ECNU_DECIMAL
+           if(res.precision_ == res.scale_)res.precision_++;    //add xsl 2017_7
           }
 
         }
