@@ -11492,6 +11492,9 @@ int ObTransformer::gen_phy_table_for_update_more(
           PageArena<ObObj, ModulePageAllocator>::DEFAULT_PAGE_SIZE,ModulePageAllocator(ObModIds::OB_SQL_TRANSFORMER));
       // ObObj rowkey_objs[OB_MAX_ROWKEY_COLUMN_NUMBER];
 
+//modify wangjiahao [dev_update_more] 20170802 :b
+//bug fix for in_expr
+/*
       if (OB_SUCCESS != (ret = sql_read_strategy.get_read_method(rowkey_array, rowkey_objs_allocator, read_method)))
       {
         TBSYS_LOG(WARN, "fail to get read method:ret[%d]", ret);
@@ -11500,6 +11503,7 @@ int ObTransformer::gen_phy_table_for_update_more(
       {
         TBSYS_LOG(DEBUG, "use [%s] method", read_method == ObSqlReadStrategy::USE_SCAN ? "SCAN" : "GET");
       }
+*/
       hint.read_method_ = read_method;
     }
   }
