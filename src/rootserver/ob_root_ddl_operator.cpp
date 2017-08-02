@@ -100,6 +100,7 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
           table_schema.table_name_, table_schema.table_id_);
     }
   }
+  /*
   //add hushuang[scalable commit]20160710
   if(OB_SUCCESS == ret)
   {
@@ -124,6 +125,10 @@ int ObRootDDLOperator::create_table(const TableSchema & table_schema)
       TBSYS_LOG(ERROR, "create table failed!");
     }
   }
+  //add e
+  */
+  //add zhuyanchao
+  sleep(1);
   //add e
 
   return ret;
@@ -279,6 +284,9 @@ int ObRootDDLOperator::update_max_table_id(const uint64_t table_id)
     }
     else
     {
+      //add zhuyanchao
+      sleep(1);
+      //add e
       uint64_t new_max_id = 0;
       ret = schema_client_->get_max_used_table_id(new_max_id);
       if (ret != OB_SUCCESS)

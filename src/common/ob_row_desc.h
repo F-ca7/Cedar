@@ -84,6 +84,12 @@ namespace oceanbase
         /// 添加下一列的描述信息
         int add_column_desc(const uint64_t table_id, const uint64_t column_id);
 
+        /*
+         * Remove elements with specific value 
+         * add by lxb on 2016/12/27
+         */
+        int remove_column_desc(const uint64_t table_id, const uint64_t column_id);        
+        
         /// 重置
         void reset();
 
@@ -111,6 +117,13 @@ namespace oceanbase
         };
         int hash_find(const uint64_t table_id, const uint64_t column_id, int64_t & index) const;
         int hash_insert(const uint64_t table_id, const uint64_t column_id, const int64_t index);
+      
+        /*
+         * Remove elements with specific value 
+         * add by lxb on 2016/12/27
+         */
+        int hash_remove(const uint64_t table_id, const uint64_t column_id);        
+        
       private:
         static const int64_t MAX_COLUMNS_COUNT = common::OB_ROW_MAX_COLUMNS_COUNT; // 512
         static uint64_t HASH_COLLISIONS_COUNT;
@@ -155,9 +168,9 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       uint64_t pos = 0;
       ret = search_(key, pos);
-      if (OB_SUCCESS = ret)
+      if (OB_SUCCESS == ret) // modify by lxb on 2017/03/21 for logical optimizer
       {
-        flags_.del_member(pos);
+        flags_.del_member(static_cast<int32_t>(pos)); // modify by lxb on 2017/03/21 for logical optimizer
       }
       return ret;
     }

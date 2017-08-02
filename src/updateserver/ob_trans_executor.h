@@ -334,7 +334,9 @@ namespace oceanbase
       static const int64_t ALLOCATOR_PAGE_SIZE = 4L * 1024L * 1024L;
       static const int64_t MAX_RO_NUM = 100000;
       static const int64_t MAX_RP_NUM = 10000;
-      static const int64_t MAX_RW_NUM = 40000;
+      //static const int64_t MAX_RW_NUM = 40000;
+      static const int64_t MAX_RW_NUM = 80000;
+      static const int64_t MAX_LRW_NUM = 10000; // add a parameter by qx 20170314 for long transcation
       static const int64_t QUERY_TIMEOUT_RESERVE = 20000;
       static const int64_t TRY_FREEZE_INTERVAL = 1000000;
       static const int64_t MAX_BATCH_NUM = 1024;

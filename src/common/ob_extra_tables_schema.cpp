@@ -348,6 +348,14 @@ int ObExtraTablesSchema::all_all_column_schema(TableSchema& table_schema)
       ObIntType,  //column_type
       sizeof(int64_t), //column length
       false); //is nullable
+  //add lbzhong [auto_increment] 20161123:b
+  ADD_COLUMN_SCHEMA("auto_increment", //column_name
+      column_id ++, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  //add:e
   ADD_COLUMN_SCHEMA("gm_create", //column_name
       OB_CREATE_TIME_COLUMN_ID, //column_id
       0, //rowkey_id
@@ -796,7 +804,52 @@ int ObExtraTablesSchema::all_client_schema(TableSchema& table_schema)
       false);
   return ret;
 }
+//add hxlong [Truncate Table]:20170318:b
+int ObExtraTablesSchema::all_truncate_op_info(TableSchema& table_schema)
+{
+  int ret = OB_SUCCESS;
+  table_schema.init_as_inner_table();
+  strcpy(table_schema.table_name_, OB_TRUNCATE_OP_TABLE_NAME);
+  table_schema.table_id_ = OB_ALL_TRUNCATE_OP_TID;
+  table_schema.rowkey_column_num_ = 2;
+  table_schema.max_rowkey_length_ = TEMP_ROWKEY_LENGTH;
+  table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 7;
 
+  int column_id = OB_APP_MIN_COLUMN_ID;
+
+  ADD_COLUMN_SCHEMA("rs_trun_time",
+      column_id++,
+      1,
+      ObPreciseDateTimeType,
+      sizeof(int64_t),
+      false);
+  ADD_COLUMN_SCHEMA("table_id",
+      column_id++,
+      2,
+      ObIntType,
+      sizeof(int64_t),
+      false);
+  ADD_COLUMN_SCHEMA("table_name",
+      column_id++,
+      0,
+      ObVarcharType,
+      OB_MAX_TABLE_NAME_LENGTH+OB_MAX_DATBASE_NAME_LENGTH+1,
+      false);
+  ADD_COLUMN_SCHEMA("user_name",
+      column_id++,
+      0,
+      ObVarcharType,
+      OB_MAX_USERNAME_LENGTH,
+      false);
+  ADD_COLUMN_SCHEMA("info",
+      column_id++,
+      0,
+      ObVarcharType,
+      2 * OB_MAX_TABLE_NAME_LENGTH,
+      false);
+  return ret;
+}
+//add:e
 int ObExtraTablesSchema::all_server_schema(TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
@@ -1666,3 +1719,51 @@ int ObExtraTablesSchema::all_column_checksum_stat(TableSchema &table_schema)
     return ret;
 }
 //add e
+//add lbzhong [auto_increment] 20161126:b
+int ObExtraTablesSchema::all_auto_increment_schema(TableSchema &table_schema)
+{
+  int ret = OB_SUCCESS;
+  table_schema.init_as_inner_table();
+  strcpy(table_schema.table_name_, OB_ALL_AUTO_INCREMENT_TABLE_NAME);
+  table_schema.table_id_ = OB_ALL_AUTO_INCREMENT_TID;
+  table_schema.rowkey_column_num_ = 2;
+  table_schema.max_rowkey_length_ = sizeof(int64_t);
+  table_schema.max_used_column_id_ = OB_APP_MIN_COLUMN_ID + 5;
+
+  int column_id = OB_APP_MIN_COLUMN_ID;
+  table_schema.create_time_column_id_ = OB_CREATE_TIME_COLUMN_ID;
+  table_schema.modify_time_column_id_ = OB_MODIFY_TIME_COLUMN_ID;
+
+  ADD_COLUMN_SCHEMA("table_id", //column_name
+      column_id ++, //column_id
+      1, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("column_id", //column_name
+      column_id ++, //column_id
+      2, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("max_value", //column_name
+      column_id ++, //column_id
+      0, //rowkey_id
+      ObIntType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("gm_create", //column_name
+      OB_CREATE_TIME_COLUMN_ID,//column_id
+      0, //rowkey_id
+      ObCreateTimeType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  ADD_COLUMN_SCHEMA("gm_modify", //column_name
+      OB_MODIFY_TIME_COLUMN_ID, //column_id
+      0, //rowkey_id
+      ObModifyTimeType,  //column_type
+      sizeof(int64_t), //column length
+      false); //is nullable
+  return ret;
+}
+//add:e

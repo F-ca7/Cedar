@@ -123,7 +123,7 @@ TEST(TestSessionMgr, init)
   SessionCtxFactory factory;
   SessionMgr sm;
 
-  int ret = sm.init(2, 2, 2, &factory);
+  int ret = sm.init(2, 2, 2, 2, &factory); // add a parameter by qx 20170314 for long transcation
   EXPECT_EQ(OB_SUCCESS, ret);
 
   uint32_t sd = 0;

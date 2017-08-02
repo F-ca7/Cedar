@@ -179,6 +179,9 @@ int ObSchemaServiceImpl::add_column(ObMutator* mutator, const TableSchema& table
         ADD_INT(column_table_name, rowkey, "data_precision", column.data_precision_);
         ADD_INT(column_table_name, rowkey, "data_scale", column.data_scale_);
         ADD_INT(column_table_name, rowkey, "nullable", column.nullable_);
+        //add lbzhong [auto_increment] 20161123:b
+        ADD_INT(column_table_name, rowkey, "auto_increment", column.auto_increment_);
+        //add:e
         ADD_INT(column_table_name, rowkey, "length_in_rowkey", column.length_in_rowkey_);
         ADD_INT(column_table_name, rowkey, "order_in_rowkey", column.order_in_rowkey_);
       }
@@ -334,6 +337,20 @@ int ObSchemaServiceImpl::create_table_mutator(const TableSchema& table_schema, O
       TBSYS_LOG(WARN, "add join info to mutator fail:ret[%d]", ret);
     }
   }
+  //add lbzhong [auto_increment] 20161201:b
+  if (OB_SUCCESS == ret)
+  {
+    uint64_t column_id = OB_INVALID_ID;
+    if (OB_SUCCESS != (ret = check_auto_increment(table_schema, column_id)))
+    {
+      TBSYS_LOG(WARN, "check auto_increment fail:ret[%d]", ret);
+    }
+    else if (OB_INVALID_ID != column_id && OB_SUCCESS != (ret = auto_increment_mutator(table_schema.table_id_, column_id, mutator)))
+    {
+      TBSYS_LOG(WARN, "add auto_increment mutator fail:ret[%d]", ret);
+    }
+  }
+  //add:e
 
   return ret;
 }
@@ -441,6 +458,9 @@ int ObSchemaServiceImpl::update_column_mutator(ObMutator* mutator, ObRowkey & ro
   ADD_INT(column_table_name, rowkey, "data_precision", column.data_precision_);
   ADD_INT(column_table_name, rowkey, "data_scale", column.data_scale_);
   ADD_INT(column_table_name, rowkey, "nullable", column.nullable_);
+  //add lbzhong [auto_increment] 20161123:b
+  ADD_INT(column_table_name, rowkey, "auto_increment", column.auto_increment_);
+  //add:e
   ADD_INT(column_table_name, rowkey, "length_in_rowkey", column.length_in_rowkey_);
   ADD_INT(column_table_name, rowkey, "order_in_rowkey", column.order_in_rowkey_);
   return ret;
@@ -871,6 +891,13 @@ int ObSchemaServiceImpl::drop_table(const ObString& table_name)
     }
   }
 
+  //add lbzhong [auto_increment] 20161201:b
+  if (OB_SUCCESS == ret)
+  {
+    ret = delete_auto_increment(table_id);
+  }
+  //add:e
+
   int err = 0;
   if(OB_SUCCESS == ret)
   {
@@ -1029,6 +1056,15 @@ int ObSchemaServiceImpl::get_table_name(uint64_t table_id, ObString& table_name)
     {
       ret = hash::HASH_NOT_EXIST == err ? OB_ENTRY_NOT_EXIST : OB_ERROR;
       TBSYS_LOG(WARN, "id name map get fail:err[%d], table_id[%lu]", err, table_id);
+      //add by qx 20170225 :b for test
+//      hash::ObHashMap<uint64_t, ObString>::const_iterator iter1=id_name_map_.begin();
+//      for (;iter1!=id_name_map_.end();iter1++)
+//      {
+//        int64_t id = (uint64_t)(iter1->first);
+//        ObString name = iter1->second ;
+//        TBSYS_LOG(WARN, "reseting name hash map iter->first=%ld  second=%s", id, name.ptr());
+//      }
+      //add :e
     }
   }
   TBSYS_LOG(DEBUG, "get table_name=%.*s", table_name.length(), table_name.ptr());
@@ -1167,6 +1203,9 @@ int ObSchemaServiceImpl::assemble_column(const TableRow* table_row, ColumnSchema
   ASSIGN_INT("data_precision", column.data_precision_, int64_t);
   ASSIGN_INT("data_scale", column.data_scale_, int64_t);
   ASSIGN_INT("nullable", column.nullable_, int64_t);
+  //add lbzhong [auto_increment] 20161123:b
+  ASSIGN_INT("auto_increment", column.auto_increment_, int64_t);
+  //add:e
   ASSIGN_INT("length_in_rowkey", column.length_in_rowkey_, int64_t);
   ASSIGN_INT("order_in_rowkey", column.order_in_rowkey_, int32_t);
   ASSIGN_CREATE_TIME("gm_create", column.gm_create_, ObCreateTime);
@@ -1364,11 +1403,21 @@ int ObSchemaServiceImpl::fetch_table_schema(const ObString& table_name, TableSch
   }
   if(OB_SUCCESS == ret)
   {
+    //mod lbzhong [auto_increment] 20161123:b
+    //add ("auto_increment")
+    /*
     ret = nb_accessor_.scan(res, OB_ALL_COLUMN_TABLE_NAME, range,
         SC("column_name")("column_id")("gm_create")("gm_modify")("column_group_id")("rowkey_id")
         ("join_table_id")("join_column_id")("data_type")("data_length")("data_precision")
         ("data_scale")("nullable")("length_in_rowkey")("order_in_rowkey"),
         ScanConds("table_id", EQ, table_schema.table_id_));
+        */
+    ret = nb_accessor_.scan(res, OB_ALL_COLUMN_TABLE_NAME, range,
+        SC("column_name")("column_id")("gm_create")("gm_modify")("column_group_id")("rowkey_id")
+        ("join_table_id")("join_column_id")("data_type")("data_length")("data_precision")
+        ("data_scale")("nullable")("auto_increment")("length_in_rowkey")("order_in_rowkey"),
+        ScanConds("table_id", EQ, table_schema.table_id_));
+    //mod:e
     if(OB_SUCCESS != ret)
     {
       TBSYS_LOG(WARN, "scan column table fail:ret[%d]", ret);
@@ -1914,6 +1963,21 @@ int ObSchemaServiceImpl::create_index_mutator(const TableSchema& table_schema, O
       TBSYS_LOG(WARN, "add join info to mutator fail:ret[%d]", ret);
     }
   }
+
+  //add lbzhong [auto_increment] 20161201:b
+  if (OB_SUCCESS == ret)
+  {
+    uint64_t column_id = OB_INVALID_ID;
+    if (OB_SUCCESS != (ret = check_auto_increment(table_schema, column_id)))
+    {
+      TBSYS_LOG(WARN, "check auto_increment fail:ret[%d]", ret);
+    }
+    else if (OB_INVALID_ID != column_id && OB_SUCCESS != (ret = auto_increment_mutator(table_schema.table_id_, column_id, mutator)))
+    {
+      TBSYS_LOG(WARN, "add auto_increment mutator fail:ret[%d]", ret);
+    }
+  }
+  //add:e
   return ret;
 }
 
@@ -1958,7 +2022,7 @@ bool ObSchemaServiceImpl::is_index_table_or_not(const ObString& table_name)
 int ObSchemaServiceImpl::assemble_index_table(const TableRow* table_row, TableSchema& table_schema)
 {
   int ret = OB_SUCCESS;
-  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_COLUMN_NAME_LENGTH);
+  ASSIGN_VARCHAR("table_name", table_schema.table_name_, OB_MAX_TABLE_NAME_LENGTH);
   /* !! OBSOLETE CODE !! no need extract rowkey field when updateserver supports ROWKEY column query.
   if (table_schema.table_name_[0] == '\0' || OB_SUCCESS != ret)
   {
@@ -2404,3 +2468,135 @@ int ObSchemaServiceImpl::get_cluster_count(int64_t &cc)
 }
 //add e
 
+//add lbzhong [auto_increment] 20161201:b
+int ObSchemaServiceImpl::check_auto_increment(const TableSchema& table_schema, uint64_t& column_id)
+{
+  int ret = OB_SUCCESS;
+  ColumnSchema column;
+  for(int32_t i=0; i<table_schema.columns_.count() && OB_SUCCESS == ret; i++)
+  {
+    ret = table_schema.columns_.at(i, column);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "get column from table_schema fail:ret[%d], i[%d]", ret, i);
+    }
+    else if (column.auto_increment_)
+    {
+      column_id = column.column_id_;
+      break;
+    }
+  }
+  return ret;
+}
+
+int ObSchemaServiceImpl::auto_increment_mutator(const uint64_t table_id, const uint64_t column_id, ObMutator* mutator)
+{
+  int ret = OB_SUCCESS;
+
+  if(NULL == mutator)
+  {
+    ret = OB_INVALID_ARGUMENT;
+    TBSYS_LOG(WARN, "mutator is null");
+  }
+
+  ObRowkey rowkey;
+
+  ObObj value[2];
+  value[0].set_int(table_id);
+  value[1].set_int(column_id);
+  rowkey.assign(value, 2);
+
+  if (OB_SUCCESS == ret)
+  {
+    ADD_INT(auto_increment_table_name, rowkey, "max_value", OB_DEFAULT_AUTO_INCREMENT_VALUE);
+  }
+  return ret;
+}
+
+int ObSchemaServiceImpl::fetch_auto_column_id(const uint64_t table_id, uint64_t& auto_column_id)
+{
+  int ret = OB_SUCCESS;
+  QueryRes* res = NULL;
+
+  ObNewRange range;
+  int32_t rowkey_column = 2;
+  ObObj start_rowkey[rowkey_column];
+  ObObj end_rowkey[rowkey_column];
+  start_rowkey[0].set_int(table_id);
+  start_rowkey[1].set_min_value();
+  end_rowkey[0].set_int(table_id);
+  end_rowkey[1].set_max_value();
+  if (OB_SUCCESS == ret)
+  {
+    range.start_key_.assign(start_rowkey, rowkey_column);
+    range.end_key_.assign(end_rowkey, rowkey_column);
+  }
+  if(OB_SUCCESS == ret)
+  {
+    ret = nb_accessor_.scan(res, OB_ALL_COLUMN_TABLE_NAME, range, SC("column_id")("auto_increment"), ScanConds("table_id", EQ, table_id));
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "scan column table fail:ret[%d]", ret);
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    TableRow* table_row = NULL;
+    while(OB_SUCCESS == res->next_row() && OB_SUCCESS == ret)
+    {
+      res->get_row(&table_row);
+      if(NULL != table_row)
+      {
+        uint64_t column_id = OB_INVALID_ID;
+        int64_t auto_increment = 0;
+        ASSIGN_INT("column_id", column_id, uint64_t);
+        ASSIGN_INT("auto_increment", auto_increment, int64_t);
+        if(OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "get auto_column_id fail:ret[%d]", ret);
+        }
+        else if (auto_increment == 1)
+        {
+          auto_column_id = column_id;
+          break;
+        }
+      }
+      else
+      {
+        ret = OB_ERROR;
+        TBSYS_LOG(WARN, "get column fail");
+      }
+    }
+  }
+  nb_accessor_.release_query_res(res);
+  res = NULL;
+
+  return ret;
+}
+
+int ObSchemaServiceImpl::delete_auto_increment(const int64_t table_id)
+{
+  int ret = OB_SUCCESS;
+  uint64_t auto_column_id = OB_INVALID_ID;
+  if (OB_SUCCESS != (ret = fetch_auto_column_id(table_id, auto_column_id)))
+  {
+    TBSYS_LOG(WARN, "fail to fetch auto_column_id, ret=%d", ret);
+  }
+  else
+  {
+    ObObj value[2];
+    value[0].set_int(table_id);
+    value[1].set_int(auto_column_id);
+    ObRowkey rowkey;
+    rowkey.assign(value, 2);
+    ret = nb_accessor_.delete_row(OB_ALL_AUTO_INCREMENT_TABLE_NAME, rowkey);
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "delete row from auto increment table fail:ret[%d], rowkey=%s", ret, to_cstring(rowkey));
+    }
+  }
+  return ret;
+}
+
+//add:e

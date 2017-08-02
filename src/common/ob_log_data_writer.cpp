@@ -37,7 +37,7 @@ namespace oceanbase
 {
   namespace common
   {
-    ObLogDataWriter::AppendBuffer::AppendBuffer(): file_pos_(-1), buf_(NULL), buf_end_(0), buf_limit_(DEFAULT_BUF_SIZE)
+    ObLogDataWriter::AppendBuffer::AppendBuffer(): file_pos_(-1), buf_(NULL), buf_end_(0), buf_limit_(OB_FLUSH_DISK_BUFFER_SIZE)
     {}
 
     ObLogDataWriter::AppendBuffer::~AppendBuffer()

@@ -124,6 +124,21 @@ namespace oceanbase
          * @return bool value
          */
         bool get_no_group();
+        //add by qx 20170317 :b
+        /**
+         * @brief set_long_trans
+         * set long transcation flag
+         * @param long_trans
+         * @return
+         */
+        int set_long_trans(bool long_trans);
+        /**
+         * @brief get_long_trans
+         * get long transcation flag
+         * @return
+         */
+        bool get_long_trans();
+        //add :e
       private:
         ObString proc_name_;  ///<  procedure name
         //		common::ObArray<common::ObString> variable_names_;
@@ -131,6 +146,9 @@ namespace oceanbase
         /// need to query data generated from the table when the stored procedure to generate a program corresponding to the stored procedure statement ID
         uint64_t proc_stmt_id_;
         bool no_group_;   ///<  no group execution flag
+        //add by qx 20170317 :b
+        bool long_trans_;   ///< long transcation flag
+        //add :e
     };
 
   }

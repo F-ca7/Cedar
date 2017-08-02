@@ -66,6 +66,11 @@ namespace oceanbase
       int add_expr_id(uint64_t eid) { return expr_ids_.push_back(eid); }
       void set_joined_tid(uint64_t tid) { joined_table_id_ = tid; }
 
+      /* add by lxb on 2017/02/10 */
+      common::ObArray<uint64_t>& get_table_ids() { return table_ids_; }
+      common::ObArray<uint64_t>& get_expr_ids() { return expr_ids_; }
+      common::ObArray<uint64_t>& get_join_types() { return join_types_; }      
+      
       uint64_t   joined_table_id_;
       common::ObArray<uint64_t>  table_ids_;
       common::ObArray<uint64_t>  join_types_;
@@ -174,6 +179,18 @@ namespace oceanbase
       {
         OB_ASSERT(0 <= index && index < from_items_.size());
         return from_items_[index];
+      }
+      
+      // add by lxb on 2017/02/12
+      common::ObVector<FromItem>& get_from_items()
+      {
+        return from_items_;
+      }
+      
+      // add by lxb on 2017/02/17
+      common::ObVector<SelectItem>& get_select_items()
+      {
+        return select_items_;
       }
 
       const OrderItem& get_order_item(int32_t index) const

@@ -584,7 +584,10 @@ namespace oceanbase
             onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int ups_get_sstable_range_list(const int32_t version, common::ObDataBuffer& in_buff,
             onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
-
+        //add hxlong [Truncate Table]:20170318:b
+        int ups_check_incremental_data_range(const int32_t version, common::ObDataBuffer& in_buff,
+            onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add:e
         int ups_start_transaction(const MemTableTransType type, UpsTableMgrTransHandle& handle);
         int ups_apply(const bool using_id, UpsTableMgrTransHandle& handle, common::ObDataBuffer& in_buff, common::ObScanner *scanner);
         int ups_end_transaction(common::ObPacket** packets, ScannerArray &scanner_array, const int64_t start_idx,
@@ -680,7 +683,7 @@ namespace oceanbase
       private:
         static const int MY_VERSION = 1;
         static const int HEARTBEAT_VERSION = 2;
-        static const int32_t RPC_BUFFER_SIZE = 1024*1024*2; //2MB
+        //static const int32_t RPC_BUFFER_SIZE = 1024*1024*2; //2MB
         static const int32_t DEFAULT_TASK_READ_QUEUE_SIZE = 1000;
         static const int32_t DEFAULT_TASK_WRITE_QUEUE_SIZE = 1000;
         static const int32_t DEFAULT_TASK_PREPROCESS_QUEUE_SIZE = 1000;

@@ -70,7 +70,9 @@ namespace oceanbase
                       ObCellStream &ups_stream, 
                       const common::ObSchemaManagerV2 &schema_mgr,
                       const int64_t max_memory_size,
-                      const bool unmerge_if_unchanged = false);
+                      const bool unmerge_if_unchanged = false,
+                      const bool is_static_truncated_ = false); /*add hxlong [Truncate Table]:20170318 param:is_static_truncated*/
+
 
       /**
        * after call start_merge() function, and read all the cells in 
@@ -174,6 +176,7 @@ namespace oceanbase
       common::ObCellInfo         cur_cell_initializer_;
       common::ObCellInfo         *batch_append_cells_in_[common::OB_MAX_COLUMN_NUMBER];
       common::ObInnerCellInfo    *batch_append_cells_out_[common::OB_MAX_COLUMN_NUMBER];
+      bool is_static_truncated_; /*add hxlong [Truncate Table]:20170318*/
     };
   }
 }

@@ -66,8 +66,14 @@ ObPhysicalPlan::ObPhysicalPlan()
    cons_from_assign_(false),
    next_phy_operator_id_(0),
    //add zt 20151109 :b
-   group_exec_mode_(false)
+   group_exec_mode_(false),
    //add zt 20151109 :e
+   //add by qx 21070317 :b
+   long_trans_exec_mode_(false),
+   //add :e
+   //add lbzhong [auto_increment] 20161218:b
+   auto_increment_(false)
+   //add:e
 {
 }
 
@@ -91,6 +97,24 @@ int ObPhysicalPlan::deserialize_header(const char* buf, const int64_t data_len, 
   {
     TBSYS_LOG(WARN, "failed to decode trans_id_, err=%d", ret);
   }
+  //add by qx 20170313 :b
+  else if ((OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &group_exec_mode_))))
+  {
+    TBSYS_LOG(WARN, "failed to decode group_exec_mode_, err=%d",
+              ret);
+  }
+  else if ((OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &long_trans_exec_mode_))))
+  {
+    TBSYS_LOG(WARN, "failed to decode long_trans_exec_mode_, err=%d",
+              ret);
+  }
+  //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to decode auto_increment, err=%d", ret);
+  }
+  //add:e
   return ret;
 }
 
@@ -312,7 +336,6 @@ int ObPhysicalPlan::deserialize_tree(const char *buf, int64_t data_len, int64_t 
   {
     TBSYS_LOG(WARN, "fail to decode phy operator type:ret[%d]", ret);
   }
-
   if (OB_SUCCESS == ret)
   {
     root = op_factory_->get_one(static_cast<ObPhyOperatorType>(phy_operator_type), allocator);
@@ -430,6 +453,13 @@ int ObPhysicalPlan::assign(const ObPhysicalPlan& other)
     // my_result_set_; // The result set who owns this physical plan
     start_trans_ = other.start_trans_;
     start_trans_req_ = other.start_trans_req_;
+    //add by qx 20170313 :b
+    group_exec_mode_ = other.group_exec_mode_;
+    long_trans_exec_mode_ = other.long_trans_exec_mode_;
+    //add :e
+    //add lbzhong [auto_increment] 20161218:b
+    auto_increment_ = other.auto_increment_;
+    //add:e
     for (int32_t i = 0; i < other.phy_querys_.count(); ++i)
     {
       const ObPhyOperator *subquery = other.phy_querys_.at(i);
@@ -540,6 +570,24 @@ DEFINE_SERIALIZE(ObPhysicalPlan)
   {
     TBSYS_LOG(ERROR, "trans_id.serialize(buf=%p[%ld-%ld])=>%d", buf, pos, buf_len, ret);
   }
+  //add by qx 20170313 :b
+  else if ((OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, group_exec_mode_))))
+  {
+    TBSYS_LOG(WARN, "failed to serialize group_exec_mode_, err=%d buf_len=%ld pos=%ld",
+              ret, buf_len, pos);
+  }
+  else if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, long_trans_exec_mode_)))
+  {
+    TBSYS_LOG(WARN, "failed to serialize long_trans_exec_mode_, err=%d buf_len=%ld pos=%ld",
+              ret, buf_len, pos);
+  }
+  //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::encode_bool(buf, buf_len, pos, auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to serialize auto_increment, err=%d buf_len=%ld pos=%ld", ret, buf_len, pos);
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = encode_vi32(buf, buf_len, pos, main_query_idx)))
   {
     TBSYS_LOG(WARN, "fail to encode main query idx:ret[%d]", ret);
@@ -579,6 +627,22 @@ DEFINE_DESERIALIZE(ObPhysicalPlan)
   {
     TBSYS_LOG(ERROR, "trans_id.deserialize(buf=%p[%ld-%ld])=>%d", buf, pos, data_len, ret);
   }
+  //add by qx 20170313 :b
+  else if ((OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &group_exec_mode_))))
+  {
+    TBSYS_LOG(WARN, "failed to decode group_exec_mode_, err=%d",ret);
+  }
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &long_trans_exec_mode_)))
+  {
+    TBSYS_LOG(WARN, "failed to decode long_trans_exec_mode_, err=%d",ret);
+  }
+  //add :e
+  //add lbzhong [auto_increment] 20161218:b
+  else if (OB_SUCCESS != (ret = serialization::decode_bool(buf, data_len, pos, &auto_increment_)))
+  {
+    TBSYS_LOG(WARN, "failed to decode auto_increment_, err=%d", ret);
+  }
+  //add:e
   else if (OB_SUCCESS != (ret = decode_vi32(buf, data_len, pos, &main_query_idx)))
   {
     TBSYS_LOG(WARN, "fail to decode main query idx:ret[%d]", ret);
@@ -587,7 +651,6 @@ DEFINE_DESERIALIZE(ObPhysicalPlan)
   {
     TBSYS_LOG(WARN, "fail to decode phy querys size:ret[%d]", ret);
   }
-
   for (int32_t i=0;OB_SUCCESS == ret && i<phy_querys_size;i++)
   {
     if (OB_SUCCESS != (ret = deserialize_tree(buf, data_len, pos, *allocator_, operators_store_, root)))

@@ -174,6 +174,10 @@ namespace oceanbase
       OB_FETCH_PROCEDURE = 249,
       OB_FETCH_PROCEDURE_RESPONSE = 250,
       //add :e
+      //add hxlong [Truncate Table]:20170318:b
+      OB_CHECK_INCREMENTAL_RANGE = 251,
+      OB_CHECK_INCREMENTAL_RANGE_RESPONSE = 252,
+      //add:e
       OB_CS_GET_MIGRATE_DEST_LOC = 260,
       OB_CS_GET_MIGRATE_DEST_LOC_RESPONSE = 261,
       OB_CS_DUMP_TABLET_IMAGE = 262,
@@ -319,7 +323,10 @@ namespace oceanbase
       OB_UPDATE_ALL_PROCEDURE = 514, //slave rs to send all procedure to ms
       OB_UPDATE_ALL_PROCEDURE_RESPONSE = 515,
       //add :e
-
+     //add hxlong [Truncate Table]:20170318:b
+      OB_TRUNCATE_TABLE = 516,
+      OB_TRUNCATE_TABLE_RESPONSE = 517,
+     //add:e
 
       // add by guojinwei [log timestamp][multi_cluster] 20150820:b
       /// get log timestamp from ups to rs

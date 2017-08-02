@@ -25,6 +25,100 @@ namespace oceanbase
 { 
   namespace common 
   {
+  //add hxlong [Truncate Table]:20170318:b
+  DEFINE_SERIALIZE(ObBorderFlag)
+  {
+    int ret = OB_SUCCESS;
+    ret = serialization::encode_i8(buf, buf_len, pos, data_);
+    return ret;
+  }
+
+  DEFINE_DESERIALIZE(ObBorderFlag)
+  {
+
+    return serialization::decode_i8(buf, data_len, pos, &data_);
+  }
+
+  DEFINE_GET_SERIALIZE_SIZE(ObBorderFlag)
+  {
+    int64_t total_size = 0;
+    total_size += serialization::encoded_length_i8(data_);
+    return total_size;
+  }
+
+
+  DEFINE_GET_SERIALIZE_SIZE(ObVersion)
+  {
+    int64_t total_size = 0;
+    total_size += serialization::encoded_length_i64(version_);
+    return total_size;
+  }
+
+  DEFINE_SERIALIZE(ObVersion)
+  {
+    return serialization::encode_vi64(buf, buf_len, pos, version_);
+  }
+
+  DEFINE_DESERIALIZE(ObVersion)
+  {
+    return serialization::decode_vi64(buf, data_len, pos, &version_);
+  }
+
+  DEFINE_GET_SERIALIZE_SIZE(ObVersionRange)
+  {
+    int64_t total_size = 0;
+    total_size += border_flag_.get_serialize_size();
+    total_size += start_version_.get_serialize_size();
+    total_size += end_version_.get_serialize_size();
+    return total_size;
+  }
+
+  DEFINE_SERIALIZE(ObVersionRange)
+  {
+    int ret = OB_SUCCESS;
+
+    int64_t serialize_size = get_serialize_size();
+
+    if((NULL == buf) || (serialize_size + pos > buf_len))
+    {
+      ret = OB_ERROR;
+      TBSYS_LOG(ERROR, "buffer size is not enough, ret=[%d]", ret);
+    }
+    else if (OB_SUCCESS != (ret = border_flag_.serialize(buf, buf_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "serialize border_flag failed, ret=[%d]", ret);
+    }
+    else if (OB_SUCCESS != (ret = start_version_.serialize(buf, buf_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "serialize start_version failed, ret=[%d]", ret);
+    }
+    else if (OB_SUCCESS != (ret = end_version_.serialize(buf, buf_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "serialize end_version failed, ret=[%d]", ret);
+    }
+    return ret;
+  }
+
+  DEFINE_DESERIALIZE(ObVersionRange)
+  {
+    int ret = OB_SUCCESS;
+
+
+    if (OB_SUCCESS != (ret = border_flag_.deserialize(buf, data_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "deserialize border_flag failed");
+    }
+    else if (OB_SUCCESS != (ret = start_version_.deserialize(buf, data_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "deserialize start_version failed");
+    }
+    else if (OB_SUCCESS != (ret = end_version_.deserialize(buf, data_len, pos)))
+    {
+      TBSYS_LOG(ERROR, "deserialize end_version failed");
+    }
+    return ret;
+  }
+  //add:e
 
 #if 0
     // --------------------------------------------------------

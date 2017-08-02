@@ -95,7 +95,7 @@ namespace oceanbase
         virtual ObPhyOperatorType get_type() const { return PHY_TABLET_SCAN; }
 
         inline int get_tablet_range(ObNewRange& range);
-
+        inline int get_scan_range(ObNewRange& range); //add hxlong [Truncate Table]:20170318
         virtual int create_plan(const ObSchemaManagerV2 &schema_mgr);
 
         bool has_incremental_data() const;
@@ -129,9 +129,17 @@ namespace oceanbase
             ObTabletJoin::TableJoinInfo &table_join_info,
             int64_t start_data_version,
             int64_t end_data_version);
+        int need_incremental_data(
+            ObArray<uint64_t> &basic_columns,
+            ObTabletJoin::TableJoinInfo &table_join_info,
+            int64_t data_version, ObVersionRange &range); //add hxlong [Truncate Table]:20170318
         int build_sstable_scan_param(ObArray<uint64_t> &basic_columns,
             const ObSqlScanParam &sql_scan_param, sstable::ObSSTableScanParam &sstable_scan_param) const;
         int set_ups_scan_range(const ObNewRange &scan_range);
+        int check_incremental_data_range(int64_t table_id,
+                                         int64_t start_version,
+                                         int64_t end_version,
+                                         ObVersionRange &range); //add hxlong [Truncate Table]:20170318
 
       private:
         // data members
@@ -158,7 +166,14 @@ namespace oceanbase
       ret = op_sstable_scan_.get_tablet_range(range);
       return ret;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int ObTabletScan::get_scan_range(ObNewRange& range)
+    {
+      int ret = OB_SUCCESS;
+      range = *sql_scan_param_->get_range();
+      return ret;
+    }
+    //add:e
     void ObTabletScan::set_sql_scan_param(const ObSqlScanParam &sql_scan_param)
     {
       sql_scan_param_ = &sql_scan_param;

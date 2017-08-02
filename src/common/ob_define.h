@@ -48,6 +48,8 @@
 #include <stdlib.h>
 #include <openssl/md5.h>
 
+#include "ob_buffer_size_define.h"
+
 namespace oceanbase
 {
   namespace common
@@ -199,6 +201,8 @@ namespace oceanbase
     const int OB_DISCARD_PACKET = -150;
 
     const int OB_SP_EXIT = -151;//add by wdh 20160624
+    const int OB_OPERATION_NOT_ALLOWED = -152; //add dragon [Bugfix#12] 2017-3-8
+    const int OB_TABLE_UPDATE_LOCKED = -153; //add hxlong [Truncate Table]:20170403
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
@@ -254,9 +258,13 @@ namespace oceanbase
     const int OB_FORCE_TIME_OUT = -2010;
     const int OB_BEGIN_TRANS_LOCKED = -2011;
     //add chujiajia [log synchronization][multi_cluster] 20160603:b
-	const int OB_NOT_EQUAL = -2012;
+    const int OB_NOT_EQUAL = -2012;
     const int OB_NOTIFY_EQUAL = -2013;
-	//add:e
+    //add:e
+    //add by qx 20170225 :b
+    const int OB_RS_OFFLINE = -2014;    ///<slave cluster rs offline need kill ups to prohibit replay log
+    //add :e
+
     //error code for root server -3001 ---- -4000
     const int OB_ERROR_TIME_STAMP = -3001;
     const int OB_ERROR_INTRESECT = -3002;
@@ -397,7 +405,14 @@ namespace oceanbase
     const int OB_ERR_PROTOCOL_NOT_RECOGNIZE = -5068;
     const int OB_ERR_WRITE_AUTH_ERROR = -5069; //write auth packet to client failed 来自监控的连接会立马断开
     const int OB_ERR_PARSE_JOIN_INFO = -5070;
-
+    //add zhuyanchao[secondary index table name]
+    const int OB_ERR_INVALID_TABLE_NAME = -5071;
+    const int OB_ERR_INVALID_INDEX_NAME = -5072;
+    //add e
+    //add lbzhong [auto_increment] 20161130:b
+    const int OB_ERR_AUTO_COLUMN_DEFINITION = -5073;
+    const int OB_ERR_AUTO_VALUE_NOT_SERVE = -5074;
+    //add:e
     //add longfei [drop table with index timeout] 151202:b
     const int OB_INDEX_NOT_EXIST = -5075;
     //add e
@@ -416,6 +431,16 @@ namespace oceanbase
     const int OB_GET_RANGES = -5603;
     const int OB_GET_NOTHING = -5604;
     //add e
+    
+    //add huangjianwei [secondary index debug] 20170314:b
+    const int OB_ERROR_DROP_COLUMN_WITH_INDEX = -5605;
+    const int OB_ERROR_INDEX_ALREADY_FULL = -5606;
+    const int OB_ERROR_ALTER_INDEX_TABLE = -5607;
+    //add:e
+    
+    // add by lxb on 2017/02/15
+    const int OB_SQL_CAN_NOT_PULL_UP = -5608;
+
 
     const int OB_ERR_SQL_END = -5999;
 
@@ -484,6 +509,7 @@ namespace oceanbase
     const int64_t OB_MAX_DEBUG_MSG_LEN = 1024;
     const int64_t OB_MAX_COMPRESSOR_NAME_LENGTH = 128;
     const int64_t OB_MAX_TABLE_NAME_LENGTH = 256;
+    const int64_t OB_MAX_DATBASE_NAME_LENGTH = 16; //add hxlong [truncate table] 20170403
     const int64_t OB_MAX_FILE_NAME_LENGTH = 512;
     const int64_t OB_MAX_SECTION_NAME_LENGTH = 128;
     const int64_t OB_MAX_FLAG_NAME_LENGTH = 128;
@@ -515,8 +541,10 @@ namespace oceanbase
     const int64_t OB_MAX_CIPHER_LENGTH = MD5_DIGEST_LENGTH * 2;
 
     const int64_t OB_MAX_RESULT_MESSAGE_LENGTH = 1024;
-    const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
-
+    //delete by qx 20161106 :b
+    //defined in ob_buffer_size_define.h now
+    //const int64_t OB_MAX_LOG_BUFFER_SIZE = 1966080L;  // 1.875MB
+    //delete :e
     const int32_t OB_SAFE_COPY_COUNT = 3;
     const int32_t OB_DEC_AND_LOCK = 2626; /* used by remoe_plan in ObPsStore */
     // OceanBase Log Synchronization Type
@@ -535,6 +563,10 @@ namespace oceanbase
     const int64_t OB_SINGLE_CLUSTER = 1;
     const int64_t OB_THREE_CLUSTER = 3;
     // add:e
+    //add lbzhong [auto_increment] 20161130:b
+    const int64_t OB_INVALID_AUTO_INCREMENT_VALUE = -1;
+    const int64_t OB_DEFAULT_AUTO_INCREMENT_VALUE = 0;
+    //add:e
 
     const int64_t OB_MAX_UPS_LEASE_DURATION_US = INT64_MAX;
 
@@ -633,6 +665,7 @@ namespace oceanbase
     const char* const OB_TABLES_SHOW_TABLE_NAME = "__tables_show";
     const char* const OB_INDEX_SHOW_TABLE_NAME = "__index_show";
 
+    const char* const OB_TRUNCATE_OP_TABLE_NAME = "__all_truncate_op"; //add hxlong [Truncate Table]:20170318
     const char* const OB_VARIABLES_SHOW_TABLE_NAME = "__variables_show";
     const char* const OB_CREATE_TABLE_SHOW_TABLE_NAME = "__create_table_show";
     const char* const OB_TABLE_STATUS_SHOW_TABLE_NAME = "__table_status_show";
@@ -646,6 +679,9 @@ namespace oceanbase
     const char* const OB_INDEX_SERVICE_INFO_TABLE_NAME = "__index_service_info";
     const char* const OB_ALL_COLUMN_CHECKSUM_INFO_TABLE_NAME = "__all_column_checksum_info";
     //add e
+    //add lbzhong [auto_increment] 20161126:b
+    const char* const OB_ALL_AUTO_INCREMENT_TABLE_NAME = "__all_auto_increment";
+    //add:e
 
 
     //modified by wangdonghui 20151223
@@ -678,6 +714,10 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
     static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei [create index]
+    static const uint64_t OB_ALL_TRUNCATE_OP_TID = 15; //add hxlong [Truncate Table]:20170403:b
+    //add lbzhong [auto_increment] 20161126:b
+    static const uint64_t OB_ALL_AUTO_INCREMENT_TID = 16;
+    //add:e
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //
     ///////////////////////////////////////////////////////////
@@ -706,6 +746,11 @@ namespace oceanbase
 //#define IS_SHOW_TABLE(tid) ((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID)
 #define IS_SHOW_TABLE(tid) (((tid) >= OB_TABLES_SHOW_TID && (tid) <= OB_SERVER_STATUS_SHOW_TID) || (tid) == OB_INDEX_SHOW_TID)
     //mod e
+
+    //add dragon [Bugfix#12] 2017-3-8 b
+#define IS_COLUMN_CHECKSUM(tid) ((tid) == OB_ALL_COLUMN_CHECKSUM_INFO_TID)
+    //add e
+
     ///////////////////////////////////////////////////////////
     //                 USER TABLES                           //
     ///////////////////////////////////////////////////////////

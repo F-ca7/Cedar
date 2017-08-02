@@ -143,6 +143,20 @@ namespace oceanbase
          * @return paramer list number
          */
         int64_t get_param_size() const;
+        //add by qx 20170317 :b
+        /**
+         * @brief get_long_trans
+         * get long transcation flag
+         * @return bool value
+         */
+        bool get_long_trans();
+        /**
+         * @brief set_long_trans
+         * set long transcation flag
+         * @param long_trans flag
+         */
+        int set_long_trans(bool long_trans);
+        //add :e
 
       private:
         //disallow copy
@@ -167,6 +181,9 @@ namespace oceanbase
         uint64_t stmt_id_;  ///< procedure statement physical plan id
         //add by wdh 20160718
         bool no_group_;   ///< no group flag
+        //add by qx 20170317  :b
+        bool long_trans_;   ///< long transcation flag
+        //add :e
 		};
 	}
 }

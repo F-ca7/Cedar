@@ -106,7 +106,8 @@ namespace oceanbase
                                    ObUpdateServerConfig& config)
       : config_(config),
         config_mgr_(config_mgr),
-        rpc_buffer_(RPC_BUFFER_SIZE),
+        rpc_buffer_(OB_RPC_BUFFER_SIZE),
+        my_thread_buffer_(OB_MAX_THREAD_BUFFER_SIZE),
         read_task_queue_size_(DEFAULT_TASK_READ_QUEUE_SIZE),
         write_task_queue_size_(DEFAULT_TASK_WRITE_QUEUE_SIZE),
         lease_task_queue_size_(DEFAULT_TASK_LEASE_QUEUE_SIZE),
@@ -311,7 +312,12 @@ namespace oceanbase
       {
         int64_t timeout_delta = 50 * 1000;
         int64_t n_blocks = config_.log_cache_n_block;
-        int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size) - 1;
+        // modify by qx 20170306 :b
+        //fix bug
+        //  I don't understand why need -1 ? This means error for cfg2mb
+        //int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size) - 1;
+        int64_t block_size_shift =  __builtin_ffsl(config_.log_cache_block_size);
+        // modify :e
         int64_t log_file_max_size = config_.commit_log_size;
         int64_t n_replay_worker = config_.replay_worker_num;
         int64_t replay_log_buf_len = config_.replay_log_buf_size;
@@ -1702,6 +1708,7 @@ namespace oceanbase
       case OB_UPS_MINOR_LOAD_BYPASS:
       case OB_UPS_MAJOR_LOAD_BYPASS:
       case OB_UPS_CLEAR_ACTIVE_MEMTABLE:
+      case OB_TRUNCATE_TABLE: //add hxlong [Truncate Table] 20170403
       case OB_SWITCH_SCHEMA:
       case OB_UPS_FORCE_FETCH_SCHEMA:
       case OB_UPS_SWITCH_COMMIT_LOG:
@@ -1775,12 +1782,14 @@ namespace oceanbase
       case OB_SQL_SCAN_REQUEST:
       case OB_SET_CONFIG:
       case OB_GET_CONFIG:
+      case OB_CHECK_INCREMENTAL_RANGE: /*add hxlong [Truncate Table]:20170318*/
       case OB_GET_INIT_INDEX:   //add wenghaixing[secondary index.static_index]20151118
-        ps = read_thread_queue_.push(req, read_task_queue_size_, false,
-                                     (NORMAL_PRI == priority)
-                                     ? PriorityPacketQueueThread::NORMAL_PRIV
-                                     : PriorityPacketQueueThread::LOW_PRIV);
-        break;
+          ps = read_thread_queue_.push(req, read_task_queue_size_, false,
+                                       (NORMAL_PRI == priority)
+                                       ? PriorityPacketQueueThread::NORMAL_PRIV
+                                       : PriorityPacketQueueThread::LOW_PRIV);
+          break;
+
       case OB_SLAVE_QUIT:
       case OB_UPS_GET_SLAVE_INFO:
         if (ObUpsRoleMgr::MASTER != role_mgr_.get_role())
@@ -2068,6 +2077,11 @@ namespace oceanbase
               case OB_FETCH_STATS:
                 return_code = ups_fetch_stat_info(version, req, channel_id, thread_buff);
                 break;
+              //add hxlong [Truncate Table]:20170318:b
+              case OB_CHECK_INCREMENTAL_RANGE:
+                return_code = ups_check_incremental_data_range(version, *in_buf, req, channel_id, thread_buff);
+                break;
+              //add:e
               case OB_FETCH_SCHEMA:
                 return_code = ups_get_schema(version, *in_buf, req, channel_id, thread_buff);
                 break;
@@ -2916,6 +2930,7 @@ namespace oceanbase
       switch (packet_code)
       {
         case OB_FREEZE_MEM_TABLE:
+        case OB_TRUNCATE_TABLE: //add hxlong [Truncate Table] 20170127
         case OB_UPS_MINOR_FREEZE_MEMTABLE:
         case OB_UPS_ASYNC_MAJOR_FREEZE_MEMTABLE:
         case OB_UPS_ASYNC_AUTO_FREEZE_MEMTABLE:
@@ -7496,5 +7511,39 @@ namespace oceanbase
       return ret;
     }
     // add:e
+    //add hxlong [Truncate Table]:20170318:b
+    int ObUpdateServer::ups_check_incremental_data_range(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      int ret = OB_SUCCESS;
+      if (version != MY_VERSION)
+      {
+        ret = OB_ERROR_FUNC_VERSION;
+      }
+      int proc_ret = OB_SUCCESS;
+      int64_t table_id = 0;
+      ObVersionRange range;
+      ObVersionRange new_range;
+
+      if (OB_SUCCESS != (proc_ret = serialization::decode_vi64(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position(), (int64_t*)&table_id)))
+      {
+        TBSYS_LOG(WARN, "decode table_id fail ret=%d", proc_ret);
+      }
+      else if (OB_SUCCESS != (proc_ret = range.deserialize(in_buff.get_data(), in_buff.get_capacity(), in_buff.get_position())))
+      {
+        TBSYS_LOG(WARN, "decode range fail ret=%d", proc_ret);
+      }
+      else
+      {
+        proc_ret = table_mgr_.get_table_mgr()->check_table_range(range,new_range,table_id);
+      }
+      TBSYS_LOG(DEBUG, "check tablet range ret=%d table_id=%ld src=%s",
+                proc_ret, table_id, NULL == req ? NULL :
+                get_peer_ip(req));
+      ret = response_data_(proc_ret, new_range, OB_CHECK_INCREMENTAL_RANGE_RESPONSE, MY_VERSION,
+          req, channel_id, out_buff);
+      return ret;
+    }
+    //add:e
   }
 }

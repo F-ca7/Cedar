@@ -133,7 +133,7 @@ int ObProcedureManager::compile_procedure(const ObString &proc_name)
   return ret;
 }
 
-int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group)
+int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group, bool long_trans)
 {
   int ret = OB_SUCCESS;
   ObSQLResultSet proc_result_set;
@@ -170,6 +170,9 @@ int ObProcedureManager::compile_procedure_with_context(const ObString &proc_name
     {
       //set cache state
       proc_result_set.get_result_set().set_no_group(no_group);
+      //add by qx 20170317 :b
+      proc_result_set.get_result_set().set_long_trans(long_trans);
+      //add :e
       proc_result_set.get_result_set().set_stmt_hash(name_code_map_.get_hkey(proc_name));
       proc_result_set.get_result_set().set_cur_schema_version(mergeserver_service_->get_merge_server()->get_schema_mgr()->get_latest_version());//add by wdh 20160822
       TBSYS_LOG(DEBUG, "ob_transformer current schema version for [%.*s] is %ld", proc_name.length(), proc_name.ptr(), proc_result_set.get_result_set().get_cur_schema_version());
@@ -295,7 +298,7 @@ int ObProcedureManager::create_procedure_lazy(const ObString &proc_name, const O
   return ret;
 }
 
-int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group)
+int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlContext &context, uint64_t &stmt_id, bool no_group, bool long_trans)
 {
   int ret = OB_SUCCESS;
 
@@ -305,7 +308,7 @@ int ObProcedureManager::get_procedure_lazy(const ObString &proc_name, ObSqlConte
     ret = OB_ERR_SP_DOES_NOT_EXIST;
     TBSYS_LOG(WARN, "procedure %.*s does not exist", proc_name.length(), proc_name.ptr());
   }
-  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id, no_group)) )
+  else if( OB_SUCCESS != (ret = compile_procedure_with_context(proc_name, context, stmt_id, no_group, long_trans)) ) //modify by qx 20170317 add long transcation flag
   {
     TBSYS_LOG(WARN, "failed to compile proc[%.*s]", proc_name.length(), proc_name.ptr());
   }
@@ -329,7 +332,7 @@ int ObProcedureManager::del_cache_plan(const ObString &proc_name)
   return OB_SUCCESS;
 }
 
-bool ObProcedureManager::is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group) const
+bool ObProcedureManager::is_consisitent(const ObString &proc_name, const ObResultSet &cache_rs, bool no_group, bool long_trans) const
 {
   bool ret = true;
   ret = name_code_map_.exist(proc_name, cache_rs.get_stmt_hash());
@@ -338,6 +341,12 @@ bool ObProcedureManager::is_consisitent(const ObString &proc_name, const ObResul
   {
     ret = (no_group == cache_rs.get_no_group());
   }
+  //add by qx 20170317 :e
+  else if (ret)
+  {
+    ret = (long_trans == cache_rs.get_long_trans());
+  }
+  //add :e
   return ret;
 }
 

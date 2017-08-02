@@ -313,6 +313,61 @@ namespace oceanbase
         int64_t get(const char* str, bool &valid) const;
     };
 
+    //add by qx 20161027 :b
+    /**
+     * @brief The ObConfigInt2Item class
+     * this class designed for buffer_size item ,this item only restart server that can work
+     */
+    class ObConfigInt2Item
+      : public ObConfigIntegralItem
+    {
+      public:
+        ObConfigInt2Item(ObConfigContainer *container,
+                        const char* name, const char* def,
+                        const char* range, ObConfigItemType type, const char* info)
+        {
+          if (NULL != container)
+          {
+            container->set(name, this);
+          }
+          init(name, def, range, type, info);
+        }
+
+        ObConfigInt2Item(ObConfigContainer *container,
+                        const char* name, const char* def,
+                        const char* range, const char* info)
+        {
+          if (NULL != container)
+          {
+            container->set(name, this);
+          }
+          init(name, def, range, OB_CONFIG_STATIC, info);
+        }
+
+        ObConfigInt2Item(ObConfigContainer *container,
+                        const char* name, const char* def, const char* info)
+        {
+          if (NULL != container)
+          {
+            container->set(name, this);
+          }
+          init(name, def, "", OB_CONFIG_STATIC, info);
+        }
+
+        ObConfigInt2Item& operator = (int64_t value)
+        {
+          char buf[OB_MAX_CONFIG_VALUE_LEN];
+          snprintf(buf, sizeof (buf), "%ld", value);
+          set_value(buf);
+          return *this;
+        }
+
+      protected:
+        int64_t get(const char* str, bool &valid) const;
+    };
+    //add :e
+
+
     class ObConfigMomentItem
       : public ObConfigItem
     {

@@ -338,8 +338,10 @@ FORCE             { return FORCE;  }
 
 INDEX		  { return INDEX;  }
 STORING		  { return STORING;  }
-
- /* add maoxx [bloomfilter_join] 20160406 */
+  /* add hxlong [truncate table] 20170403 */
+TRUNCATE      { return TRUNCATE; }
+  /* add e */
+  /* add maoxx [bloomfilter_join] 20160406 */
 BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
 MERGE_JOIN  { return  MERGE_JOIN; }
  /* add e */
@@ -735,6 +737,10 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
     return MERGE_JOIN;
     /* add e */
 }
+<hint>LONG_TRANS  {
+    /* add by qx 20170317 */
+      return LONG_TRANS;
+    }
 <hint>WEAK  {
     return WEAK;
 }
@@ -776,7 +782,7 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
   return ret;
   // add :e
 }
-<hint>[0-9]+"."[0-9]*  {
+<hint>[0-9]*+"."[0-9\.]*  {  //mod longfei 2017-2-14
 //add wenghaixing [bugfix.index_datasource] 20160122
   return NAME;
   //add e

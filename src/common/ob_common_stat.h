@@ -335,6 +335,7 @@ namespace oceanbase
 
       SQL_CREATE_TABLE_COUNT,
       SQL_DROP_TABLE_COUNT,
+      SQL_TRUNCATE_TABLE_COUNT, /*add hxlong [Truncate Table]:20170318*/
 
       SQL_PS_ALLOCATOR_COUNT,
       SQL_INSERT_CACHE_HIT,

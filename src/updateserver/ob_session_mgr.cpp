@@ -281,6 +281,7 @@ namespace oceanbase
     int SessionMgr::init(const uint32_t max_ro_num,
                         const uint32_t max_rp_num,
                         const uint32_t max_rw_num,
+                        const uint32_t max_lrw_num, // add by qx 20170314 for long transcations
                         ISessionCtxFactory *factory)
     {
       int ret = OB_SUCCESS;
@@ -291,10 +292,11 @@ namespace oceanbase
       else if (0 >= max_ro_num
               || 0 >= max_rp_num
               || 0 >= max_rw_num
+              || 0 >= max_lrw_num // add by qx 20170314 for long transcations
               || NULL == (factory_ = factory))
       {
-        TBSYS_LOG(WARN, "invalid param max_ro_num=%u max_rp_num=%u max_rw_num=%u factory=%p",
-                  max_ro_num, max_rp_num, max_rw_num, factory);
+        TBSYS_LOG(WARN, "invalid param max_ro_num=%u max_rp_num=%u max_rw_num=%u max_lrw_num =%u factory=%p",
+                  max_ro_num, max_rp_num, max_rw_num, max_lrw_num, factory); // add by qx 20170314 for long transcations
         ret = OB_INVALID_ARGUMENT;
       }
       //else if (1 != start())
@@ -302,13 +304,13 @@ namespace oceanbase
       //  TBSYS_LOG(WARN, "start thread to flush_min_flying_trans_id fail");
       //  ret = OB_ERR_UNEXPECTED;
       //}
-      else if (OB_SUCCESS != (ret = ctx_map_.init(max_ro_num + max_rp_num + max_rw_num)))
+      else if (OB_SUCCESS != (ret = ctx_map_.init(max_ro_num + max_rp_num + max_rw_num + max_lrw_num)))  // add by qx 20170314 for long transcations
       {
-        TBSYS_LOG(WARN, "init ctx_map fail, ret=%d num=%u", ret, max_ro_num + max_rp_num + max_rw_num);
+        TBSYS_LOG(WARN, "init ctx_map fail, ret=%d num=%u", ret, max_ro_num + max_rp_num + max_rw_num + max_lrw_num); // add by qx 20170314
       }
       else
       {
-        const int64_t MAX_CTX_NUM[SESSION_TYPE_NUM] = {max_ro_num, max_rp_num, max_rw_num};
+        const int64_t MAX_CTX_NUM[SESSION_TYPE_NUM] = {max_ro_num, max_rp_num, max_rw_num, max_lrw_num}; // add by qx 20170314
         BaseSessionCtx *ctx = NULL;
         for (int i = 0; i < SESSION_TYPE_NUM; i++)
         {
@@ -628,7 +630,6 @@ namespace oceanbase
             OB_STAT_INC(UPDATESERVER, UPS_STAT_TRANS_RTIME, cur_time - ctx->get_last_proc_time());
             ctx->set_last_proc_time(cur_time);
           }
-
           ctx->on_free();
           FILL_TRACE_BUF(ctx->get_tlog_buffer(), "type=%d sd=%u ctx=%p trans_id=%ld trans_timeu=%ld",
                         ctx->get_type(), session_descriptor, ctx, ctx->get_trans_id(),

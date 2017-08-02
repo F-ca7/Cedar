@@ -113,6 +113,9 @@ namespace oceanbase
       /*add maoxx [bloomfilter_join] 20160408*/
       PHY_BLOOMFILTER_JOIN,
       /*add e*/
+      //add lbzhong [auto_increment] 20161218:b
+      PHY_AUTO_INCREMENT_FILTER,
+      //add:e
 
       PHY_INDEX_TRIGGER, //add maoxx
       PHY_DROP_INDEX, //add longfei [secondary index drop index]
@@ -151,10 +154,12 @@ namespace oceanbase
       PHY_PROCEDURE_WHILE,
       PHY_PROCEDURE_ELSE,
       PHY_PROCEDURE_SELECT_INTO,
+      PHY_TRUNCATE_TABLE, //add hxlong [Truncate Table]:20170403
       PHY_VARIABLE_SET_ARRAY,
       //add:e
       PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616	  
       PHY_END, /* end of phy operator type */
+
 
     };
 

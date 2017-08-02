@@ -13,9 +13,17 @@ namespace oceanbase
     {
       friend class ObPacketQueueThread;
       public:
-      static const int64_t THREAD_BUFFER_SIZE = sizeof(ObPacket) + OB_MAX_PACKET_LENGTH;
+        static const int64_t THREAD_BUFFER_SIZE = sizeof(ObPacket) + OB_MAX_PACKET_LENGTH;
       public:
       ObPacketQueue();
+      //add by qx 20161103 :b
+      /**
+       * @brief ObPacketQueue
+       * add a constructor for ups can handle more than 2MB log package
+       * @param thread_buffer_size
+       */
+      ObPacketQueue(const int64_t thread_buffer_size);
+      //add :e
       ~ObPacketQueue();
 
       int init();

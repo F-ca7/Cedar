@@ -63,6 +63,9 @@ namespace oceanbase
 
       // the following members are used by SQL module internally
       ObIAllocator *transformer_allocator_;
+      //add lbzhong [auto_increment] 20161215:b
+      bool need_load_auto_value_;
+      //add:e
 
       ObSqlContext() :
         cache_proxy_(NULL),
@@ -80,6 +83,9 @@ namespace oceanbase
         privilege_mgr_(NULL),
         stat_mgr_(NULL),
         transformer_allocator_(NULL)
+        //add lbzhong [auto_increment] 20161215:b
+        , need_load_auto_value_(false)
+        //add:e
       {
       }
     };

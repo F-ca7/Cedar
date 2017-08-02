@@ -94,8 +94,13 @@ int ObUpsExecutor::open()
     outer_result_set = my_result_set->get_session()->get_current_result_set();
     my_result_set->set_session(outer_result_set->get_session()); // be careful!
     session = my_phy_plan_->get_result_set()->get_session();
-
     inner_plan_->set_result_set(my_result_set);
+    //add lbzhong [auto_increment] 20161218:b
+    if (my_result_set->is_auto_increment())
+    {
+      inner_plan_->set_auto_increment(true);
+    }
+    //add:e
 //add wangjiahao [dev_update_more] 20160119 :b
     //set inner_plan timeout_timestamp in order to terminate the long running in subquery.
     inner_plan_->set_timeout_timestamp(this->my_phy_plan_->get_timeout_timestamp());
@@ -137,6 +142,19 @@ int ObUpsExecutor::open()
   {
     start_new_trans = (!session->get_autocommit() && !session->get_trans_id().is_valid());
     inner_plan_->set_start_trans(start_new_trans);
+    //add by qx 210170317 :b
+    //TBSYS_LOG(ERROR,"outer result set[%p] = %d  no group =%d my rs[%p] =%d no group = %d",
+    //          outer_result_set,outer_result_set->get_long_trans(),outer_result_set->get_no_group(), my_result_set,my_result_set->get_long_trans(), my_result_set->get_no_group());
+    inner_plan_->set_long_trans_exec(my_result_set->get_long_trans());
+    if (inner_plan_->is_long_trans_exec())
+    {
+      inner_plan_->get_trans_req().type_ = LONG_READ_WRITE_TRANS;
+    }
+    else
+    {
+      inner_plan_->get_trans_req().type_ = READ_WRITE_TRANS;
+    }
+    //add :e
     if (start_new_trans
         && (OB_SUCCESS != (ret = set_trans_params(session, inner_plan_->get_trans_req()))))
     {
@@ -194,8 +212,13 @@ int ObUpsExecutor::open()
       }
       if (OB_SUCCESS != ret)
       {
+        //add lbzhong [auto_increment] 20161130:b
+        if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret)
+        {
+        //add:e
         TBSYS_LOG(WARN, "ups execute plan failed, err=%d trans_id=%s",
                   ret, to_cstring(local_result_.get_trans_id()));
+        }//add lbzhong [auto_increment] 20161130:b:e
         if (OB_TRANS_ROLLBACKED == ret)
         {
           TBSYS_LOG(USER_ERROR, "transaction is rolled back");
@@ -206,6 +229,9 @@ int ObUpsExecutor::open()
       }
       else
       {
+        //add lbzhong [auto_increment] 20161216:b
+        my_phy_plan_->get_result_set()->set_auto_value(local_result_.get_auto_value());
+        //add:e
         TBSYS_LOG(DEBUG, "affected_rows=%ld warning_count=%ld",
                   local_result_.get_affected_rows(), local_result_.get_warning_count());
         outer_result_set->set_affected_rows(local_result_.get_affected_rows());

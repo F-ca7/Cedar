@@ -227,6 +227,10 @@ typedef enum ObItemType
   T_COLUMN_DROP,
   T_COLUMN_ALTER,
   T_COLUMN_RENAME,
+  //add hxlong [Truncate Table] 20170403:b
+  T_TRUNCATE_TABLE,
+  //add:e
+
 
   T_ALTER_SYSTEM,
   T_CHANGE_OBI,
@@ -283,6 +287,7 @@ typedef enum ObItemType
   T_READ_STATIC,
   T_HOTSPOT,
   T_READ_CONSISTENCY,
+  T_LONG_TRANS, //add by qx 21070317
   T_NO_GROUP,//add by wdh 20160716
   T_USE_INDEX,// add longfei
   T_UNKOWN_HINT,// add longfei

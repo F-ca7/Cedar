@@ -25,10 +25,16 @@
 #include "common/ob_string.h"
 #include "common/ob_string_buf.h"
 
+// add by lxb on 2017/02/15 for logical optimizer
+#include <map>
+
 namespace oceanbase
 {
   namespace sql
   {
+    // add by lxb on 2017/02/15 for logical optimizer
+    class ObSelectStmt;
+    
     class ObTransformer;
     class ObLogicalPlan;
     class ObPhysicalPlan;
@@ -69,6 +75,18 @@ namespace oceanbase
        * @param exprs expression stack
        */
       virtual void get_raw_var(ObIArray<const ObRawExpr*> &exprs) const  {UNUSED(exprs);} //add zt for find variables
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type) = 0;
+      
     private:
       ObItemType  type_;
       common::ObObjType result_type_;
@@ -99,6 +117,18 @@ namespace oceanbase
       {
         exprs.push_back(this);
       }
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       oceanbase::common::ObObj value_;
     };
@@ -172,6 +202,18 @@ namespace oceanbase
           //remains problem, how to answer this questions
           exprs.push_back(this);
         }
+        
+        // add by lxb on 2017/03/21 for logical optimizer
+        virtual int optimize_sql_expression(
+            ObSelectStmt *&main_stmt,
+            common::ObBitSet<> &bit_set,
+            std::map<uint64_t, uint64_t> table_id_hashmap,
+            std::map<uint64_t, uint64_t> column_id_hashmap,
+            uint64_t table_id,
+            uint64_t &real_table_id,
+            std::map<uint64_t, uint64_t> alias_table_hashmap,
+            int type);
+        
       private:
         oceanbase::common::ObString array_name_;  ///<  array name
         ObObj idx_value_;  ///< array index value
@@ -190,6 +232,17 @@ namespace oceanbase
             ObLogicalPlan *logical_plan = NULL,
             ObPhysicalPlan *physical_plan = NULL) const;
         void print(FILE* fp, int32_t level) const;
+        
+        // add by lxb on 2017/02/15 for logical optimizer
+        virtual int optimize_sql_expression(
+            ObSelectStmt *&main_stmt,
+            common::ObBitSet<> &bit_set,
+            std::map<uint64_t, uint64_t> table_id_hashmap,
+            std::map<uint64_t, uint64_t> column_id_hashmap,
+            uint64_t table_id,
+            uint64_t &real_table_id,
+            std::map<uint64_t, uint64_t> alias_table_hashmap,
+            int type);
     };
 
     class ObUnaryRefRawExpr : public ObRawExpr
@@ -213,6 +266,17 @@ namespace oceanbase
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
       int get_name(common::ObString& name) const;
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
 
     private:
       uint64_t id_;
@@ -241,6 +305,17 @@ namespace oceanbase
           ObLogicalPlan *logical_plan = NULL,
           ObPhysicalPlan *physical_plan = NULL) const;
       void print(FILE* fp, int32_t level) const;
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap, 
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
 
     private:
       uint64_t first_id_;
@@ -279,6 +354,18 @@ namespace oceanbase
         expr_->get_raw_var(exprs);
       }
       //add zt: 20151104
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       ObRawExpr *expr_;
     };
@@ -317,6 +404,17 @@ namespace oceanbase
         second_expr_->get_raw_var(exprs);
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap, 
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -364,6 +462,18 @@ namespace oceanbase
         third_expr_->get_raw_var(exprs);
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       ObRawExpr *first_expr_;
       ObRawExpr *second_expr_;
@@ -407,6 +517,18 @@ namespace oceanbase
         }
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       oceanbase::common::ObVector<ObRawExpr*> exprs_;
     };
@@ -470,6 +592,17 @@ namespace oceanbase
         default_expr_->get_raw_var(exprs);
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
 
     private:
       ObRawExpr *arg_expr_;
@@ -514,6 +647,17 @@ namespace oceanbase
         param_expr_->get_raw_var(exprs);
       }
       //add zt:e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
 
     private:
       // NULL means '*'
@@ -558,6 +702,18 @@ namespace oceanbase
         }
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      virtual int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          common::ObBitSet<> &bit_set,
+          std::map<uint64_t, uint64_t> table_id_hashmap,
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
+      
     private:
       common::ObString func_name_;
       common::ObVector<ObRawExpr*> exprs_;
@@ -611,6 +767,16 @@ namespace oceanbase
           expr_->get_raw_var(exprs);
       }
       //add zt: 20151104 e
+      
+      // add by lxb on 2017/02/15 for logical optimizer
+      int optimize_sql_expression(
+          ObSelectStmt *&main_stmt,
+          std::map<uint64_t, uint64_t> table_id_hashmap, 
+          std::map<uint64_t, uint64_t> column_id_hashmap,
+          uint64_t table_id,
+          uint64_t &real_table_id,
+          std::map<uint64_t, uint64_t> alias_table_hashmap,
+          int type);
 
     private:
       uint64_t  expr_id_;

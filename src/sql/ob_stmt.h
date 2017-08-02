@@ -297,6 +297,13 @@ namespace oceanbase
         OB_ASSERT(0 <= index && index < table_items_.size());
         return table_items_[index];
       }
+      
+      // add by lxb on 2017/02/12
+      common::ObVector<TableItem>& get_table_items()
+      {
+        return table_items_;
+      }
+      
       uint64_t get_condition_id(int32_t index) const 
       {
         OB_ASSERT(0 <= index && index < where_expr_ids_.size());
@@ -307,6 +314,12 @@ namespace oceanbase
         TableItem** table_item = NULL) const ;
       int32_t get_table_bit_index(uint64_t table_id) const ;
 
+      // add by lxb on 2017/2/8
+      common::ObVector<ColumnItem>& get_column_items()
+      {
+        return column_items_;
+      }
+      
       common::ObVector<uint64_t>& get_where_exprs() 
       {
         return where_expr_ids_;
@@ -355,6 +368,12 @@ namespace oceanbase
       }
 
       virtual void print(FILE* fp, int32_t level, int32_t index = 0);
+      
+      // add by lxb on 2017/03/21 for logical optimizer
+      common::ObRowDesc* get_table_hash()
+      {
+        return &tables_hash_;
+      }
 
     protected:
       common::ObStringBuf* name_pool_;

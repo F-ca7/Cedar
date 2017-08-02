@@ -155,6 +155,11 @@ namespace oceanbase
             const ObString& column_name, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
         int update(const uint64_t table_id, const ObRowkey& row_key,
             const uint64_t column_id, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
+        //add by qx 20170210 :b
+        //fix replace rowkey conflict
+        int update(const uint64_t table_id, const ObRowkey& row_key,
+            const uint64_t column_id, const ObObj& value, bool is_row_changed,const int return_flag = RETURN_NO_RESULT );
+        //add :e
         // Adds insert mutation to list
         int insert(const ObString& table_name, const ObRowkey& row_key,
             const ObString& column_name, const ObObj& value, const int return_flag = RETURN_NO_RESULT);
@@ -175,9 +180,17 @@ namespace oceanbase
         int del_row(const ObString& table_name, const ObRowkey& row_key);
         int del_row(const uint64_t table_id, const ObRowkey& row_key);
 
+        //add hxlong [Truncate Table]:2017403:b
+        int trun_tab(const uint64_t table_id, const common::ObString & table_name, const common::ObString & user_name, const common::ObString & comment);
+        int ups_trun_tab(const uint64_t table_id, const bool force_finish = false);
+        //add:e
         int add_row_barrier();
         int set_dml_type(const ObDmlType dml_type);
         int add_cell(const ObMutatorCellInfo& cell);
+        //add by qx 20170210 :b
+        // add function for fix bug replace rowkey conflict
+        int add_cell(const ObMutatorCellInfo& cell, bool is_row_changed);
+        //add :e
         const ObString & get_first_table_name(void) const;
         int64_t size(void) const;
       public:

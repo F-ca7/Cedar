@@ -231,7 +231,7 @@ int64_t ObUpsLogMgr::FileIdBeforeLastMajorFrozen::get()
   return (0 < file_id) ? (file_id - 1) : file_id;
 }
 
-ObUpsLogMgr::ObUpsLogMgr(): log_buffer_for_fetch_(LOG_BUFFER_SIZE), log_buffer_for_replay_(LOG_BUFFER_SIZE)
+ObUpsLogMgr::ObUpsLogMgr(): log_buffer_for_fetch_(static_cast<int32_t>(OB_MAX_LOG_BUFFER_SIZE)), log_buffer_for_replay_(static_cast<int32_t>(OB_MAX_LOG_BUFFER_SIZE))
 {
   table_mgr_ = NULL;
   role_mgr_ = NULL;
@@ -828,11 +828,11 @@ int ObUpsLogMgr::slave_receive_log(const char* buf, int64_t len, const int64_t w
   }
   else if (OB_SUCCESS != (err = append_to_log_buffer(&recent_log_cache_, start_id, end_id, buf, len)))
   {
-    TBSYS_LOG(ERROR, "append_to_log_buffer(log_id=[%ld,%ld))=>%d", start_id, end_id, err);
+    TBSYS_LOG(ERROR, "append_to_log_buffer(log_id=[%ld,%ld)) len=%ld  =>%d", start_id, end_id, len, err);
   }
   else
   {
-   // TBSYS_LOG(INFO,"TEST::ZHOUHUAN slave receive_log log_id=[%ld, %ld]",start_id, end_id);
+    //TBSYS_LOG(INFO,"TEST::ZHOUHUAN slave receive_log log_id=[%ld, %ld] len=%ld",start_id, end_id,len);
     int64_t next_flush_log_id = 0;
     int64_t next_commit_log_id = 0;
     set_master_log_id(end_id);
@@ -880,6 +880,14 @@ int ObUpsLogMgr::get_log_for_slave_fetch(ObFetchLogReq& req, ObFetchedLog& resul
   {
     my_buffer->reset();
   }
+  //add by qx 20170216 :b
+  // wait slave cluster buffer synchronization
+  if (req.max_data_len_ < OB_MAX_LOG_BUFFER_SIZE)
+  {
+    err = OB_DATA_NOT_SERVE;
+    TBSYS_LOG(WARN, "req.max_data_len_[%ld] < OB_MAX_LOG_BUFFER_SIZE[%ld] maybe cause error, so don't continue to do.",req.max_data_len_,OB_MAX_LOG_BUFFER_SIZE);
+  }
+  //add :e
   if (OB_SUCCESS != err)
   {}
   else if (OB_SUCCESS != (err = result.set_buf(my_buffer->current(), my_buffer->remain())))
@@ -1183,7 +1191,7 @@ int ObUpsLogMgr::write_log_hook(const bool is_master,
   int64_t end_id = end_cursor.log_id_;
   int64_t log_size = (end_cursor.file_id_ - 1) * get_file_size() + end_cursor.offset_;
   clog_stat_.add_disk_us(start_id, end_id, get_last_disk_elapse());
-  //TBSYS_LOG(INFO,"test::zhouhuan flush_log start_id=%ld, end_id=%ld",start_id, end_id);
+  //TBSYS_LOG(INFO,"test::zhouhuan flush_log start_id=%ld, end_id=%ld data_len=%ld",start_id, end_id,data_len);
   OB_STAT_SET(UPDATESERVER, UPS_STAT_COMMIT_LOG_SIZE, log_size);
   OB_STAT_SET(UPDATESERVER, UPS_STAT_COMMIT_LOG_ID, end_cursor.log_id_);
   if (is_master)
@@ -1347,7 +1355,7 @@ int ObUpsLogMgr::async_flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_
   }
   else
   {
-    //TBSYS_LOG(INFO, "test::zhouhuan group[%ld].log_id[%ld,%ld]", cur_group->group_id_, start_cursor.log_id_, end_cursor.log_id_);
+    //TBSYS_LOG(INFO, "test::zhouhuan post_log_to_slave group[%ld].log_id[%ld,%ld] len=%ld", cur_group->group_id_, start_cursor.log_id_, end_cursor.log_id_,len);
     int64_t store_start_time_us = tbsys::CTimeUtil::getTime();
     if (OB_SUCCESS != (send_err = slave_mgr_->post_log_to_slave(start_cursor, end_cursor, buf, len)))
     {
@@ -1401,20 +1409,21 @@ int ObUpsLogMgr::async_flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_
   //add:e
   if (OB_SUCCESS != ret)
   {}
+  else if (OB_SUCCESS != (ret = write_log_hook(true, start_cursor, end_cursor, buf, len)))
+  {
+    TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
+  }
   //modify by zhouhuan
   //else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
   else if (OB_SUCCESS != (ret = log_generator_.commit(cur_group, end_cursor, true)))
   {
     TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
   }
-  else if (OB_SUCCESS != (ret = write_log_hook(true, start_cursor, end_cursor, buf, len)))
-  {
-    TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
-  }
   else if (len > 0)
   {
     last_flush_log_time_ = tbsys::CTimeUtil::getTime();
   }
+
   //end_log_id = end_cursor.log_id_; delete by zhouhuan
   return ret;
 }
@@ -1521,15 +1530,15 @@ int ObUpsLogMgr::flush_log(LogGroup* cur_group, TraceLog::LogBuffer &tlog_buffer
   //add:e
   if (OB_SUCCESS != ret)
   {}
+  else if (OB_SUCCESS != (ret = write_log_hook(is_master, start_cursor, end_cursor, buf, len)))
+  {
+    TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
+  }
   //modify by zhouhuan
   //else if (OB_SUCCESS != (ret = log_generator_.commit(end_cursor)))
   else if (OB_SUCCESS != (ret = log_generator_.commit(cur_group, end_cursor, is_master)))
   {
     TBSYS_LOG(ERROR, "log_generator.commit(end_cursor=%s)", to_cstring(end_cursor));
-  }
-  else if (OB_SUCCESS != (ret = write_log_hook(is_master, start_cursor, end_cursor, buf, len)))
-  {
-    TBSYS_LOG(ERROR, "write_log_hook(log_id=[%ld,%ld))=>%d", start_cursor.log_id_, end_cursor.log_id_, ret);
   }
   else if (len > 0)
   {

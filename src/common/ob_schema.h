@@ -310,6 +310,10 @@ namespace oceanbase
 
         inline bool is_nullable() const { return is_nullable_; }
         inline void set_nullable(const bool null) { is_nullable_ = null; }
+        //add lbzhong [auto_increment] 20161124:b
+        inline bool is_auto_increment() const { return auto_increment_; }
+        inline void set_auto_increment(const bool auto_increment) { auto_increment_ = auto_increment; }
+        //add:e
         inline const ObObj & get_default_value()  const { return default_value_; }
         inline void set_default_value(const ObObj& value) { default_value_ = value; }
 
@@ -318,6 +322,9 @@ namespace oceanbase
       private:
         bool maintained_;
         bool is_nullable_;
+        //add lbzhong [auto_increment] 20161124:b
+        bool auto_increment_;
+        //add:e
 
         uint64_t table_id_;
         uint64_t column_group_id_;
@@ -761,6 +768,14 @@ namespace oceanbase
          * @return error code
          */
         int get_all_avaiable_index_list(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
+        /**
+         * @brief get_all_init_index_tid
+         * @param [out] index_id_list
+         * @return error code
+         */
+        int get_all_init_index_tid(ObArray<uint64_t> &index_id_list) const;
+        //add dragon [Bugfix#11] 2017-3-10 b
 
       public:
         bool parse_from_file(const char* file_name, tbsys::CConfig& config);

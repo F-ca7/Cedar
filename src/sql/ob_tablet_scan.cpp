@@ -250,7 +250,161 @@ int ObTabletScan::need_incremental_data(
   }
   return ret;
 }
+//add hxlong [Truncate Table]:20170318:b
+int ObTabletScan::need_incremental_data(
+    ObArray<uint64_t> &basic_columns,
+    ObTabletJoin::TableJoinInfo &table_join_info,
+    int64_t data_version, ObVersionRange & new_range)
 
+{
+  int ret = OB_SUCCESS;
+  ObUpsScan *op_ups_scan = NULL;
+  ObTabletScanFuse *op_tablet_scan_fuse = NULL;
+  ObTabletJoin *op_tablet_join = NULL;
+  ObTableRename *op_rename = NULL;
+  uint64_t table_id = sql_scan_param_->get_table_id();
+  uint64_t renamed_table_id = sql_scan_param_->get_renamed_table_id();
+
+  if(OB_SUCCESS == ret)
+  {
+    op_ups_scan = &op_ups_scan_;
+    op_ups_scan->set_version_range(new_range);
+  }
+
+  // init ups scan
+  if (OB_SUCCESS == ret)
+  {
+    if(OB_SUCCESS != (ret = op_ups_scan->set_ups_rpc_proxy(rpc_proxy_)))
+    {
+      TBSYS_LOG(WARN, "ups scan set ups rpc stub fail:ret[%d]", ret);
+    }
+    else if(OB_SUCCESS != (ret = op_ups_scan->set_ts_timeout_us(ts_timeout_us_)))
+    {
+      TBSYS_LOG(WARN, "set ups scan timeout fail:ret[%d]", ret);
+    }
+    else
+    {
+      op_ups_scan->set_is_read_consistency(sql_scan_param_->get_is_read_consistency());
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = set_ups_scan_range(*(sql_scan_param_->get_range()))))
+    {
+      TBSYS_LOG(WARN, "fail to set ups scan range, ret [%d]", ret);
+    }
+    for (int64_t i=0;OB_SUCCESS == ret && i<basic_columns.count();i++)
+    {
+      if(OB_SUCCESS != (ret = op_ups_scan->add_column(basic_columns.at(i))))
+      {
+        TBSYS_LOG(WARN, "op ups scan add column fail:ret[%d]", ret);
+      }
+    }
+    // del by maosy [Delete_Update_Function_isolation_RC] 20161218
+    //add duyr [Delete_Update_Function_isolation] [JHOBv0.1] 20160531:b
+//    if (OB_SUCCESS == ret)
+//    {
+//        op_ups_scan->set_data_mark_param(sql_scan_param_->get_data_mark_param());
+//    }
+    //add duyr 20160531:e
+  // del by maosy
+  }
+
+
+
+  if (OB_SUCCESS == ret)
+  {
+    op_tablet_scan_fuse = &op_tablet_scan_fuse_;
+
+    last_rowkey_op_ = op_tablet_scan_fuse;
+
+    if(ObVersion::compare(int64_t(new_range.start_version_),data_version) == 0)
+    {
+      TBSYS_LOG(DEBUG, "start_version_ [%ld], data_version[%ld]", int64_t(new_range.start_version_),data_version);
+      if (OB_SUCCESS != (ret = op_tablet_scan_fuse->set_sstable_scan(&op_sstable_scan_)))
+      {
+        TBSYS_LOG(WARN, "set sstable scan fail:ret[%d]", ret);
+      }
+    }
+    else
+    {
+      op_sstable_scan_.close();
+      op_tablet_scan_fuse->set_sstable_scan(NULL);
+      TBSYS_LOG(DEBUG, "version changed_, start_version_ [%ld], data_version[%ld]", int64_t(new_range.start_version_),data_version);
+    }
+  }
+
+  if (ret == OB_SUCCESS)
+  {
+    if (OB_SUCCESS != (ret = op_tablet_scan_fuse->set_incremental_scan(op_ups_scan)))
+    {
+      TBSYS_LOG(WARN, "set incremental scan fail:ret[%d]", ret);
+    }
+    else
+    {
+      plan_level_ = UPS_DATA;
+    }
+  }
+
+  if(OB_SUCCESS == ret)
+  {
+    if(table_join_info.join_column_.count() > 0)
+    {
+      op_tablet_join = &op_tablet_join_;
+      if (OB_SUCCESS == ret)
+      {
+        op_tablet_join->set_version_range(new_range);
+        op_tablet_join->set_table_join_info(table_join_info);
+        op_tablet_join->set_batch_count(join_batch_count_);
+        op_tablet_join->set_is_read_consistency(is_read_consistency_);
+        op_tablet_join->set_child(0, *op_tablet_scan_fuse);
+        op_tablet_join->set_ts_timeout_us(ts_timeout_us_);
+        if (OB_SUCCESS != (ret = op_tablet_join->set_rpc_proxy(rpc_proxy_) ))
+        {
+          TBSYS_LOG(WARN, "fail to set rpc proxy:ret[%d]", ret);
+        }
+        else
+        {
+          op_root_ = op_tablet_join;
+          plan_level_ = JOIN_DATA;
+        }
+      }
+    }
+    else
+    {
+      op_root_ = op_tablet_scan_fuse;
+    }
+  }
+
+  if(OB_SUCCESS == ret && renamed_table_id != table_id)
+  {
+    op_rename = &op_rename_;
+    if (OB_SUCCESS == ret)
+    {
+      if(OB_SUCCESS != (ret = op_rename->set_table(renamed_table_id, table_id)))
+      {
+        TBSYS_LOG(WARN, "op_rename set table fail:ret[%d]", ret);
+      }
+      else if(OB_SUCCESS != (ret = op_rename->set_child(0, *op_root_)))
+      {
+        TBSYS_LOG(WARN, "op_rename set child fail:ret[%d]", ret);
+      }
+      else
+      {
+        op_root_ = op_rename;
+      }
+    }
+  }
+  //add zhujun [transaction read uncommit]2016/5/23
+  if(ret == OB_SUCCESS)
+  {
+      op_ups_scan_.set_trans_id(sql_scan_param_->get_trans_id());
+  }
+  //add:e
+  return ret;
+}
+//add:e
 bool ObTabletScan::check_inner_stat() const
 {
   bool ret = false;
@@ -412,16 +566,28 @@ int ObTabletScan::create_plan(const ObSchemaManagerV2 &schema_mgr)
       }
     }
   }
+  ObVersionRange new_range; //add hxlong [Truncate Table]:20170318
 
   if (OB_SUCCESS == ret)
   {
     if (is_need_incremental_data)
     {
-      if (OB_SUCCESS != (ret = need_incremental_data(
+      //mod hxlong [Truncate Table]:20170318
+//      if (OB_SUCCESS != (ret = need_incremental_data(
+//                             basic_columns,
+//                             table_join_info,
+//                             data_version,
+//                             sql_scan_param_->get_data_version())))
+      if (OB_SUCCESS != (ret = check_incremental_data_range(static_cast<int64_t>(table_id),
+                                                            data_version, sql_scan_param_->get_data_version(), new_range)))
+      {
+        TBSYS_LOG(WARN, "fail to check incremental data :ret[%d]", ret);
+      }
+      else if (OB_SUCCESS != (ret = need_incremental_data(
                              basic_columns,
                              table_join_info,
-                             data_version,
-                             sql_scan_param_->get_data_version())))
+                             data_version+1, new_range)))
+      //mod:e
       {
         TBSYS_LOG(WARN, "fail to add ups operator:ret[%d]", ret);
       }
@@ -588,4 +754,34 @@ int ObTabletScan::set_ups_scan_range(const ObNewRange &scan_range)
   }
   return rc;
 }
+//add hxlong [Truncate Table]:20170318:b
+int ObTabletScan::check_incremental_data_range(int64_t table_id, int64_t start_data_version, int64_t end_data_version, ObVersionRange &range)
+{
+  int ret = OB_SUCCESS;
+  ObVersionRange version_range;
+
+  if(OB_SUCCESS == ret)
+  {
+    version_range.start_version_ = ObVersion(start_data_version + 1);
+    version_range.border_flag_.unset_min_value();
+    version_range.border_flag_.set_inclusive_start();
+
+    if (end_data_version == OB_NEWEST_DATA_VERSION)
+    {
+      version_range.border_flag_.set_max_value();
+    }
+    else
+    {
+      version_range.end_version_ = ObVersion(end_data_version);
+      version_range.border_flag_.unset_max_value();
+      version_range.border_flag_.set_inclusive_end();
+    }
+    if (OB_SUCCESS != (ret = rpc_proxy_->check_incremental_data_range(table_id, version_range, range)))
+    {
+      TBSYS_LOG(WARN, "failed to check incremental data range");
+    }
+  }
+  return ret;
+}
+//add:e
 

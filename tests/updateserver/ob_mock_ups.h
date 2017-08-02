@@ -87,7 +87,7 @@ namespace oceanbase
           tbsys::CConfig cfg_parser;
           UNUSED(cfg);
           QueryEngine::HASH_SIZE = 1000;
-          if (OB_SUCCESS != (err = session_mgr_.init(1, 1, 100, &session_factory_)))
+          if (OB_SUCCESS != (err = session_mgr_.init(1, 1, 100,100, &session_factory_))) // add a parameter by qx 20170314 for long transcation
           {
             TBSYS_LOG(ERROR, "session_mgr.init()=>%d", err);
           }

@@ -136,13 +136,20 @@ namespace oceanbase
       int64_t data_precision_;
       int64_t data_scale_;
       bool nullable_;
+      //add lbzhong [auto_increment] 20161123:b
+      bool auto_increment_;
+      //add:e
       int64_t length_in_rowkey_; //如果是rowkey列，则表示在二进制rowkey串中占用的字节数；
       int32_t order_in_rowkey_;
       ObCreateTime gm_create_;
       ObModifyTime gm_modify_;
       ColumnSchema():column_id_(OB_INVALID_ID), column_group_id_(OB_INVALID_ID), rowkey_id_(-1),
           join_table_id_(OB_INVALID_ID), join_column_id_(OB_INVALID_ID), data_type_(ObMinType),
-          data_precision_(0), data_scale_(0), nullable_(true), length_in_rowkey_(0), order_in_rowkey_(0)
+          data_precision_(0), data_scale_(0), nullable_(true),
+          //add lbzhong [auto_increment] 20161123:b
+          auto_increment_(false),
+          //add:e
+          length_in_rowkey_(0), order_in_rowkey_(0)
       {
         column_name_[0] = '\0';
       }
@@ -351,6 +358,7 @@ namespace oceanbase
         int to_string(char* buffer, const int64_t length) const;
 
         static bool is_system_table(const common::ObString &tname);
+        static bool is_secondary_index_table(const common::ObString &tname);
         NEED_SERIALIZE_AND_DESERIALIZE;
     };
 
@@ -361,6 +369,20 @@ namespace oceanbase
       {
         const char *p = tname.ptr();
         if ('_' == p[0])
+        {
+          ret = true;
+        }
+      }
+      return ret;
+    }
+
+    inline bool TableSchema::is_secondary_index_table(const ObString &tname)
+    {
+      bool ret = false;
+      if (tname.length() >= 2)
+      {
+        const char *p = tname.ptr();
+        if ('_' == p[0] && '_' == p[1] && '_' == p[2])
         {
           ret = true;
         }

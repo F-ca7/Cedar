@@ -206,6 +206,7 @@ namespace oceanbase
       column_checksum_row_desc_.reset();
       max_data_table_cid_ = OB_INVALID_ID;
       //add e
+      is_static_truncated_ = false; /*add hxlong [Truncate Table]:20170318*/
     }
 
     int ObTabletMergerV1::init()
@@ -369,6 +370,7 @@ namespace oceanbase
       column_checksum_row_desc_.reset();
       max_data_table_cid_ = OB_INVALID_ID;
       //add e
+      is_static_truncated_ = false; /*add hxlong [Truncate Table]:20170318*/
       return reset_local_proxy();
     }
 
@@ -426,7 +428,7 @@ namespace oceanbase
               *ms_wrapper_.get_ups_scan_cell_stream(),
               *ms_wrapper_.get_ups_get_cell_stream(),
               chunk_merge_.current_schema_,
-              mem_limit,0, unmerge_if_unchanged)))
+              mem_limit,0, unmerge_if_unchanged,is_static_truncated_))) /*add hxlong [Truncate Table]:20170318: param :is_static_truncate_*/
       {
         TBSYS_LOG(ERROR,"set request param for merge_join_agent failed [%d]",ret);
         merge_join_agent_.clear();
@@ -1112,13 +1114,41 @@ namespace oceanbase
       }
 
       ObVersionRange version_range;
+      ObVersionRange new_range; //add hxlong [truncate table] 20170411
       version_range.border_flag_.set_inclusive_end();
 
       version_range.start_version_ =  old_tablet_->get_data_version();
       version_range.end_version_   =  old_tablet_->get_data_version() + 1;
+      //add hxlong [Truncate Table]:20170318:b
+      ObMergerRpcProxy* rpc_proxy = THE_CHUNK_SERVER.get_rpc_proxy();
+      if (NULL != rpc_proxy)
+      {
+        int64_t retry_times  = THE_CHUNK_SERVER.get_config().retry_times;
+        RPC_RETRY_WAIT(true, retry_times, ret,
+          rpc_proxy->check_incremental_data_range(new_range_.table_id_, version_range, new_range));
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "get rpc proxy from chunkserver failed");
+        ret = OB_ERROR;
+      }
 
-      scan_param_.set_version_range(version_range);
+      if (OB_SUCCESS == ret)
+      {
+        if (ObVersion::compare(int64_t(new_range.start_version_),int64_t(version_range.start_version_))!=0)
+        {
+          is_static_truncated_ = true;
 
+        }
+        else
+        {
+          is_static_truncated_ = false;
+        }
+        //mod hxlong [Truncate Table]:20170318:b
+        //scan_param_.set_version_range(version_range);
+        scan_param_.set_version_range(new_range);
+        //mod:e
+      //add:e
       int64_t size = 0;
       const ObSSTableSchemaColumnDef *col = sstable_schema_.get_group_schema(
           new_table_schema_->get_table_id(), column_group_id, size);
@@ -1141,6 +1171,7 @@ namespace oceanbase
           }
         }
       }
+      }//add hxlong [truncate table] 20170411
       return ret;
     }
 

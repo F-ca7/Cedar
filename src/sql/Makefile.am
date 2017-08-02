@@ -65,6 +65,7 @@ sql_parser_sources=                                    \
   ob_create_index_stmt.h      ob_create_index_stmt.cpp \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
+  ob_truncate_table_stmt.h    ob_truncate_table_stmt.cpp     \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \
   ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
@@ -157,6 +158,7 @@ operators_sources=                                                       \
   ob_deallocate.h                    ob_deallocate.cpp                   \
   ob_delete.h                        ob_delete.cpp                       \
   ob_double_children_phy_operator.h  ob_double_children_phy_operator.cpp \
+  ob_truncate_table.h                ob_truncate_table.cpp               \
   ob_drop_table.h                    ob_drop_table.cpp                   \
   ob_drop_index.h	             ob_drop_index.cpp			 \
   ob_execute.h                       ob_execute.cpp                      \
@@ -195,6 +197,8 @@ operators_sources=                                                       \
   ob_sort_helper.h                                                       \
   ob_cursor_helper.h                                                     \
   ob_sql.h                           ob_sql.cpp                          \
+  ob_optimizer.h                     ob_optimizer.cpp                    \
+  ob_optimizer_logical.h             ob_optimizer_logical.cpp            \
   ob_sql_context.h                                                       \
   ob_sql_expression.h                ob_sql_expression.cpp               \
   ob_sql_read_param.h                ob_sql_read_param.cpp               \
@@ -247,6 +251,7 @@ operators_sources=                                                       \
   ob_multiple_scan_merge.h           ob_multiple_scan_merge.cpp \
   ob_multiple_get_merge.h            ob_multiple_get_merge.cpp \
   ob_empty_row_filter.h              ob_empty_row_filter.cpp \
+  ob_auto_increment_filter.h         ob_auto_increment_filter.cpp \
   ob_sql_read_strategy.h             ob_sql_read_strategy.cpp \
   ob_tablet_join_cache.h             ob_tablet_join_cache.cpp \
   ob_direct_trigger_event_util.h     ob_direct_trigger_event_util.cpp \

@@ -107,7 +107,8 @@ namespace oceanbase
         TBSYS_LOG(ERROR, "get_from_log_buffer(start_id=%ld)=>%d", req.start_id_, err);
       }
       else if (OB_SUCCESS == err)
-      {} // read from buf
+      {
+      } // read from buf
       else if (OB_SUCCESS != (err = log_reader->get_log(req.start_id_, location.location_, end_location.location_, buf, len, read_count))
                && OB_DATA_NOT_SERVE != err)
       {

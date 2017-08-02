@@ -47,6 +47,9 @@ namespace oceanbase
       new_gen_qid_ = 1;
       new_gen_eid_ = 1;
       new_gen_wid_ = 1;
+      
+      // add by lxb on 2017/02/16 for logical optimizer
+      new_gen_aid_ = 1;
     }
 
     ObLogicalPlan::~ObLogicalPlan()
@@ -124,6 +127,40 @@ namespace oceanbase
       }
       OB_ASSERT(NULL != expr);
       return expr;
+    }
+    
+    /*
+     * delete expr by id
+     * add by lxb on 2016/12/25
+     */ 
+    void ObLogicalPlan::delete_expr_by_id(uint64_t expr_id)
+    {
+      int32_t num = exprs_.size();
+      for (int32_t i = 0; i < num; i++)
+      {
+        if (exprs_[i]->get_expr_id() == expr_id)
+        {
+          exprs_.remove(i);
+          break;
+        }
+      }
+    }
+    
+    /*
+     * delete stmt by query id
+     * add by lxb on 2016/12/25
+     */
+    void ObLogicalPlan::delete_stmt_by_query_id(uint64_t query_id)
+    {
+      int32_t num = stmts_.size();
+      for (int32_t i = 0; i < num; i++)
+      {
+        if (stmts_[i]->get_query_id() == query_id)
+        {
+          stmts_.remove(i);
+          break;
+        }
+      }
     }
 
     int ObLogicalPlan::fill_result_set(ObResultSet& result_set, ObSQLSessionInfo* session_info, common::ObIAllocator &alloc)

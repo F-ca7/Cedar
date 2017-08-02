@@ -1238,8 +1238,18 @@ namespace oceanbase
             }
             else
             {
-              ret = send_response(packet, &result, TEXT, context.session_info_);
+              ret = send_response(packet, &result, TEXT, context.session_info_
+                                  //add lbzhong [auto_increment] 20161130:b
+                                  , false
+                                  //add:e
+                                  );
             }
+            //add lbzhong [auto_increment] 20161130:b
+            if (OB_ERR_AUTO_VALUE_NOT_SERVE == ret)
+            {
+              ret = load_auto_value_and_retry(q, result, context, packet, err);
+            }
+            //add:e
             // release the schema after execution
             if (NULL != context.schema_manager_)
             {
@@ -1892,7 +1902,11 @@ namespace oceanbase
     }
 
     int ObMySQLServer::send_response(ObMySQLCommandPacket* packet, ObMySQLResultSet* result,
-                                     MYSQL_PROTOCOL_TYPE type, sql::ObSQLSessionInfo *session)
+                                     MYSQL_PROTOCOL_TYPE type, sql::ObSQLSessionInfo *session
+                                     //add lbzhong [auto_increment] 20161130:b
+                                     , const bool need_response /* = true */
+                                     //add:e
+                                     )
     {
       int ret = OB_SUCCESS;
       int err = OB_SUCCESS;
@@ -1913,7 +1927,12 @@ namespace oceanbase
           ObString err_msg = ob_get_err_msg();
           if (OB_ERR_WHEN_UNSATISFIED != ret)
           {
+            //add lbzhong [auto_increment] 20161130:b
+            if (OB_ERR_AUTO_VALUE_NOT_SERVE != ret || need_response)
+            {
+            //add:e
             TBSYS_LOG(WARN, "failed to open result set, err=%d, msg=%.*s", ret, err_msg.length(), err_msg.ptr());
+            }//add lbzhong [auto_increment] 20161130:b:e
             if (OB_ERR_QUERY_INTERRUPTED == ret
               || OB_ERR_SESSION_INTERRUPTED == ret)
             {
@@ -1938,7 +1957,11 @@ namespace oceanbase
            */
           }
 
-          if (OB_SUCCESS != (err = send_error_packet(packet, result)))
+          if (
+              //add lbzhong [auto_increment] 20161130:b
+              (OB_ERR_AUTO_VALUE_NOT_SERVE != ret || need_response) &&
+              //add:e
+              OB_SUCCESS != (err = send_error_packet(packet, result)))
           {
             TBSYS_LOG(WARN, "fail to send error packet. err=%d", err);
           }
@@ -3484,5 +3507,45 @@ namespace oceanbase
       }
       return ret;
     }
+
+    //add lbzhong [auto_increment] 20161130:b
+    int ObMySQLServer::load_auto_value_and_retry(const common::ObString& q, ObMySQLResultSet &result, ObSqlContext &context,
+                                  ObMySQLCommandPacket*& packet, int &err)
+    {
+      int ret = OB_ERR_AUTO_VALUE_NOT_SERVE;
+      bool need_response = false;
+      int count = 0;
+      int max_retry_times = 10;
+      context.need_load_auto_value_ = true;
+      while (OB_ERR_AUTO_VALUE_NOT_SERVE == ret && !need_response)
+      {
+        usleep(500);
+        count++;
+        if (count > max_retry_times)
+        {
+          need_response = true;
+        }
+
+        result.reset();
+        ret = ObSql::direct_execute(q, result, context);
+        // process result
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "direct_execute failed, err=%d stmt=\"%.*s\" ret is %d",
+                    ret, q.length(), q.ptr(), ret);
+          if (OB_SUCCESS != (err = send_error_packet(packet, &result)))
+          {
+            TBSYS_LOG(WARN, "fail to send error packet. err=%d", err);
+            break;
+          }
+        }
+        else
+        {
+          ret = send_response(packet, &result, TEXT, context.session_info_, need_response);
+        }
+      }
+      return ret;
+    }
+    //add:e
   }
 }

@@ -24,6 +24,13 @@ using namespace oceanbase::updateserver;
 ObUpdateServerConfig::ObUpdateServerConfig()
   : total_memory_limit_bk_(0)
 {
+  //add by qx 20161105 :b
+  //load ups config and set buffer size before obupdateserver object created
+  if (load_config() != OB_SUCCESS)
+  {
+    TBSYS_LOG(ERROR, "Load updateserver buffer size config fail!");
+  }
+  //add :e
 }
 
 ObUpdateServerConfig::~ObUpdateServerConfig()
@@ -232,5 +239,89 @@ int64_t ObUpdateServerConfig::get_total_memory_limit(const int64_t phy_mem_size_
     - MemTank::REPLAY_MEMTABLE_RESERVE_SIZE_GB;
   TBSYS_LOG(INFO, "phy_mem_size=%ld total_memory_limit=%ld", phy_mem_size_gb, ret);
   fprintf(stdout, "phy_mem_size=%ld total_memory_limit=%ld\n", phy_mem_size_gb, ret);
+  return ret;
+}
+
+int ObUpdateServerConfig::load_config()
+{
+  //bad design
+  const char * path="etc/updateserver.config.bin";
+  struct stat buf;
+  FILE *fp = NULL;
+  int ret = OB_SUCCESS;
+  if (0 != stat(path, &buf))
+  {
+    TBSYS_LOG(WARN, "No config file,if path[%s] is right and frist start ups ,it is not an error.", path);
+  }
+  else
+  {
+    TBSYS_LOG(INFO,"Read config file: [%s]",path);
+    if ((fp = fopen(path, "rb")) == NULL)
+    {
+      TBSYS_LOG(ERROR, "Can't open file: [%s]", path);
+    }
+    else
+    {
+      char buf[OB_MAX_PACKET_LENGTH] = {0};
+      int64_t len = fread(buf, 1, OB_MAX_PACKET_LENGTH, fp);
+      int64_t pos = 0;
+
+      if (ferror(fp) != 0)        /* read with error */
+      {
+        TBSYS_LOG(ERROR, "Read config file error! file: [%s]", path);
+        ret = OB_IO_ERROR;
+      }
+      else if (feof(fp) == 0)     /* not end of file */
+      {
+        TBSYS_LOG(ERROR, "Config file is too long! file: [%s]", path);
+        ret = OB_BUF_NOT_ENOUGH;
+      }
+      else if (OB_SUCCESS !=(ret =deserialize2(buf, len, pos)))
+      {
+        TBSYS_LOG(ERROR, "Deserialize updateserver config failed! file: [%s]", path);
+      }
+      else if (pos != len)
+      {
+        TBSYS_LOG(ERROR, "Deserialize updateserver config failed! file: [%s]", path);
+        ret = OB_DESERIALIZE_ERROR;
+      }
+      if (0 != fclose(fp))
+      {
+        TBSYS_LOG(ERROR, "Close config file failed!");
+        ret = OB_IO_ERROR;
+      }
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(ERROR, "Can't load updateserver config !");
+      }
+      else
+      {
+        //add by qx :20170208 add threshold
+        //TBSYS_LOG(INFO, "TO_OJ buffer size load begin !");
+        // 2MB - 2GB
+        if (max_log_buffer_size >= 1966080 && max_log_buffer_size <= (0x80000000))
+        {
+          if (max_log_buffer_size < (log_buffer_max_size - (1<<19)))
+          {
+            OB_MAX_LOG_BUFFER_SIZE = max_log_buffer_size;
+          }
+          else if ((log_buffer_max_size - (1<<19)) > 1966080 )
+          {
+             OB_MAX_LOG_BUFFER_SIZE =  log_buffer_max_size - (1<<19);
+          }
+        }
+        if(log_buffer_max_size >= (1<<21) && log_buffer_max_size <= (0x80000000))
+          OB_LOG_BUFFER_MAX_SIZE = log_buffer_max_size;
+        if(block_bits >= 22 && block_bits <= 31)
+          OB_DEFAULT_BLOCK_BITS = block_bits;
+        // remind now we use same configure
+        //OB_MAX_THREAD_BUFFER_SIZE = static_cast<int32_t>(max_thread_buffer_size);
+        //OB_RPC_BUFFER_SIZE = static_cast<int32_t>(rpc_buffer_size);
+        OB_MAX_THREAD_BUFFER_SIZE = static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE);
+        OB_RPC_BUFFER_SIZE = static_cast<int32_t>(OB_LOG_BUFFER_MAX_SIZE);
+        //add e:
+      }
+    }
+  }
   return ret;
 }

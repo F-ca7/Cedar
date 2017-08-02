@@ -217,10 +217,17 @@ namespace oceanbase
         // drop table
         int drop_table(const int64_t timeout, const common::ObServer & root_server,
             bool if_exists, const common::ObStrings & tables) const;
+        // truncate table
+        int truncate_table(const int64_t timeout, const common::ObServer & root_server,
+                           bool if_exists, const common::ObStrings & tables, const common::ObString & user,
+                           const common::ObString & comment) const; //add hxlong [Truncate Table]:20170403
         // alter table
         int alter_table(const int64_t timeout, const common::ObServer & root_server,
             const common::AlterTableSchema & alter_schema) const;
-
+        int check_incremental_data_range(
+            const int64_t timeout, const ObServer & root_server,
+            const int64_t table_id, ObVersionRange &range,
+            ObVersionRange &new_range) const; //add hxlong [Truncate Table]:20170318
         //add by wangdonghui 20160121 :b
         /**
          * @brief create_procedure

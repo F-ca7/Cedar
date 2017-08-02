@@ -34,6 +34,7 @@ namespace oceanbase
 
     MemTableRowIterator::MemTableRowIterator() : memtable_(NULL),
                                                  memtable_iter_(),
+                                                 memtable_table_iter_(), /*add hxlong [Truncate Table]:20170318*/
                                                  get_iter_(),
                                                  rc_iter_()
     {
@@ -71,6 +72,13 @@ namespace oceanbase
         TBSYS_LOG(WARN, "scan all start fail ret=%d memtable=%p", ret, memtable);
         revert_schema_handle_();
       }
+      //add hxlong [Truncate Table]:20170318:b
+      else if (OB_SUCCESS != (ret = memtable->scan_all_table(memtable_table_iter_)))
+      {
+        TBSYS_LOG(WARN, "scan all table start fail ret=%d memtable=%p", ret, memtable);
+        revert_schema_handle_();
+      }
+      //add:e
       else
       {
         block_size_ = block_size;
@@ -85,6 +93,7 @@ namespace oceanbase
       if (NULL != memtable_)
       {
         memtable_iter_.reset();
+        memtable_table_iter_.reset(); /*add hxlong [Truncate Table]:20170318*/
         revert_schema_handle_();
         memtable_ = NULL;
       }
@@ -134,6 +143,10 @@ namespace oceanbase
         TBSYS_LOG(INFO, "reset row_iter this=%p", this);
         memtable_iter_.reset();
         ret = memtable_->scan_all(memtable_iter_);
+        //add hxlong [Truncate Table]:20170318:b
+        memtable_table_iter_.reset();
+        ret = memtable_->scan_all_table(memtable_table_iter_);
+        //add:e
       }
       return ret;
     }
@@ -152,7 +165,22 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int MemTableRowIterator::next_table()
+    {
+      int ret = OB_SUCCESS;
+      if (NULL == memtable_)
+      {
+        TBSYS_LOG(WARN, "have not inited this=%p", this);
+        ret = OB_NOT_INIT;
+      }
+      else
+      {
+        ret = memtable_table_iter_.next();
+      }
+      return ret;
+    }
+    //add:e
     int MemTableRowIterator::get_row(sstable::ObSSTableRow &sstable_row)
     {
       int ret = OB_SUCCESS;
@@ -220,16 +248,31 @@ namespace oceanbase
     bool MemTableRowIterator::get_sstable_schema(sstable::ObSSTableSchema &sstable_schema)
     {
       int bret = false;
+      int ret = OB_SUCCESS; /*add hxlong [Truncate Table]:20170318*/
       if (NULL != memtable_)
       {
         ObUpdateServerMain *ups_main = ObUpdateServerMain::get_instance();
         if (NULL != ups_main)
         {
           UpsSchemaMgr &schema_mgr = ups_main->get_update_server().get_table_mgr().get_schema_mgr();
-          if (OB_SUCCESS == schema_mgr.build_sstable_schema(schema_handle_, sstable_schema))
+          //mod hxlong [Truncate Table]:20170318:b
+//          if (OB_SUCCESS == schema_mgr.build_sstable_schema(schema_handle_, sstable_schema))
+//          {
+//            bret = true;
+//          }
+          if (OB_SUCCESS != (ret = schema_mgr.build_sstable_schema(schema_handle_, sstable_schema)))
+          {
+            TBSYS_LOG(WARN, "build sstable schema failed, err[%d]", ret);
+          }
+          else if (OB_SUCCESS != (ret = fill_truncate_info_(sstable_schema)))
+          {
+            TBSYS_LOG(WARN, "fill truncate info into sstable schema failed, err[%d]", ret);
+          }
+          else
           {
             bret = true;
           }
+          //mod:e
         }
       }
       return bret;
@@ -261,6 +304,51 @@ namespace oceanbase
       }
       return bret;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int MemTableRowIterator::fill_truncate_info_(sstable::ObSSTableSchema &sstable_schema)
+    {
+      int ret = OB_SUCCESS;
+      sstable::ObSSTableSchemaTableDef tab_def;
+      TEKey key;
+      TEValue *pvalue = NULL;
+      while (OB_SUCCESS == ret && OB_SUCCESS == (ret = next_table()))
+      {
+        key = memtable_table_iter_.get_key();
+        pvalue = memtable_table_iter_.get_value();
+        get_iter_.set_(key, pvalue, NULL, false, NULL);
+        if (OB_SUCCESS == (ret = get_iter_.next_cell()))
+        {
+          ObCellInfo *ci = NULL;
+          if (OB_SUCCESS != (ret = get_iter_.get_cell(&ci))
+              || NULL == ci)
+          {
+            TBSYS_LOG(WARN, "get cell from get_iter/rc_iter fail ret=%d", ret);
+            ret = (OB_SUCCESS == ret) ? OB_ERROR : ret;
+            break;
+          }
+          tab_def.table_id_ = static_cast<uint32_t>(key.table_id);
+          if (OB_SUCCESS != (ret = sstable_schema.add_table_def(tab_def)))
+          {
+            TBSYS_LOG(WARN, "add table def failed, table_id=%d", tab_def.table_id_);
+          }
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "get cell from get_iter/rc_iter ret=%d", ret);
+        }
+      }
+      if (ret != OB_SUCCESS && ret != OB_ITER_END)
+      {
+        TBSYS_LOG(ERROR, "fill truncate info failed, ret=[%d]", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "fill truncate info succ");
+        ret = OB_SUCCESS;
+      }
+      return ret;
+    }
+    //add:e
   }
 }
 

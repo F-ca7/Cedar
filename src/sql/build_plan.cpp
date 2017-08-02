@@ -37,6 +37,7 @@
 #include "ob_explain_stmt.h"
 #include "ob_create_table_stmt.h"
 #include "ob_drop_table_stmt.h"
+#include "ob_truncate_table_stmt.h" //add hxlong [Truncate Table]:20170403
 #include "ob_show_stmt.h"
 #include "ob_create_user_stmt.h"
 #include "ob_prepare_stmt.h"
@@ -1145,7 +1146,86 @@ int resolve_drop_table_stmt(
 	}
 	return ret;
 }
+//add hxlong [Truncate Table]:20170403:b
+int resolve_truncate_table_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  OB_ASSERT(node && node->type_ == T_TRUNCATE_TABLE && node->num_child_ == 3);
+  ObLogicalPlan* logical_plan = NULL;
+  ObTruncateTableStmt* trun_tab_stmt = NULL;
+  query_id = OB_INVALID_ID;
 
+
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+  if (result_plan->plan_tree_ == NULL)
+  {
+    logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
+    if (logical_plan == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObLogicalPlan");
+    }
+    else
+    {
+      logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
+      result_plan->plan_tree_ = logical_plan;
+    }
+  }
+  else
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+  }
+
+  if (ret == OB_SUCCESS)
+  {
+    trun_tab_stmt = (ObTruncateTableStmt*)parse_malloc(sizeof(ObTruncateTableStmt), result_plan->name_pool_);
+    if (trun_tab_stmt == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObTruncateTableStmt");
+    }
+    else
+    {
+      trun_tab_stmt = new(trun_tab_stmt) ObTruncateTableStmt(name_pool);
+      query_id = logical_plan->generate_query_id();
+      trun_tab_stmt->set_query_id(query_id);
+      if ((ret = logical_plan->add_query(trun_tab_stmt)) != OB_SUCCESS)
+      {
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not add ObDropTableStmt to logical plan");
+      }
+    }
+  }
+  if (ret == OB_SUCCESS && node->children_[0])
+  {
+    trun_tab_stmt->set_if_exists(true);
+  }
+  if (ret == OB_SUCCESS)
+  {
+      OB_ASSERT(node->children_[1] && node->children_[1]->num_child_ > 0);
+      ParseNode *table_node = NULL;
+      ObString table_name;
+      for (int32_t i = 0; i < node->children_[1]->num_child_; i ++)
+      {
+          table_node = node->children_[1]->children_[i];
+          table_name.assign_ptr(
+                  (char*)(table_node->str_value_),
+                  static_cast<int32_t>(strlen(table_node->str_value_))
+          );
+          if (OB_SUCCESS != (ret = trun_tab_stmt->add_table_name_id(*result_plan, table_name)))
+          {
+              break;
+          }
+      }
+  }
+  return ret;
+  }
+//add:e
 int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t& query_id)
 {
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -1248,10 +1328,17 @@ int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t
     char str[OB_MAX_TABLE_NAME_LENGTH];
     memset(str,0,OB_MAX_TABLE_NAME_LENGTH);
     int64_t str_len = 0;
+	int max_index_name = OB_MAX_COLUMN_NAME_LENGTH-4;
     index_table_name_.assign_ptr(
           (char*)(node->children_[2]->str_value_),
         static_cast<int32_t>(strlen(node->children_[2]->str_value_))
         );
+		 //add zhuyanchao[secondary index bug]
+    if(index_table_name_.length()>=max_index_name)
+    {
+        ret = OB_ERR_INVALID_INDEX_NAME;
+        return ret;
+    }
     if((ret = create_index_stmt->generate_inner_index_table_name(index_table_name_, original_table_name_, str, str_len)) != OB_SUCCESS)
     {
       snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
@@ -1527,8 +1614,11 @@ int resolve_drop_index_stmt(ResultPlan *result_plan, ParseNode *node, uint64_t &
         }
         if (OB_SUCCESS == ret && OB_SUCCESS != (ret = drp_idx_stmt->add_table_name_id(*result_plan, table_name)))
         {
-          snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
-                   "failed to do add_table_name_id");
+          //mod huangjianwei [secondary index debug] 20140314:b
+          //snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                   //"failed to do add_table_name_id");
+          break;
+          //mod:e
         }
       }
     }
@@ -4886,7 +4976,7 @@ int resolve_procedure_execute_stmt(
     uint64_t& query_id)
 {
   OB_ASSERT(result_plan);
-  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 3);//modify by wdh 20160716
+  OB_ASSERT(node && node->type_ == T_PROCEDURE_EXEC && node->num_child_ == 3);
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
   ObProcedureExecuteStmt *stmt = NULL;
   if (OB_SUCCESS != (ret = prepare_resolve_stmt(result_plan, query_id, stmt)))
@@ -4935,18 +5025,49 @@ int resolve_procedure_execute_stmt(
             }
           }
           //add by wdh 20160716 :b
-          if(ret == OB_SUCCESS && node->children_[2]!=NULL)
-          {
-            OB_ASSERT(node->children_[2]->children_[0]->type_ == T_NO_GROUP);
-            ret = stmt->set_no_group(true);
-            TBSYS_LOG(DEBUG,"www: no_group is %d", true);
-          }
-          else if(ret == OB_SUCCESS && node->children_[2]== NULL)
-          {
-              stmt->set_no_group(false);
-              TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
-          }
+//          if(ret == OB_SUCCESS && node->children_[2]!=NULL)
+//          {
+//            OB_ASSERT(node->children_[2]->children_[0]->type_ == T_NO_GROUP);
+//            ret = stmt->set_no_group(true);
+//            TBSYS_LOG(DEBUG,"www: no_group is %d", true);
+//          }
+//          else if(ret == OB_SUCCESS && node->children_[2]== NULL)
+//          {
+//              stmt->set_no_group(false);
+//              TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
+//          }
           //add :e
+         //modify by qx 20170317 :b
+         if (ret == OB_SUCCESS && node->children_[2]!= NULL)
+         {
+           for (int32_t i = 0;i < node->children_[2]->num_child_; i++)
+           {
+             if (node->children_[2]->children_[i]->type_ == T_NO_GROUP)
+             {
+               ret = stmt->set_no_group(true);
+               TBSYS_LOG(ERROR,"www: no_group is %d", true);
+             }
+             else if (node->children_[2]->children_[i]->type_ == T_LONG_TRANS)
+             {
+               ret = stmt->set_long_trans(true);
+               TBSYS_LOG(ERROR,"www: long_trans is %d", true);
+             }
+             else
+             {
+              // shouldn't go here
+               TBSYS_LOG(ERROR,"www: find ET !");
+             }
+           }
+
+         }
+         else if (ret == OB_SUCCESS && node->children_[2]== NULL)
+         {
+           stmt->set_no_group(false);
+           TBSYS_LOG(DEBUG,"www: no_group is null, no_group is %d", false);
+           stmt->set_long_trans(false);
+           TBSYS_LOG(DEBUG,"www: long_trans is null, long_trans is %d", false);
+         }
+         //add :e
       }
   }
   return ret;
@@ -5150,6 +5271,13 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_alter_table_stmt(result_plan, node, query_id);
 			break;
 		}
+        //add hxlong [truncate table] 20170403:b //
+        case T_TRUNCATE_TABLE:
+        {
+            ret = resolve_truncate_table_stmt(result_plan ,node ,query_id);
+            break;
+        }
+        //add:e
 		//secondary index
 		//longfei [create index]
 		case T_CREATE_INDEX:

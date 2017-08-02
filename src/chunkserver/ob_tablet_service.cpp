@@ -306,7 +306,10 @@ int ObTabletService::fill_scan_data(ObNewScanner &new_scanner)
   if ((OB_SUCCESS == ret || OB_FORCE_TIME_OUT == ret) && tablet_read_ == &tablet_scan_ )
   {
     ObNewRange range;
-    if (OB_SUCCESS == (ret = tablet_scan_.get_tablet_range(range)))
+    //mod hxlong [Truncate Table]:20170318:b
+    //if (OB_SUCCESS == (ret = tablet_scan_.get_tablet_range(range)))
+    if (OB_SUCCESS == (ret = tablet_scan_.get_scan_range(range)))
+      //mod:e
     {
       new_scanner.set_range(range);
     }

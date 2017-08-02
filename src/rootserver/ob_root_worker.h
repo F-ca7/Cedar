@@ -311,6 +311,9 @@ namespace oceanbase
         int rt_force_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_alter_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
         int rt_drop_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add hxlong [Truncate Table]:20170403:b
+        int rt_truncate_table(const int32_t version, common::ObDataBuffer& in_buff, onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff);
+        //add:e
         //add by wangdonghui 20160121 :b
         /**
          * @brief rt_create_procedure

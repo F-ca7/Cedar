@@ -515,6 +515,11 @@ int ObCompactCellIterator::parse(ObBufferReader &buf_reader, ObObj &value, uint6
       case ObCellMeta::ES_DEL_ROW:
         value.set_ext(ObActionFlag::OP_DEL_ROW);
         break;
+      //add hxlong [Truncate Table]:20170318:b
+      case ObCellMeta::ES_TRUN_TAB:
+        value.set_ext(ObActionFlag::OP_DEL_ROW);
+        break;
+     //add:e
       case ObCellMeta::ES_NOP_ROW:
         value.set_ext(ObActionFlag::OP_NOP);
         break;
@@ -544,6 +549,11 @@ int ObCompactCellIterator::parse(ObBufferReader &buf_reader, ObObj &value, uint6
       case ObCellMeta::ES_DEL_ROW:
         value.set_ext(ObActionFlag::OP_DEL_ROW);
         break;
+      //add hxlong [Truncate Table]:20170318:b
+     case ObCellMeta::ES_TRUN_TAB:
+        value.set_ext(ObActionFlag::OP_DEL_ROW);
+        break;
+     //add:e
       default:
         ret = OB_NOT_SUPPORTED;
         TBSYS_LOG(WARN, "unsupported extend:cell_meta->attr_=%d",

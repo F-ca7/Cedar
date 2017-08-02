@@ -537,12 +537,13 @@ namespace oceanbase
           const uint32_t MAX_RO_NUM = 1000;
           const uint32_t MAX_RP_NUM = 1000;
           const uint32_t MAX_RW_NUM = 1000;
+          const uint32_t MAX_LRW_NUM = 1000;  // add a parameter by qx 20170314 for long transcation
           if (OB_SUCCESS != (ret = oQueue_.init(CONST::QueueSize)))
           {
             TBSYS_LOG(ERROR, "ObFixedQueue init error");
           }
           else if (OB_SUCCESS != (ret = oSessionMgr_.init(MAX_RO_NUM, MAX_RP_NUM,
-                  MAX_RW_NUM, &oCtxFactory_)))
+                  MAX_RW_NUM, MAX_LRW_NUM, &oCtxFactory_))) // add a parameter by qx 20170314 for long transcation
           {
             TBSYS_LOG(ERROR, "SessionMgr init error");
           }
