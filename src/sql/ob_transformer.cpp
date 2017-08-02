@@ -72,6 +72,8 @@
 #include "ob_create_table_stmt.h"
 #include "ob_drop_table.h"
 #include "ob_drop_table_stmt.h"
+#include "ob_truncate_table.h" //add hxlong [Truncate Table]:20170318
+#include "ob_truncate_table_stmt.h" //add hxlong [Truncate Table]:20170318:b
 #include "common/ob_row_desc_ext.h"
 #include "ob_create_user_stmt.h"
 #include "ob_prepare.h"
@@ -401,6 +403,11 @@ int ObTransformer::generate_physical_plan(ObLogicalPlan *logical_plan, ObPhysica
       case ObBasicStmt::T_DROP_TABLE:
         ret = gen_physical_drop_table(logical_plan, physical_plan, err_stat, query_id, index);
         break;
+      //add hxlong [Truncate Table]:20170318:b
+      case ObBasicStmt::T_TRUNCATE_TABLE:
+        ret = gen_physical_truncate_table(logical_plan, physical_plan, err_stat, query_id, index);
+         break;
+      //add:e
       case ObBasicStmt::T_ALTER_TABLE:
         ret = gen_physical_alter_table(logical_plan, physical_plan, err_stat, query_id, index);
         break;
@@ -8259,7 +8266,67 @@ int ObTransformer::gen_physical_drop_table(ObLogicalPlan *logical_plan, ObPhysic
 
   return ret;
 }
+//add hxlong [Truncate Table]:20170318:b
+int ObTransformer::gen_physical_truncate_table(
+        ObLogicalPlan *logical_plan,
+        ObPhysicalPlan *physical_plan,
+        ErrStat& err_stat,
+        const uint64_t& query_id,
+        int32_t* index)
+{
+    int &ret = err_stat.err_code_ = OB_SUCCESS;
+    ObTruncateTableStmt *trun_tab_stmt = NULL;
+    ObTruncateTable     *trun_tab_op = NULL;
 
+    /* get statement */
+    if (ret == OB_SUCCESS)
+    {
+        get_stmt(logical_plan, err_stat, query_id, trun_tab_stmt);
+    }
+    bool disallow_trun_sys_table = sql_context_->session_info_->is_create_sys_table_disabled();
+      /* generate operator */
+    if (ret == OB_SUCCESS)
+    {
+        CREATE_PHY_OPERRATOR(trun_tab_op, ObTruncateTable, physical_plan, err_stat);
+        if (ret == OB_SUCCESS)
+        {
+            trun_tab_op->set_rpc_stub(sql_context_->rs_rpc_proxy_);
+            trun_tab_op->set_sql_context(*sql_context_);
+            ret = add_phy_query(logical_plan, physical_plan, err_stat, query_id, trun_tab_stmt, trun_tab_op, index);
+        }
+    }
+
+    if (ret == OB_SUCCESS)
+    {
+        trun_tab_op->set_if_exists(trun_tab_stmt->get_if_exists());
+        for (int64_t i = 0; ret == OB_SUCCESS && i < trun_tab_stmt->get_table_size(); i++)
+        {
+            const ObString& table_name = trun_tab_stmt->get_table_name(i);
+            if (TableSchema::is_system_table(table_name)
+                    && disallow_trun_sys_table)
+            {
+                ret = OB_ERR_NO_PRIVILEGE;
+                TBSYS_LOG(USER_ERROR, "system table can not be truncated, table_name=%.*s",
+                          table_name.length(), table_name.ptr());
+                break;
+            }
+            if ((ret = trun_tab_op->add_table_name(table_name)) != OB_SUCCESS)
+            {
+                TRANS_LOG("Add trun table %.*s failed", table_name.length(), table_name.ptr());
+                break;
+            }
+        }
+    }
+
+    if (ret == OB_SUCCESS && trun_tab_stmt->get_comment().length() != 0)
+    {
+      trun_tab_op->set_comment(trun_tab_stmt->get_comment());
+      TBSYS_LOG(DEBUG, "add stmt comment, comment=%.*s",
+                trun_tab_stmt->get_comment().length(), trun_tab_stmt->get_comment().ptr());
+    }
+    return ret;
+}
+//add:e
 int ObTransformer::gen_phy_show_tables(ObPhysicalPlan *physical_plan, ErrStat& err_stat, ObShowStmt *show_stmt, ObPhyOperator *&out_op)
 {
   int& ret = err_stat.err_code_ = OB_SUCCESS;

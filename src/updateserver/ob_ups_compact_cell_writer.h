@@ -69,13 +69,19 @@ namespace oceanbase
         virtual int write_varchar(const ObObj &value, ObObj *clone_value);
       public:
         void set_row_deleted(const bool deleted) {is_row_deleted_ = deleted;};
+        void set_tab_truncated(const bool truncated) {is_tab_truncated_ = truncated;}; /*add hxlong [Truncate Table]:20170318*/
         bool is_row_deleted() {return is_row_deleted_;};
-        void reset() {ObCompactCellWriter::reset(); is_row_deleted_ = false; ctime_recorder_.reset(); };
+        bool is_tab_truncated() {return is_tab_truncated_;}; /*add hxlong [Truncate Table]:20170318*/
+        //mod hxlong [Truncate Table]:20170318:b
+        //void reset() {ObCompactCellWriter::reset(); is_row_deleted_ = false; ctime_recorder_.reset(); };
+        void reset() {ObCompactCellWriter::reset(); is_row_deleted_ = false; is_tab_truncated_ = false; ctime_recorder_.reset(); };
+        //mod:e
         ObCTimeRecorder& get_ctime_recorder() { return ctime_recorder_; }
 
       private:
         MemTank *mem_tank_;
         bool is_row_deleted_;
+        bool is_tab_truncated_; /*add hxlong [Truncate Table]:20170318*/
         ObCTimeRecorder ctime_recorder_;
     };
   }

@@ -41,6 +41,8 @@ namespace oceanbase
 
   namespace sstable 
   {
+    const int64_t OB_SSTABLE_SCHEMA_VERSION_ONE = 1; //add hxlong [Truncate Table] for upgrade :20170504
+    const int64_t OB_SSTABLE_SCHEMA_VERSION_TWO = 2; //add hxlong [Truncate Table] for upgrade :20170504
     struct ObSSTableSchemaHeader 
     {
       int16_t column_count_;        //column count compatible for V0.1.0
@@ -49,6 +51,23 @@ namespace oceanbase
 
       NEED_SERIALIZE_AND_DESERIALIZE;
     };
+    struct ObSSTableSchemaHeaderV2
+    {
+      int16_t column_count_;        //column count compatible for V0.1.0
+      int16_t reserved16_;          //must be 0
+      int32_t total_column_count_;  //column count of all tables
+      int32_t trun_table_count_; //add hxlong [Truncate Table]:20170318:b
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    };
+
+    //add hxlong [Truncate Table]:20170318:b
+    struct ObSSTableSchemaTableDef
+    {
+      uint32_t table_id_;
+      int64_t trun_timestamp_;
+      NEED_SERIALIZE_AND_DESERIALIZE;
+    };
+    //add:e
 
     struct ObSSTableSchemaColumnDef
     {
@@ -135,6 +154,22 @@ namespace oceanbase
         return ret;
       }
     };
+    //add hxlong [Truncate Table]:20170318:b
+    struct ObSSTableSchemaTableDefCompare
+    {
+      bool operator()(const ObSSTableSchemaTableDef& lhs,
+          const ObSSTableSchemaTableDef& rhs)
+      {
+        bool ret = true;
+
+        if (lhs.table_id_ > rhs.table_id_)
+        {//table id±ØÐëµÝÔö
+          ret = false;
+        }
+        return ret;
+      }
+    };//end struct ObSSTableSchemaTableDefCompare
+    //add:e
 
     class ObSSTableSchema
     {
@@ -149,7 +184,7 @@ namespace oceanbase
        */
       const int64_t get_column_count() const;
 
-      
+      const int32_t get_trun_table_count() const; //add hxlong [Truncate Table]:20170318
       /**
        * get one column def by column index
        * 
@@ -160,6 +195,10 @@ namespace oceanbase
        */
       const ObSSTableSchemaColumnDef* get_column_def(const int32_t index) const;
 
+      //table id, column id ----> column def
+      const ObSSTableSchemaTableDef* get_truncate_def(const uint64_t table_id ) const; //add hxlong [Truncate Table]:20170318
+
+      const ObSSTableSchemaTableDef* get_truncate_def(const int32_t idx ) const;//add hxlong [Truncate Table]:20170318
       /**
        * get rowkey column count of table %table_id
        *
@@ -279,7 +318,7 @@ namespace oceanbase
        *         OB_ERROR
        */
       int add_column_def(const ObSSTableSchemaColumnDef& column_def);
-
+      int add_table_def(const ObSSTableSchemaTableDef& table_def); //add hxlong [Truncate Table]:20170318
       /**
        * reset scheam in order to reuse it
        */
@@ -354,8 +393,11 @@ namespace oceanbase
       static const int64_t DEFAULT_COLUMN_DEF_SIZE = common::OB_MAX_TABLE_NUMBER * common::OB_MAX_COLUMN_NUMBER;
       
     private:
+      int32_t version_; //add hxlong [Truncate Table] for upgrade :20160504
       ObSSTableSchemaColumnDef column_def_array_[common::OB_MAX_COLUMN_NUMBER];   //column def buf for single table
-      ObSSTableSchemaHeader schema_header_;
+      ObSSTableSchemaTableDef table_trun_array_[common::OB_MAX_TABLE_NUMBER]; //add hxlong [Truncate Table]:20170318
+      // ObSSTableSchemaHeader schema_header_; //del hxlong [Truncate Table]:20170505
+      ObSSTableSchemaHeaderV2 schema_header_; //add hxlong [Truncate Table]:20170505
       ObSSTableSchemaColumnDef *column_def_;                                      //column def pointer
       bool hash_init_;
       int64_t curr_group_head_;
@@ -379,9 +421,11 @@ namespace oceanbase
       // table id => rowkey column list.
       common::hash::ObHashMap<uint64_t, ValueSet,
         common::hash::NoPthreadDefendMode> table_rowkey_hashmap_;   
-#ifdef COMPATIBLE
-      mutable int32_t version_;
-#endif
+      //del hxlong [Truncate Table] for upgrade :20170504
+//#ifdef COMPATIBLE
+//      mutable int32_t version_;
+//#endif
+      //del:e
     };
     
     /**

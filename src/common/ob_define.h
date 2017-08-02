@@ -202,6 +202,7 @@ namespace oceanbase
 
     const int OB_SP_EXIT = -151;//add by wdh 20160624
     const int OB_OPERATION_NOT_ALLOWED = -152; //add dragon [Bugfix#12] 2017-3-8
+    const int OB_TABLE_UPDATE_LOCKED = -153; //add hxlong [Truncate Table]:20170403
 
     //error code for chunk server -1001 ---- -2000
     const int OB_CS_CACHE_NOT_HIT = -1001;   // 缓存没有命中
@@ -508,6 +509,7 @@ namespace oceanbase
     const int64_t OB_MAX_DEBUG_MSG_LEN = 1024;
     const int64_t OB_MAX_COMPRESSOR_NAME_LENGTH = 128;
     const int64_t OB_MAX_TABLE_NAME_LENGTH = 256;
+    const int64_t OB_MAX_DATBASE_NAME_LENGTH = 16; //add hxlong [truncate table] 20170403
     const int64_t OB_MAX_FILE_NAME_LENGTH = 512;
     const int64_t OB_MAX_SECTION_NAME_LENGTH = 128;
     const int64_t OB_MAX_FLAG_NAME_LENGTH = 128;
@@ -663,6 +665,7 @@ namespace oceanbase
     const char* const OB_TABLES_SHOW_TABLE_NAME = "__tables_show";
     const char* const OB_INDEX_SHOW_TABLE_NAME = "__index_show";
 
+    const char* const OB_TRUNCATE_OP_TABLE_NAME = "__all_truncate_op"; //add hxlong [Truncate Table]:20170318
     const char* const OB_VARIABLES_SHOW_TABLE_NAME = "__variables_show";
     const char* const OB_CREATE_TABLE_SHOW_TABLE_NAME = "__create_table_show";
     const char* const OB_TABLE_STATUS_SHOW_TABLE_NAME = "__table_status_show";
@@ -711,8 +714,9 @@ namespace oceanbase
     static const uint64_t OB_ALL_SYS_CONFIG_STAT_TID = 12;
     static const uint64_t OB_ALL_CLIENT_TID = 13;
     static const uint64_t OB_ALL_SECONDARY_INDEX_TID = 14;// longfei [create index]
+    static const uint64_t OB_ALL_TRUNCATE_OP_TID = 15; //add hxlong [Truncate Table]:20170403:b
     //add lbzhong [auto_increment] 20161126:b
-    static const uint64_t OB_ALL_AUTO_INCREMENT_TID = 15;
+    static const uint64_t OB_ALL_AUTO_INCREMENT_TID = 16;
     //add:e
     ///////////////////////////////////////////////////////////
     //                 VIRUTAL TABLES                        //

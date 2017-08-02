@@ -65,7 +65,12 @@ namespace oceanbase
         {
           return append_escape(ObCellMeta::ES_DEL_ROW);
         }
-
+        //add hxlong [Truncate Table]:20170318:b
+        inline int tab_truncate()
+        {
+          return append_escape(ObCellMeta::ES_DEL_ROW);
+        }
+        //add:e
         inline int row_nop()
         {
           return append_escape(ObCellMeta::ES_NOP_ROW);

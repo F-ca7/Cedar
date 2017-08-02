@@ -499,6 +499,67 @@ namespace oceanbase
 
       return err;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int ObMutator :: trun_tab(const uint64_t table_id, const common::ObString & table_name, const common::ObString & user_name, const common::ObString & comment)
+    {
+      int err = OB_SUCCESS;
+      ObMutatorCellInfo mutation;
+      mutation.cell_info.table_id_ = table_id;
+      mutation.cell_info.value_.set_ext(ObActionFlag::OP_TRUN_TAB);
+      err = add_cell(mutation);
+      if (OB_SUCCESS != err)
+      {
+        TBSYS_LOG(WARN, "failed to add trun op, err=%d", err);
+      }
+      ObRowkey rowkey;
+      ObObj value[2];
+      value[0].set_precise_datetime(tbsys::CTimeUtil::getTime());
+      value[1].set_int(table_id);
+      rowkey.assign(value, 2);
+
+      ObObj varchar_obj1;
+      ObObj varchar_obj2;
+      ObObj varchar_obj3;
+      varchar_obj1.set_varchar(table_name);
+      varchar_obj2.set_varchar(user_name);
+      varchar_obj3.set_varchar(comment);
+
+      if (OB_SUCCESS != (err = update(OB_ALL_TRUNCATE_OP_TID, rowkey, OB_APP_MIN_COLUMN_ID+2 , varchar_obj1)))
+      {
+         TBSYS_LOG(WARN, "failed to add trun op, err=%d", err);
+      }
+      else if (OB_SUCCESS != (err = update(OB_ALL_TRUNCATE_OP_TID, rowkey, OB_APP_MIN_COLUMN_ID+3, varchar_obj2)))
+      {
+         TBSYS_LOG(WARN, "failed to add trun op, err=%d", err);
+      }
+      else if (OB_SUCCESS != (err = update(OB_ALL_TRUNCATE_OP_TID, rowkey, OB_APP_MIN_COLUMN_ID+4, varchar_obj3)))
+      {
+         TBSYS_LOG(WARN, "failed to add trun op, err=%d", err);
+      }
+      return err;
+    }
+    //add:e
+    //add hxlong [Truncate Table]:20170318:b
+    int ObMutator :: ups_trun_tab(const uint64_t table_id, const bool force_finish)
+    {
+      int err = OB_SUCCESS;
+      ObMutatorCellInfo mutation;
+
+      mutation.cell_info.table_id_ = table_id;
+      mutation.cell_info.value_.set_ext(ObActionFlag::OP_TRUN_TAB);
+
+      err = add_cell(mutation,CHANGED,ROWKEY_BARRIER,OB_DML_UNKNOW);
+      if (OB_SUCCESS != err)
+      {
+        TBSYS_LOG(WARN, "failed to add del op, err=%d", err);
+      }
+      else if (force_finish)
+      {
+        list_tail_->row_finished_stat = FINISHED;
+      }
+      return err;
+    }
+    //add:e
 
     int ObMutator :: add_row_barrier()
     {
@@ -889,6 +950,14 @@ namespace oceanbase
               // serialize del row
               err = serialize_flag_(buf, buf_len, pos, ObActionFlag::OP_DEL_ROW);
             }
+            //add hxlong [Truncate Table]:20170318:b
+            else if (ObExtendType == type
+                && ObActionFlag::OP_TRUN_TAB == tmp_ext_val)
+            {
+              // serialize truncate_flag
+              err = serialize_flag_(buf, buf_len, pos, ObActionFlag::OP_TRUN_TAB);
+            }
+            //add:e
             else
             {
               // serialize column param
@@ -1098,7 +1167,7 @@ namespace oceanbase
                   }
                   break;
 
-                case ObActionFlag::TABLE_NAME_FIELD:
+                 case ObActionFlag::TABLE_NAME_FIELD:
                   // deserialize table name
                   err = tmp_obj.deserialize(buf, buf_len, pos);
                   if (OB_SUCCESS == err)
@@ -1127,12 +1196,9 @@ namespace oceanbase
                       get_rowkey_info_from_sm(schema_manager_, cur_cell.cell_info.table_id_,
                           cur_cell.cell_info.table_name_, rowkey_info_);
                     }
-
-                    /*
-                    TBSYS_LOG(INFO, "get_rowkey_info, table_id=%lu, table_name=%s, rowkey_info_size=%ld, err=%d, schema_manager_=%p",
-                        cur_cell.cell_info.table_id_, to_cstring(cur_cell.cell_info.table_name_),
-                        rowkey_info_.get_size(), err, schema_manager_);
-                        */
+//                    TBSYS_LOG(INFO, "get_rowkey_info, table_id=%lu, table_name=%s, rowkey_info_size=%ld, err=%d, schema_manager_=%p",
+//                        cur_cell.cell_info.table_id_, to_cstring(cur_cell.cell_info.table_name_),
+//                        rowkey_info_.get_size(), err, schema_manager_);
                   }
                   is_row_changed = true;
                   break;
@@ -1172,10 +1238,17 @@ namespace oceanbase
                   break;
 
                 case ObActionFlag::OP_DEL_ROW:
+                case ObActionFlag::OP_TRUN_TAB: //add hxlong [Truncate Table]:20170318
                   cur_cell.cell_info.column_name_.assign(NULL, 0);
                   cur_cell.cell_info.column_id_ = common::OB_INVALID_ID;
                   cur_cell.cell_info.value_.reset();
+                  //mod hxlong [Truncate Table]:20170318:b
                   cur_cell.cell_info.value_.set_ext(ObActionFlag::OP_DEL_ROW);
+                  //mod:e
+
+                  //add hxlong [bugfix:: illegal op type of DEL_ROW MUTATOR]:20170615:b
+                  cur_cell.op_type.set_ext(common::ObActionFlag::OP_UPDATE);
+                  //add:e
                   err = add_cell(cur_cell, is_row_changed ? CHANGED : NOCHANGED, NO_BARRIER, dml_type);
                   is_row_changed = false;
                   if (OB_SUCCESS != err)
@@ -1183,7 +1256,6 @@ namespace oceanbase
                     TBSYS_LOG(WARN, "failed to add cell, err=%d", err);
                   }
                   break;
-
                 case ObActionFlag::UPDATE_COND_PARAM_FIELD:
                   err = OB_NOT_SUPPORTED;
                   TBSYS_LOG(ERROR, "not support UPDATE_COND_PARAM_FIELD[%ld]", ext_val);
@@ -1384,6 +1456,20 @@ namespace oceanbase
             store_size += get_obj_serialize_size_(ObActionFlag::OP_DEL_ROW, true);
             //TBSYS_LOG(ERROR, "test::whx copy cell store size 5 =>%ld", store_size);
           }
+          //add hxlong [truncate table]
+          else if (ObExtendType == type && ObActionFlag::OP_TRUN_TAB== ext_val)
+          {
+            // delete row
+            dst_cell.cell_info.column_id_ = common::OB_INVALID_ID;
+            dst_cell.cell_info.column_name_.assign(NULL, 0);
+            dst_cell.cell_info.value_.reset();
+            dst_cell.cell_info.value_.set_ext(ext_val);
+//            //add hxlong [bugfix:: illegal op type of DEL_ROW MUTATOR]:20170615:b
+//            dst_cell.op_type = src_cell.op_type;
+//            //add:e
+            store_size += get_obj_serialize_size_(ObActionFlag::OP_TRUN_TAB, true);
+          }
+          //add:e
           else
           {
             // store column name

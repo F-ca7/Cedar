@@ -1230,6 +1230,29 @@ namespace oceanbase
     {
       int ret             = OB_SUCCESS;
       int64_t column_num  = schema.get_column_count();
+      //add hxlong [Truncate Table]:20170318:b
+      int32_t table_trun_count = schema.get_trun_table_count();
+      const ObSSTableSchemaTableDef * tab_def = NULL;
+      for (int32_t i=0; i< table_trun_count; ++i)
+      {
+        tab_def = schema.get_truncate_def(i);
+        if ( NULL != tab_def)
+        {
+          ret = schema_.add_table_def(*tab_def);
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "add table def failed, offset=%d", i);
+            break;
+          }
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "got null table def from schema, offset=%d", i);
+          ret = OB_ERROR;
+          break;
+        }
+      }
+      //add:e
       const ObSSTableSchemaColumnDef * column_def = NULL;
 
       for(int32_t i = 0; i < column_num; ++i)

@@ -266,6 +266,13 @@ namespace oceanbase
             ret = ccw.row_delete();
             ccw.set_row_deleted(true);
           }
+          //add hxlong [Truncate Table]:20170318:b
+          else if (is_trun_tab_(cell_info.value_))
+          {
+            ret = ccw.tab_truncate();
+            ccw.set_tab_truncated(true);
+          }
+          //add:e
           else
           {
             ret = ccw.append(cell_info.column_id_, cell_info.value_);
@@ -367,7 +374,10 @@ namespace oceanbase
               TBSYS_LOG(WARN, "copy rowkey fail, ret=%d %s", ret, cur_key.log_str());
               break;
             }
-            else if (OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+            //mod hxlong [Truncate Table]:20170318:b
+            //else if (OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+            else if (tmp_row_key.row_key.length()>0 && OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+              //mod:e
             {
               TBSYS_LOG(WARN, "insert cur_key to bloomfilter fail ret=%d %s", ret, cur_key.log_str());
               break;
@@ -521,8 +531,23 @@ namespace oceanbase
                                   ObBatchChecksum &bc)
     {
       int ret = OB_SUCCESS;
+      //add hxlong [Truncate Table]:20170403:b
+      /* check the table_value info*/
+      TEKey cur_table_key; //行主键
+      cur_table_key.table_id = cur_key.table_id;
+      TEValue * cur_table_value;
+      cur_table_value = table_engine_.get(cur_table_key);
+      //这里表示只能truncate一次
+      if (cur_table_value != NULL && cur_table_value->cell_info_cnt != 0)
+      {
+        ret = OB_TABLE_UPDATE_LOCKED;
+        TBSYS_LOG(ERROR, "table_id %ld has been locked, wait for mem_freeze", cur_key.table_id);
+      }
+      //add:e
+
       TEValueUCInfo *cur_uci = NULL;
-      if (OB_SUCCESS == (ret = get_cur_value_(session, lock_info,
+      if (ret == OB_SUCCESS && /*add hxlong [Truncate Table]:20170318:b*/
+              OB_SUCCESS == (ret = get_cur_value_(session, lock_info,
                                               cur_key, cur_value, cur_uci, is_row_changed,
                                               total_row_counter, new_row_counter, bc)))
       {
@@ -1457,7 +1482,10 @@ namespace oceanbase
           {
             TBSYS_LOG(WARN, "copy rowkey fail, ret=%d %s", ret, key.log_str());
           }
-          else if (OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+          //mod hxlong [Truncate Table]:20170318:b
+          //else if (OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+          else if (tmp_row_key.row_key.length() > 0 && OB_SUCCESS != (ret = table_bf_.insert(tmp_row_key.table_id, tmp_row_key.row_key)))
+            //mod:e
           {
             TBSYS_LOG(WARN, "insert cur_key to bloomfilter fail ret=%d %s", ret, key.log_str());
           }
@@ -1530,14 +1558,34 @@ namespace oceanbase
       int ret = OB_SUCCESS;
       TEKey key(table_id, row_key);
       TEValue *value = NULL;
+      TEValue * cur_table_value = NULL;  //add hxlong [Truncate Table]:20170318
       ILockInfo* lock_info = NULL;
       if (!inited_)
       {
         TBSYS_LOG(WARN, "have not inited");
         ret = OB_ERROR;
       }
-      else if (ST_READ_WRITE == session_ctx.get_type())
+
+      //add hxlong [Truncate Table]:20170318:b
+      if (ret == OB_SUCCESS)
       {
+      /*check */
+      /* check the table_value info*/
+      TEKey cur_table_key;
+      cur_table_key.table_id = table_id;
+      cur_table_value = table_engine_.get(cur_table_key);
+      if (cur_table_value != NULL && cur_table_value->cell_info_cnt != 0)
+      {
+        ret = OB_TABLE_UPDATE_LOCKED;
+        TBSYS_LOG(ERROR, "table_id %ld has been locked, wait for mem_freeze", key.table_id);
+      }
+      }
+
+      if (ret == OB_SUCCESS)
+      {
+        //add:e
+       if (ST_READ_WRITE == session_ctx.get_type())
+       {
         if (NULL == (lock_info = ((RWSessionCtx&)session_ctx).get_lock_info()))
         {
           ret = OB_ERR_UNEXPECTED;
@@ -1561,10 +1609,18 @@ namespace oceanbase
           value = table_engine_.get(key);
         }
       }
+      }
       if (OB_SUCCESS == ret)
       {
         iterator.get_get_iter_().set_(key, value, column_filter, true, &session_ctx);
       }
+      //add hxlong [Truncate Table]:20170318
+      else if (OB_TABLE_UPDATE_LOCKED == ret)
+      {
+        iterator.get_get_iter_().set_(key, cur_table_value, column_filter, true, &session_ctx);
+        ret = OB_SUCCESS;
+      }
+      //add:e
       return ret;
     }
 
@@ -1614,7 +1670,7 @@ namespace oceanbase
                       ColumnFilter *column_filter/* = NULL*/)
     {
       int ret = OB_SUCCESS;
-      
+      int err = OB_SUCCESS; //add hxlong [Truncate Table]:20170318
       TEKey start_key;
       TEKey end_key;
       int start_exclude = get_start_exclude(range);
@@ -1646,15 +1702,41 @@ namespace oceanbase
         TBSYS_LOG(WARN, "have not inited");
         ret = OB_ERROR;
       }
-      else if (OB_SUCCESS != table_engine_.scan(start_key, min_key, start_exclude,
-                                                end_key, max_key, end_exclude,
+      //add hxlong [Truncate Table]:20170318
+      /*check */
+      /* check the table_value info*/
+      TEKey cur_table_key;
+      TEValue *cur_table_value;
+      cur_table_key.table_id = start_key.table_id;
+      cur_table_value = table_engine_.get(cur_table_key);
+      if (cur_table_value != NULL && cur_table_value->cell_info_cnt != 0)
+      {
+        err = OB_TABLE_UPDATE_LOCKED;
+        TBSYS_LOG(DEBUG, "table_id %ld has been locked, wait for mem_freeze", start_key.table_id);
+      }
+      //add:e
+      //mod hxlong [truncate table]
+//      else if (OB_SUCCESS != table_engine_.scan(start_key, min_key, start_exclude,
+//                                                end_key, max_key, end_exclude,
+//                                                reverse, iter.get_scan_iter_().get_te_iter_()))
+      if (OB_SUCCESS != table_engine_.scan(start_key, min_key, start_exclude,
+                                                     end_key, max_key, end_exclude,
                                                 reverse, iter.get_scan_iter_().get_te_iter_()))
+      //mod:e
       {
         ret = OB_ERROR;
       }
-      else
+//      else
+//      {
+//        iter.get_scan_iter_().set_(get_table_id(range), column_filter, true, &session_ctx);
+//      }
+      else if (err == OB_SUCCESS)
       {
         iter.get_scan_iter_().set_(get_table_id(range), column_filter, true, &session_ctx);
+      }
+      else if (err == OB_TABLE_UPDATE_LOCKED)
+      {
+        iter.get_scan_iter_().set_(get_table_id(range), column_filter, true, &session_ctx, cur_table_value);
       }
       return ret;
     }
@@ -1811,7 +1893,19 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int MemTable::get_table_truncate_stat(uint64_t table_id, bool &is_truncated)
+    {
+      int ret = OB_SUCCESS;
+      is_truncated = false;
+      if (row_counter_ != 0)
+      {
+        ret = table_engine_.get_table_truncate_stat(table_id, is_truncated);
+      }
+      //else memtable is empty
+      return ret;
+    }
+    //add:e
     int MemTable::get_bloomfilter(TableBloomFilter &table_bf) const
     {
       return table_bf.deep_copy(table_bf_);
@@ -1843,7 +1937,34 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add hxlong [Truncate Table]:20170318
+    int MemTable::scan_all_table(TableEngineIterator &iter)
+    {
+      int ret = OB_SUCCESS;
+      TEKey empty_key;
+      int min_key = 1;
+      int max_key = 1;
+      int start_exclude = 0;
+      int end_exclude = 0;
+      bool reverse = false;
+      if (!inited_)
+      {
+        TBSYS_LOG(WARN, "have not inited");
+        ret = OB_ERROR;
+      }
+      else if (OB_SUCCESS != table_engine_.scan_table(empty_key, min_key, start_exclude,
+                                                empty_key, max_key, end_exclude,
+                                                reverse, iter))
+      {
+        TBSYS_LOG(WARN, "table engine scan fail ret=%d", ret);
+      }
+      else
+      {
+        TBSYS_LOG(INFO, "scan all table start succ");
+      }
+      return ret;
+    }
+    //add:e
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     MemTableGetIter::MemTableGetIter() : te_key_(),
@@ -2065,6 +2186,7 @@ namespace oceanbase
             ret = OB_ITER_END;
             break;
           }
+
           else
           {
             __builtin_prefetch(node_iter_);
@@ -2271,6 +2393,7 @@ namespace oceanbase
                                            return_rowkey_column_(true),
                                            session_ctx_(NULL),
                                            is_iter_end_(true),
+                                           table_value_(NULL), /*add hxlong [Truncate Table]:20170318*/
                                            get_iter_()
     {
     }
@@ -2288,18 +2411,21 @@ namespace oceanbase
       session_ctx_ = NULL;
       is_iter_end_ = true;
       get_iter_.reset();
+      table_value_ = NULL; /*add hxlong [Truncate Table]:20170318*/
     }
 
     void MemTableScanIter::set_(const uint64_t table_id,
                                 ColumnFilter *column_filter,
                                 const bool return_rowkey_column,
-                                const BaseSessionCtx *session_ctx)
+                                const BaseSessionCtx *session_ctx,
+                                TEValue * value) /*add hxlong [Truncate Table]:20170318*/
     {
       table_id_ = table_id;
       column_filter_ = column_filter;
       return_rowkey_column_ = return_rowkey_column;
       session_ctx_ = session_ctx;
       is_iter_end_ = false;
+      table_value_ = value; /*add hxlong [Truncate Table]:20170318*/
     }
 
     void MemTableScanIter::set_(const uint64_t table_id,
@@ -2354,7 +2480,17 @@ namespace oceanbase
               break;
             }
             //get_iter_.reset();
-            get_iter_.set_(te_iter_.get_key(), te_iter_.get_value(), column_filter_, return_rowkey_column_, session_ctx_);
+            //mod hxlong [Truncate Table]:20170318:b
+            //get_iter_.set_(te_iter_.get_key(), te_iter_.get_value(), column_filter_, return_rowkey_column_, session_ctx_);
+            if (table_value_ == NULL)
+            {
+              get_iter_.set_(te_iter_.get_key(), te_iter_.get_value(), column_filter_, return_rowkey_column_, session_ctx_);
+            }
+            else
+            {
+              get_iter_.set_(te_iter_.get_key(), table_value_, column_filter_, return_rowkey_column_, session_ctx_);
+            }
+            //mod:e
             ret = get_iter_.next_cell();
             if (OB_ITER_END == ret)
             {

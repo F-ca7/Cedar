@@ -58,6 +58,7 @@ namespace oceanbase
       const static int64_t ES_NOT_EXIST_ROW     = 3;
       const static int64_t ES_NEW_ADD           = 4;
       const static int64_t ES_VALID             = 5;
+      const static int64_t ES_TRUN_TAB          = 6; /*add hxlong [Truncate Table]:20170318*/
 
       uint8_t type_:5;
       uint8_t attr_:3;

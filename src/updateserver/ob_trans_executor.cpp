@@ -129,6 +129,7 @@ namespace oceanbase
       packet_handler_[OB_UPS_ASYNC_CHECK_CUR_VERSION] = phandle_check_cur_version;
       packet_handler_[OB_UPS_ASYNC_CHECK_SSTABLE_CHECKSUM] = phandle_check_sstable_checksum;
 
+      trans_handler_[OB_TRUNCATE_TABLE] = thandle_write_trans; //add hxlong [truncate table] 20170403
       trans_handler_[OB_COMMIT_END] = thandle_commit_end;
       trans_handler_[OB_NEW_SCAN_REQUEST] = thandle_scan_trans;
       trans_handler_[OB_NEW_GET_REQUEST] = thandle_get_trans;
@@ -143,6 +144,9 @@ namespace oceanbase
       trans_handler_[OB_UPS_KILL_SESSION] = thandle_kill_session;
       trans_handler_[OB_END_TRANSACTION] = thandle_end_session;
 
+      //add hxlong [Truncate Table]:20170127:b
+      commit_handler_[OB_TRUNCATE_TABLE] = chandle_write_commit;
+      //add:e
       commit_handler_[OB_MS_MUTATE] = chandle_write_commit;
       commit_handler_[OB_WRITE] = chandle_write_commit;
       commit_handler_[OB_PHY_PLAN_EXECUTE] = chandle_write_commit;
@@ -815,6 +819,7 @@ namespace oceanbase
 
     void TransExecutor::handle_trans(void *ptask, void *pdata)
     {
+
       ob_reset_err_msg();
       int ret = OB_SUCCESS;
       thread_errno() = OB_SUCCESS;
@@ -1803,6 +1808,7 @@ namespace oceanbase
         case OB_MS_MUTATE:
         case OB_WRITE:
         case OB_PHY_PLAN_EXECUTE:
+        case OB_TRUNCATE_TABLE:  //add hxlong [truncate table] 20170403
         case OB_END_TRANSACTION:
           ret = true;
           break;

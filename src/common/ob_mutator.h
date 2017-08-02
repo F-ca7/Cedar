@@ -180,6 +180,10 @@ namespace oceanbase
         int del_row(const ObString& table_name, const ObRowkey& row_key);
         int del_row(const uint64_t table_id, const ObRowkey& row_key);
 
+        //add hxlong [Truncate Table]:2017403:b
+        int trun_tab(const uint64_t table_id, const common::ObString & table_name, const common::ObString & user_name, const common::ObString & comment);
+        int ups_trun_tab(const uint64_t table_id, const bool force_finish = false);
+        //add:e
         int add_row_barrier();
         int set_dml_type(const ObDmlType dml_type);
         int add_cell(const ObMutatorCellInfo& cell);

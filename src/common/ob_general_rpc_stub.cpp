@@ -170,7 +170,15 @@ namespace oceanbase
       return send_1_return_1(update_server, timeout, OB_UPS_GET_TABLE_TIME_STAMP,
           DEFAULT_VERSION, frozen_version, frozen_time);
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int ObGeneralRpcStub::check_incremental_data_range(
+        const int64_t timeout, const ObServer & root_server,
+        const int64_t table_id, ObVersionRange &range, ObVersionRange &new_range) const
+    {
+      return send_2_return_1(root_server, timeout, OB_CHECK_INCREMENTAL_RANGE, NEW_VERSION,
+          table_id, range, new_range);
+    }
+    //add:e
     // fetch schema current version
     int ObGeneralRpcStub::fetch_schema_version(
         const int64_t timeout, const common::ObServer & root_server,
@@ -273,7 +281,22 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add hxlong[Truncate Table]:20170403:b
+    int ObGeneralRpcStub::truncate_table(const int64_t timeout, const common::ObServer & root_server,
+        bool if_exists, const common::ObStrings &tables, const common::ObString& user, const common::ObString & comment) const
+    {
+      int ret = OB_SUCCESS;
+      ObResultCode result_code;
+      ret = send_4_return_0(root_server, timeout, OB_TRUNCATE_TABLE, DEFAULT_VERSION,
+          result_code, if_exists, tables, user, comment);
+      if (OB_SUCCESS != ret)
+      {
+        TBSYS_LOG(ERROR, "send_4_return_0 failed: ret[%d]", ret);
+        TBSYS_LOG(USER_ERROR, "%.*s", result_code.message_.length(), result_code.message_.ptr());
+      }
+      return ret;
+    }
+    //add:e
     //add by wangdonghui 20160121 :b
     int ObGeneralRpcStub::create_procedure(const int64_t timeout, const common::ObServer & root_server,
         bool if_not_exists, const common::ObString & proc_name, const common::ObString & proc_source_code) const

@@ -84,6 +84,10 @@ namespace oceanbase
         T_LOCK_TABLE,
       //add :e
 
+      //add hxlong [Truncate Table]: 20170403:b
+        T_TRUNCATE_TABLE,
+      //add:e
+
         // show statements
         T_SHOW_TABLES,
         //add longfei

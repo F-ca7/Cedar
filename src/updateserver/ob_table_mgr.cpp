@@ -314,7 +314,12 @@ namespace oceanbase
     {
       return MEMTABLE;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int MemTableEntity::get_table_truncate_stat(uint64_t table_id, bool &is_truncated)
+    {
+      return memtable_.get_table_truncate_stat(table_id, is_truncated);
+    }
+    //add:e
     ObRowIterAdaptor* ITableEntity::alloc_row_iter_adaptor(ResourcePool &rp, Guard &guard)
     {
       return rp.get_row_iter_adaptor_rp().get(guard.get_row_iter_adaptor_guard());
@@ -1110,7 +1115,25 @@ namespace oceanbase
       }
       return bret;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int SSTableEntity::is_table_truncated(uint64_t table_id, bool &is_truncated)
+    {
+      int ret = OB_SUCCESS;
+      is_truncated = false;
+      const sstable::ObSSTableSchema * schema = NULL;
+      const sstable::ObSSTableSchemaTableDef * tab_def = NULL;
+      if (NULL == (schema = sstable_reader_->get_schema()))
+      {
+        TBSYS_LOG(WARN, "invalid sstable_reader");
+        ret = OB_ERROR;
+      }
+      else if (NULL != (tab_def = schema->get_truncate_def(table_id)))
+      {
+        is_truncated = true;
+      }
+      return ret;
+    }
+    //add:e
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     TableItem::TableItem() : inmemtable_entity_(*this),
@@ -1196,7 +1219,36 @@ namespace oceanbase
       }
       return ret;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int TableItem::get_table_truncate_stat(uint64_t table_id, bool &is_truncated)
+    {
+      is_truncated = false;
+      int ret = OB_SUCCESS;
 
+      if (ACTIVE <= stat_
+          && DUMPED >= stat_)
+      {
+        ret = memtable_entity_.get_table_truncate_stat(table_id, is_truncated);
+      }
+      else if (DROPING == stat_
+              || DROPED == stat_)
+      {
+        if (is_inmemtable_ready_)
+        {
+          ret = inmemtable_entity_.get_table_truncate_stat(table_id, is_truncated);
+        }
+        else
+        {
+          ret = OB_EAGAIN;
+        }
+      }
+      else
+      {
+        ret = OB_ERROR;
+      }
+      return ret;
+    }
+    //add:e
     MemTable &TableItem::get_memtable()
     {
       if (DROPING < stat_)
@@ -1235,7 +1287,9 @@ namespace oceanbase
           table_schema++)
       {
         if (!is_inmemtable(table_schema->get_table_id()))
-        {}
+        {
+
+        }
         else
         {
           ITableIterator *iter = NULL;
@@ -1494,6 +1548,7 @@ namespace oceanbase
           }
           else
           {
+             //dump finished
             SSTableID sst_id = sstable_entity_.get_sstable_id();
             if (SSTableID::START_MINOR_VERSION == sst_id.minor_version_start)
             {
@@ -2323,7 +2378,166 @@ namespace oceanbase
       }
       return bret;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int TableMgr::check_table_range(const ObVersionRange &version_range,
+                                ObVersionRange &new_version_range,
+                                uint64_t table_id)
+    {
+      bool is_final_minor = false;
+      uint64_t max_version = 0;
+      int ret = OB_SUCCESS;
+      if (!inited_)
+      {
+        TBSYS_LOG(WARN, "have not inited this=%p", this);
+        ret = OB_NOT_INIT;
+      }
+      else
+      {
+        new_version_range = version_range;
 
+        SSTableID sst_id_start;
+        SSTableID sst_id_end;
+        sst_id_start.major_version        = version_range.start_version_.major_;
+        sst_id_start.minor_version_start  = version_range.start_version_.minor_;
+        sst_id_start.minor_version_end    = version_range.start_version_.minor_;
+        sst_id_end.major_version          = version_range.end_version_.major_;
+        sst_id_end.minor_version_start    = version_range.end_version_.minor_;
+        sst_id_end.minor_version_end      = version_range.end_version_.minor_;
+
+        int start_exclude = version_range.border_flag_.inclusive_start() ? 0 : 1;
+        int end_exclude   = version_range.border_flag_.inclusive_end() ? 0 : 1;
+
+        if (0 == sst_id_start.minor_version_start)
+        {
+          sst_id_start.minor_version_start = (0 == start_exclude) ? static_cast<uint16_t>(SSTableID::START_MINOR_VERSION)
+            : static_cast<uint16_t>(SSTableID::MAX_MINOR_VERSION);
+        }
+
+        if (0 == sst_id_start.minor_version_end)
+        {
+          sst_id_start.minor_version_end = (0 == start_exclude) ? static_cast<uint16_t>(SSTableID::START_MINOR_VERSION)
+            : static_cast<uint16_t>(SSTableID::MAX_MINOR_VERSION);
+        }
+
+        if (0 == sst_id_end.minor_version_start)
+        {
+          sst_id_end.minor_version_start = (0 == end_exclude) ? static_cast<uint16_t>(SSTableID::MAX_MINOR_VERSION)
+            : static_cast<uint16_t>(SSTableID::START_MINOR_VERSION);
+        }
+
+        if (0 == sst_id_end.minor_version_end)
+        {
+          sst_id_end.minor_version_end = (0 == end_exclude) ? static_cast<uint16_t>(SSTableID::MAX_MINOR_VERSION)
+            : static_cast<uint16_t>(SSTableID::START_MINOR_VERSION);
+        }
+
+        TBSYS_LOG(DEBUG,"start:%lu,%lu,%lu,end:%lu,%lu,%lu",sst_id_start.major_version,
+                  sst_id_start.minor_version_start,sst_id_start.minor_version_end,
+                  sst_id_end.major_version,sst_id_end.minor_version_start,sst_id_end.minor_version_end);
+
+        if (version_range.border_flag_.is_min_value()
+            || (sst_id_start.major_version > sst_id_end.major_version
+                && !version_range.border_flag_.is_max_value()))
+        {
+          TBSYS_LOG(WARN, "invalid version_range=%s", range2str(version_range));
+          ret = OB_INVALID_ARGUMENT;
+        }
+        else
+        {
+          bool first = true;
+          TableItem *table_item = NULL;
+          map_lock_.rdlock();
+          BtreeReadHandle handle;
+          int btree_ret = ERROR_CODE_OK;
+          if (ERROR_CODE_OK != (btree_ret = table_map_.get_read_handle(handle)))
+          {
+            TBSYS_LOG(WARN, "get read handle fail ret=%d", btree_ret);
+            ret = OB_UPS_ACQUIRE_TABLE_FAIL;
+          }
+          else
+          {
+            SSTableID sst_id_checker = 0;
+            TableItemKey start_key = sst_id_start;
+            TableItemKey end_key = sst_id_end;
+            TableItemKey *start_key_ptr = &start_key;
+            TableItemKey *end_key_ptr = &end_key;
+            if (version_range.border_flag_.is_max_value())
+            {
+              end_key_ptr = table_map_.get_max_key();
+            }
+            TableItemKey key;
+            table_map_.set_key_range(handle, start_key_ptr, start_exclude, table_map_.get_max_key(), 0);
+            TableItemKey last_key;
+            bool is_truncated;
+
+
+            while (ERROR_CODE_OK == table_map_.get_next(handle, key, table_item))
+            {
+              int64_t warm_up_percent = 0;
+              is_truncated = false;
+              is_final_minor = (key.sst_id.major_version > last_key.sst_id.major_version);
+              if (!less_than(&key, end_key_ptr, end_exclude))
+              {
+                break;
+              }
+              last_key = key;
+              ITableEntity *table_entity = NULL;
+              if (NULL == table_item
+                  || NULL == (table_entity = table_item->get_table_entity(warm_up_percent, table_id)))
+              {
+                TBSYS_LOG(WARN, "invalid table_item sstable_id=%lu", key.sst_id.id);
+                ret = OB_UPS_ACQUIRE_TABLE_FAIL;
+                break;
+              }
+              else if (active_table_item_ == table_item
+                      && !version_range.border_flag_.is_max_value())
+              {
+                TBSYS_LOG(WARN, "maybe acquire an active table for daily merge, will fail, version_range=[%s]", range2str(version_range));
+                ret = OB_UPS_TABLE_NOT_FROZEN;
+                break;
+              }
+              else if (first && !start_exclude
+                      && key.sst_id.major_version != sst_id_start.major_version)
+              {
+                TBSYS_LOG(ERROR, "request version is out of service, maybe slave cluster merge too slow, version_range=[%s]", range2str(version_range));
+                ret = OB_NOT_MASTER;
+                break;
+              }
+              else
+              {
+                //max_version = key.sst_id.major_version;
+                max_version = key.sst_id.id;
+                if (!first
+                    && !sst_id_checker.continous(key.sst_id))
+                {
+                  TBSYS_LOG(WARN, "sstable id do not continous %s <--> %s", sst_id_checker.log_str(), key.sst_id.log_str());
+                  ret = OB_UPS_ACQUIRE_TABLE_FAIL;
+                  break;
+                }
+                else
+                {
+                  sst_id_checker = key.sst_id;
+                }
+                if (OB_SUCCESS == (ret = table_item->get_table_truncate_stat(table_id, is_truncated)))
+                {
+                  if (is_truncated)
+                  {
+                    new_version_range.start_version_ = common::ObVersion::get_version(SSTableID::get_major_version(max_version),
+                                                                                SSTableID::get_minor_version_end(max_version),
+                                                                                is_final_minor);
+                    new_version_range.border_flag_.set_inclusive_start();
+                  }
+                }
+              }
+              first = false;
+            }
+          }
+          map_lock_.unlock();
+        }
+      }
+      return ret;
+    }
+    //add:e
     int TableMgr::acquire_table(const ObVersionRange &version_range,
                                 uint64_t &max_version,
                                 TableList &table_list,
