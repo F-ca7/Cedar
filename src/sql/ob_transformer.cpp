@@ -14896,16 +14896,11 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
             const ObObj *ob1=NULL;
             ob1=&src;
             ObObj casted_cell;
-            //modify xsl ECNU_DECIMAL 2017_2
-            ObDecimal dec;
-            /*
             char buff[MAX_PRINTABLE_SIZE];
             memset(buff,0,MAX_PRINTABLE_SIZE);
             ObString os2;
             os2.assign_ptr(buff,MAX_PRINTABLE_SIZE);
             casted_cell.set_varchar(os2);
-            */
-            casted_cell.set_decimal(dec);
             if(OB_SUCCESS!=(ret=obj_cast(*ob1,type,casted_cell,ob1)))
             {
 
