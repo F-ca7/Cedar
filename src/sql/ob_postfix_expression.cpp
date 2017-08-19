@@ -542,8 +542,6 @@ namespace oceanbase
           item_type.set_int(CONST_OBJ);
           obj.set_decimal_v2(item.dec,item.len);   //add xsl ECNU_DECIMAL
           //obj.set_decimal(item.dec);   //转换成功
-          //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(item.dec));  //test xsl
-          //TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(obj),item.len);  //test xsl
           //obj.set_varchar(item.string_);
           if (OB_SUCCESS != (ret = str_buf_.write_obj(obj, &obj2)))
           {
@@ -557,7 +555,6 @@ namespace oceanbase
           {
               TBSYS_LOG(WARN, "fail to push object. err=%d", ret);
           }
-          //TBSYS_LOG(INFO,"xushilei,test dec=[%s],p=[%d],s=[%d],v=[%d]",to_cstring(obj2),obj2.get_precision(),obj2.get_scale(),obj2.get_vscale());  //test xsl
           break;
           //modify e
         case T_INT:
@@ -979,10 +976,8 @@ namespace oceanbase
                   ObDecimal *od =NULL;
                   od=const_cast<ObDecimal *>(&E_obj.get_decimal());
                   uint32_t len = E_obj.get_len();
-                  //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(*od));  //test xsl
                   ObObj obj;
                   ret=obj.set_decimal_v2(*od,len);
-                  //TBSYS_LOG(INFO,"xushilei,test dec=[%s],len=[%d]",to_cstring(obj),len);  //test xsl
                   if(OB_SUCCESS != (ret =str_buf_.write_obj(obj, &result_)))   //自己申请一块内存存放着
                   {
                       TBSYS_LOG(ERROR, "fail to write object to string buffer. ret=%d", ret);
@@ -1192,7 +1187,6 @@ namespace oceanbase
                         result.set_len(len);
                         stack_[idx_i++] = result;
                         //add e
-                        //TBSYS_LOG(INFO,"xushilei,result=[%s],result.len=[%d],len=[%d]",to_cstring(result.get_decimal()),result.get_len(),len);   //test xsl
                     }
                     else if (OB_NO_RESULT == ret)
                     {
@@ -2224,7 +2218,6 @@ namespace oceanbase
 
     DEFINE_DESERIALIZE(ObPostfixExpression)
     {
-//      TBSYS_LOG(INFO, "xushilei,test ob_post"); //test xsl
       int ret = OB_SUCCESS;
       int i = 0;
       ObObj obj;
@@ -2272,7 +2265,6 @@ namespace oceanbase
             //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
             else if(ObDecimalType==obj.get_type())
             {
-//                TBSYS_LOG(INFO, "xushilei,test value=[%s]",to_cstring(obj)); //test xsl
                 if (OB_SUCCESS != (ret = str_buf_.write_obj(obj, &obj2)))
                 {
                     TBSYS_LOG(WARN, "fail to write object to string buffer. ret=%d", ret);
@@ -2610,7 +2602,6 @@ namespace oceanbase
       else
       {
         stack_i[idx_i-2].add(stack_i[idx_i-1], result);
-//        TBSYS_LOG(INFO,"xushilei,res=[%s]",to_cstring(result.get_decimal()));   //test xsl
         idx_i -= 2;
       }
       return err;
@@ -2659,7 +2650,6 @@ namespace oceanbase
         stack_i[idx_i-2].mul(stack_i[idx_i-1], result);
         idx_i -= 2;
       }
-      //TBSYS_LOG(INFO,"xushilei,test result=[%s]",to_cstring(result));   //test xsl
       return err;
     }
 

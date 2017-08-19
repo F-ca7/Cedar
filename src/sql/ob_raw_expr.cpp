@@ -252,8 +252,6 @@ int ObConstRawExpr::fill_sql_expression(
       //ret = value_.get_varchar(item.string_);
         ret = value_.get_decimal_v2(item.dec);
         item.len = value_.get_nwords();
-        //TBSYS_LOG(INFO,"xushilei,dec=[%s],len1=[%d],len2=[%d]",to_cstring(value_),item.len,value_.get_nwords());  //test xsl
-        //TBSYS_LOG(INFO,"xushilei,test dec=[%s]",to_cstring(item.dec));  //test xsl
       //modify:e
       //modify:e
       break;

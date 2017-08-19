@@ -150,7 +150,6 @@ int ObExprValues::open()
       TBSYS_LOG(WARN, "failed to eval exprs, err=%d", ret);
     }
   }
-//  TBSYS_LOG(INFO,"xushilei,test xsl!");   //test xsl
   return ret;
 }
 
@@ -428,7 +427,6 @@ int ObExprValues::eval()
          }
          else
          {
-//             TBSYS_LOG(INFO, "i=%ld j=%ld cell=%s", i, j, to_cstring(tmp_value));    //test xsl
          }
         } // end for
         if (OB_LIKELY(OB_SUCCESS == ret))
@@ -558,7 +556,6 @@ DEFINE_SERIALIZE(ObExprValues)
 
 DEFINE_DESERIALIZE(ObExprValues)
 {
-//  TBSYS_LOG(INFO, "xushilei,deserialize,ObExprValues!");  //test xsl
   int ret = OB_SUCCESS;
   int64_t tmp_pos = pos;
   //add zt 20151109:b

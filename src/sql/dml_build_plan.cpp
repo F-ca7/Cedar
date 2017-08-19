@@ -503,9 +503,6 @@ int resolve_expr(
        str=ObString::make_string(node->str_value_);
        ObObj val;
        ret = src.from(str.ptr(),str.length());
-
-       //TBSYS_LOG(INFO,"xushilei,test,dec=[%s]",to_cstring(src));    //test xsl
-
        TTInt t1;
        //TTInt *t2 = NULL;
        t1 = src.get_words()[0];
@@ -520,7 +517,6 @@ int resolve_expr(
        src_val = t1.ToUInt_v2();
        ob_write_decimal(*name_pool,src_val,len,dst_val);
        val.set_decimal(dst_val,src.get_precision(),src.get_scale(),src.get_vscale(),len);
-//       TBSYS_LOG(INFO,"xushilei,test,len=[%d],dec=[%s]",len,to_cstring(val));    //test xsl
        //add e
        //ob_write_decimal(*name_pool,t1,t2);
        //val.set_decimal(t2,src.get_precision(),src.get_scale(),src.get_vscale());
@@ -912,49 +908,44 @@ int resolve_expr(
             /*
             *由于在这里decimal的值是按照varchar存的，所以这里的处理就是在varchar的最前面加上一个负号
             */
-            case T_DECIMAL:
+          case T_DECIMAL:
+          {
+            //modify xsl ECNU_DECIMAL 2017_3
+            uint64_t *t1 = NULL;
+            uint64_t *t2 = NULL;
+            TTInt tt;
+            ObObj src_obj = const_expr->get_value();
+            if ((t1 = src_obj.get_ttint()) != NULL)
             {
-                //modify xsl ECNU_DECIMAL 2017_3
-                uint64_t *t1 = NULL;
-                uint64_t *t2 = NULL;
-                TTInt tt;
-                ObObj src_obj = const_expr->get_value();
-//                TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(src_obj));   //test xsl
-                if ((t1 = src_obj.get_ttint()) != NULL)
+              uint32_t len = src_obj.get_nwords();
+              if(len == 2)    //value_size=2
+              {
+                tt.FromUInt_v2(t1,src_obj.get_nwords());
+                tt.ChangeSign();
+                if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))
                 {
-                    uint32_t len = src_obj.get_nwords();
-                    if(len == 2)    //value_size=2
-                    {
-                        tt.FromUInt_v2(t1,src_obj.get_nwords());
-                        tt.ChangeSign();
-//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(tt.ToString().c_str()));   //test xsl
-                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))
-                        {
-                            TBSYS_LOG(WARN, "out of memory");
-                            break;
-                        }
-                    }
-                    else if(len == 1)
-                    {
-                        uint64_t tmp= *t1;   //1123
-                        TTInt tt = tmp;
-                        tt.ChangeSign();
-                        len = 2;
-//                        TBSYS_LOG(INFO,"xushilei,neg dec=[%lu]",tmp);   //test xsl
-                        if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))  //modify xsl
-                        {
-                            TBSYS_LOG(WARN, "out of memory");
-                            break;
-                        }
-                    }
-//                    TBSYS_LOG(INFO,"xushilei,neg dec=[%lu],len=[%d]",*t2,len);   //test xsl   -1123
-                    ObObj new_val;
-                    new_val.set_decimal(t2,src_obj.get_precision(),src_obj.get_scale(),src_obj.get_vscale(),len);
-//                    TBSYS_LOG(INFO,"xushilei,neg dec=[%s]",to_cstring(new_val));   //test xsl
-                    const_expr->set_value(new_val);
+                  TBSYS_LOG(WARN, "out of memory");
+                  break;
                 }
-                break;
+              }
+              else if(len == 1)
+              {
+                uint64_t tmp= *t1;   //1123
+                TTInt tt = tmp;
+                tt.ChangeSign();
+                len = 2;
+                if (OB_SUCCESS!= (ret = ob_write_decimal(*name_pool,tt.ToUInt_v2(),len,t2)))  //modify xsl
+                {
+                  TBSYS_LOG(WARN, "out of memory");
+                  break;
+                }
+              }
+              ObObj new_val;
+              new_val.set_decimal(t2,src_obj.get_precision(),src_obj.get_scale(),src_obj.get_vscale(),len);
+              const_expr->set_value(new_val);
             }
+            break;
+          }
             //add:e
             //modify:e
           default:

@@ -638,30 +638,27 @@ public:
 
     //add xsl ECNU_DECIMAL 2017_5
     void FromUInt_v2(uint64_t* value,uint32_t len) {
-        uint i;
-        if(len < value_size)   //such as 1<2
+      uint i;
+      if(len < value_size)   //such as 1<2
+      {
+        for (i = 0; i < len; ++i)   //default len =1
         {
-//            if((value[len- 1] & TTMATH_UINT_HIGHEST_BIT) == 0)   //>0
-//            {
-                for (i = 0; i < len; ++i)   //default len =1
-                    UInt<value_size>::table[i] = value[i];
-                for(i=len;i<value_size;i++)
-                    UInt<value_size>::table[i] = 0;
-//            }
-                /*
-            else                                        //<0
-            {
-                for (i = 0; i < len; ++i)   //default len =1
-                    UInt<value_size>::table[i] = -value[i];
-                for(i=len;i<value_size;i++)
-                    UInt<value_size>::table[i] = TTMATH_UINT_HIGHEST_BIT;    //test xsl
-            }*/
+          memcpy(&UInt<value_size>::table[i], &value[i], sizeof(uint64_t));
+          //UInt<value_size>::table[i] = value[i];
         }
-        else
+        for(i=len;i<value_size;i++)
         {
-            for (i = 0; i < value_size; ++i)
-                UInt<value_size>::table[i] = value[i];
+          UInt<value_size>::table[i] = 0;
         }
+      }
+      else
+      {
+        for (i = 0; i < value_size; ++i)
+        {
+          memcpy(&UInt<value_size>::table[i], &value[i], sizeof(uint64_t));
+          //UInt<value_size>::table[i] = value[i];
+        }
+      }
     }
 
     //add e

@@ -347,9 +347,7 @@ int ObValues::load_data()
                              //modify xsl ECNU_DECIMAL 2016_12
                              uint64_t *t1 = NULL;
                              t1 = ori_cell->get_ttint();
-//                             TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(*ori_cell));   //test xsl
                              tmp_cell.set_decimal(t1,schema_p,schema_s,ori_cell->get_vscale(),ori_cell->get_nwords());
-//                             TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(tmp_cell));   //test xsl
                              //modify e
                              if(OB_SUCCESS!=(ret_v2=ob_write_obj_v2(row_alloc,tmp_cell,result_cell)))
                              {}

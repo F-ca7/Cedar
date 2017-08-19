@@ -114,7 +114,6 @@ namespace oceanbase
           num++;
           tmp/=10;
       }
-      //TBSYS_LOG(INFO,"xushilei,int tmp=[%ld],num=[%d],t1=[%ld]",tmp,num,t1);    //test xsl
       ObDecimal od;
       od.from(num,0,0,t1);
       if(params.is_modify)
@@ -141,7 +140,6 @@ namespace oceanbase
           out.set_len(len);
          //add e
       }
-      //TBSYS_LOG(INFO,"xushilei,od value=[%s]",to_cstring(out.get_decimal()));    //test xsl
       return ret;
     }
     //add:e
@@ -362,12 +360,9 @@ namespace oceanbase
     {
       UNUSED(params);
       int ret = OB_SUCCESS;
-      int64_t start,end;
       //int p,s;
-      start= tbsys::CTimeUtil::getTime();
       OB_ASSERT(in.get_type() == ObDoubleType);
       ret=varchar_printf(out, "%f", in.get_double());
-      //TBSYS_LOG(INFO,"xushilei,double=[%lf]",in.get_double());     //test xsl
       if(ret==OB_SUCCESS)
       {
           ObString os;
@@ -409,26 +404,9 @@ namespace oceanbase
                   }
 
               }
-              /*modfiy xsl ECNU_DECIMAL 2017_2
-              p=od.get_precision();
-              s=od.get_scale();
-              //vs=od.get_vscale();
-              if(p-s >17)
-              {
-                  od.set_precision(17);
-                  od.set_scale();
-              }
-              if(p > 17)
-              {
-                  od.set_precision(17);
-              }
-              */
-              //modify e
-              //TBSYS_LOG(INFO,"xushilei,test,p=[%d]",od.get_precision()); //test xsl     20
               if(ret==OB_SUCCESS)
               {
                   //out.set_varchar(os);
-                  //TBSYS_LOG(INFO,"xushilei,od=[%s]",to_cstring(od));   //test xsl
                   out.set_decimal(od);
                   //add xsl ECNU_DECIMAL 2017_5
                   uint32_t len = 1;
@@ -441,8 +419,6 @@ namespace oceanbase
               }
           }
       }
-      end= tbsys::CTimeUtil::getTime();
-      //TBSYS_LOG(INFO,"xushilei,test_double_decimal=[%ld]",end-start);
       return ret;
     }
     //modify e
@@ -1590,11 +1566,7 @@ namespace oceanbase
         double v = 0.0;
         ObDecimal od_result=in.get_decimal();
         //test xsl 2017_3
-        int64_t start,end;
-        start = tbsys::CTimeUtil::getTime();
-        //TBSYS_LOG(INFO,"xushilei,test double,p=[%d],s=[%d],vs=[%d]",od_result.get_precision(),od_result.get_scale(),od_result.get_vscale()); //test xsl
         od_result.to_string(buf, MAX_PRINTABLE_SIZE);
-        //TBSYS_LOG(INFO,"xushilei,test double,value=[%s]",buf); //test xsl 没问题
         if (1 == sscanf(buf, "%lf", &v))
         {
             out.set_double(v);
@@ -1603,35 +1575,12 @@ namespace oceanbase
         {
             out.set_double(0.0);
         }
-        end= tbsys::CTimeUtil::getTime();
-//        TBSYS_LOG(INFO,"xushilei,test decimal_double,time=[%ld]",end-start);
-        //test e
-        /*modify xsl ECNU_DECIMAL 2017_2
-        int64_t Integer,frac;
-        double vs,value;
-        od_result.cast_to_int64(Integer);
-        TBSYS_LOG(INFO,"xushilei,test double,Integer=[%ld]",Integer); //test xsl
-        od_result.cast_to_frac(frac);
-        TBSYS_LOG(INFO,"xushilei,test double,frac=[%ld]",frac); //test xsl
-        vs = static_cast<double>(od_result.get_vscale());
-        v = static_cast<double>(Integer);
-        TBSYS_LOG(INFO,"xushilei,test double,v=[%lf]",v); //test xsl
-        value = static_cast<double>(frac)/pow(10,vs);
-        TBSYS_LOG(INFO,"xushilei,test double,value=[%lf]",value); //test xsl
-        v += value;
-        TBSYS_LOG(INFO,"xushilei,test double,value=[%lf]",v); //test xsl
-        out.set_double(v);
-        TBSYS_LOG(INFO,"xushilei,test double,value=[%lf]",v);
-        */
-        //modify e
-        //modify e
-        //TBSYS_LOG(INFO,"xushilei,test double,value=[%lf]",out.get_double()); //test xsl  有问题
-        //}
         return ret;
     }
     static int decimal_datetime(const ObObjCastParams &params, const ObExprObj &in, ObExprObj &out)
     {
-        /*int ret = OB_SUCCESS;
+      /*
+      int ret = OB_SUCCESS;
       UNUSED(params);
       OB_ASSERT(in.get_type() == ObDecimalType);
       int64_t i64 = 0;
@@ -1643,7 +1592,8 @@ namespace oceanbase
       {
         out.set_datetime(static_cast<ObDateTime>(i64));
       }
-      return ret;*/
+      return ret;
+      */
         int ret = OB_SUCCESS;
         UNUSED(params);
         OB_ASSERT(in.get_type() == ObDecimalType);
@@ -1980,7 +1930,6 @@ namespace oceanbase
     {
         int ret = OB_SUCCESS;
         ObObj obj_tmp;
-        //TBSYS_LOG(INFO,"xushilei,type=[%d]",orig_cell.get_type());   //test xsl
         //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
         if(orig_cell.get_type()==ObDecimalType && expected_type.get_type()==ObDecimalType)
         {
@@ -2014,14 +1963,12 @@ namespace oceanbase
                     res_cell = &casted_cell;
                 }
             }
-            //TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(casted_cell));   //test xsl
         }
         else   //至少有一个不是decimal
         {
             if (orig_cell.get_type() != expected_type.get_type())
             {
                 // type cast
-                //TBSYS_LOG(INFO, "orig_cell is %s,expected_type is %s ",to_cstring(orig_cell), to_cstring(expected_type));// add xsl
                 ObObjCastParams params;
                 params.is_modify=true;
                 params.precision=expected_type.get_precision();
@@ -2061,7 +2008,6 @@ namespace oceanbase
                     {
                         res_cell = &casted_cell;
                     }
-                    //TBSYS_LOG(INFO,"xushilei,casted_cell value=[%s]",to_cstring(*res_cell));    //test xsl
                 }
             }
             else
@@ -2131,7 +2077,6 @@ namespace oceanbase
         {
             res_cell = &orig_cell;
         }
-        //TBSYS_LOG(WARN, "xushilei,test::obj_cast::p=%d,s=%d, type=%d", res_cell->get_precision(),res_cell->get_scale(),res_cell->get_type());
         return ret;
     }
     //add e
@@ -2165,8 +2110,6 @@ namespace oceanbase
                 to.assign(varchar_cell);
             }
             //add:e
-            //TBSYS_LOG(INFO,"xushilei,test cell.type=[%d],expected_type=[%d]",cell.get_type(),expected_type);  //test xsl
-            //TBSYS_LOG(INFO,"xushilei,test cell=[%s]",to_cstring(cell));  //test xsl
             if (OB_SUCCESS != (ret = OB_OBJ_CAST[cell.get_type()][expected_type](params, from, to)))  //cell=12,
             {
                 TBSYS_LOG(WARN, "failed to type cast obj, err=%d", ret);

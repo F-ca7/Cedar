@@ -828,7 +828,6 @@ namespace oceanbase
                tt.FromUInt_v2(src_val,len);
                ObDecimal dec2;
                dec2.from(src.get_precision(),src.get_scale(),src.get_vscale(),tt); //p=schema_p,s=schema_s,vs=dec_vs
-               //TBSYS_LOG(INFO, "xushilei,p=[%d],s=[%d],vs=[%d]",src.get_precision(),src.get_scale(),src.get_vscale());  //test xsl
                if(OB_SUCCESS != ret)
                {
                    TBSYS_LOG(WARN, "faild to do get_decimal()");

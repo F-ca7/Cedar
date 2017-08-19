@@ -296,7 +296,6 @@ int ObObj::set_decimal_v2(const ObDecimal& od, uint32_t len)    //decimal
     meta_.op_flag_ = INVALID_OP_FLAG;
     meta_.dec_nwords_ = static_cast<uint8_t>(len) & META_NWORDS_MASK;
     value_.ii=const_cast<ObDecimal &>(od).get_words()->ToUInt_v2();   //dec指针的赋值
-    //TBSYS_LOG(INFO,"xushilei,len=[%d]",len);  //test xsl
     return ret;
 }
 
@@ -829,8 +828,6 @@ int ObObj::apply(const ObObj &mutation)
         uint64_t *t1 =NULL;
         t1 = mutation.get_ttint();
         err = set_decimal(t1,mutation.get_precision(),mutation.get_scale(),mutation.get_vscale(),mutation.get_nwords());
-//        TBSYS_LOG(INFO,"xushilei,dec=[%s]",to_cstring(*this));   //test xsl
-//        TBSYS_LOG(INFO,"xushilei,decimal,value=[%s],p=[%d],s=[%d]",to_cstring(*this),this->get_precision(),this->get_scale());  //test xsl
         if(OB_SUCCESS != err)
         {
           TBSYS_LOG(ERROR,"set_decimal failed,err=%d", err);
@@ -1226,8 +1223,6 @@ DEFINE_SERIALIZE(ObObj)
       case ObDecimalType:
         //modify xsl ECNU_DECIMAL 2016_12
         //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-//        TBSYS_LOG(INFO,"xushilei,decimal=[%s],len1=[%lu],len2=[%lu],p=[%d],s=[%d],vs=[%d],n=[%d]",to_cstring(*this),sizeof(uint64_t)*get_nwords(),sizeof(*this),
-//                  meta_.dec_precision_,meta_.dec_scale_,meta_.dec_vscale_,meta_.dec_nwords_);   //8 16 test xsl
         ret=serialization::encode_comm_decimal(buf,buf_len,tmp_pos,obj_op_flag == ADD,meta_.dec_precision_,
             meta_.dec_scale_, meta_.dec_vscale_,value_.ii,(int32_t)sizeof(uint64_t)*get_nwords());
         //modify e
@@ -1345,9 +1340,7 @@ DEFINE_DESERIALIZE(ObObj)
                             int8_t s = 0;
                             int8_t vs = 0;
                             int32_t l=0;
-//                            TBSYS_LOG(INFO,"xushilei,deserialize!");  //test xsl
                             ret=serialization::decode_comm_decimal(buf,data_len,tmp_pos,is_add,p,s,vs,o_ptr,l);
-//                            TBSYS_LOG(INFO,"xushilei,deserialize,value=[%s],l=[%d]",o_ptr,l);  //test xsl
                             meta_.dec_precision_ = static_cast<uint8_t>(p) & META_PREC_MASK;
                             meta_.dec_scale_ = static_cast<uint8_t>(s) & META_SCALE_MASK;
                             meta_.dec_vscale_ = static_cast<uint8_t>(vs) & META_VSCALE_MASK;
@@ -1362,8 +1355,6 @@ DEFINE_DESERIALIZE(ObObj)
                             {
                                 value_.ii = reinterpret_cast<uint64_t *>(o_ptr);
                             }
-//                            TBSYS_LOG(INFO,"xushilei,deserialize,value=[%s],p=[%d],s=[%d],vs=[%d],n=[%d]",to_cstring(*this),meta_.dec_precision_,meta_.dec_scale_,meta_.dec_vscale_,
-//                                      meta_.dec_nwords_);  //test xsl
                             //modify e
                               break;
                             }
@@ -1581,9 +1572,7 @@ DEFINE_GET_SERIALIZE_SIZE(ObObj)
               scale:1 byte,scale of decimal
               vscale: 1 byte,scale of decimal
         */
-      //TBSYS_LOG(INFO,"xushilei,ob_object,len=[%ld]",len);    //test xsl  0
       len += serialization::encoded_length_decimal_comm((int32_t)sizeof(uint64_t)*get_nwords());
-      //TBSYS_LOG(INFO,"xushilei,ob_object,len=[%ld]",len);     //test xsl  17
       //modify:e
       break;
     default:

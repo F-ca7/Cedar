@@ -631,7 +631,6 @@ int ObAggregateFunction::calc_aggr_cell(const ObItemType aggr_fun, const ObObj &
             }
             result.set_len(len);
             //add e
-//            TBSYS_LOG(INFO,"xushilei,result=[%s],result.len=[%d],len=[%d]",to_cstring(result.get_decimal()),result.get_len(),len);   //test xsl
             if (OB_SUCCESS == ret)
             {
               res1 = result;

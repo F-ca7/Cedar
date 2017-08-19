@@ -245,15 +245,10 @@ namespace oceanbase {
          //modify xsl ECNU_DECIMAL 2017_1
          int32_t value_len;
          value_len=obj.get_nwords();
-//         if(value_len ==1)
-//             TBSYS_LOG(INFO,"xushilei,decimal,len =[%d],value=[%lu],value=[%ld]",value_len,t1[0],t1[0]);  //test xsl
-//         else
-//             TBSYS_LOG(INFO,"xushilei,decimal,len =[%d],value=[%lu],value2=[%lu]",value_len,t1[0],t1[2]);  //test xsl
          ObDecimal dec;
          TTInt tt;
          tt.FromUInt_v2(t1,value_len);
          dec.from(obj.get_precision(),obj.get_scale(),obj.get_vscale(),tt);
-//         TBSYS_LOG(INFO,"xushilei,decimal,value=[%s],p=[%d],s=[%d]",to_cstring(dec),dec.get_precision(),dec.get_scale());  //test xsl
          //modify e
          const char *s = to_cstring(dec);
          length=static_cast<int64_t>(strlen(s));
@@ -493,9 +488,7 @@ namespace oceanbase {
       }
       else if (OB_SUCCESS == ret && obj.get_type() == ObDoubleType)
       {
-        //TBSYS_LOG(INFO,"xushilei,value_d=[%s]",to_cstring(obj));   //test xsl
         ret = obj.get_double(value_d);
-        //TBSYS_LOG(INFO,"xushilei,value_d=[%lf]",value_d);        //test xsl
         if (BINARY == type_)
         {
           if (OB_SUCCESS == ret && len - pos > static_cast<int64_t>(sizeof(value_d)))

@@ -482,7 +482,6 @@ namespace oceanbase
       int64_t new_pos = pos;
       int err = OB_SUCCESS;
       int64_t start_ts = tbsys::CTimeUtil::getTime();
-//      TBSYS_LOG(INFO, "xushilei,deserialize,upsinc!");  //test xsl  执行
       if( OB_SUCCESS != (err = serialization::decode_bool(buf, data_len, new_pos, &group_exec_mode_)))
       {
         TBSYS_LOG(ERROR, "deserialize(buf=%p[%ld-%ld])=>%d", buf, new_pos, data_len, err);
@@ -526,7 +525,6 @@ namespace oceanbase
           }
           else
           {
-//            TBSYS_LOG(INFO, "xushilei,deserialize,inc,value=[%s]!",to_cstring(input_values_));  //test xsl
             input_values_.set_phy_plan(my_phy_plan_);
           }
         }
