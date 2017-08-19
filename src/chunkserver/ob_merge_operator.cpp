@@ -49,6 +49,7 @@ namespace oceanbase
       memset(&same_column_next_, -1, sizeof(same_column_next_));
       merger_iter_ = &merger_;
       cur_cell_initializer_.reset();
+      is_static_truncated_ = false; /*add hxlong [Truncate Table]:20170318*/
     }
     
     ObMergeOperator::ObMergeOperator(ObMergerRpcProxy &rpc_proxy)
@@ -85,10 +86,11 @@ namespace oceanbase
         ObCellStream &ups_stream, 
         const ObSchemaManagerV2 &schema_mgr,
         const int64_t max_memory_size,
-        const bool unmerge_if_unchanged)
+        const bool unmerge_if_unchanged,
+        const bool is_static_truncated) /*add hxlong [Truncate Table]:20160318 param:is_static_truncated*/
     {
       int err = OB_SUCCESS;
-
+      is_static_truncated_ = is_static_truncated; /*add hxlong [Truncate Table]:20170318*/
       /**
        * if dynamic cast fail, it returns NULL
        */
@@ -1054,13 +1056,37 @@ namespace oceanbase
     
       if (OB_SUCCESS == err)
       {
-        err = rpc_proxy_->cs_scan(cur_scan_param_, cur_cs_result_, cur_cs_cell_it,it_size);
-        TBSYS_LOG(DEBUG, "OP:cs_scan [data_version:%ld,res:%d]", cur_cs_result_.get_data_version(), err);
+          //mod hxlong [Truncate Table]:20170318:b
+          //err = rpc_proxy_->cs_scan(cur_scan_param_, cur_cs_result_, cur_cs_cell_it,it_size);
+          //TBSYS_LOG(DEBUG, "OP:cs_scan [data_version:%ld,res:%d]", cur_cs_result_.get_data_version(), err);
+          if (!is_static_truncated_)
+          {
+            err = rpc_proxy_->cs_scan(cur_scan_param_, cur_cs_result_, cur_cs_cell_it,it_size);
+            TBSYS_LOG(DEBUG, "OP:cs_scan [data_version:%ld,res:%d]", cur_cs_result_.get_data_version(), err);
+
+          }
+          else
+          {
+            cur_cs_result_.reset();
+            it_size = 0;
+          }
+          //mod:e
       }
     
       if (OB_SUCCESS == err)
       {
-        err = get_ups_param(cur_scan_param_,cur_cs_result_, ups_scan_buffer_);
+          //mod hxlong [Truncate Table]:20170318:b
+          //err = get_ups_param(cur_scan_param_,cur_cs_result_, ups_scan_buffer_);
+          if (!is_static_truncated_)
+          {
+            err = get_ups_param(cur_scan_param_,cur_cs_result_, ups_scan_buffer_);
+          }
+          else
+          {
+            err = get_ups_param(cur_scan_param_,ups_scan_buffer_);
+            //err = get_ups_param_truncate(cur_scan_param_, ups_scan_buffer_);
+          }
+          //mod:e
         if (OB_SUCCESS == err)
         {
           is_need_query_ups_ = true;

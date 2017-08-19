@@ -48,8 +48,10 @@ namespace oceanbase
     int64_t QueryEngine::HASH_SIZE = 50000000;
     QueryEngine::QueryEngine(MemTank &allocer) : inited_(false),
                                                  btree_alloc_(allocer),
+                                                 table_btree_alloc_(allocer), /*add hxlong [Truncate Table]:20170403*/
                                                  hash_alloc_(allocer),
                                                  keybtree_(btree_alloc_),
+                                                 table_keybtree_(table_btree_alloc_), /*add hxlong [Truncate Table]:20170318*/
                                                  keyhash_(hash_alloc_, hash_alloc_)
     {
     }
@@ -80,6 +82,12 @@ namespace oceanbase
         {
           TBSYS_LOG(WARN, "keybtree init fail");
         }
+        //add hxlong [Truncate Table]:20170318:b
+        else if (ERROR_CODE_OK != (ret = table_keybtree_.init()))
+        {
+          TBSYS_LOG(WARN, "table_keybtree init fail");
+        }
+        //add:e
         else
         {
           inited_ = true;
@@ -98,6 +106,7 @@ namespace oceanbase
       else
       {
         keybtree_.destroy();
+        table_keybtree_.destroy(); /*add hxlong [Truncate Table]:20170318*/
         keyhash_.destroy();
         inited_ = false;
       }
@@ -114,6 +123,7 @@ namespace oceanbase
       else
       {
         keybtree_.clear();
+        table_keybtree_.clear(); /*add hxlong [Truncate Table]:20170318*/
         keyhash_.clear();
       }
       return ret;
@@ -138,6 +148,23 @@ namespace oceanbase
         TBSYS_LOG(INFO, "value null pointer");
         ret = OB_ERROR;
       }
+      //add hxlong [Truncate Table]:20170318:b
+      else if (0 == key.row_key.length())
+      {
+        value->index_stat = IST_NO_INDEX;
+        if (ERROR_CODE_OK != (btree_ret = table_keybtree_.put(key, value, true)))
+        {
+          TBSYS_LOG(WARN, "put to keybtree fail btree_ret=%d [%s] [%s]",
+                    btree_ret, key.log_str(), value->log_str());
+          ret = (ERROR_CODE_ALLOC_FAIL == btree_ret) ? OB_MEM_OVERFLOW : OB_ERROR;
+        }
+        else
+        {
+          value->index_stat |= IST_BTREE_INDEX;
+          TBSYS_LOG(DEBUG, "insert to btree succ %s %s", key.log_str(), value->log_str());
+        }
+      }
+      //add:e
       else if (OB_SUCCESS != (hash_ret = keyhash_.insert(hash_key, value)))
       {
         if (OB_ENTRY_EXIST != hash_ret)
@@ -174,6 +201,20 @@ namespace oceanbase
       {
         TBSYS_LOG(WARN, "have not inited");
       }
+      //add hxlong [Truncate Table]:20170318
+      else if (0 == key.row_key.length())
+      {
+        int btree_ret = ERROR_CODE_OK;
+        if (ERROR_CODE_OK != (btree_ret = table_keybtree_.get(key, ret))
+            || NULL == ret)
+        {
+          if (ERROR_CODE_NOT_FOUND != btree_ret)
+          {
+            TBSYS_LOG(WARN, "get from table_keybtree fail btree_ret=%d %s", btree_ret, key.log_str());
+          }
+        }
+      }
+      //add:e
       else if (g_conf.using_hash_index)
       {
         TEHashKey hash_key;
@@ -311,7 +352,99 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int QueryEngine::scan_table(const TEKey &start_key,
+                          const int min_key,
+                          const int start_exclude,
+                          const TEKey &end_key,
+                          const int max_key,
+                          const int end_exclude,
+                          const bool reverse,
+                          QueryEngineIterator &iter)
+    {
+      int ret = OB_SUCCESS;
+      int btree_ret = ERROR_CODE_OK;
+      if (!inited_)
+      {
+        TBSYS_LOG(WARN, "have not inited");
+        ret = OB_ERROR;
+      }
+      else if (ERROR_CODE_OK != (btree_ret = table_keybtree_.get_scan_handle(iter.get_read_handle_())))
+      {
+        TBSYS_LOG(WARN, "btree get scan handle fail btree_ret=%d", btree_ret);
+        ret = OB_ERROR;
+      }
+      else
+      {
+        btree_ret = ERROR_CODE_OK;
+        const TEKey *scan_start_key_ptr = NULL;
+        const TEKey *scan_end_key_ptr = NULL;
+        int start_exclude_ = start_exclude;
+        int end_exclude_ = end_exclude;
+        TEKey btree_min_key;
+        TEKey btree_max_key;
+        if (0 != min_key)
+        {
+          btree_ret = table_keybtree_.get_min_key(btree_min_key);
+          if (ERROR_CODE_OK != btree_ret)
+          {
+            TBSYS_LOG(WARN, "get min key from btree fail btree_ret=%d", btree_ret);
+            ret = OB_ERR_UNEXPECTED;
+          }
+          else
+          {
+            scan_start_key_ptr = &btree_min_key;
+            start_exclude_ = 0;
+          }
+        }
+        else
+        {
+          scan_start_key_ptr = &start_key;
+        }
+        if (0 != max_key)
+        {
+          btree_ret = table_keybtree_.get_max_key(btree_max_key);
+          if (ERROR_CODE_OK != btree_ret)
+          {
+            TBSYS_LOG(WARN, "get max key from btree fail btree_ret=%d", btree_ret);
+            ret = OB_ERR_UNEXPECTED;
+          }
+          else
+          {
+            scan_end_key_ptr = &btree_max_key;
+            end_exclude_ = 0;
+          }
+        }
+        else
+        {
+          scan_end_key_ptr = &end_key;
+        }
+        if (reverse)
+        {
+          std::swap(scan_start_key_ptr, scan_end_key_ptr);
+          std::swap(start_exclude_, end_exclude_);
+        }
+        if (OB_SUCCESS == ret)
+        {
+          btree_ret = table_keybtree_.set_key_range(iter.get_read_handle_(),
+                                              *scan_start_key_ptr, start_exclude_,
+                                              *scan_end_key_ptr, end_exclude_);
+          TBSYS_LOG(DEBUG, "[BTREE_SCAN_PARAM] [%s] %d [%s] %d",
+                    scan_start_key_ptr->log_str(), start_exclude_, scan_end_key_ptr->log_str(), end_exclude_);
+          if (ERROR_CODE_OK != btree_ret)
+          {
+            TBSYS_LOG(WARN, "set key range to btree scan handle fail btree_ret=%d", btree_ret);
+            ret = OB_ERR_UNEXPECTED;
+          }
+          else
+          {
+            iter.set_(&table_keybtree_);
+          }
+        }
+      }
+      return ret;
+    }
+    //add:e
     void QueryEngine::dump2text(const char *fname)
     {
       const int64_t BUFFER_SIZE = 1024;
@@ -387,7 +520,37 @@ namespace oceanbase
     {
       return keyhash_.uninit_unit_num();
     }
-
+    //add hxlong [Truncate Table]:20170318:b
+    int QueryEngine::get_table_truncate_stat(uint64_t table_id, bool & is_truncated)
+    {
+      is_truncated = false;
+      int ret = OB_SUCCESS;
+      TEKey key;
+      TEValue * value = NULL;
+      if (table_id == OB_INVALID_ID )
+      {
+        ret = OB_INVALID_ARGUMENT;
+      }
+      else
+      {
+        key.table_id = table_id;
+        int btree_ret = ERROR_CODE_OK;
+        if (ERROR_CODE_OK != (btree_ret = table_keybtree_.get(key, value))
+            || NULL == value)
+        {
+          if (ERROR_CODE_NOT_FOUND != btree_ret)
+          {
+            TBSYS_LOG(WARN, "get from table_keybtree fail btree_ret=%d %s", btree_ret, key.log_str());
+          }
+        }
+        else if (value->cell_info_cnt > 0)
+        {
+          is_truncated = true;
+        }
+      }
+      return ret;
+    }
+    //add:e
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     QueryEngineIterator::QueryEngineIterator() : keybtree_(NULL), read_handle_(), key_(), pvalue_(NULL)

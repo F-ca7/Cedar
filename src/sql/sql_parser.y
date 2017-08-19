@@ -137,7 +137,7 @@ do \
        CONSISTENT COLUMN COLUMNS CREATE CREATETIME
        CURRENT_USER CHANGE_OBI SWITCH_CLUSTER
 %token DATE DATETIME DEALLOCATE DECIMAL DEFAULT DELETE DESC DESCRIBE
-       DISTINCT DOUBLE DROP DUAL
+       DISTINCT DOUBLE DROP DUAL TRUNCATE /*add hxlong [Truncate Table]:20170403 add 'TRUNCATE'*/
 %token ELSE END END_P ERROR EXCEPT EXECUTE EXISTS EXPLAIN
 %token FLOAT FOR FROM FULL FROZEN FORCE
 %token GLOBAL GLOBAL_ALIAS GRANT GROUP
@@ -250,7 +250,9 @@ do \
 /* add maoxx [bloomfilter_join] 20160406 */
 %type <node> join_op_type_list join_op_type
 /* add e */
-
+/*add hxlong[truncate table] 20170304:b*/
+%type <node> truncate_table_stmt
+/*add 20170304:e*/
 %start sql_stmt
 %%
 
@@ -323,6 +325,9 @@ stmt:
   | rollback_stmt {$$ = $1;}
   | kill_stmt {$$ = $1;}
   | lock_table_stmt {$$ = $1;}
+  /*add hxlong[truncate table] 20170403:b*/
+  | truncate_table_stmt { $$ = $1;}
+  /*add:e*/
   | /*EMPTY*/   { $$ = NULL; }
   ;
 
@@ -1539,7 +1544,22 @@ table_list:
       malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
     }
   ;
+/*add hxlong[truncate table] 20170403:b*/
+/*****************************************************************************
+ *
+ *	truncate table grammar
+ *
+ *****************************************************************************/
+truncate_table_stmt:
+        TRUNCATE TABLE opt_if_exists table_list opt_comment
+        {
+          ParseNode *tables = NULL;
+          merge_nodes(tables, result->malloc_pool_, T_TABLE_LIST, $4);
+          malloc_non_terminal_node($$, result->malloc_pool_, T_TRUNCATE_TABLE, 3, $3, tables, $5);
+        }
+      ;
 
+ /*add:e*/
 /*****************************************************************************
  *
  *	drop index grammar
@@ -2874,6 +2894,12 @@ priv_type:
       $$->value_ = OB_PRIV_DELETE;
     }
     | DROP
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_PRIV_TYPE);
+      $$->value_ = OB_PRIV_DROP;
+    }
+    /*add hxlong [Truncate Table]:20170403 add 'TRUNCATE'*/
+    | TRUNCATE
     {
       malloc_terminal_node($$, result->malloc_pool_, T_PRIV_TYPE);
       $$->value_ = OB_PRIV_DROP;

@@ -400,7 +400,30 @@ int ObMergerRootRpcProxy::drop_table(bool if_exists, const common::ObStrings & t
   }
   return ret;
 }
-
+//add hxlong [Truncate Table]:20170403:b
+int ObMergerRootRpcProxy::truncate_table(bool if_exists, const common::ObStrings & tables, const common::ObString & user, const common::ObString & comment)
+{
+  int ret = OB_SUCCESS;
+  if (!check_inner_stat())
+  {
+    TBSYS_LOG(ERROR, "check inner stat failed");
+    ret = OB_INNER_STAT_ERROR;
+  }
+  else
+  {
+    ret = rpc_stub_->truncate_table(CREATE_DROP_TABLE_TIME_OUT, root_server_, if_exists, tables, user, comment);
+    if (ret != OB_SUCCESS)
+    {
+      TBSYS_LOG(WARN, "failed to truncate table, err=%d", ret);
+    }
+    else
+    {
+      TBSYS_LOG(DEBUG, "truncate table succ, tables=%s", to_cstring(tables));
+    }
+  }
+  return ret;
+}
+//add:e
 int ObMergerRootRpcProxy::alter_table(const common::AlterTableSchema& alter_schema)
 {
   int ret = OB_SUCCESS;

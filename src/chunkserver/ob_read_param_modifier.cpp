@@ -430,5 +430,18 @@ namespace oceanbase
       }
       return err;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int get_ups_param( common::ObScanParam & param, ObMemBuf &range_buffer )
+    {
+      int err = OB_SUCCESS;
+      ObNewRange new_range = *param.get_range();
+      err = allocate_range_buffer(new_range,range_buffer);
+      if (OB_SUCCESS == err)
+      {
+        param.set(param.get_table_id(),param.get_table_name(),new_range);
+      }
+      return err;
+    }
+    //mod:e
   } // end namespace chunkserver
 } // end namespace oceanbase

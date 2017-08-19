@@ -227,6 +227,10 @@ typedef enum ObItemType
   T_COLUMN_DROP,
   T_COLUMN_ALTER,
   T_COLUMN_RENAME,
+  //add hxlong [Truncate Table] 20170403:b
+  T_TRUNCATE_TABLE,
+  //add:e
+
 
   T_ALTER_SYSTEM,
   T_CHANGE_OBI,

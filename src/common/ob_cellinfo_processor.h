@@ -65,6 +65,12 @@ namespace oceanbase
                 need_skip_ = false;
                 cur_op_type_ = ObActionFlag::OP_DEL_ROW;
                 break;
+             //add hxlong [Truncate Table]:20170403:b
+              case ObActionFlag::OP_TRUN_TAB:
+                need_skip_ = false;
+                cur_op_type_ = ObActionFlag::OP_TRUN_TAB;
+                break;
+             //add:e
               case ObActionFlag::OP_NOP:
                 need_skip_ = false;
                 cur_op_type_ = ObActionFlag::OP_NOP;

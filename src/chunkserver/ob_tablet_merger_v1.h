@@ -225,6 +225,7 @@ namespace oceanbase
         ObRowDesc column_checksum_row_desc_; ///<row description for column checksum
         uint64_t max_data_table_cid_; ///<max column id of data table
         //add e
+        bool is_static_truncated_; /*add hxlong [Truncate Table]:20170318*/
     };
   } /* chunkserver */
 } /* oceanbase */

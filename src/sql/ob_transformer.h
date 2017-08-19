@@ -642,6 +642,12 @@ namespace oceanbase
             ErrStat& err_stat,
             const uint64_t& query_id,
             int32_t* index);
+        int gen_physical_truncate_table(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index); //add hxlong [truncate table] 20170403
         int gen_physical_alter_table(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,

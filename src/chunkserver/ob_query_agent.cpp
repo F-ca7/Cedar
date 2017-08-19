@@ -41,7 +41,7 @@ namespace oceanbase
         const ObSchemaManagerV2& schema_mgr, 
         const ObOperatorMemLimit& mem_limit,
         const int64_t timeout_time,
-        const bool unmerge_if_unchanged) 
+        const bool unmerge_if_unchanged,const bool is_static_truncated) /*add hxlong [Truncate Table]:20170318 param:is_static_truncated*/
     {
       int ret = OB_SUCCESS;
       clear();
@@ -76,8 +76,12 @@ namespace oceanbase
 
       if (OB_SUCCESS == ret)
       {
-        ret = query_stage_machine(read_param, ups_stream, ups_join_stream, 
-          schema_mgr, unmerge_if_unchanged);
+          //mod hxlong [Truncate Table]:20170318
+  //        ret = query_stage_machine(read_param, ups_stream, ups_join_stream,
+  //                                  schema_mgr, unmerge_if_unchanged);
+          ret = query_stage_machine(read_param, ups_stream, ups_join_stream,
+            schema_mgr, unmerge_if_unchanged, is_static_truncated);
+          //mod:e
         if (OB_ITER_END == ret)
         {
           //ignore OB_ITER_END, call next_cell() will return OB_ITER_END again
@@ -371,7 +375,7 @@ namespace oceanbase
         ObCellStream& ups_stream, 
         ObCellStream& ups_join_stream, 
         const ObSchemaManagerV2& schema_mgr,
-        const bool unmerge_if_unchanged)
+        const bool unmerge_if_unchanged,const bool is_static_truncated) /*add hxlong [Truncate Table]:20170318 param:is_static_truncated*/
     {
       int ret = OB_SUCCESS;
 
@@ -383,10 +387,16 @@ namespace oceanbase
       }
       else
       {
-        ret = merge_join_operator_.start_merge_join(
-          read_param, ups_stream, ups_join_stream, schema_mgr, 
-          mem_limit_.merge_mem_size_, mem_limit_.max_merge_mem_size_,
-          unmerge_if_unchanged);
+          //mod hxlong [Truncate Table]:20160318:b
+  //        ret = merge_join_operator_.start_merge_join(
+  //              read_param, ups_stream, ups_join_stream, schema_mgr,
+  //              mem_limit_.merge_mem_size_, mem_limit_.max_merge_mem_size_,
+  //              unmerge_if_unchanged);
+          ret = merge_join_operator_.start_merge_join(
+                read_param, ups_stream, ups_join_stream, schema_mgr,
+                mem_limit_.merge_mem_size_, mem_limit_.max_merge_mem_size_,
+                unmerge_if_unchanged, is_static_truncated);
+          //mod:e
         if (OB_SUCCESS == ret && OB_SUCCESS == (ret = timeout_check()))
         {
           cur_stage_idx_++;

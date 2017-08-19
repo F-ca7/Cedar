@@ -521,7 +521,10 @@ namespace oceanbase
         int create_table(const bool if_not_exists, const common::TableSchema &tschema);
         int alter_table(common::AlterTableSchema &tschema);
         int drop_tables(const bool if_exists, const common::ObStrings &tables);
-
+        //add hxlong [Truncate Table]:20170318:b
+        int truncate_tables(const bool if_exists, const common::ObStrings &tables, const common::ObString &user, const common::ObString & comment);
+        int truncate_one_table( const common::ObMutator & mutator);
+        //add:e
         //add by wangdonghui 20160121 :b
         /**
          * @brief create_procedure

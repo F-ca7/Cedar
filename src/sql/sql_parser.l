@@ -338,8 +338,10 @@ FORCE             { return FORCE;  }
 
 INDEX		  { return INDEX;  }
 STORING		  { return STORING;  }
-
- /* add maoxx [bloomfilter_join] 20160406 */
+  /* add hxlong [truncate table] 20170403 */
+TRUNCATE      { return TRUNCATE; }
+  /* add e */
+  /* add maoxx [bloomfilter_join] 20160406 */
 BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
 MERGE_JOIN  { return  MERGE_JOIN; }
  /* add e */

@@ -73,7 +73,9 @@ namespace oceanbase
         virtual int update_whole_cache(const common::ObServer& server, common::ObNameCodeMap* name_code_map, const int64_t timeout_us);
 
         //add :e
-
+        //add hxlong [truncate table] 20170403:b
+        virtual int truncate_table(const common::ObServer& server, const common::ObMutator& mutator, const int64_t timeout_us);
+        //add:e
         virtual int migrate_tablet(const common::ObServer& src_cs, const common::ObDataSourceDesc& desc, const int64_t timeout_us);
         virtual int create_tablet(const common::ObServer& cs, const common::ObNewRange& range, const int64_t mem_version, const int64_t timeout_us);
         virtual int delete_tablets(const common::ObServer& cs, const common::ObTabletReportInfoList &tablets, const int64_t timeout_us);
