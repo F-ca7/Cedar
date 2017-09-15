@@ -129,6 +129,27 @@ namespace oceanbase
           common::ObString new_string(value.size(),value.length(),buf);
           ret->value.set_varchar(new_string);
         }
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        //modify xsl ECNU_DECIMAL 2016_12
+        else if(ObDecimalType == other.value.get_type())
+        {
+            //common::ObString value;
+            ObDecimal value;
+            //other.value.get_varchar(value);
+            other.value.get_decimal(value);
+            buf = buf + sizeof(updateserver::ObUpsCacheValue);
+            //memcpy(buf,value.ptr(),value.length());
+            memcpy(buf,value.get_words()->ToUInt_v2(),other.value.get_nwords()*sizeof(uint64_t));
+            ObDecimal *new_decimal = NULL;
+            new_decimal = reinterpret_cast<ObDecimal *>(buf);
+            //TBSYS_LOG(INFO,"xushilei,12.11, UPS_CACHE,new_decimal,[%s]",to_cstring(*new_decimal));
+            //common::ObString new_string(value.size(),value.length(),buf);
+            //ret->value.set_decimal(new_string,other.value.get_precision(),other.value.get_scale(),other.value.get_vscale());
+            ret->value.set_decimal(new_decimal);
+            ret->value.set_nwords(other.value.get_nwords());  //add xsl
+        }
+        //modify e
+        //add:e
         else
         {
           //do nothing;

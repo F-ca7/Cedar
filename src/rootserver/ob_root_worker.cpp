@@ -1320,6 +1320,7 @@ namespace oceanbase
         case OB_FORCE_CREATE_TABLE_FOR_EMERGENCY:
         case OB_FORCE_DROP_TABLE_FOR_EMERGENCY:
         case OB_DROP_TABLE:
+        case OB_TRUNCATE_TABLE: //add hxlong [truncate table]20170403
         //add wenghaixing [secondary index drop index]20141223
         case OB_DROP_INDEX:
         //add e
@@ -1561,6 +1562,11 @@ namespace oceanbase
                     case OB_DROP_TABLE:
                       return_code = rt_drop_table(version, *in_buf, req, channel_id, thread_buff);
                       break;
+                     //add hxlong [truncate table] 20170402
+                    case OB_TRUNCATE_TABLE:
+                      return_code = rt_truncate_table(version, *in_buf, req, channel_id, thread_buff);
+                      break;
+                      //add:e
                     //add longfei
                     case OB_DROP_INDEX:
                       return_code = rt_drop_index(version, *in_buf, req, channel_id, thread_buff);
@@ -5867,6 +5873,74 @@ int ObRootWorker::rt_get_boot_state(const int32_t version, common::ObDataBuffer&
       }
       return ret;
     }
+    //add hxlong [Truncate Table]:20170403:b
+    int ObRootWorker::rt_truncate_table(const int32_t version, common::ObDataBuffer& in_buff,
+        onev_request_e* req, const uint32_t channel_id, common::ObDataBuffer& out_buff)
+    {
+      int ret = OB_SUCCESS;
+      static const int MY_VERSION = 1;
+      common::ObResultCode res;
+      common::ObiRole::Role role = root_server_.get_obi_role().get_role();
+      if (MY_VERSION != version)
+      {
+        TBSYS_LOG(WARN, "un-supported rpc version=%d", version);
+        res.result_code_ = OB_ERROR_FUNC_VERSION;
+      }
+      else if (role != common::ObiRole::MASTER)
+      {
+        res.result_code_ = OB_OP_NOT_ALLOW;
+        TBSYS_LOG(WARN, "ddl operation not allowed in slave cluster");
+      }
+      else
+      {
+        bool if_exists = false;
+        ObStrings tables;
+        ObString user;
+        ObString comment;
+        if (OB_SUCCESS != (ret = serialization::decode_bool(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position(), &if_exists)))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = tables.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = user.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = comment.deserialize(in_buff.get_data(),
+                in_buff.get_capacity(), in_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to deserialize, err=%d", ret);
+        }
+       else if (OB_SUCCESS != (ret = root_server_.truncate_tables(if_exists, tables, user, comment)))
+        {
+          TBSYS_LOG(WARN, "failed to truncate table, err=%d", ret);
+        }
+        res.result_code_ = ret;
+        ret = OB_SUCCESS;
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // send response message
+        if (OB_SUCCESS != (ret = res.serialize(out_buff.get_data(),
+                out_buff.get_capacity(), out_buff.get_position())))
+        {
+          TBSYS_LOG(WARN, "failed to serialize, err=%d", ret);
+        }
+        else if (OB_SUCCESS != (ret = send_response(OB_TRUNCATE_TABLE_RESPONSE, MY_VERSION,
+                out_buff, req, channel_id)))
+        {
+          TBSYS_LOG(WARN, "failed to send response, err=%d", ret);
+        }
+      }
+      return ret;
+    }
+    //add:e
 
     //add by wangdonghui 20160121 :b
     int ObRootWorker::rt_create_procedure(const int32_t version, common::ObDataBuffer& in_buff,

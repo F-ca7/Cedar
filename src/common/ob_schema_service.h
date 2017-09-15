@@ -358,7 +358,6 @@ namespace oceanbase
         int to_string(char* buffer, const int64_t length) const;
 
         static bool is_system_table(const common::ObString &tname);
-        static bool is_secondary_index_table(const common::ObString &tname);
         NEED_SERIALIZE_AND_DESERIALIZE;
     };
 
@@ -369,20 +368,6 @@ namespace oceanbase
       {
         const char *p = tname.ptr();
         if ('_' == p[0])
-        {
-          ret = true;
-        }
-      }
-      return ret;
-    }
-
-    inline bool TableSchema::is_secondary_index_table(const ObString &tname)
-    {
-      bool ret = false;
-      if (tname.length() >= 2)
-      {
-        const char *p = tname.ptr();
-        if ('_' == p[0] && '_' == p[1] && '_' == p[2])
         {
           ret = true;
         }

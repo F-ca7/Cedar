@@ -503,6 +503,12 @@ namespace oceanbase
             length = MAX_DOUBLE_STR_LENGTH;
             num_decimals = 0x1f;
             break;
+            //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          case MYSQL_TYPE_NEWDECIMAL:
+            length = 80;
+            num_decimals = 0x1f;
+            break;
+           //add :e
           default:
             ret = OB_ERR_UNEXPECTED;
             TBSYS_LOG(WARN, "unexpected mysql_type=%d", mysql_type);
@@ -546,6 +552,11 @@ namespace oceanbase
         case MYSQL_TYPE_DECIMAL:
           ob_type = ObDecimalType;
           break;
+          //add xsl ECNU_DECIMAL 20170717
+        case MYSQL_TYPE_NEWDECIMAL:
+          ob_type = ObDecimalType;
+          break;
+          //add e
         default:
           TBSYS_LOG(WARN, "unsupport MySQL type %d", mysql_type);
           ret = OB_OBJ_TYPE_ERROR;

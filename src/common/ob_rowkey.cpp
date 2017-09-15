@@ -297,10 +297,18 @@ namespace oceanbase
 
       for (int64_t i = 0; i < obj_cnt_ ; ++i)
       {
-        if (obj_ptr_[i].get_type() == ObVarcharType)
-        {
-          total_len += obj_ptr_[i].get_val_len();
-        }
+          //modify xsl ECNU_DECIMAL 2016.12.26
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          if (obj_ptr_[i].get_type() == ObVarcharType/* || obj_ptr_[i].get_type() == ObDecimalType*/)
+              //modify:e
+          {
+              total_len += obj_ptr_[i].get_val_len();
+          }
+          else if(obj_ptr_[i].get_type() == ObDecimalType)
+          {
+              total_len +=sizeof(uint64_t)*obj_ptr_[i].get_nwords();   //??
+          }
+          //modify e
       }
       return total_len;
     }
@@ -396,8 +404,15 @@ namespace oceanbase
         {
           const ObObj &cell = rowkey.get_obj_ptr()[i];
           ObObjType to_type = rowkey_info.get_column(i)->type_;
-          if (cell.get_type() != to_type
-              && to_type == ObVarcharType)
+          /* if (cell.get_type() != to_type
+              && to_type == ObVarcharType)*/
+              //old code
+
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        if ((cell.get_type() != to_type
+              && to_type == ObVarcharType)||(cell.get_type() != to_type
+              && to_type == ObDecimalType))
+        //add e
           {
             need = true;
             break;

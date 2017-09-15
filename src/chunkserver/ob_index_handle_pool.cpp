@@ -307,7 +307,8 @@ namespace oceanbase
       else
       {
         ret = OB_ERROR;
-        TBSYS_LOG(WARN, "can't understand the stage of cons static index,which_stage = %d",
+        TBSYS_LOG(WARN,
+                  "can't understand the stage of cons static index,which_stage = %d",
                   (int) which_stage_);
       }
       return ret;
@@ -409,7 +410,7 @@ namespace oceanbase
         // in fact,in the get_ready_for_cons_idx stage,we simply put all the tablet info of this index table into
         // multcs_range_hash,and put the the info of the tablet in this cs into range_hash
         // and then we construct range_arry_
-        // 做两遍fetch_tablet_info,分别传索引表的id,和原表的id
+        // 做两遍fetch_tablet_info,分别传原表的id,和索引表的id
         TBSYS_LOG(INFO,">>>begin global index construction stage.");
         const int64_t timeout = 2000000;
         ObGeneralRpcStub rpc_stub = THE_CHUNK_SERVER.get_rpc_stub();
@@ -555,39 +556,6 @@ namespace oceanbase
           }
         }
       }
-
-      //add dragon [print info] 将fetch回的信息打印出来 2017-3-10 b
-      if(OB_SUCCESS == ret)
-      {
-        if(LOCAL_INDEX_STAGE == which_stage)
-        {
-          TBSYS_LOG(INFO, "print local index stage gather info");
-          for(int64_t i = 0; i < tablet_array_.count(); i++)
-          {
-            TabletRecord tr = tablet_array_.at(i);
-            TBSYS_LOG(INFO, "index[%ld], range[%s]", i, to_cstring(tr.tablet_->get_range()));
-          }
-        }
-        if(GLOBAL_INDEX_STAGE == which_stage)
-        {
-          TBSYS_LOG(INFO, "print global index stage gather info");
-          for(int64_t i = 0; i < range_array_.count(); i++)
-          {
-            RangeRecord rr = range_array_.at(i);
-            TBSYS_LOG(INFO, "index[%ld], range[%s]", i, to_cstring(rr.range_));
-          }
-          TBSYS_LOG(INFO, "print data_multcs_range_hash_ info");
-          int counter = 0;
-          for(RangeLocationIterator iter = data_multcs_range_hash_.begin();
-              iter != data_multcs_range_hash_.end(); iter++, counter++)
-          {
-            ObNewRange &range = iter->first;
-            TBSYS_LOG(INFO, "index[%d], range[%s], location:", counter, to_cstring(range));
-            iter->second.print_info();
-          }
-        }
-      }
-      //add dragon [print info] 将fetch回的信息打印出来 2017-3-10 e
       return ret;
     }
     // add e
@@ -1169,7 +1137,6 @@ namespace oceanbase
           {
             int err_global = OB_SUCCESS;
             //add longfei [cons static index] 151221:b
-            TBSYS_LOG(INFO, "dragon> get ranges[%s]", to_cstring(range->range_)); //add 2017-3-10
             if (OB_SUCCESS != (err_global = global_handler->set_handle_range(&range->range_)))
             {
               TBSYS_LOG(WARN,"failed to do set_handle_range,err[%d]",err_global);

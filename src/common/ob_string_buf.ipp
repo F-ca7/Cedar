@@ -130,17 +130,69 @@ namespace oceanbase
       }
       return err;
     }
+    //add xsl ECNU_DECIMAL 2016_12
 
+    template <typename PageAllocatorT, typename PageArenaT>
+    int ObStringBufT<PageAllocatorT, PageArenaT>::write_decimal(const ObDecimal& dec, ObDecimal *stored_dec,uint32_t len)  //在堆上分配一块内存，并且将值copy下来
+    {
+      int err = OB_SUCCESS;
+      if (OB_UNLIKELY(NULL == const_cast<ObDecimal&>(dec).get_words()))
+      {
+        if (NULL != stored_dec)
+        {
+          stored_dec=NULL;
+        }
+      }
+      else
+      {
+        uint64_t* str_clone = reinterpret_cast<uint64_t *>(arena_.alloc(sizeof(uint64_t)*len));
+        if (OB_UNLIKELY(NULL == str_clone))
+        {
+          err = OB_ALLOCATE_MEMORY_FAILED;
+          TBSYS_LOG(WARN, "failed to dup string");
+        }
+        memcpy(str_clone,const_cast<uint64_t *>(const_cast<ObDecimal&>(dec).get_words()->ToUInt_v2()),sizeof(uint64_t)*len);
+        stored_dec->set_precision(dec.get_precision());
+        stored_dec->set_scale(dec.get_scale());
+        stored_dec->set_vscale(dec.get_vscale());
+        stored_dec->set_word(str_clone,len);   //使得decimal指针指向这块内存
+      }
+      return err;
+    }
+
+    template <typename PageAllocatorT, typename PageArenaT>
+    int ObStringBufT<PageAllocatorT, PageArenaT>::write_decimal(const uint64_t* dec, uint64_t*& stored_dec,uint32_t len)  //在堆上分配一块内存，并且将值copy下来
+    {
+      int err = OB_SUCCESS;
+      if (OB_UNLIKELY(NULL == dec))
+      {
+        if (NULL != stored_dec)
+        {
+          stored_dec=NULL;
+        }
+      }
+      else
+      {
+        char* str_clone = arena_.alloc(sizeof(uint64_t)*len);
+        if (OB_UNLIKELY(NULL == str_clone))
+        {
+          err = OB_ALLOCATE_MEMORY_FAILED;
+          TBSYS_LOG(WARN, "failed to dup string");
+        }
+        stored_dec=reinterpret_cast<uint64_t *>(str_clone);   //使得decimal指针指向这块内存
+        memcpy(stored_dec,const_cast<uint64_t *>(dec),sizeof(uint64_t)*len);
+      }
+      return err;
+    }
+    //add e
     template <typename PageAllocatorT, typename PageArenaT>
     int ObStringBufT<PageAllocatorT, PageArenaT> :: write_obj(const ObObj& obj, ObObj* stored_obj)
     {
       int err = OB_SUCCESS;
-
       if (NULL != stored_obj)
       {
         *stored_obj = obj;
       }
-
       ObObjType type = obj.get_type();
       if (ObVarcharType == type)
       {
@@ -156,9 +208,27 @@ namespace oceanbase
           }
         }
       }
-
+      //modify xsl ECNU_DECIMAL 2016_12
+      //add fanqiushi DECIMAL OceanBase_BankCommV0.3 2014_7_19:b
+      else if (ObDecimalType == type)
+      {
+        uint64_t *src_val = NULL;
+        uint64_t *dst_val = NULL;
+        src_val = obj.get_ttint();
+        err = write_decimal(src_val, dst_val,obj.get_nwords());     //在内存分配器中分配一块内存并赋值，使得decimal指针指向它.
+        if (OB_SUCCESS == err)
+        {
+          if (NULL != stored_obj &&  dst_val !=NULL)
+          {
+            stored_obj->set_decimal(dst_val,obj.get_precision(),obj.get_scale(),obj.get_vscale(),obj.get_nwords());   //modify xsl ECNU_DECIMAL 2017_2
+          }
+        }
+      }
+      //add e
+      //modify e
       return err;
     }
+
 
   }
 }

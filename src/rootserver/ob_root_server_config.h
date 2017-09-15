@@ -74,7 +74,7 @@ namespace oceanbase
         DEF_TIME(monitor_row_checksum_timeout, "3s", "get master checksum timeout");
         DEF_TIME(monitor_drop_table_interval, "600s", "[1s,]", "delete droped table in daily merge check interval");
         //add wenghaixing, [secondary index.static_index] 20151216:b
-        DEF_TIME(monitor_create_index_timeout, "7200s", "[1s,]", "create single static index timeout");
+        DEF_TIME(monitor_create_index_timeout, "1800s", "[1s,]", "create single static index timeout");
         //add:e
         //add wenghaixing, [secondary index.static_index] 20150119:b
         DEF_INT(index_immediate_effect, "0","[0,1]" ,"create index while merge");
@@ -143,7 +143,7 @@ namespace oceanbase
         DEF_INT(master_root_server_port, "0", "master OceanBase instance listen port");
 
         // add by zcd [multi_cluster] 20150416:b
-        // 鍔犲叆rootserver鐨刢onfig鏉＄洰__all_cluster_rs_ip
+        // 加入rootserver的config条目__all_cluster_rs_ip
         DEF_STR(all_cluster_rs_ip, "0.0.0.0:0", "all_cluster_rs_ip");
         // add:e
         // add by chujiajia [rs_election][multi_cluster] 20150929:b

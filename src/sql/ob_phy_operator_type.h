@@ -154,10 +154,12 @@ namespace oceanbase
       PHY_PROCEDURE_WHILE,
       PHY_PROCEDURE_ELSE,
       PHY_PROCEDURE_SELECT_INTO,
+      PHY_TRUNCATE_TABLE, //add hxlong [Truncate Table]:20170403
       PHY_VARIABLE_SET_ARRAY,
       //add:e
       PHY_UPS_LOCK_TABLE, //add wangjiahao [table lock] 20160616	  
       PHY_END, /* end of phy operator type */
+
 
     };
 

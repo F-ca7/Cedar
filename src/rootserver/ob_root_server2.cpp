@@ -5591,7 +5591,143 @@ int ObRootServer2::drop_one_table(const bool if_exists, const ObString & table_n
   }
   return ret;
 }
+//add hxlong [Truncate Table]:20170318:b
+int ObRootServer2::truncate_tables(bool if_exists, const common::ObStrings &tables, const common::ObString & user, const common::ObString & comment)
+{
+  int ret = OB_SUCCESS;
+  TBSYS_LOG(INFO, "truncate table, if_exists=%c tables=[%s] user=[%.*s]",
+            if_exists?'Y':'N', to_cstring(tables), user.length(), user.ptr());
+  ObMutator* mutator = NULL;
+  if(OB_SUCCESS == ret)
+  {
+    mutator = GET_TSI_MULT(ObMutator, TSI_COMMON_MUTATOR_1);
+    if(NULL == mutator)
+    {
+      ret = OB_ALLOCATE_MEMORY_FAILED;
+      TBSYS_LOG(WARN, "get thread specific ObMutator fail");
+    }
+  }
 
+  if(OB_SUCCESS == ret)
+  {
+    ret = mutator->reset();
+    if(OB_SUCCESS != ret)
+    {
+      TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+    }
+  }
+  // LOCK BLOCK
+  {
+    tbsys::CThreadGuard guard(&mutex_lock_);
+    ObString table_name;
+    for (int64_t i = 0; ret == OB_SUCCESS && i < tables.count(); ++i)
+    {
+      bool exist = false;
+      ret = tables.get_string(i, table_name);
+      if (ret != OB_SUCCESS)
+      {
+        TBSYS_LOG(WARN, "get table failed:index[%ld], ret[%d]", i, ret);
+        break;
+      }
+      else if (OB_SUCCESS == (ret = check_table_exist(table_name, exist)))
+      {
+        if (!exist && !if_exists)
+        {
+          ret = OB_ENTRY_NOT_EXIST;
+          TBSYS_LOG(WARN, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+        }
+        else if (!exist)
+        {
+          TBSYS_LOG(INFO, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+        }
+      }
+
+      const ObTableSchema * table = NULL;
+      uint64_t table_id = 0;
+      //schema check:
+      if (ret == OB_SUCCESS && exist)
+      {
+        tbsys::CRLockGuard guard(schema_manager_rwlock_);
+        if (NULL == schema_manager_for_cache_)
+        {
+          TBSYS_LOG(WARN, "check schema manager failed");
+          ret = OB_INNER_STAT_ERROR;
+        }
+        else
+        {
+          table = schema_manager_for_cache_->get_table_schema(table_name);
+          table_id = table->get_table_id();
+          if (NULL == table)
+          {
+            ret = OB_ENTRY_NOT_EXIST;
+            TBSYS_LOG(WARN, "check table not exist:tname[%.*s]", table_name.length(), table_name.ptr());
+          }
+          else if (table_id < OB_APP_MIN_TABLE_ID && !config_.ddl_system_table_switch)
+          {
+            TBSYS_LOG(USER_ERROR, "truncate table failed, while table_id[%ld] less than %ld, and drop system table switch is %s",
+                      table_id, OB_APP_MIN_TABLE_ID, config_.ddl_system_table_switch?"true":"false");
+            ret = OB_OP_NOT_ALLOW;
+          }
+          else
+          {
+              IndexList il;  //add 2017/7/26
+              if(OB_SUCCESS != (ret = schema_manager_for_cache_->get_index_list(table_id,il)))//add 2017/7/26
+              {
+                  TBSYS_LOG(ERROR,"generate truncate table_list,err =%d",ret);
+                  break;
+              }
+              else
+              {
+                  ret = mutator->trun_tab(table_id, table_name, user, comment);
+                  for(int64_t m = 0; ret == OB_SUCCESS && m<il.get_count();m++)
+                  {
+                      uint64_t index_tid = OB_INVALID_ID;
+                      il.get_idx_id(m,index_tid);
+                      ObString index_name = ObString::make_string(schema_manager_for_cache_->get_table_schema(index_tid)->get_table_name());
+                      ret = mutator->trun_tab(index_tid, index_name ,user ,comment);
+                  }
+                  if (ret == OB_SUCCESS)
+                  {
+                    ret = truncate_one_table(*mutator);
+                  }
+              }
+          }
+        }
+      }
+      if ((ret == OB_SUCCESS|| ret == OB_TABLE_UPDATE_LOCKED)&& OB_SUCCESS != (ret = mutator->reset()))
+      {
+        TBSYS_LOG(WARN, "reset ob mutator fail:ret[%d]", ret);
+      }
+    }
+  }
+  return ret;
+}
+//add:e
+
+//add hxlong [Truncate Table]:20170318:b
+int ObRootServer2::truncate_one_table( const common::ObMutator &mutator)
+{
+  int ret = OB_SUCCESS;
+  if (obi_role_.get_role() == ObiRole::MASTER)
+  {
+    ObUps ups_master;
+    if (OB_SUCCESS != (ret = ups_manager_->get_ups_master(ups_master)))
+    {
+      TBSYS_LOG(WARN, "fail to get ups master. err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = worker_->get_rpc_stub().truncate_table(ups_master.addr_,mutator, config_.network_timeout)))
+    {
+      TBSYS_LOG(ERROR, "fail to truncate table to ups. ups: [%s] err=%d",
+                to_cstring(ups_master.addr_), ret);
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "notify ups to truncate table succ! ");
+    }
+  }
+  return ret;
+}
+//add:e
 int ObRootServer2::get_master_ups(ObServer &ups_addr, bool use_inner_port)
 {
   int ret = OB_ENTRY_NOT_EXIST;

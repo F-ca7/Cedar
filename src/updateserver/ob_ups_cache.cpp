@@ -155,6 +155,21 @@ namespace oceanbase
                 value.value.get_varchar(str_value);
                 buffer_handle.buffer_ = const_cast<char*>( str_value.ptr());
               }
+              //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+              else if(common::ObDecimalType == value.value.get_type())
+              {
+                  //modify xsl ECNU_DECIMAL 2016_12
+                  //ObString str_value;
+                  uint64_t *t1 =NULL;
+                  TTInt tt;
+                  t1 = value.value.get_ttint();
+                  tt.FromUInt_v2(t1,value.value.get_nwords());
+                  ObDecimal dec;
+                  dec.from(value.value.get_precision(),value.value.get_scale(),value.value.get_vscale(),tt);
+                  buffer_handle.buffer_ = const_cast<char *>(to_cstring(dec));
+                  //modify e
+              }
+              //add:e
               else
               {
                 buffer_handle.buffer_ = NULL;

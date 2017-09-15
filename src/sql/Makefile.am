@@ -65,6 +65,7 @@ sql_parser_sources=                                    \
   ob_create_index_stmt.h      ob_create_index_stmt.cpp \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
+  ob_truncate_table_stmt.h    ob_truncate_table_stmt.cpp     \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \
   ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
@@ -158,6 +159,7 @@ operators_sources=                                                       \
   ob_deallocate.h                    ob_deallocate.cpp                   \
   ob_delete.h                        ob_delete.cpp                       \
   ob_double_children_phy_operator.h  ob_double_children_phy_operator.cpp \
+  ob_truncate_table.h                ob_truncate_table.cpp               \
   ob_drop_table.h                    ob_drop_table.cpp                   \
   ob_drop_index.h	             ob_drop_index.cpp			 \
   ob_execute.h                       ob_execute.cpp                      \

@@ -569,7 +569,51 @@ int ObRootRpcStub::delete_cache(const common::ObServer& server, const common::Ob
   return ret;
 }
 //add :e
+//add hxlong [truncate table] 20170125:b
+int ObRootRpcStub::truncate_table(const common::ObServer& server, const common::ObMutator & mutator, const int64_t timeout_us)
+{
+  int ret = OB_SUCCESS;
+  ObDataBuffer data_buff;
 
+  if (NULL == client_mgr_)
+  {
+    TBSYS_LOG(ERROR, "client_mgr_=NULL");
+    ret = OB_ERROR;
+  }
+  else if (OB_SUCCESS != (ret = get_thread_buffer_(data_buff)))
+  {
+    TBSYS_LOG(ERROR, "failed to get thread buffer, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = mutator.serialize(data_buff.get_data(), data_buff.get_capacity(),
+                                                                     data_buff.get_position())))
+  {
+    TBSYS_LOG(ERROR, "failed to serialize, err=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = client_mgr_->send_request(server, OB_TRUNCATE_TABLE, DEFAULT_VERSION, timeout_us, data_buff)))
+  {
+    TBSYS_LOG(WARN, "failed to send request, err=%d", ret);
+  }
+  else
+  {
+    ObResultCode result;
+    int64_t pos = 0;
+    if (OB_SUCCESS != (ret = result.deserialize(data_buff.get_data(), data_buff.get_position(), pos)))
+    {
+      TBSYS_LOG(ERROR, "failed to deserialize response, err=%d", ret);
+    }
+    else if (OB_SUCCESS != result.result_code_)
+    {
+      TBSYS_LOG(WARN, "failed to send truncate tables, err=%d", result.result_code_);
+      ret = result.result_code_;
+    }
+    else
+    {
+      TBSYS_LOG(INFO, "send truncate_table_msg, server=%s ",to_cstring(server));
+    }
+  }
+  return ret;
+}
+//add:e
 
 int ObRootRpcStub::migrate_tablet(const common::ObServer& dest_server, const common::ObDataSourceDesc& desc, const int64_t timeout_us)
 {

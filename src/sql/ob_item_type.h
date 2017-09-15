@@ -123,7 +123,7 @@ typedef enum ObItemType
   T_OP_NOT_IN,
   T_OP_ARG_CASE,
   T_OP_CASE,
-  T_OP_ROW,
+  T_OP_ROW,     //129
   T_OP_EXISTS,
 
   T_OP_CNN,  /* 3. String operators */
@@ -227,6 +227,10 @@ typedef enum ObItemType
   T_COLUMN_DROP,
   T_COLUMN_ALTER,
   T_COLUMN_RENAME,
+  //add hxlong [Truncate Table] 20170403:b
+  T_TRUNCATE_TABLE,
+  //add:e
+
 
   T_ALTER_SYSTEM,
   T_CHANGE_OBI,

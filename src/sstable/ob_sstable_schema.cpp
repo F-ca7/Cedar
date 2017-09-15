@@ -144,11 +144,12 @@ namespace oceanbase
       return ret;
     }
 
-    ObSSTableSchema::ObSSTableSchema():column_def_(column_def_array_), hash_init_(false),
-    curr_group_head_(0)
+    ObSSTableSchema::ObSSTableSchema():version_(OB_SSTABLE_SCHEMA_VERSION_TWO),/*add hxlong [truncate table]*/
+     column_def_(column_def_array_), hash_init_(false),curr_group_head_(0)
     {
       memset(&column_def_array_, 0, sizeof(ObSSTableSchemaColumnDef) * OB_MAX_COLUMN_NUMBER);
-      memset(&schema_header_, 0, sizeof(ObSSTableSchemaHeader));
+      memset(&table_trun_array_, 0, sizeof(ObSSTableSchemaTableDef) * OB_MAX_TABLE_NUMBER); //add hxlong [Truncate Table]:20160318
+      memset(&schema_header_, 0, sizeof(ObSSTableSchemaHeaderV2));
     }
 
     ObSSTableSchema::~ObSSTableSchema()
@@ -184,6 +185,12 @@ namespace oceanbase
       return count;
     }
 
+    //add hxlong [Truncate Table]:20170318:b
+    const int32_t ObSSTableSchema::get_trun_table_count() const
+    {
+      return schema_header_.trun_table_count_;
+    }
+    //add:e
     int ObSSTableSchema::get_rowkey_column_count(const uint64_t table_id, int64_t& rowkey_column_count) const
     {
       int ret = OB_SUCCESS;
@@ -326,6 +333,32 @@ namespace oceanbase
 
       return ret;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    //trun table def
+    const ObSSTableSchemaTableDef* ObSSTableSchema::get_truncate_def(const uint64_t table_id) const
+    {
+      const ObSSTableSchemaTableDef* ret = NULL;
+      for (int64_t idx = 0; idx < schema_header_.trun_table_count_ ; idx ++)
+      {
+        if (table_trun_array_[idx].table_id_ == table_id )
+        {
+          ret = &table_trun_array_[table_id];
+          break;
+        }
+      }
+      return ret;
+    }
+
+    const ObSSTableSchemaTableDef* ObSSTableSchema::get_truncate_def(const int32_t idx) const
+    {
+      const ObSSTableSchemaTableDef* ret = NULL;
+      if (idx >=0 && idx < schema_header_.trun_table_count_ )
+      {
+        ret = &table_trun_array_[idx];
+      }
+      return ret;
+    }
+    //add:e
 
     DEFINE_SERIALIZE(ObSSTableSchemaHeader)
     {
@@ -389,6 +422,73 @@ namespace oceanbase
               + encoded_length_i16(reserved16_)
               + encoded_length_i32(total_column_count_));
     }
+    //add hxlong [truncate table]
+    DEFINE_SERIALIZE(ObSSTableSchemaHeaderV2)
+    {
+      int ret                 = OB_SUCCESS;
+      int64_t serialize_size  = get_serialize_size();
+
+      if((NULL == buf) || (serialize_size + pos > buf_len))
+      {
+        TBSYS_LOG(WARN, "invalid param, buf=%p, buf_len=%ld, pos=%ld,"
+                        "serialize_size=%ld",
+                  buf, buf_len, pos, serialize_size);
+        ret = OB_ERROR;
+      }
+
+      if (OB_SUCCESS == ret
+          && (OB_SUCCESS == (ret = encode_i16(buf, buf_len, pos, column_count_)))
+          && (OB_SUCCESS == (ret = encode_i16(buf, buf_len, pos, reserved16_)))
+          && (OB_SUCCESS == (ret = encode_i32(buf, buf_len, pos, total_column_count_)))
+          && (OB_SUCCESS == (ret = encode_i32(buf, buf_len, pos, trun_table_count_))))
+      {
+        //do nothing here
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "failed to serialize schema header");
+      }
+
+      return ret;
+    }
+
+    DEFINE_DESERIALIZE(ObSSTableSchemaHeaderV2)
+    {
+      int ret                 = OB_SUCCESS;
+      int64_t serialize_size  = get_serialize_size();
+
+      if (NULL == buf || serialize_size + pos > data_len)
+      {
+        TBSYS_LOG(WARN, "invalid param, buf=%p, data_len=%ld, pos=%ld,"
+                        "serialize_size=%ld",
+                  buf, data_len, pos, serialize_size);
+        ret = OB_ERROR;
+      }
+
+      if (OB_SUCCESS == ret
+          && (OB_SUCCESS == (ret = decode_i16(buf, data_len, pos, &column_count_)))
+          && (OB_SUCCESS == (ret = decode_i16(buf, data_len, pos, &reserved16_)))
+          && (OB_SUCCESS == (ret = decode_i32(buf, data_len, pos, &total_column_count_)))
+          && (OB_SUCCESS == (ret = decode_i32(buf, data_len, pos, &trun_table_count_))))
+      {
+        //do nothing here
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "failed to deserialize schema header");
+      }
+
+      return ret;
+    }
+
+    DEFINE_GET_SERIALIZE_SIZE(ObSSTableSchemaHeaderV2)
+    {
+      return (encoded_length_i16(column_count_)
+              + encoded_length_i16(reserved16_)
+              + encoded_length_i32(total_column_count_)
+              + encoded_length_i32(trun_table_count_));
+    }
+    //add:e
 
     DEFINE_SERIALIZE(ObSSTableSchemaColumnDef)
     {
@@ -421,6 +521,72 @@ namespace oceanbase
 
       return ret;
     }
+
+    //add hxlong [Truncate Table]:20170318:b
+    DEFINE_SERIALIZE(ObSSTableSchemaTableDef)
+    {
+      int ret                 = OB_SUCCESS;
+      int64_t serialize_size  = get_serialize_size();
+
+      if((NULL == buf) || (serialize_size + pos > buf_len))
+      {
+        TBSYS_LOG(WARN, "invalid param, buf=%p, buf_len=%ld, pos=%ld,"
+                        "serialize_size=%ld",
+                  buf, buf_len, pos, serialize_size);
+        ret = OB_ERROR;
+      }
+
+      if (OB_SUCCESS == ret
+          && (OB_SUCCESS == (ret = encode_i32(buf, buf_len, pos, table_id_)))
+          && (OB_SUCCESS == (ret = encode_i64(buf, buf_len, pos, trun_timestamp_))))
+      {
+        //do nothing here
+      }
+       else
+      {
+        TBSYS_LOG(WARN, "failed to serialzie schema def, buf=%p, "
+                        "buf_len=%ld, pos=%ld", buf, buf_len, pos);
+      }
+
+      return ret;
+    }
+
+    DEFINE_DESERIALIZE(ObSSTableSchemaTableDef)
+    {
+      int ret                 = OB_SUCCESS;
+      int64_t serialize_size  = get_serialize_size();
+
+      if (NULL == buf || serialize_size + pos > data_len)
+      {
+        TBSYS_LOG(WARN, "invalid param, buf=%p, data_len=%ld, pos=%ld,"
+                        "serialize_size=%ld",
+                  buf, data_len, pos, serialize_size);
+        ret = OB_ERROR;
+      }
+
+      if (OB_SUCCESS == ret
+          && (OB_SUCCESS == (ret = decode_i32(buf, data_len, pos,
+                                              reinterpret_cast<int32_t*>(&table_id_))))
+          && (OB_SUCCESS == (ret = decode_i64(buf, data_len, pos,
+                                              reinterpret_cast<int64_t*>(&trun_timestamp_)))))
+      {
+        //do nothing here
+      }
+      else
+      {
+        TBSYS_LOG(WARN, "failed to serialzie schema column def, buf=%p, "
+                        "buf_len=%ld, pos=%ld", buf, data_len, pos);
+      }
+
+      return ret;
+    }
+
+    DEFINE_GET_SERIALIZE_SIZE(ObSSTableSchemaTableDef)
+    {
+      return (encoded_length_i32(table_id_)
+              + encoded_length_i64(trun_timestamp_));
+    }
+    //add:e
 
     DEFINE_DESERIALIZE(ObSSTableSchemaColumnDef)
     {
@@ -907,6 +1073,35 @@ namespace oceanbase
       return ret;
     }
 
+    //add hxlong [Truncate Table]:20170318:b
+    int ObSSTableSchema::add_table_def(const ObSSTableSchemaTableDef& table_def)
+    {
+         int ret = OB_SUCCESS;
+         int64_t size = get_trun_table_count();
+         ObSSTableSchemaTableDef def = table_def;
+         if (common::OB_MAX_TABLE_NUMBER <= size)
+         {
+            TBSYS_LOG(WARN, "is largert than the table count");
+            ret = OB_ERROR;
+         }
+         else
+         {
+           ObSSTableSchemaTableDefCompare compare;
+           if (0 < size && false == compare(table_trun_array_[size - 1], def))
+           {
+             TBSYS_LOG(WARN, "compare error");
+             ret = OB_ERROR;
+           }
+         }
+          if (OB_SUCCESS == ret)
+          {
+            table_trun_array_[schema_header_.trun_table_count_] = def;
+            schema_header_.trun_table_count_ ++;
+            TBSYS_LOG(DEBUG, "add table truncate def succ, trun_table_count= %d", schema_header_.trun_table_count_);
+          }
+          return ret;
+    }
+    //add:e
     int ObSSTableSchema::get_table_column_groups_id(const uint64_t table_id,
                                                     uint64_t* group_ids, int64_t & size)const
     {
@@ -1362,7 +1557,18 @@ namespace oceanbase
                   buf, buf_len, pos, serialize_size);
         ret = OB_ERROR;
       }
-
+      //add hxlong [Truncate Table] for upgrade :20170504:b
+      if (OB_SUCCESS == ret)
+      {
+        ret = encode_i32(buf, buf_len, pos, OB_SSTABLE_SCHEMA_VERSION_TWO);
+        if (OB_SUCCESS != ret)
+        {
+          TBSYS_LOG(WARN, "failed to serialize schema version_, buf=%p, "
+                    "buf_len=%ld, pos=%ld, version_=%d",
+                    buf, buf_len, pos, static_cast<int32_t>(OB_SSTABLE_SCHEMA_VERSION_TWO));
+        }
+      }
+      //add:e
       if (OB_SUCCESS == ret)
       {
         ret = schema_header_.serialize(buf, buf_len, pos);
@@ -1373,9 +1579,25 @@ namespace oceanbase
                     buf, buf_len, pos, schema_header_.total_column_count_);
         }
       }
-
       if (OB_SUCCESS == ret)
       {
+        //add hxlong [Truncate Table]:20170318:b
+        for (int64_t i = 0; OB_SUCCESS == ret && i < schema_header_.trun_table_count_; ++i)
+        {
+          ret = table_trun_array_[i].serialize(buf, buf_len, pos);
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "failed to serialize schema column def, buf=%p, "
+                            "buf_len=%ld, pos=%ld, column index=%ld, "
+                            "column_count=%d",
+                      buf, buf_len, pos, i, schema_header_.trun_table_count_);
+            break;
+          }
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        //add:e
         for (int64_t i = 0; OB_SUCCESS == ret
              && i < schema_header_.total_column_count_; ++i)
         {
@@ -1398,6 +1620,7 @@ namespace oceanbase
     {
       int ret = OB_SUCCESS;
       int64_t column_count = 0;
+      int32_t trun_table_count = 0; //add hxlong [Truncate Table]:20170318
 
       if (NULL == buf || data_len <= 0 || pos > data_len)
       {
@@ -1407,18 +1630,86 @@ namespace oceanbase
       }
       reset();
 
+      //add hxlong [Truncate Table] for upgrade :20170504:b
       if (OB_SUCCESS == ret)
       {
-        ret = schema_header_.deserialize(buf, data_len, pos);
-        column_count = get_column_count();
+        ret = decode_i32(buf, data_len, pos,reinterpret_cast<int32_t*>(&version_));
         if (OB_SUCCESS != ret)
         {
-          TBSYS_LOG(WARN, "failed to deserialize schema header, buf=%p, "
-                          "data_len=%ld, pos=%ld, column_count=%ld",
-                    buf, data_len, pos, column_count);
+          TBSYS_LOG(WARN, "failed to deserialize sstable schema version, buf=%p, "
+                          "data_len=%ld, pos=%ld", buf, data_len, pos);
+        }
+      }
+      //add:e
+
+
+      if (OB_SUCCESS == ret )
+      {
+        if (version_ == OB_SSTABLE_SCHEMA_VERSION_TWO)
+        {
+          ret = schema_header_.deserialize(buf, data_len, pos);
+          column_count = get_column_count();
+          trun_table_count = get_trun_table_count(); //add hxlong [Truncate Table]:20170318
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "failed to deserialize schema header, buf=%p, "
+                      "data_len=%ld, pos=%ld, column_count=%ld",
+                      buf, data_len, pos, column_count);
+          }
+        }
+        else if (version_ == OB_SSTABLE_SCHEMA_VERSION_ONE)
+        {
+          ObSSTableSchemaHeader tmp_header;
+          ret = tmp_header.deserialize(buf, data_len, pos);
+          if (OB_SUCCESS != ret)
+          {
+            TBSYS_LOG(WARN, "failed to deserialize schema header, buf=%p, "
+                      "data_len=%ld, pos=%ld, column_count=%ld",
+                      buf, data_len, pos, column_count);
+          }
+          else
+          {
+            schema_header_.column_count_ = tmp_header.column_count_;
+            schema_header_.reserved16_ = tmp_header.reserved16_;
+            schema_header_.total_column_count_ = tmp_header.total_column_count_;
+            trun_table_count = 0;
+            column_count = get_column_count();
+            TBSYS_LOG(INFO, "compatiable sstable version buf=%p, "
+                      "data_len=%ld, pos=%ld, version=%d",
+                      buf, data_len, pos, version_);
+          }
+        }
+        else
+        {
+          TBSYS_LOG(WARN, "unsupported sstable schema version(%d)", version_);
+          ret = OB_INVALID_ARGUMENT;
         }
       }
 
+      //add hxlong [Truncate Table]:20170318:b
+      if (OB_SUCCESS == ret)
+      {
+        schema_header_.trun_table_count_ = 0;
+        ObSSTableSchemaTableDef table_def;
+
+        for (int64_t i = 0; OB_SUCCESS == ret && i < trun_table_count; ++i)
+        {
+          if (OB_SUCCESS != (ret = table_def.deserialize(buf, data_len, pos)))
+          {
+            TBSYS_LOG(WARN, "failed to deserialize schema table def, buf=%p, "
+                      "data_len=%ld, pos=%ld, table index=%ld, "
+                      "trun_table_count=%d",
+                      buf, data_len, pos, i, trun_table_count);
+            break;
+          }
+          else if (OB_SUCCESS != (ret = add_table_def(table_def)))
+          {
+              TBSYS_LOG(WARN, "add table def failed table_def(table_id=%d, "
+                        "truncate_timestamp = %ld", table_def.table_id_,table_def.trun_timestamp_);
+          }
+        }
+      }
+      //add:e
       if (OB_SUCCESS == ret && common::OB_MAX_COLUMN_NUMBER <= column_count)
       {
         column_def_ = reinterpret_cast<ObSSTableSchemaColumnDef*>
@@ -1429,8 +1720,6 @@ namespace oceanbase
           ret = OB_ERROR;
         }
       }
-
-
       if (OB_SUCCESS == ret)
       {
         schema_header_.total_column_count_ = 0;
@@ -1460,19 +1749,17 @@ namespace oceanbase
       }
       return ret;
     }
-
     DEFINE_GET_SERIALIZE_SIZE(ObSSTableSchema)
     {
       int64_t total_size  = 0;
       int32_t column_count = get_column_count();
-
+      int32_t table_count = get_trun_table_count(); //add hxlong [Truncate Table]:20170318
+      total_size += encoded_length_i32(version_); //add hxlong [Truncate Table]:20170724
       total_size += schema_header_.get_serialize_size();
       total_size += column_def_[0].get_serialize_size() * column_count;
-
+      total_size += table_trun_array_[0].get_serialize_size() * table_count; //add hxlong [Truncate Table]:20170318
       return total_size;
     }
-
-
     int build_sstable_schema(const uint64_t new_table_id, const uint64_t schema_table_id,
         const common::ObSchemaManagerV2 & schema,
         ObSSTableSchema& sstable_schema, bool binary_format)

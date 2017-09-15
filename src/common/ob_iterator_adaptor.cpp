@@ -109,6 +109,22 @@ namespace oceanbase
             type = (uint8_t)col_schema->get_type();
           }
           col_types_[i++].type_ = type;
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          /*
+           *该函数主要做的是把col_schema里面的值存到col_types_数组里面。这里col_schema是从schema_mgr里面获得的用户
+           *定义的表的schema。col_types_数组会在后面做类型转化的时候用到。
+           *
+           *OB原先的实现只是把该列的类型存到col_types_数组里面。我增加的代码原理是先判断该列是否为decimal类型。如果是的话，
+           *将该列的precision和scale也存到col_types_数组里面
+           */
+          int64_t middle_i=i-1;
+          if(type==(uint8_t)ObDecimalType)
+            {
+             col_types_[middle_i].dec_precision_ = static_cast<uint8_t>(col_schema->get_precision()) & META_PREC_MASK;
+             col_types_[middle_i].dec_scale_ = static_cast<uint8_t>(col_schema->get_scale()) & META_SCALE_MASK;
+             //TBSYS_LOG(ERROR, "test::whx dec_precision = [%d], dec_scale_ = [%d]", col_types_[middle_i].dec_precision_ ,col_types_[middle_i].dec_scale_);
+          }
+           //add:e
           TBSYS_LOG(DEBUG, "set col type idx=%ld tid=%lu cid=%lu type=%hhu", i - 1, tid, cid, col_types_[i - 1].type_);
         }
         if (OB_SUCCESS == ret)
@@ -142,7 +158,20 @@ namespace oceanbase
       }
       return ret;
     }
-
+    //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    /*
+     *接口函数，用来获得col_types_数组里的precision，scale。idx是数组下标，col_types_数组里面存的是多个列的schema.
+     *这2个接口只在ObCellAdaptor::next_cell()里面调用。
+     */
+    uint32_t ObObjCastHelper::get_precision(const int64_t idx)
+     {
+            return col_types_[idx].dec_precision_;
+     }
+    uint32_t ObObjCastHelper::get_scale(const int64_t idx)
+     {
+            return col_types_[idx].dec_scale_;
+     }
+    //add:e
     int ObObjCastHelper::cast_rowkey_cell(const int64_t idx, ObObj &cell) const
     {
       int ret = OB_SUCCESS;
@@ -282,6 +311,8 @@ namespace oceanbase
       {
         TBSYS_LOG(DEBUG, "CELL_ADAPTOR idx=%ld %s", cur_idx_, print_cellinfo(&cell_));
         cell_.value_ = *value;
+        //TBSYS_LOG(INFO, "xushilei,test ipdate value=[%s],p=[%d],s=[%d],pp=[%d],ss=[%d],vs=[%d]", to_cstring(ob),ob.get_precision(),ob.get_scale(),dec.get_precision(),dec.get_scale(),dec.get_vscale());
+        //test e 30 10 38 0 0
         if (OB_ACTION_FLAG_COLUMN_ID == cell_.column_id_)
         {
           cell_.value_.set_ext(ObActionFlag::OP_DEL_ROW);
@@ -294,6 +325,38 @@ namespace oceanbase
         {
           cell_.column_id_ = OB_INVALID_ID;
         }
+        //modify xsl ECNU_DECIAML 2017_2
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+         *cell_是做完类型转化后的结果。如果该列的类型是decimal，就把och_里面存的该列的precision和scale也写到cell_里面
+         *
+         *modify_value是对转化后的值做一次截取。
+         */
+        if (ObDecimalType == cell_.value_.get_type())
+         {
+           uint32_t p=och_.get_precision(cur_idx_);
+           uint32_t s=och_.get_scale(cur_idx_);
+           uint64_t *t1 =NULL;
+           //ObString os;
+           if(NULL == (t1 = cell_.value_.get_ttint()))
+           {
+                TBSYS_LOG(ERROR, "failed to do get_decimal() in ObCellAdaptor::next_cell");
+           }
+           else
+           {
+               if((p-s) < (cell_.value_.get_precision()- cell_.value_.get_scale()))    //modify xsl ECNU_DECIMAL 2017_1
+               {
+                   ret=OB_DECIMAL_UNLEGAL_ERROR;
+                   TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,p=%d,s=%d,od.get_precision()=%d,od.get_vscale()=%d",p,s,cell_.value_.get_precision(),cell_.value_.get_precision());
+               }
+               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal(t1,cell_.value_.get_precision(),s,cell_.value_.get_vscale(),cell_.value_.get_nwords()))))
+               {
+                   TBSYS_LOG(ERROR, "failed to set_decimal in ObCellAdaptor::next_cell");
+               }
+               //}
+           }
+         }
+        //modify e
         if (OB_SUCCESS == ret)
         {
           cur_idx_ += 1;

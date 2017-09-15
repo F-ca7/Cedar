@@ -48,7 +48,8 @@ namespace oceanbase
         const ObSchemaManagerV2 &schema_mgr, 
         const int64_t merge_mem_size,
         const int64_t max_merge_mem_size, 
-        const bool unmerge_if_unchanged)
+        const bool unmerge_if_unchanged,
+        const bool is_static_truncated) /*add hxlong [Truncate Table]:20170318 param:is_static_truncated*/
     {
       int ret = OB_SUCCESS;
 
@@ -66,9 +67,14 @@ namespace oceanbase
 
       if (OB_SUCCESS == ret)
       {
-        ret = merge_operator_.start_merge(result_array_, read_param, ups_stream, 
-                                          schema_mgr, merge_mem_size_, 
-                                          unmerge_if_unchanged);
+          //mod hxlong [Truncate Table]:20170318:b
+  //        ret = merge_operator_.start_merge(result_array_, read_param, ups_stream,
+  //                                          schema_mgr, merge_mem_size_,
+  //                                          unmerge_if_unchanged);
+          ret = merge_operator_.start_merge(result_array_, read_param, ups_stream,
+                                            schema_mgr, merge_mem_size_,
+                                            unmerge_if_unchanged, is_static_truncated);
+          //mod:e
       }
 
       if (OB_SUCCESS == ret)

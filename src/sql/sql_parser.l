@@ -338,8 +338,10 @@ FORCE             { return FORCE;  }
 
 INDEX		  { return INDEX;  }
 STORING		  { return STORING;  }
-
- /* add maoxx [bloomfilter_join] 20160406 */
+  /* add hxlong [truncate table] 20170403 */
+TRUNCATE      { return TRUNCATE; }
+  /* add e */
+  /* add maoxx [bloomfilter_join] 20160406 */
 BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
 MERGE_JOIN  { return  MERGE_JOIN; }
  /* add e */
@@ -379,7 +381,7 @@ NULL   {
 "."[0-9]+ {
   /* ParseNode* node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE,  0); */
   ParseNode* node = NULL;
-  malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_DOUBLE/* should be T_DECIMAL,*/, 0);
+  malloc_new_node(node, ((ParseResult*)yyextra)->malloc_pool_, T_DECIMAL/*modify xsl ECNU_DECIMAL 2017_2 should be T_DECIMAL,*/, 0);
   yylval->node = node;
   node->str_value_ = parse_strdup(yytext, ((ParseResult*)yyextra)->malloc_pool_);
   check_value(node->str_value_);

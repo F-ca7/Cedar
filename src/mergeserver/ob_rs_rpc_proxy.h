@@ -87,6 +87,9 @@ namespace oceanbase
       int create_table(bool if_not_exists, const common::TableSchema & table_schema);
       // drop tables
       int drop_table(bool if_exists, const common::ObStrings & tables);
+      // truncate tables
+      int truncate_table(bool if_exists, const common::ObStrings & tables,
+                         const common::ObString & user, const common::ObString & comment); //add hxlong [Truncate Table]:20170403
       // alter table
 
       //add by wangdonghui 20160121 :b

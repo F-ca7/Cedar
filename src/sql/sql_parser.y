@@ -137,7 +137,7 @@ do \
        CONSISTENT COLUMN COLUMNS CREATE CREATETIME
        CURRENT_USER CHANGE_OBI SWITCH_CLUSTER
 %token DATE DATETIME DEALLOCATE DECIMAL DEFAULT DELETE DESC DESCRIBE
-       DISTINCT DOUBLE DROP DUAL
+       DISTINCT DOUBLE DROP DUAL TRUNCATE /*add hxlong [Truncate Table]:20170403 add 'TRUNCATE'*/
 %token ELSE END END_P ERROR EXCEPT EXECUTE EXISTS EXPLAIN
 %token FLOAT FOR FROM FULL FROZEN FORCE
 %token GLOBAL GLOBAL_ALIAS GRANT GROUP
@@ -251,7 +251,9 @@ do \
 /* add maoxx [bloomfilter_join] 20160406 */
 %type <node> join_op_type_list join_op_type
 /* add e */
-
+/*add hxlong[truncate table] 20170304:b*/
+%type <node> truncate_table_stmt
+/*add 20170304:e*/
 %start sql_stmt
 %%
 
@@ -324,6 +326,9 @@ stmt:
   | rollback_stmt {$$ = $1;}
   | kill_stmt {$$ = $1;}
   | lock_table_stmt {$$ = $1;}
+  /*add hxlong[truncate table] 20170403:b*/
+  | truncate_table_stmt { $$ = $1;}
+  /*add:e*/
   | /*EMPTY*/   { $$ = NULL; }
   ;
 
@@ -695,8 +700,15 @@ func_expr:
     {
       if (strcasecmp($1->str_value_, "cast") == 0)
       {
-        $5->value_ = $5->type_;
-        $5->type_ = T_INT;
+        /*modify fanqiushi DECIMAL OceanBase_BankCommV0.2 2014_6_16:b*/
+        /*$5->value_ = $5->type_;
+        $5->type_ = T_INT;*/
+        if($5->type_!=T_TYPE_DECIMAL)
+        {
+            $5->value_ = $5->type_;
+            $5->type_ = T_INT;
+        }
+        /*modify:e*/
         ParseNode *params = NULL;
         malloc_non_terminal_node(params, result->malloc_pool_, T_EXPR_LIST, 2, $3, $5);
         malloc_non_terminal_node($$, result->malloc_pool_, T_FUN_SYS, 2, $1, params);
@@ -1287,8 +1299,11 @@ data_type:
         malloc_terminal_node($$, result->malloc_pool_, T_TYPE_DECIMAL);
       else
         merge_nodes($$, result->malloc_pool_, T_TYPE_DECIMAL, $2);
+      /* modify xsl ECNU_DECIMAL 2017_2
       yyerror(&@1, result, "DECIMAL type is not supported");
       YYABORT;
+      */
+      //modify e
     }
   | NUMERIC opt_decimal
     {
@@ -1530,7 +1545,22 @@ table_list:
       malloc_non_terminal_node($$, result->malloc_pool_, T_LINK_NODE, 2, $1, $3);
     }
   ;
+/*add hxlong[truncate table] 20170403:b*/
+/*****************************************************************************
+ *
+ *	truncate table grammar
+ *
+ *****************************************************************************/
+truncate_table_stmt:
+        TRUNCATE TABLE opt_if_exists table_list opt_comment
+        {
+          ParseNode *tables = NULL;
+          merge_nodes(tables, result->malloc_pool_, T_TABLE_LIST, $4);
+          malloc_non_terminal_node($$, result->malloc_pool_, T_TRUNCATE_TABLE, 3, $3, tables, $5);
+        }
+      ;
 
+ /*add:e*/
 /*****************************************************************************
  *
  *	drop index grammar
@@ -2870,6 +2900,12 @@ priv_type:
       $$->value_ = OB_PRIV_DELETE;
     }
     | DROP
+    {
+      malloc_terminal_node($$, result->malloc_pool_, T_PRIV_TYPE);
+      $$->value_ = OB_PRIV_DROP;
+    }
+    /*add hxlong [Truncate Table]:20170403 add 'TRUNCATE'*/
+    | TRUNCATE
     {
       malloc_terminal_node($$, result->malloc_pool_, T_PRIV_TYPE);
       $$->value_ = OB_PRIV_DROP;

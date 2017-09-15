@@ -54,6 +54,7 @@
 #include "sstable/ob_sstable_reader.h"
 #include "sstable/ob_sstable_scanner.h"
 #include "sstable/ob_sstable_getter.h"
+#include "sstable/ob_sstable_schema.h" /*add hxlong [Truncate Table]:20170318*/
 #include "ob_ups_utils.h"
 #include "ob_sstable_mgr.h"
 #include "common/ob_column_filter.h"
@@ -310,6 +311,7 @@ namespace oceanbase
         virtual void ref();
         virtual void deref();
         virtual TableType get_table_type();
+        int get_table_truncate_stat(uint64_t table_id, bool &is_truncated); /*add hxlong [Truncate Table]:20170318*/
         MemTable &get_memtable();
       private:
         MemTable memtable_;
@@ -361,6 +363,7 @@ namespace oceanbase
         void pre_load_sstable_block_index();
         int get_endkey(const uint64_t table_id, common::ObTabletInfo &ci);
         bool check_sstable_checksum(const uint64_t remote_sstable_checksum);
+        int is_table_truncated(uint64_t table_id, bool &is_truncated); /*add hxlong [Truncate Table]:20170318*/
       private:
         uint64_t sstable_id_;
         common::ModulePageAllocator mod_;
@@ -392,6 +395,7 @@ namespace oceanbase
         ~TableItem();
       public:
         ITableEntity *get_table_entity(int64_t &sstable_percent, uint64_t table_id=OB_INVALID_ID);
+        int get_table_truncate_stat(uint64_t table_id, bool &is_truncated); /*add hxlong [Truncate Table]:20170318*/
         MemTable &get_memtable();
         MemTable &get_inmemtable();
         int init_sstable_meta();
@@ -475,7 +479,10 @@ namespace oceanbase
 
         // 在播放日志完成后调用
         int sstable_scan_finished(const int64_t minor_num_limit);
-
+        // 根据truncate info修正版本号范围
+        int check_table_range(const common::ObVersionRange &version_range,
+                          common::ObVersionRange &new_version_range,
+                          uint64_t table_id=OB_INVALID_ID); /*add hxlong [Truncate Table]:20170318*/
         // 根据版本号范围获取一组table entity
         int acquire_table(const common::ObVersionRange &version_range,
                           uint64_t &max_version,

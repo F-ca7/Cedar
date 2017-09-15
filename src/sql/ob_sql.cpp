@@ -59,6 +59,7 @@
 #include "sql/ob_create_user_stmt.h"
 #include "sql/ob_drop_user_stmt.h"
 #include "sql/ob_drop_table_stmt.h"
+#include "sql/ob_truncate_table_stmt.h" //add hxlong [Truncate Table]:20170318
 #include "sql/ob_revoke_stmt.h"
 #include "sql/ob_lock_user_stmt.h"
 #include "sql/ob_set_password_stmt.h"
@@ -1413,6 +1414,35 @@ int ObSql::do_privilege_check(const ObString & username, const ObPrivilege **pp_
           }
           break;
         }
+        //add hxlong [Truncate Table]:20170318:b
+        case ObBasicStmt::T_TRUNCATE_TABLE:
+        {
+          OB_STAT_INC(SQL, SQL_TRUNCATE_TABLE_COUNT);
+          ObTruncateTableStmt *trun_table_stmt = dynamic_cast<ObTruncateTableStmt*>(stmt);
+          if (OB_UNLIKELY(NULL == trun_table_stmt))
+          {
+            err = OB_ERR_UNEXPECTED;
+            TBSYS_LOG(ERROR, "dynamic cast failed,err=%d", err);
+          }
+          else
+          {
+            int64_t i = 0;
+            for (i = 0;i < trun_table_stmt->get_table_count();++i)
+            {
+              ObPrivilege::TablePrivilege table_privilege;
+              // drop table 不是全局权限
+              table_privilege.table_id_ = trun_table_stmt->get_table_id(i);
+              OB_ASSERT(true == table_privilege.privileges_.add_member(OB_PRIV_DROP));
+              err = table_privileges.push_back(table_privilege);
+              if (OB_UNLIKELY(OB_SUCCESS != err))
+              {
+                TBSYS_LOG(WARN, "push table_privilege to array failed, err=%d", err);
+              }
+            }
+          }
+          break;
+        }
+        //add:e
       //add longfei [secondary index drop index]
       case ObBasicStmt::T_DROP_INDEX:
         {

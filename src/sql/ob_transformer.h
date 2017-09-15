@@ -642,6 +642,12 @@ namespace oceanbase
             ErrStat& err_stat,
             const uint64_t& query_id,
             int32_t* index);
+        int gen_physical_truncate_table(
+            ObLogicalPlan *logical_plan,
+            ObPhysicalPlan *physical_plan,
+            ErrStat& err_stat,
+            const uint64_t& query_id,
+            int32_t* index); //add hxlong [truncate table] 20170403
         int gen_physical_alter_table(
             ObLogicalPlan *logical_plan,
             ObPhysicalPlan *physical_plan,
@@ -1398,6 +1404,12 @@ namespace oceanbase
           ErrStat& err_stat,
           const uint64_t& query_id,
           int32_t* index);
+	//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        int ob_write_obj_for_delete(ModuleArena &allocator, const ObObj &src, ObObj &dst,ObObj type);
+         //add e
+              
+//<<<<<<< HEAD
+//=======
         //add lbzhong [auto_increment] 20161126:b
         bool need_auto_increment(
             ObLogicalPlan *logical_plan,
@@ -1426,6 +1438,7 @@ namespace oceanbase
                                   ObPhyOperator* parent_op,
                                   ObPhyOperator* child_op);
         //add:e
+//>>>>>>> dev
 
       private:
         common::ObIAllocator *mem_pool_;

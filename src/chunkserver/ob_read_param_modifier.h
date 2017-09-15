@@ -51,6 +51,9 @@ namespace oceanbase
     // adjust table version according to result from chunkserver
     int get_ups_param(common::ObGetParam & param, 
                       const common::ObScanner & cs_result);
+    // allocate range buffer
+    int get_ups_param(common::ObScanParam & param,
+                      common::ObMemBuf &range_buffer); /*add hxlong [Truncate Table]:20170318*/
   }
 }   
 

@@ -169,7 +169,8 @@ namespace oceanbase
         void set_(const uint64_t table_id,
                   common::ColumnFilter *column_filter,
                   const bool return_rowkey_column,
-                  const BaseSessionCtx *session_ctx);
+                  const BaseSessionCtx *session_ctx,
+                  TEValue * value = NULL); /*add hxlong [Truncate Table]:20170318*/
         inline TableEngineIterator &get_te_iter_();
         inline static bool is_row_not_exist_(MemTableGetIter &get_iter);
       private:
@@ -179,6 +180,7 @@ namespace oceanbase
         bool return_rowkey_column_;
         const BaseSessionCtx *session_ctx_;
         bool is_iter_end_;
+        TEValue * table_value_; /*add hxlong [Truncate Table]:20170318*/
         MemTableGetIter get_iter_;
     };
 
@@ -460,10 +462,11 @@ namespace oceanbase
         {
           return table_engine_.hash_uninit_unit_num();
         };
-
+        int get_table_truncate_stat(uint64_t table_id, bool & is_truncated); /*add hxlong [Truncate Table]:20170318*/
         int get_bloomfilter(common::TableBloomFilter &table_bf) const;
 
         int scan_all(TableEngineIterator &iter);
+        int scan_all_table(TableEngineIterator &iter); /*add hxlong [Truncate Table]:20170318*/
 
       private:
         inline int copy_cells_(TransNode &tn,
@@ -547,6 +550,18 @@ namespace oceanbase
             length = length / CELL_INFO_SIZE_UNIT;
             ret = (int16_t)length;
           }
+          //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          else if(ObDecimalType == value.get_type())
+          {
+              //modify xsl  ECNU_DECIMAL 2016_12
+              //ObString vc;
+              int64_t length = sizeof(uint64_t)*value.get_nwords();
+              //modify e
+              length = (length + CELL_INFO_SIZE_UNIT - 1) & ~(CELL_INFO_SIZE_UNIT- 1);
+              length = length / CELL_INFO_SIZE_UNIT;
+              ret = (int16_t)length;
+          }
+          //add:e
           return ret;
         };
         inline static bool is_row_not_exist_(const common::ObObj &value)
@@ -557,6 +572,12 @@ namespace oceanbase
         {
           return (value.get_ext() == common::ObActionFlag::OP_DEL_ROW);
         };
+        //add hxlong [Truncate Table]:20170318:b
+        inline static bool is_trun_tab_(const common::ObObj &value)
+        {
+          return (value.get_ext() == common::ObActionFlag::OP_TRUN_TAB);
+        };
+        //add:e
         inline static bool is_nop_(const common::ObObj &value)
         {
           return (value.get_ext() == common::ObActionFlag::OP_NOP);

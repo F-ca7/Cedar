@@ -75,6 +75,7 @@ namespace oceanbase
       static int all_cluster_schema(TableSchema& table_schema);
       static int all_server_schema(TableSchema& table_schema);
       static int all_client_schema(TableSchema& table_schema);
+      static int all_truncate_op_info(TableSchema &table_schema); //add hxlong [Truncate Table]:20170318
       //add lbzhong [auto_increment] 20161126:b
       static int all_auto_increment_schema(TableSchema &table_schema);
       //add:e

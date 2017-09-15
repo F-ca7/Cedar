@@ -359,6 +359,20 @@ int ObBootstrap::bootstrap_sys_tables(void)
       TBSYS_LOG(WARN, "failed to create empty tablet for __all_user, err=%d", ret);
     }
   }
+  //add hxlong [Truncate Table]:20170318:b
+  // create table __all_truncate_op
+  if (OB_SUCCESS == ret)
+  {
+    if (OB_SUCCESS != (ret = ObExtraTablesSchema::all_truncate_op_info(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to get schema of __all_truncate_op, err=%d", ret);
+    }
+    else if (OB_SUCCESS != (ret = create_sys_table(table_schema)))
+    {
+      TBSYS_LOG(WARN, "failed to create table for __all_truncate_op, err=%d", ret);
+    }
+  }
+  //add:e
   // create table __table_privileges
   if (OB_SUCCESS == ret)
   {

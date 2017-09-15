@@ -102,6 +102,8 @@ namespace oceanbase
       //        @manager the real schema pointer returned
       int get_schema(const uint64_t table_id, const int64_t timestamp, const common::ObSchemaManagerV2 ** manager);
 
+      virtual int check_incremental_data_range(
+          int64_t table_id, ObVersionRange &version, ObVersionRange &new_range); /*add hxlong [Truncate Table]:20170318*/
       // fetch new schema if find new version
       int fetch_schema_version(int64_t & timestamp);
 

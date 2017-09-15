@@ -25,6 +25,7 @@ namespace oceanbase
     class ObBorderFlag
     {
       public:
+        NEED_SERIALIZE_AND_DESERIALIZE; //add hxlong [Truncate Table]:20170318:b
         static const int8_t INCLUSIVE_START = 0x1;
         static const int8_t INCLUSIVE_END = 0x2;
         static const int8_t MIN_VALUE = 0x4;
@@ -32,6 +33,7 @@ namespace oceanbase
 
       public:
         ObBorderFlag() : data_(0) {}
+        ObBorderFlag(int8_t data) : data_(data) {} //add hxlong [Truncate Table]:20170318:b
         virtual ~ObBorderFlag() {}
 
         inline void set_inclusive_start() { data_ |= INCLUSIVE_START; }
@@ -62,6 +64,7 @@ namespace oceanbase
 
     struct ObVersion
     {
+      NEED_SERIALIZE_AND_DESERIALIZE; //add hxlong [Truncate Table]:20170318:b
       ObVersion() : version_(0) {}
       ObVersion(int64_t version) : version_(version) {}
       union
@@ -69,8 +72,8 @@ namespace oceanbase
         int64_t version_;
         struct
         {
-          int32_t major_           : 32;
-          int16_t minor_           : 16;
+          int64_t major_           : 32; //int32_t mod hxlong [Truncate Table]:20170318
+          int64_t minor_           : 16; //int32_t mod hxlong [Truncate Table]:20170318
           int16_t is_final_minor_  : 16;
         };
       };
@@ -141,9 +144,12 @@ namespace oceanbase
 
       int64_t to_string(char * buf, const int64_t buf_len) const
       {
-        int64_t pos = snprintf(buf, buf_len, "%d-%hd-%hd",
-                               major_, minor_, is_final_minor_);
-        return pos;
+          //mod hxlong [Truncate Table]:20170318:b
+          //int64_t pos = snprintf(buf, buf_len, "%d-%hd-%hd",
+          int64_t pos = snprintf(buf, buf_len, "%ld-%ld-%hd",
+                                 major_, minor_, is_final_minor_);
+          //mod:e
+          return pos;
       }
     };
 
@@ -156,6 +162,7 @@ namespace oceanbase
 
     struct ObVersionRange
     {
+      NEED_SERIALIZE_AND_DESERIALIZE; //add hxlong [Truncate Table]:20170318:b
       ObBorderFlag border_flag_;
       ObVersion start_version_;
       ObVersion end_version_;
@@ -245,19 +252,28 @@ namespace oceanbase
           }
           else if (border_flag_.is_min_value())
           {
-            len = snprintf(buf,buf_len,"%s,%d-%hd-%hd%s",lb,
+            //mod hxlong [Truncate Table]:20170318:b
+            //len = snprintf(buf,buf_len,"%s,%d-%hd-%hd%s",lb,
+            len = snprintf(buf,buf_len,"%s,%ld-%ld-%hd%s",lb,
                            end_version_.major_,end_version_.minor_,end_version_.is_final_minor_,rb);
+            //mod:e
           }
           else if (border_flag_.is_max_value())
           {
-            len = snprintf(buf,buf_len,"%s%d-%hd-%hd, %s",lb,
+            //mod hxlong [Truncate Table]:20170318:b
+            //len = snprintf(buf,buf_len,"%s%d-%hd-%hd, %s",lb,
+            len = snprintf(buf,buf_len,"%s%ld-%ld-%hd, %s",lb,
                            start_version_.major_,start_version_.minor_,start_version_.is_final_minor_,rb);
+            //mod:e
           }
           else
           {
-            len = snprintf(buf,buf_len,"%s %d-%hd-%hd,%d-%hd-%hd %s",lb,
+            //mod hxlong [Truncate Table]:20170318:b
+            //len = snprintf(buf,buf_len,"%s %d-%hd-%hd,%d-%hd-%hd %s",lb,
+            len = snprintf(buf,buf_len,"%s %ld-%ld-%hd,%ld-%ld-%hd %s",lb,
                            start_version_.major_,start_version_.minor_,start_version_.is_final_minor_,
                            end_version_.major_,end_version_.minor_,end_version_.is_final_minor_,rb);
+            //mod:e
           }
           if (len < 0 || len > buf_len)
           {

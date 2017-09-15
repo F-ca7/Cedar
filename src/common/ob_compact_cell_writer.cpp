@@ -238,7 +238,7 @@ int ObCompactCellWriter::init(char *buf, int64_t size, enum ObCompactStoreType s
   return ret;
 }
 
-int ObCompactCellWriter::write_decimal(const ObObj &decimal)
+/*int ObCompactCellWriter::write_decimal(const ObObj &decimal)
 {
   int ret = OB_SUCCESS;
   ObDecimalMeta dec_meta;
@@ -266,7 +266,7 @@ int ObCompactCellWriter::write_decimal(const ObObj &decimal)
     }
     else
     {
-      words = decimal.value_.dec_words_; 
+      words = decimal.value_.dec_words_;
     }
 
     for(uint16_t i=0;OB_SUCCESS == ret && i<=dec_meta.dec_nwords_;i++)
@@ -280,6 +280,45 @@ int ObCompactCellWriter::write_decimal(const ObObj &decimal)
 
   return ret;
 }
+*/
+//old code
+//modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+//modify xsl ECNU_DECIMAL 2016_12
+int ObCompactCellWriter::write_decimal(const ObObj &decimal, ObObj *clone_value)
+{
+    int ret = OB_SUCCESS;
+        ObDecimalMeta dec_meta;
+        uint64_t *src_val = NULL;
+        uint64_t *dst_val = NULL;
+        src_val = decimal.get_ttint();
+        dec_meta.dec_precision_ = decimal.meta_.dec_precision_;
+        dec_meta.dec_scale_ = decimal.meta_.dec_scale_;
+        dec_meta.dec_nwords_=decimal.meta_.dec_nwords_;
+        if (OB_SUCCESS != (ret = buf_writer_.write < uint8_t > (decimal.meta_.dec_vscale_))) {
+        TBSYS_LOG(WARN, "write dec vscale fail:ret[%d]", ret);
+        }
+        else if (OB_SUCCESS != (ret = buf_writer_.write<ObDecimalMeta>(dec_meta))) {
+            TBSYS_LOG(WARN, "write dec_meta fail:ret[%d]", ret);
+        }
+        else
+        {
+            if(OB_SUCCESS == ret)
+            {
+                ret = buf_writer_.write_Decimal(src_val,dst_val,decimal.get_nwords());  //调用bufferwriter的空间，使得值可以进行深拷贝
+            }
+            if(OB_SUCCESS == ret && NULL != clone_value)
+            {
+               if(OB_SUCCESS!=(ret=clone_value->set_decimal(dst_val,decimal.meta_.dec_precision_,decimal.meta_.dec_scale_,decimal.meta_.dec_vscale_,decimal.meta_.dec_nwords_)))
+               {
+                  TBSYS_LOG(ERROR,"write clone_value error!");
+               }
+            }
+        }
+        return ret;
+
+}
+//modify e
+//modify e
 
 int ObCompactCellWriter::write_varchar(const ObObj &value, ObObj *clone_value)
 {
@@ -386,7 +425,11 @@ int ObCompactCellWriter::append(uint64_t column_id, const ObObj &value, ObObj *c
       ret = buf_writer_.write<ObCellMeta>(cell_meta);
       if (OB_SUCCESS == ret)
       {
-        ret = write_decimal(value);
+          //modify xsl
+          //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+          ret = write_decimal(value,clone_value);
+          //modify e
+          //modify e
       }
       break;
     case ObFloatType:

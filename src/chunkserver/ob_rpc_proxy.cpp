@@ -216,7 +216,49 @@ namespace oceanbase
       }
       return ret;
     }
+    //add hxlong [Truncate Table]:20170318:b
+    int ObMergerRpcProxy::check_incremental_data_range(
+        int64_t table_id, ObVersionRange &version, ObVersionRange &new_range)
+    {
+      int ret = OB_SUCCESS;
 
+      if (!check_inner_stat())
+      {
+        TBSYS_LOG(WARN, "check inner stat failed");
+        ret = OB_INNER_STAT_ERROR;
+      }
+      else
+      {
+        ObServer update_server;
+        ret = get_update_server(false, update_server);
+        if (ret != OB_SUCCESS)
+        {
+          TBSYS_LOG(WARN, "get master update server failed:ret[%d]", ret);
+        }
+        else
+        {
+          char range_buf[OB_RANGE_STR_BUFSIZ];
+          version.to_string(range_buf, sizeof(range_buf));
+          TBSYS_LOG(DEBUG, "check incremental_data range start:old_version[%s]",
+              range_buf);
+          ret = rpc_stub_->check_incremental_data_range(rpc_timeout_, update_server,
+              table_id, version, new_range);
+          if (ret != OB_SUCCESS)
+          {
+            TBSYS_LOG(WARN, "check incremental_data range failed:ret[%d]", ret);
+          }
+          else
+          {
+            memset(range_buf, 0, sizeof(range_buf));
+            new_range.to_string(range_buf, sizeof(range_buf));
+            TBSYS_LOG(DEBUG, "check incremental_data succ:new_version[%s]",
+                range_buf);
+          }
+        }
+      }
+      return ret;
+    }
+    //add:e
     int ObMergerRpcProxy::get_schema(const uint64_t table_id,
         const int64_t timestamp, const ObSchemaManagerV2 ** manager)
     {

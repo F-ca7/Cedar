@@ -16,7 +16,6 @@
 
 #include "ob_compact_cell_iterator.h"
 #include "ob_object.h"
-
 using namespace oceanbase;
 using namespace common;
 
@@ -515,6 +514,11 @@ int ObCompactCellIterator::parse(ObBufferReader &buf_reader, ObObj &value, uint6
       case ObCellMeta::ES_DEL_ROW:
         value.set_ext(ObActionFlag::OP_DEL_ROW);
         break;
+      //add hxlong [Truncate Table]:20170318:b
+      case ObCellMeta::ES_TRUN_TAB:
+        value.set_ext(ObActionFlag::OP_DEL_ROW);
+        break;
+     //add:e
       case ObCellMeta::ES_NOP_ROW:
         value.set_ext(ObActionFlag::OP_NOP);
         break;
@@ -544,6 +548,11 @@ int ObCompactCellIterator::parse(ObBufferReader &buf_reader, ObObj &value, uint6
       case ObCellMeta::ES_DEL_ROW:
         value.set_ext(ObActionFlag::OP_DEL_ROW);
         break;
+      //add hxlong [Truncate Table]:20170318:b
+     case ObCellMeta::ES_TRUN_TAB:
+        value.set_ext(ObActionFlag::OP_DEL_ROW);
+        break;
+     //add:e
       default:
         ret = OB_NOT_SUPPORTED;
         TBSYS_LOG(WARN, "unsupported extend:cell_meta->attr_=%d",
@@ -601,59 +610,40 @@ int ObCompactCellIterator::parse_varchar(ObBufferReader &buf_reader, ObObj &valu
 
 int ObCompactCellIterator::parse_decimal(ObBufferReader &buf_reader, ObObj &value) const
 {
-  int ret = OB_SUCCESS;
-  const uint8_t *vscale = NULL;
-  const ObDecimalMeta *dec_meta = NULL;
-  const uint32_t *word = NULL;
-  uint32_t *words = NULL;
-
-  if(OB_SUCCESS != (ret = buf_reader.get<uint8_t>(vscale)))
-  {
-    TBSYS_LOG(WARN, "read vscale fail:ret[%d]", ret);
-  }
-  else if(OB_SUCCESS != (ret = buf_reader.get<ObDecimalMeta>(dec_meta)))
-  {
-    TBSYS_LOG(WARN, "get decimal meta fail:ret[%d]", ret);
-  }
-  else
-  {
-    value.meta_.type_ = ObDecimalType;
-    value.meta_.dec_vscale_ = *vscale & ObObj::META_VSCALE_MASK;
-    value.meta_.dec_precision_ = dec_meta->dec_precision_;
-    value.meta_.dec_scale_ = dec_meta->dec_scale_;
-    value.meta_.dec_nwords_ = dec_meta->dec_nwords_;
-  }
-
-  uint8_t nwords = value.meta_.dec_nwords_;
-  nwords ++;
-
-  if (OB_SUCCESS == ret)
-  {
-    if (nwords <= 3)
-    {
-      words = reinterpret_cast<uint32_t*>(&(value.val_len_));
-    }
-    else
-    {
-      //@todo, use ob_pool.h to allocate memory
-      ret = OB_NOT_IMPLEMENT;
-    }
-  }
-
-  if(OB_SUCCESS == ret)
-  {
-    for(int8_t i=0;OB_SUCCESS == ret && i<nwords;i++)
-    {
-      if(OB_SUCCESS != (ret = buf_reader.get<uint32_t>(word)))
-      {
-        TBSYS_LOG(WARN, "get word fail:ret[%d]", ret);
-      }
-      else
-      {
-        words[i] = *word;
-      }
-    }
-  }
+     //modify xsl ECNU_DECIMAL 2016_12
+     int ret = OB_SUCCESS;
+     const ObDecimalMeta *dec_meta = NULL;
+     uint64_t *str_value = NULL;
+     const uint8_t *vscale = NULL;
+     if(OB_SUCCESS != (ret = buf_reader.get<uint8_t>(vscale)))
+     {
+         TBSYS_LOG(WARN, "read vscale fail:ret[%d]", ret);
+     }
+     else if(OB_SUCCESS != (ret = buf_reader.get<ObDecimalMeta>(dec_meta)))
+     {
+         TBSYS_LOG(WARN, "get decimal meta fail:ret[%d]", ret);
+     }
+     else
+     {
+         value.meta_.type_ = ObDecimalType;
+     }
+     /*if(OB_SUCCESS == ret)
+     {
+       if(OB_SUCCESS != (ret = buf_reader.get<int32_t>(varchar_len))){
+       TBSYS_LOG(WARN, "get varchar_len error");
+     }
+     */
+     if(OB_SUCCESS == ret)
+     {
+         str_value=reinterpret_cast<uint64_t *>(const_cast<char *>(buf_reader.cur_ptr()));
+         value.meta_.dec_nwords_ = dec_meta->dec_nwords_;
+         buf_reader.skip(sizeof(uint64_t)*dec_meta->dec_nwords_);
+         ret=value.set_ttint(str_value);
+         value.meta_.dec_vscale_ = *vscale & ObObj::META_VSCALE_MASK;
+         value.meta_.dec_precision_ = dec_meta->dec_precision_;
+         value.meta_.dec_scale_ = dec_meta->dec_scale_;
+         //modify e
+     }
 
   return ret;
 }

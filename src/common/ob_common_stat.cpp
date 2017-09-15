@@ -292,6 +292,7 @@ const char *ObStatSingleton::sql_map[] = {
 
   "sql_create_table_count",
   "sql_drop_table_count",
+  "sql_truncate_table_count", /*add hxlong [Truncate Table]:20170318*/
 
   "sql_ps_allocator_count",
   "sql_insert_cache_hit",

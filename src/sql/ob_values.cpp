@@ -38,14 +38,37 @@
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 
-ObValues::ObValues() : is_open_(false), static_data_id_(-1)
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+ObValuesKeyInfo::ObValuesKeyInfo(){
+    tid_=OB_INVALID_ID;
+    cid_=OB_INVALID_ID;
+    type_=ObNullType;
+    precision_=38;
+    scale_=0;
+}
+ObValuesKeyInfo::~ObValuesKeyInfo(){
+
+}
+//add e
+
+ObValues::ObValues() : is_open_(false), static_data_id_(-1),
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    obj_array_(common::OB_MAX_ROWKEY_COLUMN_NUMBER*sizeof(ObValuesKeyInfo), ModulePageAllocator(ObModIds::OB_SQL_EXPR))
+    //add e
 {
+    //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    is_need_fix_obvalues=false;
+    //add e
 }
 
 ObValues::~ObValues()
 {
 }
-
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+void ObValues::set_fix_obvalues(){
+    is_need_fix_obvalues=true;
+}
+//add e
 void ObValues::reset()
 {
   row_desc_.reset();
@@ -54,6 +77,9 @@ void ObValues::reset()
 
   is_open_ = false; //add zt : 20151107
   ObSingleChildPhyOperator::reset();
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  is_need_fix_obvalues=false;
+  //add e
 }
 
 void ObValues::reuse()
@@ -65,6 +91,9 @@ void ObValues::reuse()
   is_open_ = false; //add by zt 20151107
   static_data_id_ = -1; //add by zt 20160118
   ObSingleChildPhyOperator::reset();
+  //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+  is_need_fix_obvalues=false;
+  //add e
 }
 
 int ObValues::set_row_desc(const common::ObRowDesc &row_desc)
@@ -269,11 +298,88 @@ int ObValues::load_data()
     }
     else
     {
-      TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
-      if (OB_SUCCESS != (ret = row_store_.add_row(*row, stored_row)))
-      {
-        TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
-      }
+        //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+        TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
+        if (OB_SUCCESS != (ret = row_store_.add_row(*row, stored_row)))
+        {
+          TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
+        }
+        */
+        TBSYS_LOG(DEBUG, "load data from child, row=%s", to_cstring(*row));
+        if(is_need_fix_obvalues)
+        {
+          //TBSYS_LOG(INFO,"xushilei,is_need_fix_obvalues!");
+          int ret_v2=OB_SUCCESS;
+          ModuleArena row_alloc(OB_MAX_ROW_LENGTH, ModulePageAllocator(ObModIds::OB_SQL_RPC_SCAN));
+          ObRow row_v2=*row;
+          //const ObRowkey* rowkey = NULL;
+          // if(OB_SUCCESS!=(ret_v2=row->get_rowkey(rowkey)))
+          //{
+          //TBSYS_LOG(ERROR,"test in get_rowkey");
+          //}
+          // else
+          // {
+            uint64_t table_id = OB_INVALID_ID;
+            uint64_t column_id = OB_INVALID_ID;
+            const ObObj *ori_cell = NULL;
+            for(int64_t j=0;j<row_v2.get_column_num();j++)
+            {
+                if(OB_SUCCESS!=(ret_v2=row_v2.raw_get_cell(j, ori_cell, table_id, column_id)))
+                {}
+                else if(ori_cell!=NULL)
+                {
+                    //for(int32_t i=0;i<rowkey->get_obj_cnt();i++)
+                    if(is_rowkey_column(table_id, column_id))
+                    {
+                        //ObObj cell = rowkey->get_obj_ptr()[i];
+                        ObObjType schema_type;
+                        uint32_t schema_p;
+                        uint32_t schema_s;
+                        if(OB_SUCCESS!=(ret_v2=get_rowkey_schema(table_id,column_id,schema_type,schema_p,schema_s)))
+                        {}
+                        else
+                        {
+                          ObObj result_cell;
+                          ObObj tmp_cell;
+                          if(ObDecimalType==schema_type&&ori_cell->get_type()==ObDecimalType)
+                          {
+                             //modify xsl ECNU_DECIMAL 2016_12
+                             uint64_t *t1 = NULL;
+                             t1 = ori_cell->get_ttint();
+                             tmp_cell.set_decimal(t1,schema_p,schema_s,ori_cell->get_vscale(),ori_cell->get_nwords());
+                             //modify e
+                             if(OB_SUCCESS!=(ret_v2=ob_write_obj_v2(row_alloc,tmp_cell,result_cell)))
+                             {}
+                             else if(OB_SUCCESS!=(ret_v2=row_v2.set_cell(table_id,column_id,result_cell)))
+                             {}
+                          }
+                        }
+                    }
+                }
+            }
+          //}
+          if(OB_SUCCESS==ret_v2)
+          {
+            if (OB_SUCCESS != (ret = row_store_.add_row(row_v2, stored_row)))
+            {
+                TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
+            }
+          }
+          else if (OB_SUCCESS != (ret = row_store_.add_row(*row, stored_row)))
+          {
+              TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
+          }
+          row_alloc.free();
+        }
+        else
+        {
+          if (OB_SUCCESS != (ret = row_store_.add_row(*row, stored_row)))
+          {
+              TBSYS_LOG(WARN, "fail to add row:ret[%d]", ret);
+          }
+        }
+          //modify e
     }
   }
   if (OB_SUCCESS != (err = child_op_->close()))
@@ -286,3 +392,44 @@ int ObValues::load_data()
   }
   return ret;
 }
+//add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+void ObValues::add_rowkey_array(uint64_t tid,uint64_t cid,common::ObObjType type,uint32_t p,uint32_t s){
+
+       ObValuesKeyInfo oki;
+       oki.set_key_info(tid,cid,p,s,type);
+       obj_array_.push_back(oki);
+}
+
+bool ObValues::is_rowkey_column(uint64_t tid,uint64_t cid){
+    ObValuesKeyInfo oki;
+    bool ret=false;
+    for(int i=0;i<obj_array_.count();i++){
+        obj_array_.at(i,oki);
+        if(oki.is_rowkey(tid,cid)){
+                ret=true;
+                break;
+        }
+    }
+    return ret;
+
+}
+
+int ObValues::get_rowkey_schema(uint64_t tid,uint64_t cid,common::ObObjType& type,uint32_t& p,uint32_t& s){
+    int ret=OB_ERROR;
+    ObValuesKeyInfo oki;
+    for(int i=0;i<obj_array_.count();i++){
+        obj_array_.at(i,oki);
+        if(oki.is_rowkey(tid,cid)){
+            oki.get_type(type);
+            oki.get_key_info(p,s);
+            ret=OB_SUCCESS;
+            break;
+        }
+
+    }
+    if(OB_SUCCESS!=ret){
+        TBSYS_LOG(WARN,"can not find rowkey info in obvalues!tid=%ld,cid=%ld",tid,cid);
+    }
+    return ret;
+}
+//add e

@@ -644,34 +644,7 @@ namespace oceanbase
         tablet_manager_->drop_unserving_cache(); //ignore err
         // re scan all local disk to recycle sstable
         // left by RegularRecycler. e.g. migrated sstable.
-        //mod dragon [Bugfix#11] 2017-3-10 b
-        /**---new:如果有新建的索引表,那么这次每日合并不会进行回收流程---*/
-        bool if_has_new_index_this_time = false; //此次每日合并有无新建的索引表
-        ObArray<uint64_t> index_id_list;
-        if(OB_SUCCESS != (current_schema_.get_all_init_index_tid(index_id_list)))
-        {
-          if_has_new_index_this_time = true;
-        }
-        else
-        {
-          if(index_id_list.count()>0)
-          {
-            if_has_new_index_this_time = true;
-          }
-          else
-          {
-            if_has_new_index_this_time = false;
-          }
-        }
-        if(!if_has_new_index_this_time)
-        {
-          //如果没有新的索引就做recycle
-          tablet_manager_->get_scan_recycler().recycle();
-        }
-        /**---old---
         tablet_manager_->get_scan_recycler().recycle();
-        ---old---*/
-        //mod dragon [Bugfix#11] 2017-3-10 e
 
         merge_last_end_time_ = tbsys::CTimeUtil::getTime();
       }

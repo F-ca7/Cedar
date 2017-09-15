@@ -68,7 +68,8 @@ namespace oceanbase
                            const common::ObSchemaManagerV2 &schema_mgr,
                            const int64_t merge_mem_size,
                            const int64_t max_merge_mem_size,
-                           const bool unmerge_if_unchanged = false); 
+                           const bool unmerge_if_unchanged = false,
+                           const bool is_static_truncated = false); /*add hxlong [Truncate Table]:20170318 param:is_static_truncated*/
 
       // clear all internal status for next new merge and join operation
       void clear(); 

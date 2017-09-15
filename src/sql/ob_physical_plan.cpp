@@ -410,7 +410,7 @@ int ObPhysicalPlan::serialize_tree(char *buf, int64_t buf_len, int64_t &pos, con
     }
   }
 
-  for (int64_t i=0;OB_SUCCESS == ret && i<root.get_child_num();i++)
+  for (int64_t i=0;OB_SUCCESS == ret && i<root.get_child_num();i++)  //value
   {
     if (NULL != root.get_child(static_cast<int32_t>(i)) )
     {

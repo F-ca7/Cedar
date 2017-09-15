@@ -37,6 +37,7 @@
 #include "ob_explain_stmt.h"
 #include "ob_create_table_stmt.h"
 #include "ob_drop_table_stmt.h"
+#include "ob_truncate_table_stmt.h" //add hxlong [Truncate Table]:20170403
 #include "ob_show_stmt.h"
 #include "ob_create_user_stmt.h"
 #include "ob_prepare_stmt.h"
@@ -521,6 +522,19 @@ int resolve_column_definition(
 			col_def.precision_ = type_node->children_[0]->value_;
 		if (type_node->num_child_ >= 2 && type_node->children_[1] != NULL)
 			col_def.scale_ = type_node->children_[1]->value_;
+        //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        /*
+         *建表的时候要对用户输入的decimal的参数做正确性检查
+         * report wrong info when input precision<scale
+         * */
+        if (col_def.precision_ <= col_def.scale_||col_def.precision_>MAX_DECIMAL_DIGIT||col_def.scale_>MAX_DECIMAL_SCALE||col_def.precision_<=0||type_node->num_child_==0)
+        {
+            ret = OB_ERR_WRONG_DYNAMIC_PARAM;
+            snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+                     "You have an error in your SQL syntax; check the param of decimal! precision = %ld, scale = %ld!",
+                     col_def.precision_, col_def.scale_);
+        }
+        //add:e
 		break;
 	case T_TYPE_BOOLEAN:
 		col_def.data_type_ = ObBoolType;
@@ -1145,7 +1159,86 @@ int resolve_drop_table_stmt(
 	}
 	return ret;
 }
+//add hxlong [Truncate Table]:20170403:b
+int resolve_truncate_table_stmt(
+    ResultPlan* result_plan,
+    ParseNode* node,
+    uint64_t& query_id)
+{
+  int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
+  OB_ASSERT(node && node->type_ == T_TRUNCATE_TABLE && node->num_child_ == 3);
+  ObLogicalPlan* logical_plan = NULL;
+  ObTruncateTableStmt* trun_tab_stmt = NULL;
+  query_id = OB_INVALID_ID;
 
+
+  ObStringBuf* name_pool = static_cast<ObStringBuf*>(result_plan->name_pool_);
+  if (result_plan->plan_tree_ == NULL)
+  {
+    logical_plan = (ObLogicalPlan*)parse_malloc(sizeof(ObLogicalPlan), result_plan->name_pool_);
+    if (logical_plan == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObLogicalPlan");
+    }
+    else
+    {
+      logical_plan = new(logical_plan) ObLogicalPlan(name_pool);
+      result_plan->plan_tree_ = logical_plan;
+    }
+  }
+  else
+  {
+    logical_plan = static_cast<ObLogicalPlan*>(result_plan->plan_tree_);
+  }
+
+  if (ret == OB_SUCCESS)
+  {
+    trun_tab_stmt = (ObTruncateTableStmt*)parse_malloc(sizeof(ObTruncateTableStmt), result_plan->name_pool_);
+    if (trun_tab_stmt == NULL)
+    {
+      ret = OB_ERR_PARSER_MALLOC_FAILED;
+      snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not malloc ObTruncateTableStmt");
+    }
+    else
+    {
+      trun_tab_stmt = new(trun_tab_stmt) ObTruncateTableStmt(name_pool);
+      query_id = logical_plan->generate_query_id();
+      trun_tab_stmt->set_query_id(query_id);
+      if ((ret = logical_plan->add_query(trun_tab_stmt)) != OB_SUCCESS)
+      {
+        snprintf(result_plan->err_stat_.err_msg_, MAX_ERROR_MSG,
+          "Can not add ObDropTableStmt to logical plan");
+      }
+    }
+  }
+  if (ret == OB_SUCCESS && node->children_[0])
+  {
+    trun_tab_stmt->set_if_exists(true);
+  }
+  if (ret == OB_SUCCESS)
+  {
+      OB_ASSERT(node->children_[1] && node->children_[1]->num_child_ > 0);
+      ParseNode *table_node = NULL;
+      ObString table_name;
+      for (int32_t i = 0; i < node->children_[1]->num_child_; i ++)
+      {
+          table_node = node->children_[1]->children_[i];
+          table_name.assign_ptr(
+                  (char*)(table_node->str_value_),
+                  static_cast<int32_t>(strlen(table_node->str_value_))
+          );
+          if (OB_SUCCESS != (ret = trun_tab_stmt->add_table_name_id(*result_plan, table_name)))
+          {
+              break;
+          }
+      }
+  }
+  return ret;
+  }
+//add:e
 int resolve_create_index_stmt(ResultPlan* result_plan, ParseNode* node, uint64_t& query_id)
 {
   int& ret = result_plan->err_stat_.err_code_ = OB_SUCCESS;
@@ -5191,6 +5284,13 @@ int resolve(ResultPlan* result_plan, ParseNode* node)
 			ret = resolve_alter_table_stmt(result_plan, node, query_id);
 			break;
 		}
+        //add hxlong [truncate table] 20170403:b //
+        case T_TRUNCATE_TABLE:
+        {
+            ret = resolve_truncate_table_stmt(result_plan ,node ,query_id);
+            break;
+        }
+        //add:e
 		//secondary index
 		//longfei [create index]
 		case T_CREATE_INDEX:

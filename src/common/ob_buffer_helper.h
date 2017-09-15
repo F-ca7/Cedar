@@ -239,7 +239,28 @@ namespace oceanbase
         }
         return ret;
       }
-
+      //add xsl ECNU_DECIMAL 2016_11
+      inline int write_Decimal(const uint64_t* src,uint64_t *& dst, uint32_t len)
+      {
+          int ret = common::OB_SUCCESS;
+          if(NULL == buf_)
+          {
+            ret = OB_NOT_INIT;
+            TBSYS_LOG(WARN, "buf_ is null");
+          }
+          else if((buf_size_ != INVALID_BUF_SIZE) && ((pos_ + static_cast<int64_t>(sizeof(uint64_t)*len)) > buf_size_))
+          {
+            ret = common::OB_BUF_NOT_ENOUGH;
+          }
+          else
+          {
+                  dst=reinterpret_cast<uint64_t *>(buf_ + pos_);
+                  memcpy(buf_ + pos_, const_cast<uint64_t *>(src), sizeof(uint64_t)*len);
+                  pos_ =pos_ +  sizeof(uint64_t)*len;
+          }
+          return ret;
+      }
+      //add:e
       inline int write_varchar(const ObString &str, ObString *str_written = NULL)
       {
         int ret = common::OB_SUCCESS;

@@ -85,6 +85,7 @@ namespace oceanbase
         DEF_OP(PHY_CREATE_TABLE);
         DEF_OP(PHY_DEALLOCATE);
         DEF_OP(PHY_DROP_TABLE);
+        DEF_OP(PHY_TRUNCATE_TABLE); //add hxlong [Truncate Table]:20170318
         DEF_OP(PHY_DUAL_TABLE_SCAN);
         DEF_OP(PHY_END_TRANS);
         DEF_OP(PHY_PRIV_EXECUTOR);

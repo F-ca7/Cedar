@@ -104,6 +104,7 @@ namespace oceanbase
         void destroy();
       public:
         virtual int next_row();
+        virtual int next_table(); /*add hxlong [Truncate Table]:20170318*/
         virtual int get_row(sstable::ObSSTableRow &sstable_row);
         virtual int reset_iter();
         virtual bool get_compressor_name(common::ObString &compressor_str);
@@ -115,9 +116,11 @@ namespace oceanbase
         void reset_();
         void revert_schema_handle_();
         bool get_schema_handle_();
+        int fill_truncate_info_(sstable::ObSSTableSchema &sstable_schema); /*add hxlong [Truncate Table]:20170318*/
       private:
         MemTable *memtable_;
         TableEngineIterator memtable_iter_;
+        TableEngineIterator memtable_table_iter_; /*add hxlong [Truncate Table]:20170318*/
         MemTableGetIter get_iter_;
         common::ObRowCompaction rc_iter_;
         UpsSchemaMgr::SchemaHandle schema_handle_;

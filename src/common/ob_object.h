@@ -26,7 +26,9 @@
 #include "ob_action_flag.h"
 #include "ob_obj_type.h"
 #include "ob_number.h"
-
+//add   fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+#include "Ob_Decimal.h"
+//add e
 namespace oceanbase
 {
   namespace tests
@@ -42,10 +44,11 @@ namespace oceanbase
     {
       uint32_t type_:8;
       uint32_t dec_vscale_:6;
-      uint32_t op_flag_:2;
       uint32_t dec_precision_:7;
       uint32_t dec_scale_:6;
+      uint32_t op_flag_:2;
       uint32_t dec_nwords_:3; // the actual nwords is dec_nwords_ + 1, so the range of nwords is [1, 8]
+      //uint32_t dec_neg:1;
     };
 
     union _ObjValue
@@ -150,7 +153,38 @@ namespace oceanbase
         int get_varchar(ObString& value) const;
         int get_bool(bool &value) const;
 
-        int set_decimal(const ObNumber &num, int8_t precision = 38, int8_t scale = 0, bool is_add = false);
+        //add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        int get_decimal(ObString& value) const;
+        int set_decimal(const ObString& value);
+        int set_decimal(const char* value);
+        int set_decimal(const ObString& value,uint32_t p,uint32_t s,uint32_t v);
+        //add e
+
+        //add xsl ECNU_DECIMAL 2016_12
+        int set_ttint(const uint64_t *ttint);        //not in use
+        uint64_t* get_ttint() const;
+        int set_decimal(const uint64_t* od, uint32_t p, uint32_t s, uint32_t v, uint32_t len);
+        //int set_decimal(const TTInt* od,uint32_t p,uint32_t s,uint32_t v);
+        int set_decimal(const ObDecimal* od);
+        int set_decimal(const ObDecimal& od);
+        int set_decimal_v2(const ObDecimal& od, uint32_t len);
+        int get_decimal(ObDecimal& value) const;
+        int get_decimal_v2(ObDecimal& value) const;
+        //add e
+        uint32_t get_precision() const;
+        uint32_t get_scale() const;
+        uint32_t get_vscale() const;
+        uint32_t get_nwords() const;
+        void set_nwords(uint32_t value);
+        void set_precision(uint32_t value);
+        void set_scale(uint32_t value);
+        void set_vscale(uint32_t value);
+        int get_varchar_d(ObString& value) const;
+        const char* get_word();
+        //add for obj_hash row_key
+        int from_hash(TTCInt &tc,const char* buf, int64_t buf_len)const ;
+        //add e
+        //int set_decimal(const ObNumber &num, int8_t precision = 38, int8_t scale = 0, bool is_add = false);
         int get_decimal(ObNumber &num) const;
         int get_decimal(ObNumber &num, bool &is_add) const;
         /*
@@ -247,6 +281,14 @@ namespace oceanbase
         const char *varchar_val;
         bool bool_val;
         uint32_t *dec_words_;
+        //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        const char* word;
+        //modify e
+        //add xsl ECNU_DECIMAL 2016_12
+        //ObDecimal *dec;
+        //TTInt *tt;
+        uint64_t *ii;
+        //add e
       } value_;
     };
 
@@ -395,7 +437,48 @@ namespace oceanbase
       meta_.op_flag_ = INVALID_OP_FLAG;
       value_.createtime_val = value;
     }
+    // add  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+        inline uint32_t ObObj::get_precision() const
+        {
+            return meta_.dec_precision_;
+        }
 
+        inline uint32_t ObObj::get_scale() const {
+            return meta_.dec_scale_;
+        }
+
+        inline uint32_t ObObj::get_vscale() const {
+            return meta_.dec_vscale_;
+        }
+
+        inline uint32_t ObObj::get_nwords() const
+        {
+            return meta_.dec_nwords_;
+        }
+        inline void ObObj::set_nwords(uint32_t value)
+        {
+            meta_.dec_nwords_ = static_cast<uint8_t>(value) & META_NWORDS_MASK;
+        }
+
+
+        inline void ObObj::set_precision(uint32_t value) {
+            meta_.dec_precision_ = static_cast<uint8_t>(value) & META_PREC_MASK;
+        }
+        inline void ObObj::set_scale(uint32_t value) {
+            meta_.dec_scale_ = static_cast<uint8_t>(value) & META_SCALE_MASK;
+        }
+        inline void ObObj::set_vscale(uint32_t value) {
+            meta_.dec_vscale_ = static_cast<uint8_t>(value) & META_SCALE_MASK;
+        }
+
+        inline int ObObj::get_varchar_d(ObString& value) const {
+            int res = OB_OBJ_TYPE_ERROR;
+            value.assign_ptr(const_cast<char *>(value_.varchar_val), val_len_);
+            res = OB_SUCCESS;
+            return res;
+        }
+
+    //add:e
     inline void ObObj::set_bool(const bool value)
     {
       meta_.type_ = ObBoolType;
@@ -685,26 +768,96 @@ namespace oceanbase
       return ret;
     }
 
-    template <typename AllocatorT>
-    int ob_write_obj(AllocatorT &allocator, const ObObj &src, ObObj &dst)
-    {
-      int ret = OB_SUCCESS;
-      if (OB_UNLIKELY(ObVarcharType != src.get_type()))
-      {
-        dst = src;
-      }
-      else
-      {
-        ObString str;
-        ObString str_clone;
-        src.get_varchar(str);
-        if (OB_SUCCESS == (ret = ob_write_string(allocator, str, str_clone)))
-        {
-          dst.set_varchar(str_clone);
-        }
-      }
-      return ret;
-    }
+    //modify xsl ECNU_DECIMAL 2016_11
+    //modify fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+   template <typename AllocatorT>
+   int ob_write_obj(AllocatorT &allocator, const ObObj &src, ObObj &dst)
+   {
+     int ret = OB_SUCCESS;
+     if (ObVarcharType != src.get_type()&&ObDecimalType != src.get_type())
+     {
+       dst = src;
+     }
+     else
+     {
+       if(ObDecimalType == src.get_type())
+       {
+           uint64_t *t1 = NULL;
+           uint64_t *t2 = NULL;
+           uint32_t len = src.get_nwords();
+           t1 = src.get_ttint();
+           if (OB_SUCCESS == (ret = ob_write_decimal(allocator, t1,len, t2)))
+           {
+               dst.set_decimal(t2,src.get_precision(),src.get_scale(),src.get_vscale(),len);
+           }
+       }
+       else
+       {
+           ObString str;
+           ObString str_clone;
+           src.get_varchar(str);
+           if (OB_SUCCESS == (ret = ob_write_string(allocator, str, str_clone)))
+           {
+               dst.set_varchar(str_clone);
+           }
+       }
+     }
+     return ret;
+   }
+   //modify:e
+
+   //modify xsl ECNU_DECIMAL 2016_12
+   //add fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+   template <typename AllocatorT>
+   int ob_write_obj_v2(AllocatorT &allocator, const ObObj &src, ObObj &dst)   //引用
+   {
+       int ret = OB_SUCCESS;
+       if (ObVarcharType != src.get_type()&&ObDecimalType != src.get_type())
+       {
+           dst = src;
+       }
+       else
+       {
+           if(ObDecimalType == src.get_type())
+           {               
+               TTInt tt;
+               uint64_t *src_val = NULL;
+               uint64_t *dst_val = NULL;
+               uint32_t len = src.get_nwords();
+               src_val = src.get_ttint();
+               tt.FromUInt_v2(src_val,len);
+               ObDecimal dec2;
+               dec2.from(src.get_precision(),src.get_scale(),src.get_vscale(),tt); //p=schema_p,s=schema_s,vs=dec_vs
+               if(OB_SUCCESS != ret)
+               {
+                   TBSYS_LOG(WARN, "faild to do get_decimal()");
+               }
+               else if(OB_SUCCESS != (ret = dec2.modify_value(src.get_precision(),src.get_scale())))
+               {
+                   //TBSYS_LOG(WARN, "faild to do modify_value(),od.p=%d,od.s=%d,od.v=%d,src.p=%d,src.s=%d", str2.get_precision(),str2.get_scale(),str2.get_vscale(),src.get_precision(),src.get_scale());
+               }
+               else
+               {
+                   if (OB_SUCCESS == (ret = ob_write_decimal(allocator, dec2.get_words()->ToUInt_v2(),len,dst_val)))   //深拷贝，在内存管理器中申请一块内存
+                   {
+                       dst.set_decimal(dst_val,dec2.get_precision(),dec2.get_scale(),dec2.get_vscale(),len);   //指针给了dst
+                   }
+               }
+           }
+           else  //ObString
+           {
+               ObString str;
+               ObString str_clone;
+               src.get_varchar(str);
+               if (OB_SUCCESS == (ret = ob_write_string(allocator, str, str_clone)))
+               {
+                   dst.set_varchar(str_clone);
+               }
+           }
+       }
+       return ret;
+   }
+   //modify e
   }
 }
 

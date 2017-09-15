@@ -9,6 +9,46 @@ namespace oceanbase {
     {
 
     }
+    //add by  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+    bool ObMySQLRow::check_decimal(ObString os,uint32_t pre,uint32_t scale)const{
+        char* s=os.ptr();
+        int buf_len=os.length();
+        int got_dot = 0;
+        int i = 0;
+        // int op = 0;
+        int part_frac=0;
+        // int part_int=0;
+        bool is_right=false;
+        UNUSED(pre);
+        if(s==NULL){
+            TBSYS_LOG(WARN,"failed to check_decimal,err is NULL buffer pointer!");
+        }
+        else{
+            if(*s=='+'||*s=='.'||(s[0]=='-'&&s[1]=='.'))
+            {
+                is_right=false;
+            }
+            else{
+                for (;; ++s) {
+                    i++;
+                    if (i == buf_len)
+                        break;
+                    if ('.'==(*s)) {
+                        got_dot=i;
+                        break;
+                    }
+                }
+
+                part_frac=buf_len-got_dot;
+                if(got_dot!=0)
+                    // part_int=got_dot-op;
+
+                    if(part_frac==(int)scale&&part_frac!=0)is_right=true;
+            }
+        }
+        return is_right;
+    }
+    //add e
     int ObMySQLRow::serialize(char *buf, const int64_t len, int64_t &pos) const
     {
       int64_t cell_index = 0;
@@ -187,21 +227,60 @@ namespace oceanbase {
       return ret;
     }
 
-    int ObMySQLRow::decimal_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
-    {
-      int ret = OB_SUCCESS;
-      uint64_t length = 0;
-      ObNumber num;
-
-      if (OB_SUCCESS == (ret = obj.get_decimal(num)))
-      {
-        /* skip 1 byte to store length */
-        length = num.to_string(buf + pos + 1, len - pos - 1);
-        ObMySQLUtil::store_length(buf, len, length, pos);
-        pos += length;
-      }
-      return ret;
-    }
+    //modify xsl ECNU_DECIMAL 2016_12
+     int ObMySQLRow::decimal_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
+     {
+         uint64_t *t1 =NULL;
+         int ret=OB_SUCCESS;
+         int64_t pos_bk = pos;
+         int64_t length = 0;
+         if (obj.get_type() != ObDecimalType)
+         {
+           ret = OB_OBJ_TYPE_ERROR;
+         }
+         if (OB_SUCCESS == ret)
+         {
+           t1 = obj.get_ttint();
+         }
+         //modify xsl ECNU_DECIMAL 2017_1
+         int32_t value_len;
+         value_len=obj.get_nwords();
+         ObDecimal dec;
+         TTInt tt;
+         tt.FromUInt_v2(t1,value_len);
+         dec.from(obj.get_precision(),obj.get_scale(),obj.get_vscale(),tt);
+         //modify e
+         const char *s = to_cstring(dec);
+         length=static_cast<int64_t>(strlen(s));
+         if(OB_SUCCESS == ret && length < len - pos)
+         {
+             if (length < 0)   // ensure no neg signed int to unsigned cast.
+                 return OB_ERROR;
+             if ((ret = ObMySQLUtil::store_length(buf, len, static_cast<uint64_t>(length), pos)) == OB_SUCCESS)
+             {
+                 if (len - pos >=  static_cast<int64_t>(length))
+                 {
+                     memcpy(buf + pos, s, length);
+                     pos += length;
+                 }
+                 else
+                 {
+                     pos = pos_bk;
+                     ret = OB_SIZE_OVERFLOW;
+                 }
+             }
+             else
+             {
+                 TBSYS_LOG(ERROR, "serialize data len failed len = %lu", length);
+             }
+         }
+         else
+         {
+             ret = OB_SIZE_OVERFLOW;
+         }
+         return ret;
+     }
+     //add e
 
     int ObMySQLRow::datetime_cell_str(const ObObj &obj, char *buf, const int64_t len, int64_t &pos) const
     {
