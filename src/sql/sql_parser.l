@@ -344,7 +344,7 @@ BLOOMFILTER_JOIN  { return  BLOOMFILTER_JOIN; }
 MERGE_JOIN  { return  MERGE_JOIN; }
  /* add e */
 
-HASH_JOIN_SINGLE  { return HASH_JOIN_SINGLE; }/*add maoxx [hash join single] 20170110*/                  
+HASH_JOIN  { return HASH_JOIN; }/*add maoxx [hash join single] 20170110*/
                   
 NULL   {
   /* yylval->node = new_node(((ParseResult*)yyextra)->malloc_pool_, T_NULL, 0); */
@@ -737,9 +737,9 @@ Timestamp{whitespace}?'[0-9]{4}(-[0-9]{2}){2}[ ][0-9]{2}(:[0-9]{2}){2}[.]?' {
     return MERGE_JOIN;
     /* add e */
 }
-<hint>HASH_JOIN_SINGLE  {
+<hint>HASH_JOIN  {
   //add maoxx [hash join single] 20170110
-  return HASH_JOIN_SINGLE;
+  return HASH_JOIN;
 }
 <hint>LONG_TRANS  {
     /* add by qx 20170317 */

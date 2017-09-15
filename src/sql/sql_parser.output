@@ -416,7 +416,7 @@ Grammar
 
   308 join_op_type: BLOOMFILTER_JOIN
   309             | MERGE_JOIN
-  310             | HASH_JOIN_SINGLE
+  310             | HASH_JOIN
 
   311 consistency_level: WEAK
   312                  | STRONG
@@ -1128,7 +1128,7 @@ INDEX (454) 145 242 298 377
 STORING (455) 147
 BLOOMFILTER_JOIN (456) 308
 MERGE_JOIN (457) 309
-HASH_JOIN_SINGLE (458) 310
+HASH_JOIN (458) 310
 AUTO_INCREMENT (459) 220 545
 CHUNKSERVER (460) 533 546
 COMPRESS_METHOD (461) 231 547
@@ -8279,7 +8279,7 @@ state 475
 
     BLOOMFILTER_JOIN  shift, and go to state 687
     MERGE_JOIN        shift, and go to state 688
-    HASH_JOIN_SINGLE  shift, and go to state 689
+    HASH_JOIN         shift, and go to state 689
 
     join_op_type_list  go to state 690
     join_op_type       go to state 691
@@ -13197,7 +13197,7 @@ state 688
 
 state 689
 
-  310 join_op_type: HASH_JOIN_SINGLE .
+  310 join_op_type: HASH_JOIN .
 
     $default  reduce using rule 310 (join_op_type)
 
@@ -17236,7 +17236,7 @@ state 896
 
     BLOOMFILTER_JOIN  shift, and go to state 687
     MERGE_JOIN        shift, and go to state 688
-    HASH_JOIN_SINGLE  shift, and go to state 689
+    HASH_JOIN         shift, and go to state 689
 
     join_op_type  go to state 1016
 

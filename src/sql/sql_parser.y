@@ -163,7 +163,7 @@ do \
 %token BLOOMFILTER_JOIN MERGE_JOIN
 /* add e */
 //add maoxx [hash join single] 20170110
-%token HASH_JOIN_SINGLE
+%token HASH_JOIN
 %token <non_reserved_keyword>
        AUTO_INCREMENT CHUNKSERVER COMPRESS_METHOD CONSISTENT_MODE
        EXPIRE_INFO GRANTS JOIN_INFO
@@ -2099,7 +2099,7 @@ join_op_type:
       malloc_terminal_node($$, result->malloc_pool_, T_MERGE_JOIN);
     }
     //add maoxx [hash join single] 20170110
-  | HASH_JOIN_SINGLE
+  | HASH_JOIN
     {
       malloc_terminal_node($$, result->malloc_pool_, T_HASH_JOIN_SINGLE);
     }

@@ -140,6 +140,7 @@ namespace oceanbase
 //        int64_t con_length_;
 //        int numi;
         int64_t left_row_count_;
+        bool flag_; //add maoxx [hash join single bug fix] 20170908
     };
   } // end namespace sql
 } // end namespace oceanbase

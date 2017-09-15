@@ -38,6 +38,9 @@ ObHashJoinSingle::ObHashJoinSingle()
   bucket_node_ = NULL;
   //add e
   left_row_count_ = 0;
+  //add maoxx [hash join single bug fix] 20170908
+  flag_ = false;
+  //add e
 //  last_left_row_has_printed_ = false;
 //  last_right_row_has_printed_ = false;
 //  left_cache_is_valid_ = false;
@@ -2614,8 +2617,11 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
       }
       else
       {
+        //modify maoxx [hash join single bug fix] 20170908
         //modify maoxx  [hash join single bug fix] 20170428
-//        left_hash_id_cache_valid_ = true;
+        left_hash_key_cache_valid_ = true;
+        last_right_row_ = right_row;
+        //modify e
         //modify e
         bool is_qualified = false;
         if (OB_SUCCESS != (ret = join_rows(*left_row, *right_row)))
@@ -2630,10 +2636,12 @@ int ObHashJoinSingle::inner_hash_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
+          //delete maoxx [hash join single bug fix] 20170908
           //add maoxx  [hash join single bug fix] 20170428
-          left_hash_key_cache_valid_ = true;
+//          left_hash_key_cache_valid_ = true;
           //add e
-          last_right_row_ = right_row;
+//          last_right_row_ = right_row;
+          //delete e
           //modify maoxx [hash join single] 20170614
 //          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
           HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
@@ -2782,7 +2790,24 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
           bucket_node_ = NULL;
           //add e
           left_hash_key_cache_valid_ = false;
-          ret = OB_SUCCESS;
+          //modify maoxx [hash join single bug fix] 20170908
+//          ret = OB_SUCCESS;
+          if(flag_)
+          {
+            ret = OB_SUCCESS;
+          }
+          else if (OB_SUCCESS != (ret = right_join_rows(*last_right_row_)))
+          {
+            TBSYS_LOG(WARN, "failed to join rows, err=%d", ret);
+          }
+          else
+          {
+            // output
+            row = &curr_row_;
+            last_right_row_ = NULL;
+            break;
+          }
+          //modify e
         }
       }
       else
@@ -2800,6 +2825,9 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
+          //add maoxx [hash join single bug fix] 20170908
+          flag_ = true;
+          //add e
           //modify maoxx [hash join single] 20170614
 //          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
           HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
@@ -2833,6 +2861,9 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         }
       }
       OB_ASSERT(right_row);
+      //add maoxx [hash join single bug fix] 20170908
+      flag_ = false;
+      //add e
       //modify maoxx [hash join single] 20170614
 //      if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row)))
       if (OB_SUCCESS != (ret = get_next_equijoin_left_row(left_row, *right_row, bucket_hash_key, pair)))
@@ -2859,8 +2890,11 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
       }
       else
       {
+        //modify maoxx [hash join single bug fix] 20170908
         //modify maoxx  [hash join single bug fix] 20170428
-//        left_hash_id_cache_valid_ = true;
+        left_hash_key_cache_valid_ = true;
+        last_right_row_ = right_row;
+        //modify e
         //modify e
         bool is_qualified = false;
         if (OB_SUCCESS != (ret = join_rows(*left_row, *right_row)))
@@ -2875,10 +2909,15 @@ int ObHashJoinSingle::right_hash_outer_get_next_row(const common::ObRow *&row)
         {
           // output
           row = &curr_row_;
-          //add maoxx  [hash join single bug fix] 20170428
-          left_hash_key_cache_valid_ = true;
+          //add maoxx [hash join single bug fix] 20170908
+          flag_ = true;
           //add e
-          last_right_row_ = right_row;
+          //delete maoxx [hash join single bug fix] 20170908
+          //add maoxx  [hash join single bug fix] 20170428
+//          left_hash_key_cache_valid_ = true;
+          //add e
+//          last_right_row_ = right_row;
+          //delete e
           //modify maoxx [hash join single] 20170614
 //          hash_table_row_store[(int)last_left_hash_id_].hash_iterators.at(hash_table_row_store[(int)last_left_hash_id_].id_no_ - 1) = 1;
           HashTableRowPair* new_pair = new HashTableRowPair(pair->first, 1);
