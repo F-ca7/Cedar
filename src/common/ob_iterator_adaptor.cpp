@@ -338,20 +338,40 @@ namespace oceanbase
            uint32_t s=och_.get_scale(cur_idx_);
            uint64_t *t1 =NULL;
            //ObString os;
+
            if(NULL == (t1 = cell_.value_.get_ttint()))
            {
                 TBSYS_LOG(ERROR, "failed to do get_decimal() in ObCellAdaptor::next_cell");
            }
            else
            {
-               if((p-s) < (cell_.value_.get_precision()- cell_.value_.get_scale()))    //modify xsl ECNU_DECIMAL 2017_1
+               //add xsl DECIMAL
+               uint32_t tmp_vs = cell_.value_.get_vscale();
+               ObDecimal tmp_dec;
+               cell_.value_.get_decimal(tmp_dec);
+               TTInt *word = tmp_dec.get_words();
+               TTInt whole;
+               TTInt BASE(10),pp(tmp_vs);
+               BASE.Pow(pp);
+               whole = word[0] / BASE;
+               if(word->IsSign())
+               {
+                   whole.ChangeSign();
+               }
+               std::string str_for_int;
+               whole.ToString(str_for_int);
+               int len_int = (int)str_for_int.length();
+               if( (uint32_t)len_int > (p - s))
+               //add e
+               //if((p-s) < (cell_.value_.get_precision()- cell_.value_.get_scale()))    //modify xsl ECNU_DECIMAL 2017_1
                {
                    ret=OB_DECIMAL_UNLEGAL_ERROR;
                    TBSYS_LOG(ERROR, "OB_DECIMAL_UNLEGAL_ERROR,p=%d,s=%d,od.get_precision()=%d,od.get_vscale()=%d",p,s,cell_.value_.get_precision(),cell_.value_.get_precision());
                }
-               else if(OB_SUCCESS!= (ret = (cell_.value_.set_decimal(t1,cell_.value_.get_precision(),s,cell_.value_.get_vscale(),cell_.value_.get_nwords()))))
+               else
                {
-                   TBSYS_LOG(ERROR, "failed to set_decimal in ObCellAdaptor::next_cell");
+                   cell_.value_.set_precision(p);
+                   cell_.value_.set_scale(s);
                }
                //}
            }

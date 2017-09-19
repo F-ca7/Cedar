@@ -1941,12 +1941,29 @@ namespace oceanbase
             }
             else
             {
-                uint32_t pre=orig_cell.get_precision();
+                //uint32_t pre=orig_cell.get_precision();
                 //uint32_t scale=casted_cell.get_scale();
                 uint32_t vscale=orig_cell.get_vscale();
                 uint32_t schema_p=expected_type.get_precision();  //模式定义的参数
                 uint32_t schema_s=expected_type.get_scale();
-                if((pre - vscale) > (schema_p - schema_s))
+                //add xsl DECIMAL
+                ObDecimal tmp_dec;
+                orig_cell.get_decimal(tmp_dec);
+                TTInt *word = tmp_dec.get_words();
+                TTInt whole;
+                TTInt BASE(10),pp(vscale);
+                BASE.Pow(pp);
+                whole = word[0] / BASE;
+                if(word->IsSign())
+                {
+                    whole.ChangeSign();
+                }
+                std::string str_for_int;
+                whole.ToString(str_for_int);
+                int len_int = (int)str_for_int.length();
+                if( (uint32_t)len_int > (schema_p - schema_s))
+                //add e
+                //if((pre - vscale) > (schema_p - schema_s))
                 {
                     ret=OB_DECIMAL_UNLEGAL_ERROR;
                     TBSYS_LOG(WARN, "OB_DECIMAL_UNLEGAL_ERROR,schema_p=%d,schema_s=%d,"
@@ -1955,8 +1972,8 @@ namespace oceanbase
                 }
                 else
                 {
-                    casted_cell.set_precision(pre - vscale + schema_s);   //add xsl ECNU_DECIMAL
-                    //casted_cell.set_precision(schema_p);  //delete xsl ECNU_DECIMAL p转化成模式的参数样式
+                    //casted_cell.set_precision(pre - vscale + schema_s);   //add xsl ECNU_DECIMAL
+                    casted_cell.set_precision(schema_p);  //delete xsl ECNU_DECIMAL p转化成模式的参数样式
                     casted_cell.set_scale(schema_s);
                     casted_cell.set_vscale(vscale);    //modify xsl ECNU_DECIMAL
                     casted_cell.set_nwords(orig_cell.get_nwords());    //add xsl ECNU_DECIMAL 2017_5
@@ -1995,6 +2012,10 @@ namespace oceanbase
                 }
                 if(OB_SUCCESS==ret)
                 {
+                    //add xsl DECIMAL
+                    ObString sstr;
+                    casted_cell.get_varchar_d(sstr);
+                    //add e
                     to.assign(casted_cell);   //obj->expr_obj
                     if (OB_SUCCESS != (ret = OB_OBJ_CAST[orig_cell.get_type()][expected_type.get_type()](params, from, to)))
                     {
@@ -2006,6 +2027,16 @@ namespace oceanbase
                     }
                     else
                     {
+                        //add xsl ECNU_DECIMAL
+                        if(ObDecimalType == expected_type.get_type() && casted_cell.get_type() == ObDecimalType)
+                        {
+                            char *p = sstr.ptr();
+                            uint64_t *tt = reinterpret_cast<uint64_t *>(p);
+                            int len = (int)sizeof(uint64_t)*casted_cell.get_nwords();
+                            memcpy(tt,casted_cell.get_ttint(),len);
+                            casted_cell.set_ttint(tt);
+                        }
+                        //add e
                         res_cell = &casted_cell;
                     }
                 }
@@ -2058,6 +2089,10 @@ namespace oceanbase
             }
             if(OB_SUCCESS==ret)
             {
+                //add xsl DECIMAL
+                ObString sstr;
+                casted_cell.get_varchar_d(sstr);
+                //add e
                 to.assign(casted_cell);
                 if (OB_SUCCESS != (ret = OB_OBJ_CAST[orig_cell.get_type()][expected_type.get_type()](params, from, to)))
                 {
@@ -2069,6 +2104,16 @@ namespace oceanbase
                 }
                 else
                 {
+                    //add xsl ECNU_DECIMAL
+                    if(ObDecimalType == expected_type.get_type() && casted_cell.get_type() == ObDecimalType)
+                    {
+                        char *p = sstr.ptr();
+                        uint64_t *tt = reinterpret_cast<uint64_t *>(p);
+                        int len = (int)sizeof(uint64_t)*casted_cell.get_nwords();
+                        memcpy(tt,casted_cell.get_ttint(),len);
+                        casted_cell.set_ttint(tt);
+                    }
+                    //add e
                     res_cell = &casted_cell;
                 }
             }
@@ -2126,28 +2171,19 @@ namespace oceanbase
                     cell.get_varchar(varchar);
                     used_buf_len = varchar.length(); // used buffer length for casting to varchar type
                 }
-                /*
                 //add xsl ECNU_DECIMAL
                 else if(ObDecimalType == expected_type)
                 {
-                    uint64_t *tt = reinterpret_cast<uint64_t *>(buf);
-                    int len = (int)sizeof(uint64_t)*cell.get_nwords();
-                    memcpy(tt,cell.get_ttint(),len);
-                    cell.set_ttint(tt);
-                    used_buf_len = len;
+                    if(cell.get_type() != ObNullType)
+                    {
+                        uint64_t *tt = reinterpret_cast<uint64_t *>(buf);
+                        int len = (int)sizeof(uint64_t)*cell.get_nwords();
+                        memcpy(tt,cell.get_ttint(),len);
+                        cell.set_ttint(tt);
+                        used_buf_len = len;
+                    }
                 }
-                */
                 //add e
-                    /*
-                  //add xsl ECNU_DECIMAL
-                  else if(ObDecimalType == expected_type)
-                  {
-                      ObString varchar;
-                      cell.get_decimal(varchar);
-                      used_buf_len = varchar.length(); // used buffer length for casting to varchar type
-                  }
-                  //add e
-                  */
             }
         }
         return ret;

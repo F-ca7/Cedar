@@ -188,6 +188,7 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         }
 	}
     //modify xsl
+    
     if(got_digit - got_frac > MAX_DECIMAL_DIGIT)     //max integer num
     {
         ret = OB_DECIMAL_UNLEGAL_ERROR;
@@ -204,10 +205,11 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         got_frac = got_frac -(got_digit - MAX_DECIMAL_DIGIT);
         got_digit = MAX_DECIMAL_DIGIT;
     }
+    
     //modify e
     if(OB_SUCCESS==ret)
     {
-        int tmp_frac2 = 0;  //add xsl DECIMAL 2017_7
+        //int tmp_frac2 = 0;  //add xsl DECIMAL 2017_7
         length = got_num + got_dot + op;
         if (!got_dot) {    //no num after point
             //wwd added
@@ -227,10 +229,12 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         else
         {
             int point_pos = length - tmp_frac - got_dot;  //modify xsl
+            //int point_pos = length - got_frac - got_dot;
             memcpy(int_buf, buff, point_pos);
             TTInt whole;
             whole.FromString(int_buf);
             //modify xsl DECIMAL 2017_7
+            /*
             tmp_frac2 = got_frac - 1;
             while(buff[point_pos + got_dot + tmp_frac2] == '0')
             {
@@ -238,13 +242,14 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
             }
             tmp_frac2++;
             TTInt p(tmp_frac2);
-            //TTInt p(got_frac);
+            */
             //modify e
+            TTInt p(got_frac);
             TTInt BASE(10);
             BASE.Pow(p);
             whole = whole * BASE;
-            memcpy(frac_buf, buff + (point_pos + got_dot), tmp_frac2);
-            //memcpy(frac_buf, buff + (point_pos + got_dot), got_frac);
+            //memcpy(frac_buf, buff + (point_pos + got_dot), tmp_frac2);
+            memcpy(frac_buf, buff + (point_pos + got_dot), got_frac);
             //modify e
             TTInt part_float;
             part_float.FromString(frac_buf);
@@ -257,11 +262,11 @@ int ObDecimal::from(const char* buff, int64_t buf_len) {
         /*
          *4.3 set it into word[0]
          */
-        vscale_ = tmp_frac2;     //add xsl DECIMAL
-        precision_ = got_digit - got_frac + tmp_frac2; //add xsl DECIMAL
-        //vscale_ = got_frac;    //delete xsl DECIMAL
-        scale_=vscale_;      //all equal got_frac
-        //precision_=got_digit;   //delete xsl DECIMAL
+        //vscale_ = tmp_frac2;     //add xsl DECIMAL
+        vscale_ = got_frac;    //delete xsl DECIMAL
+        scale_ = vscale_;      //all equal got_frac
+        //precision_ = got_digit - got_frac + tmp_frac2; //add xsl DECIMAL
+        precision_=got_digit;   //delete xsl DECIMAL
         if(precision_==scale_)precision_++;    //modify xsl 2017_4
 	  }
 	return ret;
@@ -489,7 +494,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
     char out[MAX_PRINTABLE_SIZE];
     memset(buf, 0, MAX_PRINTABLE_SIZE);
     memset(out, 0, MAX_PRINTABLE_SIZE);
-    scale_=vscale_;
+    //scale_=vscale_;
     to_string(buf, MAX_PRINTABLE_SIZE);
     if (buf[0] == '-')
         is_neg = 1;
@@ -546,6 +551,7 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
             TBSYS_LOG(ERROR, "failed convert str to decimal!");
         }
     }
+    /*
     //add xsl ECNU_DECIMAL
     else if(ret ==OB_SUCCESS && s > vscale_ && vscale_ > 0)   //
     {
@@ -578,10 +584,12 @@ int ObDecimal::modify_value(uint32_t p, uint32_t s) {    //modify vscale_
         }
     }
     //add e
+    */
     if(OB_SUCCESS==ret)
     {
         scale_ = s;
-        precision_ = point_pos - is_neg + s;   //add xsl ECNU_DECIMAL 2017_3
+        //precision_ = point_pos - is_neg + s;   //add xsl ECNU_DECIMAL 2017_3
+        precision_ = p;
     }
     return ret;
 }

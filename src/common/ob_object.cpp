@@ -1481,7 +1481,7 @@ int ObObj::from_hash(TTCInt &tc,const char* buff, int64_t buf_len)const{
         TTCInt whole;
         length = got_num + got_dot + op;
         if (!got_dot) {
-
+            memcpy(int_buf, buff, buf_len);
             whole.FromString(int_buf);
             whole = whole * kMaxScaleFactor;
             //word[0] = whole;
@@ -1634,23 +1634,33 @@ uint32_t ObObj::murmurhash2(const uint32_t hash) const
       {
       //modify xsl ECNU_DECIMAL 2016_12
       //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-      //TTCInt ct;
-      //ObDecimal* od=NULL;
-      //      TTInt *t1 = NULL;
-      //      t1 = get_ttint();
-      //      ct = *t1;
-      /*const char *s=to_cstring(*od);
-      int len=(int)strlen(s);
-      if(OB_SUCCESS!=from_hash(ct,s,len))
+      /*
+      char tmp[MAX_PRINTABLE_SIZE];
+      memset(tmp, 0, MAX_PRINTABLE_SIZE);
+      ObDecimal od;
+      get_decimal_v2(od);
+      int32_t len = (int32_t)od.to_string(tmp,MAX_PRINTABLE_SIZE);
+      char *s = tmp;
+      TBSYS_LOG(INFO,"xushilei,test::s = [%s]",s);
+      result = ::murmurhash2(s,len,result);
+      */
+      TTCInt ct;
+      ObDecimal od;
+      ObString os;
+      get_decimal(od);
+      char tmp[MAX_PRINTABLE_SIZE];
+      memset(tmp, 0, MAX_PRINTABLE_SIZE);
+      int64_t len = od.to_string(tmp,MAX_PRINTABLE_SIZE);
+      os.assign_ptr(tmp,static_cast<int32_t>(len));
+      if(OB_SUCCESS != from_hash(ct,os.ptr(),os.length()))
       {
           TBSYS_LOG(ERROR,"failed calculate ttint for hash!");
-          result=0;
+          result = 0;
       }
       else
-      */
       {
-          //int length=32;
-          result = ::murmurhash2(value_.ii,(int32_t)sizeof(uint64_t)*get_nwords(),result);
+          int length = 32;
+          result =::murmurhash2(&ct,length,result);
       }
       //modify e
         break;
@@ -1713,23 +1723,74 @@ uint64_t ObObj::murmurhash64A(const uint64_t hash) const
       {
       //modify xsl  ECNU_DECIMAL 2016_12
       //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
-      //      TTCInt ct;
-      //      ObDecimal* os=NULL;
-      //      get_decimal_v2(os);
-      //      const char *s=to_cstring(*os);
-      //      int len=(int)strlen(s);
-      //      if(OB_SUCCESS!=from_hash(ct,s,len))
-      //      {
-      //          TBSYS_LOG(ERROR,"failed calculate ttint for hash!");
-      //          result=0;
-      //      }
-      //      else
-      //      {
-          //int length=32;
-          result = ::murmurhash64A(value_.ii,(int32_t)sizeof(uint64_t)*get_nwords(),result);
-          //      }
-          //modify e
-    //modify e
+      /*
+      char tmp[MAX_PRINTABLE_SIZE];
+      memset(tmp, 0, MAX_PRINTABLE_SIZE);
+      ObDecimal od;
+      get_decimal(od);
+      int32_t len = (int32_t)od.to_string(tmp,MAX_PRINTABLE_SIZE);
+
+      ObString tmp_str;
+      tmp_str.assign_ptr(tmp,len);
+
+      char *s = tmp;
+
+      if(tmp_str.find('.'))
+      {
+          int i=len;
+          while(s[i-1] == '0')
+          {
+              len--;
+          }
+      }
+      //const char *s=to_cstring(*os);
+      //int len=(int)strlen(s);
+      TBSYS_LOG(INFO,"xushilei,test::s = [%s],len=%d",s,len);
+       result = ::murmurhash64A(s,len,result);
+       */
+       //modify xsl  ECNU_DECIMAL 2016_12
+       //modify  fanqiushi ECNU_DECIMAL V0.1 2016_5_29:b
+       //TTCInt ct;
+       ObDecimal od;
+       ObString os;
+       get_decimal(od);
+       char tmp[MAX_PRINTABLE_SIZE];
+       memset(tmp, 0, MAX_PRINTABLE_SIZE);
+       int64_t len = od.to_string(tmp,MAX_PRINTABLE_SIZE);
+       int32_t length = 0;
+       os.assign_ptr(tmp,static_cast<int32_t>(len));
+       if(os.find('.') != NULL && tmp[len - 1] == '0')
+       {
+           int64_t tmp_len = len - 1;
+           while(tmp[tmp_len] == '0')
+           {
+                tmp_len--;
+           }
+           if(tmp[tmp_len] == '.')
+           {
+               tmp_len--;
+           }
+           tmp_len++;
+           length = static_cast<int32_t>(tmp_len);
+           result =::murmurhash64A(tmp,length,result);
+       }
+       else
+       {
+           length = static_cast<int32_t>(len);
+           result =::murmurhash64A(tmp,length,result);
+       }
+       /*
+       if(OB_SUCCESS != from_hash(ct,os.ptr(),os.length()))
+       {
+           TBSYS_LOG(ERROR,"failed calculate ttint for hash!");
+           result = 0;
+       }
+       else
+       {
+           int length = 32;
+           result =::murmurhash64A(&ct,length,result);
+       }*/
+       //modify e
         break;
       }
     default:

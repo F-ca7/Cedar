@@ -138,10 +138,11 @@ am__objects_1 = ob_cursor_declare_stmt.$(OBJEXT) \
 	ob_alter_table_stmt.$(OBJEXT) ob_alter_sys_cnf_stmt.$(OBJEXT) \
 	ob_create_table_stmt.$(OBJEXT) ob_create_index_stmt.$(OBJEXT) \
 	ob_deallocate_stmt.$(OBJEXT) ob_delete_stmt.$(OBJEXT) \
-	ob_drop_table_stmt.$(OBJEXT) ob_drop_index_stmt.$(OBJEXT) \
-	ob_dual_table_scan.$(OBJEXT) ob_execute_stmt.$(OBJEXT) \
-	ob_procedure_stmt.$(OBJEXT) ob_procedure.$(OBJEXT) \
-	ob_sp_procedure.$(OBJEXT) ob_procedure_optimizer.$(OBJEXT) \
+	ob_truncate_table_stmt.$(OBJEXT) ob_drop_table_stmt.$(OBJEXT) \
+	ob_drop_index_stmt.$(OBJEXT) ob_dual_table_scan.$(OBJEXT) \
+	ob_execute_stmt.$(OBJEXT) ob_procedure_stmt.$(OBJEXT) \
+	ob_procedure.$(OBJEXT) ob_sp_procedure.$(OBJEXT) \
+	ob_procedure_optimizer.$(OBJEXT) \
 	ob_procedure_compilation_guard.$(OBJEXT) \
 	ob_procedure_static_data_mgr.$(OBJEXT) \
 	ob_procedure_variable_table.$(OBJEXT) \
@@ -192,12 +193,12 @@ am__objects_2 = ob_cursor_fetch.$(OBJEXT) \
 	ob_column_group_scanner.$(OBJEXT) ob_create_table.$(OBJEXT) \
 	ob_create_user_stmt.$(OBJEXT) ob_deallocate.$(OBJEXT) \
 	ob_delete.$(OBJEXT) ob_double_children_phy_operator.$(OBJEXT) \
-	ob_drop_table.$(OBJEXT) ob_drop_index.$(OBJEXT) \
-	ob_execute.$(OBJEXT) ob_explain.$(OBJEXT) ob_filter.$(OBJEXT) \
-	ob_groupby.$(OBJEXT) ob_in_memory_sort.$(OBJEXT) \
-	ob_index_trigger.$(OBJEXT) ob_in_memory_cursor.$(OBJEXT) \
-	ob_merge_cursor.$(OBJEXT) ob_insert.$(OBJEXT) \
-	ob_join.$(OBJEXT) ob_limit.$(OBJEXT) \
+	ob_truncate_table.$(OBJEXT) ob_drop_table.$(OBJEXT) \
+	ob_drop_index.$(OBJEXT) ob_execute.$(OBJEXT) \
+	ob_explain.$(OBJEXT) ob_filter.$(OBJEXT) ob_groupby.$(OBJEXT) \
+	ob_in_memory_sort.$(OBJEXT) ob_index_trigger.$(OBJEXT) \
+	ob_in_memory_cursor.$(OBJEXT) ob_merge_cursor.$(OBJEXT) \
+	ob_insert.$(OBJEXT) ob_join.$(OBJEXT) ob_limit.$(OBJEXT) \
 	ob_merge_distinct.$(OBJEXT) ob_merge_except.$(OBJEXT) \
 	ob_merge_groupby.$(OBJEXT) ob_merge_intersect.$(OBJEXT) \
 	ob_merge_join.$(OBJEXT) ob_merge_sort.$(OBJEXT) \
@@ -526,6 +527,7 @@ sql_parser_sources = \
   ob_create_index_stmt.h      ob_create_index_stmt.cpp \
   ob_deallocate_stmt.h        ob_deallocate_stmt.cpp   \
   ob_delete_stmt.h            ob_delete_stmt.cpp       \
+  ob_truncate_table_stmt.h    ob_truncate_table_stmt.cpp     \
   ob_drop_table_stmt.h        ob_drop_table_stmt.cpp   \
   ob_drop_index_stmt.h		  ob_drop_index_stmt.cpp   \
   ob_dual_table_scan.h ob_dual_table_scan.cpp          \
@@ -618,6 +620,7 @@ operators_sources = \
   ob_deallocate.h                    ob_deallocate.cpp                   \
   ob_delete.h                        ob_delete.cpp                       \
   ob_double_children_phy_operator.h  ob_double_children_phy_operator.cpp \
+  ob_truncate_table.h                ob_truncate_table.cpp               \
   ob_drop_table.h                    ob_drop_table.cpp                   \
   ob_drop_index.h	             ob_drop_index.cpp			 \
   ob_execute.h                       ob_execute.cpp                      \
@@ -991,6 +994,8 @@ include ./$(DEPDIR)/ob_tablet_read.Po
 include ./$(DEPDIR)/ob_tablet_scan.Po
 include ./$(DEPDIR)/ob_tablet_scan_fuse.Po
 include ./$(DEPDIR)/ob_transformer.Po
+include ./$(DEPDIR)/ob_truncate_table.Po
+include ./$(DEPDIR)/ob_truncate_table_stmt.Po
 include ./$(DEPDIR)/ob_update.Po
 include ./$(DEPDIR)/ob_update_stmt.Po
 include ./$(DEPDIR)/ob_ups_executor.Po

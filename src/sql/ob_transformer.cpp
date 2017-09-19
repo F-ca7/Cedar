@@ -14799,6 +14799,14 @@ int ObTransformer::cons_whole_row_desc_for_delete(uint64_t table_id, ObRowDesc &
         else
         {
           obj_type.set_type(ocs->get_type());
+          //add xushilei 2017-7-13 b
+          if(ocs->get_type() == ObDecimalType)
+          {
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              obj_type.set_precision(ocs->get_precision());
+              obj_type.set_scale(ocs->get_scale());
+          }
+          //add e
         }
         if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
         {
@@ -14833,6 +14841,14 @@ int ObTransformer::cons_whole_row_desc_for_delete(uint64_t table_id, ObRowDesc &
         else
         {
           obj_type.set_type(ocs->get_type());
+          //add xushilei 2017-7-13 b
+          if(ocs->get_type() == ObDecimalType)
+          {
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              obj_type.set_precision(ocs->get_precision());
+              obj_type.set_scale(ocs->get_scale());
+          }
+          //add e
         }
         if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
         {
@@ -14890,6 +14906,15 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
         else
         {
           obj_type.set_type(ocs->get_type());
+          //add xushilei 2017-7-13 b
+          //TBSYS_LOG(INFO, "xushilei type=%d, tid=%ld, cid=%ld", ocs->get_type(), table_id, cid);
+          if(ocs->get_type() == ObDecimalType)
+          {
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              obj_type.set_precision(ocs->get_precision());
+              obj_type.set_scale(ocs->get_scale());
+          }
+          //add e
         }
         if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
         {
@@ -14942,6 +14967,15 @@ int ObTransformer::cons_whole_row_desc_for_update(const ObStmt *stmt, uint64_t t
         else
         {
           obj_type.set_type(ocs->get_type());
+          //add xushilei 2017-7-13 b
+          //TBSYS_LOG(INFO, "xushilei type=%d, tid=%ld, cid=%ld", ocs->get_type(), table_id, cid);
+          if(ocs->get_type() == ObDecimalType)
+          {
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              obj_type.set_precision(ocs->get_precision());
+              obj_type.set_scale(ocs->get_scale());
+          }
+          //add e
         }
         if(OB_SUCCESS == ret && OB_SUCCESS != (ret = desc_ext.add_column_desc(ocs->get_table_id(), ocs->get_id(), obj_type)))
         {
@@ -15400,6 +15434,9 @@ int ObTransformer::cons_auto_increment_row_desc(const uint64_t table_id,
     int32_t column_num = stmt->get_column_size();
     const ColumnItem* column_item = NULL;
     ObObj data_type;
+
+    const ObColumnSchemaV2* ocs = NULL;  //add xsl DECIMAL fix ColumnSchema_decimal
+
     // construct rowkey columns first
     for (int64_t i = 0; OB_SUCCESS == ret && i < rowkey_col_num; ++i) // for each primary key
     {
@@ -15416,6 +15453,23 @@ int ObTransformer::cons_auto_increment_row_desc(const uint64_t table_id,
         else
         {
           data_type.set_type(rowkey_column->type_);
+          //add xushilei 2017-7-13 b
+          if(NULL !=(ocs = sql_context_->schema_manager_->get_column_schema(table_id, auto_column_id)))
+          {
+              if(ocs->get_type() == ObDecimalType)
+              {
+                  //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+                  data_type.set_precision(ocs->get_precision());
+                  data_type.set_scale(ocs->get_scale());
+              }
+          }
+          else
+          {
+              ret = OB_ERR_COLUMN_NOT_FOUND;
+              TRANS_LOG("Get column item failed");
+              break;
+          }
+          //add e
           if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(table_id, auto_column_id, data_type)))
           {
             TRANS_LOG("failed to add row desc, err=%d", ret);
@@ -15438,6 +15492,23 @@ int ObTransformer::cons_auto_increment_row_desc(const uint64_t table_id,
           else
           {
             data_type.set_type(rowkey_column->type_);
+            //add xushilei 2017-7-13 b
+            if(NULL !=(ocs = sql_context_->schema_manager_->get_column_schema(column_item->table_id_, column_item->column_id_)))
+            {
+                if(ocs->get_type() == ObDecimalType)
+                {
+                    //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+                    data_type.set_precision(ocs->get_precision());
+                    data_type.set_scale(ocs->get_scale());
+                }
+            }
+            else
+            {
+                ret = OB_ERR_COLUMN_NOT_FOUND;
+                TRANS_LOG("Get column item failed");
+                break;
+            }
+            //add e
             if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
             {
               TRANS_LOG("failed to add row desc, err=%d", ret);
@@ -15469,6 +15540,14 @@ int ObTransformer::cons_auto_increment_row_desc(const uint64_t table_id,
         else
         {
           data_type.set_type(column_schema->get_type());
+          //add xushilei 2017-7-13 b
+          if(column_schema->get_type() == ObDecimalType)
+          {
+              //TBSYS_LOG(INFO, "xushilei p=%d, s=%d", ocs->get_precision(), ocs->get_scale());
+              data_type.set_precision(column_schema->get_precision());
+              data_type.set_scale(column_schema->get_scale());
+          }
+          //add e
           if (OB_SUCCESS != (ret = row_desc_ext.add_column_desc(column_item->table_id_, column_item->column_id_, data_type)))
           {
             TRANS_LOG("failed to add row desc, err=%d", ret);
