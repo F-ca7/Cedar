@@ -332,6 +332,7 @@ typedef enum ObItemType
   T_BLOOMFILTER_JOIN,
   T_MERGE_JOIN,
   /*add e*/
+  T_HASH_JOIN_SINGLE,//add maoxx [hash join single] 20170110
 
   //add by zt 20151125:b
   T_ARRAY,

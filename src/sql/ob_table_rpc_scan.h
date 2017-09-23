@@ -143,6 +143,9 @@ namespace oceanbase
          */
         int set_second_row_desc(ObRowDesc *row_desc);
         //add:e
+        
+        // add by lxb [hash join single] 20170411
+        int get_is_index_without_storing(bool &is_use, uint64_t &tid);
 
         /**
          * 添加一个需输出的column

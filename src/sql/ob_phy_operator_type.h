@@ -116,7 +116,7 @@ namespace oceanbase
       //add lbzhong [auto_increment] 20161218:b
       PHY_AUTO_INCREMENT_FILTER,
       //add:e
-
+      PHY_HASH_JOIN_SINGLE,//add maoxx [hash join single] 20170110
       PHY_INDEX_TRIGGER, //add maoxx
       PHY_DROP_INDEX, //add longfei [secondary index drop index]
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202

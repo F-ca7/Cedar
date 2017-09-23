@@ -511,7 +511,8 @@ int ObStmt::check_table_column(
     {
       ret = OB_ERR_COLUMN_UNKNOWN;
       snprintf(result_plan.err_stat_.err_msg_, MAX_ERROR_MSG,
-          "Unknown table type");
+          // "Unknown table type"); 
+          "Unknown column"); // modify by lxb on 20170705 for hint resolve
     }
   }
   return ret;

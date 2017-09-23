@@ -312,9 +312,10 @@ common_sources=				                                                  \
 	ob_multi_wakeup.h									 ob_multi_wakeup.cpp \
 	ob_global_factory.h\
   ob_errno.h ob_errno.cpp\
-Ob_Decimal.h	Ob_Decimal.cpp\
-  ttmathint.h	ttmathmisc.h	ttmathuint.h	ttmathuint_noasm.h	ttmathuint_x86_64.h	ttmathuint_x86.h ttmathtypes.h \
-  ob_column_checksum.h               ob_column_checksum.cpp\
+	ob_custom_allocator.h  ob_custom_allocator.cpp \
+	Ob_Decimal.h	Ob_Decimal.cpp\
+	ttmathint.h	ttmathmisc.h	ttmathuint.h	ttmathuint_noasm.h	ttmathuint_x86_64.h	ttmathuint_x86.h ttmathtypes.h \
+	ob_column_checksum.h               ob_column_checksum.cpp\
 	ob_index_black_list.h              ob_index_black_list.cpp\
   ob_tablet_histogram_report_info.h  ob_tablet_histogram_report_info.cpp\
   ob_tablet_histogram.h              ob_tablet_histogram.cpp\

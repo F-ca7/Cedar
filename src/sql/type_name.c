@@ -260,7 +260,8 @@ const char* get_type_name(int type)
 	case T_JOIN_OP_TYPE_LIST : return "T_JOIN_OP_TYPE_LIST";
 	case T_BLOOMFILTER_JOIN : return "T_BLOOMFILTER_JOIN";
 	case T_MERGE_JOIN : return "T_MERGE_JOIN";
-	case T_ARRAY : return "T_ARRAY";
+	case T_HASH_JOIN_SINGLE : return "T_HASH_JOIN_SINGLE";//add maoxx [hash join single] 20170110
+  case T_ARRAY : return "T_ARRAY";
 	case T_VAR_ARRAY_VAL : return "T_VAR_ARRAY_VAL";
 	default:return "Unknown";
 	}

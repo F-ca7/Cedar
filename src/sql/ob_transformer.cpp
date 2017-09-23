@@ -223,6 +223,8 @@
 //add:e
 /*add maoxx [bloomfilter_join] 20160406*/
 #include "ob_bloomfilter_join.h"
+//add maoxx [hash join single] 20170110
+#include "ob_hash_join_single.h"
 /*add e*/
 //add wangjiahao [table lock] 20160616 :b
 #include "ob_lock_table_stmt.h"
@@ -3153,25 +3155,44 @@ int ObTransformer::gen_phy_joins(
     oceanbase::common::ObList<ObPhyOperator*>& phy_table_list,
     oceanbase::common::ObList<ObBitSet<> >& bitset_list,
     oceanbase::common::ObList<ObSqlRawExpr*>& remainder_cnd_list,
-    oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias){
+    oceanbase::common::ObList<ObSqlRawExpr*>& none_columnlize_alias,
+    int32_t hint_idx)
+{
   int& ret = err_stat.err_code_ = OB_SUCCESS;
-  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2.while内的代码执行完之后，phy_table_list.size()为1
+  while (ret == OB_SUCCESS && phy_table_list.size() > 1)   //刚开始的时候phy_table_list.size()为2. while内的代码执行完之后，phy_table_list.size()为1（这是显式连接的情况）
   {
     ObAddProject *project_op = NULL;   //只跟none_columnlize_alias有关
     ObMergeJoin *join_op = NULL;
     /*add maoxx [bloomfilter_join] 20160415*/
     ObBloomFilterJoin *bloomfilter_join_op = NULL;
     bool use_bloomfilter_join_op = false;
-    if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
+    
+    //add maoxx [hash join single] 20170110
+    ObHashJoinSingle *hash_join_single_op = NULL;
+    bool use_hash_join_single_op = false;
+    
+    // 注意通过下标获取向量的值之前需要判断下标有没有越界
+    // if(select_stmt->get_query_hint().join_op_type_array_.size() > 0)
+    if(select_stmt->get_query_hint().join_op_type_array_.size() > hint_idx) // modify by lxb on 20170704 for hint resolve
     {
-      ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
+      // ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(0);
+      ObJoinOPTypeArray tmp = select_stmt->get_query_hint().join_op_type_array_.at(hint_idx); // modify by lxb on 20170704 for hint resolve
       if(tmp.join_op_type_ == T_BLOOMFILTER_JOIN && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN))
         use_bloomfilter_join_op = true;
+      // add by lxb [hash join single] 20170410
+      else if (tmp.join_op_type_ == T_HASH_JOIN_SINGLE && (join_type == ObJoin::INNER_JOIN || join_type == ObJoin::LEFT_OUTER_JOIN || join_type == ObJoin::RIGHT_OUTER_JOIN || join_type == ObJoin::FULL_OUTER_JOIN)) 
+        use_hash_join_single_op = true;
     }
     if(use_bloomfilter_join_op)
     {
       CREATE_PHY_OPERRATOR(bloomfilter_join_op, ObBloomFilterJoin, physical_plan, err_stat);
       bloomfilter_join_op->set_join_type(join_type);
+    }
+    //add maoxx [hash join single] 20170110
+    else if (use_hash_join_single_op) 
+    {
+      CREATE_PHY_OPERRATOR(hash_join_single_op, ObHashJoinSingle, physical_plan, err_stat);
+      hash_join_single_op->set_join_type(join_type);
     }
     else
     {
@@ -3193,15 +3214,33 @@ int ObTransformer::gen_phy_joins(
     ObSort *right_sort = NULL;
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator cnd_it;
     oceanbase::common::ObList<ObSqlRawExpr*>::iterator del_it;
+    ObPhyOperator *left_table_op = NULL;  //add lxb [hash join single] 20170421
+    ObPhyOperator *right_table_op = NULL;  //add lxb [hash join single] 20170421
     for (cnd_it = remainder_cnd_list.begin(); ret == OB_SUCCESS && cnd_it != remainder_cnd_list.end();)
     {
-      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支
+      if ((*cnd_it)->get_expr()->is_join_cond() && join_table_bitset.is_empty())  //处理on表达式的只走这个分支，因为where里面的条件没有解析，故不会走下一个分支。而隐式连接，如果where有两个join条件，则同时走这个分支和下个分支
       {
         ObBinaryOpRawExpr *join_cnd = dynamic_cast<ObBinaryOpRawExpr*>((*cnd_it)->get_expr());
         ObBinaryRefRawExpr *lexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_first_op_expr());
         ObBinaryRefRawExpr *rexpr = dynamic_cast<ObBinaryRefRawExpr*>(join_cnd->get_second_op_expr());
         int32_t left_bit_idx = select_stmt->get_table_bit_index(lexpr->get_first_ref_id());
         int32_t right_bit_idx = select_stmt->get_table_bit_index(rexpr->get_first_ref_id());
+        
+        // add by lxb on 20170711 for [hash join single] start
+        common::ObObjType l_obj_type = lexpr->get_result_type();
+        common::ObObjType r_obj_type = rexpr->get_result_type();
+        if (use_hash_join_single_op && l_obj_type != r_obj_type) 
+        {
+          TRANS_LOG("Column type of hash join tables is not same, left_table_id=%lu, right_table_id=%lu", 
+                    lexpr->get_first_ref_id(), rexpr->get_first_ref_id());
+          use_hash_join_single_op = false;
+          hash_join_single_op = NULL;
+          
+          CREATE_PHY_OPERRATOR(join_op, ObMergeJoin, physical_plan, err_stat);
+          join_op->set_join_type(join_type);
+        }
+        // e
+        
         CREATE_PHY_OPERRATOR(left_sort, ObSort, physical_plan, err_stat);
         if (ret != OB_SUCCESS)
           break;
@@ -3225,8 +3264,8 @@ int ObTransformer::gen_phy_joins(
         oceanbase::common::ObList<ObPhyOperator*>::iterator del_table_it;
         oceanbase::common::ObList<ObBitSet<> >::iterator bitset_it = bitset_list.begin();
         oceanbase::common::ObList<ObBitSet<> >::iterator del_bitset_it;
-        ObPhyOperator *left_table_op = NULL;
-        ObPhyOperator *right_table_op = NULL;
+//        ObPhyOperator *left_table_op = NULL; //modify lxb [hash join single] 20170421
+//        ObPhyOperator *right_table_op = NULL; //modify lxb [hash join single] 20170421
         while (ret == OB_SUCCESS && (!left_table_op || !right_table_op) && table_it != phy_table_list.end() && bitset_it != bitset_list.end())
         {
           if (bitset_it->has_member(left_bit_idx))
@@ -3299,6 +3338,15 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
@@ -3361,6 +3409,15 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = join_op->add_equijoin_condition(join_op_cnd)) != OB_SUCCESS)
@@ -3392,6 +3449,15 @@ int ObTransformer::gen_phy_joins(
         if(use_bloomfilter_join_op)
         {
           if ((ret = bloomfilter_join_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_other_join_condition(join_other_cnd)) != OB_SUCCESS)
           {
             TRANS_LOG("Add condition of join plan faild");
             break;
@@ -3446,6 +3512,20 @@ int ObTransformer::gen_phy_joins(
             break;
           }
           if ((ret = bloomfilter_join_op->set_child(1, *right_sort)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->set_child(0, *left_table_op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(1, *right_table_op)) != OB_SUCCESS)
           {
             TRANS_LOG("Add child of join plan faild");
             break;
@@ -3515,6 +3595,30 @@ int ObTransformer::gen_phy_joins(
             break;
           }
         }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(0, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+          if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Generate join plan faild");
+            break;
+          }
+          if ((ret = hash_join_single_op->set_child(1, *op)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add child of join plan faild");
+            break;
+          }
+        }
         else
         {
           if ((ret = phy_table_list.pop_front(op)) != OB_SUCCESS)
@@ -3568,6 +3672,15 @@ int ObTransformer::gen_phy_joins(
         if(use_bloomfilter_join_op)
         {
           if ((ret = bloomfilter_join_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
+          {
+            TRANS_LOG("Add condition of join plan faild");
+            break;
+          }
+        }
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op) 
+        {
+          if ((ret = hash_join_single_op->add_other_join_condition(other_cnd)) != OB_SUCCESS)
           {
             TRANS_LOG("Add condition of join plan faild");
             break;
@@ -3632,6 +3745,15 @@ int ObTransformer::gen_phy_joins(
               break;
             }
           }
+          //add maoxx [hash join single] 20170110
+          else if (use_hash_join_single_op) 
+          {
+            if ((ret = project_op->set_child(0, *hash_join_single_op)) != OB_SUCCESS)
+            {
+              TRANS_LOG("Generate project operator on join plan faild");
+              break;
+            }
+          }
           else
           {
             if ((ret = project_op->set_child(0, *join_op)) != OB_SUCCESS)
@@ -3671,6 +3793,9 @@ int ObTransformer::gen_phy_joins(
       {
         if(use_bloomfilter_join_op)
           result_op = bloomfilter_join_op;
+        //add maoxx [hash join single] 20170110
+        else if (use_hash_join_single_op)
+          result_op = hash_join_single_op;
         else
           result_op = join_op;
       }
@@ -3684,10 +3809,15 @@ int ObTransformer::gen_phy_joins(
       }
       join_table_bitset.clear();
     }
+    
+    /*add maoxx [bloomfilter_join] 20160417*/
+    // select_stmt->get_query_hint().join_op_type_array_.remove(0); 
+    if (select_stmt->get_query_hint().join_op_type_array_.size() > hint_idx) 
+    {
+      select_stmt->get_query_hint().join_op_type_array_.remove(hint_idx);  // modify by lxb on 20170704 for hint resolve
+    }
+    /*add e*/
   }
-  /*add maoxx [bloomfilter_join] 20160417*/
-  select_stmt->get_query_hint().join_op_type_array_.remove(0);
-  /*add e*/
 
   return ret;
 }
@@ -3722,6 +3852,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
     }
   }
 
+  int32_t hint_idx = -1; // add by lxb on 20170704 for hint resolve
+  
   int32_t num_table = select_stmt->get_from_item_size();
   // no from clause of from DUAL
   if (ret == OB_SUCCESS && num_table <= 0)
@@ -3747,6 +3879,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
     const FromItem& from_item = select_stmt->get_from_item(i);
     if (from_item.is_joined_ == false)
     {
+      hint_idx++; // add by lxb on 20170704 for hint resolve
+      
       /* base-table or temporary table */
       if ((ret = gen_phy_table(logical_plan, physical_plan, err_stat, select_stmt, from_item.table_id_, table_op, &group_agg_pushed_down, &limit_pushed_down)) != OB_SUCCESS)
         break;
@@ -3766,6 +3900,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
       OB_ASSERT(joined_table->table_ids_.count() - 1 == joined_table->join_types_.count());
       OB_ASSERT(joined_table->join_types_.count() == joined_table->expr_ids_.count());
 
+      hint_idx++; // add by lxb on 20170704 for hint resolve
+      
       if ((ret = gen_phy_table(logical_plan, physical_plan, err_stat, select_stmt, joined_table->table_ids_.at(0), table_op)) != OB_SUCCESS)
       {
         break;
@@ -3890,7 +4026,8 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
                             outer_join_tabs,
                             outer_join_bitsets,
                             outer_join_cnds,
-                            none_columnlize_alias)) != OB_SUCCESS)
+                            none_columnlize_alias,
+                            hint_idx)) != OB_SUCCESS)
             {
               break;
             }
