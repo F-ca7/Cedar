@@ -480,6 +480,7 @@ int main(int argc, char* argv[])
       int64_t data_len;
 
       int64_t timestamp;
+      int64_t commit_log_id;
       ret = reader.read_log(cmd, log_seq, log_data, data_len);
       reader.read_log(cmd, log_seq, timestamp);
       while (OB_SUCCESS == ret)
@@ -498,10 +499,16 @@ int main(int argc, char* argv[])
 
         ret = reader.read_log(cmd, log_seq, log_data, data_len);
         reader.read_log(cmd, log_seq, timestamp);
+        if (OB_SUCCESS == ret) {
+            reader.read_log_for_cmt_id(cmd, log_seq, commit_log_id);
+        }
       }
 
+      fprintf(stdout, "Last COMMIT_LOG_ID in log file = %ld\n", commit_log_id);
+
+
       if (OB_READ_NOTHING == ret)
-      {
+      {  
         ret = OB_SUCCESS;
       }
       else

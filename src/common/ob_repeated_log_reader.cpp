@@ -218,6 +218,9 @@ int ObRepeatedLogReader::read_log_for_cmt_id(LogCommand &cmd, uint64_t &log_seq,
   UNUSED(cmd);
   UNUSED(log_seq);
   UNUSED(cmt_id);
+  //add wjhh2008 20171105 BEGIN
+  cmt_id = max_cmt_id_;
+  //add END
   return OB_SUCCESS;
 }
 
