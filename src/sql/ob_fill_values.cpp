@@ -154,7 +154,7 @@ int ObFillValues::open()
           }
         } // end for
       }      
-      //TBSYS_LOG(INFO, "test_wjh fill row %s", to_cstring(*cur_row));
+      TBSYS_LOG(DEBUG, "Update more fill the scanned rows from cs for ups plan %s", to_cstring(*cur_row));
     }
     //TBSYS_LOG(INFO, "wjh_test %s", to_cstring(*op_to_));
     if (!has_data) //if no data to update, return OB_NO_RESULT to terminate the plan, do not send to ups.
