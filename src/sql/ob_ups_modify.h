@@ -90,6 +90,10 @@ namespace oceanbase
           else
           {
             dml_type_ = sub_other->dml_type_;
+            //add huangjianwei [auto_increment debug] 20180111:b
+            table_id_ = sub_other->table_id_;
+            auto_value_ = sub_other->auto_value_;
+            //add :e
           }
           return ret;
         }
