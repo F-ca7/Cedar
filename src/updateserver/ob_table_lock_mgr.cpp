@@ -151,9 +151,14 @@ namespace oceanbase
       if (OB_INVALID_INDEX == (idx = find_table_idx(table_id)))
       {
         locked_table_record_[locked_table_sum_] = table_id;
-        cur_stat = tblock_map_[locked_table_sum_] = (TablelockStat*)session_ctx_->alloc(sizeof(TablelockStat));
-        *cur_stat = N_LOCK;
-        locked_table_sum_++;
+        if (NULL == (cur_stat = (TablelockStat*)session_ctx_->alloc(sizeof(TablelockStat)))) {
+            TBSYS_LOG(ERROR, "alloc TablelockStat info fail, ctx=%s", to_cstring(*session_ctx_));
+            ret = OB_MEM_OVERFLOW;
+        } else {
+            tblock_map_[locked_table_sum_] = cur_stat;
+            *cur_stat = N_LOCK;
+            locked_table_sum_++;
+        }
       }
       else if (NULL == (cur_stat = tblock_map_[idx]))
       {
