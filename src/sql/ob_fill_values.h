@@ -14,20 +14,22 @@
  */
 //add wangjiahao [dev_update_more] 20151204:b
 #ifndef OBFILLVALUES_H
-#define OBFILLVALUES_H
+#define OBFILLVALUES_H 1
 
-#include "ob_phy_operator.h"
+//#include "ob_phy_operator.h"
 #include "common/ob_ups_row.h"
 #include "common/ob_schema.h"
-#include "ob_expr_values.h"
 #include "ob_values.h"
+#include "ob_no_children_phy_operator.h"
+
+using namespace oceanbase::common;
 
 namespace oceanbase
 {
   namespace sql
   {
-    using namespace common;
 
+    class ObExprValues;
     /**
      * @brief this class is designed for the purpose of
      * supporting new update operation which can update
@@ -63,6 +65,7 @@ namespace oceanbase
          * @return OB_SUCCESS.
          */
         int set_op(ObPhyOperator *op_from, ObPhyOperator *op_to);
+        int set_op_to(ObPhyOperator *op_to);
 
         /**
          * @brief set_row_desc set row description
@@ -76,8 +79,9 @@ namespace oceanbase
          * @param rowkey_info
          */
         void set_rowkey_info(const common::ObRowkeyInfo &rowkey_info);
+        enum ObPhyOperatorType get_type() const{return PHY_FILL_VALUES;}
 
-        //DECLARE_PHY_OPERATOR_ASSIGN;
+        DECLARE_PHY_OPERATOR_ASSIGN;
         //VIRTUAL_NEED_SERIALIZE_AND_DESERIALIZE;
 
       protected:

@@ -36,8 +36,10 @@
 #include "common/utility.h"
 #include "common/ob_obj_cast.h"
 #include "common/hash/ob_hashmap.h"
+#include "ob_fill_values.h" //add huangjianwei [foreign key] 20180119
 #include "ob_physical_plan.h" //add zt 20151109
 #include "ob_sp_procedure.h" //add by zt 20160704
+
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
 ObExprValues::ObExprValues()
@@ -485,6 +487,23 @@ PHY_OPERATOR_ASSIGN(ObExprValues)
       break;
     }
   }
+  //add huangjianwei [update more] fix prepare 20180119:b
+  /*
+  for (int32_t i = 0; i < my_phy_plan_->get_query_size(); ++i)
+  {
+    ObPhyOperator* query = my_phy_plan_->get_phy_query(i);
+    TBSYS_LOG(DEBUG,"huangjianwei test>>plan_query_size = [%d], query:%s", my_phy_plan_->get_query_size(),ob_phy_operator_type_str(query->get_type()));
+    if (query->get_type() == PHY_FILL_VALUES)
+    {
+       TBSYS_LOG(DEBUG, "huangjianwei test>> query type is PHY_FILL_VALUES");
+       ObFillValues *op_fill_values =  dynamic_cast<ObFillValues*>(query);
+       //ObFillValues *op_fill_values = (ObFillValues*)query;
+       op_fill_values->set_op_to((ObPhyOperator *)this);
+       break;
+    }
+  }
+  */
+  //add:e
   do_eval_when_serialize_ = o_ptr->do_eval_when_serialize_;
   check_rowkey_duplicat_ = o_ptr->check_rowkey_duplicat_;
   // Does not need to assign row_store_, because this function is used by MS only before opening

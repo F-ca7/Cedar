@@ -18,6 +18,7 @@
 #include "ob_physical_plan.h"
 #include "common/ob_tsi_factory.h"
 #include "ob_raw_expr.h"
+#include "ob_expr_values.h"
 
 using namespace oceanbase::sql;
 using namespace oceanbase::common;
@@ -65,6 +66,26 @@ int ObFillValues::set_op(ObPhyOperator *op_from, ObPhyOperator *op_to)
   return ret;
 }
 
+int ObFillValues::set_op_to(ObPhyOperator *op_to)
+{
+  int ret = OB_SUCCESS;
+  if (op_to == NULL)
+  {
+    ret = OB_INVALID_ARGUMENT;
+    TBSYS_LOG(ERROR, "invalid operator");
+  }
+  else if (NULL != op_to_)
+  {
+    ret = OB_INIT_TWICE;
+    TBSYS_LOG(ERROR, "op_from operator already init");
+  }
+  else
+  {
+    op_to_ = dynamic_cast<ObExprValues*>(op_to);
+  }
+  return ret;
+}
+
 int ObFillValues::open()
 {
   int ret = OB_SUCCESS;
@@ -74,11 +95,27 @@ int ObFillValues::open()
   uint64_t tid = OB_INVALID_ID;
   const ObObj *cell = NULL;
   bool has_data = false;
-
-  if (NULL == op_from_ || NULL == op_to_)
+//modified wjhh2008 [update more] for prepare update more :begin
+  if (NULL == op_to_) {
+    //this branch will be involved only for preparing SQL statment.
+    //op_to_ is a ObExprValues operator and we search the plan tree to get it.
+    for (int32_t i = 0; i < my_phy_plan_->get_query_size(); ++i)
+    {
+      ObPhyOperator* query = my_phy_plan_->get_phy_query(i);
+      TBSYS_LOG(DEBUG,"huangjianwei test>>plan_query_size = [%d], query:%s", my_phy_plan_->get_query_size(),ob_phy_operator_type_str(query->get_type()));
+      if (query->get_type() == PHY_EXPR_VALUES)
+      {
+         TBSYS_LOG(DEBUG, "huangjianwei test>> query type is PHY_EXPR_VALUES");
+         set_op_to(query);
+         break;
+      }
+    }
+  }
+//end
+  if (NULL == op_from_)
   {
     ret = OB_NOT_INIT;
-    TBSYS_LOG(ERROR, "ObFillValues has no enough child operator, ret=%d", ret);
+    TBSYS_LOG(ERROR, "ObFillValues has not init, ret=%d", ret);
   }
   else if (OB_SUCCESS != (ret = op_to_->get_row_desc(row_desc)))
   {
@@ -189,3 +226,44 @@ int64_t ObFillValues::to_string(char* buf, const int64_t buf_len) const
 
 
 //add :e
+
+PHY_OPERATOR_ASSIGN(ObFillValues)
+{
+  TBSYS_LOG(DEBUG, "huangjianwei test>>into fill values assgin");
+  int ret = OB_SUCCESS;
+  CAST_TO_INHERITANCE(ObFillValues);
+  reset();
+
+  if (!my_phy_plan_)
+  {
+    ret = OB_NOT_INIT;
+    TBSYS_LOG(WARN, "ObPhysicalPlan/allocator is not set, ret=%d", ret);
+  }
+  else if (OB_SUCCESS != (ret = rowkey_info_.assign(o_ptr->rowkey_info_)))
+  {
+    TBSYS_LOG(WARN, "Assign rowkey info failed, ret=%d", ret);
+  }
+  else
+  {
+    for (int32_t i = 0; i < my_phy_plan_->get_query_size(); ++i)
+    {
+      ObPhyOperator* query = my_phy_plan_->get_phy_query(i);
+      TBSYS_LOG(DEBUG,"huangjianwei test>>plan_query_size = [%d], main_query:%s", my_phy_plan_->get_query_size(),ob_phy_operator_type_str(query->get_type()));
+      if (query->get_type() == PHY_VALUES)
+      {
+         TBSYS_LOG(DEBUG, "huangjianwei test>> query type is PHY_VALUES");
+         op_from_ =  dynamic_cast<ObValues*>(query);
+      }
+    }
+  }
+  return ret;
+}
+
+//add huangjianwei [update more] fix prepare 20171127:b
+namespace oceanbase{
+  namespace sql{
+    REGISTER_PHY_OPERATOR(ObFillValues, PHY_FILL_VALUES);
+  }
+}
+
+//add:e

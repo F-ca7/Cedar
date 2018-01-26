@@ -121,6 +121,7 @@ namespace oceanbase
       PHY_DROP_INDEX, //add longfei [secondary index drop index]
       PHY_INDEX_LOCAL_AGENT, //add longfei [cons static index] 151202
       PHY_INDEX_INTERACTIVE_AGENT, //add longfei [cons static index] 151204
+      PHY_FILL_VALUES, //huangjianwei [update more] fix prepare 180120
 
       PHY_CURSOR_DECLARE,
       PHY_CURSOR_FETCH,
