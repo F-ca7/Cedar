@@ -188,7 +188,9 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
           }
         }
         
+	/* close logical optimizer, wait for fix by wangyanzhao at 2018-02-05 */
         /* logical optimizer start, write by lxb start at 2016-12-14 */
+	/*
         if(OB_SUCCESS == ret)
         {
           ObBasicStmt *basic_stmt = logic_plan->get_main_stmt();
@@ -197,6 +199,7 @@ int ObSql::direct_execute(const common::ObString &stmt, ObResultSet &result, ObS
             ret = ObOptimizer::optimizer(result_plan, result);
           }
         }
+	*/
 
         if (OB_SUCCESS == ret)
         {
