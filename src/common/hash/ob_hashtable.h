@@ -380,7 +380,7 @@ namespace oceanbase
           int clear_buckets(ObArray<int64_t> &buckets)
           {
             int ret = 0;
-                        int64_t buckets_num = buckets.count();
+            int64_t buckets_num = buckets.count();
             //if (NULL == buckets_ || NULL == allocer_)
             if (!inited(buckets_) || NULL == allocer_)
             {
