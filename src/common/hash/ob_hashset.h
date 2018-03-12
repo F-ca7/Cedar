@@ -1,4 +1,4 @@
-////===================================================================
+﻿////===================================================================
  //
  // ob_hashset.cpp / hash / common / Oceanbase
  //
@@ -27,6 +27,7 @@
 #include "ob_hashutils.h"
 #include "ob_hashtable.h"
 #include "ob_serialization.h"
+#include "common/ob_array.h"//add wsx
 
 namespace oceanbase
 {
@@ -103,6 +104,12 @@ namespace oceanbase
         {
           return ht_.clear();
         };
+        //add wsx
+        int clear_buckets(ObArray<int64_t> &buckets)
+        {
+          return ht_.clear_buckets(buckets);
+        };
+        //add e
         // 返回  -1表示有错误发生
         // 返回  HASH_EXIST表示结点存在
         // 返回  HASH_NOT_EXIST表示结点不存在
@@ -124,6 +131,13 @@ namespace oceanbase
           pair_type pair(key, HashNullObj());
           return ht_.set(key, pair, 1);
         };
+        //add wsx
+        int set_and_getpos(const _key_type &key, int64_t &pos)
+        {
+          pair_type pair(key, HashNullObj());
+          return ht_.set_and_getpos(key, pair, pos, 1);
+        };
+        //add e
         // 返回  -1表示有错误发生
         // 返回  HASH_EXIST表示结点存在并删除成功
         // 返回  HASH_NOT_EXIST表示结点不存在不用删除

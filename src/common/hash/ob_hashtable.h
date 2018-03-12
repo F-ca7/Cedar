@@ -1,4 +1,4 @@
-////===================================================================
+﻿////===================================================================
  //
  // ob_hashtable.cpp / hash / common / Oceanbase
  //
@@ -28,6 +28,7 @@
 #include "ob_serialization.h"
 #include "common/ob_atomic.h"
 #include "common/ob_allocator.h"
+#include "common/ob_array.h"//add wsx
 namespace oceanbase
 {
   namespace common
@@ -375,6 +376,48 @@ namespace oceanbase
             }
             return ret;
           };
+          //add wsx
+          int clear_buckets(ObArray<int64_t> &buckets)
+          {
+            int ret = 0;
+                        int64_t buckets_num = buckets.count();
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              ret = -1;
+            }
+            else
+            {
+              for(int64_t i = 0; i < buckets_num; i++)
+              {
+                int64_t pos = 0;
+                if(OB_SUCCESS != buckets.pop_back(pos))
+                {
+                  //TBSYS_LOG(INFO, "wsx:buckets are empty, err=%d",ret);
+                  ret = OB_SUCCESS;
+                  break;
+                }
+                else
+                {
+                  //writelocker locker(buckets_[i].lock);
+                  hashnode *cur_node = NULL;
+                  if (NULL != (cur_node = buckets_[pos].node))
+                  {
+                    while (NULL != cur_node)
+                    {
+                      hashnode *tmp_node = cur_node->next;
+                      allocer_->free(cur_node);
+                      cur_node = tmp_node;
+                    }
+                  }
+                  buckets_[pos].node = NULL;
+                }
+              }
+              size_ = 0;
+            }
+            return ret;
+          };
+          //add e
           iterator begin()
           {
             hashnode *node = NULL;
@@ -895,6 +938,65 @@ namespace oceanbase
             }
             return ret;
           };
+
+          //add wsx
+          int set_and_getpos(const _key_type &key, const _value_type &value, int64_t &pos, int flag = 0,
+                  int broadcast = 0, int overwrite_key = 0)
+          {
+            int ret = 0;
+            //if (NULL == buckets_ || NULL == allocer_)
+            if (!inited(buckets_) || NULL == allocer_)
+            {
+              HASH_WRITE_LOG(HASH_WARNING, "hashtable is empty");
+              ret = -1;
+            }
+            else
+            {
+              uint64_t hash_value = hashfunc_(key);
+              pos = hash_value % bucket_num_;
+              hashbucket &bucket = buckets_[pos];
+              //writelocker locker(bucket.lock);
+              hashnode *node = bucket.node;
+              while (NULL != node)
+              {
+                if (equal_(getkey_(node->data), key))
+                {
+                  if (0 == flag)
+                  {
+                    ret = HASH_EXIST;
+                  }
+                  else
+                  {
+                    if (overwrite_key)
+                    {
+                      hash::copy(node->data, value, hash::NormalPairTag());
+                    }
+                    else
+                    {
+                      hash::copy(node->data, value);
+                    }
+                    node->is_fake = false;
+                    if (broadcast)
+                    {
+                      cond_broadcaster()(bucket.cond);
+                    }
+                    ret = HASH_OVERWRITE_SUCC;
+                  }
+                  break;
+                }
+                else
+                {
+                  node = node->next;
+                }
+              }
+              if (NULL == node)
+              {
+                ret = internal_set(bucket, value, false);
+              }
+            }
+            return ret;
+          };
+          //add e
 
           //add maoxx [hash join single] 20170614
           int set_multiple(const _key_type &key, const _value_type &value)

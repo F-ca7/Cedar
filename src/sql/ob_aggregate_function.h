@@ -1,4 +1,4 @@
-/**
+﻿/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -81,6 +81,7 @@ namespace oceanbase
         //不能使用ObSEArray
         DedupSet dedup_sets_[common::OB_ROW_MAX_COLUMNS_COUNT];
         bool did_int_div_as_double_;
+        ObArray<int64_t> bucket_pos_array_;//add wsx
     };
 
     inline void ObAggregateFunction::set_int_div_as_double(bool did)

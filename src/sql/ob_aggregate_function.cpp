@@ -1,4 +1,4 @@
-/**
+﻿/**
  * (C) 2010-2012 Alibaba Group Holding Limited.
  *
  * This program is free software; you can redistribute it and/or
@@ -45,6 +45,7 @@ void ObAggregateFunction::reset()
       else if (is_distinct)
       {
         dedup_sets_[i].clear();
+        bucket_pos_array_.clear();//add wsx
       }
     }
   }
@@ -73,6 +74,7 @@ void ObAggregateFunction::reuse()
       else if (is_distinct)
       {
         dedup_sets_[i].clear();
+        bucket_pos_array_.clear();//add wsx
       }
     }
   }
@@ -287,6 +289,7 @@ int ObAggregateFunction::prepare(const ObRow &input_row)
   ObRow dedup_row;
   dedup_row.set_row_desc(dedup_row_desc_);
   bool has_distinct = false;
+  int64_t bucket_pos = 0;//add wsx
   for (int64_t i = 0; OB_SUCCESS == ret && i < aggr_columns_->count(); ++i)
   {
     ObSqlExpression &cexpr = aggr_columns_->at(static_cast<int32_t>(i));
@@ -334,16 +337,17 @@ int ObAggregateFunction::prepare(const ObRow &input_row)
     {
       for (int64_t i = 0; i < dedup_row.get_column_num(); ++i)
       {
-        if (OB_SUCCESS != (ret = dedup_sets_[i].clear()))
+        if (OB_SUCCESS != (ret = dedup_sets_[i].clear_buckets(bucket_pos_array_)))//add wsx
         {
           TBSYS_LOG(WARN, "failed to clear hash set, err=%d idx=%ld", ret, i);
         }
-        else if (hash::HASH_INSERT_SUCC != (ret = dedup_sets_[i].set(&stored_row->reserved_cells_[i])))
+        else if (hash::HASH_INSERT_SUCC != (ret = dedup_sets_[i].set_and_getpos(&stored_row->reserved_cells_[i], bucket_pos)))//add wsx
         {
           TBSYS_LOG(WARN, "failed to insert into hash set, err=%d", ret);
         }
         else
         {
+          bucket_pos_array_.push_back(bucket_pos);//add wsx
           ret = OB_SUCCESS;
         }
       } // end for
@@ -395,6 +399,7 @@ int ObAggregateFunction::process(const ObRow &input_row)
   bool is_distinct = false;
   uint64_t tid = OB_INVALID_ID;
   uint64_t cid = OB_INVALID_ID;
+  int64_t bucket_pos = 0;//add wsx
   bool is_qualified[common::OB_ROW_MAX_COLUMNS_COUNT];
   memset(is_qualified, 0, sizeof(is_qualified));
   ObRow dedup_row;
@@ -456,13 +461,14 @@ int ObAggregateFunction::process(const ObRow &input_row)
         {
           if (is_qualified[i])
           {
-            if (hash::HASH_INSERT_SUCC != (ret = dedup_sets_[i].set(&stored_row->reserved_cells_[i])))
+            if (hash::HASH_INSERT_SUCC != (ret = dedup_sets_[i].set_and_getpos(&stored_row->reserved_cells_[i], bucket_pos)))//add wsx
             {
               TBSYS_LOG(WARN, "failed to insert into hash set, err=%d", ret);
               break;
             }
             else
             {
+              bucket_pos_array_.push_back(bucket_pos);//add wsx
               ret = OB_SUCCESS;
             }
           }
