@@ -780,7 +780,7 @@ namespace oceanbase
       tbsys::CThreadGuard hist_mutex_gard(&mutex);
       //mod　longfei 2016-06-21 [Bug 145] 22:01:13
       ObTabletInfoList **p_info_list;
-//      ObTabletInfoList* p_info_list[server_count];
+      //      ObTabletInfoList* p_info_list[server_count];
       //mod e
       if(NULL == root_server_)
       {
@@ -790,6 +790,7 @@ namespace oceanbase
       else
       {
         server_count = static_cast<int32_t>(root_server_->get_server_manager().size());
+        TBSYS_LOG(INFO, "server count is %d", server_count);
         //add longfei 2016-06-21 [Bug 145] 22:14:57
         p_info_list = static_cast<ObTabletInfoList**>(ob_malloc(sizeof(ObTabletInfoList*) * server_count, ObModIds::OB_BUFFER));
         //add e
@@ -801,6 +802,7 @@ namespace oceanbase
       if(OB_SUCCESS == ret)
       {
         {
+          TBSYS_LOG(INFO, "Dragon: design global index"); //add dragon 2017-3-20
           while(has_next() && OB_SUCCESS == ret)
           {
             ObTabletInfo tablet_info;
@@ -811,12 +813,44 @@ namespace oceanbase
               server_index[i] = OB_INVALID_INDEX;
             }
             TBSYS_LOG(DEBUG,"sample_num is [%ld], copy_count = [%d]", sample_num, copy_count);
+            // tablet_info --> 切分后的全局tablet     server_index --> 各副本所在的cs
             if (OB_SUCCESS == (ret = get_next_global_tablet(sample_num, tablet_info, server_index, copy_count)))
             {
-              if (OB_SUCCESS != (ret = fill_tablet_info_list_by_server_index(p_info_list, server_count, tablet_info, server_index, copy_count)))
+              if (OB_SUCCESS != (ret = fill_tablet_info_list_by_server_index(
+                                   p_info_list,
+                                   server_count,
+                                   tablet_info,
+                                   server_index,
+                                   copy_count)))
               {
                 TBSYS_LOG(WARN, "fill tablet info list error. ret=%d", ret);
               }
+              //add dragon [] 2017-3-29 b
+              //write this tablet info to root table
+              if (OB_SUCCESS == ret)
+              {
+                TBSYS_LOG(INFO, "will write global index range into rt for query, index table id = [%lu]", index_tid_);
+                //mod dragon [] 2017-3-29 b
+                if (OB_SUCCESS != (ret = root_server_->write_tablet_info_list_to_rt_v2(
+                                     p_info_list, server_index, server_count)))
+                  //if (OB_SUCCESS != (ret = root_server_->write_tablet_info_list_to_rt(p_info_list, server_count)))
+                  //mod dragon e
+                {
+                  TBSYS_LOG(WARN, "write tablet info list to rt error. ret=%d", ret);
+                }
+                else
+                {
+                  TBSYS_LOG(INFO, "write global index range into rt succ, index table id = [%lu]", index_tid_);
+                }
+              }
+
+              //为下个全局tablet做准备
+              for(int32_t i = 0; i < server_count; i++)
+              {
+                if(p_info_list[i] != NULL)
+                  p_info_list[i]->tablet_list.clear();
+              }
+              //add dragon e
             }
             else
             {
@@ -824,18 +858,26 @@ namespace oceanbase
             }
           }//end while
         }
-        if (OB_SUCCESS == ret)
-        {
-          TBSYS_LOG(INFO, "will write global index range into rt for query, index table id = [%lu]", index_tid_);
-          if (OB_SUCCESS != (ret = root_server_->write_tablet_info_list_to_rt(p_info_list, server_count)))
-          {
-            TBSYS_LOG(WARN, "write tablet info list to rt error. ret=%d", ret);
-          }
-          else
-          {
-            TBSYS_LOG(INFO, "write global index range into rt succ, index table id = [%lu]", index_tid_);
-          }
-        }
+        //del dragon [] b
+        /*
+            if (OB_SUCCESS == ret)
+            {
+              TBSYS_LOG(INFO, "will write global index range into rt for query, index table id = [%lu]", index_tid_);
+              //mod dragon [] 2017-3-29 b
+              if (OB_SUCCESS != (ret = root_server_->write_tablet_info_list_to_rt_v2(
+                                   p_info_list, server_index, server_count)))
+              //if (OB_SUCCESS != (ret = root_server_->write_tablet_info_list_to_rt(p_info_list, server_count)))
+              //mod dragon e
+              {
+                TBSYS_LOG(WARN, "write tablet info list to rt error. ret=%d", ret);
+              }
+              else
+              {
+                TBSYS_LOG(INFO, "write global index range into rt succ, index table id = [%lu]", index_tid_);
+              }
+            }
+            */
+        //del e
 
         for (int32_t i = 0; i< server_count; i++)
         {
