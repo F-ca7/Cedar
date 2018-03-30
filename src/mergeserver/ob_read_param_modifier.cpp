@@ -541,6 +541,22 @@ int oceanbase::mergeserver::get_next_range(const oceanbase::sql::ObSqlScanParam 
   int err = OB_SUCCESS;
   cur_limit_offset = 0;
   cur_range.reset();
+  //add jinty [sort in cs bugfix] 20180324:b//TODO:necessary?
+  if(OB_SUCCESS == err)
+  {
+    if((org_scan_param.has_group()) && (org_scan_param.has_scalar_agg()))
+    {
+      err = OB_INVALID_ARGUMENT;
+      TBSYS_LOG(WARN,"Group operator and scalar aggregate operator"\
+                     "can not appear in TabletScan at the same time.err=%d",err);
+    }
+    else if((org_scan_param.has_group()) && !(org_scan_param.has_group_columns_sort()))
+    {
+      err = OB_INVALID_ARGUMENT;
+      TBSYS_LOG(WARN,"Physical plan error, group need a sort operator. err=%d",err);
+    }
+  }
+  //add:e
   ObNewRange tablet_range;
   if ((OB_SUCCESS == err) && (OB_SUCCESS != (err = prev_scan_result.get_range(tablet_range))))
   {
@@ -557,7 +573,11 @@ int oceanbase::mergeserver::get_next_range(const oceanbase::sql::ObSqlScanParam 
     }
   }
 
-  if (OB_SUCCESS == err)
+  //mod jinty [sort in cs bugfix] 20180324:b
+  bool is_sort_in_cs = ( org_scan_param.has_group_columns_sort() );//TODO::list aggregation || ob_group_agg_push_down_param
+  //if (OB_SUCCESS == err)
+  if (OB_SUCCESS == err && !is_sort_in_cs)
+  //mod:e
   {
     err = get_next_range_for_trivail_scan(*org_scan_param.get_range(),prev_scan_result,
       org_scan_param.get_scan_direction(),cur_range);
@@ -566,6 +586,43 @@ int oceanbase::mergeserver::get_next_range(const oceanbase::sql::ObSqlScanParam 
       TBSYS_LOG(WARN,"fail to get next range [err:%d]", err);
     }
   }
+  //add jinty [sort in cs bugfix] 20180324:b
+  else if( OB_SUCCESS == err && is_sort_in_cs)
+  {
+    int64_t fullfilled_item_num = 0;
+    bool is_fullfill = false;
+    if (OB_SUCCESS != (err = prev_scan_result.get_is_req_fullfilled(is_fullfill,fullfilled_item_num)))
+    {
+      TBSYS_LOG(WARN,"fail to get fullfill info from prev result [err:%d]", err);
+    }
+    if ((OB_SUCCESS == err) && (fullfilled_item_num != prev_scan_result.get_row_num()))
+    {
+      /// TBSYS_LOG(ERROR,"unexpected error [prev_result::fullfilled_item_num:%ld, prev_result::get_row_num():%ld]",
+      ///   fullfilled_item_num, prev_scan_result.get_row_num());
+      /// err = OB_ERR_UNEXPECTED;
+      fullfilled_item_num = prev_scan_result.get_row_num();
+    }
+    if ((OB_SUCCESS == err) && is_fullfill)
+    {
+      if (is_finish_scan(org_scan_param.get_scan_direction(),*org_scan_param.get_range(),tablet_range))
+      {
+        err = OB_ITER_END;
+      }
+      else
+      {
+        TBSYS_LOG(WARN,"unexpected error");
+        cur_range = *org_scan_param.get_range();
+        cur_range.start_key_ = tablet_range.end_key_;
+        cur_range.border_flag_.unset_inclusive_start();
+      }
+    }
+    if ((OB_SUCCESS == err) && !is_fullfill)
+    {
+      cur_range = *org_scan_param.get_range();
+      cur_limit_offset = prev_limit_offset + fullfilled_item_num;//与limit相关
+    }
+  }
+  //add:e
   if (OB_SUCCESS == err)
   {
     ObRowkey str;

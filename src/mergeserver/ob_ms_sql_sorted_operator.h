@@ -62,6 +62,9 @@ namespace oceanbase
     private:
       static const int64_t FULL_SCANNER_RESERVED_BYTE_COUNT  = 200;
       void sort(bool &is_finish, oceanbase::common::ObNewScanner * last_sharding_res = NULL);
+      //add jinty [sort in cs bugfix] 20180324:b
+      int sort_fullfilled_result(bool& is_finish, oceanbase::common::ObNewScanner* last_sharding_res = NULL);
+      //add:e
       struct sharding_result_t
       {
         common::ObNewScanner *sharding_res_;
@@ -81,6 +84,11 @@ namespace oceanbase
       const sql::ObSqlScanParam    *scan_param_;
       common::ObNewRange              scan_range_;
       int64_t           total_mem_size_used_;
+      //add jinty [sort in cs bugfix] 20180324:b
+      ObSEArray<sharding_result_t, COMMON_SHARDING_RESULT_COUNT> fullfilled_result_arr_;//用于保存从cs上返回的fullfilled标志为true的scanner 其大小取决于单表tablet的个数
+      int64_t           seamless_fullfilled_result_count_;//用于标记所有已经到达ms的有序的tablet级别的请求range
+      int64_t           cur_fullfilled_result_idx_;//用于标记当前已经返回给上层的tablet级别的请求range
+      //add:e
     };
   }
 }
