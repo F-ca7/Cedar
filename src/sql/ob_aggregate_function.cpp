@@ -86,7 +86,7 @@ void ObAggregateFunction::reuse()
   did_int_div_as_double_ = 0;
 }
 
-int ObAggregateFunction::init(const ObRowDesc &input_row_desc, ObExpressionArray &aggr_columns)
+int ObAggregateFunction::init(const ObRowDesc &input_row_desc, ObExpressionArray &aggr_columns)//slwang note:在ObMergeGroupBy::open()里面调用
 {
   int ret = OB_SUCCESS;
   // copy reference of aggr_column
@@ -120,8 +120,8 @@ int ObAggregateFunction::init(const ObRowDesc &input_row_desc, ObExpressionArray
 
   if (OB_SUCCESS == ret)
   {
-    curr_row_.set_row_desc(row_desc_);
-    if (OB_SUCCESS != (ret = curr_row_.reset(false, ObRow::DEFAULT_NULL)))
+    curr_row_.set_row_desc(row_desc_);//slwang note: 貌似在这里给curr_row_赋值
+    if (OB_SUCCESS != (ret = curr_row_.reset(false, ObRow::DEFAULT_NULL)))//slwang note:curr_row_里面每列下面的值会被设置成null_cell
     {
       TBSYS_LOG(WARN, "fail to reset curr_row_:ret[%d]", ret);
     }
@@ -138,7 +138,7 @@ void ObAggregateFunction::destroy()
   //free_varchar_mem
   for (int64_t i = 0; i < varchar_buffs_count_; ++i)
   {
-    ob_free(varchar_buffs_[i]);
+    ob_free(varchar_buffs_[i]);//slwang note: coredump
     varchar_buffs_[i] = NULL;
   }
   aggr_cells_.clear();
@@ -207,10 +207,10 @@ int ObAggregateFunction::clone_expr_cell(const ObExprObj &cell, ObExprObj &cell_
 int ObAggregateFunction::clone_cell(const ObObj &cell, ObObj &cell_clone)
 {
   int ret = OB_SUCCESS;
-  if (ObVarcharType == cell.get_type())
+  if (ObVarcharType == cell.get_type())//slwang note:cell的类型为Varchar才会走这里
   {
     ObString varchar;
-    cell.get_varchar(varchar);
+    cell.get_varchar(varchar);//slwang note:让varchar指向cell中的varchar的值
     ObString varchar_clone;
     if (varchar.length() > OB_MAX_VARCHAR_LENGTH)
     {
@@ -219,13 +219,20 @@ int ObAggregateFunction::clone_cell(const ObObj &cell, ObObj &cell_clone)
     }
     else if (ObVarcharType == cell_clone.get_type())
     {
-      cell_clone.get_varchar(varchar_clone);
+      cell_clone.get_varchar(varchar_clone);//slwang note:如果cell_clone是ObVarcharType类型，让varchar_clone指向cell_clone中的varchar
       OB_ASSERT(varchar_clone.ptr());
       varchar_clone.assign_buffer(varchar_clone.ptr(), OB_MAX_VARCHAR_LENGTH);
     }
-    else
+    else//slwang note：打印type看一下是不是decimal的问题
     {
-      char* buff = static_cast<char*>(ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_AGGR_FUNC));
+        //modify by slwang 20180328
+//      char* buff = static_cast<char*>(ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_AGGR_FUNC));
+        char* buff = NULL;
+        if(varchar_buffs_[varchar_buffs_count_] != NULL)
+            buff = varchar_buffs_[varchar_buffs_count_];
+        else
+            buff = static_cast<char*>(ob_malloc(OB_MAX_VARCHAR_LENGTH, ObModIds::OB_SQL_AGGR_FUNC));
+        //modify e
       if (NULL == buff)
       {
         TBSYS_LOG(ERROR, "no memory");
@@ -233,25 +240,29 @@ int ObAggregateFunction::clone_cell(const ObObj &cell, ObObj &cell_clone)
       }
       else
       {
-        varchar_clone.assign_buffer(buff, OB_MAX_VARCHAR_LENGTH);
-        OB_ASSERT(varchar_buffs_count_ < common::OB_ROW_MAX_COLUMNS_COUNT);
-        varchar_buffs_[varchar_buffs_count_++] = buff;
+        varchar_clone.assign_buffer(buff, OB_MAX_VARCHAR_LENGTH);//slwang note:让varchar_clone可以操作buff指向的地址
+        OB_ASSERT(varchar_buffs_count_ < common::OB_ROW_MAX_COLUMNS_COUNT);//slwang note:
+        //add by slwang TPCH coredump
+//        TBSYS_LOG(INFO, "slwang varchar_buffs_count_ =%ld, cell_clone.get_type()=%d", varchar_buffs_count_, cell_clone.get_type());
+        //add e
+        varchar_buffs_[varchar_buffs_count_++] = buff;//把这块被新创建出来的地址交给varchar_buffs_,后面由其回收
       }
+
     }
     if (OB_SUCCESS == ret)
     {
-      if (varchar.length() != varchar_clone.write(varchar.ptr(), varchar.length()))
+      if (varchar.length() != varchar_clone.write(varchar.ptr(), varchar.length()))//slwang note:varchar代表了cell,write()实际上是把cell中的值拷贝一份给varchar_clone
       {
         ret = OB_ERR_UNEXPECTED;
         TBSYS_LOG(ERROR, "failed to write varchar, length=%d", varchar.length());
       }
       else
       {
-        cell_clone.set_varchar(varchar_clone);
+        cell_clone.set_varchar(varchar_clone);//slwang note:让cell_clone指向varchar_clone
       }
     }
   }
-  else
+  else//slwang note:非varchar类型，直接让cell_clone指向cell.
   {
     cell_clone = cell;
   }
@@ -265,17 +276,23 @@ int ObAggregateFunction::prepare(const ObRow &input_row)
   ObObj *cell2 = NULL;
   uint64_t tid = OB_INVALID_ID;
   uint64_t cid = OB_INVALID_ID;
-  for (int64_t i = 0; OB_SUCCESS == ret && i < input_row.get_column_num(); ++i)
+  //add by slwang TPCH coredump
+  TBSYS_LOG(DEBUG, "wangsl prepare");
+  varchar_buffs_count_ = 0;
+  //add e
+
+
+  for (int64_t i = 0; OB_SUCCESS == ret && i < input_row.get_column_num(); ++i)//slwang note:get_column_num应该是得到每一行有多少列组成
   {
-    if (OB_SUCCESS != (ret = input_row.raw_get_cell(i, cell1, tid, cid)))
+    if (OB_SUCCESS != (ret = input_row.raw_get_cell(i, cell1, tid, cid)))//slwang note:得到的cell1是一行row中的一列的数据（比如一行数据中的某个字段的值）
     {
       TBSYS_LOG(WARN, "failed to get cell, err=%d i=%ld", ret, i);
     }
-    else if (OB_SUCCESS != (ret = curr_row_.get_cell(tid, cid, cell2)))
+    else if (OB_SUCCESS != (ret = curr_row_.get_cell(tid, cid, cell2)))//
     {
       TBSYS_LOG(WARN, "failed to get cell, err=%d", ret);
     }
-    else if (OB_SUCCESS != (ret = clone_cell(*cell1, *cell2)))
+    else if (OB_SUCCESS != (ret = clone_cell(*cell1, *cell2)))//slwang note:将cell1拷贝给cell2，由于操作的是指针，所以，cell2被改变后，curr_row_中的值也被改变了
     {
       TBSYS_LOG(WARN, "failed to clone cell, err=%d", ret);
     }
@@ -303,7 +320,7 @@ int ObAggregateFunction::prepare(const ObRow &input_row)
     {
       TBSYS_LOG(WARN, "failed to get calc cell, err=%d", ret);
     }
-    else if (OB_SUCCESS != (ret = aggr_get_cell(tid, cid, aggr_cell)))
+    else if (OB_SUCCESS != (ret = aggr_get_cell(tid, cid, aggr_cell)))//slwang note:aggr_get_cell这中使用到curr_row_,由此用到clone_cell()函数中cell2
     {
       TBSYS_LOG(WARN, "failed to get cell, err=%d", ret);
     }
