@@ -691,6 +691,9 @@ namespace oceanbase
         friend class ::ObBalanceTest_test_shutdown_servers_Test;
         friend class ::ObRootServerTest;
         friend class ObRootReloadConfig;
+		//add wsx:seidx bug
+		int write_tablet_info_list_to_rt_v2(ObTabletInfoList **tablet_info_list, int32_t server_index[], const int32_t list_size);
+        //add e
       private:
         bool async_task_queue_empty()
         {

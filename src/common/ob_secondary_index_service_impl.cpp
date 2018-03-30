@@ -96,7 +96,7 @@ int ObSecondaryIndexServiceImpl::find_cid(
       }
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
-             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -146,7 +146,7 @@ int ObSecondaryIndexServiceImpl::change_tid(
       idx = idx + pf_expr.get_type_num(idx, sql::ObPostfixExpression::COLUMN_IDX);
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
-             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -203,7 +203,7 @@ int ObSecondaryIndexServiceImpl::get_cid(
       }
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
-             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP  || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -278,7 +278,7 @@ bool ObSecondaryIndexServiceImpl::is_all_expr_cid_in_indextable(
       }
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW  // ??
-             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -343,7 +343,7 @@ bool ObSecondaryIndexServiceImpl::is_have_main_cid(
       }
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
-             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -383,7 +383,7 @@ int ObSecondaryIndexServiceImpl::get_all_cloumn(
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
              || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END
-             || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }
@@ -475,7 +475,7 @@ bool ObSecondaryIndexServiceImpl::is_this_expr_can_use_index(
     }
     else if (type == sql::ObPostfixExpression::OP || type == sql::ObPostfixExpression::COLUMN_IDX || type == T_OP_ROW
              || type == sql::ObPostfixExpression::CONST_OBJ || type == sql::ObPostfixExpression::END
-             || type == sql::ObPostfixExpression::UPS_TIME_OP)
+             || type == sql::ObPostfixExpression::UPS_TIME_OP || type == sql::ObPostfixExpression::PARAM_IDX)//mod wsx[prepare bug]
     {
       idx = idx + pf_expr.get_type_num(idx, type);
     }

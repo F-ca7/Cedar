@@ -9351,3 +9351,58 @@ int ObRootServer2::refresh_new_procedure()
   return ret;
 }
 //add :e
+
+//add wsx:seidx bug
+int ObRootServer2::write_tablet_info_list_to_rt_v2(
+    ObTabletInfoList **tablet_info_list,
+    int32_t server_index[],
+    const int32_t list_size)
+{
+  int ret = OB_SUCCESS;
+  const int64_t MAX_REP_COUNT = 3;
+  ObTabletReportInfoList add_tablet_list;
+  ObTabletReportInfo report_info;
+  if (NULL == tablet_info_list)
+  {
+    ret = OB_ERROR;
+    TBSYS_LOG(WARN, "ObTabletInfoList* tablet_info_list[] is null.");
+  }
+  int arr_len = (int)min(list_size, MAX_REP_COUNT); //
+  TBSYS_LOG(INFO, "arr_len=%d, list_sz=%d", arr_len, list_size);
+  for (int32_t i = 0;
+       i < arr_len  && OB_SUCCESS == ret;
+       i++)
+  {
+    add_tablet_list.reset();//reset list
+    int32_t server_idx = server_index[i];
+    if (NULL != tablet_info_list[server_idx] && OB_INVALID_INDEX != server_idx)
+    {
+      ObServer cs = server_manager_.get_cs(server_idx);
+      for (int64_t tablet_idx = 0;
+           tablet_idx < tablet_info_list[server_idx]->get_tablet_size() && OB_SUCCESS == ret;
+           tablet_idx++)
+      {
+        ObTabletInfo &tablet_info = tablet_info_list[server_idx]->tablets[tablet_idx];
+        //set tablet_version_ = OB_INVALID_VERSION, used to check if it is a valid copy in rt.
+        //see @check_create_global_index_done()
+        ObTabletLocation tablet_location(OB_INVALID_VERSION, cs);
+        report_info.tablet_location_ = tablet_location;
+        report_info.tablet_info_ = tablet_info;
+        if (OB_SUCCESS != (ret = add_tablet_list.add_tablet(report_info)))
+        {
+          TBSYS_LOG(WARN, "fail add tablet report info. ret=%d", ret);
+        }
+      }
+      if (OB_SUCCESS == ret)
+      {
+        // write add_tablet_list into rt.
+        if (OB_SUCCESS != (ret = got_reported(add_tablet_list, server_idx, get_last_frozen_version())))
+        {
+          TBSYS_LOG(WARN, "fail add global index range into root table. ret=%d", ret);
+        }
+      }
+    }
+  }//end for
+  return ret;
+}
+//add e
