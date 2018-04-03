@@ -22,7 +22,7 @@ LDADD = \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS=-lgtest -lpthread -lc -lm  -lrt ${GCOV_LIB} -ldl -laio -lcrypt -lssl #-pg
+AM_LDFLAGS=-lgtest -lpthread -lc -lm  -lrt ${GCOV_LIB} -ldl -laio -lcrypt -lssl -lcrypto #-pg
 CXXFLAGS+=-D__UNIT_TEST__ -D_BTREE_ENGINE_ -DROWKEY_IS_OBJ=1 -DUSE_LIBONEV=1 #-DNO_STAT
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

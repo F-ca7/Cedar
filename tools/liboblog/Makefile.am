@@ -47,6 +47,7 @@ liboblog_la_LIBADD = -lpthread -lrt -lcurl -llua												\
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov
+AM_LDFLAGS+= -lcrypto
 endif
 
 # rules to auto generate svn_version.cpp

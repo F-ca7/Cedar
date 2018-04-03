@@ -178,7 +178,14 @@ namespace oceanbase
       {
         while(OB_SUCCESS == (ret = child_op_->get_next_row(row)))
         {
-          post_data_row_store_.add_row(*row, stored_row);
+          //mod huangjianwei [index debug] 20180402:b
+          //post_data_row_store_.add_row(*row, stored_row);
+          if (OB_SUCCESS != (ret = post_data_row_store_.add_row(*row, stored_row)))
+          {
+            TBSYS_LOG(WARN,"post row_store add row failed, ret=[%d]", ret);
+            break;
+          }
+          //mod:e
         }
         if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
@@ -215,7 +222,14 @@ namespace oceanbase
           else if(!row_empty_flag)
           {
             delete_flag_for_replace_ = true;
-            pre_data_row_store_.add_row(*row, stored_row);
+            //mod huangjianwei [index debug] 20180402:b
+            //pre_data_row_store_.add_row(*row, stored_row);
+            if (OB_SUCCESS != (ret = pre_data_row_store_.add_row(*row, stored_row)))
+            {
+              TBSYS_LOG(WARN,"pre row_store add row failed, ret=[%d]", ret);
+              break;
+            }
+            //mod:e
           }
         }
         if(OB_ITER_END == ret)
@@ -226,7 +240,14 @@ namespace oceanbase
           replace_values_.open();
           while(OB_SUCCESS == (ret = replace_values_.get_next_row(row)))
           {
-             post_data_row_store_.add_row(*row, stored_row);
+            //mod huangjianwei [index debug] 20180402:b
+            //post_data_row_store_.add_row(*row, stored_row);
+            if (OB_SUCCESS != (ret = post_data_row_store_.add_row(*row, stored_row)))
+            {
+              TBSYS_LOG(WARN,"post row_store add row failed, ret=[%d]", ret);
+              break;
+            }
+            //mod:e
           }
           if(OB_ITER_END == ret)
           ret = OB_SUCCESS;
@@ -370,6 +391,10 @@ namespace oceanbase
           }
         }
       }
+      //add huangjianwei [index debug] 20180403:b
+      pre_data_row_store_.clear();
+      post_data_row_store_.clear();
+      //add:e
       return ret;
     }
 

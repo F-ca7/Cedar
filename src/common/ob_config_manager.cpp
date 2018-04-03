@@ -108,7 +108,9 @@ int ObConfigManager::load_config(const char *path)
   }
   else
   {
-    char buf[OB_MAX_PACKET_LENGTH] = {0};
+    char buf[OB_MAX_PACKET_LENGTH];
+    memset(buf, 0, sizeof(buf));
+    //char buf[OB_MAX_PACKET_LENGTH] = {0};
     int64_t len = fread(buf, 1, OB_MAX_PACKET_LENGTH, fp);
     int64_t pos = 0;
 
@@ -169,7 +171,8 @@ int ObConfigManager::dump2file(const char* path) const
     else
     {
       /* write server config */
-      char buf[OB_MAX_PACKET_LENGTH] = {0};
+      char buf[OB_MAX_PACKET_LENGTH];
+      //char buf[OB_MAX_PACKET_LENGTH] = {0};
       int64_t pos = 0;
       if (OB_SUCCESS != (ret = server_config_.serialize(buf, OB_MAX_PACKET_LENGTH, pos)))
       {
@@ -418,8 +421,12 @@ int ObConfigManager::UpdateTask::write2stat()
   }
   else
   {
-    char sqlbuf[OB_MAX_PACKET_LENGTH] = {0};
-    char buff[OB_MAX_PACKET_LENGTH] = {0};
+    char sqlbuf[OB_MAX_PACKET_LENGTH];
+    char buff[OB_MAX_PACKET_LENGTH];
+    sqlbuf[0] = '\0';
+    buff[0] = '\0';
+    //char sqlbuf[OB_MAX_PACKET_LENGTH] = {0};
+    //char buff[OB_MAX_PACKET_LENGTH] = {0};
     ObDataBuffer msgbuf(buff, OB_MAX_PACKET_LENGTH);
     char *saveptr = NULL;
 

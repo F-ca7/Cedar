@@ -8,7 +8,7 @@ LDADD = ${top_srcdir}/src/mergeserver/libmergeserver.a \
         ${ONEV_LIB_PATH}/libonev.a                     \
         ${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl #-pg
+AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl -lcrypto #-pg
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

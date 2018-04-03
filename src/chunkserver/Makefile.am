@@ -19,7 +19,7 @@ LDADD = $(top_builddir)/src/sstable/libsstable.a                \
         ${TBLIB_ROOT}/lib/libtbsys.a
 
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lssl
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lssl -lcrypto
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

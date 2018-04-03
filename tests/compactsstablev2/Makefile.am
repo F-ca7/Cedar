@@ -18,7 +18,7 @@ LDADD = \
 		${TBLIB_ROOT}/lib/libtbnet.a\
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpthread -lc -g -lm -lrt -lgtest -ldl ${GCOV_LIB} -laio -lssl
+AM_LDFLAGS = -lpthread -lc -g -lm -lrt -lgtest -ldl ${GCOV_LIB} -laio -lssl -lcrypto
 CXXFLAGS += -D__GNU_SOURCE
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

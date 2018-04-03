@@ -10,7 +10,7 @@ LDADD = ${top_builddir}/src/clustermanager/libocm.a \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a  
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB}
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest -lcrypto  ${GCOV_LIB}
 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

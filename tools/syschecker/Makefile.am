@@ -19,7 +19,7 @@ LDADD = $(top_builddir)/src/chunkserver/libchunkserver.a \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -lssl -laio
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -lssl -laio -lcrypto
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

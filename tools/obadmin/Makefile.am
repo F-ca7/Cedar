@@ -16,7 +16,7 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lnuma -lcrypt -lssl -lreadline -lncurses -lcrypt -lssl ${GCOV_LIB}
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lnuma -lcrypt -lssl -lreadline -lncurses -lcrypt -lssl ${GCOV_LIB} -lcrypto
 CXXFLAGS += -D_BTREE_ENGINE_
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

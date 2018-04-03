@@ -22,7 +22,7 @@ LDADD = $(top_builddir)/src/mergeserver/libmergeserver.a \
 				${TBLIB_ROOT}/lib/libtbsys.a
 
 CXXFLAGS += -D_MS_MOCK_WHOLE_  -D_BTREE_ENGINE_ -D__UNIT_TEST__
-AM_LDFLAGS = -laio -lpthread -lc -lm  -lgtest -lrt ${GCOV_LIB} -ldl -lssl
+AM_LDFLAGS = -laio -lpthread -lc -lm  -lgtest -lrt ${GCOV_LIB} -ldl -lssl -lcrypto
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

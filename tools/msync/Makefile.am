@@ -15,7 +15,7 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a 
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio ${GCOV_LIB}
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio ${GCOV_LIB} -lcrypto
 CXXFLAGS += -D__LSYNC_DEBUG__ 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

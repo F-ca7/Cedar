@@ -16,7 +16,7 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
 		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl ${GCOV_LIB}
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl -lcrypto ${GCOV_LIB}
 CXXFLAGS += -DORDER_SERIALIZE -D__LSYNC_DEBUG__
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

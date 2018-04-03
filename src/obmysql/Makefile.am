@@ -9,7 +9,7 @@ LDADD = ${ONEV_LIB_PATH}/libonev.a \
 	${top_srcdir}/src/sql/libsql.a \
 	${top_srcdir}/src/common/libcommon.a
 #CXXFLAGS+=-O2
-AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl #-pg
+AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl -lcrypto #-pg
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

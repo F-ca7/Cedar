@@ -13,7 +13,7 @@ LDADD = ${top_builddir}/src/common/libcommon.a \
     ${ONEV_LIB_PATH}/libonev.a \
     ${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB} -lcrypt -lssl -laio
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest -lcrypto  ${GCOV_LIB} -lcrypt -lssl -laio 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov -fprofile-arcs

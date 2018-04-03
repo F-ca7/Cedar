@@ -26,7 +26,7 @@ LDADD = \
 		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -lgmock -lgtest ${GCOV_LIB} -lnuma -lcrypt -lreadline -lncurses -laio -lssl
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lgmock -lgtest ${GCOV_LIB} -lnuma -lcrypt -lreadline -lncurses -laio -lssl -lcrypto
 CXXFLAGS+= -g -DCOMPATIBLE
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

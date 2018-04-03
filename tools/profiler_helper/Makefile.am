@@ -11,5 +11,5 @@ libprofiler_helper_la_LDFLAGS = \
                       -lprofiler \
                       -Wl,-e,so_main
 
-AM_LDFLAGS = -lpthread -ldl
+AM_LDFLAGS = -lpthread -ldl -lcrypto
 

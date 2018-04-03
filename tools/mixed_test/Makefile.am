@@ -23,7 +23,7 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
     ${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl
+AM_LDFLAGS=-lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl -lcrypto
 CXXFLAGS+=-D_BTREE_ENGINE_
 
 if COVERAGE

@@ -17,7 +17,7 @@ LDADD = \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a 
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypto
 CXXFLAGS+=-D__VERSION_ID__="\"updateserver 1.0.0.0\""
 CXXFLAGS+=-D_BTREE_ENGINE_
 if COVERAGE

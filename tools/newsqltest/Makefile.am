@@ -1,4 +1,4 @@
-AM_LDFLAGS = -L/usr/lib64/mysql/ -lmysqlclient -lgtest -lpthread
+AM_LDFLAGS = -L/usr/lib64/mysql/ -lmysqlclient -lgtest -lpthread -lcrypto
 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

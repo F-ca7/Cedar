@@ -16,7 +16,7 @@ LDADD =  \
 		 ${ONEV_LIB_PATH}/libonev.a \
 		 ${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB} -lcrypt
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest -lcrypto  ${GCOV_LIB} -lcrypt
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

@@ -7,7 +7,7 @@ AM_CPPFLAGS = -I${TBLIB_ROOT}/include/tbsys					\
 							-I${DRC_ROOT}/include/drcmessage
 
 AM_LDFLAGS = -L${top_srcdir}/tools/liboblog/.libs -loblog 		\
-						 -lgtest -lssl
+						 -lgtest -lssl -lcrypto
 
 LDADD = ${ONEV_LIB_PATH}/libonev.a
 CXXFLAGS += -g -D__DENSE_AVAILABLE__

@@ -234,10 +234,26 @@ int ObProject::get_next_row_with_index(const common::ObRow *&row, common::ObRowS
       row = &row_;
     }
     const ObRowStore::StoredRow *stored_row = NULL;
-    if(NULL != pre_data_row_store)
-        pre_data_row_store->add_row(*input_row, stored_row);
-    if(NULL != post_data_row_store)
-        post_data_row_store->add_row(*row, stored_row);
+    //mod huangjianwei [index debug] 20180402:b
+//    if(NULL != pre_data_row_store)
+//        pre_data_row_store->add_row(*input_row, stored_row);
+    if(NULL != pre_data_row_store && ret == OB_SUCCESS)
+    {
+      if (OB_SUCCESS != (ret = pre_data_row_store->add_row(*input_row, stored_row)))
+      {
+        TBSYS_LOG(WARN,"pre row_store add row failed, ret=[%d]", ret);
+      }
+    }
+//    if(NULL != post_data_row_store)
+//        post_data_row_store->add_row(*row, stored_row);
+    if(NULL != post_data_row_store && ret == OB_SUCCESS)
+    {
+      if (OB_SUCCESS != (ret = post_data_row_store->add_row(*row, stored_row)))
+      {
+        TBSYS_LOG(WARN,"post row_store add row failed, ret=[%d]", ret);
+      }
+    }
+    //mod:e
   }
   return ret;
 }

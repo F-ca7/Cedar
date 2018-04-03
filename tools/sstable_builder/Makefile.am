@@ -1,5 +1,5 @@
 AM_CPPFLAGS=-I/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/linux -I/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/
-AM_LDFLAGS=-lpthread -lc -lm -lrt
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lcrypto 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

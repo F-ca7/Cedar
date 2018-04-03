@@ -15,7 +15,7 @@ LDADD = $(top_builddir)/src/chunkserver/libchunkserver.a \
 		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpq -lmysqlclient_r -lpthread -lc -lm -lrt -ldl -lnuma -L$(top_builddir)/tools/sqltest/lib/
+AM_LDFLAGS = -lpq -lmysqlclient_r -lpthread -lc -lm -lrt -ldl -lnuma -L$(top_builddir)/tools/sqltest/lib/ -lcrypto
 #AM_LDFLAGS = -lpq -lmysqlclient -lpthread -lc -lm -lrt -ldl -lnuma
 CXXFLAGS = -D__STDC_LIMIT_MACROS -g -Wall -DORDER_SERIALIZE #-O2 -fno-strict-aliasing
 if COVERAGE

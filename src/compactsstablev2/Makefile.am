@@ -9,7 +9,7 @@ LDADD = ${TBLIB_ROOT}/lib/libtbsys.a \
 				${top_builddir}/src/common/libcommon.a \
 				${top_builddir}/src/sstable/libsstable.a
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -lcrypt -lssl -pg
+AM_LDFLAGS = -lpthread -lc -lm -lrt -lcrypt -lssl -pg -lcrypto
 CXXFLAGS+= -D_SSTABLE_NO_STAT_
 if COVERAGE
 CXXFLAGS += -fprofile-args -ftest -coverage

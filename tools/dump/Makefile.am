@@ -17,7 +17,7 @@ LDADD = $(top_builddir)/src/updateserver/libupdateserver.a \
 	${ONEV_LIB_PATH}/libonev.a \
 	${TBLIB_ROOT}/lib/libtbsys.a -lcrypt
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl ${GCOV_LIB} -laio -lcrypt -lssl
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl ${GCOV_LIB} -laio -lcrypt -lssl -lcrypto
 CXXFLAGS += -I${JAVA_HOME}/include -DDUMP_DEBUG
 
 if COVERAGE

@@ -9,7 +9,7 @@ LDADD = $(top_builddir)/src/common/libcommon.a \
         ${ONEV_LIB_PATH}/libonev.a \
 		    ${TBLIB_ROOT}/lib/libtbsys.a 
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -lssl -ldl -lhdfs -ljvm -L${JAVA_HOME}/jre/lib/amd64/server/ -L${HADOOP_HOME}/libhdfs/
+AM_LDFLAGS = -lpthread -lc -lm -lrt -lssl -ldl -lhdfs -ljvm -L${JAVA_HOME}/jre/lib/amd64/server/ -L${HADOOP_HOME}/libhdfs/ -lcrypto
 CXXFLAGS = -g -Wall -DORDER_SERIALIZE
 
 if COVERAGE

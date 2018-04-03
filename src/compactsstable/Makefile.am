@@ -7,7 +7,7 @@ AM_CPPFLAGS= -I${TBLIB_ROOT}/include/tbsys \
 LDADD = ${ONEV_LIB_PATH}/libonev.a \
 	${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl #-pg
+AM_LDFLAGS=-lpthread -lc -lm  -lrt -lcrypt -lssl -lcrypto #-pg
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

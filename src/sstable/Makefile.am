@@ -11,7 +11,7 @@ LDADD = $(top_builddir)/src/common/compress/libcomp.a     \
         ${ONEV_LIB_PATH}/libonev.a                        \
         ${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypto
 #CXXFLAGS+= -D_SSTABLE_NO_STAT_
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

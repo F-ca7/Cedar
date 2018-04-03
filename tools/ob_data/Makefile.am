@@ -9,7 +9,7 @@ LDADD = $(top_builddir)/src/mergeserver/libmergeserver.a \
 				${TBLIB_ROOT}/lib/libtbnet.a \
 				${TBLIB_ROOT}/lib/libtbsys.a 
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl 
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -lcrypto 
 CXXFLAGS = -D__STDC_LIMIT_MACROS -g -Wall -DORDER_SERIALIZE
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

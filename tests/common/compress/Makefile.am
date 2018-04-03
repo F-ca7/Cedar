@@ -2,7 +2,7 @@ AM_CPPFLAGS = -I${top_srcdir}/src/common/compress
 
 LDADD = $(top_builddir)/src/common/compress/libcomp.a 
 
-AM_LDFLAGS=-lpthread -lc -lm -lgtest -ldl ${GCOV_LIB}
+AM_LDFLAGS=-lpthread -lc -lm -lgtest -ldl -lcrypto ${GCOV_LIB}
 CXXFLAGS=-g -Wall #-fprofile-arcs -ftest-coverage
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage

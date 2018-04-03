@@ -12,7 +12,7 @@ LDADD = ${top_builddir}/src/mms/libmms.a \
 		${TBLIB_ROOT}/lib/libtbnet.a \
 		${TBLIB_ROOT}/lib/libtbsys.a  
 
-AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB}
+AM_LDFLAGS=-lpthread -lc -lm -lrt -lgtest   ${GCOV_LIB} -lcrypto
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

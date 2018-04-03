@@ -11,7 +11,7 @@ LDADD = $(top_builddir)/src/chunkserver/libchunkserver.a \
 		${ONEV_LIB_PATH}/libonev.a \
 		${TBLIB_ROOT}/lib/libtbsys.a
 
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl ${GCOV_LIB}
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl ${GCOV_LIB} -lcrypto
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
 AM_LDFLAGS+=-lgcov

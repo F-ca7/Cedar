@@ -23,7 +23,7 @@ CXXFLAGS+=-D_BTREE_ENGINE_
 CXXFLAGS+=-fPIC
 #CXXFLAGS+=-pg
 #CXXFLAGS+=-O2 -Wno-strict-aliasing
-AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl
+AM_LDFLAGS = -lpthread -lc -lm -lrt -ldl -laio -lcrypt -lssl -lcrypto
 
 if COVERAGE
 CXXFLAGS+=-fprofile-arcs -ftest-coverage
