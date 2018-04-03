@@ -4763,7 +4763,11 @@ namespace oceanbase
     {
       //modify by zhouhuan for [scalable commit] 20160710
       //return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, write_thread_queue_, write_task_queue_size_);
-      return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, alive_thread_queue_, write_task_queue_size_);
+        if(alive_thread_queue_.size()<16)
+        {
+              return submit_async_task_(OB_FAKE_WRITE_FOR_KEEP_ALIVE, alive_thread_queue_, write_task_queue_size_);
+        }
+        else return OB_SUCCESS;
       //modify :e
     }
 
