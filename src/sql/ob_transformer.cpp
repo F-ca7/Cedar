@@ -3909,7 +3909,6 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
       bit_set.add_member(select_stmt->get_table_bit_index(joined_table->table_ids_.at(0)));
 
       ObPhyOperator *right_op = NULL;
-      ObJoin *join_op = NULL;
       ObSqlRawExpr *join_expr = NULL;
       for (int32_t j = 1; ret == OB_SUCCESS && j < joined_table->table_ids_.count(); j++)
       {
@@ -4034,11 +4033,14 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
         }
         //add:e
         if ((ret = outer_join_tabs.pop_front(table_op)) != OB_SUCCESS
-          || (join_op = dynamic_cast<ObJoin*>(table_op)) == NULL)        {
+          // modified by wangyanzhao 20180416 此时table_op可能是带有别名的语句产生的顶端为PHY_ADD_PROJECT的算子，需要考虑进去
+          || ((dynamic_cast<ObJoin*>(table_op)) == NULL && (dynamic_cast<ObAddProject*>(table_op)) == NULL))        {
           ret = OB_ERR_OPERATOR_UNKNOWN;
           TRANS_LOG("Generate outer join operator failed");
           break;
         }
+        // delete by wangyanzhao 20180416 join_type生成join时已经传入了，这里不需要再留着，也避免与PHY_ADD_PROJECT算子冲突
+        /*
         switch (joined_table->join_types_.at(j - 1))
         {
         case JoinedTable::T_FULL:
@@ -4054,10 +4056,10 @@ int ObTransformer::gen_phy_tables(ObLogicalPlan *logical_plan, ObPhysicalPlan *p
           ret = join_op->set_join_type(ObJoin::INNER_JOIN);
           break;
         default:
-          /* won't be here */
           ret = join_op->set_join_type(ObJoin::INNER_JOIN);
           break;
         }
+        */
       }
     }
     if (ret == OB_SUCCESS && (ret = phy_table_list.push_back(table_op)) != OB_SUCCESS)
