@@ -143,9 +143,14 @@ namespace oceanbase
       int64_t cur_auto_value = OB_INVALID_AUTO_INCREMENT_VALUE;
       ObAutoIncrementFilter *auto_increment_op = NULL;
       const CommonSchemaManager *sm = NULL;
+      //add wsx[fix bug:ups coredump]
+      UpsSchemaMgrGuard sm_guard;
+      //e
       if (OB_SUCCESS == ret)
       {
-        UpsSchemaMgrGuard sm_guard;
+      //del wsx
+      //  UpsSchemaMgrGuard sm_guard;
+      //e
         if (NULL == (sm = host_.get_schema_mgr().get_schema_mgr(sm_guard)))
         {
           TBSYS_LOG(WARN, "get_schema_mgr fail");
