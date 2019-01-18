@@ -1,6 +1,5 @@
 ﻿<font size=5><div align="right"><a href="https://github.com/daseECNU/Cedar/blob/master/CEDAR_0.2/README.md">中文 版本</a></div>
 </font>
->CEDAR is a scalable relational database based on OceanBase 0.4.2 developed by School of Data Science and Engineering, East China Normal University. On February 1, 2016, CEDAR project team had completed the development and test of CEDAR 0.1.  On September 26, 2016, CEDAR 0.2 released. On Septempber 29, 2017, CEDAR 0.3 released.
 
 <h2> Version Characteristics</h2>
 On CEDAR, we have developed function modules listed as follows:
