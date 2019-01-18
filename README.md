@@ -1,6 +1,6 @@
 <font size=5><div align="right"><a href="https://github.com/daseECNU/Cedar/blob/master/CEDAR_0.2/README-English.md">English Version</a></div>
 </font>
->CEDAR是华东师范大学数据科学与工程学院（简称“DaSE”）基于 OceanBase 0.4.2 研发的可扩展的关系数据库。2016年2月1日，CEDAR项目组完成了CEDAR 0.1 版本的开发与测试，2016年9月26日，CEDAR 0.2 版本发布。2017年9月29日，CEDAR 0.3 版本发布。
+
 >
 <h2> 版本特性</h2>
 CEDAR在OceanBase 0.4.2 的基础上新增了如下功能模块：
